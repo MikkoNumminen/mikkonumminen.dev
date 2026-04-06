@@ -25,7 +25,7 @@ export const commands: CommandSpec[] = [
         );
       });
       ctx.print('');
-      ctx.print('tip: try `whoami`, `contact --email`, or `sudo hire mikko`', 'dim');
+      ctx.print('tip: try `whoami`, `contact --email`. some commands need root.', 'dim');
     },
   },
   {
@@ -174,7 +174,7 @@ export const commands: CommandSpec[] = [
   },
   {
     name: 'sudo',
-    description: 'run as root (try `sudo hire mikko`)',
+    description: 'run something as root',
     handler: (args, ctx) => {
       if (args[0] === 'hire' && args[1] === 'mikko') {
         ctx.print('[sudo] password for guest: ********', 'dim');

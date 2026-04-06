@@ -100,6 +100,7 @@ async function runBoot(ctx: CommandContext, elements: TerminalElements) {
   );
   await sleep(150);
   ctx.print('type `help` to see what i can do.', 'dim');
+  ctx.print('hint: i answer to `sudo` commands too.', 'dim');
   ctx.print('');
 }
 
