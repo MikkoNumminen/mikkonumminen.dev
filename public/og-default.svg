@@ -16,15 +16,15 @@
 
   <!-- Particle field -->
   <g fill="#c4d4ff">
-    <circle cx="120" cy="100" r="1.6" opacity="0.85"/>
-    <circle cx="240" cy="160" r="1.2" opacity="0.6"/>
+    <circle cx="120" cy="60" r="1.6" opacity="0.85"/>
+    <circle cx="240" cy="50" r="1.2" opacity="0.6"/>
     <circle cx="380" cy="80" r="1.8" opacity="0.9"/>
-    <circle cx="520" cy="140" r="1.4" opacity="0.7"/>
+    <circle cx="520" cy="40" r="1.4" opacity="0.7"/>
     <circle cx="660" cy="60" r="1.2" opacity="0.55"/>
-    <circle cx="780" cy="180" r="1.6" opacity="0.8"/>
-    <circle cx="900" cy="100" r="1.4" opacity="0.7"/>
-    <circle cx="1020" cy="140" r="1.8" opacity="0.9"/>
-    <circle cx="1100" cy="220" r="1.2" opacity="0.55"/>
+    <circle cx="780" cy="90" r="1.6" opacity="0.8"/>
+    <circle cx="900" cy="50" r="1.4" opacity="0.7"/>
+    <circle cx="1020" cy="80" r="1.8" opacity="0.9"/>
+    <circle cx="1100" cy="100" r="1.2" opacity="0.55"/>
     <circle cx="80" cy="500" r="1.4" opacity="0.7"/>
     <circle cx="200" cy="540" r="1.6" opacity="0.8"/>
     <circle cx="320" cy="480" r="1.2" opacity="0.55"/>
