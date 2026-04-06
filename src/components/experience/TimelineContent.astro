@@ -1,0 +1,326 @@
+---
+import { timeline } from '../../data/timeline';
+
+const kindLabel: Record<string, string> = {
+  foundation: 'foundation',
+  work: 'work',
+  project: 'project',
+  craft: 'craft',
+  now: 'now',
+};
+---
+
+<div class="timeline" data-timeline>
+  <header class="timeline__header">
+    <p class="timeline__eyebrow">the climb</p>
+    <h1 class="timeline__title">Experience</h1>
+    <p class="timeline__lede">
+      Scroll up the mountain. Each marker is a step from base camp to where I
+      stand today.
+    </p>
+    <p class="timeline__hint" aria-hidden="true">
+      <span>scroll</span>
+      <svg width="14" height="22" viewBox="0 0 14 22" fill="none">
+        <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"></rect>
+        <circle cx="7" cy="7" r="1.5" fill="currentColor">
+          <animate attributeName="cy" values="6;14;6" dur="2s" repeatCount="indefinite" />
+        </circle>
+      </svg>
+    </p>
+  </header>
+
+  <ol class="timeline__list">
+    {
+      timeline.map((entry) => (
+        <li
+          class="timeline__entry"
+          data-timeline-entry
+          data-altitude={entry.altitude}
+          data-kind={entry.kind}
+        >
+          <div class="timeline__marker" aria-hidden="true">
+            <span class="timeline__dot" />
+            <span class="timeline__line" />
+          </div>
+          <div class="timeline__card">
+            <div class="timeline__meta">
+              <span class="timeline__year">{entry.year}</span>
+              <span class="timeline__kind">{kindLabel[entry.kind]}</span>
+            </div>
+            <h2 class="timeline__heading">{entry.title}</h2>
+            <p class="timeline__body">{entry.body}</p>
+            {entry.tags && (
+              <ul class="timeline__tags">
+                {entry.tags.map((t) => (
+                  <li>{t}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+
+  <footer class="timeline__summit">
+    <p>You reached the summit.</p>
+    <a href="/contact" class="timeline__cta">drop into the terminal →</a>
+  </footer>
+</div>
+
+<style>
+  .timeline {
+    position: relative;
+    z-index: 10;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    color: #f3eed9;
+  }
+
+  .timeline__header {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 6rem;
+    text-align: left;
+  }
+
+  .timeline__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(243, 238, 217, 0.55);
+    margin: 0 0 1rem;
+  }
+
+  .timeline__title {
+    font-size: clamp(2.5rem, 6vw, 4.2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0 0 1.25rem;
+    color: #fff;
+    text-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  }
+
+  .timeline__lede {
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: rgba(243, 238, 217, 0.78);
+    max-width: 480px;
+    margin: 0 0 2.5rem;
+  }
+
+  .timeline__hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(243, 238, 217, 0.5);
+    margin: 0;
+  }
+
+  .timeline__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 25vh;
+    padding-bottom: 25vh;
+  }
+
+  .timeline__entry {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 1.5rem;
+    align-items: flex-start;
+    opacity: 0;
+    transform: translateY(50px);
+    will-change: transform, opacity;
+  }
+
+  .timeline__entry.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 0.8s ease,
+      transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .timeline__marker {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+  }
+
+  .timeline__dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--accent, #d4ff80);
+    border: 2px solid rgba(0, 0, 0, 0.6);
+    box-shadow:
+      0 0 0 4px rgba(212, 255, 128, 0.18),
+      0 0 18px rgba(212, 255, 128, 0.4);
+    margin-top: 0.5rem;
+  }
+
+  .timeline__line {
+    flex: 1;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      rgba(212, 255, 128, 0.5),
+      rgba(212, 255, 128, 0)
+    );
+    margin-top: 0.5rem;
+  }
+
+  .timeline__entry[data-kind='foundation'] .timeline__dot {
+    --accent: #b29bd1;
+    box-shadow:
+      0 0 0 4px rgba(178, 155, 209, 0.18),
+      0 0 18px rgba(178, 155, 209, 0.4);
+  }
+  .timeline__entry[data-kind='work'] .timeline__dot {
+    --accent: #f5b87a;
+    box-shadow:
+      0 0 0 4px rgba(245, 184, 122, 0.18),
+      0 0 18px rgba(245, 184, 122, 0.4);
+  }
+  .timeline__entry[data-kind='project'] .timeline__dot {
+    --accent: #80c8a8;
+    box-shadow:
+      0 0 0 4px rgba(128, 200, 168, 0.18),
+      0 0 18px rgba(128, 200, 168, 0.4);
+  }
+  .timeline__entry[data-kind='craft'] .timeline__dot {
+    --accent: #c8d480;
+    box-shadow:
+      0 0 0 4px rgba(200, 212, 128, 0.18),
+      0 0 18px rgba(200, 212, 128, 0.4);
+  }
+  .timeline__entry[data-kind='now'] .timeline__dot {
+    --accent: #ffe070;
+    box-shadow:
+      0 0 0 6px rgba(255, 224, 112, 0.22),
+      0 0 28px rgba(255, 224, 112, 0.55);
+  }
+
+  .timeline__card {
+    padding: 1.5rem 1.75rem;
+    border-radius: 12px;
+    background: rgba(15, 12, 22, 0.65);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.7);
+  }
+
+  .timeline__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .timeline__year {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    color: rgba(243, 238, 217, 0.6);
+  }
+
+  .timeline__kind {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: rgba(243, 238, 217, 0.7);
+  }
+
+  .timeline__heading {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.6rem;
+    color: #fff;
+  }
+
+  .timeline__body {
+    font-size: 0.96rem;
+    line-height: 1.55;
+    color: rgba(243, 238, 217, 0.78);
+    margin: 0;
+  }
+
+  .timeline__tags {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .timeline__tags li {
+    padding: 0.22rem 0.6rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: rgba(243, 238, 217, 0.72);
+  }
+
+  .timeline__summit {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 1.5rem;
+    padding-bottom: 6rem;
+  }
+
+  .timeline__summit p {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(243, 238, 217, 0.6);
+    margin: 0;
+  }
+
+  .timeline__cta {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    color: #fff;
+    text-decoration: none;
+    padding: 0.85rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    transition: all 0.3s ease;
+  }
+
+  .timeline__cta:hover,
+  .timeline__cta:focus-visible {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.7);
+    transform: translateY(-2px);
+    outline: none;
+  }
+</style>
