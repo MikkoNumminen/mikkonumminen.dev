@@ -43,3 +43,34 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Visible focus ring for keyboard users — never shown on mouse focus.
+   Themes can override the color via the body[data-theme=...] selectors. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid #80a8ff;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+body[data-theme='contact'] :focus-visible {
+  outline-color: var(--color-term-green);
+}
+body[data-theme='experience'] :focus-visible {
+  outline-color: #d4ff80;
+}
+body[data-theme='projects'] :focus-visible {
+  outline-color: #80a8ff;
+}
+body[data-theme='home'] :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(128, 168, 255, 0.4);
+  color: #fff;
+}
