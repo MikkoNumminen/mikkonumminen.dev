@@ -36,8 +36,12 @@ export const commands: CommandSpec[] = [
       ctx.print('full-stack developer · finland', 'dim');
       ctx.print('');
       ctx.print('builds production web apps with ai-assisted workflows.');
-      ctx.print('largest: hr-manager-pearl.vercel.app — 1828+ tests, 91.9% coverage.');
-      ctx.print('also: vuohiliitto.com (community platform), read-log-pi.vercel.app');
+      ctx.printHTML(
+        `<span class="line">largest: <a href="https://hr-manager-pearl.vercel.app" target="_blank" rel="noopener noreferrer">hr-manager-pearl.vercel.app</a> — 1828+ tests, 91.9% coverage.</span>`,
+      );
+      ctx.printHTML(
+        `<span class="line">also: <a href="https://vuohiliitto.com" target="_blank" rel="noopener noreferrer">vuohiliitto.com</a> (community), <a href="https://read-log-pi.vercel.app" target="_blank" rel="noopener noreferrer">read-log-pi.vercel.app</a>, <a href="https://github.com/MikkoNumminen/AudiobookMaker" target="_blank" rel="noopener noreferrer">audiobookmaker</a> (desktop)</span>`,
+      );
       ctx.print('');
       ctx.print('currently exploring three.js, gsap, and motion craft.', 'dim');
     },
