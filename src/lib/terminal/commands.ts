@@ -37,7 +37,7 @@ export const commands: CommandSpec[] = [
       ctx.print('');
       ctx.print('builds production web apps with ai-assisted workflows.');
       ctx.print('largest: hr-manager-pearl.vercel.app — 1828+ tests, 91.9% coverage.');
-      ctx.print('also: vuohiliitto.com (community platform), read-log-psi.vercel.app');
+      ctx.print('also: vuohiliitto.com (community platform), read-log-pi.vercel.app');
       ctx.print('');
       ctx.print('currently exploring three.js, gsap, and motion craft.', 'dim');
     },

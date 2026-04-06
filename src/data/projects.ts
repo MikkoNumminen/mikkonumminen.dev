@@ -99,7 +99,7 @@ export const projects: Project[] = [
     tagline: 'This site',
     description:
       'The site you are looking at. Fully static, built with Astro, Three.js and GSAP. A visual showcase of motion craft, intentionally separate from the production stack used in HRM and Platform.',
-    liveUrl: 'https://mikkonumminen.dev',
+    liveUrl: 'https://mikkonumminen-dev.vercel.app',
     githubUrl: 'https://github.com/MikkoNumminen/mikkonumminen.dev',
     tech: ['Astro', 'Three.js', 'GSAP', 'TypeScript', 'Tailwind CSS'],
     status: 'wip',
@@ -116,7 +116,7 @@ export const projects: Project[] = [
     tagline: "Track every book you've read",
     description:
       'Personal reading tracker. Searches Open Library and Google Books in parallel and deduplicates results, then lets you log books with format (paper / e-book / audiobook) and finish date. Public anonymous feed of recently logged books on the homepage.',
-    liveUrl: 'https://read-log-psi.vercel.app',
+    liveUrl: 'https://read-log-pi.vercel.app',
     githubUrl: 'https://github.com/MikkoNumminen/ReadLog',
     tech: ['Next.js', 'React', 'TypeScript', 'Prisma', 'PostgreSQL', 'NextAuth', 'MUI'],
     highlights: ['68 tests', 'Multi-source search'],
