@@ -87,12 +87,32 @@ export const commands: CommandSpec[] = [
     name: 'download',
     description: 'download a file',
     usage: 'download --cv',
-    handler: (args, ctx) => {
+    handler: async (args, ctx) => {
       if (!args.includes('--cv')) {
         ctx.print('usage: download --cv', 'dim');
         return;
       }
       ctx.print('preparing download...', 'dim');
+
+      // Verify the file actually exists before triggering the browser download —
+      // otherwise the user gets a confusing OS-level "file not found" toast
+      // instead of useful feedback inside the terminal.
+      let available = false;
+      try {
+        const res = await fetch(CV_PATH, { method: 'HEAD', cache: 'no-store' });
+        available = res.ok;
+      } catch {
+        available = false;
+      }
+
+      if (!available) {
+        ctx.print('cv not available yet — still being polished.', 'err');
+        ctx.printHTML(
+          `<span class="line line--dim">in the meantime, reach out: <a href="mailto:${EMAIL}">${EMAIL}</a></span>`,
+        );
+        return;
+      }
+
       const a = document.createElement('a');
       a.href = CV_PATH;
       a.download = 'mikko-numminen-cv.pdf';
