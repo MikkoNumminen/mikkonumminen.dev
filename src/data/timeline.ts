@@ -26,8 +26,8 @@ export const timeline: TimelineEntry[] = [
     kind: 'work',
     title: 'Kasvu Labs Oy',
     body:
-      'First paid programming role. Full-stack development, data work, PostgreSQL on Azure, UI design, and product maintenance. The work that proved the career change was real.',
-    tags: ['Next.js', 'PostgreSQL', 'Azure', 'TypeScript'],
+      'First paid programming role. Node.js backend, React frontend, working with large sets of open data. Full-stack development, UI design, database management on Azure, product maintenance.',
+    tags: ['Node.js', 'React', 'Open data', 'PostgreSQL', 'Azure'],
   },
   {
     altitude: 0.50,
@@ -43,8 +43,8 @@ export const timeline: TimelineEntry[] = [
     kind: 'project',
     title: 'HRM',
     body:
-      'Built an enterprise-grade HR system from scratch. 1100+ tests, 99.5% coverage. The backbone for what came next.',
-    tags: ['Next.js', 'PostgreSQL', '99.5% coverage'],
+      'Built a full-stack HR management system to portfolio standards. 1828+ tests, 91.9% coverage, two databases (PostgreSQL + MongoDB), TOTP 2FA, hash-chained audit log, OpenTelemetry. The architectural backbone for Platform.',
+    tags: ['Next.js', 'PostgreSQL', 'MongoDB', '1828+ tests', '91.9% coverage'],
   },
   {
     altitude: 0.80,
@@ -52,8 +52,8 @@ export const timeline: TimelineEntry[] = [
     kind: 'project',
     title: 'Platform',
     body:
-      'Live community platform built on top of HRM as the backbone. Real users, real load, real responsibility.',
-    tags: ['Production', 'Real users'],
+      'Live community platform serving a real WoW guild at vuohiliitto.com. Built as a Turborepo monorepo with HRM as a submodule. Multi-tenant, with gamification, real-time chat, and a Mythic+ team tracker.',
+    tags: ['Real users', 'Multi-tenant', 'Turborepo'],
   },
   {
     altitude: 0.90,
