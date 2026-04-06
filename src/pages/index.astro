@@ -4,6 +4,25 @@ import Hero from '../components/home/Hero.astro';
 import Intro from '../components/home/Intro.astro';
 import Focus from '../components/home/Focus.astro';
 import NavCards from '../components/home/NavCards.astro';
+
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Mikko Numminen',
+  jobTitle: 'Full-stack developer',
+  url: 'https://mikkonumminen.dev',
+  nationality: 'Finnish',
+  knowsAbout: [
+    'TypeScript',
+    'Next.js',
+    'React',
+    'Astro',
+    'Three.js',
+    'PostgreSQL',
+    'Node.js',
+    'Test-driven development',
+  ],
+};
 ---
 
 <BaseLayout
@@ -11,6 +30,21 @@ import NavCards from '../components/home/NavCards.astro';
   description="Portfolio of Mikko Numminen, a full-stack developer from Finland building production web applications with AI-assisted workflows."
   theme="home"
 >
+  <Fragment slot="head">
+    <link
+      rel="preload"
+      href="/fonts/helvetiker_bold.typeface.json"
+      as="fetch"
+      type="application/json"
+      crossorigin="anonymous"
+    />
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={JSON.stringify(personSchema)}
+    />
+  </Fragment>
+
   <Hero />
   <Intro />
   <Focus />
