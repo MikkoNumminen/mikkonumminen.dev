@@ -1,7 +1,7 @@
 import type { CommandSpec } from './types';
 
 const EMAIL = 'mikko@mikkonumminen.dev';
-const GITHUB = 'https://github.com/mikkonumminen';
+const GITHUB = 'https://github.com/MikkoNumminen';
 const LINKEDIN = 'https://www.linkedin.com/in/mikkonumminen/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
 
