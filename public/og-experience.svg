@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="exp-sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1f1840"/>
+      <stop offset="40%" stop-color="#5b2a52"/>
+      <stop offset="78%" stop-color="#c8593a"/>
+      <stop offset="100%" stop-color="#e08855"/>
+    </linearGradient>
+    <radialGradient id="exp-sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffe0b0"/>
+      <stop offset="40%" stop-color="#ff9468" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#ff7a3a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="far-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#5d4866"/>
+      <stop offset="100%" stop-color="#3a2c44"/>
+    </linearGradient>
+    <linearGradient id="mid-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4a3854"/>
+      <stop offset="100%" stop-color="#2a1f30"/>
+    </linearGradient>
+    <linearGradient id="near-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2d2138"/>
+      <stop offset="100%" stop-color="#150e1c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#exp-sky)"/>
+
+  <!-- Stars (faded — dawn) -->
+  <g fill="#ffffff" opacity="0.4">
+    <circle cx="120" cy="80" r="1"/>
+    <circle cx="280" cy="50" r="0.8"/>
+    <circle cx="420" cy="100" r="1.1"/>
+    <circle cx="600" cy="60" r="0.9"/>
+    <circle cx="780" cy="40" r="1"/>
+    <circle cx="900" cy="90" r="0.8"/>
+    <circle cx="1080" cy="70" r="1.1"/>
+  </g>
+
+  <!-- Sun -->
+  <circle cx="950" cy="380" r="120" fill="url(#exp-sun)"/>
+  <circle cx="950" cy="380" r="48" fill="#ffd28a" opacity="0.85"/>
+
+  <!-- Far mountains -->
+  <polygon fill="url(#far-grad)" points="0,630 0,400 100,360 200,400 320,330 440,380 560,310 700,370 820,290 940,360 1060,310 1200,360 1200,630"/>
+
+  <!-- Mid mountains -->
+  <polygon fill="url(#mid-grad)" points="0,630 0,470 80,440 200,400 320,460 440,380 560,440 680,370 800,430 920,370 1040,430 1200,400 1200,630"/>
+
+  <!-- Near mountains -->
+  <polygon fill="url(#near-grad)" points="0,630 0,560 200,500 360,540 520,460 680,500 820,420 960,470 1100,400 1200,440 1200,630"/>
+
+  <!-- Tiny goat silhouette on the slope -->
+  <g transform="translate(560,470)">
+    <ellipse cx="0" cy="0" rx="14" ry="7" fill="#f5efe2"/>
+    <ellipse cx="14" cy="-5" rx="6" ry="5" fill="#f5efe2"/>
+    <path d="M11 -10 Q10 -16 13 -18" stroke="#3d2f1f" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    <path d="M14 -10 Q15 -16 18 -18" stroke="#3d2f1f" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    <rect x="-8" y="5" width="2" height="9" fill="#3d2f1f"/>
+    <rect x="-3" y="5" width="2" height="9" fill="#3d2f1f"/>
+    <rect x="4" y="5" width="2" height="9" fill="#3d2f1f"/>
+    <rect x="9" y="5" width="2" height="9" fill="#3d2f1f"/>
+  </g>
+
+  <g font-family="Inter, system-ui, -apple-system, sans-serif" fill="#fff8e8">
+    <text x="80" y="180" font-family="ui-monospace, SFMono-Regular, monospace" font-size="22" letter-spacing="6" opacity="0.65">EXPERIENCE</text>
+    <text x="80" y="300" font-size="92" font-weight="700" letter-spacing="-2.5">The climb.</text>
+    <text x="80" y="355" font-family="ui-monospace, SFMono-Regular, monospace" font-size="22" opacity="0.78" letter-spacing="2">a career told as altitude</text>
+  </g>
+</svg>

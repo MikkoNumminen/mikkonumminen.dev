@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="proj-bg" cx="78%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#0a1230"/>
+      <stop offset="60%" stop-color="#040818"/>
+      <stop offset="100%" stop-color="#01030a"/>
+    </radialGradient>
+    <radialGradient id="proj-sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff0c8"/>
+      <stop offset="40%" stop-color="#ffc865" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ffc865" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="proj-line" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#80a8ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#80a8ff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#80a8ff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#proj-bg)"/>
+
+  <!-- Stars -->
+  <g fill="#ffffff">
+    <circle cx="120" cy="80" r="1" opacity="0.7"/>
+    <circle cx="240" cy="150" r="0.8" opacity="0.5"/>
+    <circle cx="180" cy="240" r="1.2" opacity="0.85"/>
+    <circle cx="60" cy="320" r="0.9" opacity="0.6"/>
+    <circle cx="300" cy="400" r="1" opacity="0.7"/>
+    <circle cx="100" cy="500" r="0.8" opacity="0.5"/>
+    <circle cx="220" cy="550" r="1.2" opacity="0.85"/>
+    <circle cx="380" cy="80" r="0.8" opacity="0.5"/>
+    <circle cx="450" cy="180" r="1" opacity="0.65"/>
+    <circle cx="520" cy="50" r="1.1" opacity="0.75"/>
+  </g>
+
+  <!-- Solar system on the right -->
+  <g transform="translate(880,315)">
+    <!-- Orbits -->
+    <ellipse cx="0" cy="0" rx="120" ry="32" fill="none" stroke="#80a8ff" stroke-width="1" opacity="0.3"/>
+    <ellipse cx="0" cy="0" rx="180" ry="48" fill="none" stroke="#f5a25b" stroke-width="1" opacity="0.3"/>
+    <ellipse cx="0" cy="0" rx="240" ry="64" fill="none" stroke="#4ade80" stroke-width="1" opacity="0.3"/>
+
+    <!-- Sun -->
+    <circle cx="0" cy="0" r="44" fill="url(#proj-sun)"/>
+    <circle cx="0" cy="0" r="20" fill="#fff0c8"/>
+
+    <!-- Planets -->
+    <circle cx="120" cy="-12" r="14" fill="#5b8def"/>
+    <ellipse cx="120" cy="-12" rx="22" ry="6" fill="none" stroke="#9bb8ff" stroke-width="1.5" opacity="0.6"/>
+
+    <circle cx="-130" cy="20" r="11" fill="#f5a25b"/>
+
+    <circle cx="200" cy="34" r="9" fill="#4ade80"/>
+  </g>
+
+  <g font-family="Inter, system-ui, -apple-system, sans-serif" fill="#ffffff">
+    <text x="80" y="180" font-family="ui-monospace, SFMono-Regular, monospace" font-size="22" letter-spacing="6" fill="#80a8ff" opacity="0.7">PROJECTS</text>
+    <text x="80" y="320" font-size="92" font-weight="700" letter-spacing="-2.5">Pick a planet.</text>
+    <text x="80" y="385" font-family="ui-monospace, SFMono-Regular, monospace" font-size="22" fill="#c4d4ff" opacity="0.75" letter-spacing="2">an interactive solar system of work</text>
+  </g>
+
+  <rect x="80" y="430" width="640" height="1.5" fill="url(#proj-line)"/>
+
+  <text x="80" y="485" font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" fill="#80a8ff" opacity="0.7" letter-spacing="2">mikkonumminen.dev/projects</text>
+</svg>

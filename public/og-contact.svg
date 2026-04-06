@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="ct-bg" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#0a1810"/>
+      <stop offset="100%" stop-color="#020403"/>
+    </radialGradient>
+    <linearGradient id="ct-line" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#4ade80" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#ct-bg)"/>
+
+  <!-- Scanlines -->
+  <g opacity="0.18">
+    <rect x="0" y="0" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="6" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="12" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="18" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="24" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="30" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="36" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="600" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="606" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="612" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="618" width="1200" height="2" fill="#000"/>
+    <rect x="0" y="624" width="1200" height="2" fill="#000"/>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, monospace" fill="#4ade80">
+    <text x="80" y="160" font-size="28" opacity="0.55">guest@mikkonumminen:~$ ./contact</text>
+    <text x="80" y="290" font-size="92" font-weight="700">mikko numminen</text>
+    <text x="80" y="350" font-size="32" fill="#86efac" opacity="0.85">full-stack developer · finland</text>
+
+    <text x="80" y="465" font-size="24" opacity="0.65">$ help</text>
+    <text x="80" y="500" font-size="22" opacity="0.5">→ contact --email · links --github · download --cv</text>
+  </g>
+
+  <rect x="80" y="395" width="1040" height="2" fill="url(#ct-line)"/>
+</svg>

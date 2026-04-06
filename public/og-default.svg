@@ -1,25 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="40%" r="80%">
-      <stop offset="0%" stop-color="#0a1810"/>
-      <stop offset="100%" stop-color="#020403"/>
+    <radialGradient id="home-bg" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#0d1226"/>
+      <stop offset="60%" stop-color="#050610"/>
+      <stop offset="100%" stop-color="#020308"/>
     </radialGradient>
-    <linearGradient id="line" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#4ade80" stop-opacity="0"/>
-      <stop offset="50%" stop-color="#4ade80" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
+    <linearGradient id="home-line" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#80a8ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#80a8ff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#80a8ff" stop-opacity="0"/>
     </linearGradient>
   </defs>
 
-  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#home-bg)"/>
 
-  <g font-family="ui-monospace, SFMono-Regular, monospace" fill="#4ade80">
-    <text x="80" y="200" font-size="36" opacity="0.45">guest@mikkonumminen:~$</text>
-    <text x="80" y="290" font-size="84" font-weight="700">mikko numminen</text>
-    <text x="80" y="350" font-size="34" fill="#86efac" opacity="0.8">full-stack developer · finland</text>
-
-    <text x="80" y="500" font-size="22" opacity="0.55">$ ./portfolio --launch</text>
+  <!-- Particle field -->
+  <g fill="#c4d4ff">
+    <circle cx="120" cy="100" r="1.6" opacity="0.85"/>
+    <circle cx="240" cy="160" r="1.2" opacity="0.6"/>
+    <circle cx="380" cy="80" r="1.8" opacity="0.9"/>
+    <circle cx="520" cy="140" r="1.4" opacity="0.7"/>
+    <circle cx="660" cy="60" r="1.2" opacity="0.55"/>
+    <circle cx="780" cy="180" r="1.6" opacity="0.8"/>
+    <circle cx="900" cy="100" r="1.4" opacity="0.7"/>
+    <circle cx="1020" cy="140" r="1.8" opacity="0.9"/>
+    <circle cx="1100" cy="220" r="1.2" opacity="0.55"/>
+    <circle cx="80" cy="500" r="1.4" opacity="0.7"/>
+    <circle cx="200" cy="540" r="1.6" opacity="0.8"/>
+    <circle cx="320" cy="480" r="1.2" opacity="0.55"/>
+    <circle cx="440" cy="560" r="1.8" opacity="0.85"/>
+    <circle cx="600" cy="510" r="1.4" opacity="0.7"/>
+    <circle cx="760" cy="550" r="1.2" opacity="0.6"/>
+    <circle cx="880" cy="480" r="1.6" opacity="0.8"/>
+    <circle cx="1000" cy="540" r="1.4" opacity="0.7"/>
+    <circle cx="1120" cy="500" r="1.8" opacity="0.9"/>
   </g>
 
-  <rect x="80" y="380" width="1040" height="2" fill="url(#line)"/>
+  <g font-family="Inter, system-ui, -apple-system, sans-serif" fill="#ffffff">
+    <text x="80" y="180" font-family="ui-monospace, SFMono-Regular, monospace" font-size="22" letter-spacing="6" opacity="0.55">PORTFOLIO · 2026</text>
+    <text x="80" y="340" font-size="110" font-weight="700" letter-spacing="-3">Mikko Numminen</text>
+    <text x="80" y="395" font-family="ui-monospace, SFMono-Regular, monospace" font-size="26" fill="#c4d4ff" opacity="0.75" letter-spacing="3">full-stack developer · finland</text>
+  </g>
+
+  <rect x="80" y="430" width="1040" height="1.5" fill="url(#home-line)"/>
+
+  <text x="80" y="485" font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" fill="#80a8ff" opacity="0.7" letter-spacing="2">mikkonumminen.dev</text>
 </svg>
