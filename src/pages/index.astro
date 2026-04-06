@@ -1,21 +1,76 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/home/Hero.astro';
+import Intro from '../components/home/Intro.astro';
+import Focus from '../components/home/Focus.astro';
+import NavCards from '../components/home/NavCards.astro';
 ---
 
 <BaseLayout
   title="Mikko Numminen — full-stack developer"
-  description="Portfolio of Mikko Numminen, a full-stack developer from Finland building production web applications."
+  description="Portfolio of Mikko Numminen, a full-stack developer from Finland building production web applications with AI-assisted workflows."
   theme="home"
 >
-  <section class="min-h-screen flex items-center justify-center px-6">
-    <div class="text-center">
-      <p class="text-sm uppercase tracking-[0.3em] text-white/50">coming soon</p>
-      <h1 class="mt-4 text-5xl sm:text-7xl font-semibold tracking-tight">
-        Mikko Numminen
-      </h1>
-      <p class="mt-6 text-white/60 max-w-md mx-auto">
-        full-stack developer · Finland
-      </p>
-    </div>
-  </section>
+  <Hero />
+  <Intro />
+  <Focus />
+  <NavCards />
 </BaseLayout>
+
+<script>
+  import { initHomeTimeline } from '../lib/gsap/homeTimeline';
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let sceneHandle: { setScrollProgress: (p: number) => void; dispose: () => void } | null = null;
+
+  const start = async () => {
+    const canvas = document.getElementById('home-canvas') as HTMLCanvasElement | null;
+
+    // Lazy-load the Three.js scene only on capable devices.
+    // Skip on very small screens or when the canvas is missing.
+    const isSmall = window.matchMedia('(max-width: 640px)').matches;
+    const skipScene = !canvas || reducedMotion || isSmall;
+
+    if (!skipScene && canvas) {
+      try {
+        const { createHomeScene } = await import('../lib/three/homeScene');
+        sceneHandle = await createHomeScene({
+          canvas,
+          fontUrl: '/fonts/helvetiker_bold.typeface.json',
+          reducedMotion,
+        });
+      } catch (err) {
+        console.warn('home scene failed to init', err);
+      }
+    } else if (canvas) {
+      // Hide the canvas on mobile / reduced-motion so the gradient backdrop shows
+      canvas.style.display = 'none';
+      const fallback = document.querySelector('.hero__title-fallback');
+      if (fallback) (fallback as HTMLElement).style.display = 'block';
+    }
+
+    initHomeTimeline({
+      reducedMotion,
+      onScrollProgress: (p) => sceneHandle?.setScrollProgress(p),
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+
+  window.addEventListener('beforeunload', () => {
+    sceneHandle?.dispose();
+  });
+</script>
+
+<style is:global>
+  /* Mobile fallback: ensure the rendered title text shows when canvas is hidden */
+  @media (max-width: 640px) {
+    .hero__title-fallback {
+      display: block !important;
+    }
+  }
+</style>
