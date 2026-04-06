@@ -41,7 +41,7 @@ export const projects: Project[] = [
     ringColor: '#9bb8ff',
     tagline: 'Full-stack HR management system',
     description:
-      'Production-ready HR system built to portfolio standards. Two databases (PostgreSQL for structured data, MongoDB for an immutable, hash-chained audit log), 34 granular permissions with per-user overrides, TOTP 2FA, server-side rate limiting, OpenTelemetry tracing, 18 languages, and a real-time chat layer over SSE with polling fallback.',
+      'Production-ready HR system built to portfolio standards. Two databases (PostgreSQL for structured data, MongoDB for an immutable, hash-chained audit log), 34 granular permissions with per-user overrides, TOTP 2FA, server-side rate limiting, OpenTelemetry tracing, 18 languages, and real-time activity notifications over SSE (with polling fallback).',
     liveUrl: 'https://hr-manager-pearl.vercel.app',
     githubUrl: 'https://github.com/MikkoNumminen/HRManager',
     tech: [
