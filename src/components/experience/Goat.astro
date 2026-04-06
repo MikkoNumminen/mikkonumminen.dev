@@ -1,0 +1,120 @@
+---
+---
+
+<div class="goat-wrap" data-goat aria-hidden="true">
+  <div class="goat">
+    <svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+      <!-- Body -->
+      <ellipse cx="40" cy="34" rx="22" ry="11" fill="#f5efe2" />
+      <!-- Belly shading -->
+      <ellipse cx="40" cy="38" rx="20" ry="6" fill="#e6dccb" opacity="0.6" />
+      <!-- Head -->
+      <ellipse cx="62" cy="22" rx="10" ry="8" fill="#f5efe2" />
+      <!-- Snout -->
+      <ellipse cx="70" cy="24" rx="4" ry="3" fill="#e6dccb" />
+      <!-- Eye -->
+      <circle cx="64" cy="20" r="1.2" fill="#0f1114" />
+      <!-- Horns -->
+      <path
+        d="M58 16 Q56 8 60 6"
+        stroke="#3d2f1f"
+        stroke-width="2"
+        stroke-linecap="round"
+        fill="none"></path>
+      <path
+        d="M62 15 Q63 7 67 6"
+        stroke="#3d2f1f"
+        stroke-width="2"
+        stroke-linecap="round"
+        fill="none"></path>
+      <!-- Ear -->
+      <ellipse cx="55" cy="17" rx="2.5" ry="1.5" fill="#d8cdb6" transform="rotate(-25 55 17)" />
+      <!-- Beard -->
+      <path
+        d="M68 27 Q67 31 65 33"
+        stroke="#f5efe2"
+        stroke-width="2"
+        stroke-linecap="round"
+        fill="none"></path>
+      <!-- Legs (front + back) — animated by CSS -->
+      <g class="goat__legs">
+        <rect class="goat__leg goat__leg--fl" x="50" y="40" width="3" height="14" rx="1" fill="#3d2f1f" />
+        <rect class="goat__leg goat__leg--fr" x="56" y="40" width="3" height="14" rx="1" fill="#3d2f1f" />
+        <rect class="goat__leg goat__leg--bl" x="24" y="40" width="3" height="14" rx="1" fill="#3d2f1f" />
+        <rect class="goat__leg goat__leg--br" x="30" y="40" width="3" height="14" rx="1" fill="#3d2f1f" />
+      </g>
+      <!-- Tail -->
+      <path
+        d="M18 33 Q12 32 14 28"
+        stroke="#f5efe2"
+        stroke-width="3"
+        stroke-linecap="round"
+        fill="none"></path>
+    </svg>
+  </div>
+</div>
+
+<style>
+  .goat-wrap {
+    position: fixed;
+    left: 50%;
+    bottom: var(--goat-bottom, 18vh);
+    z-index: 5;
+    pointer-events: none;
+    transform: translate(calc(-50% + var(--goat-x, 0px)), 0);
+    transition: bottom 0.05s linear;
+    will-change: transform, bottom;
+  }
+
+  .goat {
+    width: clamp(56px, 7vw, 90px);
+    animation: goat-bob 1s ease-in-out infinite;
+  }
+
+  .goat svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.45));
+  }
+
+  @keyframes goat-bob {
+    0%, 100% {
+      transform: translateY(0) rotate(-1deg);
+    }
+    50% {
+      transform: translateY(-3px) rotate(1deg);
+    }
+  }
+
+  /* Walking — alternating leg lifts */
+  .goat__leg {
+    transform-box: fill-box;
+    transform-origin: 50% 0%;
+    animation: leg-walk 0.6s ease-in-out infinite;
+  }
+  .goat__leg--fl,
+  .goat__leg--br {
+    animation-delay: 0s;
+  }
+  .goat__leg--fr,
+  .goat__leg--bl {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes leg-walk {
+    0%, 100% {
+      transform: rotate(0);
+    }
+    50% {
+      transform: rotate(-15deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .goat,
+    .goat__leg {
+      animation: none;
+    }
+  }
+</style>
