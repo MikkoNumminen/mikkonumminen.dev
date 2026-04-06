@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#0a1810"/>
+      <stop offset="100%" stop-color="#020403"/>
+    </radialGradient>
+    <linearGradient id="line" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#4ade80" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <g font-family="ui-monospace, SFMono-Regular, monospace" fill="#4ade80">
+    <text x="80" y="200" font-size="36" opacity="0.45">guest@mikkonumminen:~$</text>
+    <text x="80" y="290" font-size="84" font-weight="700">mikko numminen</text>
+    <text x="80" y="350" font-size="34" fill="#86efac" opacity="0.8">full-stack developer · finland</text>
+
+    <text x="80" y="500" font-size="22" opacity="0.55">$ ./portfolio --launch</text>
+  </g>
+
+  <rect x="80" y="380" width="1040" height="2" fill="url(#line)"/>
+</svg>
