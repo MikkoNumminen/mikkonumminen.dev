@@ -11,16 +11,30 @@ const personSchema = {
   name: 'Mikko Numminen',
   jobTitle: 'Full-stack developer',
   url: 'https://mikkonumminen.dev',
+  email: 'numminen.mikko.petteri@gmail.com',
   nationality: 'Finnish',
+  alumniOf: {
+    '@type': 'CollegeOrUniversity',
+    name: 'Tampere University',
+  },
+  sameAs: [
+    'https://github.com/MikkoNumminen',
+    'https://www.linkedin.com/in/mikko-numminen-269795205/',
+  ],
   knowsAbout: [
     'TypeScript',
     'Next.js',
     'React',
+    'Node.js',
+    'PostgreSQL',
+    'Azure',
+    'Prisma',
+    'Tailwind CSS',
+    'Material-UI',
     'Astro',
     'Three.js',
-    'PostgreSQL',
-    'Node.js',
-    'Test-driven development',
+    'UI design',
+    'Data engineering',
   ],
 };
 ---
