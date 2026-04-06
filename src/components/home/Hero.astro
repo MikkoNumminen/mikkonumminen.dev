@@ -1,0 +1,164 @@
+---
+---
+
+<section
+  class="hero"
+  data-section-hero
+  aria-label="Mikko Numminen — full-stack developer"
+>
+  <canvas
+    id="home-canvas"
+    class="hero__canvas"
+    aria-hidden="true"
+  ></canvas>
+
+  <div class="hero__overlay" aria-hidden="true"></div>
+
+  <div class="hero__content">
+    <p class="hero__eyebrow">portfolio · 2026</p>
+
+    <h1 class="hero__title sr-only">Mikko Numminen</h1>
+
+    <p class="hero__title-fallback" data-fallback>MIKKO<br />NUMMINEN</p>
+
+    <p class="hero__subtitle">
+      full-stack developer · finland
+    </p>
+  </div>
+
+  <div class="hero__scroll-hint" data-scroll-hint aria-hidden="true">
+    <span>scroll</span>
+    <svg
+      width="14"
+      height="22"
+      viewBox="0 0 14 22"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"></rect>
+      <circle cx="7" cy="7" r="1.5" fill="currentColor">
+        <animate
+          attributeName="cy"
+          values="6;14;6"
+          dur="2s"
+          repeatCount="indefinite"
+        ></animate>
+      </circle>
+    </svg>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 50% 30%, #0d1226 0%, #050610 60%, #020308 100%);
+  }
+
+  .hero__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .hero__overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+    pointer-events: none;
+  }
+
+  .hero__content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 14vh;
+    pointer-events: none;
+    text-align: center;
+    gap: 2rem;
+  }
+
+  .hero__eyebrow {
+    position: absolute;
+    top: 7.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .hero__title-fallback {
+    font-size: clamp(3rem, 13vw, 9rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #fff;
+    margin: 0;
+    line-height: 0.92;
+    text-shadow:
+      0 0 40px rgba(80, 130, 255, 0.18),
+      0 8px 40px rgba(0, 0, 0, 0.6);
+    /* Hidden by default — only shown on mobile / reduced motion / when JS is off */
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .hero__title-fallback {
+      display: block;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__title-fallback {
+      display: block;
+    }
+  }
+
+  .hero__subtitle {
+    font-family: var(--font-mono);
+    font-size: clamp(0.78rem, 1.4vw, 0.95rem);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0;
+  }
+
+  .hero__scroll-hint {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    color: rgba(255, 255, 255, 0.55);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>
