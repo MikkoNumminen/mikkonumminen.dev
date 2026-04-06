@@ -1,0 +1,101 @@
+---
+interface Props {
+  theme: 'home' | 'projects' | 'experience' | 'contact';
+  current: string;
+}
+
+const { theme, current } = Astro.props;
+
+const links = [
+  { href: '/', label: 'home' },
+  { href: '/projects', label: 'projects' },
+  { href: '/experience', label: 'experience' },
+  { href: '/contact', label: 'contact' },
+];
+
+const isActive = (href: string) =>
+  href === '/' ? current === '/' : current.startsWith(href);
+---
+
+<nav
+  aria-label="Primary"
+  data-theme={theme}
+  class="site-nav fixed top-4 left-1/2 -translate-x-1/2 z-50 px-2 py-2 rounded-full backdrop-blur-md border"
+>
+  <ul class="flex items-center gap-1 text-xs sm:text-sm">
+    {
+      links.map((link) => (
+        <li>
+          <a
+            href={link.href}
+            aria-current={isActive(link.href) ? 'page' : undefined}
+            class="site-nav__link px-3 py-1.5 rounded-full transition-colors"
+          >
+            {link.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  .site-nav {
+    font-family: var(--font-mono);
+    transition:
+      background-color 0.4s ease,
+      border-color 0.4s ease,
+      color 0.4s ease;
+  }
+
+  /* Default (home) */
+  .site-nav[data-theme='home'] {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .site-nav[data-theme='home'] .site-nav__link:hover,
+  .site-nav[data-theme='home'] .site-nav__link[aria-current='page'] {
+    background-color: rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+
+  /* Projects (space blue) */
+  .site-nav[data-theme='projects'] {
+    background-color: rgba(20, 30, 60, 0.55);
+    border-color: rgba(120, 170, 255, 0.35);
+    color: #c4d4ff;
+    box-shadow: 0 0 24px rgba(80, 130, 255, 0.25);
+  }
+  .site-nav[data-theme='projects'] .site-nav__link:hover,
+  .site-nav[data-theme='projects'] .site-nav__link[aria-current='page'] {
+    background-color: rgba(120, 170, 255, 0.18);
+    color: #fff;
+  }
+
+  /* Experience (earthy green) */
+  .site-nav[data-theme='experience'] {
+    background-color: rgba(34, 50, 30, 0.6);
+    border-color: rgba(140, 180, 100, 0.4);
+    color: #d8e8c0;
+  }
+  .site-nav[data-theme='experience'] .site-nav__link:hover,
+  .site-nav[data-theme='experience'] .site-nav__link[aria-current='page'] {
+    background-color: rgba(140, 180, 100, 0.2);
+    color: #fff;
+  }
+
+  /* Contact (terminal green) */
+  .site-nav[data-theme='contact'] {
+    background-color: rgba(5, 15, 8, 0.85);
+    border-color: rgba(74, 222, 128, 0.4);
+    color: var(--color-term-green);
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.18);
+  }
+  .site-nav[data-theme='contact'] .site-nav__link:hover,
+  .site-nav[data-theme='contact'] .site-nav__link[aria-current='page'] {
+    background-color: rgba(74, 222, 128, 0.18);
+    color: var(--color-term-green-bright);
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+  }
+</style>

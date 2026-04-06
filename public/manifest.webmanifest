@@ -1,0 +1,16 @@
+{
+  "name": "Mikko Numminen",
+  "short_name": "mikkonumminen.dev",
+  "description": "Portfolio of Mikko Numminen, a full-stack developer from Finland.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050807",
+  "theme_color": "#050807",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

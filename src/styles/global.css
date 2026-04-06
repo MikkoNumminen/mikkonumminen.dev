@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+@theme {
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", ui-monospace, monospace;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Terminal palette */
+  --color-term-bg: #050807;
+  --color-term-fg: #b5f5c8;
+  --color-term-green: #4ade80;
+  --color-term-green-bright: #86efac;
+  --color-term-amber: #fbbf24;
+  --color-term-red: #f87171;
+  --color-term-cyan: #67e8f9;
+  --color-term-dim: #4b6b54;
+
+  /* Site palette (used across pages) */
+  --color-ink: #0a0a0f;
+  --color-paper: #f5f5f0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+}
+
+/* respect reduced motion globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

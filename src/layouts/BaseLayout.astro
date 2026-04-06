@@ -1,0 +1,67 @@
+---
+import '../styles/global.css';
+import SiteNav from '../components/nav/SiteNav.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  theme?: 'home' | 'projects' | 'experience' | 'contact';
+  ogImage?: string;
+}
+
+const {
+  title,
+  description = 'Mikko Numminen — full-stack developer building production web applications.',
+  theme = 'home',
+  ogImage = '/og-default.png',
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+---
+
+<!doctype html>
+<html lang="en" data-theme={theme}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#050807" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site).toString()} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage, Astro.site).toString()} />
+
+    <slot name="head" />
+  </head>
+  <body data-theme={theme}>
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-white focus:text-black focus:px-3 focus:py-2 focus:rounded"
+    >
+      Skip to content
+    </a>
+
+    <SiteNav theme={theme} current={Astro.url.pathname} />
+
+    <main id="main">
+      <slot />
+    </main>
+  </body>
+</html>
