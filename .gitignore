@@ -1,0 +1,46 @@
+# build output
+dist/
+.output/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# environment variables
+.env
+.env.production
+.env.local
+.env.*.local
+
+# macOS-specific files
+.DS_Store
+
+# editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+
+# astro
+.astro/
+
+# vercel
+.vercel
+
+# notes & planning (local only)
+CLAUDE.md
+TODO.md
+NOTES.md
+.notes/
+
+# AI tooling
+.claude/
+.cursor/
+.aider*
+.continue/
+.windsurf/

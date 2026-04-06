@@ -1,0 +1,19 @@
+{
+  "name": "mikkonumminen.dev",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.8",
+    "astro": "^6.1.4",
+    "typescript": "^5.9.3"
+  }
+}
