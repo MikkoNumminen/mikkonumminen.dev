@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Terminal from '../components/contact/Terminal.astro';
+---
+
+<BaseLayout
+  title="Contact — Mikko Numminen"
+  description="Reach Mikko Numminen — interactive terminal with email, links, and CV download."
+  theme="contact"
+>
+  <Terminal />
+</BaseLayout>
+
+<script>
+  import { initTerminal } from '../lib/terminal/terminal';
+
+  const start = () => initTerminal(document);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+</script>
