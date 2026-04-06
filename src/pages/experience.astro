@@ -1,16 +1,55 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import MountainScene from '../components/experience/MountainScene.astro';
+import Goat from '../components/experience/Goat.astro';
+import TimelineContent from '../components/experience/TimelineContent.astro';
 ---
 
 <BaseLayout
   title="Experience — Mikko Numminen"
-  description="Mikko Numminen's experience and skills."
+  description="Climb the mountain — Mikko Numminen's experience, skills, and milestones from base camp to today."
   theme="experience"
 >
-  <section class="min-h-screen flex items-center justify-center px-6">
-    <div class="text-center">
-      <p class="text-sm uppercase tracking-[0.3em] text-white/50">coming soon</p>
-      <h1 class="mt-4 text-4xl sm:text-6xl font-semibold tracking-tight">Experience</h1>
-    </div>
-  </section>
+  <!-- Fixed background scene (mountain layers + sun + stars) -->
+  <MountainScene />
+
+  <!-- Fixed climbing goat overlay -->
+  <Goat />
+
+  <!-- The scrollable track. Total height drives the parallax progress 0..1. -->
+  <div class="experience-track" data-experience-track>
+    <TimelineContent />
+  </div>
 </BaseLayout>
+
+<script>
+  import { initExperienceTimeline } from '../lib/gsap/experienceTimeline';
+
+  let handle: { dispose: () => void } | null = null;
+
+  const start = () => {
+    handle = initExperienceTimeline();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+
+  window.addEventListener('beforeunload', () => handle?.dispose());
+</script>
+
+<style is:global>
+  /* The base layout body background would peek through during scroll on
+     this page since the mountain scene is fixed. Override it. */
+  html[data-theme='experience'],
+  body[data-theme='experience'] {
+    background: #0e0820;
+  }
+
+  .experience-track {
+    position: relative;
+    z-index: 1;
+  }
+</style>
