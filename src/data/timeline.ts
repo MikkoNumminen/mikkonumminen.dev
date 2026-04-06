@@ -4,7 +4,7 @@ export interface TimelineEntry {
   /** Year or year range. */
   year: string;
   /** Short kicker shown above the title. */
-  kind: 'foundation' | 'work' | 'project' | 'craft' | 'now';
+  kind: 'foundation' | 'work' | 'life' | 'project' | 'craft' | 'now';
   title: string;
   body: string;
   tags?: string[];
@@ -31,12 +31,11 @@ export const timeline: TimelineEntry[] = [
   },
   {
     altitude: 0.50,
-    year: '2024 → now',
-    kind: 'craft',
-    title: 'Studying & building',
+    year: '2024–2025',
+    kind: 'life',
+    title: 'Becoming a father',
     body:
-      'Started studying programming and usability while building personal projects in parallel. Figuring out what kind of developer I want to be — and what I want to build.',
-    tags: ['Programming', 'Usability', 'Self-directed'],
+      'Stepped back from full-time work for family. Personal projects kept moving in the background.',
   },
   {
     altitude: 0.68,

@@ -4,6 +4,7 @@ import { timeline } from '../../data/timeline';
 const kindLabel: Record<string, string> = {
   foundation: 'foundation',
   work: 'work',
+  life: 'life',
   project: 'project',
   craft: 'craft',
   now: 'now',
@@ -207,6 +208,12 @@ const kindLabel: Record<string, string> = {
     box-shadow:
       0 0 0 4px rgba(200, 212, 128, 0.18),
       0 0 18px rgba(200, 212, 128, 0.4);
+  }
+  .timeline__entry[data-kind='life'] .timeline__dot {
+    --accent: #f5d090;
+    box-shadow:
+      0 0 0 4px rgba(245, 208, 144, 0.18),
+      0 0 18px rgba(245, 208, 144, 0.4);
   }
   .timeline__entry[data-kind='now'] .timeline__dot {
     --accent: #ffe070;
