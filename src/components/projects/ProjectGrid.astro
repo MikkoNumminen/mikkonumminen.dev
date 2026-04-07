@@ -1,15 +1,17 @@
 ---
-import { projects } from '../../data/projects';
+import { localizeProjects } from '../../data/projects';
+import { asLocale, getTranslations } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+const projects = localizeProjects(t);
 ---
 
-<section class="project-grid" aria-label="Projects">
+<section class="project-grid" aria-label={t.projectsPage.gridAria}>
   <header class="project-grid__header">
-    <p class="project-grid__eyebrow">selected work</p>
-    <h1 class="project-grid__title">Projects</h1>
-    <p class="project-grid__lede">
-      Things I have built. The desktop view shows them as an interactive solar
-      system — here is the readable list.
-    </p>
+    <p class="project-grid__eyebrow">{t.projectsPage.eyebrow}</p>
+    <h1 class="project-grid__title">{t.projectsPage.title}</h1>
+    <p class="project-grid__lede">{t.projectsPage.gridLede}</p>
   </header>
 
   <ul class="project-grid__list">
@@ -51,7 +53,7 @@ import { projects } from '../../data/projects';
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                live demo →
+                {t.projectsPage.liveDemo}
               </a>
             )}
             {p.githubUrl && (
@@ -61,7 +63,7 @@ import { projects } from '../../data/projects';
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                github
+                {t.projectsPage.githubLink}
               </a>
             )}
           </div>
@@ -125,7 +127,9 @@ import { projects } from '../../data/projects';
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    transition: border-color 0.3s ease, transform 0.3s ease;
+    transition:
+      border-color 0.3s ease,
+      transform 0.3s ease;
   }
 
   .project-card:hover {

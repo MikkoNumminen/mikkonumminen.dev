@@ -1,5 +1,16 @@
+/**
+ * Structural project data — visual layout, links, tech stack.
+ *
+ * Translatable text (tagline, description, highlights) lives in the i18n
+ * dictionaries under `t.projectsData[id]`. Use `localizeProjects(t)` to
+ * merge structure + text into a `LocalizedProject` for rendering.
+ */
+
+import type { Translations } from '../i18n';
+
 export interface Project {
   id: string;
+  /** Brand name — never translated. */
   name: string;
   /** Visual scale on the solar system. Larger = more important. */
   scale: number;
@@ -16,15 +27,17 @@ export interface Project {
   /** Optional ring (Saturn-style). */
   hasRing?: boolean;
   ringColor?: string;
-  /** One-line tagline shown on hover. */
-  tagline: string;
-  /** Longer description shown in the detail panel. */
-  description: string;
   liveUrl?: string;
   githubUrl?: string;
+  /** Tech names — never translated. */
   tech: string[];
-  highlights?: string[];
   status?: 'live' | 'wip' | 'archived';
+}
+
+export interface LocalizedProject extends Project {
+  tagline: string;
+  description: string;
+  highlights?: string[];
 }
 
 export const projects: Project[] = [
@@ -39,9 +52,6 @@ export const projects: Project[] = [
     color: '#5b8def',
     hasRing: true,
     ringColor: '#9bb8ff',
-    tagline: 'Full-stack HR management system',
-    description:
-      'Production-ready HR system built to portfolio standards. Two databases (PostgreSQL for structured data, MongoDB for an immutable, hash-chained audit log), 34 granular permissions with per-user overrides, TOTP 2FA, server-side rate limiting, OpenTelemetry tracing, 18 languages, and real-time activity notifications over SSE (with polling fallback).',
     liveUrl: 'https://hr-manager-pearl.vercel.app',
     githubUrl: 'https://github.com/MikkoNumminen/HRManager',
     tech: [
@@ -56,7 +66,6 @@ export const projects: Project[] = [
       'Playwright',
       'Docker',
     ],
-    highlights: ['1828+ tests', '91.9% coverage', 'PostgreSQL + MongoDB'],
     status: 'live',
   },
   {
@@ -68,9 +77,6 @@ export const projects: Project[] = [
     phase: 1.5,
     tilt: -0.05,
     color: '#f5a25b',
-    tagline: 'Community platform built on HRM',
-    description:
-      'Live community platform serving a real WoW guild at vuohiliitto.com. Turborepo monorepo with HRM as a git submodule. Multi-tenant, with WoW-themed gamification (XP, levels, achievements, quests), tabbed chat with whispers and slash commands, a Mythic+ team tracker via the Raider.IO API, and a guided tour for new members.',
     liveUrl: 'https://vuohiliitto.com',
     githubUrl: 'https://github.com/MikkoNumminen/Platform',
     tech: [
@@ -84,7 +90,6 @@ export const projects: Project[] = [
       'MUI',
       'Playwright',
     ],
-    highlights: ['Real users', 'Multi-tenant', '1388+ tests'],
     status: 'live',
   },
   {
@@ -96,9 +101,6 @@ export const projects: Project[] = [
     phase: 3.0,
     tilt: 0.08,
     color: '#4ade80',
-    tagline: 'This site',
-    description:
-      'The site you are looking at. Fully static, built with Astro, Three.js and GSAP. A visual showcase of motion craft, intentionally separate from the production stack used in HRM and Platform.',
     liveUrl: 'https://mikkonumminen-dev.vercel.app',
     githubUrl: 'https://github.com/MikkoNumminen/mikkonumminen.dev',
     tech: ['Astro', 'Three.js', 'GSAP', 'TypeScript', 'Tailwind CSS'],
@@ -113,13 +115,9 @@ export const projects: Project[] = [
     phase: 4.5,
     tilt: -0.03,
     color: '#a78bfa',
-    tagline: "Track every book you've read",
-    description:
-      'Personal reading tracker. Searches Open Library and Google Books in parallel and deduplicates results, then lets you log books with format (paper / e-book / audiobook) and finish date. Public anonymous feed of recently logged books on the homepage.',
     liveUrl: 'https://read-log-pi.vercel.app',
     githubUrl: 'https://github.com/MikkoNumminen/ReadLog',
     tech: ['Next.js', 'React', 'TypeScript', 'Prisma', 'PostgreSQL', 'NextAuth', 'MUI'],
-    highlights: ['68 tests', 'Multi-source search'],
     status: 'live',
   },
   {
@@ -131,22 +129,26 @@ export const projects: Project[] = [
     phase: 6.0,
     tilt: 0.06,
     color: '#22d3ee',
-    tagline: 'PDF → audiobook',
-    description:
-      'Desktop app that converts PDFs into MP3 audiobooks. Automatic chapter detection, page-number / header / footer cleanup, Finnish and English text-to-speech via edge-tts. Distributed as a Windows installer with no Python dependency for end users. Next steps: voice recognition and deepfake voice features.',
     githubUrl: 'https://github.com/MikkoNumminen/AudiobookMaker',
-    tech: [
-      'Python',
-      'PyMuPDF',
-      'edge-tts',
-      'pydub',
-      'ffmpeg',
-      'Tkinter',
-      'PyInstaller',
-    ],
-    highlights: ['Windows installer', 'FI + EN voices'],
+    tech: ['Python', 'PyMuPDF', 'edge-tts', 'pydub', 'ffmpeg', 'Tkinter', 'PyInstaller'],
     status: 'wip',
   },
 ];
 
 export const projectMap = new Map(projects.map((p) => [p.id, p]));
+
+/**
+ * Merge structural project data with the localized text from a translations
+ * dictionary. Returns one `LocalizedProject` per `Project` in `projects`.
+ */
+export function localizeProjects(t: Translations): LocalizedProject[] {
+  return projects.map((p) => {
+    const text = t.projectsData[p.id];
+    return {
+      ...p,
+      tagline: text?.tagline ?? '',
+      description: text?.description ?? '',
+      highlights: text?.highlights,
+    };
+  });
+}

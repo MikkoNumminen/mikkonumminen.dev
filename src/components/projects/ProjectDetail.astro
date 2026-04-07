@@ -1,4 +1,7 @@
 ---
+import { asLocale, getTranslations } from '../../i18n';
+
+const t = getTranslations(asLocale(Astro.currentLocale));
 ---
 
 <aside
@@ -6,21 +9,20 @@
   id="project-detail"
   data-open="false"
   aria-hidden="true"
-  aria-label="Project details"
+  aria-label={t.projectsPage.detailAria}
 >
   <button
     type="button"
     class="project-detail__close"
     id="project-detail-close"
-    aria-label="Close project details"
+    aria-label={t.projectsPage.closeAria}
   >
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
       <path
         d="M5 5 L15 15 M15 5 L5 15"
         stroke="currentColor"
         stroke-width="1.5"
-        stroke-linecap="round"
-      ></path>
+        stroke-linecap="round"></path>
     </svg>
   </button>
 
@@ -34,7 +36,7 @@
     <div class="project-detail__highlights" data-field="highlights"></div>
 
     <div class="project-detail__tech-wrap">
-      <p class="project-detail__label">Tech</p>
+      <p class="project-detail__label">{t.projectsPage.techLabel}</p>
       <ul class="project-detail__tech" data-field="tech"></ul>
     </div>
 

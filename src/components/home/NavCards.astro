@@ -1,49 +1,45 @@
 ---
+import { asLocale, getTranslations, localizePath } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
 const cards = [
   {
-    href: '/projects',
-    label: 'Projects',
-    description: 'Explore an interactive solar system of things I have built.',
+    href: localizePath('/projects', locale),
+    label: t.navCards.projects.label,
+    description: t.navCards.projects.description,
     accent: 'projects',
     icon: 'planet',
   },
   {
-    href: '/experience',
-    label: 'Experience',
-    description: 'Climb a parallax mountain through skills, tools, and milestones.',
+    href: localizePath('/experience', locale),
+    label: t.navCards.experience.label,
+    description: t.navCards.experience.description,
     accent: 'experience',
     icon: 'mountain',
   },
   {
-    href: '/contact',
-    label: 'Contact',
-    description: 'Drop into a terminal and reach me directly.',
+    href: localizePath('/contact', locale),
+    label: t.navCards.contact.label,
+    description: t.navCards.contact.description,
     accent: 'contact',
     icon: 'terminal',
   },
 ];
 ---
 
-<section
-  class="nav-cards"
-  data-section-nav-cards
-  aria-label="Explore the rest of the site"
->
+<section class="nav-cards" data-section-nav-cards aria-label={t.navCards.sectionAria}>
   <div class="nav-cards__inner">
-    <p class="nav-cards__eyebrow" data-reveal>continue</p>
+    <p class="nav-cards__eyebrow" data-reveal>{t.navCards.eyebrow}</p>
     <h2 class="nav-cards__heading">
-      <span data-split data-reveal-chars>Pick a world.</span>
+      <span data-split data-reveal-chars>{t.navCards.heading}</span>
     </h2>
 
     <div class="nav-cards__grid">
       {
         cards.map((card) => (
-          <a
-            href={card.href}
-            class="nav-card"
-            data-nav-card
-            data-accent={card.accent}
-          >
+          <a href={card.href} class="nav-card" data-nav-card data-accent={card.accent}>
             <span class="nav-card__icon" aria-hidden="true">
               {card.icon === 'planet' && (
                 <svg viewBox="0 0 48 48" fill="none">
@@ -109,15 +105,17 @@ const cards = [
             </span>
             <span class="nav-card__label">{card.label}</span>
             <span class="nav-card__desc">{card.description}</span>
-            <span class="nav-card__arrow" aria-hidden="true">→</span>
+            <span class="nav-card__arrow" aria-hidden="true">
+              →
+            </span>
           </a>
         ))
       }
     </div>
 
     <footer class="site-footer">
-      <span>© 2026 Mikko Numminen</span>
-      <span>built with astro · three.js · gsap</span>
+      <span>{t.navCards.footerCopyright}</span>
+      <span>{t.navCards.footerBuiltWith}</span>
     </footer>
   </div>
 </section>
@@ -178,8 +176,10 @@ const cards = [
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.025);
     overflow: hidden;
-    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
-      border-color 0.5s ease, background 0.5s ease;
+    transition:
+      transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+      border-color 0.5s ease,
+      background 0.5s ease;
   }
 
   .nav-card::before {
@@ -264,7 +264,9 @@ const cards = [
     justify-self: end;
     font-size: 1.2rem;
     color: rgba(255, 255, 255, 0.5);
-    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.4s ease;
+    transition:
+      transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+      color 0.4s ease;
   }
 
   .nav-card:hover .nav-card__arrow {

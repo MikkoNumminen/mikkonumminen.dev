@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import SiteNav from '../components/nav/SiteNav.astro';
+import { asLocale, getTranslations, localizePath, stripLocale, LOCALES } from '../i18n';
 
 interface Props {
   title: string;
@@ -9,22 +10,37 @@ interface Props {
   ogImage?: string;
 }
 
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
 const {
   title,
-  description = 'Mikko Numminen — full-stack developer building production web applications.',
+  description = t.meta.home.description,
   theme = 'home',
   ogImage = '/og-default.png',
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
 const ogImageUrl = new URL(ogImage, Astro.site).toString();
+
+// Build hreflang alternates by stripping the current locale from the path
+// and re-localizing for each supported locale.
+const basePath = stripLocale(Astro.url.pathname);
+const alternates = LOCALES.map((l) => ({
+  locale: l,
+  href: new URL(localizePath(basePath, l), Astro.site).toString(),
+}));
+const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
 ---
 
 <!doctype html>
-<html lang="en" data-theme={theme}>
+<html lang={locale} data-theme={theme}>
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <meta name="generator" content={Astro.generator} />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#050807" />
@@ -33,12 +49,23 @@ const ogImageUrl = new URL(ogImage, Astro.site).toString();
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
 
+    {
+      alternates.map((alt) => (
+        <link rel="alternate" hreflang={alt.locale} href={alt.href} />
+      ))
+    }
+    <link rel="alternate" hreflang="x-default" href={xDefault} />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="mikkonumminen.dev" />
+    <meta
+      property="og:locale"
+      content={locale === 'en' ? 'en_US' : locale === 'fi' ? 'fi_FI' : 'sv_SE'}
+    />
     <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -56,6 +83,55 @@ const ogImageUrl = new URL(ogImage, Astro.site).toString();
     <meta name="twitter:image" content={ogImageUrl} />
     <meta name="twitter:image:alt" content={title} />
 
+    <!--
+      Browser language detection. Runs once per session before paint.
+      - If the user already manually picked a language, never auto-redirect.
+      - Otherwise read navigator.languages and redirect to the matching
+        locale subtree (fi → /fi/..., sv → /sv/..., anything else → /...).
+    -->
+    <script is:inline>
+      (function () {
+        try {
+          if (sessionStorage.getItem('mn_lang_checked')) return;
+          sessionStorage.setItem('mn_lang_checked', '1');
+          if (localStorage.getItem('mn_preferred_locale')) return;
+
+          var path = location.pathname;
+          var current = 'en';
+          if (path === '/fi' || path.indexOf('/fi/') === 0) current = 'fi';
+          else if (path === '/sv' || path.indexOf('/sv/') === 0) current = 'sv';
+
+          var langs = navigator.languages || [navigator.language || 'en'];
+          var target = null;
+          for (var i = 0; i < langs.length; i++) {
+            var l = (langs[i] || '').toLowerCase().slice(0, 2);
+            if (l === 'fi' || l === 'sv' || l === 'en') {
+              target = l;
+              break;
+            }
+          }
+          if (!target) target = 'en';
+          if (target === current) return;
+
+          // Strip current locale prefix to get the bare path.
+          var bare = path.replace(/^\/(fi|sv)(\/|$)/, '/');
+          if (bare === '') bare = '/';
+
+          var next;
+          if (target === 'en') {
+            next = bare;
+          } else if (bare === '/') {
+            next = '/' + target + '/';
+          } else {
+            next = '/' + target + bare;
+          }
+          if (next !== path) location.replace(next + location.search + location.hash);
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
+
     <slot name="head" />
   </head>
   <body data-theme={theme}>
@@ -63,10 +139,10 @@ const ogImageUrl = new URL(ogImage, Astro.site).toString();
       href="#main"
       class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-white focus:text-black focus:px-3 focus:py-2 focus:rounded"
     >
-      Skip to content
+      {t.nav.skipToContent}
     </a>
 
-    <SiteNav theme={theme} current={Astro.url.pathname} />
+    <SiteNav theme={theme} current={Astro.url.pathname} locale={locale} />
 
     <main id="main">
       <slot />

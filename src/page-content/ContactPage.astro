@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Terminal from '../components/contact/Terminal.astro';
+import { asLocale, getTranslations } from '../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+---
+
+<BaseLayout
+  title={t.meta.contact.title}
+  description={t.meta.contact.description}
+  theme="contact"
+  ogImage="/og-contact.png"
+>
+  <Terminal />
+</BaseLayout>
+
+<script>
+  import { initTerminal } from '../lib/terminal/terminal';
+
+  const start = () => initTerminal(document);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+</script>

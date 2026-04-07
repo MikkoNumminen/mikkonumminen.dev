@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
-import { projects, type Project } from '../../data/projects';
+import type { LocalizedProject } from '../../data/projects';
 
 export interface ProjectsSceneOptions {
   canvas: HTMLCanvasElement;
   hoverLabel: HTMLElement;
-  onSelect: (project: Project) => void;
+  /** Localized project data merged from i18n. */
+  projects: LocalizedProject[];
+  onSelect: (project: LocalizedProject) => void;
   onDeselect: () => void;
   reducedMotion?: boolean;
 }
@@ -17,7 +19,7 @@ export interface ProjectsSceneHandle {
 }
 
 interface PlanetEntry {
-  project: Project;
+  project: LocalizedProject;
   group: THREE.Group;
   mesh: THREE.Mesh;
   glow: THREE.Mesh;
@@ -27,11 +29,15 @@ interface PlanetEntry {
 const SOLAR_CAMERA_POS = new THREE.Vector3(0, 8, 28);
 const SOLAR_LOOK_AT = new THREE.Vector3(0, 0, 0);
 
-export function createProjectsScene(
-  opts: ProjectsSceneOptions,
-): ProjectsSceneHandle {
-  const { canvas, hoverLabel, onSelect, onDeselect, reducedMotion = false } =
-    opts;
+export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHandle {
+  const {
+    canvas,
+    hoverLabel,
+    projects,
+    onSelect,
+    onDeselect,
+    reducedMotion = false,
+  } = opts;
 
   // ── Renderer ────────────────────────────────────────────────────────
   const renderer = new THREE.WebGLRenderer({
@@ -230,10 +236,7 @@ export function createProjectsScene(
       orbitPositions[i * 3 + 1] = 0;
       orbitPositions[i * 3 + 2] = Math.sin(a) * project.orbitRadius;
     }
-    orbitGeometry.setAttribute(
-      'position',
-      new THREE.BufferAttribute(orbitPositions, 3),
-    );
+    orbitGeometry.setAttribute('position', new THREE.BufferAttribute(orbitPositions, 3));
     const orbitMaterial = new THREE.LineBasicMaterial({
       color: new THREE.Color(project.color),
       transparent: true,
@@ -347,16 +350,30 @@ export function createProjectsScene(
       raycaster.setFromCamera(pointer, camera);
       const meshes = planets.map((p) => p.mesh);
       const hits = raycaster.intersectObjects(meshes);
-      const newHovered = hits.length > 0
-        ? planets.find((p) => p.project.id === hits[0]!.object.userData.projectId) ?? null
-        : null;
+      const newHovered =
+        hits.length > 0
+          ? (planets.find((p) => p.project.id === hits[0]!.object.userData.projectId) ??
+            null)
+          : null;
 
       if (newHovered !== hovered) {
         if (hovered) {
-          gsap.to(hovered.mesh.scale, { x: 1, y: 1, z: 1, duration: 0.35, ease: 'power2.out' });
+          gsap.to(hovered.mesh.scale, {
+            x: 1,
+            y: 1,
+            z: 1,
+            duration: 0.35,
+            ease: 'power2.out',
+          });
         }
         if (newHovered) {
-          gsap.to(newHovered.mesh.scale, { x: 1.18, y: 1.18, z: 1.18, duration: 0.35, ease: 'power2.out' });
+          gsap.to(newHovered.mesh.scale, {
+            x: 1.18,
+            y: 1.18,
+            z: 1.18,
+            duration: 0.35,
+            ease: 'power2.out',
+          });
           canvas.style.cursor = 'pointer';
           updateHoverLabel(newHovered);
         } else {
@@ -426,8 +443,10 @@ export function createProjectsScene(
   }
 
   function escapeHtml(s: string) {
-    return s.replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+    return s.replace(
+      /[&<>"']/g,
+      (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
     );
   }
 

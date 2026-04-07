@@ -1,4 +1,9 @@
 ---
+import { asLocale, getTranslations } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
 const prompt = 'guest@mikkonumminen:~$';
 ---
 
@@ -9,7 +14,7 @@ const prompt = 'guest@mikkonumminen:~$';
 
   <section
     class="terminal"
-    aria-label="Interactive terminal"
+    aria-label={t.contactPage.interactiveAria}
     data-prompt={prompt}
   >
     <header class="terminal__chrome" aria-hidden="true">
@@ -18,7 +23,7 @@ const prompt = 'guest@mikkonumminen:~$';
         <span class="terminal__dot terminal__dot--amber"></span>
         <span class="terminal__dot terminal__dot--green"></span>
       </div>
-      <div class="terminal__title">mikko@portfolio — zsh — 96×30</div>
+      <div class="terminal__title">{t.contactPage.windowTitle}</div>
       <div class="terminal__chrome-spacer"></div>
     </header>
 
@@ -29,15 +34,14 @@ const prompt = 'guest@mikkonumminen:~$';
         role="log"
         aria-live="polite"
         aria-atomic="false"
-      ></div>
+      >
+      </div>
 
       <form class="terminal__form" id="terminal-form" autocomplete="off">
         <label for="terminal-input" class="terminal__prompt">
           <span class="terminal__user">guest@mikkonumminen</span><span
             class="terminal__sep">:</span
-          ><span class="terminal__path">~</span><span class="terminal__sigil"
-            >$</span
-          >
+          ><span class="terminal__path">~</span><span class="terminal__sigil">$</span>
         </label>
         <span class="terminal__input-wrap">
           <input
@@ -48,27 +52,34 @@ const prompt = 'guest@mikkonumminen:~$';
             autocapitalize="off"
             autocorrect="off"
             inputmode="text"
-            aria-label="Terminal command input"
+            aria-label={t.contactPage.inputAria}
           />
           <span class="terminal__cursor" aria-hidden="true"></span>
         </span>
       </form>
 
       <div class="terminal__hints" aria-hidden="true">
-        <span>type <kbd>help</kbd></span>
-        <span><kbd>↑</kbd>/<kbd>↓</kbd> history</span>
-        <span><kbd>tab</kbd> complete</span>
+        <span>{t.contactPage.hintType} <kbd>help</kbd></span>
+        <span><kbd>↑</kbd>/<kbd>↓</kbd> {t.contactPage.hintHistory}</span>
+        <span><kbd>tab</kbd> {t.contactPage.hintComplete}</span>
       </div>
     </div>
   </section>
 
   <noscript>
     <div class="terminal__noscript">
-      <p>This page is an interactive terminal that requires JavaScript.</p>
-      <p>You can still reach me directly:</p>
+      <p>{t.contactPage.noscriptIntro}</p>
+      <p>{t.contactPage.noscriptReachMe}</p>
       <ul>
-        <li>Email: <a href="mailto:numminen.mikko.petteri@gmail.com">numminen.mikko.petteri@gmail.com</a></li>
-        <li>GitHub: <a href="https://github.com/MikkoNumminen">github.com/MikkoNumminen</a></li>
+        <li>
+          {t.contactPage.noscriptEmailLabel}
+          <a href="mailto:numminen.mikko.petteri@gmail.com"
+            >numminen.mikko.petteri@gmail.com</a>
+        </li>
+        <li>
+          {t.contactPage.noscriptGithubLabel}
+          <a href="https://github.com/MikkoNumminen">github.com/MikkoNumminen</a>
+        </li>
       </ul>
     </div>
   </noscript>
@@ -79,13 +90,7 @@ const prompt = 'guest@mikkonumminen:~$';
     position: relative;
     min-height: 100vh;
     width: 100%;
-    background:
-      radial-gradient(
-        ellipse at center,
-        #07120a 0%,
-        #040806 60%,
-        #020403 100%
-      );
+    background: radial-gradient(ellipse at center, #07120a 0%, #040806 60%, #020403 100%);
     overflow: hidden;
     isolation: isolate;
     color: var(--color-term-fg);
@@ -129,13 +134,28 @@ const prompt = 'guest@mikkonumminen:~$';
   }
 
   @keyframes crt-flicker {
-    0%, 100% { opacity: 0.85; }
-    47% { opacity: 0.85; }
-    48% { opacity: 0.55; }
-    49% { opacity: 0.95; }
-    50% { opacity: 0.7; }
-    51% { opacity: 0.9; }
-    52% { opacity: 0.8; }
+    0%,
+    100% {
+      opacity: 0.85;
+    }
+    47% {
+      opacity: 0.85;
+    }
+    48% {
+      opacity: 0.55;
+    }
+    49% {
+      opacity: 0.95;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    51% {
+      opacity: 0.9;
+    }
+    52% {
+      opacity: 0.8;
+    }
   }
 
   .terminal {
@@ -179,9 +199,15 @@ const prompt = 'guest@mikkonumminen:~$';
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
   }
 
-  .terminal__dot--red { background: #ff5f57; }
-  .terminal__dot--amber { background: #febc2e; }
-  .terminal__dot--green { background: #28c840; }
+  .terminal__dot--red {
+    background: #ff5f57;
+  }
+  .terminal__dot--amber {
+    background: #febc2e;
+  }
+  .terminal__dot--green {
+    background: #28c840;
+  }
 
   .terminal__title {
     color: rgba(181, 245, 200, 0.55);
@@ -190,7 +216,9 @@ const prompt = 'guest@mikkonumminen:~$';
     text-align: center;
   }
 
-  .terminal__chrome-spacer { width: 1px; }
+  .terminal__chrome-spacer {
+    width: 1px;
+  }
 
   .terminal__screen {
     padding: 1.25rem 1.5rem 1.5rem;
@@ -270,10 +298,19 @@ const prompt = 'guest@mikkonumminen:~$';
     user-select: none;
   }
 
-  .terminal__user { color: var(--color-term-green); }
-  .terminal__sep { color: rgba(181, 245, 200, 0.5); }
-  .terminal__path { color: var(--color-term-cyan); }
-  .terminal__sigil { color: var(--color-term-green); margin-right: 0.4ch; }
+  .terminal__user {
+    color: var(--color-term-green);
+  }
+  .terminal__sep {
+    color: rgba(181, 245, 200, 0.5);
+  }
+  .terminal__path {
+    color: var(--color-term-cyan);
+  }
+  .terminal__sigil {
+    color: var(--color-term-green);
+    margin-right: 0.4ch;
+  }
 
   .terminal__input-wrap {
     position: relative;
@@ -312,8 +349,14 @@ const prompt = 'guest@mikkonumminen:~$';
   }
 
   @keyframes cursor-blink {
-    0%, 49% { opacity: 1; }
-    50%, 100% { opacity: 0; }
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
   }
 
   .terminal__hints {
@@ -358,11 +401,19 @@ const prompt = 'guest@mikkonumminen:~$';
       padding: 1rem 1rem 1.25rem;
       min-height: 65vh;
     }
-    .terminal__title { display: none; }
+    .terminal__title {
+      display: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .crt__flicker { animation: none; opacity: 0.7; }
-    .terminal__cursor { animation: none; opacity: 1; }
+    .crt__flicker {
+      animation: none;
+      opacity: 0.7;
+    }
+    .terminal__cursor {
+      animation: none;
+      opacity: 1;
+    }
   }
 </style>

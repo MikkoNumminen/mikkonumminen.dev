@@ -1,24 +1,50 @@
 ---
+import {
+  asLocale,
+  getTranslations,
+  localizePath,
+  stripLocale,
+  LOCALES,
+  type Locale,
+} from '../../i18n';
+
 interface Props {
   theme: 'home' | 'projects' | 'experience' | 'contact';
   current: string;
+  locale?: Locale;
 }
 
-const { theme, current } = Astro.props;
+const { theme, current, locale: propLocale } = Astro.props;
+const locale = propLocale ?? asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
 
 const links = [
-  { href: '/', label: 'home' },
-  { href: '/projects', label: 'projects' },
-  { href: '/experience', label: 'experience' },
-  { href: '/contact', label: 'contact' },
+  { href: localizePath('/', locale), label: t.nav.home },
+  { href: localizePath('/projects', locale), label: t.nav.projects },
+  { href: localizePath('/experience', locale), label: t.nav.experience },
+  { href: localizePath('/contact', locale), label: t.nav.contact },
 ];
 
-const isActive = (href: string) =>
-  href === '/' ? current === '/' : current.startsWith(href);
+// For the language switcher we need to know the bare path (no locale prefix)
+// so we can re-localize it for each available language.
+const barePath = stripLocale(current);
+const langLinks = LOCALES.map((l) => ({
+  locale: l,
+  href: localizePath(barePath, l),
+  label: t.langSwitcher[l],
+  isCurrent: l === locale,
+}));
+
+const isActive = (href: string) => {
+  if (href === '/' || href === '/fi/' || href === '/sv/') {
+    return current === href;
+  }
+  return current === href || current.startsWith(href + '/') || current.startsWith(href);
+};
 ---
 
 <nav
-  aria-label="Primary"
+  aria-label={t.nav.primaryAria}
   data-theme={theme}
   class="site-nav fixed top-4 left-1/2 -translate-x-1/2 z-50 px-2 py-2 rounded-full backdrop-blur-md border"
 >
@@ -36,8 +62,53 @@ const isActive = (href: string) =>
         </li>
       ))
     }
+
+    <li class="site-nav__divider" aria-hidden="true"></li>
+
+    <li>
+      <ul
+        class="site-nav__langs flex items-center gap-0.5"
+        aria-label={t.nav.languageSwitcherAria}
+      >
+        {
+          langLinks.map((l) => (
+            <li>
+              <a
+                href={l.href}
+                hreflang={l.locale}
+                aria-current={l.isCurrent ? 'true' : undefined}
+                data-lang={l.locale}
+                class="site-nav__lang px-2 py-1 rounded-full transition-colors"
+              >
+                {l.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </li>
   </ul>
 </nav>
+
+<script>
+  // When the user manually picks a language, remember it so the auto-detect
+  // script in BaseLayout doesn't override their choice on the next visit.
+  document.querySelectorAll<HTMLAnchorElement>('.site-nav__lang').forEach((a) => {
+    a.addEventListener('click', () => {
+      const lang = a.getAttribute('data-lang');
+      if (lang) {
+        try {
+          localStorage.setItem('mn_preferred_locale', lang);
+          // Also clear the session flag so the detector won't re-fire
+          // before the navigation completes.
+          sessionStorage.setItem('mn_lang_checked', '1');
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    });
+  });
+</script>
 
 <style>
   .site-nav {
@@ -48,6 +119,38 @@ const isActive = (href: string) =>
       color 0.4s ease;
   }
 
+  .site-nav__divider {
+    width: 1px;
+    height: 1.1rem;
+    margin: 0 0.35rem;
+    background: currentColor;
+    opacity: 0.18;
+  }
+
+  .site-nav__langs {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .site-nav__lang {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .site-nav__lang:hover {
+    opacity: 0.95;
+  }
+
+  .site-nav__lang[aria-current='true'] {
+    opacity: 1;
+    font-weight: 600;
+  }
+
   /* Default (home) */
   .site-nav[data-theme='home'] {
     background-color: rgba(255, 255, 255, 0.06);
@@ -56,6 +159,10 @@ const isActive = (href: string) =>
   }
   .site-nav[data-theme='home'] .site-nav__link:hover,
   .site-nav[data-theme='home'] .site-nav__link[aria-current='page'] {
+    background-color: rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+  .site-nav[data-theme='home'] .site-nav__lang[aria-current='true'] {
     background-color: rgba(255, 255, 255, 0.14);
     color: #fff;
   }
@@ -72,6 +179,10 @@ const isActive = (href: string) =>
     background-color: rgba(120, 170, 255, 0.18);
     color: #fff;
   }
+  .site-nav[data-theme='projects'] .site-nav__lang[aria-current='true'] {
+    background-color: rgba(120, 170, 255, 0.18);
+    color: #fff;
+  }
 
   /* Experience (earthy green) */
   .site-nav[data-theme='experience'] {
@@ -81,6 +192,10 @@ const isActive = (href: string) =>
   }
   .site-nav[data-theme='experience'] .site-nav__link:hover,
   .site-nav[data-theme='experience'] .site-nav__link[aria-current='page'] {
+    background-color: rgba(140, 180, 100, 0.2);
+    color: #fff;
+  }
+  .site-nav[data-theme='experience'] .site-nav__lang[aria-current='true'] {
     background-color: rgba(140, 180, 100, 0.2);
     color: #fff;
   }
@@ -97,5 +212,9 @@ const isActive = (href: string) =>
     background-color: rgba(74, 222, 128, 0.18);
     color: var(--color-term-green-bright);
     text-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+  }
+  .site-nav[data-theme='contact'] .site-nav__lang[aria-current='true'] {
+    background-color: rgba(74, 222, 128, 0.18);
+    color: var(--color-term-green-bright);
   }
 </style>

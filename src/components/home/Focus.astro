@@ -1,25 +1,17 @@
 ---
-const items = [
-  {
-    title: 'Production-grade',
-    body: 'Tested, observable, and built to be operated. Every feature ships with the seams that let it survive contact with real users.',
-  },
-  {
-    title: 'AI-native workflows',
-    body: 'Pair-programming with AI is part of the toolchain. The output still has to be code I would defend in a review.',
-  },
-  {
-    title: 'End-to-end',
-    body: 'From schema to pixel. Backend, frontend, infra, deployment — same person, same standard.',
-  },
-];
+import { asLocale, getTranslations } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
+const items = t.focus.items;
 ---
 
-<section class="focus" aria-label="What I focus on">
+<section class="focus" aria-label={t.focus.sectionAria}>
   <div class="focus__inner">
-    <p class="focus__eyebrow" data-reveal>focus</p>
+    <p class="focus__eyebrow" data-reveal>{t.focus.eyebrow}</p>
     <h2 class="focus__heading">
-      <span data-split data-reveal-chars>How I work.</span>
+      <span data-split data-reveal-chars>{t.focus.heading}</span>
     </h2>
 
     <ol class="focus__list">
@@ -97,7 +89,10 @@ const items = [
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(4px);
-    transition: border-color 0.4s ease, transform 0.4s ease, background 0.4s ease;
+    transition:
+      border-color 0.4s ease,
+      transform 0.4s ease,
+      background 0.4s ease;
   }
 
   .focus__item:hover {

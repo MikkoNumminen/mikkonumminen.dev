@@ -1,30 +1,34 @@
 ---
-import { timeline } from '../../data/timeline';
+import { localizeTimeline } from '../../data/timeline';
+import { asLocale, getTranslations, localizePath } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+const timeline = localizeTimeline(t);
 
 const kindLabel: Record<string, string> = {
-  foundation: 'foundation',
-  work: 'work',
-  life: 'life',
-  project: 'project',
-  craft: 'craft',
-  now: 'now',
+  foundation: t.experiencePage.kindFoundation,
+  work: t.experiencePage.kindWork,
+  life: t.experiencePage.kindLife,
+  project: t.experiencePage.kindProject,
+  craft: t.experiencePage.kindCraft,
+  now: t.experiencePage.kindNow,
 };
 ---
 
 <div class="timeline" data-timeline>
   <header class="timeline__header">
-    <p class="timeline__eyebrow">the climb</p>
-    <h1 class="timeline__title">Experience</h1>
-    <p class="timeline__lede">
-      Scroll up the mountain. Each marker is a step from base camp to where I
-      stand today.
-    </p>
+    <p class="timeline__eyebrow">{t.experiencePage.eyebrow}</p>
+    <h1 class="timeline__title">{t.experiencePage.title}</h1>
+    <p class="timeline__lede">{t.experiencePage.lede}</p>
     <p class="timeline__hint" aria-hidden="true">
-      <span>scroll</span>
+      <span>{t.experiencePage.scrollHint}</span>
       <svg width="14" height="22" viewBox="0 0 14 22" fill="none">
-        <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"></rect>
+        <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"
+        ></rect>
         <circle cx="7" cy="7" r="1.5" fill="currentColor">
-          <animate attributeName="cy" values="6;14;6" dur="2s" repeatCount="indefinite" />
+          <animate attributeName="cy" values="6;14;6" dur="2s" repeatCount="indefinite"
+          ></animate>
         </circle>
       </svg>
     </p>
@@ -64,8 +68,10 @@ const kindLabel: Record<string, string> = {
   </ol>
 
   <footer class="timeline__summit">
-    <p>You reached the summit.</p>
-    <a href="/contact" class="timeline__cta">drop into the terminal →</a>
+    <p>{t.experiencePage.summit}</p>
+    <a href={localizePath('/contact', locale)} class="timeline__cta"
+      >{t.experiencePage.cta}</a
+    >
   </footer>
 </div>
 

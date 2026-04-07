@@ -1,3 +1,5 @@
+import type { Translations, Locale } from '../../i18n';
+import { localizePath } from '../../i18n';
 import type { CommandSpec } from './types';
 
 const EMAIL = 'numminen.mikko.petteri@gmail.com';
@@ -6,214 +8,228 @@ const LINKEDIN = 'https://www.linkedin.com/in/mikko-numminen-269795205/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
 
 const escape = (s: string) =>
-  s.replace(/[&<>"']/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+  s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
 
-export const commands: CommandSpec[] = [
-  {
-    name: 'help',
-    description: 'list available commands',
-    handler: (_, ctx) => {
-      const visible = commands.filter((c) => !c.hidden);
-      const width = Math.max(...visible.map((c) => c.name.length));
-      ctx.print('available commands:', 'dim');
-      visible.forEach((c) => {
-        const padded = c.name.padEnd(width + 4, ' ');
-        ctx.printHTML(
-          `<span class="line"><span style="color:var(--color-term-green)">${escape(padded)}</span><span style="color:var(--color-term-dim)">${escape(c.description)}</span></span>`,
-        );
-      });
-      ctx.print('');
-      ctx.print('tip: try `whoami`, `contact --email`. some commands need root.', 'dim');
-    },
-  },
-  {
-    name: 'whoami',
-    description: 'short bio',
-    handler: (_, ctx) => {
-      ctx.print('mikko numminen', 'accent');
-      ctx.print('full-stack developer · finland', 'dim');
-      ctx.print('');
-      ctx.print('builds production web apps with ai-assisted workflows.');
-      ctx.printHTML(
-        `<span class="line">largest: <a href="https://hr-manager-pearl.vercel.app" target="_blank" rel="noopener noreferrer">hr-manager-pearl.vercel.app</a> — 1828+ tests, 91.9% coverage.</span>`,
-      );
-      ctx.printHTML(
-        `<span class="line">also: <a href="https://vuohiliitto.com" target="_blank" rel="noopener noreferrer">vuohiliitto.com</a> (community), <a href="https://read-log-pi.vercel.app" target="_blank" rel="noopener noreferrer">read-log-pi.vercel.app</a>, <a href="https://github.com/MikkoNumminen/AudiobookMaker" target="_blank" rel="noopener noreferrer">audiobookmaker</a> (desktop)</span>`,
-      );
-      ctx.print('');
-      ctx.print('currently exploring three.js, gsap, and motion craft.', 'dim');
-    },
-  },
-  {
-    name: 'contact',
-    description: 'show contact info',
-    usage: 'contact [--email]',
-    handler: (args, ctx) => {
-      if (args.length === 0 || args.includes('--email')) {
-        ctx.printHTML(
-          `<span class="line">email: <a href="mailto:${EMAIL}">${EMAIL}</a><button class="copy" data-copy="${EMAIL}" type="button">copy</button></span>`,
-        );
-        return;
-      }
-      ctx.print(`unknown flag: ${args.join(' ')}`, 'err');
-      ctx.print('usage: contact [--email]', 'dim');
-    },
-  },
-  {
-    name: 'links',
-    description: 'show online profiles',
-    usage: 'links [--github|--linkedin|--all]',
-    handler: (args, ctx) => {
-      const all = args.length === 0 || args.includes('--all');
-      if (all || args.includes('--github')) {
-        ctx.printHTML(
-          `<span class="line">github:   <a href="${GITHUB}" target="_blank" rel="noopener noreferrer">${GITHUB}</a></span>`,
-        );
-      }
-      if (all || args.includes('--linkedin')) {
-        ctx.printHTML(
-          `<span class="line">linkedin: <a href="${LINKEDIN}" target="_blank" rel="noopener noreferrer">${LINKEDIN}</a></span>`,
-        );
-      }
-      if (
-        !all &&
-        !args.includes('--github') &&
-        !args.includes('--linkedin')
-      ) {
-        ctx.print(`unknown flag: ${args.join(' ')}`, 'err');
-        ctx.print('usage: links [--github|--linkedin|--all]', 'dim');
-      }
-    },
-  },
-  {
-    name: 'download',
-    description: 'download a file',
-    usage: 'download --cv',
-    handler: async (args, ctx) => {
-      if (!args.includes('--cv')) {
-        ctx.print('usage: download --cv', 'dim');
-        return;
-      }
-      ctx.print('preparing download...', 'dim');
+/**
+ * Build the terminal command set for a given locale.
+ *
+ * Command names (`help`, `whoami`, `sudo`, etc.) and their flag syntax
+ * (`--email`, `--cv`) are intentionally NOT translated — they are part of
+ * the CLI surface and stay in English across all locales. Only the
+ * descriptions, output text, and error messages are localized.
+ */
+export function buildCommands(t: Translations, locale: Locale): CommandSpec[] {
+  const tt = t.terminal;
+  const cp = t.contactPage; // not used here but kept for parity
+  void cp;
 
-      // Verify the file actually exists before triggering the browser download —
-      // otherwise the user gets a confusing OS-level "file not found" toast
-      // instead of useful feedback inside the terminal.
-      let available = false;
-      try {
-        const res = await fetch(CV_PATH, { method: 'HEAD', cache: 'no-store' });
-        available = res.ok;
-      } catch {
-        available = false;
-      }
-
-      if (!available) {
-        ctx.print('cv not available yet — still being polished.', 'err');
-        ctx.printHTML(
-          `<span class="line line--dim">in the meantime, reach out: <a href="mailto:${EMAIL}">${EMAIL}</a></span>`,
-        );
-        return;
-      }
-
-      const a = document.createElement('a');
-      a.href = CV_PATH;
-      a.download = 'mikko-numminen-cv.pdf';
-      a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      ctx.print('cv download started.', 'accent');
-    },
-  },
-  {
-    name: 'projects',
-    description: 'navigate to projects page',
-    handler: (_, ctx) => {
-      ctx.print('opening /projects...', 'dim');
-      setTimeout(() => ctx.navigate('/projects'), 350);
-    },
-  },
-  {
-    name: 'home',
-    description: 'navigate to home',
-    handler: (_, ctx) => {
-      ctx.print('opening /...', 'dim');
-      setTimeout(() => ctx.navigate('/'), 350);
-    },
-  },
-  {
-    name: 'experience',
-    description: 'navigate to experience',
-    handler: (_, ctx) => {
-      ctx.print('opening /experience...', 'dim');
-      setTimeout(() => ctx.navigate('/experience'), 350);
-    },
-  },
-  {
-    name: 'clear',
-    description: 'clear the screen',
-    handler: (_, ctx) => {
-      ctx.clear();
-    },
-  },
-  {
-    name: 'echo',
-    description: 'print arguments',
-    handler: (args, ctx) => {
-      ctx.print(args.join(' '));
-    },
-  },
-  {
-    name: 'date',
-    description: 'show current date',
-    handler: (_, ctx) => {
-      ctx.print(new Date().toString(), 'dim');
-    },
-  },
-  {
-    name: 'sudo',
-    description: 'run something as root',
-    handler: (args, ctx) => {
-      if (args[0] === 'hire' && args[1] === 'mikko') {
-        ctx.print('[sudo] password for guest: ********', 'dim');
-        ctx.print('authentication... approved.', 'accent');
+  const cmds: CommandSpec[] = [
+    {
+      name: 'help',
+      description: tt.cmdHelpDesc,
+      handler: (_, ctx) => {
+        const visible = cmds.filter((c) => !c.hidden);
+        const width = Math.max(...visible.map((c) => c.name.length));
+        ctx.print(tt.cmdHelpAvailable, 'dim');
+        visible.forEach((c) => {
+          const padded = c.name.padEnd(width + 4, ' ');
+          ctx.printHTML(
+            `<span class="line"><span style="color:var(--color-term-green)">${escape(padded)}</span><span style="color:var(--color-term-dim)">${escape(c.description)}</span></span>`,
+          );
+        });
         ctx.print('');
-        ctx.print('🎯 excellent choice.');
-        ctx.print('reach out: ' + EMAIL, 'accent');
-        ctx.print('or run `download --cv` to grab my résumé.', 'dim');
-        return;
-      }
-      ctx.print(`sudo: ${args.join(' ') || '(no command)'}: command not found`, 'err');
-      ctx.print('hint: try `sudo hire mikko`', 'dim');
+        ctx.print(tt.cmdHelpTip, 'dim');
+      },
     },
-  },
-  {
-    name: 'man',
-    description: 'show usage for a command',
-    usage: 'man <command>',
-    hidden: true,
-    handler: (args, ctx) => {
-      const target = args[0];
-      if (!target) {
-        ctx.print('usage: man <command>', 'dim');
-        return;
-      }
-      const cmd = commands.find((c) => c.name === target);
-      if (!cmd) {
-        ctx.print(`no manual entry for ${target}`, 'err');
-        return;
-      }
-      ctx.print(`NAME`, 'accent');
-      ctx.print(`    ${cmd.name} — ${cmd.description}`);
-      if (cmd.usage) {
+    {
+      name: 'whoami',
+      description: tt.cmdWhoamiDesc,
+      handler: (_, ctx) => {
+        ctx.print(tt.cmdWhoamiName, 'accent');
+        ctx.print(tt.cmdWhoamiTitle, 'dim');
         ctx.print('');
-        ctx.print('USAGE', 'accent');
-        ctx.print(`    ${cmd.usage}`);
-      }
+        ctx.print(tt.cmdWhoamiIntro);
+        ctx.printHTML(
+          `<span class="line">${escape(tt.cmdWhoamiLargest)} <a href="https://hr-manager-pearl.vercel.app" target="_blank" rel="noopener noreferrer">hr-manager-pearl.vercel.app</a> — 1828+ tests, 91.9% coverage.</span>`,
+        );
+        ctx.printHTML(
+          `<span class="line">${escape(tt.cmdWhoamiAlso)} <a href="https://vuohiliitto.com" target="_blank" rel="noopener noreferrer">vuohiliitto.com</a> (${escape(tt.cmdWhoamiCommunity)}), <a href="https://read-log-pi.vercel.app" target="_blank" rel="noopener noreferrer">read-log-pi.vercel.app</a>, <a href="https://github.com/MikkoNumminen/AudiobookMaker" target="_blank" rel="noopener noreferrer">audiobookmaker</a> (${escape(tt.cmdWhoamiDesktop)})</span>`,
+        );
+        ctx.print('');
+        ctx.print(tt.cmdWhoamiCurrently, 'dim');
+      },
     },
-  },
-];
+    {
+      name: 'contact',
+      description: tt.cmdContactDesc,
+      usage: 'contact [--email]',
+      handler: (args, ctx) => {
+        if (args.length === 0 || args.includes('--email')) {
+          ctx.printHTML(
+            `<span class="line">${escape(tt.cmdContactEmailLabel)} <a href="mailto:${EMAIL}">${EMAIL}</a><button class="copy" data-copy="${EMAIL}" type="button">${escape(tt.copyButton)}</button></span>`,
+          );
+          return;
+        }
+        ctx.print(`${tt.cmdContactUnknownFlag} ${args.join(' ')}`, 'err');
+        ctx.print(tt.cmdContactUsage, 'dim');
+      },
+    },
+    {
+      name: 'links',
+      description: tt.cmdLinksDesc,
+      usage: 'links [--github|--linkedin|--all]',
+      handler: (args, ctx) => {
+        const all = args.length === 0 || args.includes('--all');
+        if (all || args.includes('--github')) {
+          ctx.printHTML(
+            `<span class="line">github:   <a href="${GITHUB}" target="_blank" rel="noopener noreferrer">${GITHUB}</a></span>`,
+          );
+        }
+        if (all || args.includes('--linkedin')) {
+          ctx.printHTML(
+            `<span class="line">linkedin: <a href="${LINKEDIN}" target="_blank" rel="noopener noreferrer">${LINKEDIN}</a></span>`,
+          );
+        }
+        if (!all && !args.includes('--github') && !args.includes('--linkedin')) {
+          ctx.print(`${tt.cmdLinksUnknownFlag} ${args.join(' ')}`, 'err');
+          ctx.print(tt.cmdLinksUsage, 'dim');
+        }
+      },
+    },
+    {
+      name: 'download',
+      description: tt.cmdDownloadDesc,
+      usage: tt.cmdDownloadUsage,
+      handler: async (args, ctx) => {
+        if (!args.includes('--cv')) {
+          ctx.print(tt.cmdDownloadHint, 'dim');
+          return;
+        }
+        ctx.print(tt.cmdDownloadPreparing, 'dim');
 
-export const commandMap = new Map(commands.map((c) => [c.name, c]));
+        // Verify the file actually exists before triggering the browser download —
+        // otherwise the user gets a confusing OS-level "file not found" toast
+        // instead of useful feedback inside the terminal.
+        let available = false;
+        try {
+          const res = await fetch(CV_PATH, { method: 'HEAD', cache: 'no-store' });
+          available = res.ok;
+        } catch {
+          available = false;
+        }
+
+        if (!available) {
+          ctx.print(tt.cmdDownloadNotAvailable, 'err');
+          ctx.printHTML(
+            `<span class="line line--dim">${escape(tt.cmdDownloadMeantime)} <a href="mailto:${EMAIL}">${EMAIL}</a></span>`,
+          );
+          return;
+        }
+
+        const a = document.createElement('a');
+        a.href = CV_PATH;
+        a.download = 'mikko-numminen-cv.pdf';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        ctx.print(tt.cmdDownloadStarted, 'accent');
+      },
+    },
+    {
+      name: 'projects',
+      description: tt.cmdProjectsDesc,
+      handler: (_, ctx) => {
+        ctx.print(tt.cmdProjectsOpening, 'dim');
+        setTimeout(() => ctx.navigate(localizePath('/projects', locale)), 350);
+      },
+    },
+    {
+      name: 'home',
+      description: tt.cmdHomeDesc,
+      handler: (_, ctx) => {
+        ctx.print(tt.cmdHomeOpening, 'dim');
+        setTimeout(() => ctx.navigate(localizePath('/', locale)), 350);
+      },
+    },
+    {
+      name: 'experience',
+      description: tt.cmdExperienceDesc,
+      handler: (_, ctx) => {
+        ctx.print(tt.cmdExperienceOpening, 'dim');
+        setTimeout(() => ctx.navigate(localizePath('/experience', locale)), 350);
+      },
+    },
+    {
+      name: 'clear',
+      description: tt.cmdClearDesc,
+      handler: (_, ctx) => {
+        ctx.clear();
+      },
+    },
+    {
+      name: 'echo',
+      description: tt.cmdEchoDesc,
+      handler: (args, ctx) => {
+        ctx.print(args.join(' '));
+      },
+    },
+    {
+      name: 'date',
+      description: tt.cmdDateDesc,
+      handler: (_, ctx) => {
+        ctx.print(new Date().toString(), 'dim');
+      },
+    },
+    {
+      name: 'sudo',
+      description: tt.cmdSudoDesc,
+      handler: (args, ctx) => {
+        if (args[0] === 'hire' && args[1] === 'mikko') {
+          ctx.print(tt.cmdSudoPasswordPrompt, 'dim');
+          ctx.print(tt.cmdSudoApproved, 'accent');
+          ctx.print('');
+          ctx.print(tt.cmdSudoExcellent);
+          ctx.print(`${tt.cmdSudoReachOut} ${EMAIL}`, 'accent');
+          ctx.print(tt.cmdSudoOrRun, 'dim');
+          return;
+        }
+        ctx.print(
+          `sudo: ${args.join(' ') || tt.cmdSudoNoCommand}: ${tt.cmdSudoNotFound}`,
+          'err',
+        );
+        ctx.print(tt.cmdSudoHint, 'dim');
+      },
+    },
+    {
+      name: 'man',
+      description: tt.cmdManDesc,
+      usage: tt.cmdManUsage,
+      hidden: true,
+      handler: (args, ctx) => {
+        const target = args[0];
+        if (!target) {
+          ctx.print(`${tt.cmdManUsageLabel.toLowerCase()}: ${tt.cmdManUsage}`, 'dim');
+          return;
+        }
+        const cmd = cmds.find((c) => c.name === target);
+        if (!cmd) {
+          ctx.print(`${tt.cmdManNoEntry} ${target}`, 'err');
+          return;
+        }
+        ctx.print(tt.cmdManNameLabel, 'accent');
+        ctx.print(`    ${cmd.name} — ${cmd.description}`);
+        if (cmd.usage) {
+          ctx.print('');
+          ctx.print(tt.cmdManUsageLabel, 'accent');
+          ctx.print(`    ${cmd.usage}`);
+        }
+      },
+    },
+  ];
+
+  return cmds;
+}

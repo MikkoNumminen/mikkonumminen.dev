@@ -1,33 +1,35 @@
 ---
+import { asLocale, getTranslations } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
 ---
 
-<section class="intro" aria-label="About">
+<section class="intro" aria-label={t.intro.sectionAria}>
   <div class="intro__grid">
-    <p class="intro__eyebrow" data-reveal>about</p>
+    <p class="intro__eyebrow" data-reveal>{t.intro.eyebrow}</p>
 
     <h2 class="intro__heading">
-      <span data-split data-reveal-chars>I build production web applications.</span>
+      <span data-split data-reveal-chars>{t.intro.heading}</span>
     </h2>
 
     <p class="intro__body" data-reveal>
-      Full-stack developer based in Finland. I work end-to-end —
-      architecture, infrastructure, code, polish — with AI-assisted
-      workflows that let small teams ship like big ones.
+      {t.intro.body}
     </p>
   </div>
 
   <div class="intro__stats">
     <div class="intro__stat" data-reveal>
       <span class="intro__stat-num">1828<span class="intro__stat-plus">+</span></span>
-      <span class="intro__stat-label">tests in the largest project</span>
+      <span class="intro__stat-label">{t.intro.statTests}</span>
     </div>
     <div class="intro__stat" data-reveal>
       <span class="intro__stat-num">91.9<span class="intro__stat-plus">%</span></span>
-      <span class="intro__stat-label">line coverage</span>
+      <span class="intro__stat-label">{t.intro.statCoverage}</span>
     </div>
     <div class="intro__stat" data-reveal>
       <span class="intro__stat-num">3</span>
-      <span class="intro__stat-label">live products in production</span>
+      <span class="intro__stat-label">{t.intro.statProducts}</span>
     </div>
   </div>
 </section>

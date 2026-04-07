@@ -1,5 +1,6 @@
-import { commandMap, commands } from './commands';
-import type { CommandContext, LineKind } from './types';
+import { buildCommands } from './commands';
+import { asLocale, getTranslations } from '../../i18n';
+import type { CommandSpec, CommandContext, LineKind } from './types';
 
 interface TerminalElements {
   output: HTMLElement;
@@ -18,8 +19,9 @@ const sleep = (ms: number) =>
   reducedMotion ? Promise.resolve() : new Promise((r) => setTimeout(r, ms));
 
 const escapeHTML = (s: string) =>
-  s.replace(/[&<>"']/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+  s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
 
 function appendLine(output: HTMLElement, html: string, kind: LineKind = 'plain') {
@@ -74,12 +76,17 @@ async function typeLine(
   }
 }
 
-async function runBoot(ctx: CommandContext, elements: TerminalElements) {
+async function runBoot(
+  ctx: CommandContext,
+  elements: TerminalElements,
+  t: ReturnType<typeof getTranslations>,
+) {
+  const tt = t.terminal;
   const lines: Array<[string, LineKind, number]> = [
-    ['booting mikkOS v1.0.0 ...', 'dim', 14],
-    ['[ ok ] mounting /portfolio', 'dim', 8],
-    ['[ ok ] loading projects, experience, contact', 'dim', 8],
-    ['[ ok ] establishing comms link', 'dim', 8],
+    [tt.bootBooting, 'dim', 14],
+    [tt.bootMounting, 'dim', 8],
+    [tt.bootLoading, 'dim', 8],
+    [tt.bootComms, 'dim', 8],
     ['', 'plain', 0],
   ];
 
@@ -92,15 +99,10 @@ async function runBoot(ctx: CommandContext, elements: TerminalElements) {
     await sleep(60);
   }
 
-  await typeLine(
-    elements.output,
-    'welcome to mikko numminen — full-stack developer.',
-    'accent',
-    22,
-  );
+  await typeLine(elements.output, tt.bootWelcome, 'accent', 22);
   await sleep(150);
-  ctx.print('type `help` to see what i can do.', 'dim');
-  ctx.print('hint: i answer to `sudo` commands too.', 'dim');
+  ctx.print(tt.bootTypeHelp, 'dim');
+  ctx.print(tt.bootSudoHint, 'dim');
   ctx.print('');
 }
 
@@ -108,14 +110,17 @@ function tokenize(input: string): string[] {
   return input.trim().split(/\s+/).filter(Boolean);
 }
 
-async function handleCommand(input: string, ctx: CommandContext) {
+async function handleCommand(
+  input: string,
+  ctx: CommandContext,
+  commandMap: Map<string, CommandSpec>,
+  t: ReturnType<typeof getTranslations>,
+) {
   const echoLine = document.createElement('span');
   echoLine.className = 'line line--prompt';
   echoLine.innerHTML = PROMPT_HTML + escapeHTML(input) + '</span>';
   document.getElementById('terminal-output')!.appendChild(echoLine);
-  document
-    .getElementById('terminal-output')!
-    .appendChild(document.createTextNode('\n'));
+  document.getElementById('terminal-output')!.appendChild(document.createTextNode('\n'));
 
   const tokens = tokenize(input);
   if (tokens.length === 0) return;
@@ -123,14 +128,14 @@ async function handleCommand(input: string, ctx: CommandContext) {
   const [name, ...args] = tokens;
   const cmd = commandMap.get(name!);
   if (!cmd) {
-    ctx.print(`command not found: ${name}`, 'err');
-    ctx.print(`type \`help\` to see available commands.`, 'dim');
+    ctx.print(`${t.terminal.commandNotFound} ${name}`, 'err');
+    ctx.print(t.terminal.typeHelpHint, 'dim');
     return;
   }
   try {
     await cmd.handler(args, ctx);
   } catch (err) {
-    ctx.print(`error: ${(err as Error).message}`, 'err');
+    ctx.print(`${t.terminal.errorPrefix} ${(err as Error).message}`, 'err');
   }
 }
 
@@ -177,7 +182,7 @@ class History {
   }
 }
 
-function tabComplete(value: string): string {
+function tabComplete(value: string, commands: CommandSpec[]): string {
   const tokens = tokenize(value);
   if (tokens.length <= 1) {
     const partial = tokens[0] ?? '';
@@ -214,6 +219,12 @@ export async function initTerminal(root: ParentNode = document) {
 
   if (!output || !form || !input || !cursor) return;
 
+  // Read the active locale from <html lang="..."> set by BaseLayout.
+  const locale = asLocale(document.documentElement.lang);
+  const t = getTranslations(locale);
+  const commands = buildCommands(t, locale);
+  const commandMap = new Map(commands.map((c) => [c.name, c]));
+
   const elements: TerminalElements = { output, form, input, cursor };
   const ctx = makeContext(elements);
   const history = new History();
@@ -234,12 +245,12 @@ export async function initTerminal(root: ParentNode = document) {
       try {
         await navigator.clipboard.writeText(value);
         const original = target.textContent;
-        target.textContent = 'copied!';
+        target.textContent = t.terminal.copyDone;
         setTimeout(() => {
           target.textContent = original;
         }, 1400);
       } catch {
-        target.textContent = 'press ctrl+c';
+        target.textContent = t.terminal.copyFallback;
       }
     }
   });
@@ -272,7 +283,7 @@ export async function initTerminal(root: ParentNode = document) {
       }
     } else if (e.key === 'Tab') {
       e.preventDefault();
-      input.value = tabComplete(input.value);
+      input.value = tabComplete(input.value, commands);
       requestAnimationFrame(() => {
         input.setSelectionRange(input.value.length, input.value.length);
         updateCursor(input, cursor);
@@ -300,11 +311,11 @@ export async function initTerminal(root: ParentNode = document) {
     history.push(value);
     history.reset();
     updateCursor(input, cursor);
-    await handleCommand(value, ctx);
+    await handleCommand(value, ctx, commandMap, t);
   });
 
   // Boot sequence then focus
-  await runBoot(ctx, elements);
+  await runBoot(ctx, elements, t);
   input.focus();
   updateCursor(input, cursor);
 }
