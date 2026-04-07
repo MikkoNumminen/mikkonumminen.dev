@@ -248,7 +248,9 @@ export function initPageTransitions() {
   if (reducedMotion) return;
 
   const overlay = document.getElementById('page-transition-overlay');
-  const canvas = document.getElementById('page-transition-canvas') as HTMLCanvasElement | null;
+  const canvas = document.getElementById(
+    'page-transition-canvas',
+  ) as HTMLCanvasElement | null;
   if (!overlay || !canvas) return;
 
   const runner = new TransitionRunner(overlay, canvas);

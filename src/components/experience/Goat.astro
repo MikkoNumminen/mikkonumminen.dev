@@ -1,19 +1,20 @@
 ---
+
 ---
 
 <div class="goat-wrap" data-goat aria-hidden="true">
   <div class="goat">
     <svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
       <!-- Body -->
-      <ellipse cx="40" cy="34" rx="22" ry="11" fill="#f5efe2" />
+      <ellipse cx="40" cy="34" rx="22" ry="11" fill="#f5efe2"></ellipse>
       <!-- Belly shading -->
-      <ellipse cx="40" cy="38" rx="20" ry="6" fill="#e6dccb" opacity="0.6" />
+      <ellipse cx="40" cy="38" rx="20" ry="6" fill="#e6dccb" opacity="0.6"></ellipse>
       <!-- Head -->
-      <ellipse cx="62" cy="22" rx="10" ry="8" fill="#f5efe2" />
+      <ellipse cx="62" cy="22" rx="10" ry="8" fill="#f5efe2"></ellipse>
       <!-- Snout -->
-      <ellipse cx="70" cy="24" rx="4" ry="3" fill="#e6dccb" />
+      <ellipse cx="70" cy="24" rx="4" ry="3" fill="#e6dccb"></ellipse>
       <!-- Eye -->
-      <circle cx="64" cy="20" r="1.2" fill="#0f1114" />
+      <circle cx="64" cy="20" r="1.2" fill="#0f1114"></circle>
       <!-- Horns -->
       <path
         d="M58 16 Q56 8 60 6"
@@ -28,7 +29,13 @@
         stroke-linecap="round"
         fill="none"></path>
       <!-- Ear -->
-      <ellipse cx="55" cy="17" rx="2.5" ry="1.5" fill="#d8cdb6" transform="rotate(-25 55 17)" />
+      <ellipse
+        cx="55"
+        cy="17"
+        rx="2.5"
+        ry="1.5"
+        fill="#d8cdb6"
+        transform="rotate(-25 55 17)"></ellipse>
       <!-- Beard -->
       <path
         d="M68 27 Q67 31 65 33"
@@ -38,10 +45,38 @@
         fill="none"></path>
       <!-- Legs (front + back) — animated by CSS -->
       <g class="goat__legs">
-        <rect class="goat__leg goat__leg--fl" x="50" y="40" width="3" height="14" rx="1" fill="#3d2f1f" />
-        <rect class="goat__leg goat__leg--fr" x="56" y="40" width="3" height="14" rx="1" fill="#3d2f1f" />
-        <rect class="goat__leg goat__leg--bl" x="24" y="40" width="3" height="14" rx="1" fill="#3d2f1f" />
-        <rect class="goat__leg goat__leg--br" x="30" y="40" width="3" height="14" rx="1" fill="#3d2f1f" />
+        <rect
+          class="goat__leg goat__leg--fl"
+          x="50"
+          y="40"
+          width="3"
+          height="14"
+          rx="1"
+          fill="#3d2f1f"></rect>
+        <rect
+          class="goat__leg goat__leg--fr"
+          x="56"
+          y="40"
+          width="3"
+          height="14"
+          rx="1"
+          fill="#3d2f1f"></rect>
+        <rect
+          class="goat__leg goat__leg--bl"
+          x="24"
+          y="40"
+          width="3"
+          height="14"
+          rx="1"
+          fill="#3d2f1f"></rect>
+        <rect
+          class="goat__leg goat__leg--br"
+          x="30"
+          y="40"
+          width="3"
+          height="14"
+          rx="1"
+          fill="#3d2f1f"></rect>
       </g>
       <!-- Tail -->
       <path
@@ -79,7 +114,8 @@
   }
 
   @keyframes goat-bob {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0) rotate(-1deg);
     }
     50% {
@@ -103,7 +139,8 @@
   }
 
   @keyframes leg-walk {
-    0%, 100% {
+    0%,
+    100% {
       transform: rotate(0);
     }
     50% {

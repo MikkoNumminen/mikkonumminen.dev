@@ -17,9 +17,7 @@ export interface HomeSceneHandle {
 const FOG_COLOR = 0x05060c;
 const TITLE = 'MIKKO\nNUMMINEN';
 
-export async function createHomeScene(
-  opts: HomeSceneOptions,
-): Promise<HomeSceneHandle> {
+export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
   const { canvas, fontUrl, reducedMotion = false } = opts;
 
   const renderer = new THREE.WebGLRenderer({
@@ -60,7 +58,9 @@ export async function createHomeScene(
   scene.add(fillLight);
 
   // ── Particle field ───────────────────────────────────────────────────
-  const particleCount = reducedMotion ? 0 : Math.min(2200, Math.floor((window.innerWidth * window.innerHeight) / 800));
+  const particleCount = reducedMotion
+    ? 0
+    : Math.min(2200, Math.floor((window.innerWidth * window.innerHeight) / 800));
   const positions = new Float32Array(particleCount * 3);
   const speeds = new Float32Array(particleCount);
   for (let i = 0; i < particleCount; i++) {
@@ -191,7 +191,8 @@ export async function createHomeScene(
     titleGroup.rotation.x = mouseY * 0.12 + Math.sin(t * 0.5) * 0.02;
     titleGroup.rotation.y = mouseX * 0.18 + Math.sin(t * 0.4) * 0.03;
     titleGroup.position.z = -scrollProgress * 6;
-    titleGroup.position.y = totalHeight / 2 + Math.sin(t * 0.7) * 0.08 + scrollProgress * 1.5;
+    titleGroup.position.y =
+      totalHeight / 2 + Math.sin(t * 0.7) * 0.08 + scrollProgress * 1.5;
 
     // Camera pulls back slightly with scroll
     camera.position.z = 18 + scrollProgress * 4;

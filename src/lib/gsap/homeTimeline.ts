@@ -35,9 +35,7 @@ function splitChars(root: ParentNode) {
   });
 }
 
-export function initHomeTimeline(
-  opts: HomeTimelineOptions = {},
-): HomeTimelineHandle {
+export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHandle {
   const { onScrollProgress, reducedMotion = false } = opts;
 
   splitChars(document);
@@ -73,64 +71,58 @@ export function initHomeTimeline(
   }
 
   // ── Letter-by-letter intro reveals ──────────────────────────────────
-  document
-    .querySelectorAll<HTMLElement>('[data-reveal-chars]')
-    .forEach((el) => {
-      const chars = el.querySelectorAll<HTMLElement>('.char');
-      if (chars.length === 0) return;
-      gsap.set(chars, { yPercent: 110, opacity: 0 });
-      const t = gsap.to(chars, {
-        yPercent: 0,
-        opacity: 1,
-        ease: 'power3.out',
-        duration: reducedMotion ? 0.001 : 0.6,
-        stagger: reducedMotion ? 0 : 0.018,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 80%',
-          end: 'top 40%',
-          toggleActions: 'play none none reverse',
-        },
-      });
-      if (t.scrollTrigger) triggers.push(t.scrollTrigger);
+  document.querySelectorAll<HTMLElement>('[data-reveal-chars]').forEach((el) => {
+    const chars = el.querySelectorAll<HTMLElement>('.char');
+    if (chars.length === 0) return;
+    gsap.set(chars, { yPercent: 110, opacity: 0 });
+    const t = gsap.to(chars, {
+      yPercent: 0,
+      opacity: 1,
+      ease: 'power3.out',
+      duration: reducedMotion ? 0.001 : 0.6,
+      stagger: reducedMotion ? 0 : 0.018,
+      scrollTrigger: {
+        trigger: el,
+        start: 'top 80%',
+        end: 'top 40%',
+        toggleActions: 'play none none reverse',
+      },
     });
+    if (t.scrollTrigger) triggers.push(t.scrollTrigger);
+  });
 
   // ── Block fade-up reveals ───────────────────────────────────────────
-  document
-    .querySelectorAll<HTMLElement>('[data-reveal]')
-    .forEach((el) => {
-      gsap.set(el, { y: 60, opacity: 0 });
-      const t = gsap.to(el, {
-        y: 0,
-        opacity: 1,
-        ease: 'power3.out',
-        duration: reducedMotion ? 0.001 : 0.9,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 85%',
-          toggleActions: 'play none none reverse',
-        },
-      });
-      if (t.scrollTrigger) triggers.push(t.scrollTrigger);
+  document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
+    gsap.set(el, { y: 60, opacity: 0 });
+    const t = gsap.to(el, {
+      y: 0,
+      opacity: 1,
+      ease: 'power3.out',
+      duration: reducedMotion ? 0.001 : 0.9,
+      scrollTrigger: {
+        trigger: el,
+        start: 'top 85%',
+        toggleActions: 'play none none reverse',
+      },
     });
+    if (t.scrollTrigger) triggers.push(t.scrollTrigger);
+  });
 
   // ── Parallax layers ─────────────────────────────────────────────────
-  document
-    .querySelectorAll<HTMLElement>('[data-parallax]')
-    .forEach((el) => {
-      const speed = parseFloat(el.dataset.parallax ?? '0.2');
-      const t = gsap.to(el, {
-        yPercent: -speed * 100,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: el.closest('section') ?? el,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        },
-      });
-      if (t.scrollTrigger) triggers.push(t.scrollTrigger);
+  document.querySelectorAll<HTMLElement>('[data-parallax]').forEach((el) => {
+    const speed = parseFloat(el.dataset.parallax ?? '0.2');
+    const t = gsap.to(el, {
+      yPercent: -speed * 100,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: el.closest('section') ?? el,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true,
+      },
     });
+    if (t.scrollTrigger) triggers.push(t.scrollTrigger);
+  });
 
   // ── Nav cards entrance ──────────────────────────────────────────────
   const cards = gsap.utils.toArray<HTMLElement>('[data-nav-card]');

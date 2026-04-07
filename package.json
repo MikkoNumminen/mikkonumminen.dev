@@ -13,7 +13,9 @@
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check",
-    "build:og": "node scripts/build-og.mjs"
+    "build:og": "node scripts/build-og.mjs",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,mjs,astro,json,css}\" \"*.{ts,mjs,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,mjs,astro,json,css}\" \"*.{ts,mjs,json}\""
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",
@@ -27,6 +29,8 @@
   },
   "devDependencies": {
     "@types/three": "^0.183.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-astro": "^0.14.1",
     "sharp": "^0.34.5"
   }
 }
