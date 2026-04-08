@@ -1,0 +1,305 @@
+---
+import '../../styles/mobile-contact-card.css';
+import { asLocale, getTranslations } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
+const m = t.mobileContact;
+---
+
+<section class="mcc" aria-label={m.cardAria}>
+  <div class="mcc__vignette" aria-hidden="true"></div>
+  <div class="mcc__scanlines" aria-hidden="true"></div>
+  <div class="mcc__flicker" aria-hidden="true"></div>
+
+  <div class="mcc__card">
+    <header class="mcc__chrome" aria-hidden="true">
+      <div class="mcc__dots">
+        <span class="mcc__dot mcc__dot--red"></span>
+        <span class="mcc__dot mcc__dot--amber"></span>
+        <span class="mcc__dot mcc__dot--green"></span>
+      </div>
+      <div class="mcc__title">{t.contactPage.windowTitle}</div>
+      <div class="mcc__chrome-spacer"></div>
+    </header>
+
+    <div class="mcc__screen">
+      <div
+        class="mcc__output"
+        id="mcc-output"
+        role="log"
+        aria-live="off"
+        aria-atomic="false"
+        data-whoami-name={m.typedWhoamiOutputName}
+        data-whoami-bio={m.typedWhoamiOutputBio}
+        data-label-email={m.typedContactLabelEmail}
+        data-label-linkedin={m.typedContactLabelLinkedin}
+        data-label-github={m.typedContactLabelGithub}
+        data-label-location={m.typedContactLabelLocation}
+        data-value-location={m.typedContactValueLocation}
+        data-download-output={m.typedDownloadOutput}
+      >
+      </div>
+    </div>
+  </div>
+
+  <div class="mcc__actions">
+    <a class="mcc__btn" href="mailto:numminen.mikko.petteri@gmail.com">
+      {m.btnEmail}
+    </a>
+    <a
+      class="mcc__btn"
+      href="https://www.linkedin.com/in/mikko-numminen-269795205/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {m.btnLinkedin}
+    </a>
+    <a class="mcc__btn" href="/mikko-numminen-cv.pdf" download="mikko-numminen-cv.pdf">
+      {m.btnDownloadCv}
+    </a>
+  </div>
+</section>
+
+<script>
+  // Auto-played scripted terminal session for the mobile contact card.
+  // Plain DOM, no GSAP. Respects prefers-reduced-motion.
+
+  type Step =
+    | { kind: 'cmd'; text: string }
+    | { kind: 'out'; text: string }
+    | { kind: 'pair'; label: string; value: string }
+    | { kind: 'gap' };
+
+  const PROMPT = '$';
+  const CHAR_DELAY_MS = 30;
+  const POST_OUTPUT_PAUSE_MS = 250;
+  const POST_CMD_PAUSE_MS = 140;
+
+  const start = (): void => {
+    const output = document.getElementById('mcc-output');
+    if (!output) return;
+
+    const reduced =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const data = output.dataset;
+    const whoamiName = data.whoamiName ?? '';
+    const whoamiBio = data.whoamiBio ?? '';
+    const labelEmail = data.labelEmail ?? 'email';
+    const labelLinkedin = data.labelLinkedin ?? 'linkedin';
+    const labelGithub = data.labelGithub ?? 'github';
+    const labelLocation = data.labelLocation ?? 'location';
+    const valueLocation = data.valueLocation ?? '';
+    const downloadOutput = data.downloadOutput ?? 'ready.';
+
+    const steps: Step[] = [
+      { kind: 'cmd', text: 'whoami' },
+      { kind: 'out', text: whoamiName },
+      { kind: 'out', text: whoamiBio },
+      { kind: 'gap' },
+      { kind: 'cmd', text: 'contact --list' },
+      {
+        kind: 'pair',
+        label: labelEmail,
+        value: 'numminen.mikko.petteri@gmail.com',
+      },
+      {
+        kind: 'pair',
+        label: labelLinkedin,
+        value: 'linkedin.com/in/mikko-numminen-269795205',
+      },
+      { kind: 'pair', label: labelGithub, value: 'github.com/MikkoNumminen' },
+      { kind: 'pair', label: labelLocation, value: valueLocation },
+      { kind: 'gap' },
+      { kind: 'cmd', text: 'download --cv' },
+      { kind: 'out', text: downloadOutput },
+    ];
+
+    const timeouts = new Set<number>();
+    let cancelled = false;
+
+    const wait = (ms: number): Promise<void> =>
+      new Promise((resolve) => {
+        const id = window.setTimeout(() => {
+          timeouts.delete(id);
+          resolve();
+        }, ms);
+        timeouts.add(id);
+      });
+
+    const raf = (): Promise<void> =>
+      new Promise((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+
+    const makeLine = (className: string): HTMLElement => {
+      const el = document.createElement('span');
+      el.className = `mcc__line ${className}`;
+      return el;
+    };
+
+    const makePromptSpan = (): HTMLElement => {
+      const span = document.createElement('span');
+      span.className = 'mcc__prompt';
+      span.textContent = PROMPT;
+      return span;
+    };
+
+    const renderAllStatic = (): void => {
+      const frag = document.createDocumentFragment();
+      for (const step of steps) {
+        if (step.kind === 'gap') {
+          const gap = document.createElement('span');
+          gap.className = 'mcc__line';
+          gap.textContent = '\u00a0';
+          frag.appendChild(gap);
+          continue;
+        }
+        if (step.kind === 'cmd') {
+          const line = makeLine('mcc__line--cmd');
+          line.appendChild(makePromptSpan());
+          const cmd = document.createElement('span');
+          cmd.textContent = step.text;
+          line.appendChild(cmd);
+          frag.appendChild(line);
+          continue;
+        }
+        if (step.kind === 'out') {
+          const line = makeLine('mcc__line--out');
+          line.textContent = step.text;
+          frag.appendChild(line);
+          continue;
+        }
+        if (step.kind === 'pair') {
+          const line = makeLine('mcc__line--pair');
+          const label = document.createElement('span');
+          label.className = 'mcc__label';
+          label.textContent = step.label;
+          const value = document.createElement('span');
+          value.className = 'mcc__value';
+          value.textContent = step.value;
+          line.appendChild(label);
+          line.appendChild(value);
+          frag.appendChild(line);
+        }
+      }
+
+      const idle = document.createElement('span');
+      idle.className = 'mcc__idle-prompt';
+      idle.appendChild(makePromptSpan());
+      const cursor = document.createElement('span');
+      cursor.className = 'mcc__cursor';
+      idle.appendChild(cursor);
+      frag.appendChild(idle);
+
+      output.appendChild(frag);
+    };
+
+    const typeCommand = async (text: string): Promise<void> => {
+      if (cancelled) return;
+      const line = makeLine('mcc__line--cmd');
+      line.appendChild(makePromptSpan());
+      const cmdSpan = document.createElement('span');
+      line.appendChild(cmdSpan);
+      const cursor = document.createElement('span');
+      cursor.className = 'mcc__cursor';
+      line.appendChild(cursor);
+      output.appendChild(line);
+      await raf();
+
+      for (const ch of text) {
+        if (cancelled) return;
+        cmdSpan.textContent = (cmdSpan.textContent ?? '') + ch;
+        await wait(CHAR_DELAY_MS);
+      }
+
+      // Remove the typing cursor once the command is fully typed.
+      if (cursor.parentNode) cursor.parentNode.removeChild(cursor);
+    };
+
+    const printOut = async (text: string): Promise<void> => {
+      if (cancelled) return;
+      const line = makeLine('mcc__line--out');
+      line.textContent = text;
+      output.appendChild(line);
+      await raf();
+    };
+
+    const printPair = async (label: string, value: string): Promise<void> => {
+      if (cancelled) return;
+      const line = makeLine('mcc__line--pair');
+      const labelEl = document.createElement('span');
+      labelEl.className = 'mcc__label';
+      labelEl.textContent = label;
+      const valueEl = document.createElement('span');
+      valueEl.className = 'mcc__value';
+      valueEl.textContent = value;
+      line.appendChild(labelEl);
+      line.appendChild(valueEl);
+      output.appendChild(line);
+      await raf();
+    };
+
+    const printGap = async (): Promise<void> => {
+      if (cancelled) return;
+      const gap = document.createElement('span');
+      gap.className = 'mcc__line';
+      gap.textContent = '\u00a0';
+      output.appendChild(gap);
+      await raf();
+    };
+
+    const renderIdlePrompt = (): void => {
+      const idle = document.createElement('span');
+      idle.className = 'mcc__idle-prompt';
+      idle.appendChild(makePromptSpan());
+      const cursor = document.createElement('span');
+      cursor.className = 'mcc__cursor';
+      idle.appendChild(cursor);
+      output.appendChild(idle);
+    };
+
+    const cleanup = (): void => {
+      cancelled = true;
+      for (const id of timeouts) window.clearTimeout(id);
+      timeouts.clear();
+    };
+
+    window.addEventListener('beforeunload', cleanup, { once: true });
+    window.addEventListener('pagehide', cleanup, { once: true });
+
+    if (reduced) {
+      renderAllStatic();
+      return;
+    }
+
+    void (async () => {
+      for (const step of steps) {
+        if (cancelled) return;
+        if (step.kind === 'cmd') {
+          await typeCommand(step.text);
+          await wait(POST_CMD_PAUSE_MS);
+        } else if (step.kind === 'out') {
+          await printOut(step.text);
+          await wait(POST_OUTPUT_PAUSE_MS);
+        } else if (step.kind === 'pair') {
+          await printPair(step.label, step.value);
+          await wait(80);
+        } else if (step.kind === 'gap') {
+          await printGap();
+        }
+      }
+      if (cancelled) return;
+      renderIdlePrompt();
+    })();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+</script>

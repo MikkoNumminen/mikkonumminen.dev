@@ -110,6 +110,20 @@ export interface Translations {
     noscriptEmailLabel: string;
     noscriptGithubLabel: string;
   };
+  mobileContact: {
+    typedWhoamiOutputName: string;
+    typedWhoamiOutputBio: string;
+    typedContactLabelEmail: string;
+    typedContactLabelLinkedin: string;
+    typedContactLabelGithub: string;
+    typedContactLabelLocation: string;
+    typedContactValueLocation: string;
+    typedDownloadOutput: string;
+    btnEmail: string;
+    btnLinkedin: string;
+    btnDownloadCv: string;
+    cardAria: string;
+  };
   terminal: {
     bootBooting: string;
     bootMounting: string;

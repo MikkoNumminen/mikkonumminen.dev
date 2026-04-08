@@ -305,6 +305,13 @@
 }
 
 @media (max-width: 640px) {
+  /* Hide the desktop interactive CRT terminal on phones — the
+     MobileContactCard component takes over below 640px. The noscript
+     fallback inside .crt is still served for no-JS desktop clients;
+     no-JS mobile is an accepted non-goal. */
+  .crt {
+    display: none;
+  }
   .terminal {
     width: 96vw;
     margin-top: 5.5rem;

@@ -197,6 +197,21 @@ export const sv: Translations = {
     noscriptEmailLabel: 'E-post:',
     noscriptGithubLabel: 'GitHub:',
   },
+  mobileContact: {
+    typedWhoamiOutputName: 'mikko numminen — full-stack-utvecklare · finland',
+    typedWhoamiOutputBio:
+      'bygger produktionsklara webbappar med ai-assisterade arbetsflöden.',
+    typedContactLabelEmail: 'e-post',
+    typedContactLabelLinkedin: 'linkedin',
+    typedContactLabelGithub: 'github',
+    typedContactLabelLocation: 'plats',
+    typedContactValueLocation: 'finland · distansvänligt',
+    typedDownloadOutput: 'klar.',
+    btnEmail: 'Mejla mig',
+    btnLinkedin: 'LinkedIn',
+    btnDownloadCv: 'Ladda ner CV',
+    cardAria: 'Mobil kontaktkort med automatiskt uppspelad terminalsession',
+  },
   terminal: {
     bootBooting: 'startar mikkOS v1.0.0 ...',
     bootMounting: '[ ok ] monterar /portfolio',
