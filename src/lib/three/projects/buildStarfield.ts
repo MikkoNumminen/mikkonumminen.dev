@@ -1,19 +1,19 @@
-import * as THREE from 'three';
+import { BufferGeometry, Color, Points, PointsMaterial } from 'three';
 import { buildPointCloud } from '../buildPointCloud';
 
 export interface Starfield {
-  points: THREE.Points;
-  geometry: THREE.BufferGeometry;
-  material: THREE.PointsMaterial;
+  points: Points;
+  geometry: BufferGeometry;
+  material: PointsMaterial;
 }
 
 const STAR_COUNT = 1800;
 const STAR_RADIUS_MIN = 60;
 const STAR_RADIUS_RANGE = 140;
-const STAR_PALETTE: readonly THREE.Color[] = [
-  new THREE.Color(0xffffff),
-  new THREE.Color(0xc8d8ff),
-  new THREE.Color(0xfff0c8),
+const STAR_PALETTE: readonly Color[] = [
+  new Color(0xffffff),
+  new Color(0xc8d8ff),
+  new Color(0xfff0c8),
 ];
 
 export function buildStarfield(): Starfield {
@@ -36,7 +36,7 @@ export function buildStarfield(): Starfield {
     colors[i3 + 2] = color.b;
   }
 
-  const material = new THREE.PointsMaterial({
+  const material = new PointsMaterial({
     size: 0.18,
     sizeAttenuation: true,
     vertexColors: true,

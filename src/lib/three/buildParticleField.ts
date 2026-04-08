@@ -1,11 +1,18 @@
-import * as THREE from 'three';
+import {
+  AdditiveBlending,
+  BufferGeometry,
+  CanvasTexture,
+  Points,
+  PointsMaterial,
+  Texture,
+} from 'three';
 import { buildPointCloud } from './buildPointCloud';
 
 export interface ParticleField {
-  points: THREE.Points;
-  geometry: THREE.BufferGeometry;
-  material: THREE.PointsMaterial;
-  texture: THREE.Texture;
+  points: Points;
+  geometry: BufferGeometry;
+  material: PointsMaterial;
+  texture: Texture;
   positions: Float32Array;
   speeds: Float32Array;
   count: number;
@@ -23,14 +30,14 @@ export function buildParticleField(count: number): ParticleField {
   }
 
   const texture = makeCircleTexture();
-  const material = new THREE.PointsMaterial({
+  const material = new PointsMaterial({
     size: 0.08,
     sizeAttenuation: true,
     color: 0xc8d8ff,
     transparent: true,
     opacity: 0.9,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     map: texture,
   });
 
@@ -46,7 +53,7 @@ export function buildParticleField(count: number): ParticleField {
   };
 }
 
-function makeCircleTexture(): THREE.Texture {
+function makeCircleTexture(): Texture {
   const size = 64;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -69,7 +76,7 @@ function makeCircleTexture(): THREE.Texture {
   gradient.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size, size);
-  const texture = new THREE.CanvasTexture(canvas);
+  const texture = new CanvasTexture(canvas);
   texture.needsUpdate = true;
   return texture;
 }

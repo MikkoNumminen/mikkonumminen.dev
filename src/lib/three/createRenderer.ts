@@ -1,15 +1,15 @@
-import * as THREE from 'three';
+import { type ToneMapping, WebGLRenderer } from 'three';
 
 export interface CreateRendererOptions {
-  toneMapping?: THREE.ToneMapping;
+  toneMapping?: ToneMapping;
   toneMappingExposure?: number;
 }
 
 export function createRenderer(
   canvas: HTMLCanvasElement,
   options: CreateRendererOptions = {},
-): THREE.WebGLRenderer {
-  const renderer = new THREE.WebGLRenderer({
+): WebGLRenderer {
+  const renderer = new WebGLRenderer({
     canvas,
     antialias: true,
     alpha: true,

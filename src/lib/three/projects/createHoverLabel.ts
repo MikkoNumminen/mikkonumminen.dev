@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { Camera, Vector3 } from 'three';
 
 function escapeHtml(s: string): string {
   return s.replace(
@@ -18,11 +18,7 @@ export interface HoverLabelEntry {
 export interface HoverLabelHandle {
   show: (entry: HoverLabelEntry) => void;
   hide: () => void;
-  position: (
-    worldPos: THREE.Vector3,
-    camera: THREE.Camera,
-    scratch: THREE.Vector3,
-  ) => void;
+  position: (worldPos: Vector3, camera: Camera, scratch: Vector3) => void;
   reset: () => void;
 }
 

@@ -1,15 +1,15 @@
-import * as THREE from 'three';
+import { BufferAttribute, BufferGeometry, Points, PointsMaterial } from 'three';
 
 export interface BuildPointCloudOptions {
   positions: Float32Array;
   colors?: Float32Array;
-  material: THREE.PointsMaterial;
+  material: PointsMaterial;
 }
 
 export interface PointCloud {
-  points: THREE.Points;
-  geometry: THREE.BufferGeometry;
-  material: THREE.PointsMaterial;
+  points: Points;
+  geometry: BufferGeometry;
+  material: PointsMaterial;
 }
 
 /**
@@ -18,11 +18,11 @@ export interface PointCloud {
  * returned reference.
  */
 export function buildPointCloud(opts: BuildPointCloudOptions): PointCloud {
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(opts.positions, 3));
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(opts.positions, 3));
   if (opts.colors) {
-    geometry.setAttribute('color', new THREE.BufferAttribute(opts.colors, 3));
+    geometry.setAttribute('color', new BufferAttribute(opts.colors, 3));
   }
-  const points = new THREE.Points(geometry, opts.material);
+  const points = new Points(geometry, opts.material);
   return { points, geometry, material: opts.material };
 }

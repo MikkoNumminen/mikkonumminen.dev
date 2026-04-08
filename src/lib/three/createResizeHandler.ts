@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { PerspectiveCamera, WebGLRenderer } from 'three';
 
 export interface ResizeHandlerHandle {
   handler: () => void;
@@ -11,8 +11,8 @@ export interface ResizeHandlerHandle {
  * for scene-specific tweaks (e.g. scaling a title group).
  */
 export function createResizeHandler(
-  renderer: THREE.WebGLRenderer,
-  camera: THREE.PerspectiveCamera,
+  renderer: WebGLRenderer,
+  camera: PerspectiveCamera,
   onResize?: (width: number, height: number) => void,
 ): ResizeHandlerHandle {
   const handler = (): void => {

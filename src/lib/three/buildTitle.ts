@@ -1,11 +1,11 @@
-import * as THREE from 'three';
+import { Group, Mesh, MeshPhysicalMaterial } from 'three';
 import { FontLoader, type Font } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
 export interface TitleHandle {
-  group: THREE.Group;
-  meshes: THREE.Mesh[];
-  material: THREE.MeshPhysicalMaterial;
+  group: Group;
+  meshes: Mesh[];
+  material: MeshPhysicalMaterial;
   /** Total stacked height of all lines, used to vertically center the group. */
   totalHeight: number;
 }
@@ -18,8 +18,8 @@ export function loadFont(url: string): Promise<Font> {
 }
 
 export function buildTitle(font: Font, title: string): TitleHandle {
-  const group = new THREE.Group();
-  const material = new THREE.MeshPhysicalMaterial({
+  const group = new Group();
+  const material = new MeshPhysicalMaterial({
     color: 0xf3f6ff,
     metalness: 0.55,
     roughness: 0.18,
@@ -29,7 +29,7 @@ export function buildTitle(font: Font, title: string): TitleHandle {
   });
 
   const lines = title.split('\n');
-  const meshes: THREE.Mesh[] = [];
+  const meshes: Mesh[] = [];
   let lineY = 0;
   for (const line of lines) {
     const geometry = new TextGeometry(line, {
@@ -50,7 +50,7 @@ export function buildTitle(font: Font, title: string): TitleHandle {
     const height = bb.max.y - bb.min.y;
     geometry.translate(-width / 2, -height / 2, 0);
 
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new Mesh(geometry, material);
     mesh.position.y = lineY;
     group.add(mesh);
     meshes.push(mesh);

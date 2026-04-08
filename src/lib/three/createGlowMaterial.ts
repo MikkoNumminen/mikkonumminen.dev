@@ -1,7 +1,13 @@
-import * as THREE from 'three';
+import {
+  AdditiveBlending,
+  BackSide,
+  Color,
+  type ColorRepresentation,
+  ShaderMaterial,
+} from 'three';
 
 export interface CreateGlowMaterialOptions {
-  color: THREE.ColorRepresentation;
+  color: ColorRepresentation;
   /** Inner falloff term subtracted from the Fresnel dot product. */
   falloff: number;
   /** Output alpha multiplier. */
@@ -34,16 +40,14 @@ const FRAGMENT_SHADER = `
  * Fresnel-style additive glow shell, used by both the sun and planet halos.
  * Sharing one shader source means the WebGL pipeline only compiles it once.
  */
-export function createGlowMaterial(
-  opts: CreateGlowMaterialOptions,
-): THREE.ShaderMaterial {
-  return new THREE.ShaderMaterial({
+export function createGlowMaterial(opts: CreateGlowMaterialOptions): ShaderMaterial {
+  return new ShaderMaterial({
     transparent: true,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
-    side: THREE.BackSide,
+    side: BackSide,
     uniforms: {
-      glowColor: { value: new THREE.Color(opts.color) },
+      glowColor: { value: new Color(opts.color) },
       falloff: { value: opts.falloff },
       intensity: { value: opts.intensity },
     },

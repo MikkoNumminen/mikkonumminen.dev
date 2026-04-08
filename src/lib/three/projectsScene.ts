@@ -1,4 +1,15 @@
-import * as THREE from 'three';
+import {
+  ACESFilmicToneMapping,
+  AmbientLight,
+  FogExp2,
+  Mesh,
+  PerspectiveCamera,
+  PointLight,
+  Raycaster,
+  Scene,
+  Vector2,
+  Vector3,
+} from 'three';
 import { gsap } from 'gsap';
 import type { LocalizedProject } from '../../data/projects';
 import { createRenderer } from './createRenderer';
@@ -26,8 +37,8 @@ export interface ProjectsSceneHandle {
 }
 
 const FOG_COLOR = 0x020512;
-const SOLAR_CAMERA_POS = new THREE.Vector3(0, 8, 28);
-const SOLAR_LOOK_AT = new THREE.Vector3(0, 0, 0);
+const SOLAR_CAMERA_POS = new Vector3(0, 8, 28);
+const SOLAR_LOOK_AT = new Vector3(0, 0, 0);
 
 export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHandle {
   const {
@@ -45,15 +56,15 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
   // ── Renderer ────────────────────────────────────────────────────────
   const renderer = createRenderer(canvas, {
-    toneMapping: THREE.ACESFilmicToneMapping,
+    toneMapping: ACESFilmicToneMapping,
     toneMappingExposure: 1.05,
   });
 
   // ── Scene + camera ──────────────────────────────────────────────────
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(FOG_COLOR, 0.012);
+  const scene = new Scene();
+  scene.fog = new FogExp2(FOG_COLOR, 0.012);
 
-  const camera = new THREE.PerspectiveCamera(
+  const camera = new PerspectiveCamera(
     52,
     window.innerWidth / window.innerHeight,
     0.1,
@@ -71,11 +82,11 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   scene.add(sun.group);
 
   // ── Lighting ────────────────────────────────────────────────────────
-  const sunLight = new THREE.PointLight(0xffd6a0, 3.2, 180, 1.4);
+  const sunLight = new PointLight(0xffd6a0, 3.2, 180, 1.4);
   sunLight.position.set(0, 0, 0);
   scene.add(sunLight);
 
-  const ambient = new THREE.AmbientLight(0x404060, 0.55);
+  const ambient = new AmbientLight(0x404060, 0.55);
   scene.add(ambient);
 
   // ── Planets ─────────────────────────────────────────────────────────
@@ -86,14 +97,14 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     planets.push(built.entry);
   }
   // Cached once so the raycaster doesn't allocate per frame and per click.
-  const planetMeshes: THREE.Mesh[] = planets.map((p) => p.mesh);
+  const planetMeshes: Mesh[] = planets.map((p) => p.mesh);
 
   // ── Hover label ─────────────────────────────────────────────────────
   const hoverLabelHandle = createHoverLabel(hoverLabel);
 
   // ── Raycasting state ────────────────────────────────────────────────
-  const raycaster = new THREE.Raycaster();
-  const pointer = new THREE.Vector2(-1, -1);
+  const raycaster = new Raycaster();
+  const pointer = new Vector2(-1, -1);
   let hovered: PlanetEntry | null = null;
   let selected: PlanetEntry | null = null;
 
@@ -149,8 +160,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const startTime = performance.now();
   let lastFrame = startTime;
 
-  const planetWorldPos = new THREE.Vector3();
-  const labelProjectionVec = new THREE.Vector3();
+  const planetWorldPos = new Vector3();
+  const labelProjectionVec = new Vector3();
 
   const tick = (): void => {
     if (disposed) return;

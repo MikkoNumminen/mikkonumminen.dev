@@ -1,4 +1,12 @@
-import * as THREE from 'three';
+import {
+  AmbientLight,
+  BufferAttribute,
+  DirectionalLight,
+  Fog,
+  PerspectiveCamera,
+  PointLight,
+  Scene,
+} from 'three';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
@@ -33,10 +41,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   const renderer = createRenderer(canvas);
 
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(FOG_COLOR, 12, 60);
+  const scene = new Scene();
+  scene.fog = new Fog(FOG_COLOR, 12, 60);
 
-  const camera = new THREE.PerspectiveCamera(
+  const camera = new PerspectiveCamera(
     45,
     window.innerWidth / window.innerHeight,
     0.1,
@@ -45,18 +53,18 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   camera.position.set(0, 0, 18);
 
   // ── Lighting ─────────────────────────────────────────────────────────
-  const ambient = new THREE.AmbientLight(0xffffff, 0.35);
+  const ambient = new AmbientLight(0xffffff, 0.35);
   scene.add(ambient);
 
-  const keyLight = new THREE.DirectionalLight(0xeaf2ff, 1.6);
+  const keyLight = new DirectionalLight(0xeaf2ff, 1.6);
   keyLight.position.set(6, 8, 10);
   scene.add(keyLight);
 
-  const rimLight = new THREE.DirectionalLight(0x80a8ff, 0.9);
+  const rimLight = new DirectionalLight(0x80a8ff, 0.9);
   rimLight.position.set(-8, -2, -4);
   scene.add(rimLight);
 
-  const fillLight = new THREE.PointLight(0xff8a4c, 0.6, 40);
+  const fillLight = new PointLight(0xff8a4c, 0.6, 40);
   fillLight.position.set(-4, 4, 6);
   scene.add(fillLight);
 
@@ -132,9 +140,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     camera.lookAt(0, 0, 0);
 
     if (particleField) {
-      const posAttr = particleField.geometry.getAttribute(
-        'position',
-      ) as THREE.BufferAttribute;
+      const posAttr = particleField.geometry.getAttribute('position') as BufferAttribute;
       // `array` is the same Float32Array we passed in via BufferAttribute,
       // but Three.js types it as the typed-array union.
       const arr = posAttr.array as Float32Array;

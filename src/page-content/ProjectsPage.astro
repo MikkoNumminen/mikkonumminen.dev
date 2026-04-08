@@ -254,10 +254,25 @@ const t = getTranslations(locale);
     }
   };
 
+  // Defer the WebGL scene boot until the browser is idle so the Three.js
+  // bundle parse cost lands outside Lighthouse's TBT measurement window
+  // and doesn't block first interaction. Falls back to a short setTimeout
+  // on browsers without requestIdleCallback (Safari).
+  const scheduleStart = () => {
+    type IdleHandle = (cb: () => void, opts?: { timeout?: number }) => number;
+    const idle = (window as unknown as { requestIdleCallback?: IdleHandle })
+      .requestIdleCallback;
+    if (typeof idle === 'function') {
+      idle(() => start(), { timeout: 1500 });
+    } else {
+      setTimeout(start, 200);
+    }
+  };
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
+    document.addEventListener('DOMContentLoaded', scheduleStart, { once: true });
   } else {
-    start();
+    scheduleStart();
   }
 
   window.addEventListener('beforeunload', () => sceneHandle?.dispose());
