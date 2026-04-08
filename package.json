@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "private": true,
   "engines": {
-    "node": ">=20.3.0"
+    "node": "^20.3.0 || ^22.0.0"
   },
   "scripts": {
     "dev": "astro dev",
@@ -18,19 +18,19 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,mjs,astro,json,css}\" \"*.{ts,mjs,json}\""
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.8",
     "@astrojs/sitemap": "^3.7.2",
     "@tailwindcss/vite": "^4.2.2",
     "astro": "^5.18.1",
     "gsap": "^3.14.2",
     "tailwindcss": "^4.2.2",
-    "three": "^0.183.2",
-    "typescript": "^5.9.3"
+    "three": "^0.183.2"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.8",
     "@types/three": "^0.183.1",
     "prettier": "^3.8.1",
     "prettier-plugin-astro": "^0.14.1",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "typescript": "^5.9.3"
   }
 }

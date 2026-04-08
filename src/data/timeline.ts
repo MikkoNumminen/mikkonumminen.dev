@@ -39,10 +39,17 @@ export const timeline: TimelineEntry[] = [
 /**
  * Merge structural timeline data with localized text. Returns one
  * `LocalizedTimelineEntry` per entry, in source order.
+ *
+ * In dev we log a warning whenever the dictionary is missing a translation
+ * for a given entry id so translators see the gap immediately instead of
+ * shipping an empty string to production.
  */
 export function localizeTimeline(t: Translations): LocalizedTimelineEntry[] {
   return timeline.map((entry) => {
     const text = t.timelineData[entry.id];
+    if (import.meta.env.DEV && !text) {
+      console.warn(`[i18n] missing timelineData.${entry.id} for current locale`);
+    }
     return {
       ...entry,
       title: text?.title ?? '',

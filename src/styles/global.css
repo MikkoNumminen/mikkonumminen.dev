@@ -1,10 +1,13 @@
 @import 'tailwindcss';
 
 @theme {
+  /* Fonts — used by every page. Mono drives the terminal and code-style
+     lockups on /projects and /experience; sans is the body type. */
   --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
-  /* Terminal palette */
+  /* Terminal palette — used by /contact (Terminal.astro + terminal.css).
+     These drive the CRT frame, command output, and prompt chrome. */
   --color-term-bg: #050807;
   --color-term-fg: #b5f5c8;
   --color-term-green: #4ade80;
@@ -12,9 +15,13 @@
   --color-term-amber: #fbbf24;
   --color-term-red: #f87171;
   --color-term-cyan: #67e8f9;
-  --color-term-dim: #4b6b54;
+  /* Bumped from #4b6b54 to clear WCAG AA 4.5:1 against the near-black
+     terminal background (used for help output and .line--dim on /contact,
+     and as a dimmed accent wherever the variable is referenced). */
+  --color-term-dim: #6e8e75;
 
-  /* Site palette (used across pages) */
+  /* Site palette — used by /, /projects, and /experience as the base
+     paper/ink pair that every page-level theme layers on top of. */
   --color-ink: #0a0a0f;
   --color-paper: #f5f5f0;
 }

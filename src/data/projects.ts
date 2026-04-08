@@ -135,15 +135,20 @@ export const projects: Project[] = [
   },
 ];
 
-export const projectMap = new Map(projects.map((p) => [p.id, p]));
-
 /**
  * Merge structural project data with the localized text from a translations
  * dictionary. Returns one `LocalizedProject` per `Project` in `projects`.
+ *
+ * In dev we log a warning whenever the dictionary is missing a translation
+ * for a given project id so translators see the gap immediately instead of
+ * shipping an empty string to production.
  */
 export function localizeProjects(t: Translations): LocalizedProject[] {
   return projects.map((p) => {
     const text = t.projectsData[p.id];
+    if (import.meta.env.DEV && !text) {
+      console.warn(`[i18n] missing projectsData.${p.id} for current locale`);
+    }
     return {
       ...p,
       tagline: text?.tagline ?? '',

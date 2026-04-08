@@ -5,7 +5,8 @@
     "paths": {
       "~/*": ["src/*"]
     },
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "noUncheckedIndexedAccess": true
   },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist"]

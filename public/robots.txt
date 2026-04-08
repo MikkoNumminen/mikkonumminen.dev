@@ -1,4 +1,8 @@
+# Update the Sitemap URL below when the custom domain ships — the Vercel
+# preview host is fine for now but search engines should ultimately be
+# pointed at the apex domain.
 User-agent: *
 Allow: /
+Disallow:
 
 Sitemap: https://mikkonumminen-dev.vercel.app/sitemap-index.xml
