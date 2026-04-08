@@ -254,19 +254,41 @@ const t = getTranslations(locale);
     }
   };
 
-  // Defer the WebGL scene boot until the browser is idle so the Three.js
-  // bundle parse cost lands outside Lighthouse's TBT measurement window
-  // and doesn't block first interaction. Falls back to a short setTimeout
-  // on browsers without requestIdleCallback (Safari).
+  // Defer the WebGL scene boot until the first real user interaction
+  // (scroll / pointer / key) or a 2s passive fallback. Visitors who bounce
+  // immediately never pay the Three.js download or parse cost; engaged
+  // visitors trigger it on their very first movement. The modulepreload
+  // in <head> ensures the chunk is already warm in cache by then.
+  let started = false;
+  let abortInteractions: AbortController | null = null;
+  let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const triggerStart = () => {
+    if (started) return;
+    started = true;
+    if (abortInteractions) abortInteractions.abort();
+    if (fallbackTimer !== null) clearTimeout(fallbackTimer);
+    void start();
+  };
+
   const scheduleStart = () => {
-    type IdleHandle = (cb: () => void, opts?: { timeout?: number }) => number;
-    const idle = (window as unknown as { requestIdleCallback?: IdleHandle })
-      .requestIdleCallback;
-    if (typeof idle === 'function') {
-      idle(() => start(), { timeout: 1500 });
-    } else {
-      setTimeout(start, 200);
+    if (started) return;
+    abortInteractions = new AbortController();
+    const interactionEvents = [
+      'scroll',
+      'mousemove',
+      'touchstart',
+      'keydown',
+      'pointerdown',
+    ] as const;
+    for (const ev of interactionEvents) {
+      window.addEventListener(ev, triggerStart, {
+        once: true,
+        passive: true,
+        signal: abortInteractions.signal,
+      });
     }
+    fallbackTimer = setTimeout(triggerStart, 2000);
   };
 
   if (document.readyState === 'loading') {
