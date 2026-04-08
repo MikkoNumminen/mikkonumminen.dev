@@ -16,13 +16,14 @@ export interface HomeTimelineHandle {
 
 /**
  * Wraps each character of every `[data-split]` element in a `.char` span so we
- * can animate them individually. Whitespace is preserved.
+ * can animate them individually. Whitespace is preserved. The original text
+ * lives on a sr-only sibling so screen readers read the heading naturally
+ * (instead of "I... space... b... u... i...") without putting aria-label on a
+ * generic span (which Lighthouse flags as a prohibited ARIA attribute).
  *
- * NOTE: This is a one-way DOM mutation. The original text is preserved on the
- * `aria-label` attribute and the `data-split-done` flag prevents re-splitting,
- * so an SPA-style remount restores the right content. We intentionally do NOT
- * unsplit on dispose because the .char spans are also referenced by CSS for
- * the static fallback styling.
+ * NOTE: One-way DOM mutation. `data-split-done` prevents re-splitting on a
+ * remount; we intentionally do NOT unsplit on dispose because the .char spans
+ * are also referenced by CSS for the static fallback styling.
  */
 function splitChars(root: ParentNode): void {
   const targets = root.querySelectorAll<HTMLElement>('[data-split]');
@@ -30,14 +31,24 @@ function splitChars(root: ParentNode): void {
     if (el.dataset.splitDone === '1') return;
     const text = el.textContent ?? '';
     el.textContent = '';
-    el.setAttribute('aria-label', text);
+
+    const srOnly = document.createElement('span');
+    srOnly.className = 'sr-only';
+    srOnly.textContent = text;
+    el.appendChild(srOnly);
+
+    // aria-hidden cascades to every .char inside, so individual chars no
+    // longer need their own aria-hidden attribute.
+    const chars = document.createElement('span');
+    chars.setAttribute('aria-hidden', 'true');
     for (const ch of text) {
-      const span = document.createElement('span');
-      span.className = 'char';
-      span.setAttribute('aria-hidden', 'true');
-      span.textContent = ch === ' ' ? '\u00A0' : ch;
-      el.appendChild(span);
+      const charSpan = document.createElement('span');
+      charSpan.className = 'char';
+      charSpan.textContent = ch === ' ' ? '\u00A0' : ch;
+      chars.appendChild(charSpan);
     }
+    el.appendChild(chars);
+
     el.dataset.splitDone = '1';
   });
 }
