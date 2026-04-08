@@ -184,6 +184,7 @@ export const fi: Translations = {
     },
   },
   contactPage: {
+    h1: 'Yhteystiedot',
     interactiveAria: 'Interaktiivinen terminaali',
     windowTitle: 'mikko@portfolio — zsh — 96×30',
     inputAria: 'Terminaalin komentokenttä',

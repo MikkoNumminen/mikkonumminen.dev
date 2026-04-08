@@ -33,7 +33,8 @@ const t = getTranslations(locale);
   let handle: { dispose: () => void } | null = null;
 
   const start = () => {
-    handle = initExperienceTimeline();
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    handle = initExperienceTimeline({ reducedMotion });
   };
 
   if (document.readyState === 'loading') {

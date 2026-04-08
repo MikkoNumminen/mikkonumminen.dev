@@ -98,6 +98,7 @@ export interface Translations {
     }
   >;
   contactPage: {
+    h1: string;
     interactiveAria: string;
     windowTitle: string;
     inputAria: string;

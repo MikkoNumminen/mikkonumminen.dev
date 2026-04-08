@@ -1,0 +1,160 @@
+/* Nav cards styles — extracted from src/components/home/NavCards.astro */
+
+.nav-cards {
+  position: relative;
+  padding: clamp(6rem, 14vh, 10rem) 1.5rem clamp(3rem, 6vh, 4rem);
+}
+
+.nav-cards__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.nav-cards__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0 0 1.5rem;
+}
+
+.nav-cards__heading {
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 4rem;
+  color: #fff;
+}
+
+.nav-cards__heading [data-split] {
+  display: inline-block;
+  overflow: hidden;
+}
+.nav-cards__heading .char {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+.nav-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.nav-card {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 1rem;
+  padding: 2.25rem 2rem 1.75rem;
+  text-decoration: none;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  overflow: hidden;
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.5s ease,
+    background 0.5s ease;
+}
+
+.nav-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at top right,
+    var(--accent-color, rgba(255, 255, 255, 0.1)) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.nav-card:hover,
+.nav-card:focus-visible {
+  transform: translateY(-6px);
+  outline: none;
+}
+
+.nav-card:hover::before,
+.nav-card:focus-visible::before {
+  opacity: 1;
+}
+
+.nav-card[data-accent='projects'] {
+  --accent-color: rgba(120, 170, 255, 0.25);
+}
+.nav-card[data-accent='projects']:hover {
+  border-color: rgba(120, 170, 255, 0.5);
+}
+.nav-card[data-accent='projects'] .nav-card__icon {
+  color: #80a8ff;
+}
+
+.nav-card[data-accent='experience'] {
+  --accent-color: rgba(140, 200, 120, 0.22);
+}
+.nav-card[data-accent='experience']:hover {
+  border-color: rgba(140, 200, 120, 0.5);
+}
+.nav-card[data-accent='experience'] .nav-card__icon {
+  color: #a8d480;
+}
+
+.nav-card[data-accent='contact'] {
+  --accent-color: rgba(74, 222, 128, 0.22);
+}
+.nav-card[data-accent='contact']:hover {
+  border-color: rgba(74, 222, 128, 0.5);
+}
+.nav-card[data-accent='contact'] .nav-card__icon {
+  color: #4ade80;
+}
+
+.nav-card__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.nav-card__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.nav-card__label {
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.nav-card__desc {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.nav-card__arrow {
+  align-self: end;
+  justify-self: end;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.5);
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    color 0.4s ease;
+}
+
+.nav-card:hover .nav-card__arrow {
+  transform: translateX(6px);
+  color: #fff;
+}
+
+@media (max-width: 860px) {
+  .nav-cards__grid {
+    grid-template-columns: 1fr;
+  }
+}

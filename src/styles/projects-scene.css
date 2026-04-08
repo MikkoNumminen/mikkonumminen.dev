@@ -1,0 +1,147 @@
+/* Projects scene styles — extracted from src/page-content/ProjectsPage.astro.
+   These remain global because the page script toggles [data-projects-scene]
+   and reaches into child elements outside of any scoped component boundary. */
+
+.projects-scene {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #050818 0%, #02040c 60%, #010206 100%);
+}
+
+.projects-scene__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.projects-scene__intro {
+  position: absolute;
+  top: 7.5rem;
+  left: 3rem;
+  max-width: 380px;
+  z-index: 10;
+  pointer-events: none;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.projects-scene__intro.is-hidden {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.projects-scene__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(196, 212, 255, 0.5);
+  margin: 0 0 1rem;
+}
+
+.projects-scene__title {
+  font-size: clamp(2.5rem, 5vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #fff;
+  margin: 0 0 1rem;
+}
+
+.projects-scene__lede {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(230, 236, 255, 0.65);
+  margin: 0;
+}
+
+.projects-scene__legend {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 3rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: rgba(196, 212, 255, 0.45);
+  transition: opacity 0.45s ease;
+}
+
+.projects-scene__legend.is-hidden {
+  opacity: 0;
+}
+
+.projects-scene__legend kbd {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid rgba(120, 170, 255, 0.3);
+  border-radius: 4px;
+  color: #c4d4ff;
+  margin-right: 0.35rem;
+  background: rgba(120, 170, 255, 0.05);
+}
+
+.hover-label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  pointer-events: none;
+  padding: 0.85rem 1.1rem;
+  background: rgba(8, 14, 32, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(120, 170, 255, 0.4);
+  border-radius: 10px;
+  color: #e6ecff;
+  box-shadow: 0 0 24px rgba(80, 130, 255, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 180px;
+  opacity: 0;
+  transform: translate(-9999px, -9999px) translateY(8px);
+  transition: opacity 0.2s ease;
+  will-change: transform, opacity;
+}
+
+.hover-label[data-visible='true'] {
+  opacity: 1;
+}
+
+.hover-label__name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.hover-label__tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: rgba(196, 212, 255, 0.7);
+}
+
+.hover-label__tech {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: rgba(196, 212, 255, 0.45);
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 860px) {
+  .projects-scene__intro {
+    left: 1.5rem;
+    right: 1.5rem;
+    top: 6.5rem;
+    max-width: none;
+  }
+  .projects-scene__legend {
+    left: 1.5rem;
+    bottom: 1.5rem;
+  }
+}

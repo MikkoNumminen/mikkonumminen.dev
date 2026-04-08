@@ -1,0 +1,104 @@
+/* Mountain scene styles — extracted from
+   src/components/experience/MountainScene.astro */
+
+.mountain-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--sky-top, #261b3a) 0%,
+    var(--sky-mid, #4a2f4a) 45%,
+    var(--sky-bottom, #c47750) 80%,
+    var(--horizon, #d28e5a) 100%
+  );
+  transition: background 0.6s ease;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
+.layer svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.layer--sky {
+  /* the body gradient is what we tween — no SVG content needed */
+}
+
+.layer--stars {
+  opacity: var(--stars-opacity, 1);
+  transition: opacity 0.6s ease;
+}
+
+.layer--sun {
+  display: grid;
+  place-items: center;
+}
+
+.sun {
+  position: absolute;
+  left: 50%;
+  bottom: var(--sun-y, -8%);
+  transform: translate(-50%, 0);
+  width: 220px;
+  height: 220px;
+  pointer-events: none;
+}
+
+.sun__core {
+  position: absolute;
+  inset: 30%;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle at 50% 45%,
+    var(--sun-core-1, #ffd28a) 0%,
+    var(--sun-core-2, #ff8a4c) 60%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 60px var(--sun-glow, rgba(255, 160, 90, 0.55)),
+    0 0 140px var(--sun-glow, rgba(255, 160, 90, 0.35));
+}
+
+.sun__halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    var(--sun-halo, rgba(255, 180, 100, 0.18)) 0%,
+    transparent 65%
+  );
+}
+
+.layer--far {
+  transform: translateY(var(--far-y, 0px));
+}
+.layer--mid {
+  transform: translateY(var(--mid-y, 0px));
+}
+.layer--near {
+  transform: translateY(var(--near-y, 0px));
+}
+.layer--trees {
+  transform: translateY(var(--trees-y, 0px));
+}
+.layer--foreground {
+  transform: translateY(var(--foreground-y, 0px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    transform: none !important;
+  }
+}

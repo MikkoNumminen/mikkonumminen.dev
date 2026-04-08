@@ -144,9 +144,14 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
 
     <SiteNav theme={theme} current={Astro.url.pathname} locale={locale} />
 
-    <main id="main">
+    <main id="main" tabindex="-1" style="outline:none">
       <slot />
     </main>
+
+    <footer class="site-footer">
+      <span>{t.navCards.footerCopyright}</span>
+      <span>{t.navCards.footerBuiltWith}</span>
+    </footer>
 
     <!-- Page transition overlay (canvas-based particle dissolve) -->
     <div id="page-transition-overlay" data-state="idle" aria-hidden="true">
@@ -167,6 +172,30 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
         width: 100%;
         height: 100%;
         display: block;
+      }
+
+      .site-footer {
+        position: relative;
+        z-index: 20;
+        max-width: 1100px;
+        margin: 6rem auto 0;
+        padding: 2rem 1.5rem 2.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      @media (max-width: 860px) {
+        .site-footer {
+          flex-direction: column;
+          gap: 0.75rem;
+          text-align: center;
+        }
       }
     </style>
 

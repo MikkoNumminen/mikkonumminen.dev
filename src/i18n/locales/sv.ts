@@ -185,6 +185,7 @@ export const sv: Translations = {
     },
   },
   contactPage: {
+    h1: 'Kontakt',
     interactiveAria: 'Interaktiv terminal',
     windowTitle: 'mikko@portfolio — zsh — 96×30',
     inputAria: 'Terminalkommando-fält',
