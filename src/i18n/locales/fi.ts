@@ -44,7 +44,7 @@ export const fi: Translations = {
     sectionAria: 'Tietoja',
     eyebrow: 'tietoja',
     heading: 'Rakennan tuotantotason verkkosovelluksia.',
-    body: 'Suomesta käsin toimiva full-stack-kehittäjä. Työskentelen päästä päähän — arkkitehtuuri, infra, koodi, viimeistely — AI-avusteisilla työnkuluilla, jotka antavat pienille tiimeille mahdollisuuden toimia kuin isot.',
+    body: 'Full-stack-kehittäjä Suomesta. Vastaan koko ketjusta — arkkitehtuurista ja infrasta koodiin ja viimeistelyyn — tekoälyavusteisin työnkuluin, joiden ansiosta pienet tiimit toimittavat kuin isot.',
     statTests: 'testiä suurimmassa projektissa',
     statCoverage: 'rivikattavuus',
     statProducts: 'tuotetta tuotannossa',
@@ -56,15 +56,15 @@ export const fi: Translations = {
     items: [
       {
         title: 'Tuotantolaatu',
-        body: 'Testattu, valvottava ja rakennettu käytettäväksi. Jokainen toiminto julkaistaan saumoilla, joiden ansiosta se kestää oikeita käyttäjiä.',
+        body: 'Testattu, seurattava ja rakennettu kestämään tuotantokäyttöä. Jokainen ominaisuus julkaistaan niin, että se pärjää oikeiden käyttäjien käsissä.',
       },
       {
         title: 'AI-natiivit työnkulut',
-        body: 'Pariohjelmointi tekoälyn kanssa on osa työkalupakkia. Lopputuloksen on silti oltava koodia, jonka puolustaisin koodikatselmoinnissa.',
+        body: 'Tekoäly on osa työkalupakkia, mutta jokaisen rivin pitää olla sellaista koodia jonka allekirjoitan itse.',
       },
       {
         title: 'Päästä päähän',
-        body: 'Skeemasta pikseleihin. Backend, frontend, infra, deployment — sama henkilö, sama vaatimustaso.',
+        body: 'Tietokannasta pikseliin. Backend, frontend, infra, käyttöönotto — sama tekijä, sama vaatimustaso.',
       },
     ],
   },
@@ -74,16 +74,15 @@ export const fi: Translations = {
     heading: 'Valitse maailma.',
     projects: {
       label: 'Projektit',
-      description: 'Tutustu interaktiiviseen aurinkokuntaan rakentamistani asioista.',
+      description: 'Tutustu interaktiiviseen aurinkokuntaan projekteistani.',
     },
     experience: {
       label: 'Kokemus',
-      description:
-        'Kiipeä parallaksivuorta taitojen, työkalujen ja virstanpylväiden läpi.',
+      description: 'Kiipeä vuorta pitkin läpi taitojen, työkalujen ja saavutusten.',
     },
     contact: {
       label: 'Yhteystiedot',
-      description: 'Astu terminaaliin ja ota minuun suoraan yhteyttä.',
+      description: 'Hyppää terminaaliin ja ota yhteyttä suoraan.',
     },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'tehty: astro · three.js · gsap',
@@ -91,7 +90,7 @@ export const fi: Translations = {
   projectsPage: {
     eyebrow: 'Valitut työt',
     title: 'Projektit',
-    lede: 'Pieni aurinkokunta asioita, joita olen rakentanut. Vie hiiri planeetan päälle nähdäksesi pikaesittelyn, klikkaa zoomataksesi sisään.',
+    lede: 'Pieni aurinkokunta rakentamistani projekteista. Vie hiiri planeetan päälle nähdäksesi tiivistelmän, klikkaa lähemmäs.',
     legendHover: 'tutkiaksesi',
     legendClick: 'planeettaa kohdistaaksesi',
     detailAria: 'Projektin tiedot',
@@ -101,43 +100,43 @@ export const fi: Translations = {
     githubLink: 'github',
     gridAria: 'Projektit',
     gridLede:
-      'Asioita, joita olen rakentanut. Työpöytänäkymä esittää ne interaktiivisena aurinkokuntana — tässä on luettavissa oleva lista.',
+      'Projektini. Työpöytänäkymässä ne näkyvät interaktiivisena aurinkokuntana — tässä luettavana listana.',
   },
   projectsData: {
     hrm: {
       tagline: 'Full-stack-henkilöstöhallintajärjestelmä',
       description:
-        'Tuotantovalmis HR-järjestelmä rakennettu portfolio-tasolle. Kaksi tietokantaa (PostgreSQL strukturoidulle datalle, MongoDB muuttumattomalle hash-ketjutetulle audit-lokille), 34 hienojakoista käyttöoikeutta käyttäjäkohtaisilla ohituksilla, TOTP-kaksivaihetodennus, palvelinpuolen rate limiting, OpenTelemetry-jäljitys, 18 kieltä ja reaaliaikaiset aktiviteetti-ilmoitukset SSE:n kautta (pollaus varalla).',
+        'Tuotantovalmis HR-järjestelmä portfoliotasoisella toteutuksella. Kaksi tietokantaa (PostgreSQL rakenteelliselle datalle, MongoDB muuttumattomalle, hajautusketjutetulle auditlokille), 34 käyttöoikeutta käyttäjäkohtaisilla poikkeuksilla, TOTP-kaksivaiheinen tunnistautuminen, palvelinpuolen nopeusrajoitus, OpenTelemetry-jäljitys, 18 kieltä ja reaaliaikaiset toimintailmoitukset SSE:llä (polling-varavaihtoehdolla).',
       highlights: ['1828+ testiä', '91,9 % rivikattavuus', 'PostgreSQL + MongoDB'],
     },
     platform: {
       tagline: 'Yhteisöalusta HRM:n päälle rakennettuna',
       description:
-        'Live-yhteisöalusta, joka palvelee oikeaa WoW-kiltaa osoitteessa vuohiliitto.com. Turborepo-monorepo HRM:n ollessa git-alimoduulina. Monivuokrainen, WoW-teemaisilla pelillistämiselementeillä (XP, tasot, saavutukset, tehtävät), välilehdellinen chat kuiskauksilla ja slash-komennoilla, Mythic+-tiimiseuranta Raider.IO API:n kautta sekä opastettu kierros uusille jäsenille.',
+        'Tuotantokäytössä oleva yhteisöalusta oikealle WoW-killalle osoitteessa vuohiliitto.com. Turborepo-monorepo jossa HRM git-alimoduulina. Monen käyttäjäryhmän tuki, WoW-henkinen pelillistäminen (XP, tasot, saavutukset, questit), välilehtipohjainen chatti whispereineen ja slash-komentoineen, Mythic+ -tiimiseuranta Raider.IO API:n kautta ja opastettu tutustumiskierros uusille jäsenille.',
       highlights: ['Oikeita käyttäjiä', 'Monivuokrainen', '1388+ testiä'],
     },
     portfolio: {
       tagline: 'Tämä sivusto',
       description:
-        'Sivusto, jota katselet juuri nyt. Täysin staattinen, rakennettu Astrolla, Three.js:llä ja GSAP:lla. Visuaalinen näyteikkuna animaatiokäsityölle, tietoisesti erillään HRM:n ja Platformin tuotantopinosta.',
+        'Sivusto jota katsot nyt. Täysin staattinen, rakennettu Astrolla, Three.js:llä ja GSAP:lla. Visuaalinen näyte animaatio-osaamisesta, tarkoituksella eri teknologiapinolla kuin HRM ja Platform.',
     },
     readlog: {
       tagline: 'Pidä kirjaa jokaisesta lukemastasi kirjasta',
       description:
-        'Henkilökohtainen lukupäiväkirja. Hakee Open Librarystä ja Google Booksista rinnakkain ja yhdistää tulokset, minkä jälkeen voit kirjata kirjat formaatilla (paperi / e-kirja / äänikirja) ja päivämäärällä. Etusivulla anonyymi julkinen syöte viimeksi kirjatuista kirjoista.',
+        'Henkilökohtainen lukupäiväkirja. Hakee kirjatiedot Google Booksista ja Open Librarysta samanaikaisesti, joten kirjan lisääminen on nopeaa — valitset vain formaatin (paperi, e-kirja tai äänikirja) ja milloin luit sen. Etusivulla näkyy mitä muut ovat lukeneet viime aikoina.',
       highlights: ['68 testiä', 'Monilähde-haku'],
     },
     audiobookmaker: {
       tagline: 'PDF → äänikirja',
       description:
-        'Työpöytäsovellus, joka muuntaa PDF-tiedostot MP3-äänikirjoiksi. Automaattinen lukujen tunnistus, sivunumeroiden / ylä- ja alatunnisteiden siivous, suomen- ja englanninkielinen tekstistä puheeksi -muunnos edge-tts:n kautta. Jaeltavissa Windows-asentajana ilman Python-riippuvuutta loppukäyttäjälle. Seuraavat askeleet: puheentunnistus ja deepfake-äänet.',
+        'Työpöytäsovellus joka muuntaa PDF-tiedostot MP3-äänikirjoiksi. Tunnistaa luvut automaattisesti, siivoaa sivunumerot ja ylä-/alatunnisteet, ja lukee tekstin ääneen suomeksi ja englanniksi edge-tts:llä. Jaetaan Windows-asennusohjelmana — käyttäjän ei tarvitse asentaa Pythonia tai muuta. Seuraavaksi tulossa: puheentunnistus ja deepfake-ääniominaisuudet.',
       highlights: ['Windows-asentaja', 'FI- + EN-äänet'],
     },
   },
   experiencePage: {
     eyebrow: 'kiipeäminen',
     title: 'Kokemus',
-    lede: 'Vieritä ylös vuorta. Jokainen merkki on askel peruslähtöpisteestä siihen, missä seison tänään.',
+    lede: 'Scrollaa vuorta ylöspäin. Jokainen merkki on askel sinne missä olen tänään.',
     scrollHint: 'vieritä',
     kindFoundation: 'perusta',
     kindWork: 'työ',
@@ -151,36 +150,36 @@ export const fi: Translations = {
   timelineData: {
     'hardware-retail': {
       title: 'Rautakauppa',
-      body: '24 vuotta rautakaupassa, suurimmaksi osaksi perheyrityksessä. Sisustus, remontointi, työkalut, rakentaminen — jokainen tuotekategoria, jokainen asiakastyyppi. Sellainen työ, joka opettaa mitä käyttäjät oikeasti tarvitsevat ennen kuin laitat näytön väliin.',
+      body: '24 vuotta rautakaupan alalla, pääosin perheyrityksen palveluksessa. Sisustus, remontointi, työkalut, rakentaminen — joka osasto, kaikenlaiset asiakkaat. Se työ joka opettaa mitä käyttäjä oikeasti tarvitsee, ennen kuin laitat ruudun väliin.',
       tags: ['Asiakaspalvelu', 'Perheyritys', '24 vuotta'],
     },
     kasvulabs: {
       title: 'Kasvu Labs Oy',
-      body: 'Ensimmäinen palkallinen ohjelmointityö. Node.js-backend, React-frontend, työtä suurten avointen datajoukkojen parissa. Full-stack-kehitys, käyttöliittymäsuunnittelu, tietokantojen hallinta Azuressa, tuotteiden ylläpito.',
+      body: 'Ensimmäinen palkallinen ohjelmointityö. Node.js-backend, React-frontend, suurten avointen datamassojen parissa. Full-stack-kehitystä, käyttöliittymäsuunnittelua, tietokantahallintaa Azuressa ja tuotteen ylläpitoa.',
       tags: ['Node.js', 'React', 'Avoin data', 'PostgreSQL', 'Azure'],
     },
     father: {
       title: 'Isäksi tuleminen',
-      body: 'Otin etäisyyttä kokopäivätyöstä perheen vuoksi. Henkilökohtaiset projektit etenivät taustalla.',
+      body: 'Jäin pois kokopäivätyöstä perhesyistä. Omat projektit etenivät taustalla.',
     },
     hrm: {
       title: 'HRM',
-      body: 'Rakensin full-stack-HR-järjestelmän portfolio-tasolle. 1828+ testiä, 91,9 % kattavuus, kaksi tietokantaa (PostgreSQL + MongoDB), TOTP-kaksivaihetodennus, hash-ketjutettu audit-loki, OpenTelemetry. Platformin arkkitehtoninen selkäranka.',
+      body: 'Rakensin tuotantotasoisen HR-hallintajärjestelmän portfolioksi. Yli 1828 testiä, 91,9 % kattavuus, kaksi tietokantaa (PostgreSQL + MongoDB), TOTP-kaksivaiheinen tunnistautuminen, hajautusketjutettu auditloki, OpenTelemetry. Arkkitehtuuripohja Platformille.',
       tags: ['Next.js', 'PostgreSQL', 'MongoDB', '1828+ testiä', '91,9 % kattavuus'],
     },
     platform: {
       title: 'Platform',
-      body: 'Live-yhteisöalusta, joka palvelee oikeaa WoW-kiltaa osoitteessa vuohiliitto.com. Rakennettu Turborepo-monorepona HRM:n ollessa alimoduulina. Monivuokrainen, pelillistäminen, reaaliaikainen chat ja Mythic+-tiimiseuranta.',
+      body: 'Tuotantokäytössä oleva yhteisöalusta oikealle WoW-killalle osoitteessa vuohiliitto.com. Turborepo-monorepo jossa HRM alimoduulina. Monen käyttäjäryhmän tuki, pelillistäminen, reaaliaikainen chatti ja Mythic+ -tiimiseuranta.',
       tags: ['Oikeita käyttäjiä', 'Monivuokrainen', 'Turborepo'],
     },
     'ai-workflows': {
       title: 'AI-natiivit työnkulut',
-      body: 'Pariohjelmointi tekoälyn kanssa osana työkalupakkia. Nopeampaa toimitusta laskematta rimaa.',
+      body: 'Tekoäly osana työkalupakkia. Nopeammin tuotantoon ilman että rima laskee.',
       tags: ['AI-työnkulut', 'Vauhti'],
     },
     now: {
       title: 'Katse ylöspäin',
-      body: 'Rautakauppa-ura päätökseen. Täysi keskittyminen opintoihin, koodiin ja seuraavaan kiipeämiseen. Avoinna kunnianhimoisille full-stack-rooleille, joissa käsityö ja vauhti ovat yhtä tärkeitä.',
+      body: 'Rautakauppa-ura takana. Täysi fokus opintoihin, koodiin ja seuraavaan nousuun. Avoin kunnianhimoisille full-stack-rooleille joissa laatu ja vauhti ovat yhtä tärkeitä.',
       tags: ['Saatavilla', 'Etänä / Suomi'],
     },
   },
@@ -191,8 +190,8 @@ export const fi: Translations = {
     hintType: 'kirjoita',
     hintHistory: 'historia',
     hintComplete: 'täydennä',
-    noscriptIntro: 'Tämä sivu on interaktiivinen terminaali, joka vaatii JavaScriptin.',
-    noscriptReachMe: 'Voit silti tavoittaa minut suoraan:',
+    noscriptIntro: 'Tämä sivu on interaktiivinen terminaali joka vaatii JavaScriptin.',
+    noscriptReachMe: 'Voit tavoittaa minut suoraan:',
     noscriptEmailLabel: 'Sähköposti:',
     noscriptGithubLabel: 'GitHub:',
   },
@@ -223,7 +222,8 @@ export const fi: Translations = {
     cmdWhoamiAlso: 'myös:',
     cmdWhoamiCommunity: 'yhteisö',
     cmdWhoamiDesktop: 'työpöytä',
-    cmdWhoamiCurrently: 'parhaillaan tutkin three.js:ää, gsap:ia ja animaatiokäsityötä.',
+    cmdWhoamiCurrently:
+      'parhaillaan perehtymässä three.js:ään, gsap:iin ja animaatioiden rakentamiseen.',
     cmdContactDesc: 'näytä yhteystiedot',
     cmdContactUsage: 'käyttö: contact [--email]',
     cmdContactUnknownFlag: 'tuntematon valitsin:',
