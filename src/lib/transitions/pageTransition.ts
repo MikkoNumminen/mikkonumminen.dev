@@ -35,6 +35,7 @@ const PALETTES: Record<Theme, string[]> = {
 };
 
 const PARTICLE_COUNT = 240;
+const DEFAULT_THEME: Theme = 'home';
 
 function pickTheme(href: string): Theme {
   // Match URL prefixes against our four pages
@@ -49,7 +50,12 @@ function isInternalLink(anchor: HTMLAnchorElement): boolean {
   if (anchor.hasAttribute('download')) return false;
   if (anchor.target && anchor.target !== '_self') return false;
   if (anchor.dataset.transition === 'false') return false;
+  if (anchor.rel && anchor.rel.split(/\s+/).includes('external')) return false;
   const url = new URL(anchor.href, window.location.origin);
+  // Explicit allow-list — relying on `origin` mismatch to filter mailto:/tel:/
+  // javascript: links was fragile and easy to regress on. Reject anything
+  // that isn't a navigable HTTP(S) URL.
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
   if (url.origin !== window.location.origin) return false;
   if (url.pathname === window.location.pathname) return false;
   return true;
@@ -66,19 +72,56 @@ function easeInCubic(t: number): number {
 class TransitionRunner {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private particles: Particle[] = [];
+  private particles: Particle[];
   private raf = 0;
   private overlay: HTMLElement;
+  // Stored as a bound field so it's removable in dispose(). The previous
+  // inline arrow form was permanently leaked on every init.
+  private onResize: () => void;
 
-  constructor(overlay: HTMLElement, canvas: HTMLCanvasElement) {
+  private constructor(
+    overlay: HTMLElement,
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D,
+  ) {
     this.overlay = overlay;
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d')!;
+    this.ctx = ctx;
+    // Pre-allocate the particle pool once and mutate fields in place during
+    // spawnParticles. Cuts GC churn during the most performance-critical moment.
+    this.particles = new Array(PARTICLE_COUNT);
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      this.particles[i] = {
+        x: 0,
+        y: 0,
+        ox: 0,
+        oy: 0,
+        tx: 0,
+        ty: 0,
+        size: 0,
+        color: '#ffffff',
+        delay: 0,
+      };
+    }
+    this.onResize = (): void => this.resize();
     this.resize();
-    window.addEventListener('resize', () => this.resize());
+    window.addEventListener('resize', this.onResize);
   }
 
-  private resize() {
+  /**
+   * Constructor that returns null on locked-down browsers / extensions that
+   * block 2D canvas. Callers must early-return on null.
+   */
+  static create(
+    overlay: HTMLElement,
+    canvas: HTMLCanvasElement,
+  ): TransitionRunner | null {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    return new TransitionRunner(overlay, canvas, ctx);
+  }
+
+  private resize(): void {
     const dpr = Math.min(window.devicePixelRatio, 2);
     this.canvas.width = window.innerWidth * dpr;
     this.canvas.height = window.innerHeight * dpr;
@@ -87,56 +130,48 @@ class TransitionRunner {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  private spawnParticles(theme: Theme, mode: 'out' | 'in') {
+  private spawnParticles(theme: Theme, mode: 'out' | 'in'): void {
     const palette = PALETTES[theme];
     const w = window.innerWidth;
     const h = window.innerHeight;
     const cx = w / 2;
     const cy = h / 2;
+    const maxDim = Math.max(w, h);
 
-    this.particles = [];
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       // Distribute targets across the screen with some clustering toward
       // the centre so the animation feels organic.
       const angle = Math.random() * Math.PI * 2;
-      const radius = Math.sqrt(Math.random()) * Math.max(w, h) * 0.85;
-      const sx = cx + Math.cos(angle) * radius;
-      const sy = cy + Math.sin(angle) * radius;
-      const color = palette[Math.floor(Math.random() * palette.length)]!;
+      const radius = Math.sqrt(Math.random()) * maxDim * 0.85;
+      const tx = cx + Math.cos(angle) * radius;
+      const ty = cy + Math.sin(angle) * radius;
+      // noUncheckedIndexedAccess-friendly: palette[..] is `string | undefined`,
+      // so fall back to a known safe color when the random index lands oddly.
+      const color = palette[Math.floor(Math.random() * palette.length)] ?? '#ffffff';
       const size = 6 + Math.random() * 16;
       const delay = Math.random() * 0.25;
 
-      if (mode === 'out') {
-        // burst from clustered origins toward random screen positions
-        const oa = Math.random() * Math.PI * 2;
-        const or = Math.random() * 60;
-        this.particles.push({
-          x: cx + Math.cos(oa) * or,
-          y: cy + Math.sin(oa) * or,
-          ox: cx + Math.cos(oa) * or,
-          oy: cy + Math.sin(oa) * or,
-          tx: sx,
-          ty: sy,
-          size,
-          color,
-          delay,
-        });
-      } else {
-        // converge from outside the screen toward random positions, then fade
-        const oa = Math.random() * Math.PI * 2;
-        const or = Math.max(w, h) * (0.6 + Math.random() * 0.4);
-        this.particles.push({
-          x: cx + Math.cos(oa) * or,
-          y: cy + Math.sin(oa) * or,
-          ox: cx + Math.cos(oa) * or,
-          oy: cy + Math.sin(oa) * or,
-          tx: sx,
-          ty: sy,
-          size,
-          color,
-          delay,
-        });
-      }
+      // Origin depends on mode: 'out' bursts from a tight cluster near the
+      // centre, 'in' converges from outside the viewport. Everything else is
+      // identical, so compute (ox, oy) once and reuse the assignment block.
+      const oa = Math.random() * Math.PI * 2;
+      const or =
+        mode === 'out' ? Math.random() * 60 : maxDim * (0.6 + Math.random() * 0.4);
+      const ox = cx + Math.cos(oa) * or;
+      const oy = cy + Math.sin(oa) * or;
+
+      const p = this.particles[i];
+      // Pool is pre-allocated in the constructor; this assignment is unreachable.
+      if (!p) continue;
+      p.x = ox;
+      p.y = oy;
+      p.ox = ox;
+      p.oy = oy;
+      p.tx = tx;
+      p.ty = ty;
+      p.size = size;
+      p.color = color;
+      p.delay = delay;
     }
   }
 
@@ -151,7 +186,7 @@ class TransitionRunner {
       const duration = 650;
       const start = performance.now();
 
-      const tick = (now: number) => {
+      const tick = (now: number): void => {
         const t = Math.min(1, (now - start) / duration);
         this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
@@ -201,7 +236,7 @@ class TransitionRunner {
       const duration = 800;
       const start = performance.now();
 
-      const tick = (now: number) => {
+      const tick = (now: number): void => {
         const t = Math.min(1, (now - start) / duration);
         this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
@@ -236,14 +271,25 @@ class TransitionRunner {
     });
   }
 
-  cancel() {
+  cancel(): void {
     cancelAnimationFrame(this.raf);
     this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     this.overlay.dataset.state = 'idle';
   }
+
+  /** Tear down listeners and any in-flight animation. */
+  dispose(): void {
+    this.cancel();
+    window.removeEventListener('resize', this.onResize);
+  }
 }
 
-export function initPageTransitions() {
+// Module-level guard so a stray double-call (e.g. HMR or accidental re-import)
+// doesn't stack listeners on top of an already initialized instance.
+let initialized = false;
+
+export function initPageTransitions(): void {
+  if (initialized) return;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reducedMotion) return;
 
@@ -253,12 +299,22 @@ export function initPageTransitions() {
   ) as HTMLCanvasElement | null;
   if (!overlay || !canvas) return;
 
-  const runner = new TransitionRunner(overlay, canvas);
+  const runner = TransitionRunner.create(overlay, canvas);
+  // Locked-down browsers and Canvas-blocking extensions return null here.
+  // We early-return rather than crash the entire transition layer.
+  if (!runner) return;
+
+  initialized = true;
 
   // ── Inbound: if a previous page set the session marker, run convergeIn ──
   try {
     if (sessionStorage.getItem(SESSION_KEY) === '1') {
-      const theme = (sessionStorage.getItem(SESSION_THEME_KEY) as Theme) ?? 'home';
+      const stored = sessionStorage.getItem(SESSION_THEME_KEY);
+      // Validate the stored theme against PALETTES rather than blindly casting.
+      // Stale storage from a previous deploy could otherwise yield an
+      // undefined palette downstream.
+      const theme: Theme =
+        stored && stored in PALETTES ? (stored as Theme) : DEFAULT_THEME;
       sessionStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(SESSION_THEME_KEY);
       overlay.dataset.state = 'animating';

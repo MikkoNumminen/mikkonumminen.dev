@@ -1,217 +1,17 @@
 import { buildCommands } from './commands';
 import { asLocale, getTranslations } from '../../i18n';
-import type { CommandSpec, CommandContext, LineKind } from './types';
+import type { TerminalElements } from './dom';
+import { echoPromptLine, makeContext, updateCursor } from './dom';
+import { runBoot } from './typing';
+import { History } from './history';
+import { handleCommand, tabComplete } from './dispatch';
 
-interface TerminalElements {
-  output: HTMLElement;
-  form: HTMLFormElement;
-  input: HTMLInputElement;
-  cursor: HTMLElement;
-}
-
-const PROMPT_HTML = `<span class="line line--prompt"><span style="color:var(--color-term-green)">guest@mikkonumminen</span><span style="color:rgba(181,245,200,0.5)">:</span><span style="color:var(--color-term-cyan)">~</span><span style="color:var(--color-term-green)">$</span> `;
-
-const reducedMotion =
-  typeof window !== 'undefined' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const sleep = (ms: number) =>
-  reducedMotion ? Promise.resolve() : new Promise((r) => setTimeout(r, ms));
-
-const escapeHTML = (s: string) =>
-  s.replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
-  );
-
-function appendLine(output: HTMLElement, html: string, kind: LineKind = 'plain') {
-  const line = document.createElement('span');
-  line.className = `line line--${kind}`;
-  line.innerHTML = html;
-  output.appendChild(line);
-  output.appendChild(document.createTextNode('\n'));
-  output.scrollTop = output.scrollHeight;
-}
-
-function makeContext(elements: TerminalElements): CommandContext {
-  return {
-    print: (text, kind = 'plain') => appendLine(elements.output, escapeHTML(text), kind),
-    printHTML: (html) => {
-      const wrap = document.createElement('span');
-      wrap.innerHTML = html;
-      elements.output.appendChild(wrap);
-      elements.output.appendChild(document.createTextNode('\n'));
-      elements.output.scrollTop = elements.output.scrollHeight;
-    },
-    clear: () => {
-      elements.output.innerHTML = '';
-    },
-    navigate: (path) => {
-      window.location.href = path;
-    },
-  };
-}
-
-async function typeLine(
-  output: HTMLElement,
-  text: string,
-  kind: LineKind = 'plain',
-  charDelay = 18,
-) {
-  const line = document.createElement('span');
-  line.className = `line line--${kind}`;
-  output.appendChild(line);
-  output.appendChild(document.createTextNode('\n'));
-
-  if (reducedMotion) {
-    line.textContent = text;
-    output.scrollTop = output.scrollHeight;
-    return;
-  }
-
-  for (let i = 0; i < text.length; i++) {
-    line.textContent += text[i];
-    output.scrollTop = output.scrollHeight;
-    if (text[i] !== ' ') await sleep(charDelay);
-  }
-}
-
-async function runBoot(
-  ctx: CommandContext,
-  elements: TerminalElements,
-  t: ReturnType<typeof getTranslations>,
-) {
-  const tt = t.terminal;
-  const lines: Array<[string, LineKind, number]> = [
-    [tt.bootBooting, 'dim', 14],
-    [tt.bootMounting, 'dim', 8],
-    [tt.bootLoading, 'dim', 8],
-    [tt.bootComms, 'dim', 8],
-    ['', 'plain', 0],
-  ];
-
-  for (const [text, kind, delay] of lines) {
-    if (text === '') {
-      appendLine(elements.output, '', 'plain');
-      continue;
-    }
-    await typeLine(elements.output, text, kind, delay);
-    await sleep(60);
-  }
-
-  await typeLine(elements.output, tt.bootWelcome, 'accent', 22);
-  await sleep(150);
-  ctx.print(tt.bootTypeHelp, 'dim');
-  ctx.print(tt.bootSudoHint, 'dim');
-  ctx.print('');
-}
-
-function tokenize(input: string): string[] {
-  return input.trim().split(/\s+/).filter(Boolean);
-}
-
-async function handleCommand(
-  input: string,
-  ctx: CommandContext,
-  commandMap: Map<string, CommandSpec>,
-  t: ReturnType<typeof getTranslations>,
-) {
-  const echoLine = document.createElement('span');
-  echoLine.className = 'line line--prompt';
-  echoLine.innerHTML = PROMPT_HTML + escapeHTML(input) + '</span>';
-  document.getElementById('terminal-output')!.appendChild(echoLine);
-  document.getElementById('terminal-output')!.appendChild(document.createTextNode('\n'));
-
-  const tokens = tokenize(input);
-  if (tokens.length === 0) return;
-
-  const [name, ...args] = tokens;
-  const cmd = commandMap.get(name!);
-  if (!cmd) {
-    ctx.print(`${t.terminal.commandNotFound} ${name}`, 'err');
-    ctx.print(t.terminal.typeHelpHint, 'dim');
-    return;
-  }
-  try {
-    await cmd.handler(args, ctx);
-  } catch (err) {
-    ctx.print(`${t.terminal.errorPrefix} ${(err as Error).message}`, 'err');
-  }
-}
-
-class History {
-  private items: string[] = [];
-  private idx = -1;
-  private draft = '';
-
-  push(line: string) {
-    if (!line.trim()) return;
-    if (this.items[this.items.length - 1] === line) {
-      this.idx = -1;
-      return;
-    }
-    this.items.push(line);
-    if (this.items.length > 100) this.items.shift();
-    this.idx = -1;
-  }
-
-  prev(currentDraft: string): string | null {
-    if (this.items.length === 0) return null;
-    if (this.idx === -1) {
-      this.draft = currentDraft;
-      this.idx = this.items.length - 1;
-    } else if (this.idx > 0) {
-      this.idx -= 1;
-    }
-    return this.items[this.idx] ?? null;
-  }
-
-  next(): string | null {
-    if (this.idx === -1) return null;
-    if (this.idx >= this.items.length - 1) {
-      this.idx = -1;
-      return this.draft;
-    }
-    this.idx += 1;
-    return this.items[this.idx] ?? null;
-  }
-
-  reset() {
-    this.idx = -1;
-    this.draft = '';
-  }
-}
-
-function tabComplete(value: string, commands: CommandSpec[]): string {
-  const tokens = tokenize(value);
-  if (tokens.length <= 1) {
-    const partial = tokens[0] ?? '';
-    const candidates = commands
-      .filter((c) => !c.hidden && c.name.startsWith(partial))
-      .map((c) => c.name);
-    if (candidates.length === 1) return candidates[0]! + ' ';
-    return value;
-  }
-  return value;
-}
-
-function updateCursor(input: HTMLInputElement, cursor: HTMLElement) {
-  // Use a hidden span to measure text width up to caret.
-  const measure = document.createElement('span');
-  const cs = window.getComputedStyle(input);
-  measure.style.font = cs.font;
-  measure.style.letterSpacing = cs.letterSpacing;
-  measure.style.position = 'absolute';
-  measure.style.visibility = 'hidden';
-  measure.style.whiteSpace = 'pre';
-  measure.textContent = input.value.slice(0, input.selectionStart ?? input.value.length);
-  document.body.appendChild(measure);
-  const width = measure.getBoundingClientRect().width;
-  measure.remove();
-  cursor.style.setProperty('--cursor-x', `${width}px`);
-}
-
-export async function initTerminal(root: ParentNode = document) {
+/**
+ * Mount the interactive terminal inside `root`. The function is the only
+ * public surface — the rest of `src/lib/terminal/` is implementation detail
+ * split across `dom.ts`, `typing.ts`, `history.ts`, and `dispatch.ts`.
+ */
+export async function initTerminal(root: ParentNode = document): Promise<void> {
   const output = root.querySelector<HTMLElement>('#terminal-output');
   const form = root.querySelector<HTMLFormElement>('#terminal-form');
   const input = root.querySelector<HTMLInputElement>('#terminal-input');
@@ -288,16 +88,14 @@ export async function initTerminal(root: ParentNode = document) {
         input.setSelectionRange(input.value.length, input.value.length);
         updateCursor(input, cursor);
       });
-    } else if (e.key === 'l' && (e.ctrlKey || e.metaKey)) {
+    } else if (e.key === 'l' && e.ctrlKey) {
+      // Ctrl+L only — Cmd+L on macOS is the browser's "focus address bar"
+      // shortcut and we shouldn't shadow it.
       e.preventDefault();
       ctx.clear();
     } else if (e.key === 'c' && e.ctrlKey) {
       e.preventDefault();
-      const echo = document.createElement('span');
-      echo.className = 'line line--prompt';
-      echo.innerHTML = PROMPT_HTML + escapeHTML(input.value) + '^C</span>';
-      output.appendChild(echo);
-      output.appendChild(document.createTextNode('\n'));
+      echoPromptLine(output, input.value, '^C');
       input.value = '';
       history.reset();
       updateCursor(input, cursor);
@@ -311,7 +109,7 @@ export async function initTerminal(root: ParentNode = document) {
     history.push(value);
     history.reset();
     updateCursor(input, cursor);
-    await handleCommand(value, ctx, commandMap, t);
+    await handleCommand(value, ctx, output, commandMap, t);
   });
 
   // Boot sequence then focus

@@ -1,17 +1,21 @@
 import type { Translations, Locale } from '../../i18n';
 import { localizePath } from '../../i18n';
-import type { CommandSpec } from './types';
+import { escapeHTML as escape } from './dom';
+import type { CommandContext, CommandSpec } from './types';
 
 const EMAIL = 'numminen.mikko.petteri@gmail.com';
 const GITHUB = 'https://github.com/MikkoNumminen';
 const LINKEDIN = 'https://www.linkedin.com/in/mikko-numminen-269795205/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
 
-const escape = (s: string) =>
-  s.replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
-  );
+const NAV_DELAY_MS = 350;
+
+interface NavCommandOptions {
+  name: string;
+  descKey: keyof Translations['terminal'];
+  openingKey: keyof Translations['terminal'];
+  path: string;
+}
 
 /**
  * Build the terminal command set for a given locale.
@@ -23,8 +27,32 @@ const escape = (s: string) =>
  */
 export function buildCommands(t: Translations, locale: Locale): CommandSpec[] {
   const tt = t.terminal;
-  const cp = t.contactPage; // not used here but kept for parity
-  void cp;
+
+  // In-flight navigation timers — `clear` cancels them so a quick
+  // `projects` followed by `clear` doesn't still navigate away.
+  const pendingNavTimers = new Set<ReturnType<typeof setTimeout>>();
+
+  const scheduleNavigate = (ctx: CommandContext, path: string): void => {
+    const timer = setTimeout(() => {
+      pendingNavTimers.delete(timer);
+      ctx.navigate(path);
+    }, NAV_DELAY_MS);
+    pendingNavTimers.add(timer);
+  };
+
+  const navCommand = ({
+    name,
+    descKey,
+    openingKey,
+    path,
+  }: NavCommandOptions): CommandSpec => ({
+    name,
+    description: tt[descKey],
+    handler: (_, ctx) => {
+      ctx.print(tt[openingKey], 'dim');
+      scheduleNavigate(ctx, localizePath(path, locale));
+    },
+  });
 
   const cmds: CommandSpec[] = [
     {
@@ -139,34 +167,32 @@ export function buildCommands(t: Translations, locale: Locale): CommandSpec[] {
         ctx.print(tt.cmdDownloadStarted, 'accent');
       },
     },
-    {
+    navCommand({
       name: 'projects',
-      description: tt.cmdProjectsDesc,
-      handler: (_, ctx) => {
-        ctx.print(tt.cmdProjectsOpening, 'dim');
-        setTimeout(() => ctx.navigate(localizePath('/projects', locale)), 350);
-      },
-    },
-    {
+      descKey: 'cmdProjectsDesc',
+      openingKey: 'cmdProjectsOpening',
+      path: '/projects',
+    }),
+    navCommand({
       name: 'home',
-      description: tt.cmdHomeDesc,
-      handler: (_, ctx) => {
-        ctx.print(tt.cmdHomeOpening, 'dim');
-        setTimeout(() => ctx.navigate(localizePath('/', locale)), 350);
-      },
-    },
-    {
+      descKey: 'cmdHomeDesc',
+      openingKey: 'cmdHomeOpening',
+      path: '/',
+    }),
+    navCommand({
       name: 'experience',
-      description: tt.cmdExperienceDesc,
-      handler: (_, ctx) => {
-        ctx.print(tt.cmdExperienceOpening, 'dim');
-        setTimeout(() => ctx.navigate(localizePath('/experience', locale)), 350);
-      },
-    },
+      descKey: 'cmdExperienceDesc',
+      openingKey: 'cmdExperienceOpening',
+      path: '/experience',
+    }),
     {
       name: 'clear',
       description: tt.cmdClearDesc,
       handler: (_, ctx) => {
+        // Cancel any in-flight navigation so `projects` then `clear`
+        // doesn't still send the user to /projects.
+        pendingNavTimers.forEach((timer) => clearTimeout(timer));
+        pendingNavTimers.clear();
         ctx.clear();
       },
     },

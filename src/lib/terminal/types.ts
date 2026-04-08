@@ -8,7 +8,7 @@ export interface TerminalLine {
 export type CommandHandler = (
   args: string[],
   ctx: CommandContext,
-) => CommandResult | Promise<CommandResult>;
+) => void | Promise<void>;
 
 export interface CommandContext {
   print: (text: string, kind?: LineKind) => void;
@@ -16,8 +16,6 @@ export interface CommandContext {
   clear: () => void;
   navigate: (path: string) => void;
 }
-
-export type CommandResult = void | { silent?: boolean };
 
 export interface CommandSpec {
   name: string;
