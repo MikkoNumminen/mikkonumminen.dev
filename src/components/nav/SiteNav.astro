@@ -46,7 +46,7 @@ const isActive = (href: string) => {
 <nav
   aria-label={t.nav.primaryAria}
   data-theme={theme}
-  class="site-nav fixed top-4 left-1/2 -translate-x-1/2 z-50 px-2 py-2 rounded-full backdrop-blur-md border"
+  class="site-nav fixed left-1/2 -translate-x-1/2 z-50 px-2 py-2 rounded-full backdrop-blur-md border"
 >
   <ul class="flex items-center gap-1 text-xs sm:text-sm">
     {
@@ -55,7 +55,7 @@ const isActive = (href: string) => {
           <a
             href={link.href}
             aria-current={isActive(link.href) ? 'page' : undefined}
-            class="site-nav__link px-3 py-1.5 rounded-full transition-colors"
+            class="site-nav__link px-4 py-3 sm:px-3 sm:py-1.5 rounded-full transition-colors"
           >
             {link.label}
           </a>
@@ -67,7 +67,7 @@ const isActive = (href: string) => {
 
     <li>
       <ul
-        class="site-nav__langs flex items-center gap-0.5"
+        class="site-nav__langs flex items-center gap-1 sm:gap-0.5"
         aria-label={t.nav.languageSwitcherAria}
       >
         {
@@ -78,7 +78,7 @@ const isActive = (href: string) => {
                 hreflang={l.locale}
                 aria-current={l.isCurrent ? 'page' : undefined}
                 data-lang={l.locale}
-                class="site-nav__lang px-2 py-1 rounded-full transition-colors"
+                class="site-nav__lang px-3 py-2 sm:px-2 sm:py-1 rounded-full transition-colors"
               >
                 {l.label}
               </a>
@@ -113,6 +113,9 @@ const isActive = (href: string) => {
 <style>
   .site-nav {
     font-family: var(--font-mono);
+    /* Push the nav below the notch on devices with viewport-fit=cover.
+       Falls back to 1rem (the original top-4) on non-notched devices. */
+    top: calc(env(safe-area-inset-top, 0px) + 1rem);
     transition:
       background-color 0.4s ease,
       border-color 0.4s ease,
