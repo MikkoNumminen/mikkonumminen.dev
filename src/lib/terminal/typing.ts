@@ -66,7 +66,7 @@ export async function runBoot(
     await sleep(60);
   }
 
-  await typeLine(elements.output, tt.bootWelcome, 'accent', 22);
+  ctx.print(tt.bootWelcome, 'accent');
   await sleep(150);
   ctx.print(tt.bootTypeHelp, 'dim');
   ctx.print(tt.bootSudoHint, 'dim');
