@@ -1,7 +1,8 @@
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ScrollTrigger, createScope, prefersReducedMotion } from './setup';
 
-gsap.registerPlugin(ScrollTrigger);
+export interface ExperienceTimelineOptions {
+  reducedMotion?: boolean;
+}
 
 export interface ExperienceTimelineHandle {
   dispose: () => void;
@@ -12,6 +13,15 @@ interface ColorPhase {
   at: number;
   vars: Record<string, string>;
 }
+
+// Goat sway constants — frequency × amplitude shape the wobble while climbing.
+const SWAY_FREQ = 6;
+const SWAY_AMPLITUDE_PX = 30;
+
+// Inline custom properties written by the master scroll handler. We track
+// these so dispose can `removeProperty` each one and not leak inline state
+// across HMR / SPA navigation.
+const GOAT_PROPS = ['--goat-bottom', '--goat-x'] as const;
 
 /**
  * Color phases mapped to scroll progress.
@@ -120,19 +130,9 @@ const PHASES: ColorPhase[] = [
   },
 ];
 
-/**
- * Linearly interpolate two hex colors. `t` is 0..1.
- */
-function lerpColor(a: string, b: string, t: number): string {
-  const pa = parseHex(a);
-  const pb = parseHex(b);
-  const r = Math.round(pa[0] + (pb[0] - pa[0]) * t);
-  const g = Math.round(pa[1] + (pb[1] - pa[1]) * t);
-  const bl = Math.round(pa[2] + (pb[2] - pa[2]) * t);
-  return `rgb(${r}, ${g}, ${bl})`;
-}
+type Rgb = readonly [number, number, number];
 
-function parseHex(hex: string): [number, number, number] {
+function parseHex(hex: string): Rgb {
   const m = hex.replace('#', '');
   const r = parseInt(m.slice(0, 2), 16);
   const g = parseInt(m.slice(2, 4), 16);
@@ -140,13 +140,27 @@ function parseHex(hex: string): [number, number, number] {
   return [r, g, b];
 }
 
+/**
+ * Linearly interpolate two hex colors. `t` is 0..1.
+ */
+function lerpColor(a: string, b: string, t: number): string {
+  const [ra, ga, ba] = parseHex(a);
+  const [rb, gb, bb] = parseHex(b);
+  const r = Math.round(ra + (rb - ra) * t);
+  const g = Math.round(ga + (gb - ga) * t);
+  const bl = Math.round(ba + (bb - ba) * t);
+  return `rgb(${r}, ${g}, ${bl})`;
+}
+
 function lerpRgba(a: string, b: string, t: number): string {
   const ra = a.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 1];
   const rb = b.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 1];
-  const r = Math.round(ra[0]! + (rb[0]! - ra[0]!) * t);
-  const g = Math.round(ra[1]! + (rb[1]! - ra[1]!) * t);
-  const bl = Math.round(ra[2]! + (rb[2]! - ra[2]!) * t);
-  const al = (ra[3] ?? 1) + ((rb[3] ?? 1) - (ra[3] ?? 1)) * t;
+  const [r0 = 0, g0 = 0, b0 = 0, a0 = 1] = ra;
+  const [r1 = 0, g1 = 0, b1 = 0, a1 = 1] = rb;
+  const r = Math.round(r0 + (r1 - r0) * t);
+  const g = Math.round(g0 + (g1 - g0) * t);
+  const bl = Math.round(b0 + (b1 - b0) * t);
+  const al = a0 + (a1 - a0) * t;
   return `rgba(${r}, ${g}, ${bl}, ${al.toFixed(3)})`;
 }
 
@@ -157,22 +171,29 @@ function lerpString(a: string, b: string, t: number): string {
   const reA = /^(-?\d+(?:\.\d+)?)(.*)$/.exec(a);
   const reB = /^(-?\d+(?:\.\d+)?)(.*)$/.exec(b);
   if (reA && reB) {
-    const na = parseFloat(reA[1]!);
-    const nb = parseFloat(reB[1]!);
-    const v = na + (nb - na) * t;
-    return `${v.toFixed(2)}${reA[2]}`;
+    const [, na = '0', unitA = ''] = reA;
+    const [, nb = '0'] = reB;
+    const naNum = parseFloat(na);
+    const nbNum = parseFloat(nb);
+    const v = naNum + (nbNum - naNum) * t;
+    return `${v.toFixed(2)}${unitA}`;
   }
   return t < 0.5 ? a : b;
 }
 
-function applyPhase(progress: number, root: HTMLElement) {
-  // Find the two surrounding phases
-  let lower = PHASES[0]!;
-  let upper = PHASES[PHASES.length - 1]!;
+function applyPhase(progress: number, root: HTMLElement): void {
+  // Find the two surrounding phases. PHASES is non-empty by construction.
+  const first = PHASES[0];
+  const last = PHASES[PHASES.length - 1];
+  if (!first || !last) return;
+  let lower = first;
+  let upper = last;
   for (let i = 0; i < PHASES.length - 1; i++) {
-    if (progress >= PHASES[i]!.at && progress <= PHASES[i + 1]!.at) {
-      lower = PHASES[i]!;
-      upper = PHASES[i + 1]!;
+    const a = PHASES[i];
+    const b = PHASES[i + 1];
+    if (a && b && progress >= a.at && progress <= b.at) {
+      lower = a;
+      upper = b;
       break;
     }
   }
@@ -180,63 +201,92 @@ function applyPhase(progress: number, root: HTMLElement) {
   const t = (progress - lower.at) / span;
 
   for (const key of Object.keys(lower.vars)) {
-    const a = lower.vars[key]!;
+    const a = lower.vars[key];
+    if (a === undefined) continue;
     const b = upper.vars[key] ?? a;
     root.style.setProperty(key, lerpString(a, b, t));
   }
 }
 
-export function initExperienceTimeline(): ExperienceTimelineHandle {
+export function initExperienceTimeline(
+  options: ExperienceTimelineOptions = {},
+): ExperienceTimelineHandle {
   const sceneRoot = document.querySelector<HTMLElement>('[data-mountain-scene]');
   const goat = document.querySelector<HTMLElement>('[data-goat]');
   const trigger = document.querySelector<HTMLElement>('[data-experience-track]');
   if (!sceneRoot || !goat || !trigger) {
-    return { dispose: () => {} };
+    return { dispose: (): void => {} };
+  }
+
+  const { reducedMotion = prefersReducedMotion() } = options;
+
+  // ── Reduced-motion static fallback ────────────────────────────────────
+  // Drop the user into a sensible mid-morning state with timeline cards
+  // statically visible. No ScrollTriggers, no IntersectionObserver, no
+  // scroll-driven sun / parallax / goat sway.
+  if (reducedMotion) {
+    applyPhase(0.6, sceneRoot);
+    document
+      .querySelectorAll<HTMLElement>('[data-timeline-entry]')
+      .forEach((el) => el.classList.add('is-visible'));
+    return { dispose: (): void => {} };
   }
 
   // Initialize with phase 0
   applyPhase(0, sceneRoot);
 
-  const triggers: ScrollTrigger[] = [];
+  // Track inline custom properties we set on layer elements so dispose can
+  // strip every leftover --{layer}-y. (Goat props are a fixed list above.)
+  const touchedLayers = new Set<HTMLElement>();
 
-  // ── Master scroll progress: drives color phase, sun, parallax, goat ──
-  const master = ScrollTrigger.create({
-    trigger,
-    start: 'top top',
-    end: 'bottom bottom',
-    onUpdate: (self) => {
-      const p = self.progress;
-      applyPhase(p, sceneRoot);
+  const scope = createScope(() => {
+    // ── Master scroll progress: drives color phase, sun, parallax, goat ──
+    ScrollTrigger.create({
+      trigger,
+      start: 'top top',
+      end: 'bottom bottom',
+      onUpdate: (self) => {
+        const progress = self.progress;
+        applyPhase(progress, sceneRoot);
 
-      // Goat climbs from bottom up. Bottom = 18vh, summit = 70vh.
-      const bottomVH = 18 + p * 52;
-      goat.style.setProperty('--goat-bottom', `${bottomVH}vh`);
+        // Goat climbs from bottom up. Bottom = 18vh, summit = 70vh.
+        const bottomVH = 18 + progress * 52;
+        goat.style.setProperty('--goat-bottom', `${bottomVH}vh`);
 
-      // Slight horizontal sway as the goat climbs
-      const sway = Math.sin(p * 6) * 30;
-      goat.style.setProperty('--goat-x', `${sway}px`);
+        // Slight horizontal sway as the goat climbs
+        const sway = Math.sin(progress * SWAY_FREQ) * SWAY_AMPLITUDE_PX;
+        goat.style.setProperty('--goat-x', `${sway}px`);
 
-      // Layer parallax — each layer drifts down faster than the last so the
-      // foreground feels closer.
-      const layers = sceneRoot.querySelectorAll<HTMLElement>('[data-parallax-speed]');
-      layers.forEach((layer) => {
-        const speed = parseFloat(layer.dataset.parallaxSpeed ?? '0');
-        const offset = p * speed * 200;
-        layer.style.setProperty(`--${layer.dataset.layer}-y`, `${offset}px`);
-      });
-    },
+        // Layer parallax — each layer drifts down faster than the last so the
+        // foreground feels closer.
+        const layers = sceneRoot.querySelectorAll<HTMLElement>('[data-parallax-speed]');
+        layers.forEach((layer) => {
+          const speed = parseFloat(layer.dataset.parallaxSpeed ?? '0');
+          const offset = progress * speed * 200;
+          const layerName = layer.dataset.layer;
+          if (!layerName) return;
+          layer.style.setProperty(`--${layerName}-y`, `${offset}px`);
+          touchedLayers.add(layer);
+        });
+      },
+    });
   });
-  triggers.push(master);
 
   // ── Timeline entry reveals (intersection-based, simpler than ScrollTrigger
-  //     since each just toggles a class)
+  //     since each just toggles a class) ─────────────────────────────────────
   const entries = document.querySelectorAll<HTMLElement>('[data-timeline-entry]');
+  let revealOrder = 0;
   const io = new IntersectionObserver(
     (records) => {
       records.forEach((rec) => {
-        if (rec.isIntersecting) {
-          rec.target.classList.add('is-visible');
-        }
+        if (!rec.isIntersecting) return;
+        const target = rec.target as HTMLElement;
+        // Stagger reveals by intersection order so a batch of entries scrolling
+        // into view together cascade rather than landing in the same frame.
+        target.style.transitionDelay = `${revealOrder * 80}ms`;
+        revealOrder += 1;
+        target.classList.add('is-visible');
+        io.unobserve(target);
       });
     },
     { rootMargin: '0px 0px -20% 0px', threshold: 0.1 },
@@ -244,9 +294,23 @@ export function initExperienceTimeline(): ExperienceTimelineHandle {
   entries.forEach((e) => io.observe(e));
 
   return {
-    dispose: () => {
-      triggers.forEach((t) => t.kill());
+    dispose: (): void => {
+      // Kill tweens + ScrollTriggers + revert any GSAP-set inline styles.
+      scope.dispose();
       io.disconnect();
+
+      // Strip the inline custom properties we wrote in onUpdate. GSAP doesn't
+      // track raw `style.setProperty` calls, so we have to clean up by hand.
+      GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
+      touchedLayers.forEach((layer) => {
+        const layerName = layer.dataset.layer;
+        if (layerName) layer.style.removeProperty(`--${layerName}-y`);
+      });
+
+      // Clear stagger delays applied during reveal so a remount starts clean.
+      entries.forEach((entry) => {
+        entry.style.removeProperty('transition-delay');
+      });
     },
   };
 }
