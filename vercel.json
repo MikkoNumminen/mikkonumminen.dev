@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "_comment": "Security headers: a strict nonce-based CSP is impractical because Astro hoists small inline scripts, JSON-LD blocks, and the language-detection script in BaseLayout all rely on inline code. The baseline CSP below keeps 'unsafe-inline' for script-src and style-src — the trade-off is documented in README.md under 'Security headers'. HSTS + Permissions-Policy + frame-ancestors 'none' still cover the remaining hardening surface.",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "astro",
