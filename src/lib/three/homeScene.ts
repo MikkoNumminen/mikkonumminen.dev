@@ -1,6 +1,9 @@
 import * as THREE from 'three';
-import { FontLoader, type Font } from 'three/examples/jsm/loaders/FontLoader.js';
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+import { createRenderer } from './createRenderer';
+import { createResizeHandler } from './createResizeHandler';
+import { buildParticleField, type ParticleField } from './buildParticleField';
+import { buildTitle, loadFont } from './buildTitle';
+import { disposeMaterial } from './disposeMaterial';
 
 interface HomeSceneOptions {
   canvas: HTMLCanvasElement;
@@ -16,19 +19,19 @@ export interface HomeSceneHandle {
 
 const FOG_COLOR = 0x05060c;
 const TITLE = 'MIKKO\nNUMMINEN';
+const TITLE_DESIGN_WIDTH = 1100;
+const TITLE_MIN_SCALE = 0.5;
+const PARTICLE_AREA_DIVISOR = 800;
+const PARTICLE_MAX = 2200;
 
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
   const { canvas, fontUrl, reducedMotion = false } = opts;
 
-  const renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: true,
-    alpha: true,
-    powerPreference: 'high-performance',
-  });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight, false);
-  renderer.setClearColor(0x000000, 0);
+  // Load the font BEFORE allocating any GPU/DOM resources. If the font fails
+  // we never enter the try-block, so there is nothing to clean up.
+  const font = await loadFont(fontUrl);
+
+  const renderer = createRenderer(canvas);
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(FOG_COLOR, 12, 60);
@@ -60,92 +63,31 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
     ? 0
-    : Math.min(2200, Math.floor((window.innerWidth * window.innerHeight) / 800));
-  const positions = new Float32Array(particleCount * 3);
-  const speeds = new Float32Array(particleCount);
-  for (let i = 0; i < particleCount; i++) {
-    const i3 = i * 3;
-    positions[i3] = (Math.random() - 0.5) * 80;
-    positions[i3 + 1] = (Math.random() - 0.5) * 50;
-    positions[i3 + 2] = (Math.random() - 0.5) * 60 - 5;
-    speeds[i] = 0.0008 + Math.random() * 0.0025;
+    : Math.min(
+        PARTICLE_MAX,
+        Math.floor((window.innerWidth * window.innerHeight) / PARTICLE_AREA_DIVISOR),
+      );
+  let particleField: ParticleField | null = null;
+  if (particleCount > 0) {
+    particleField = buildParticleField(particleCount);
+    scene.add(particleField.points);
   }
-  const particleGeometry = new THREE.BufferGeometry();
-  particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-  const particleTexture = makeCircleTexture();
-  const particleMaterial = new THREE.PointsMaterial({
-    size: 0.08,
-    sizeAttenuation: true,
-    color: 0xc8d8ff,
-    transparent: true,
-    opacity: 0.9,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    map: particleTexture,
-  });
-  const particles = new THREE.Points(particleGeometry, particleMaterial);
-  scene.add(particles);
-
-  // ── Title (loaded async) ─────────────────────────────────────────────
-  const titleGroup = new THREE.Group();
-  scene.add(titleGroup);
-
-  const fontLoader = new FontLoader();
-  const font = await new Promise<Font>((resolve, reject) => {
-    fontLoader.load(fontUrl, resolve, undefined, reject);
-  });
-
-  const titleMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xf3f6ff,
-    metalness: 0.55,
-    roughness: 0.18,
-    clearcoat: 1,
-    clearcoatRoughness: 0.12,
-    reflectivity: 0.85,
-  });
-
-  const lines = TITLE.split('\n');
-  const lineMeshes: THREE.Mesh[] = [];
-  let lineY = 0;
-  lines.forEach((line) => {
-    const geometry = new TextGeometry(line, {
-      font,
-      size: 2.2,
-      depth: 0.45,
-      curveSegments: 8,
-      bevelEnabled: true,
-      bevelThickness: 0.05,
-      bevelSize: 0.025,
-      bevelSegments: 4,
-    });
-    geometry.computeBoundingBox();
-    const bb = geometry.boundingBox!;
-    const width = bb.max.x - bb.min.x;
-    const height = bb.max.y - bb.min.y;
-    geometry.translate(-width / 2, -height / 2, 0);
-
-    const mesh = new THREE.Mesh(geometry, titleMaterial);
-    mesh.position.y = lineY;
-    titleGroup.add(mesh);
-    lineMeshes.push(mesh);
-    lineY -= height + 0.6;
-  });
-
-  // Center the whole title group vertically
-  const totalHeight = -lineY - 0.6;
-  titleGroup.position.y = totalHeight / 2;
+  // ── Title ────────────────────────────────────────────────────────────
+  const title = buildTitle(font, TITLE);
+  scene.add(title.group);
+  const totalHeight = title.totalHeight;
 
   // ── State ────────────────────────────────────────────────────────────
+  let disposed = false;
+  let raf = 0;
   let scrollProgress = 0;
   let mouseX = 0;
   let mouseY = 0;
   let targetMouseX = 0;
   let targetMouseY = 0;
-  let raf = 0;
-  let disposed = false;
 
-  const onPointerMove = (e: PointerEvent) => {
+  const onPointerMove = (e: PointerEvent): void => {
     targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
     targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
   };
@@ -153,34 +95,23 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     window.addEventListener('pointermove', onPointerMove, { passive: true });
   }
 
-  const onResize = () => {
-    if (disposed) return;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
+  const resize = createResizeHandler(renderer, camera, (width) => {
+    const baseScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
+    title.group.scale.setScalar(Math.max(TITLE_MIN_SCALE, baseScale));
+  });
+  resize.handler();
 
-    // Scale title down on small screens
-    const baseScale = Math.min(1, w / 1100);
-    titleGroup.scale.setScalar(Math.max(0.5, baseScale));
-
-    camera.updateProjectionMatrix();
-  };
-  window.addEventListener('resize', onResize);
-  onResize();
-
-  // ── Animation loop ───────────────────────────────────────────────────
+  // ── Animation loop (visibility-aware) ────────────────────────────────
   const startTime = performance.now();
   let lastFrame = startTime;
 
-  const tick = () => {
+  const tick = (): void => {
     if (disposed) return;
     raf = requestAnimationFrame(tick);
 
     const now = performance.now();
-    const t = (now - startTime) / 1000;
-    const dt = (now - lastFrame) / 1000;
+    const elapsed = (now - startTime) / 1000;
+    const delta = (now - lastFrame) / 1000;
     lastFrame = now;
 
     // Smooth pointer
@@ -188,11 +119,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     mouseY += (targetMouseY - mouseY) * 0.05;
 
     // Title floats and reacts to pointer + scroll
-    titleGroup.rotation.x = mouseY * 0.12 + Math.sin(t * 0.5) * 0.02;
-    titleGroup.rotation.y = mouseX * 0.18 + Math.sin(t * 0.4) * 0.03;
-    titleGroup.position.z = -scrollProgress * 6;
-    titleGroup.position.y =
-      totalHeight / 2 + Math.sin(t * 0.7) * 0.08 + scrollProgress * 1.5;
+    title.group.rotation.x = mouseY * 0.12 + Math.sin(elapsed * 0.5) * 0.02;
+    title.group.rotation.y = mouseX * 0.18 + Math.sin(elapsed * 0.4) * 0.03;
+    title.group.position.z = -scrollProgress * 6;
+    title.group.position.y =
+      totalHeight / 2 + Math.sin(elapsed * 0.7) * 0.08 + scrollProgress * 1.5;
 
     // Camera pulls back slightly with scroll
     camera.position.z = 18 + scrollProgress * 4;
@@ -200,67 +131,74 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     camera.position.y = -mouseY * 0.4 - scrollProgress * 0.5;
     camera.lookAt(0, 0, 0);
 
-    // Particles drift
-    if (particleCount > 0) {
-      const posAttr = particleGeometry.getAttribute('position') as THREE.BufferAttribute;
+    if (particleField) {
+      const posAttr = particleField.geometry.getAttribute(
+        'position',
+      ) as THREE.BufferAttribute;
+      // `array` is the same Float32Array we passed in via BufferAttribute,
+      // but Three.js types it as the typed-array union.
       const arr = posAttr.array as Float32Array;
-      for (let i = 0; i < particleCount; i++) {
+      const speeds = particleField.speeds;
+      for (let i = 0; i < particleField.count; i++) {
         const i3 = i * 3;
-        arr[i3 + 1]! += speeds[i]! * (dt * 60);
-        if (arr[i3 + 1]! > 25) arr[i3 + 1] = -25;
+        // Both lookups are in-bounds: i < count and the position array is
+        // length count*3, the speed array is length count.
+        const next = arr[i3 + 1]! + speeds[i]! * (delta * 60);
+        arr[i3 + 1] = next > 25 ? -25 : next;
       }
       posAttr.needsUpdate = true;
-      particles.rotation.y = t * 0.02;
+      particleField.points.rotation.y = elapsed * 0.02;
     }
 
     renderer.render(scene, camera);
   };
+
+  const onVisibilityChange = (): void => {
+    if (disposed) return;
+    if (document.hidden) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    } else if (raf === 0) {
+      lastFrame = performance.now();
+      tick();
+    }
+  };
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
   tick();
 
-  // ── Handle ───────────────────────────────────────────────────────────
   return {
-    setScrollProgress: (p: number) => {
+    setScrollProgress: (p: number): void => {
       scrollProgress = Math.max(0, Math.min(1, p));
     },
-    resize: onResize,
-    dispose: () => {
+    resize: resize.handler,
+    dispose: (): void => {
+      if (disposed) return;
       disposed = true;
       cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onResize);
+      raf = 0;
+      resize.dispose();
       window.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
 
-      lineMeshes.forEach((m) => {
-        m.geometry.dispose();
-      });
-      titleMaterial.dispose();
-      particleGeometry.dispose();
-      particleMaterial.dispose();
-      particleTexture.dispose();
+      title.meshes.forEach((m) => m.geometry.dispose());
+      disposeMaterial(title.material);
+
+      if (particleField) {
+        particleField.geometry.dispose();
+        disposeMaterial(particleField.material);
+        particleField.texture.dispose();
+      }
+
+      scene.remove(ambient, keyLight, rimLight, fillLight);
+      ambient.dispose();
+      keyLight.dispose();
+      rimLight.dispose();
+      fillLight.dispose();
+      scene.fog = null;
+      scene.clear();
+
       renderer.dispose();
     },
   };
-}
-
-function makeCircleTexture(): THREE.Texture {
-  const size = 64;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
-  const gradient = ctx.createRadialGradient(
-    size / 2,
-    size / 2,
-    0,
-    size / 2,
-    size / 2,
-    size / 2,
-  );
-  gradient.addColorStop(0, 'rgba(255,255,255,1)');
-  gradient.addColorStop(0.4, 'rgba(255,255,255,0.5)');
-  gradient.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
 }
