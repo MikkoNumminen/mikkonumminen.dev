@@ -145,3 +145,25 @@
     bottom: 1.5rem;
   }
 }
+
+/* Layout-stable visibility: hide the WebGL scene and reveal the fallback
+   grid before JS runs on small viewports and reduced-motion clients. This
+   prevents a one-frame reflow (CLS) when the page script later toggles
+   visibility based on the same media queries. */
+@media (max-width: 860px) {
+  .projects-scene {
+    display: none;
+  }
+  .projects-fallback[hidden] {
+    display: block !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projects-scene {
+    display: none;
+  }
+  .projects-fallback[hidden] {
+    display: block !important;
+  }
+}

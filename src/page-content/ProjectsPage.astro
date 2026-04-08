@@ -15,10 +15,10 @@ const t = getTranslations(locale);
   theme="projects"
   ogImage="/og-projects.png"
 >
-  <!-- Desktop / capable: WebGL solar system. Hidden by default so non-JS /
-       fallback clients don't render a second <h1>; the inline script below
-       un-hides it on capable browsers. -->
-  <div class="projects-scene" data-projects-scene hidden>
+  <!-- Desktop / capable: WebGL solar system. Visible by default; hidden via
+       CSS on small viewports / reduced motion so the layout is stable before
+       JS runs. The fallback grid is shown via the same CSS rules. -->
+  <div class="projects-scene" data-projects-scene>
     <canvas id="projects-canvas" class="projects-scene__canvas" aria-hidden="true"
     ></canvas>
 
@@ -75,8 +75,9 @@ const t = getTranslations(locale);
 
   const start = async () => {
     if (reducedMotion || isSmall || !sceneRoot) {
-      // Leave sceneRoot hidden (it starts that way in the markup) and reveal
-      // the fallback grid.
+      // CSS already hides the scene and shows the fallback grid for these
+      // clients; the JS-side toggle remains as a safety net.
+      if (sceneRoot) sceneRoot.hidden = true;
       if (fallback) fallback.hidden = false;
       return;
     }
@@ -91,9 +92,6 @@ const t = getTranslations(locale);
     const legend = document.querySelector<HTMLElement>('[data-legend]');
 
     if (!canvas || !hoverLabel || !detail || !closeBtn) return;
-
-    // Capable client — un-hide the WebGL scene.
-    sceneRoot.hidden = false;
 
     // Track the element that opened the drawer so we can restore focus.
     let lastFocused: HTMLElement | null = null;
