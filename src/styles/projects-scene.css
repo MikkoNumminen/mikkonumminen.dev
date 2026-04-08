@@ -146,16 +146,23 @@
   }
 }
 
-/* Layout-stable visibility: hide the WebGL scene and reveal the fallback
-   grid before JS runs on small viewports and reduced-motion clients. This
-   prevents a one-frame reflow (CLS) when the page script later toggles
-   visibility based on the same media queries. */
+/* Layout-stable visibility: CSS alone decides which surface is visible
+   before JS runs. The fallback grid is hidden by default and revealed via
+   media queries on small viewports / reduced-motion clients, or via
+   [data-active="true"] when the scene script fails on a capable client.
+   Do NOT use the HTML `hidden` attribute on .projects-fallback — the
+   browser honors it during initial paint and the !important override
+   triggers a one-frame full-viewport reflow (CLS = 1.0). */
+.projects-fallback {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .projects-scene {
     display: none;
   }
-  .projects-fallback[hidden] {
-    display: block !important;
+  .projects-fallback {
+    display: block;
   }
 }
 
@@ -163,7 +170,16 @@
   .projects-scene {
     display: none;
   }
-  .projects-fallback[hidden] {
-    display: block !important;
+  .projects-fallback {
+    display: block;
   }
+}
+
+/* JS safety net: if Three.js init throws on a capable desktop client we
+   flip these attributes so the fallback grid takes over without a reload. */
+.projects-scene[data-fallback-active='true'] {
+  display: none;
+}
+.projects-fallback[data-active='true'] {
+  display: block;
 }
