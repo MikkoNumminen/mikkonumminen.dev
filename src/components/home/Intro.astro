@@ -71,6 +71,11 @@ const t = getTranslations(locale);
     overflow: hidden;
   }
 
+  .intro__heading :global(.word) {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
   .intro__heading :global(.char) {
     display: inline-block;
     will-change: transform, opacity;

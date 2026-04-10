@@ -16,10 +16,15 @@ export interface HomeTimelineHandle {
 
 /**
  * Wraps each character of every `[data-split]` element in a `.char` span so we
- * can animate them individually. Whitespace is preserved. The original text
- * lives on a sr-only sibling so screen readers read the heading naturally
- * (instead of "I... space... b... u... i...") without putting aria-label on a
- * generic span (which Lighthouse flags as a prohibited ARIA attribute).
+ * can animate them individually. Each word is wrapped in a `.word` span with
+ * `white-space: nowrap` so the browser only breaks lines BETWEEN words, never
+ * inside one — without that, every `.char` is its own inline-block atom and
+ * the browser happily splits "applications" into "applica" / "tions".
+ *
+ * The original text lives on a sr-only sibling so screen readers read the
+ * heading naturally (instead of "I... space... b... u... i...") without
+ * putting aria-label on a generic span (which Lighthouse flags as a
+ * prohibited ARIA attribute).
  *
  * NOTE: One-way DOM mutation. `data-split-done` prevents re-splitting on a
  * remount; we intentionally do NOT unsplit on dispose because the .char spans
@@ -37,16 +42,32 @@ function splitChars(root: ParentNode): void {
     srOnly.textContent = text;
     el.appendChild(srOnly);
 
-    // aria-hidden cascades to every .char inside, so individual chars no
-    // longer need their own aria-hidden attribute.
+    // aria-hidden cascades to every .word/.char inside, so individual chars
+    // no longer need their own aria-hidden attribute.
     const chars = document.createElement('span');
     chars.setAttribute('aria-hidden', 'true');
-    for (const ch of text) {
-      const charSpan = document.createElement('span');
-      charSpan.className = 'char';
-      charSpan.textContent = ch === ' ' ? '\u00A0' : ch;
-      chars.appendChild(charSpan);
+
+    // Split into word/whitespace segments and keep each word's chars inside
+    // a `.word` wrapper. Whitespace becomes a real text node so the browser
+    // can break the line at that position naturally.
+    const segments = text.split(/(\s+)/);
+    for (const segment of segments) {
+      if (segment === '') continue;
+      if (/^\s+$/.test(segment)) {
+        chars.appendChild(document.createTextNode(' '));
+        continue;
+      }
+      const word = document.createElement('span');
+      word.className = 'word';
+      for (const ch of segment) {
+        const charSpan = document.createElement('span');
+        charSpan.className = 'char';
+        charSpan.textContent = ch;
+        word.appendChild(charSpan);
+      }
+      chars.appendChild(word);
     }
+
     el.appendChild(chars);
 
     el.dataset.splitDone = '1';

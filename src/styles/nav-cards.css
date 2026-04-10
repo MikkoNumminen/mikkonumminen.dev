@@ -32,6 +32,10 @@
   display: inline-block;
   overflow: hidden;
 }
+.nav-cards__heading .word {
+  display: inline-block;
+  white-space: nowrap;
+}
 .nav-cards__heading .char {
   display: inline-block;
   will-change: transform, opacity;
