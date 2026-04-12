@@ -129,8 +129,12 @@ export const fi: Translations = {
     audiobookmaker: {
       tagline: 'PDF → äänikirja',
       description:
-        'Työpöytäsovellus joka muuntaa PDF-tiedostot MP3-äänikirjoiksi. Tunnistaa luvut automaattisesti, siivoaa sivunumerot ja ylä-/alatunnisteet, ja lukee tekstin ääneen suomeksi ja englanniksi edge-tts:llä. Jaetaan Windows-asennusohjelmana — käyttäjän ei tarvitse asentaa Pythonia tai muuta. Seuraavaksi tulossa: puheentunnistus ja deepfake-ääniominaisuudet.',
-      highlights: ['Windows-asentaja', 'FI- + EN-äänet'],
+        'Python-työpöytäsovellus joka muuntaa PDF-tiedostot äänikirjoiksi. Kolme puhesynteesimoottoria: Edge-TTS pilvipohjaiseen generointiin, Piper offline-käyttöön ilman GPU:ta, ja Chatterbox/VoxCPM2 äänen kloonaukseen referenssinäytteestä. Automaattinen lukujen tunnistus, tekstin siivous ja normalisointi. Ensisijaisesti englanninkielinen. Puhesynteesi toimii, mutta sovellus on vielä aktiivisessa kehityksessä. Aktiivinen kehitys keskittyy suomen kieleen: numerot taipuvat kontekstin mukaan, yleiset lyhenteet ja yksiköt puretaan auki puhemuotoon, ja erillinen ääntämissanasto korjaa suomen kielen ongelmakohtia. Windows-launcher asentaa ajoympäristön ja riippuvuudet automaattisesti. Seuraavaksi tulossa itsenäinen asennusohjelma joka ei vaadi käyttäjältä Pythonia eikä Gitiä.',
+      highlights: [
+        'Kolme puhesynteesimoottoria: Edge-TTS, Piper, Chatterbox-ääniklooni',
+        'Suomen kielen normalisointiputki',
+        'Windows-launcher automaattisella riippuvuusasennuksella',
+      ],
     },
   },
   experiencePage: {

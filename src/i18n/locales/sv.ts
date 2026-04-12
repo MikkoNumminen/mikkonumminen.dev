@@ -130,8 +130,12 @@ export const sv: Translations = {
     audiobookmaker: {
       tagline: 'PDF → ljudbok',
       description:
-        'Skrivbordsapp som konverterar PDF-filer till MP3-ljudböcker. Automatisk kapiteldetektering, rensning av sidnummer / sidhuvud / sidfot, finsk och engelsk text-till-tal via edge-tts. Distribueras som Windows-installerare utan Python-beroende för slutanvändare. Nästa steg: röstigenkänning och deepfake-röster.',
-      highlights: ['Windows-installerare', 'FI- + EN-röster'],
+        'Python-skrivbordsapp som konverterar PDF-filer till ljudböcker. Tre TTS-motorer: Edge-TTS för molnbaserad syntes, Piper för offlineanvändning utan GPU, och Chatterbox/VoxCPM2 för röstkloning från ett referensprov. Automatisk kapiteldetektering, textrensning och normalisering. Primärt engelskspråkig. Talsyntesen fungerar, men appen är fortfarande under aktiv utveckling. Det aktiva utvecklingsarbetet fokuserar på finska: siffror böjs enligt kontexten, vanliga förkortningar och enheter expanderas till talform, och en separat uttalsordlista rättar till problemområden i finska. Windows-launchern installerar körmiljön och beroenden automatiskt. Nästa steg är en fristående installerare som inte kräver Python eller Git av användaren.',
+      highlights: [
+        'Tre TTS-motorer: Edge-TTS, Piper, Chatterbox-röstklon',
+        'Pipeline för finsk textnormalisering',
+        'Windows-launcher med automatisk installation av beroenden',
+      ],
     },
   },
   experiencePage: {

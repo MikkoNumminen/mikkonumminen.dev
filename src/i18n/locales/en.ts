@@ -129,8 +129,12 @@ export const en: Translations = {
     audiobookmaker: {
       tagline: 'PDF → audiobook',
       description:
-        'Desktop app that converts PDFs into MP3 audiobooks. Automatic chapter detection, page-number / header / footer cleanup, Finnish and English text-to-speech via edge-tts. Distributed as a Windows installer with no Python dependency for end users. Next steps: voice recognition and deepfake voice features.',
-      highlights: ['Windows installer', 'FI + EN voices'],
+        'Python desktop app that turns PDFs into MP3 audiobooks, with three selectable text-to-speech engines — Microsoft Edge-TTS (online), Piper (offline CPU neural), and Chatterbox / VoxCPM2 (GPU, zero-shot voice cloning). The product is English-first; English synthesis works today but is still untested and in development. The current engineering work is on Finnish output quality — a serious text normalization pipeline handles governor-word number inflection ("sivulta 42" → "sivulta neljältäkymmeneltä kahdelta"), 28 abbreviation expansions, partitive unit agreement, and a curated loanword respelling lexicon so the synthesized Finnish audio actually reads like spoken Finnish. A Windows launcher sets up the Python runtime and engine dependencies on the user\'s machine; next step is a fully standalone installer that needs neither Python nor Git.',
+      highlights: [
+        'Three TTS engines — Edge-TTS, Piper, Chatterbox voice cloning',
+        'Deep Finnish text normalization pipeline',
+        'Windows launcher with automatic dependency install',
+      ],
     },
   },
   experiencePage: {
