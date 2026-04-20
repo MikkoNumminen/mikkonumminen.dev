@@ -129,7 +129,7 @@ export const en: Translations = {
     audiobookmaker: {
       tagline: 'PDF → audiobook',
       description:
-        'Desktop app that turns PDF, EPUB, or plain text files into audiobooks. Three TTS engines: Edge-TTS (cloud, 30+ voices in 6 languages), Piper (offline, no GPU needed), and Chatterbox with the "Grandmom" voice for voice cloning from a short reference clip. English output quality is already strong; Finnish is harder to synthesize with available resources, so it gets a dedicated 19-pass text normalization pipeline that handles governor-word number inflection, abbreviation expansion, unit agreement, and loanword respelling — advancing with every release. Ships as a standalone Windows installer with auto-updates, 1729 tests, and no Python or command line required.',
+        'Desktop app that turns PDF, EPUB, or plain text files into audiobooks. Three TTS engines: Edge-TTS (cloud, 30+ voices in 6 languages), Piper (offline, no GPU needed), and Chatterbox with the "Grandmom" voice for voice cloning from a short reference clip. English output quality is already strong; Finnish is harder to synthesize with available resources, so it gets a dedicated 19-pass text normalization pipeline that handles governor-word number inflection, abbreviation expansion, unit agreement, and loanword respelling — advancing with every release. Ships as a Windows installer with auto-updates and 1729 tests.',
       highlights: [
         'Chatterbox voice cloning with the Grandmom voice',
         '19-pass Finnish text normalization, 1729 tests',

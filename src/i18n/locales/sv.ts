@@ -130,7 +130,7 @@ export const sv: Translations = {
     audiobookmaker: {
       tagline: 'PDF → ljudbok',
       description:
-        'Skrivbordsapp som omvandlar PDF-, EPUB- och textfiler till ljudböcker. Tre TTS-motorer: Edge-TTS (moln, 30+ röster på sex språk), Piper (offline, ingen GPU krävs) och Chatterbox med "Grandmom"-rösten för röstkloning från ett kort referensklipp. Engelsk talsyntes fungerar redan bra; finska är svårare att syntetisera med tillgängliga resurser, så den har en dedikerad 19-stegs textnormaliseringspipeline som hanterar kontextbaserad nummerböjning, förkortningsexpansion, enhetsavtal och lånordsuttalskorrigeringar — kvaliteten förbättras med varje release. Levereras som en fristående Windows-installerare med automatiska uppdateringar, 1729 tester, och kräver varken Python eller kommandorad.',
+        'Skrivbordsapp som omvandlar PDF-, EPUB- och textfiler till ljudböcker. Tre TTS-motorer: Edge-TTS (moln, 30+ röster på sex språk), Piper (offline, ingen GPU krävs) och Chatterbox med "Grandmom"-rösten för röstkloning från ett kort referensklipp. Engelsk talsyntes fungerar redan bra; finska är svårare att syntetisera med tillgängliga resurser, så den har en dedikerad 19-stegs textnormaliseringspipeline som hanterar kontextbaserad nummerböjning, förkortningsexpansion, enhetsavtal och lånordsuttalskorrigeringar — kvaliteten förbättras med varje release. Levereras som en Windows-installerare med automatiska uppdateringar och 1729 tester.',
       highlights: [
         'Chatterbox röstkloning med Grandmom-rösten',
         '19-stegs finsk textnormalisering, 1729 tester',
