@@ -129,11 +129,11 @@ export const fi: Translations = {
     audiobookmaker: {
       tagline: 'PDF → äänikirja',
       description:
-        'Python-työpöytäsovellus joka muuntaa PDF-tiedostot äänikirjoiksi. Kolme puhesynteesimoottoria: Edge-TTS pilvipohjaiseen generointiin, Piper offline-käyttöön ilman GPU:ta, ja Chatterbox/VoxCPM2 äänen kloonaukseen referenssinäytteestä. Automaattinen lukujen tunnistus, tekstin siivous ja normalisointi. Ensisijaisesti englanninkielinen. Puhesynteesi toimii, mutta sovellus on vielä aktiivisessa kehityksessä. Aktiivinen kehitys keskittyy suomen kieleen: numerot taipuvat kontekstin mukaan, yleiset lyhenteet ja yksiköt puretaan auki puhemuotoon, ja erillinen ääntämissanasto korjaa suomen kielen ongelmakohtia. Windows-launcher asentaa ajoympäristön ja riippuvuudet automaattisesti. Seuraavaksi tulossa itsenäinen asennusohjelma joka ei vaadi käyttäjältä Pythonia eikä Gitiä.',
+        'Työpöytäsovellus joka muuntaa PDF-, EPUB- ja tekstitiedostot äänikirjoiksi. Kolme puhesynteesimoottoria: Edge-TTS (pilvi, 30+ ääntä kuudella kielellä), Piper (offline, ei vaadi GPU:ta) ja Chatterbox "Grandmom"-äänellä äänen kloonaukseen referenssinäytteestä. Englannin puhesynteesi toimii jo hyvin; suomi on vaikeampi syntetisoida käytettävissä olevilla resursseilla, joten sitä varten on rakennettu 19-vaiheinen normalisointiputki joka hoitaa numeroiden kontekstitaivutuksen, lyhenteiden purkamisen, yksikkösymbolien käsittelyn ja vierassanojen ääntämiskorjaukset — laatu paranee joka julkaisun myötä. Jaetaan itsenäisenä Windows-asennusohjelmana automaattipäivityksillä, 1729 testiä, ei vaadi Pythonia eikä komentoriviä.',
       highlights: [
-        'Kolme puhesynteesimoottoria: Edge-TTS, Piper, Chatterbox-ääniklooni',
-        'Suomen kielen normalisointiputki',
-        'Windows-launcher automaattisella riippuvuusasennuksella',
+        'Chatterbox-ääniklooni Grandmom-äänellä',
+        '19-vaiheinen suomen kielen normalisointi, 1729 testiä',
+        'Itsenäinen Windows-asennusohjelma automaattipäivityksillä',
       ],
     },
   },

@@ -129,11 +129,11 @@ export const en: Translations = {
     audiobookmaker: {
       tagline: 'PDF → audiobook',
       description:
-        'Python desktop app that turns PDFs into MP3 audiobooks, with three selectable text-to-speech engines — Microsoft Edge-TTS (online), Piper (offline CPU neural), and Chatterbox / VoxCPM2 (GPU, zero-shot voice cloning). The product is English-first; English synthesis works today but is still untested and in development. The current engineering work is on Finnish output quality — a serious text normalization pipeline handles governor-word number inflection ("sivulta 42" → "sivulta neljältäkymmeneltä kahdelta"), 28 abbreviation expansions, partitive unit agreement, and a curated loanword respelling lexicon so the synthesized Finnish audio actually reads like spoken Finnish. A Windows launcher sets up the Python runtime and engine dependencies on the user\'s machine; next step is a fully standalone installer that needs neither Python nor Git.',
+        'Desktop app that turns PDF, EPUB, or plain text files into audiobooks. Three TTS engines: Edge-TTS (cloud, 30+ voices in 6 languages), Piper (offline, no GPU needed), and Chatterbox with the "Grandmom" voice for voice cloning from a short reference clip. English output quality is already strong; Finnish is harder to synthesize with available resources, so it gets a dedicated 19-pass text normalization pipeline that handles governor-word number inflection, abbreviation expansion, unit agreement, and loanword respelling — advancing with every release. Ships as a standalone Windows installer with auto-updates, 1729 tests, and no Python or command line required.',
       highlights: [
-        'Three TTS engines — Edge-TTS, Piper, Chatterbox voice cloning',
-        'Deep Finnish text normalization pipeline',
-        'Windows launcher with automatic dependency install',
+        'Chatterbox voice cloning with the Grandmom voice',
+        '19-pass Finnish text normalization, 1729 tests',
+        'Standalone Windows installer with auto-updates',
       ],
     },
   },
