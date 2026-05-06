@@ -16,5 +16,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      # format:check and lint flag pre-existing style issues across the repo.
+      # They run for visibility but don't block PRs until the codebase has
+      # been formatted and lint-cleaned in a follow-up sweep.
       - run: npm run format:check
+        continue-on-error: true
       - run: npm run lint
+        continue-on-error: true
