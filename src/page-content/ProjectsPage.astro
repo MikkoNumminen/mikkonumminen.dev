@@ -33,9 +33,17 @@ const t = getTranslations(locale);
     <div class="projects-scene__legend" data-legend aria-hidden="true">
       <span><kbd>hover</kbd> {t.projectsPage.legendHover}</span>
       <span><kbd>click</kbd> {t.projectsPage.legendClick}</span>
+      <span><kbd>drag</kbd> {t.projectsPage.legendDrag}</span>
+      <span><kbd>scroll</kbd> {t.projectsPage.legendZoom}</span>
     </div>
 
     <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
+    </div>
+
+    <div class="projects-scene__credits" data-credits aria-hidden="true">
+      <span>{t.navCards.footerCopyright}</span>
+      <span class="projects-scene__credits-sep">·</span>
+      <span>{t.navCards.footerBuiltWith}</span>
     </div>
 
     <ProjectDetail />
@@ -88,6 +96,7 @@ const t = getTranslations(locale);
     ) as HTMLButtonElement | null;
     const intro = document.querySelector<HTMLElement>('[data-intro]');
     const legend = document.querySelector<HTMLElement>('[data-legend]');
+    const credits = document.querySelector<HTMLElement>('[data-credits]');
 
     if (!canvas || !hoverLabel || !detail || !closeBtn) return;
 
@@ -203,6 +212,7 @@ const t = getTranslations(locale);
       detail.setAttribute('aria-hidden', 'false');
       intro?.classList.add('is-hidden');
       legend?.classList.add('is-hidden');
+      credits?.classList.add('is-hidden');
       detail.addEventListener('keydown', trapTab);
       // Move focus to the close button once the drawer is open so keyboard
       // users can immediately tab through its contents.
@@ -214,6 +224,7 @@ const t = getTranslations(locale);
       detail.setAttribute('aria-hidden', 'true');
       intro?.classList.remove('is-hidden');
       legend?.classList.remove('is-hidden');
+      credits?.classList.remove('is-hidden');
       detail.removeEventListener('keydown', trapTab);
       sceneHandle?.selectById(null);
       // Restore focus to the element that opened the drawer, or fall back
