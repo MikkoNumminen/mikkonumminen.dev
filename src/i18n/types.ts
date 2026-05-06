@@ -43,6 +43,19 @@ export interface Translations {
     heading: string;
     items: Array<{ title: string; body: string }>;
   };
+  integrations: {
+    sectionAria: string;
+    eyebrow: string;
+    heading: string;
+    items: Array<{ project: string; api: string; body: string }>;
+  };
+  velocity: {
+    sectionAria: string;
+    eyebrow: string;
+    heading: string;
+    body: string;
+    stats: Array<{ num: string; label: string }>;
+  };
   navCards: {
     sectionAria: string;
     eyebrow: string;
