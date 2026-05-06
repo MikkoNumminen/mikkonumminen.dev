@@ -40,6 +40,41 @@ export interface LocalizedProject extends Project {
   highlights?: string[];
 }
 
+/**
+ * A semantic relationship between two projects, rendered as a glowing arc
+ * in the galaxy view. Direction is informational (source → target reflects
+ * "feeds into" semantics) — visually the arc is symmetric.
+ */
+export interface Connection {
+  sourceId: string;
+  targetId: string;
+  /** Kind of relationship — currently unused at render time but useful for
+   * future hover labels. */
+  kind: 'submodule' | 'voice' | 'music';
+  /** Hex color of the line. Picked to read against the dark backdrop and
+   * to convey the relationship's semantic flavor. */
+  color: string;
+}
+
+export const connections: Connection[] = [
+  // HRM is a git submodule inside Platform — same auth, same audit log.
+  { sourceId: 'hrm', targetId: 'platform', kind: 'submodule', color: '#9bb8ff' },
+  // AudiobookMaker generates the in-game voice for Spacepotatis.
+  {
+    sourceId: 'audiobookmaker',
+    targetId: 'spacepotatis',
+    kind: 'voice',
+    color: '#fbbf24',
+  },
+  // strudel-patterns scores Spacepotatis (galaxy + mission themes).
+  {
+    sourceId: 'strudel-patterns',
+    targetId: 'spacepotatis',
+    kind: 'music',
+    color: '#ec4899',
+  },
+];
+
 export const projects: Project[] = [
   {
     id: 'hrm',
