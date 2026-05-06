@@ -43,28 +43,28 @@ export const sv: Translations = {
   intro: {
     sectionAria: 'Om',
     eyebrow: 'om',
-    heading: 'Jag bygger produktionsklara webbapplikationer.',
-    body: 'Full-stack-utvecklare baserad i Finland. Jag arbetar från ände till ände — arkitektur, infrastruktur, kod, finputsning — med AI-assisterade arbetsflöden som låter små team leverera som stora.',
+    heading: 'Sju repon. De bygger på varandra.',
+    body: 'Full-stack-utvecklare i Finland. HRM är den arkitektoniska ryggraden i Platform — live för en riktig WoW-gille på vuohiliitto.com. AudiobookMaker ger rösten åt Spacepotatis, ett webbläsarspel jag släppte i år; strudel-patterns skriver musiken. Varje repo står för sig själv — fogarna mellan dem är poängen.',
     statTests: 'tester i det största projektet',
     statCoverage: 'radtäckning',
-    statProducts: 'live-produkter i produktion',
+    statProducts: 'levererade projekt',
   },
   focus: {
-    sectionAria: 'Vad jag fokuserar på',
-    eyebrow: 'fokus',
-    heading: 'Så här arbetar jag.',
+    sectionAria: 'Så hänger projekten ihop',
+    eyebrow: 'kopplingar',
+    heading: 'Så hänger projekten ihop.',
     items: [
       {
-        title: 'Produktionsklart',
-        body: 'Testat, observerbart och byggt för att driftas. Varje funktion levereras med de fogar som låter den överleva mötet med riktiga användare.',
+        title: 'Repon som matar varandra',
+        body: 'HRM körs som git-undermodul inuti Platform — samma autentisering, samma granskningslogg, två produkter ur en kärna. AudiobookMaker ger rösten åt Spacepotatis; strudel-patterns skriver musiken. Varje replik och varje not spåras tillbaka till ett repo jag äger själv.',
       },
       {
-        title: 'AI-nativa arbetsflöden',
-        body: 'Parprogrammering med AI är en del av verktygskedjan. Resultatet måste fortfarande vara kod jag skulle försvara i en granskning.',
+        title: 'Testat eller det skeppas inte',
+        body: 'Varje repo kör CI vid varje push. HRM har 1828+ tester med 91,9 % täckning, Spacepotatis ~1170, AudiobookMaker över 1800. Kvalitetsportar väger tyngre än den häftigaste stacken.',
       },
       {
-        title: 'Från ände till ände',
-        body: 'Från schema till pixel. Backend, frontend, infra, deployment — samma person, samma standard.',
+        title: 'AI-nativt, dokumenterat',
+        body: 'Spacepotatis levererar tio egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade varje kvartal, behandlade som produktionsartefakter. Parprogrammering med AI är en del av verktygskedjan; granskningsspåret är kvittot.',
       },
     ],
   },
@@ -130,11 +130,31 @@ export const sv: Translations = {
     audiobookmaker: {
       tagline: 'PDF → ljudbok',
       description:
-        'Skrivbordsapp som omvandlar PDF-, EPUB- och textfiler till ljudböcker. Tre TTS-motorer: Edge-TTS (moln, 30+ röster på sex språk), Piper (offline, ingen GPU krävs) och Chatterbox med "Grandmom"-rösten för röstkloning från ett kort referensklipp. Engelsk talsyntes fungerar redan bra; finska är svårare att syntetisera med tillgängliga resurser, så den har en dedikerad 19-stegs textnormaliseringspipeline som hanterar kontextbaserad nummerböjning, förkortningsexpansion, enhetsavtal och lånordsuttalskorrigeringar — kvaliteten förbättras med varje release. Levereras som en Windows-installerare med automatiska uppdateringar och 1729 tester.',
+        'Skrivbordsapp som omvandlar PDF-, EPUB- och textfiler till ljudböcker. Tre TTS-motorer: Edge-TTS (moln, 30+ röster på sex språk), Piper (offline, ingen GPU krävs) och Chatterbox med "Grandmom"-rösten för röstkloning från ett kort referensklipp. Samma Chatterbox-motor ger rösten åt berättelsen i Spacepotatis. Engelsk talsyntes fungerar redan bra; finska är svårare att syntetisera med tillgängliga resurser, så den har en dedikerad 19-stegs textnormaliseringspipeline som hanterar kontextbaserad nummerböjning, förkortningsexpansion, enhetsavtal och lånordsuttalskorrigeringar — kvaliteten förbättras med varje release. Levereras som en Windows-installerare med automatiska uppdateringar och 1729 tester.',
       highlights: [
         'Chatterbox röstkloning med Grandmom-rösten',
         '19-stegs finsk textnormalisering, 1729 tester',
-        'Fristående Windows-installerare med automatiska uppdateringar',
+        'Ger rösten åt berättelsen i Spacepotatis',
+      ],
+    },
+    spacepotatis: {
+      tagline: 'Webbläsarspel — din potatis mot galaxen',
+      description:
+        'Live webbläsarspel där en potatis i en sköldbubbla skjuter buggar tvärs över en procedurell galax. Bootar som en vintage-terminal, öppnar sig till ett 3D-solsystem du drar och zoomar, släpper sedan dig i top-down vertikal strid i andan av Tyrian 2000. Next.js 15 + React 19-skal runt en Phaser 3-stridsscen; Three.js + GSAP driver galaxvyn och kameraövergången in i strid; PostgreSQL på Neon talas till via Kysely (typad SQL-byggare, ingen ORM). All röst genererad av AudiobookMaker; all musik skriven i strudel-patterns. Levereras med tio egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade kvartalsvis, behandlade som produktionsartefakter.',
+      highlights: [
+        'Next.js 15 + Phaser 3 + Three.js',
+        '~1170 tester, CI vid varje push',
+        '10 egna Claude Code-skills som produktionsartefakter',
+      ],
+    },
+    'strudel-patterns': {
+      tagline: 'Algoritmisk musik i Strudel',
+      description:
+        'Live-kodad elektronisk musik skriven i Strudel — en JavaScript-mönstermotor, port av TidalCycles. Varje spår är ett enda komponerbart uttryck: staplade synthar, baslinjer, trumkomp och effektkedjor. Skapad genom ett strukturerat AI-arbetsflöde — naturlig språkriktning → generering → lyssna → iterera, med beslut loggade vid sidan av git-historiken. Utvalda spår tonsätter Spacepotatis (galaxvy, missionsteman, berättelsebakgrund). Återanvändbart komponentbibliotek, kuraterade synthpresets, sessionsanteckningar per iteration.',
+      highlights: [
+        'Live-kodat i Strudel',
+        'AI-styrd iteration, loggad i git',
+        'Soundtrack till Spacepotatis',
       ],
     },
   },
