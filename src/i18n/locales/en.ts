@@ -76,12 +76,12 @@ export const en: Translations = {
       {
         project: 'Platform',
         api: 'Raider.IO API',
-        body: 'Live Mythic+ team tracker for a real WoW guild. Rosters, recent runs, and rio scores pulled fresh on every load — no stale screenshots.',
+        body: 'Live Mythic+ team tracker for a real WoW guild. Rosters, recent runs, and rio scores pulled fresh on every load — no stale screenshots. Auth via Google or GitHub OAuth, plus a zero-credential demo for visitors.',
       },
       {
         project: 'ReadLog',
         api: 'Open Library + Google Books',
-        body: 'Two book APIs queried in parallel; whichever source returns the cleaner record wins. Duplicates are collapsed before they reach the UI.',
+        body: 'Two book APIs queried in parallel; whichever source returns the cleaner record wins. Duplicates are collapsed before they reach the UI. Sign-in via Google OAuth.',
       },
       {
         project: 'AudiobookMaker',

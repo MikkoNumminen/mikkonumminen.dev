@@ -76,12 +76,12 @@ export const sv: Translations = {
       {
         project: 'Platform',
         api: 'Raider.IO API',
-        body: 'Live Mythic+-teamspårning för en riktig WoW-gille. Rosters, senaste runs och rio-poäng hämtas färska vid varje laddning — inga inaktuella skärmdumpar.',
+        body: 'Live Mythic+-teamspårning för en riktig WoW-gille. Rosters, senaste runs och rio-poäng hämtas färska vid varje laddning — inga inaktuella skärmdumpar. Inloggning via Google- eller GitHub-OAuth, plus en lösenordsfri demo för besökare.',
       },
       {
         project: 'ReadLog',
         api: 'Open Library + Google Books',
-        body: 'Två bok-API:er körs parallellt; den med renare data vinner. Dubletter slås ihop innan de når gränssnittet.',
+        body: 'Två bok-API:er körs parallellt; den med renare data vinner. Dubletter slås ihop innan de når gränssnittet. Inloggning via Google-OAuth.',
       },
       {
         project: 'AudiobookMaker',
