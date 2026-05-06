@@ -26,6 +26,12 @@ import {
   resizeConnections,
   disposeConnections,
 } from './projects/buildConnections';
+import {
+  buildExternalIndicator,
+  updateExternalIndicator,
+  disposeExternalIndicators,
+  type ExternalIndicator,
+} from './projects/buildExternalIndicator';
 import { createHoverLabel } from './projects/createHoverLabel';
 
 export interface ProjectsSceneOptions {
@@ -126,6 +132,17 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   });
   scene.add(connectionsBundle.group);
   let connectionVisibility = 1;
+
+  // ── External-API indicators ────────────────────────────────────────
+  // Each planet that connects to an outside service gets an orbiting
+  // satellite and concentric pulse rings — visual shorthand for
+  // "this planet talks to the outside world".
+  const externalIndicators: ExternalIndicator[] = [];
+  for (const planet of planets) {
+    if (planet.project.externalApis && planet.project.externalApis.length > 0) {
+      externalIndicators.push(buildExternalIndicator(planet));
+    }
+  }
 
   // ── Hover label ─────────────────────────────────────────────────────
   const hoverLabelHandle = createHoverLabel(hoverLabel);
@@ -328,6 +345,13 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     connectionVisibility += (targetVisibility - connectionVisibility) * 0.08;
     fadeConnections(connectionsBundle.entries, connectionVisibility);
 
+    // External-API indicators — orbit the satellite and pulse the rings.
+    // Reuse the same fade factor as connections so the scene dims
+    // consistently while a planet is selected.
+    for (const ind of externalIndicators) {
+      updateExternalIndicator(ind, elapsed, connectionVisibility);
+    }
+
     // Raycast hover (skip while a planet is selected)
     if (!selected) {
       raycaster.setFromCamera(pointer, camera);
@@ -495,6 +519,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       starfield.material.dispose();
       disposeConnections(connectionsBundle.entries);
       scene.remove(connectionsBundle.group);
+      disposeExternalIndicators(externalIndicators);
 
       scene.remove(sunLight, ambient);
       sunLight.dispose();

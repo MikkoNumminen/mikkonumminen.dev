@@ -32,6 +32,13 @@ export interface Project {
   /** Tech names — never translated. */
   tech: string[];
   status?: 'live' | 'wip' | 'archived';
+  /**
+   * Names of external APIs / services this project connects to. Surfaced
+   * visually in the galaxy view as an orbiting "satellite + broadcast
+   * pulses" indicator. Names here are also displayed in the integrations
+   * section on the home page (sourced via the i18n dictionaries).
+   */
+  externalApis?: string[];
 }
 
 export interface LocalizedProject extends Project {
@@ -126,6 +133,7 @@ export const projects: Project[] = [
       'Playwright',
     ],
     status: 'live',
+    externalApis: ['Raider.IO API'],
   },
   {
     id: 'portfolio',
@@ -154,6 +162,7 @@ export const projects: Project[] = [
     githubUrl: 'https://github.com/MikkoNumminen/ReadLog',
     tech: ['Next.js', 'React', 'TypeScript', 'Prisma', 'PostgreSQL', 'NextAuth', 'MUI'],
     status: 'live',
+    externalApis: ['Open Library', 'Google Books'],
   },
   {
     id: 'audiobookmaker',
@@ -180,6 +189,7 @@ export const projects: Project[] = [
       'GitHub Actions',
     ],
     status: 'wip',
+    externalApis: ['Microsoft Edge-TTS'],
   },
   {
     id: 'spacepotatis',
@@ -207,6 +217,7 @@ export const projects: Project[] = [
       'Tailwind CSS',
     ],
     status: 'live',
+    externalApis: ['Google OAuth'],
   },
   {
     id: 'strudel-patterns',
