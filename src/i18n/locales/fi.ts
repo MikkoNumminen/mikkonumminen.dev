@@ -68,6 +68,44 @@ export const fi: Translations = {
       },
     ],
   },
+  integrations: {
+    sectionAria: 'Ulkoiset integraatiot',
+    eyebrow: 'integraatiot',
+    heading: 'Kytköksissä maailmaan.',
+    items: [
+      {
+        project: 'Platform',
+        api: 'Raider.IO API',
+        body: 'Reaaliaikainen Mythic+-tiimiseuranta oikealle WoW-killalle. Rosterit, viimeisimmät retket ja rio-pisteet haetaan tuoreina jokaisella latauksella — ei vanhentuneita ruutukaappauksia.',
+      },
+      {
+        project: 'ReadLog',
+        api: 'Open Library + Google Books',
+        body: 'Kaksi kirja-API:a kysellään rinnakkain; tarkemmat tiedot palauttava lähde voittaa. Duplikaatit yhdistetään ennen kuin ne ehtivät käyttöliittymään.',
+      },
+      {
+        project: 'AudiobookMaker',
+        api: 'Microsoft Edge-TTS',
+        body: '30+ pilvi-ääntä kuudella kielellä, kahden offline-moottorin (Piper, Chatterbox) lisäksi. Valitse ääni, joka sopii kirjaan.',
+      },
+      {
+        project: 'Spacepotatis',
+        api: 'Google OAuth',
+        body: 'Sisäänkirjautuminen on vapaaehtoista. Pelaa offline ikuisesti, tai liity mukaan pilvitallennuksiin ja tulostaulun paikkaan.',
+      },
+    ],
+  },
+  velocity: {
+    sectionAria: 'Kehitysvauhti',
+    eyebrow: 'vauhti',
+    heading: 'Nopeaa — todistettavasti.',
+    body: 'Spacepotatis ehti tyhjästä reposta tuotantoon kahdessa viikossa: 387 commitia, ~1170 testiä, kymmenen auditoitua Claude Code -skilliä, koko Next.js + Phaser 3 + Three.js -pino. Seitsemästä portfoliorepoista kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
+    stats: [
+      { num: '12', label: 'päivää tyhjästä reposta Spacepotatis-tuotantoon' },
+      { num: '387', label: 'Spacepotatis-commitia' },
+      { num: '~1170', label: 'Spacepotatis-testiä menossa läpi' },
+    ],
+  },
   navCards: {
     sectionAria: 'Tutustu sivuston muihin osiin',
     eyebrow: 'jatka',

@@ -1,0 +1,150 @@
+---
+import { asLocale, getTranslations } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
+const items = t.integrations.items;
+---
+
+<section class="integrations" aria-label={t.integrations.sectionAria}>
+  <div class="integrations__inner">
+    <p class="integrations__eyebrow" data-reveal>{t.integrations.eyebrow}</p>
+    <h2 class="integrations__heading">
+      <span data-split data-reveal-chars>{t.integrations.heading}</span>
+    </h2>
+
+    <ul class="integrations__list">
+      {
+        items.map((item) => (
+          <li class="integrations__item" data-reveal>
+            <div class="integrations__head">
+              <span class="integrations__project">{item.project}</span>
+              <span class="integrations__arrow" aria-hidden="true">
+                →
+              </span>
+              <span class="integrations__api">{item.api}</span>
+            </div>
+            <p class="integrations__body">{item.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .integrations {
+    position: relative;
+    padding: clamp(6rem, 14vh, 10rem) 1.5rem;
+  }
+
+  .integrations__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .integrations__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0 0 1.5rem;
+  }
+
+  .integrations__heading {
+    font-size: clamp(2rem, 5vw, 3.6rem);
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0 0 4rem;
+    color: #fff;
+  }
+
+  .integrations__heading :global([data-split]) {
+    display: inline-block;
+    overflow: hidden;
+  }
+  .integrations__heading :global(.word) {
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .integrations__heading :global(.char) {
+    display: inline-block;
+    will-change: transform, opacity;
+  }
+
+  .integrations__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .integrations__item {
+    position: relative;
+    padding: 1.75rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(4px);
+    transition:
+      border-color 0.4s ease,
+      transform 0.4s ease,
+      background 0.4s ease;
+  }
+
+  .integrations__item:hover {
+    border-color: rgba(128, 168, 255, 0.35);
+    transform: translateY(-3px);
+    background: rgba(128, 168, 255, 0.05);
+  }
+
+  .integrations__head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+  }
+
+  .integrations__project {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.005em;
+  }
+
+  .integrations__arrow {
+    color: rgba(128, 168, 255, 0.55);
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  .integrations__api {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: #80a8ff;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    background: rgba(128, 168, 255, 0.08);
+    border: 1px solid rgba(128, 168, 255, 0.18);
+  }
+
+  .integrations__body {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.62);
+    margin: 0;
+  }
+
+  @media (max-width: 860px) {
+    .integrations__list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

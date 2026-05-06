@@ -68,6 +68,44 @@ export const en: Translations = {
       },
     ],
   },
+  integrations: {
+    sectionAria: 'External integrations',
+    eyebrow: 'integrations',
+    heading: 'Plugged into the world.',
+    items: [
+      {
+        project: 'Platform',
+        api: 'Raider.IO API',
+        body: 'Live Mythic+ team tracker for a real WoW guild. Rosters, recent runs, and rio scores pulled fresh on every load — no stale screenshots.',
+      },
+      {
+        project: 'ReadLog',
+        api: 'Open Library + Google Books',
+        body: 'Two book APIs queried in parallel; whichever source returns the cleaner record wins. Duplicates are collapsed before they reach the UI.',
+      },
+      {
+        project: 'AudiobookMaker',
+        api: 'Microsoft Edge-TTS',
+        body: '30+ cloud voices in six languages, on top of two local engines (Piper, Chatterbox). Pick the voice that fits the book.',
+      },
+      {
+        project: 'Spacepotatis',
+        api: 'Google OAuth',
+        body: 'Sign-in is optional. Play offline forever, or opt in for cloud saves and a leaderboard slot.',
+      },
+    ],
+  },
+  velocity: {
+    sectionAria: 'Development velocity',
+    eyebrow: 'velocity',
+    heading: 'Fast — for real.',
+    body: 'Spacepotatis went from empty repo to live browser game in two weeks: 387 commits, ~1170 tests, ten audited Claude Code skills, full Next.js + Phaser 3 + Three.js stack. Six of the seven portfolio repos started in the last six weeks. AI-native isn’t rhetoric — it’s the math.',
+    stats: [
+      { num: '12', label: 'days from empty repo to live Spacepotatis' },
+      { num: '387', label: 'Spacepotatis commits' },
+      { num: '~1170', label: 'Spacepotatis tests passing' },
+    ],
+  },
   navCards: {
     sectionAria: 'Explore the rest of the site',
     eyebrow: 'continue',
