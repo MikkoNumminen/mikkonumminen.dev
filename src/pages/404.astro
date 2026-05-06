@@ -138,8 +138,11 @@ const linkPaths: Record<Locale, Record<string, string>> = {
       for (const a of document.querySelectorAll<HTMLAnchorElement>('[data-not-found-link]')) {
         const key = a.getAttribute('data-not-found-link');
         if (!key) continue;
-        a.setAttribute('href', l[key]);
-        a.textContent = labelByKey[key];
+        const href = l[key];
+        const label = labelByKey[key];
+        if (href === undefined || label === undefined) continue;
+        a.setAttribute('href', href);
+        a.textContent = label;
       }
     }
   }
