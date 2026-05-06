@@ -149,7 +149,7 @@ const linkPaths: Record<Locale, Record<string, string>> = {
 
   // Always unhide, even if the locale swap failed — better to show English
   // than to leave the page blank. (CSS also has a fallback animation that
-  // unhides at 250ms in case this script fails to load entirely.)
+  // unhides at 250ms in case this script fails to load or run.)
   if (notFound) notFound.style.visibility = 'visible';
 </script>
 
@@ -176,6 +176,15 @@ const linkPaths: Record<Locale, Record<string, string>> = {
   @keyframes not-found-show {
     to {
       visibility: visible;
+    }
+  }
+
+  /* Reduced-motion users have animation-duration globally forced to 0s,
+     but animation-delay is untouched. Drop the delay too so they don't
+     wait 250ms under the (already rare) script-failure path. */
+  @media (prefers-reduced-motion: reduce) {
+    .not-found {
+      animation-delay: 0s;
     }
   }
 
