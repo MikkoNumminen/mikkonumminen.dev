@@ -8,6 +8,7 @@ export interface TerminalLine {
 export type CommandHandler = (
   args: string[],
   ctx: CommandContext,
+  rawArgs?: string,
 ) => void | Promise<void>;
 
 export interface CommandContext {

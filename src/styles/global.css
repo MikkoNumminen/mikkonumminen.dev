@@ -24,6 +24,11 @@
      paper/ink pair that every page-level theme layers on top of. */
   --color-ink: #0a0a0f;
   --color-paper: #f5f5f0;
+
+  /* Page-level accent colours — also consumed by component CSS files so
+     raw hex values only need to live in one place. */
+  --color-experience-accent: #d4ff80;
+  --color-projects-accent: #80a8ff;
 }
 
 html {
@@ -45,9 +50,9 @@ body {
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
+    animation-duration: 0s !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+    transition-duration: 0s !important;
     scroll-behavior: auto !important;
   }
 }
@@ -59,7 +64,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid #80a8ff;
+  outline: 2px solid var(--color-projects-accent);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -68,10 +73,10 @@ body[data-theme='contact'] :focus-visible {
   outline-color: var(--color-term-green);
 }
 body[data-theme='experience'] :focus-visible {
-  outline-color: #d4ff80;
+  outline-color: var(--color-experience-accent);
 }
 body[data-theme='projects'] :focus-visible {
-  outline-color: #80a8ff;
+  outline-color: var(--color-projects-accent);
 }
 body[data-theme='home'] :focus-visible {
   outline-color: #ffffff;

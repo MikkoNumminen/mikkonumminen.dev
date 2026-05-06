@@ -2,11 +2,12 @@
 import '../styles/global.css';
 import SiteNav from '../components/nav/SiteNav.astro';
 import { asLocale, getTranslations, localizePath, stripLocale, LOCALES } from '../i18n';
+import type { Theme } from '../lib/theme';
 
 interface Props {
   title: string;
   description?: string;
-  theme?: 'home' | 'projects' | 'experience' | 'contact';
+  theme?: Theme;
   ogImage?: string;
 }
 
@@ -137,14 +138,14 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
   <body data-theme={theme}>
     <a
       href="#main"
-      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-white focus:text-black focus:px-3 focus:py-2 focus:rounded"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:bg-white focus:text-black focus:px-3 focus:py-2 focus:rounded"
     >
       {t.nav.skipToContent}
     </a>
 
     <SiteNav theme={theme} current={Astro.url.pathname} locale={locale} />
 
-    <main id="main" tabindex="-1" style="outline:none">
+    <main id="main" tabindex="-1">
       <slot />
     </main>
 

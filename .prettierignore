@@ -2,5 +2,4 @@ dist
 node_modules
 .astro
 .vercel
-package-lock.json
 public

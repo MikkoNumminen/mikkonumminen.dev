@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Page not found · mikkonumminen.dev"
+  description="The page you're looking for doesn't exist."
+  theme="home"
+>
+  <div class="not-found">
+    <h1 class="not-found__heading">Page not found</h1>
+    <p class="not-found__message">This route doesn't exist on this site.</p>
+    <nav class="not-found__links" aria-label="Return to a page">
+      <a href="/">Home</a>
+      <a href="/projects">Projects</a>
+      <a href="/experience">Experience</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    text-align: center;
+    padding: 2rem;
+    gap: 1.5rem;
+  }
+
+  .not-found__heading {
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+  }
+
+  .not-found__message {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+  }
+
+  .not-found__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  .not-found__links a {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.2s ease;
+  }
+
+  .not-found__links a:hover {
+    color: #fff;
+  }
+</style>

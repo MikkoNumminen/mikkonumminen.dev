@@ -137,6 +137,7 @@ export const fi: Translations = {
     closeAria: 'Sulje projektin tiedot',
     techLabel: 'Teknologiat',
     externalApisLabel: 'Integraatiot',
+    // "live demo" doesn't translate idiomatically; the Finnish/Swedish UI uses just "demo".
     liveDemo: 'demo →',
     githubLink: 'github',
     gridAria: 'Projektit',

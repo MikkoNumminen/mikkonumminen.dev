@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils/escapeHtml';
 import type { CommandContext, LineKind } from './types';
 
 export interface TerminalElements {
@@ -8,20 +9,6 @@ export interface TerminalElements {
 }
 
 export const PROMPT_HTML = `<span class="line line--prompt"><span style="color:var(--color-term-green)">guest@mikkonumminen</span><span style="color:rgba(181,245,200,0.5)">:</span><span style="color:var(--color-term-cyan)">~</span><span style="color:var(--color-term-green)">$</span> `;
-
-// Restricting the key type to the exact characters the regex matches turns
-// the lookup into `string` (not `string | undefined`), so we can drop the
-// non-null assertion that the previous implementation needed.
-const HTML_ESCAPES: Record<'&' | '<' | '>' | '"' | "'", string> = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;',
-};
-
-export const escapeHTML = (s: string): string =>
-  s.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c as keyof typeof HTML_ESCAPES]);
 
 export function appendLine(
   output: HTMLElement,
@@ -43,7 +30,7 @@ export function appendLine(
 export function echoPromptLine(output: HTMLElement, value: string, suffix = ''): void {
   const echo = document.createElement('span');
   echo.className = 'line line--prompt';
-  echo.innerHTML = PROMPT_HTML + escapeHTML(value) + suffix + '</span>';
+  echo.innerHTML = PROMPT_HTML + escapeHtml(value) + suffix + '</span>';
   output.appendChild(echo);
   output.appendChild(document.createTextNode('\n'));
   output.scrollTop = output.scrollHeight;
@@ -51,14 +38,10 @@ export function echoPromptLine(output: HTMLElement, value: string, suffix = ''):
 
 export function makeContext(elements: TerminalElements): CommandContext {
   return {
-    print: (text, kind = 'plain') => appendLine(elements.output, escapeHTML(text), kind),
-    printHTML: (html) => {
-      const wrap = document.createElement('span');
-      wrap.innerHTML = html;
-      elements.output.appendChild(wrap);
-      elements.output.appendChild(document.createTextNode('\n'));
-      elements.output.scrollTop = elements.output.scrollHeight;
-    },
+    print: (text, kind = 'plain') => appendLine(elements.output, escapeHtml(text), kind),
+    // Route printHTML through appendLine with kind 'html' so both code paths
+    // produce the same span shape: <span class="line line--html">…</span>.
+    printHTML: (html) => appendLine(elements.output, html, 'html'),
     clear: () => {
       elements.output.innerHTML = '';
     },
@@ -88,6 +71,14 @@ function getMeasureSpan(input: HTMLInputElement): HTMLSpanElement {
   document.body.appendChild(span);
   measureSpan = span;
   return span;
+}
+
+/** Remove the cached measurement span from the DOM and null the reference. */
+export function disposeMeasureSpan(): void {
+  if (measureSpan) {
+    measureSpan.remove();
+    measureSpan = null;
+  }
 }
 
 export function updateCursor(input: HTMLInputElement, cursor: HTMLElement): void {

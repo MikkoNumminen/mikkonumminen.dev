@@ -21,11 +21,11 @@ const t = getTranslations(locale);
 <script>
   import { initTerminal } from '../lib/terminal/terminal';
 
-  const start = () => initTerminal(document);
+  const bootContactPage = () => initTerminal(document);
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
+    document.addEventListener('DOMContentLoaded', bootContactPage, { once: true });
   } else {
-    start();
+    bootContactPage();
   }
 </script>

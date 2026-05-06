@@ -149,7 +149,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         const i3 = i * 3;
         // Both lookups are in-bounds: i < count and the position array is
         // length count*3, the speed array is length count.
-        const next = arr[i3 + 1]! + speeds[i]! * (delta * 60);
+        const next = arr[i3 + 1]! + speeds[i]! * delta;
         arr[i3 + 1] = next > 25 ? -25 : next;
       }
       posAttr.needsUpdate = true;

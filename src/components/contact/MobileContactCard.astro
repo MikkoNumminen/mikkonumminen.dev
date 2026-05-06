@@ -29,7 +29,7 @@ const m = t.mobileContact;
         class="mcc__output"
         id="mcc-output"
         role="log"
-        aria-live="off"
+        aria-live="polite"
         aria-atomic="false"
         data-whoami-name={m.typedWhoamiOutputName}
         data-whoami-bio={m.typedWhoamiOutputBio}
@@ -53,6 +53,7 @@ const m = t.mobileContact;
       href="https://www.linkedin.com/in/mikko-numminen-269795205/"
       target="_blank"
       rel="noopener noreferrer"
+      aria-label="LinkedIn (opens in a new tab)"
     >
       {m.btnLinkedin}
     </a>

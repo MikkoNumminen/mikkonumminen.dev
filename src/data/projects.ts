@@ -145,7 +145,7 @@ export const projects: Project[] = [
     phase: 3.0,
     tilt: 0.08,
     color: '#4ade80',
-    liveUrl: 'https://mikkonumminen-dev.vercel.app',
+    liveUrl: 'https://mikkonumminen.dev',
     githubUrl: 'https://github.com/MikkoNumminen/mikkonumminen.dev',
     tech: ['Astro', 'Three.js', 'GSAP', 'TypeScript', 'Tailwind CSS'],
     status: 'wip',

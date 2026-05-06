@@ -141,8 +141,15 @@ export function updateConnections(entries: ConnectionEntry[]): void {
       positions[idx + 2] = _p.z;
     }
 
-    // setPositions internally rebuilds the instance geometry. Both
-    // halo and core share the same arc, so we update both.
+    // TODO(perf): LineGeometry.setPositions() rebuilds the interleaved
+    // InterleavedBuffer from scratch each call (allocating a new Float32Array
+    // of length ARC_SEGMENTS*6 internally). The correct zero-allocation fix
+    // is to write directly into `.attributes.instanceStart.data.array` /
+    // `.instanceEnd.data.array` and set `needsUpdate = true` on the
+    // InterleavedBuffer — but the interleaved layout (stride-3 pairs) must
+    // match exactly what setPositions() set up, which is undocumented and
+    // version-sensitive. Keeping setPositions() for correctness; the outer
+    // `positions` Float32Array is already pre-allocated (no allocation there).
     e.haloGeometry.setPositions(positions);
     e.coreGeometry.setPositions(positions);
     e.haloLine.computeLineDistances();
@@ -188,5 +195,10 @@ export function disposeConnections(entries: ConnectionEntry[]): void {
     e.haloMaterial.dispose();
     e.coreGeometry.dispose();
     e.coreMaterial.dispose();
+    // Line2 wraps the LineGeometry in an internal LineSegmentsGeometry
+    // instance buffer — that is a separate GPU allocation that must also
+    // be released explicitly.
+    e.haloLine.geometry.dispose();
+    e.coreLine.geometry.dispose();
   }
 }

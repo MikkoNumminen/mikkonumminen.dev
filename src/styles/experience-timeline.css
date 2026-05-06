@@ -87,11 +87,16 @@
 
 /* Reduced-motion users should see the content immediately, regardless of
    whether the GSAP scroll handlers / IntersectionObserver ever toggle
-   is-visible. */
+   is-visible. The CTA hover transform is also suppressed here. */
 @media (prefers-reduced-motion: reduce) {
   .timeline__entry {
     opacity: 1;
     transform: none;
+  }
+
+  .timeline__cta:hover,
+  .timeline__cta:focus-visible {
+    transform: none !important;
   }
 }
 
@@ -107,7 +112,7 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: var(--accent, #d4ff80);
+  background: var(--accent, var(--color-experience-accent, #d4ff80));
   border: 2px solid rgba(0, 0, 0, 0.6);
   box-shadow:
     0 0 0 4px rgba(212, 255, 128, 0.18),

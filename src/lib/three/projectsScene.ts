@@ -294,6 +294,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const resize = createResizeHandler(renderer, camera, (w, h) => {
     resizeConnections(connectionsBundle.entries, w, h);
   });
+  resize.handler();
 
   // ── Animation loop ──────────────────────────────────────────────────
   const startTime = performance.now();

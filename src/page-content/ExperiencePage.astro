@@ -33,15 +33,15 @@ const t = getTranslations(locale);
 
   let handle: { dispose: () => void } | null = null;
 
-  const start = () => {
+  const bootExperienceTimeline = () => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     handle = initExperienceTimeline({ reducedMotion });
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
+    document.addEventListener('DOMContentLoaded', bootExperienceTimeline, { once: true });
   } else {
-    start();
+    bootExperienceTimeline();
   }
 
   window.addEventListener('beforeunload', () => handle?.dispose());

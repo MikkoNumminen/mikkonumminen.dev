@@ -46,10 +46,10 @@ const connectionLegendEntries = connections.map((c) => ({
     </header>
 
     <div class="projects-scene__legend" data-legend aria-hidden="true">
-      <span><kbd>hover</kbd> {t.projectsPage.legendHover}</span>
-      <span><kbd>click</kbd> {t.projectsPage.legendClick}</span>
-      <span><kbd>drag</kbd> {t.projectsPage.legendDrag}</span>
-      <span><kbd>scroll</kbd> {t.projectsPage.legendZoom}</span>
+      <span><code>hover</code> {t.projectsPage.legendHover}</span>
+      <span><code>click</code> {t.projectsPage.legendClick}</span>
+      <span><code>drag</code> {t.projectsPage.legendDrag}</span>
+      <span><code>scroll</code> {t.projectsPage.legendZoom}</span>
     </div>
 
     <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
@@ -138,18 +138,18 @@ const connectionLegendEntries = connections.map((c) => ({
   </div>
 
   <!-- Mobile / no-JS / reduced-motion fallback -->
-  <noscript>
-    <ProjectGrid />
-  </noscript>
-
   <div class="projects-fallback" data-projects-fallback>
     <ProjectGrid />
   </div>
 </BaseLayout>
 
 <script>
-  import { localizeProjects, type LocalizedProject } from '../data/projects';
+  // Runtime re-imports — these run in the browser. Astro frontmatter imports
+  // above run at build time and aren't in scope here.
+  import { localizeProjects } from '../data/projects';
   import { asLocale, getTranslations } from '../i18n';
+  import { initProjectDrawer } from '../lib/projects/drawer';
+  import { scheduleProjectsSceneBoot } from '../lib/projects/boot';
 
   // Read locale from <html lang> set by BaseLayout, then merge structural
   // project data with the localized text from the i18n dictionaries.
@@ -169,7 +169,7 @@ const connectionLegendEntries = connections.map((c) => ({
   const sceneRoot = document.querySelector<HTMLElement>('[data-projects-scene]');
   const fallback = document.querySelector<HTMLElement>('[data-projects-fallback]');
 
-  const start = async () => {
+  const bootProjectsScene = async () => {
     if (reducedMotion || isSmall || !sceneRoot) {
       // CSS @media rules already hide the scene and show the fallback grid
       // for these clients before JS runs — no DOM toggling needed here.
@@ -189,170 +189,15 @@ const connectionLegendEntries = connections.map((c) => ({
 
     if (!canvas || !hoverLabel || !detail || !closeBtn) return;
 
-    // Track the element that opened the drawer so we can restore focus.
-    let lastFocused: HTMLElement | null = null;
-
-    const getFocusable = (): HTMLElement[] => {
-      return Array.from(
-        detail.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
-    };
-
-    const trapTab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        e.preventDefault();
-        closeBtn.focus();
-        return;
-      }
-      const first = focusable[0]!;
-      const last = focusable[focusable.length - 1]!;
-      const active = document.activeElement as HTMLElement | null;
-      if (e.shiftKey) {
-        if (active === first || !detail.contains(active)) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (active === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    const populateDetail = (p: LocalizedProject) => {
-      const setText = (sel: string, text: string) => {
-        const el = detail.querySelector<HTMLElement>(`[data-field="${sel}"]`);
-        if (el) el.textContent = text;
-      };
-      setText('name', p.name);
-      setText('tagline', p.tagline);
-      setText('description', p.description);
-
-      // The heading is hidden-by-default via [data-empty="true"]; clear the
-      // flag once we've populated it.
-      const name = detail.querySelector<HTMLElement>('[data-field="name"]');
-      if (name) name.removeAttribute('data-empty');
-
-      const status = detail.querySelector<HTMLElement>('[data-field="status"]');
-      if (status) {
-        if (p.status) {
-          status.textContent = p.status;
-          status.setAttribute('data-status', p.status);
-          status.style.display = '';
-        } else {
-          status.style.display = 'none';
-        }
-      }
-
-      const highlights = detail.querySelector<HTMLElement>('[data-field="highlights"]');
-      if (highlights) {
-        highlights.innerHTML = '';
-        (p.highlights ?? []).forEach((h) => {
-          const span = document.createElement('span');
-          span.className = 'highlight';
-          span.textContent = h;
-          highlights.appendChild(span);
-        });
-      }
-
-      const externalApisWrap = detail.querySelector<HTMLElement>(
-        '[data-field="externalApisWrap"]',
-      );
-      const externalApis = detail.querySelector<HTMLElement>(
-        '[data-field="externalApis"]',
-      );
-      if (externalApisWrap && externalApis) {
-        externalApis.innerHTML = '';
-        if (p.externalApis && p.externalApis.length > 0) {
-          p.externalApis.forEach((api) => {
-            const li = document.createElement('li');
-            li.textContent = api;
-            externalApis.appendChild(li);
-          });
-          externalApisWrap.removeAttribute('hidden');
-        } else {
-          externalApisWrap.setAttribute('hidden', '');
-        }
-      }
-
-      const tech = detail.querySelector<HTMLElement>('[data-field="tech"]');
-      if (tech) {
-        tech.innerHTML = '';
-        p.tech.forEach((t) => {
-          const li = document.createElement('li');
-          li.textContent = t;
-          tech.appendChild(li);
-        });
-      }
-
-      const links = detail.querySelector<HTMLElement>('[data-field="links"]');
-      if (links) {
-        links.innerHTML = '';
-        if (p.liveUrl) {
-          const a = document.createElement('a');
-          a.href = p.liveUrl;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          a.className = 'primary';
-          a.textContent = tp.liveDemo;
-          links.appendChild(a);
-        }
-        if (p.githubUrl) {
-          const a = document.createElement('a');
-          a.href = p.githubUrl;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          a.className = 'secondary';
-          a.textContent = tp.githubLink;
-          links.appendChild(a);
-        }
-      }
-    };
-
-    const openDetail = (project: LocalizedProject) => {
-      populateDetail(project);
-      lastFocused = document.activeElement as HTMLElement | null;
-      detail.setAttribute('data-open', 'true');
-      detail.setAttribute('aria-hidden', 'false');
-      intro?.classList.add('is-hidden');
-      legend?.classList.add('is-hidden');
-      credits?.classList.add('is-hidden');
-      key?.classList.add('is-hidden');
-      detail.addEventListener('keydown', trapTab);
-      // Move focus to the close button once the drawer is open so keyboard
-      // users can immediately tab through its contents.
-      requestAnimationFrame(() => closeBtn.focus());
-    };
-
-    const closeDetail = () => {
-      detail.setAttribute('data-open', 'false');
-      detail.setAttribute('aria-hidden', 'true');
-      intro?.classList.remove('is-hidden');
-      legend?.classList.remove('is-hidden');
-      credits?.classList.remove('is-hidden');
-      key?.classList.remove('is-hidden');
-      detail.removeEventListener('keydown', trapTab);
-      sceneHandle?.selectById(null);
-      // Restore focus to the element that opened the drawer, or fall back
-      // to the body so subsequent tabs continue from the start of the page.
-      if (lastFocused && document.contains(lastFocused)) {
-        lastFocused.focus();
-      } else {
-        (document.body as HTMLElement).focus();
-      }
-      lastFocused = null;
-    };
-
-    closeBtn.addEventListener('click', closeDetail);
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && detail.getAttribute('data-open') === 'true') {
-        closeDetail();
-      }
+    const drawer = initProjectDrawer({
+      detail,
+      closeBtn,
+      intro,
+      legend,
+      credits,
+      key,
+      labels: { liveDemo: tp.liveDemo, githubLink: tp.githubLink },
+      onClose: () => sceneHandle?.selectById(null),
     });
 
     try {
@@ -362,60 +207,23 @@ const connectionLegendEntries = connections.map((c) => ({
         hoverLabel,
         projects: localizedProjects,
         reducedMotion,
-        onSelect: (project) => openDetail(project),
+        onSelect: (project) => drawer.open(project),
         onDeselect: () => {
-          /* triggered by closeDetail */
+          /* triggered by drawer.close via onClose */
         },
       });
     } catch (err) {
       console.warn('projects scene failed to init', err);
       sceneRoot.setAttribute('data-fallback-active', 'true');
       fallback?.setAttribute('data-active', 'true');
+      drawer.dispose();
     }
   };
 
-  // Defer the WebGL scene boot until the first real user interaction
-  // (scroll / pointer / key) or a 2s passive fallback. Visitors who bounce
-  // immediately never pay the Three.js download or parse cost; engaged
-  // visitors trigger it on their very first movement. The modulepreload
-  // in <head> ensures the chunk is already warm in cache by then.
-  let started = false;
-  let abortInteractions: AbortController | null = null;
-  let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  const bootHandle = scheduleProjectsSceneBoot({ onBoot: bootProjectsScene });
 
-  const triggerStart = () => {
-    if (started) return;
-    started = true;
-    if (abortInteractions) abortInteractions.abort();
-    if (fallbackTimer !== null) clearTimeout(fallbackTimer);
-    void start();
-  };
-
-  const scheduleStart = () => {
-    if (started) return;
-    abortInteractions = new AbortController();
-    const interactionEvents = [
-      'scroll',
-      'mousemove',
-      'touchstart',
-      'keydown',
-      'pointerdown',
-    ] as const;
-    for (const ev of interactionEvents) {
-      window.addEventListener(ev, triggerStart, {
-        once: true,
-        passive: true,
-        signal: abortInteractions.signal,
-      });
-    }
-    fallbackTimer = setTimeout(triggerStart, 2000);
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', scheduleStart, { once: true });
-  } else {
-    scheduleStart();
-  }
-
-  window.addEventListener('beforeunload', () => sceneHandle?.dispose());
+  window.addEventListener('beforeunload', () => {
+    bootHandle.cancel();
+    sceneHandle?.dispose();
+  });
 </script>

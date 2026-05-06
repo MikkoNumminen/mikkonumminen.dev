@@ -138,6 +138,7 @@ export const sv: Translations = {
     closeAria: 'Stäng projektdetaljer',
     techLabel: 'Teknik',
     externalApisLabel: 'Integrationer',
+    // "live demo" doesn't translate idiomatically; the Finnish/Swedish UI uses just "demo".
     liveDemo: 'demo →',
     githubLink: 'github',
     gridAria: 'Projekt',
@@ -308,7 +309,7 @@ export const sv: Translations = {
     cmdWhoamiIntro: 'bygger produktionsklara webbappar med ai-assisterade arbetsflöden.',
     cmdWhoamiLargest: 'störst:',
     cmdWhoamiAlso: 'även:',
-    cmdWhoamiCommunity: 'community',
+    cmdWhoamiCommunity: 'gemenskap',
     cmdWhoamiDesktop: 'skrivbord',
     cmdWhoamiCurrently: 'utforskar för närvarande three.js, gsap och rörelsehantverk.',
     cmdContactDesc: 'visa kontaktinfo',

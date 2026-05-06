@@ -9,7 +9,13 @@
  * via a `data-nav-theme` attribute on the link.
  */
 
-type Theme = 'home' | 'projects' | 'experience' | 'contact';
+import type { Theme } from '../theme';
+
+// Make the type available to the globalThis augmentation below.
+declare global {
+  // eslint-disable-next-line no-var
+  var __pageTransitionAbortController: AbortController | undefined;
+}
 
 interface Particle {
   x: number;
@@ -284,12 +290,7 @@ class TransitionRunner {
   }
 }
 
-// Module-level guard so a stray double-call (e.g. HMR or accidental re-import)
-// doesn't stack listeners on top of an already initialized instance.
-let initialized = false;
-
 export function initPageTransitions(): void {
-  if (initialized) return;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reducedMotion) return;
 
@@ -304,7 +305,15 @@ export function initPageTransitions(): void {
   // We early-return rather than crash the entire transition layer.
   if (!runner) return;
 
-  initialized = true;
+  // Abort any previous listener registration (handles HMR re-evaluation and
+  // accidental double-calls cleanly without stacking duplicate listeners).
+  globalThis.__pageTransitionAbortController?.abort();
+  const controller = new AbortController();
+  globalThis.__pageTransitionAbortController = controller;
+  const { signal } = controller;
+
+  // Guard against a second click firing while a burstOut is already running.
+  let navigating = false;
 
   // ── Inbound: if a previous page set the session marker, run convergeIn ──
   try {
@@ -328,6 +337,9 @@ export function initPageTransitions(): void {
   document.addEventListener(
     'click',
     (e) => {
+      // Ignore clicks while a transition is already in flight.
+      if (navigating) return;
+
       // Modifier keys → let the browser handle normally (open in new tab, etc.)
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       if (e.button !== 0) return;
@@ -348,17 +360,23 @@ export function initPageTransitions(): void {
         /* ignore */
       }
 
+      navigating = true;
       runner.burstOut(theme).then(() => {
         window.location.href = href;
       });
     },
-    { capture: true },
+    { capture: true, signal },
   );
 
   // Clean up if the user uses bfcache
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) {
-      runner.cancel();
-    }
-  });
+  window.addEventListener(
+    'pageshow',
+    (e) => {
+      if (e.persisted) {
+        navigating = false;
+        runner.cancel();
+      }
+    },
+    { signal },
+  );
 }

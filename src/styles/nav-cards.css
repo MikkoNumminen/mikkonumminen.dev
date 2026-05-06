@@ -97,7 +97,7 @@
   border-color: rgba(120, 170, 255, 0.5);
 }
 .nav-card[data-accent='projects'] .nav-card__icon {
-  color: #80a8ff;
+  color: var(--color-projects-accent);
 }
 
 .nav-card[data-accent='experience'] {
@@ -160,5 +160,16 @@
 @media (max-width: 860px) {
   .nav-cards__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-card,
+  .nav-card:hover,
+  .nav-card:focus-visible,
+  .nav-card__arrow,
+  .nav-card:hover .nav-card__arrow,
+  .nav-card:focus-visible .nav-card__arrow {
+    transform: none !important;
   }
 }
