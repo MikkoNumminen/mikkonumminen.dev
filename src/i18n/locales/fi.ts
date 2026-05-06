@@ -60,7 +60,7 @@ export const fi: Translations = {
       },
       {
         title: 'Testattu tai ei lähde',
-        body: 'Jokaisella repolla on CI joka pushissa. HRM:ssä 1828+ testiä 91,9 % kattavuudella, Spacepotatiksessa ~1170, AudiobookMakerissa yli 1800. Laatuportit painavat enemmän kuin mahtipontisin teknologiapinou.',
+        body: 'Jokaisella repolla on CI joka pushissa. HRM:ssä 1828+ testiä 91,9 % kattavuudella, Spacepotatiksessa ~1170, AudiobookMakerissa yli 1800. Laatuportit painavat enemmän kuin mahtipontisin teknologiapino.',
       },
       {
         title: 'AI-natiivi, jäljitettävästi',
