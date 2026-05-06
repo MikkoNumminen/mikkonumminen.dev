@@ -24,7 +24,11 @@
  */
 
 import type { Theme } from '../theme';
-import { stripLocale } from '../../i18n';
+// Deep import (`/routing` rather than the `/i18n` barrel) — we only need
+// path manipulation, not the locale dictionaries. Importing from the
+// barrel would force en / fi / sv translation maps into every page's
+// runtime bundle since the page-transition module loads on all routes.
+import { stripLocale } from '../../i18n/routing';
 
 declare global {
   // eslint-disable-next-line no-var
