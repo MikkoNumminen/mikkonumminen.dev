@@ -77,6 +77,7 @@ export interface Translations {
     detailAria: string;
     closeAria: string;
     techLabel: string;
+    externalApisLabel: string;
     liveDemo: string;
     githubLink: string;
     gridAria: string;

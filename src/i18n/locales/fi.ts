@@ -136,6 +136,7 @@ export const fi: Translations = {
     detailAria: 'Projektin tiedot',
     closeAria: 'Sulje projektin tiedot',
     techLabel: 'Teknologiat',
+    externalApisLabel: 'Integraatiot',
     liveDemo: 'demo →',
     githubLink: 'github',
     gridAria: 'Projektit',

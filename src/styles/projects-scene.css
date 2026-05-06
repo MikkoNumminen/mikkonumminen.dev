@@ -169,6 +169,19 @@ body[data-theme='projects'] .site-footer {
   letter-spacing: 0.05em;
 }
 
+.hover-label__apis {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(128, 200, 255, 0.18);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: #80c8ff;
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
 @media (max-width: 860px) {
   .projects-scene__intro {
     left: 1.5rem;

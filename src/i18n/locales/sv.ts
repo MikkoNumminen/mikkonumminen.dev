@@ -137,6 +137,7 @@ export const sv: Translations = {
     detailAria: 'Projektdetaljer',
     closeAria: 'Stäng projektdetaljer',
     techLabel: 'Teknik',
+    externalApisLabel: 'Integrationer',
     liveDemo: 'demo →',
     githubLink: 'github',
     gridAria: 'Projekt',

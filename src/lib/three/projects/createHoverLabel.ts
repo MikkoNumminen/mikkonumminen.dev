@@ -13,6 +13,7 @@ export interface HoverLabelEntry {
   name: string;
   tagline: string;
   tech: readonly string[];
+  externalApis?: readonly string[];
 }
 
 export interface HoverLabelHandle {
@@ -25,10 +26,15 @@ export interface HoverLabelHandle {
 export function createHoverLabel(element: HTMLElement): HoverLabelHandle {
   return {
     show: (entry): void => {
+      const apisLine =
+        entry.externalApis && entry.externalApis.length > 0
+          ? `<span class="hover-label__apis"><span aria-hidden="true">↗</span> ${entry.externalApis.map(escapeHtml).join(' · ')}</span>`
+          : '';
       element.innerHTML = `
         <span class="hover-label__name">${escapeHtml(entry.name)}</span>
         <span class="hover-label__tag">${escapeHtml(entry.tagline)}</span>
         <span class="hover-label__tech">${entry.tech.slice(0, 4).map(escapeHtml).join(' · ')}</span>
+        ${apisLine}
       `;
       element.dataset.visible = 'true';
     },

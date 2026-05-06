@@ -136,6 +136,7 @@ export const en: Translations = {
     detailAria: 'Project details',
     closeAria: 'Close project details',
     techLabel: 'Tech',
+    externalApisLabel: 'Integrations',
     liveDemo: 'live demo →',
     githubLink: 'github',
     gridAria: 'Projects',

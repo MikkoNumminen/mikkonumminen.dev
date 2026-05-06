@@ -384,6 +384,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
             name: newHovered.project.name,
             tagline: newHovered.project.tagline,
             tech: newHovered.project.tech,
+            externalApis: newHovered.project.externalApis,
           });
           newHovered.group.getWorldPosition(planetWorldPos);
           hoverLabelHandle.position(planetWorldPos, camera, labelProjectionVec);
