@@ -218,4 +218,15 @@ export interface Translations {
     fi: string;
     sv: string;
   };
+  notFound: {
+    title: string;
+    description: string;
+    heading: string;
+    message: string;
+    navAria: string;
+    linkHome: string;
+    linkProjects: string;
+    linkExperience: string;
+    linkContact: string;
+  };
 }

@@ -21,8 +21,14 @@ export interface ConnectionEntry {
   coreLine: Line2;
   coreMaterial: LineMaterial;
   coreGeometry: LineGeometry;
-  /** Reusable position buffer. Allocated once, mutated each frame. */
-  positions: Float32Array;
+  /**
+   * Direct references to each geometry's interleaved position buffer
+   * (length 6 * ARC_SEGMENTS, layout `[startX,startY,startZ,endX,endY,endZ, …]`).
+   * The per-frame update mutates these in place — no allocation, no
+   * re-upload of a fresh BufferAttribute each tick.
+   */
+  haloPositions: Float32Array;
+  corePositions: Float32Array;
   baseHaloOpacity: number;
   baseCoreOpacity: number;
 }
@@ -46,11 +52,15 @@ export function buildConnections(
     const target = planets.find((p) => p.project.id === c.targetId);
     if (!source || !target) continue;
 
-    const positions = new Float32Array((ARC_SEGMENTS + 1) * 3);
+    // setPositions takes a list of vertex xyz triples. We pass a zero-filled
+    // initial buffer; the actual coordinates are written every frame in
+    // updateConnections via direct interleaved-buffer mutation. The buffer
+    // length determines segment count, so it must be sized correctly here.
+    const initial = new Float32Array((ARC_SEGMENTS + 1) * 3);
 
     // Soft underglow — wider, lower opacity, no dashes.
     const haloGeometry = new LineGeometry();
-    haloGeometry.setPositions(positions);
+    haloGeometry.setPositions(initial);
     const haloMaterial = new LineMaterial({
       color: new Color(c.color),
       linewidth: 7,
@@ -61,14 +71,14 @@ export function buildConnections(
     });
     haloMaterial.resolution.set(resolution.width, resolution.height);
     const haloLine = new Line2(haloGeometry, haloMaterial);
-    haloLine.computeLineDistances();
     haloLine.renderOrder = 4;
     group.add(haloLine);
+    // Halo line is solid (no dashes), so it never needs computeLineDistances.
 
     // Bright dashed core — narrower, animated dashOffset gives the
     // "data flowing source → target" effect.
     const coreGeometry = new LineGeometry();
-    coreGeometry.setPositions(positions);
+    coreGeometry.setPositions(initial);
     const coreMaterial = new LineMaterial({
       color: new Color(c.color),
       linewidth: 2.2,
@@ -87,6 +97,14 @@ export function buildConnections(
     coreLine.renderOrder = 5;
     group.add(coreLine);
 
+    // Grab references to the interleaved Float32Array backing each
+    // geometry. setPositions allocated a fresh buffer of length
+    // 6 * ARC_SEGMENTS; subsequent updates mutate this array directly.
+    const haloPositions = haloGeometry.attributes.instanceStart.data
+      .array as Float32Array;
+    const corePositions = coreGeometry.attributes.instanceStart.data
+      .array as Float32Array;
+
     entries.push({
       connection: c,
       source,
@@ -97,7 +115,8 @@ export function buildConnections(
       coreLine,
       coreMaterial,
       coreGeometry,
-      positions,
+      haloPositions,
+      corePositions,
       baseHaloOpacity: haloMaterial.opacity,
       baseCoreOpacity: coreMaterial.opacity,
     });
@@ -123,36 +142,51 @@ export function updateConnections(entries: ConnectionEntry[]): void {
     _mid.copy(_src).add(_tgt).multiplyScalar(0.5);
     _mid.y += ARC_LIFT;
 
-    const positions = e.positions;
+    // Mutate the interleaved buffer in place. Each segment occupies six
+    // floats: three for the start vertex, three for the end vertex. Vertex
+    // i is the "end" of segment (i-1) AND the "start" of segment i, so we
+    // write each computed point into both positions where applicable.
+    const halo = e.haloPositions;
+    const core = e.corePositions;
     for (let i = 0; i <= ARC_SEGMENTS; i++) {
       const t = i / ARC_SEGMENTS;
       const u = 1 - t;
       const u2 = u * u;
       const t2 = t * t;
       const ut2 = 2 * u * t;
-      _p.set(
-        u2 * _src.x + ut2 * _mid.x + t2 * _tgt.x,
-        u2 * _src.y + ut2 * _mid.y + t2 * _tgt.y,
-        u2 * _src.z + ut2 * _mid.z + t2 * _tgt.z,
-      );
-      const idx = i * 3;
-      positions[idx] = _p.x;
-      positions[idx + 1] = _p.y;
-      positions[idx + 2] = _p.z;
+      const x = u2 * _src.x + ut2 * _mid.x + t2 * _tgt.x;
+      const y = u2 * _src.y + ut2 * _mid.y + t2 * _tgt.y;
+      const z = u2 * _src.z + ut2 * _mid.z + t2 * _tgt.z;
+      if (i < ARC_SEGMENTS) {
+        // Start of segment i.
+        const idx = i * 6;
+        halo[idx] = core[idx] = x;
+        halo[idx + 1] = core[idx + 1] = y;
+        halo[idx + 2] = core[idx + 2] = z;
+      }
+      if (i > 0) {
+        // End of segment (i-1).
+        const idx = (i - 1) * 6 + 3;
+        halo[idx] = core[idx] = x;
+        halo[idx + 1] = core[idx + 1] = y;
+        halo[idx + 2] = core[idx + 2] = z;
+      }
     }
 
-    // TODO(perf): LineGeometry.setPositions() rebuilds the interleaved
-    // InterleavedBuffer from scratch each call (allocating a new Float32Array
-    // of length ARC_SEGMENTS*6 internally). The correct zero-allocation fix
-    // is to write directly into `.attributes.instanceStart.data.array` /
-    // `.instanceEnd.data.array` and set `needsUpdate = true` on the
-    // InterleavedBuffer — but the interleaved layout (stride-3 pairs) must
-    // match exactly what setPositions() set up, which is undocumented and
-    // version-sensitive. Keeping setPositions() for correctness; the outer
-    // `positions` Float32Array is already pre-allocated (no allocation there).
-    e.haloGeometry.setPositions(positions);
-    e.coreGeometry.setPositions(positions);
-    e.haloLine.computeLineDistances();
+    // Mark the InterleavedBuffer dirty so the GPU re-uploads. instanceStart
+    // and instanceEnd share the same backing buffer, so flipping one flag
+    // covers both attributes for this geometry.
+    e.haloGeometry.attributes.instanceStart.data.needsUpdate = true;
+    e.coreGeometry.attributes.instanceStart.data.needsUpdate = true;
+
+    // Bounding sphere drives frustum culling. setPositions() used to call
+    // this for us; we now own it. Cheap (Three.js mutates the existing
+    // Sphere instance in place after the first allocation).
+    e.haloGeometry.computeBoundingSphere();
+    e.coreGeometry.computeBoundingSphere();
+
+    // Only the core line is dashed, so only it needs distances each frame.
+    // Skipping it on the halo halves the per-frame allocation cost.
     e.coreLine.computeLineDistances();
   }
 }

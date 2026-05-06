@@ -172,7 +172,11 @@ const connectionLegendEntries = connections.map((c) => ({
   const bootProjectsScene = async () => {
     if (reducedMotion || isSmall || !sceneRoot) {
       // CSS @media rules already hide the scene and show the fallback grid
-      // for these clients before JS runs — no DOM toggling needed here.
+      // for these clients before JS runs. Set the explicit data flag too so
+      // the fallback path is observable from CSS / future code, not just an
+      // implicit consequence of the WebGL canvas being hidden.
+      sceneRoot?.setAttribute('data-fallback-active', 'true');
+      fallback?.setAttribute('data-active', 'true');
       return;
     }
 

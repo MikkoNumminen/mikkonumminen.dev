@@ -359,4 +359,15 @@ export const fi: Translations = {
     fi: 'FI',
     sv: 'SV',
   },
+  notFound: {
+    title: 'Sivua ei löytynyt · mikkonumminen.dev',
+    description: 'Etsimääsi sivua ei ole olemassa.',
+    heading: 'Sivua ei löytynyt',
+    message: 'Tätä reittiä ei ole tällä sivustolla.',
+    navAria: 'Palaa sivulle',
+    linkHome: 'Etusivu',
+    linkProjects: 'Projektit',
+    linkExperience: 'Kokemus',
+    linkContact: 'Yhteystiedot',
+  },
 };

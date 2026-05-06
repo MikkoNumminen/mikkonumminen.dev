@@ -22,9 +22,13 @@ export async function handleCommand(
   if (!name) return;
   const args = tokens.slice(1);
 
-  // rawArgs is the substring after the command name, preserving original
-  // whitespace. Used by `echo` so repeated spaces are not collapsed.
-  const rawArgs = input.replace(/^\s*\S+\s?/, '');
+  // rawArgs is the substring after the command name, preserving repeated
+  // whitespace BETWEEN arguments. Used by `echo` so `echo a   b` keeps the
+  // gap. The capture group spans from after the first whitespace separator
+  // to end-of-input; anything before (leading whitespace + command token +
+  // separator) is discarded.
+  const rawArgsMatch = /^\s*\S+(?:\s+([\s\S]*))?$/.exec(input);
+  const rawArgs = rawArgsMatch?.[1] ?? '';
 
   const cmd = commandMap.get(name);
   if (!cmd) {

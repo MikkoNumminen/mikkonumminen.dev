@@ -1,23 +1,125 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getTranslations, localizePath, type Locale } from '../i18n';
+
+// Vercel serves a single static `/404.html` for every 404 across all locale
+// subtrees, so we render English at build time and use the inline script
+// below to swap the visible text + <title> + <html lang> + <meta description>
+// based on the URL prefix the user actually hit.
+const en = getTranslations('en');
+const fi = getTranslations('fi');
+const sv = getTranslations('sv');
+
+const localeStrings = { en: en.notFound, fi: fi.notFound, sv: sv.notFound };
+
+// Pre-localized link hrefs per locale, so the inline script never has to
+// re-derive them.
+const linkPaths: Record<Locale, Record<string, string>> = {
+  en: {
+    home: localizePath('/', 'en'),
+    projects: localizePath('/projects', 'en'),
+    experience: localizePath('/experience', 'en'),
+    contact: localizePath('/contact', 'en'),
+  },
+  fi: {
+    home: localizePath('/', 'fi'),
+    projects: localizePath('/projects', 'fi'),
+    experience: localizePath('/experience', 'fi'),
+    contact: localizePath('/contact', 'fi'),
+  },
+  sv: {
+    home: localizePath('/', 'sv'),
+    projects: localizePath('/projects', 'sv'),
+    experience: localizePath('/experience', 'sv'),
+    contact: localizePath('/contact', 'sv'),
+  },
+};
 ---
 
-<BaseLayout
-  title="Page not found · mikkonumminen.dev"
-  description="The page you're looking for doesn't exist."
-  theme="home"
->
+<BaseLayout title={en.notFound.title} description={en.notFound.description} theme="home">
   <div class="not-found">
-    <h1 class="not-found__heading">Page not found</h1>
-    <p class="not-found__message">This route doesn't exist on this site.</p>
-    <nav class="not-found__links" aria-label="Return to a page">
-      <a href="/">Home</a>
-      <a href="/projects">Projects</a>
-      <a href="/experience">Experience</a>
-      <a href="/contact">Contact</a>
+    <h1 class="not-found__heading" data-not-found-heading>{en.notFound.heading}</h1>
+    <p class="not-found__message" data-not-found-message>{en.notFound.message}</p>
+    <nav
+      class="not-found__links"
+      aria-label={en.notFound.navAria}
+      data-not-found-nav
+    >
+      <a href={linkPaths.en.home} data-not-found-link="home">
+        {en.notFound.linkHome}
+      </a>
+      <a href={linkPaths.en.projects} data-not-found-link="projects">
+        {en.notFound.linkProjects}
+      </a>
+      <a href={linkPaths.en.experience} data-not-found-link="experience">
+        {en.notFound.linkExperience}
+      </a>
+      <a href={linkPaths.en.contact} data-not-found-link="contact">
+        {en.notFound.linkContact}
+      </a>
     </nav>
   </div>
 </BaseLayout>
+
+<script
+  is:inline
+  type="application/json"
+  id="not-found-locales"
+  set:html={JSON.stringify({ strings: localeStrings, links: linkPaths })}
+/>
+
+<script is:inline>
+  // Detect the locale from the request URL and swap the rendered text +
+  // metadata. Falls back to the build-time English content if anything
+  // looks wrong.
+  (function () {
+    var path = location.pathname;
+    var locale = 'en';
+    if (path === '/fi' || path.indexOf('/fi/') === 0) locale = 'fi';
+    else if (path === '/sv' || path.indexOf('/sv/') === 0) locale = 'sv';
+
+    var dataEl = document.getElementById('not-found-locales');
+    if (!dataEl) return;
+
+    var data;
+    try {
+      data = JSON.parse(dataEl.textContent || '{}');
+    } catch (e) {
+      return;
+    }
+
+    var s = data.strings && data.strings[locale];
+    var l = data.links && data.links[locale];
+    if (!s || !l) return;
+
+    document.documentElement.lang = locale;
+    document.title = s.title;
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', s.description);
+
+    var heading = document.querySelector('[data-not-found-heading]');
+    if (heading) heading.textContent = s.heading;
+    var message = document.querySelector('[data-not-found-message]');
+    if (message) message.textContent = s.message;
+    var nav = document.querySelector('[data-not-found-nav]');
+    if (nav) nav.setAttribute('aria-label', s.navAria);
+
+    var labelByKey = {
+      home: s.linkHome,
+      projects: s.linkProjects,
+      experience: s.linkExperience,
+      contact: s.linkContact,
+    };
+    var links = document.querySelectorAll('[data-not-found-link]');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      var key = a.getAttribute('data-not-found-link');
+      if (!key) continue;
+      a.setAttribute('href', l[key]);
+      a.textContent = labelByKey[key];
+    }
+  })();
+</script>
 
 <style>
   .not-found {

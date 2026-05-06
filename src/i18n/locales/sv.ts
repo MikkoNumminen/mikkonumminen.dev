@@ -356,4 +356,15 @@ export const sv: Translations = {
     fi: 'FI',
     sv: 'SV',
   },
+  notFound: {
+    title: 'Sidan hittades inte · mikkonumminen.dev',
+    description: 'Sidan du letar efter finns inte.',
+    heading: 'Sidan hittades inte',
+    message: 'Den här rutten finns inte på den här webbplatsen.',
+    navAria: 'Återgå till en sida',
+    linkHome: 'Hem',
+    linkProjects: 'Projekt',
+    linkExperience: 'Erfarenhet',
+    linkContact: 'Kontakt',
+  },
 };

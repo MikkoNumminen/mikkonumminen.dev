@@ -353,4 +353,15 @@ export const en: Translations = {
     fi: 'FI',
     sv: 'SV',
   },
+  notFound: {
+    title: 'Page not found · mikkonumminen.dev',
+    description: "The page you're looking for doesn't exist.",
+    heading: 'Page not found',
+    message: "This route doesn't exist on this site.",
+    navAria: 'Return to a page',
+    linkHome: 'Home',
+    linkProjects: 'Projects',
+    linkExperience: 'Experience',
+    linkContact: 'Contact',
+  },
 };
