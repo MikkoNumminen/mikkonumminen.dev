@@ -94,6 +94,8 @@ export const sv: Translations = {
     lede: 'Ett litet solsystem av saker jag har byggt. Hovra över en planet för hisspresentationen, klicka för att zooma in.',
     legendHover: 'för att inspektera',
     legendClick: 'en planet för att fokusera',
+    legendDrag: 'för att rotera vyn',
+    legendZoom: 'för att zooma in / ut',
     detailAria: 'Projektdetaljer',
     closeAria: 'Stäng projektdetaljer',
     techLabel: 'Teknik',

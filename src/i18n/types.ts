@@ -59,6 +59,8 @@ export interface Translations {
     lede: string;
     legendHover: string;
     legendClick: string;
+    legendDrag: string;
+    legendZoom: string;
     detailAria: string;
     closeAria: string;
     techLabel: string;
