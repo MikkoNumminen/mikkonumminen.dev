@@ -1,4 +1,5 @@
 import { Color, Group, Vector3 } from 'three';
+import type { InterleavedBufferAttribute } from 'three';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
@@ -100,10 +101,14 @@ export function buildConnections(
     // Grab references to the interleaved Float32Array backing each
     // geometry. setPositions allocated a fresh buffer of length
     // 6 * ARC_SEGMENTS; subsequent updates mutate this array directly.
-    const haloPositions = haloGeometry.attributes.instanceStart.data
-      .array as Float32Array;
-    const corePositions = coreGeometry.attributes.instanceStart.data
-      .array as Float32Array;
+    // The cast to InterleavedBufferAttribute is sound because LineGeometry
+    // always stores instanceStart as an interleaved attribute.
+    const haloAttr = haloGeometry.attributes
+      .instanceStart as InterleavedBufferAttribute;
+    const coreAttr = coreGeometry.attributes
+      .instanceStart as InterleavedBufferAttribute;
+    const haloPositions = haloAttr.data.array as Float32Array;
+    const corePositions = coreAttr.data.array as Float32Array;
 
     entries.push({
       connection: c,
@@ -130,7 +135,6 @@ export function buildConnections(
 const _src = new Vector3();
 const _tgt = new Vector3();
 const _mid = new Vector3();
-const _p = new Vector3();
 
 export function updateConnections(entries: ConnectionEntry[]): void {
   for (const e of entries) {
@@ -176,8 +180,12 @@ export function updateConnections(entries: ConnectionEntry[]): void {
     // Mark the InterleavedBuffer dirty so the GPU re-uploads. instanceStart
     // and instanceEnd share the same backing buffer, so flipping one flag
     // covers both attributes for this geometry.
-    e.haloGeometry.attributes.instanceStart.data.needsUpdate = true;
-    e.coreGeometry.attributes.instanceStart.data.needsUpdate = true;
+    (
+      e.haloGeometry.attributes.instanceStart as InterleavedBufferAttribute
+    ).data.needsUpdate = true;
+    (
+      e.coreGeometry.attributes.instanceStart as InterleavedBufferAttribute
+    ).data.needsUpdate = true;
 
     // Bounding sphere drives frustum culling. setPositions() used to call
     // this for us; we now own it. Cheap (Three.js mutates the existing
