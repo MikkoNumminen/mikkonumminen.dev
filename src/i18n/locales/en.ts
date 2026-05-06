@@ -142,6 +142,14 @@ export const en: Translations = {
     gridAria: 'Projects',
     gridLede:
       'Things I have built. The desktop view shows them as an interactive solar system — here is the readable list.',
+    keyHeading: 'Key',
+    keyConnectionsLabel: 'Connections',
+    keyExternalDesc: 'orbiting satellite — connects to an outside service',
+    connectionKindLabels: {
+      submodule: 'submodule',
+      voice: 'voice',
+      music: 'music',
+    },
   },
   projectsData: {
     hrm: {

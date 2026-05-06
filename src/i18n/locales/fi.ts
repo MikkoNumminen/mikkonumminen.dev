@@ -142,6 +142,14 @@ export const fi: Translations = {
     gridAria: 'Projektit',
     gridLede:
       'Projektini. Työpöytänäkymässä ne näkyvät interaktiivisena aurinkokuntana — tässä luettavana listana.',
+    keyHeading: 'Selitykset',
+    keyConnectionsLabel: 'Yhteydet',
+    keyExternalDesc: 'kiertävä satelliitti — yhteys ulkomaailmaan',
+    connectionKindLabels: {
+      submodule: 'alimoduuli',
+      voice: 'ääni',
+      music: 'musiikki',
+    },
   },
   projectsData: {
     hrm: {

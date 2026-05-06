@@ -143,6 +143,14 @@ export const sv: Translations = {
     gridAria: 'Projekt',
     gridLede:
       'Saker jag har byggt. Skrivbordsvyn visar dem som ett interaktivt solsystem — här är den läsbara listan.',
+    keyHeading: 'Förklaring',
+    keyConnectionsLabel: 'Kopplingar',
+    keyExternalDesc: 'satellit i bana — kopplar till en extern tjänst',
+    connectionKindLabels: {
+      submodule: 'undermodul',
+      voice: 'röst',
+      music: 'musik',
+    },
   },
   projectsData: {
     hrm: {
