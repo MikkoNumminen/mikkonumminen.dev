@@ -212,9 +212,12 @@ export function initExperienceTimeline(
   options: ExperienceTimelineOptions = {},
 ): ExperienceTimelineHandle {
   const sceneRoot = document.querySelector<HTMLElement>('[data-mountain-scene]');
+  // Goat is optional — the page can be rendered without it. When it's
+  // absent, the goat-driving lines below are skipped but the rest of the
+  // parallax + timeline reveal logic continues to run.
   const goat = document.querySelector<HTMLElement>('[data-goat]');
   const trigger = document.querySelector<HTMLElement>('[data-experience-track]');
-  if (!sceneRoot || !goat || !trigger) {
+  if (!sceneRoot || !trigger) {
     return { dispose: (): void => {} };
   }
 
@@ -250,12 +253,15 @@ export function initExperienceTimeline(
         applyPhase(progress, sceneRoot);
 
         // Goat climbs from bottom up. Bottom = 18vh, summit = 70vh.
-        const bottomVH = 18 + progress * 52;
-        goat.style.setProperty('--goat-bottom', `${bottomVH}vh`);
+        // Skipped when the goat element is absent on the page.
+        if (goat) {
+          const bottomVH = 18 + progress * 52;
+          goat.style.setProperty('--goat-bottom', `${bottomVH}vh`);
 
-        // Slight horizontal sway as the goat climbs
-        const sway = Math.sin(progress * SWAY_FREQ) * SWAY_AMPLITUDE_PX;
-        goat.style.setProperty('--goat-x', `${sway}px`);
+          // Slight horizontal sway as the goat climbs
+          const sway = Math.sin(progress * SWAY_FREQ) * SWAY_AMPLITUDE_PX;
+          goat.style.setProperty('--goat-x', `${sway}px`);
+        }
 
         // Layer parallax — each layer drifts down faster than the last so the
         // foreground feels closer.
@@ -301,7 +307,9 @@ export function initExperienceTimeline(
 
       // Strip the inline custom properties we wrote in onUpdate. GSAP doesn't
       // track raw `style.setProperty` calls, so we have to clean up by hand.
-      GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
+      if (goat) {
+        GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
+      }
       touchedLayers.forEach((layer) => {
         const layerName = layer.dataset.layer;
         if (layerName) layer.style.removeProperty(`--${layerName}-y`);
