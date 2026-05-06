@@ -109,6 +109,7 @@ export const projects: Project[] = [
       'Docker',
     ],
     status: 'live',
+    externalApis: ['Google OAuth', 'GitHub OAuth', 'Sentry', 'OpenTelemetry'],
   },
   {
     id: 'platform',
@@ -133,7 +134,7 @@ export const projects: Project[] = [
       'Playwright',
     ],
     status: 'live',
-    externalApis: ['Raider.IO API'],
+    externalApis: ['Raider.IO API', 'Google OAuth', 'GitHub OAuth', 'GitHub API'],
   },
   {
     id: 'portfolio',
@@ -162,7 +163,7 @@ export const projects: Project[] = [
     githubUrl: 'https://github.com/MikkoNumminen/ReadLog',
     tech: ['Next.js', 'React', 'TypeScript', 'Prisma', 'PostgreSQL', 'NextAuth', 'MUI'],
     status: 'live',
-    externalApis: ['Open Library', 'Google Books'],
+    externalApis: ['Open Library', 'Google Books', 'Google OAuth'],
   },
   {
     id: 'audiobookmaker',
