@@ -24,6 +24,7 @@
  */
 
 import type { Theme } from '../theme';
+import { stripLocale } from '../../i18n';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -73,7 +74,10 @@ function easeInCubic(t: number): number {
 }
 
 function pickTheme(href: string): Theme {
-  const path = new URL(href, window.location.origin).pathname;
+  // Strip the locale prefix so a click from `/fi/` to `/fi/projects` resolves
+  // to the projects theme (not the default home), giving fi / sv users the
+  // correct destination glyph.
+  const path = stripLocale(new URL(href, window.location.origin).pathname);
   if (path.startsWith('/projects')) return 'projects';
   if (path.startsWith('/experience')) return 'experience';
   if (path.startsWith('/contact')) return 'contact';
@@ -241,8 +245,9 @@ function drawGlyphContact(
   ctx.lineTo(cxPos + cs * 0.5, 0);
   ctx.lineTo(cxPos - cs * 0.7, cs * 0.75);
   ctx.stroke();
-  // Blinking underscore (alpha pulses 4× across the phase).
-  const blink = 0.55 + Math.sin(t * Math.PI * 4) * 0.45;
+  // Blinking underscore — one full cycle (~4 Hz) across the 250 ms phase
+  // so it reads as a deliberate cursor blink, not a shimmer.
+  const blink = 0.55 + Math.sin(t * Math.PI * 2) * 0.45;
   ctx.globalAlpha = blink;
   ctx.fillStyle = accent;
   ctx.fillRect(size * 0.06, -size * 0.025, size * 0.2 * draw, size * 0.06);
@@ -465,6 +470,9 @@ class TransitionRunner {
   }
 
   // ─── Phase B — Glyph flash ───────────────────────────────────
+  // Streak pool retains phase A coordinates but is intentionally not drawn
+  // here — phase A's last frame leaves an opaque BACKDROP fill, and phase B
+  // only renders the bloom + glyph on top of that solid backdrop.
   phaseB(dstTheme: Theme): Promise<void> {
     return new Promise((resolve) => {
       const accent = readAccent(dstTheme);
@@ -502,7 +510,9 @@ class TransitionRunner {
         const scale = 0.78 + bloomT * 0.28;
         this.ctx.scale(scale, scale);
         this.ctx.shadowColor = accent;
-        this.ctx.shadowBlur = 24;
+        // shadowBlur is software-rasterised on Canvas 2D in most browsers
+        // — keep it modest so low-end devices don't stutter during phase B.
+        this.ctx.shadowBlur = 16;
         glyph(this.ctx, size, t, accent);
         this.ctx.restore();
 
