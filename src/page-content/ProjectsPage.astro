@@ -3,10 +3,25 @@ import '../styles/projects-scene.css';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectDetail from '../components/projects/ProjectDetail.astro';
 import ProjectGrid from '../components/projects/ProjectGrid.astro';
+import { connections, projects } from '../data/projects';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
+
+// Build a project-name lookup so the legend can show "HRM → Platform"
+// using the brand names rather than the structural ids.
+const projectNameById = Object.fromEntries(projects.map((p) => [p.id, p.name]));
+
+const connectionLegendEntries = connections.map((c) => ({
+  color: c.color,
+  source: projectNameById[c.sourceId] ?? c.sourceId,
+  target: projectNameById[c.targetId] ?? c.targetId,
+  // Submodule is a structural sharing relation (HRM lives inside Platform);
+  // voice / music are unidirectional flows. Render arrows accordingly.
+  arrow: c.kind === 'submodule' ? '↔' : '→',
+  kindLabel: t.projectsPage.connectionKindLabels[c.kind],
+}));
 ---
 
 <BaseLayout
@@ -39,6 +54,79 @@ const t = getTranslations(locale);
 
     <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
     </div>
+
+    <aside
+      class="projects-scene__key"
+      data-key
+      aria-label={t.projectsPage.keyHeading}
+    >
+      <p class="projects-scene__key-heading">{t.projectsPage.keyHeading}</p>
+
+      <p class="projects-scene__key-section">{t.projectsPage.keyConnectionsLabel}</p>
+      <ul class="projects-scene__key-list">
+        {
+          connectionLegendEntries.map((entry) => (
+            <li class="projects-scene__key-row">
+              <span
+                class="projects-scene__key-line"
+                style={`--line-color:${entry.color}`}
+                aria-hidden="true"
+              />
+              <span class="projects-scene__key-text">
+                {entry.source} {entry.arrow} {entry.target}
+                <span class="projects-scene__key-kind">— {entry.kindLabel}</span>
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="projects-scene__key-section">{t.projectsPage.externalApisLabel}</p>
+      <ul class="projects-scene__key-list">
+        <li class="projects-scene__key-row">
+          <svg
+            class="projects-scene__key-satellite"
+            viewBox="-16 -16 32 32"
+            width="28"
+            height="28"
+            aria-hidden="true"
+          >
+            <circle cx="0" cy="0" r="5" fill="rgba(196, 212, 255, 0.45)" />
+            <circle cx="9" cy="-3" r="1.6" fill="#80c8ff" />
+            <circle
+              cx="9"
+              cy="-3"
+              r="3.2"
+              stroke="#80c8ff"
+              stroke-width="0.5"
+              fill="none"
+              opacity="0.7"
+            />
+            <circle
+              cx="9"
+              cy="-3"
+              r="5"
+              stroke="#80c8ff"
+              stroke-width="0.4"
+              fill="none"
+              opacity="0.4"
+            />
+            <circle
+              cx="9"
+              cy="-3"
+              r="6.6"
+              stroke="#80c8ff"
+              stroke-width="0.3"
+              fill="none"
+              opacity="0.2"
+            />
+          </svg>
+          <span class="projects-scene__key-text">
+            {t.projectsPage.keyExternalDesc}
+          </span>
+        </li>
+      </ul>
+    </aside>
 
     <div class="projects-scene__credits" data-credits aria-hidden="true">
       <span>{t.navCards.footerCopyright}</span>
@@ -97,6 +185,7 @@ const t = getTranslations(locale);
     const intro = document.querySelector<HTMLElement>('[data-intro]');
     const legend = document.querySelector<HTMLElement>('[data-legend]');
     const credits = document.querySelector<HTMLElement>('[data-credits]');
+    const key = document.querySelector<HTMLElement>('[data-key]');
 
     if (!canvas || !hoverLabel || !detail || !closeBtn) return;
 
@@ -233,6 +322,7 @@ const t = getTranslations(locale);
       intro?.classList.add('is-hidden');
       legend?.classList.add('is-hidden');
       credits?.classList.add('is-hidden');
+      key?.classList.add('is-hidden');
       detail.addEventListener('keydown', trapTab);
       // Move focus to the close button once the drawer is open so keyboard
       // users can immediately tab through its contents.
@@ -245,6 +335,7 @@ const t = getTranslations(locale);
       intro?.classList.remove('is-hidden');
       legend?.classList.remove('is-hidden');
       credits?.classList.remove('is-hidden');
+      key?.classList.remove('is-hidden');
       detail.removeEventListener('keydown', trapTab);
       sceneHandle?.selectById(null);
       // Restore focus to the element that opened the drawer, or fall back

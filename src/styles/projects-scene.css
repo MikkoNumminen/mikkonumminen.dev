@@ -115,6 +115,98 @@ body[data-theme='projects'] .site-footer {
   transition: opacity 0.45s ease;
 }
 
+.projects-scene__key {
+  position: absolute;
+  top: 7.5rem;
+  right: 3rem;
+  z-index: 10;
+  width: 22rem;
+  max-width: calc(100vw - 6rem);
+  padding: 1.1rem 1.25rem;
+  border: 1px solid rgba(120, 170, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(8, 14, 32, 0.55);
+  backdrop-filter: blur(8px);
+  color: rgba(230, 236, 255, 0.85);
+  pointer-events: none;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.projects-scene__key.is-hidden {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.projects-scene__key-heading {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(196, 212, 255, 0.6);
+  margin: 0 0 0.85rem;
+}
+
+.projects-scene__key-section {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(196, 212, 255, 0.4);
+  margin: 0.85rem 0 0.55rem;
+}
+
+.projects-scene__key-section:first-of-type {
+  margin-top: 0;
+}
+
+.projects-scene__key-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.projects-scene__key-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.projects-scene__key-line {
+  flex: 0 0 32px;
+  height: 2px;
+  background-image: linear-gradient(
+    to right,
+    var(--line-color) 0,
+    var(--line-color) 6px,
+    transparent 6px,
+    transparent 10px
+  );
+  background-size: 10px 100%;
+  background-repeat: repeat-x;
+  border-radius: 1px;
+  box-shadow: 0 0 6px var(--line-color);
+}
+
+.projects-scene__key-satellite {
+  flex: 0 0 28px;
+}
+
+.projects-scene__key-text {
+  color: rgba(230, 236, 255, 0.82);
+}
+
+.projects-scene__key-kind {
+  color: rgba(196, 212, 255, 0.55);
+  margin-left: 0.25rem;
+}
+
 .projects-scene__credits.is-hidden {
   opacity: 0;
 }
@@ -182,6 +274,17 @@ body[data-theme='projects'] .site-footer {
   align-items: baseline;
 }
 
+@media (max-width: 1100px) {
+  .projects-scene__key {
+    width: 17rem;
+    padding: 0.9rem 1rem;
+    font-size: 0.72rem;
+  }
+  .projects-scene__key-row {
+    font-size: 0.72rem;
+  }
+}
+
 @media (max-width: 860px) {
   .projects-scene__intro {
     left: 1.5rem;
@@ -198,6 +301,9 @@ body[data-theme='projects'] .site-footer {
     right: 1rem;
     font-size: 0.6rem;
     letter-spacing: 0.15em;
+  }
+  .projects-scene__key {
+    display: none;
   }
   /* Fallback grid is the visible surface here — restore normal document
      flow and the global site footer that lives below it. */

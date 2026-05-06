@@ -82,6 +82,14 @@ export interface Translations {
     githubLink: string;
     gridAria: string;
     gridLede: string;
+    keyHeading: string;
+    keyConnectionsLabel: string;
+    keyExternalDesc: string;
+    connectionKindLabels: {
+      submodule: string;
+      voice: string;
+      music: string;
+    };
   };
   projectsData: Record<
     string,
