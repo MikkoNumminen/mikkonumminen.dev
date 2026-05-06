@@ -142,8 +142,7 @@ export function updateExternalIndicator(
   // Pulse rings expand from the satellite. Each pulse cycles through
   // [0, 1), peaks in opacity midway, and rides a sin-shaped envelope.
   for (const p of indicator.pulses) {
-    const t =
-      (elapsed / PULSE_DURATION + p.phase + indicator.basePhase) % 1;
+    const t = (elapsed / PULSE_DURATION + p.phase + indicator.basePhase) % 1;
     const scale = 0.18 + t * indicator.pulseMaxScale;
     p.sprite.scale.set(scale, scale, 1);
     p.sprite.position.copy(indicator.satellite.position);
