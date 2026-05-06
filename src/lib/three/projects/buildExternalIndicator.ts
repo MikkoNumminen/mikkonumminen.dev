@@ -9,21 +9,23 @@ import {
   SpriteMaterial,
 } from 'three';
 import type { PlanetEntry } from './buildPlanet';
-
-const PLANET_BASE_RADIUS = 0.55;
+import { PLANET_BASE_RADIUS } from './constants';
 
 const NUM_PULSES = 3;
 const PULSE_DURATION = 2.6;
 const SATELLITE_SPEED = 1.45;
 
 /** Single shared pulse texture across all indicators. */
-let _sharedPulseTexture: CanvasTexture | null = null;
+let sharedPulseTexture: CanvasTexture | null = null;
+let sharedPulseTextureRefCount = 0;
+
 function getPulseTexture(): CanvasTexture {
-  if (_sharedPulseTexture) return _sharedPulseTexture;
+  if (sharedPulseTexture) return sharedPulseTexture;
   const size = 128;
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  const ctx = c.getContext('2d')!;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('Failed to acquire 2D context for pulse texture');
   const grad = ctx.createRadialGradient(
     size / 2,
     size / 2,
@@ -39,7 +41,7 @@ function getPulseTexture(): CanvasTexture {
   ctx.fillRect(0, 0, size, size);
   const tex = new CanvasTexture(c);
   tex.needsUpdate = true;
-  _sharedPulseTexture = tex;
+  sharedPulseTexture = tex;
   return tex;
 }
 
@@ -84,6 +86,7 @@ export function buildExternalIndicator(planet: PlanetEntry): ExternalIndicator {
   planet.group.add(satellite);
 
   const pulseTexture = getPulseTexture();
+  sharedPulseTextureRefCount += 1;
   const pulses: PulseEntry[] = [];
   for (let i = 0; i < NUM_PULSES; i++) {
     const material = new SpriteMaterial({
@@ -106,7 +109,7 @@ export function buildExternalIndicator(planet: PlanetEntry): ExternalIndicator {
   for (let i = 0; i < planet.project.id.length; i++) {
     h = (h * 31 + planet.project.id.charCodeAt(i)) & 0xffffffff;
   }
-  const basePhase = ((h % 1000) / 1000 + 1) % 1;
+  const basePhase = (((h % 1000) + 1000) % 1000) / 1000;
 
   return {
     satellite,
@@ -139,8 +142,7 @@ export function updateExternalIndicator(
   // Pulse rings expand from the satellite. Each pulse cycles through
   // [0, 1), peaks in opacity midway, and rides a sin-shaped envelope.
   for (const p of indicator.pulses) {
-    const t =
-      (elapsed / PULSE_DURATION + p.phase + indicator.basePhase) % 1;
+    const t = (elapsed / PULSE_DURATION + p.phase + indicator.basePhase) % 1;
     const scale = 0.18 + t * indicator.pulseMaxScale;
     p.sprite.scale.set(scale, scale, 1);
     p.sprite.position.copy(indicator.satellite.position);
@@ -155,10 +157,12 @@ export function disposeExternalIndicators(indicators: ExternalIndicator[]): void
     for (const p of ind.pulses) {
       p.material.dispose();
     }
+    sharedPulseTextureRefCount -= 1;
   }
-  // The pulse texture is shared module-wide; dispose only on full teardown.
-  if (_sharedPulseTexture) {
-    _sharedPulseTexture.dispose();
-    _sharedPulseTexture = null;
+  // The pulse texture is shared; only dispose when the last indicator releases it.
+  if (sharedPulseTextureRefCount <= 0 && sharedPulseTexture) {
+    sharedPulseTexture.dispose();
+    sharedPulseTexture = null;
+    sharedPulseTextureRefCount = 0;
   }
 }

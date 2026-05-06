@@ -26,7 +26,8 @@ export function buildParticleField(count: number): ParticleField {
     positions[i3] = (Math.random() - 0.5) * 80;
     positions[i3 + 1] = (Math.random() - 0.5) * 50;
     positions[i3 + 2] = (Math.random() - 0.5) * 60 - 5;
-    speeds[i] = 0.0008 + Math.random() * 0.0025;
+    // Speeds are in world-units per second; homeScene multiplies by delta.
+    speeds[i] = 0.048 + Math.random() * 0.15;
   }
 
   const texture = makeCircleTexture();

@@ -5,7 +5,7 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://mikkonumminen-dev.vercel.app',
+  site: 'https://mikkonumminen.dev',
   output: 'static',
   i18n: {
     defaultLocale: 'en',

@@ -3,12 +3,15 @@ import type { TerminalElements } from './dom';
 import { appendLine } from './dom';
 import type { getTranslations } from '../../i18n';
 
-export const reducedMotion =
-  typeof window !== 'undefined' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 export const sleep = (ms: number): Promise<void> =>
-  reducedMotion ? Promise.resolve() : new Promise((r) => setTimeout(r, ms));
+  prefersReducedMotion() ? Promise.resolve() : new Promise((r) => setTimeout(r, ms));
 
 const PUNCTUATION_PAUSE = new Set(['.', '!', '?', ',']);
 
@@ -23,7 +26,7 @@ export async function typeLine(
   output.appendChild(line);
   output.appendChild(document.createTextNode('\n'));
 
-  if (reducedMotion) {
+  if (prefersReducedMotion()) {
     line.textContent = text;
     output.scrollTop = output.scrollHeight;
     return;

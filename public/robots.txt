@@ -5,4 +5,4 @@ User-agent: *
 Allow: /
 Disallow:
 
-Sitemap: https://mikkonumminen-dev.vercel.app/sitemap-index.xml
+Sitemap: https://mikkonumminen.dev/sitemap-index.xml

@@ -1,13 +1,5 @@
 import { Camera, Vector3 } from 'three';
-
-function escapeHtml(s: string): string {
-  return s.replace(
-    /[&<>"']/g,
-    // The character class above guarantees `c` is one of these five keys,
-    // so the lookup is always defined.
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
-  );
-}
+import { escapeHtml } from '../../utils/escapeHtml';
 
 export interface HoverLabelEntry {
   name: string;

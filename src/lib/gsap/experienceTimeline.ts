@@ -153,8 +153,8 @@ function lerpColor(a: string, b: string, t: number): string {
   const [rb, gb, bb] = parseHex(b);
   const r = Math.round(ra + (rb - ra) * t);
   const g = Math.round(ga + (gb - ga) * t);
-  const bl = Math.round(ba + (bb - ba) * t);
-  return `rgb(${r}, ${g}, ${bl})`;
+  const bChannel = Math.round(ba + (bb - ba) * t);
+  return `rgb(${r}, ${g}, ${bChannel})`;
 }
 
 function lerpRgba(a: string, b: string, t: number): string {
@@ -164,9 +164,9 @@ function lerpRgba(a: string, b: string, t: number): string {
   const [r1 = 0, g1 = 0, b1 = 0, a1 = 1] = rb;
   const r = Math.round(r0 + (r1 - r0) * t);
   const g = Math.round(g0 + (g1 - g0) * t);
-  const bl = Math.round(b0 + (b1 - b0) * t);
+  const bChannel = Math.round(b0 + (b1 - b0) * t);
   const al = a0 + (a1 - a0) * t;
-  return `rgba(${r}, ${g}, ${bl}, ${al.toFixed(3)})`;
+  return `rgba(${r}, ${g}, ${bChannel}, ${al.toFixed(3)})`;
 }
 
 function lerpString(a: string, b: string, t: number): string {
@@ -270,6 +270,13 @@ export function initExperienceTimeline(
   // strip every leftover --{layer}-y. (Goat props are a fixed list above.)
   const touchedLayers = new Set<HTMLElement>();
 
+  // Cache parallax layer elements once — re-querying inside onUpdate runs a
+  // DOM traversal on every scroll frame, which is unnecessary since the set
+  // of layers is static for the lifetime of this ScrollTrigger.
+  const layers = Array.from(
+    sceneRoot.querySelectorAll<HTMLElement>('[data-parallax-speed]'),
+  );
+
   const scope = createScope(() => {
     // ── Master scroll progress: drives color phase, sun, parallax, goat ──
     ScrollTrigger.create({
@@ -282,7 +289,6 @@ export function initExperienceTimeline(
 
         // Layer parallax — each layer drifts down faster than the last so the
         // foreground feels closer.
-        const layers = sceneRoot.querySelectorAll<HTMLElement>('[data-parallax-speed]');
         layers.forEach((layer) => {
           const speed = parseFloat(layer.dataset.parallaxSpeed ?? '0');
           const offset = progress * speed * 200;

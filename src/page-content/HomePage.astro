@@ -16,7 +16,7 @@ const personSchema = {
   '@type': 'Person',
   name: 'Mikko Numminen',
   jobTitle: t.intro.heading.replace(/\.$/, ''),
-  url: 'https://mikkonumminen-dev.vercel.app',
+  url: 'https://mikkonumminen.dev',
   email: 'numminen.mikko.petteri@gmail.com',
   nationality: 'Finnish',
   sameAs: [
@@ -80,7 +80,7 @@ const personSchema = {
     dispose: () => void;
   } | null = null;
 
-  const start = async () => {
+  const bootHomeScene = async () => {
     const canvas = document.getElementById('home-canvas') as HTMLCanvasElement | null;
 
     // Lazy-load the Three.js scene only on capable devices.
@@ -113,9 +113,9 @@ const personSchema = {
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
+    document.addEventListener('DOMContentLoaded', bootHomeScene, { once: true });
   } else {
-    start();
+    bootHomeScene();
   }
 
   window.addEventListener('beforeunload', () => {

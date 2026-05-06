@@ -32,7 +32,8 @@ function makeRadialTexture(stops: Array<[number, string]>, size = 256): CanvasTe
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Failed to acquire 2D context for sun halo');
   const gradient = ctx.createRadialGradient(
     size / 2,
     size / 2,

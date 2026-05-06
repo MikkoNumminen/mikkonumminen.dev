@@ -1,0 +1,225 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getTranslations, localizePath, type Locale } from '../i18n';
+
+// Vercel serves a single static `/404.html` for every 404 across all locale
+// subtrees, so we render English at build time and use the inline script
+// below to swap the visible text + <title> + <html lang> + <meta description>
+// based on the URL prefix the user actually hit.
+const en = getTranslations('en');
+const fi = getTranslations('fi');
+const sv = getTranslations('sv');
+
+const localeStrings = { en: en.notFound, fi: fi.notFound, sv: sv.notFound };
+
+// Pre-localized link hrefs per locale, so the inline script never has to
+// re-derive them.
+const linkPaths: Record<Locale, Record<string, string>> = {
+  en: {
+    home: localizePath('/', 'en'),
+    projects: localizePath('/projects', 'en'),
+    experience: localizePath('/experience', 'en'),
+    contact: localizePath('/contact', 'en'),
+  },
+  fi: {
+    home: localizePath('/', 'fi'),
+    projects: localizePath('/projects', 'fi'),
+    experience: localizePath('/experience', 'fi'),
+    contact: localizePath('/contact', 'fi'),
+  },
+  sv: {
+    home: localizePath('/', 'sv'),
+    projects: localizePath('/projects', 'sv'),
+    experience: localizePath('/experience', 'sv'),
+    contact: localizePath('/contact', 'sv'),
+  },
+};
+---
+
+<BaseLayout title={en.notFound.title} description={en.notFound.description} theme="home">
+  <div class="not-found">
+    <h1 class="not-found__heading" data-not-found-heading>{en.notFound.heading}</h1>
+    <p class="not-found__message" data-not-found-message>{en.notFound.message}</p>
+    <nav
+      class="not-found__links"
+      aria-label={en.notFound.navAria}
+      data-not-found-nav
+    >
+      <a href={linkPaths.en.home} data-not-found-link="home">
+        {en.notFound.linkHome}
+      </a>
+      <a href={linkPaths.en.projects} data-not-found-link="projects">
+        {en.notFound.linkProjects}
+      </a>
+      <a href={linkPaths.en.experience} data-not-found-link="experience">
+        {en.notFound.linkExperience}
+      </a>
+      <a href={linkPaths.en.contact} data-not-found-link="contact">
+        {en.notFound.linkContact}
+      </a>
+    </nav>
+  </div>
+</BaseLayout>
+
+<script
+  is:inline
+  type="application/json"
+  id="not-found-locales"
+  set:html={JSON.stringify({ strings: localeStrings, links: linkPaths })}
+/>
+
+<noscript>
+  <style>.not-found { visibility: visible !important; }</style>
+</noscript>
+
+<script>
+  interface NotFoundStrings {
+    title: string;
+    description: string;
+    heading: string;
+    message: string;
+    navAria: string;
+    linkHome: string;
+    linkProjects: string;
+    linkExperience: string;
+    linkContact: string;
+  }
+  type Locale = 'en' | 'fi' | 'sv';
+  interface NotFoundData {
+    strings: Record<Locale, NotFoundStrings>;
+    links: Record<Locale, Record<string, string>>;
+  }
+
+  // Detect the locale from the request URL and swap the rendered text +
+  // metadata. Falls back to the build-time English content if anything
+  // looks wrong.
+  const path = location.pathname;
+  let locale: Locale = 'en';
+  if (path === '/fi' || path.startsWith('/fi/')) locale = 'fi';
+  else if (path === '/sv' || path.startsWith('/sv/')) locale = 'sv';
+
+  const dataEl = document.getElementById('not-found-locales');
+  const notFound = document.querySelector<HTMLElement>('.not-found');
+
+  if (dataEl) {
+    let data: NotFoundData | null = null;
+    try {
+      data = JSON.parse(dataEl.textContent ?? '{}') as NotFoundData;
+    } catch {
+      // malformed JSON — fall through to unhide with English content
+    }
+
+    const s = data?.strings[locale];
+    const l = data?.links[locale];
+
+    if (s && l) {
+      document.documentElement.lang = locale;
+      document.title = s.title;
+
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+      meta?.setAttribute('content', s.description);
+
+      const heading = document.querySelector('[data-not-found-heading]');
+      if (heading) heading.textContent = s.heading;
+
+      const message = document.querySelector('[data-not-found-message]');
+      if (message) message.textContent = s.message;
+
+      const nav = document.querySelector('[data-not-found-nav]');
+      nav?.setAttribute('aria-label', s.navAria);
+
+      const labelByKey: Record<string, string> = {
+        home: s.linkHome,
+        projects: s.linkProjects,
+        experience: s.linkExperience,
+        contact: s.linkContact,
+      };
+
+      for (const a of document.querySelectorAll<HTMLAnchorElement>('[data-not-found-link]')) {
+        const key = a.getAttribute('data-not-found-link');
+        if (!key) continue;
+        const href = l[key];
+        const label = labelByKey[key];
+        if (href === undefined || label === undefined) continue;
+        a.setAttribute('href', href);
+        a.textContent = label;
+      }
+    }
+  }
+
+  // Always unhide, even if the locale swap failed — better to show English
+  // than to leave the page blank. (CSS also has a fallback animation that
+  // unhides at 250ms in case this script fails to load or run.)
+  if (notFound) notFound.style.visibility = 'visible';
+</script>
+
+<style>
+  .not-found {
+    /* Hidden until the bundled locale-swap script unhides it (or until the
+       fallback animation below fires at 250ms — defensive guard for the
+       case where the script fails to load entirely, e.g. a CSP misconfig
+       or a network blip on the chunk). The script's explicit
+       `style.visibility = 'visible'` write also wins over the animation
+       since inline styles are higher specificity. */
+    visibility: hidden;
+    animation: not-found-show 0s 250ms forwards;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    text-align: center;
+    padding: 2rem;
+    gap: 1.5rem;
+  }
+
+  @keyframes not-found-show {
+    to {
+      visibility: visible;
+    }
+  }
+
+  /* Reduced-motion users have animation-duration globally forced to 0s,
+     but animation-delay is untouched. Drop the delay too so they don't
+     wait 250ms under the (already rare) script-failure path. */
+  @media (prefers-reduced-motion: reduce) {
+    .not-found {
+      animation-delay: 0s;
+    }
+  }
+
+  .not-found__heading {
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+  }
+
+  .not-found__message {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+  }
+
+  .not-found__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  .not-found__links a {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.2s ease;
+  }
+
+  .not-found__links a:hover {
+    color: #fff;
+  }
+</style>

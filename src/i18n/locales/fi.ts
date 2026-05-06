@@ -137,6 +137,7 @@ export const fi: Translations = {
     closeAria: 'Sulje projektin tiedot',
     techLabel: 'Teknologiat',
     externalApisLabel: 'Integraatiot',
+    // "live demo" doesn't translate idiomatically; the Finnish/Swedish UI uses just "demo".
     liveDemo: 'demo →',
     githubLink: 'github',
     gridAria: 'Projektit',
@@ -357,5 +358,16 @@ export const fi: Translations = {
     en: 'EN',
     fi: 'FI',
     sv: 'SV',
+  },
+  notFound: {
+    title: 'Sivua ei löytynyt · mikkonumminen.dev',
+    description: 'Etsimääsi sivua ei ole olemassa.',
+    heading: 'Sivua ei löytynyt',
+    message: 'Tätä reittiä ei ole tällä sivustolla.',
+    navAria: 'Palaa sivulle',
+    linkHome: 'Etusivu',
+    linkProjects: 'Projektit',
+    linkExperience: 'Kokemus',
+    linkContact: 'Yhteystiedot',
   },
 };

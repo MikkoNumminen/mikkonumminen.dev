@@ -17,6 +17,11 @@ function isKnownLocale(value: string): value is Locale {
   return (KNOWN_LOCALES as ReadonlySet<string>).has(value);
 }
 
+// Derived from LOCALES so adding a new locale automatically updates both
+// localizePath and stripLocale without touching the regex manually.
+const NON_DEFAULT_LOCALES = LOCALES.filter((l) => l !== DEFAULT_LOCALE);
+const LOCALE_PREFIX_REGEX = new RegExp(`^/(${NON_DEFAULT_LOCALES.join('|')})(/|$)`);
+
 /**
  * Get translations for a given locale. Falls back to English if the locale
  * is undefined or unknown (e.g. when called from a layout that doesn't
@@ -75,7 +80,7 @@ export function localizePath(path: string, locale: Locale): string {
 
   // Normalize: ensure leading slash, strip any existing locale prefix.
   let p = pathname.startsWith('/') ? pathname : `/${pathname}`;
-  p = p.replace(/^\/(fi|sv)(\/|$)/, '/');
+  p = p.replace(LOCALE_PREFIX_REGEX, '/');
 
   let localized: string;
   if (locale === DEFAULT_LOCALE) localized = p;
@@ -100,7 +105,7 @@ export function localizePath(path: string, locale: Locale): string {
 export function stripLocale(path: string): string {
   const { pathname, suffix } = splitPath(path);
   const p = pathname.startsWith('/') ? pathname : `/${pathname}`;
-  const stripped = p.replace(/^\/(fi|sv)(\/|$)/, '/');
+  const stripped = p.replace(LOCALE_PREFIX_REGEX, '/');
   const normalized = stripped === '' ? '/' : stripped;
   return `${normalized}${suffix}`;
 }

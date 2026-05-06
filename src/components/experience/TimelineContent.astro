@@ -34,10 +34,7 @@ const kindLabel: Record<string, string> = {
       >
         <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"
         ></rect>
-        <circle cx="7" cy="7" r="1.5" fill="currentColor">
-          <animate attributeName="cy" values="6;14;6" dur="2s" repeatCount="indefinite"
-          ></animate>
-        </circle>
+        <circle cx="7" cy="7" r="1.5" fill="currentColor" class="timeline__scroll-circle"></circle>
       </svg>
     </p>
   </header>
@@ -82,3 +79,20 @@ const kindLabel: Record<string, string> = {
     >
   </footer>
 </div>
+
+<style>
+  @keyframes timeline-scroll-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(8px); }
+  }
+
+  .timeline__scroll-circle {
+    animation: timeline-scroll-bob 2s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .timeline__scroll-circle {
+      animation: none;
+    }
+  }
+</style>

@@ -233,3 +233,10 @@
 .project-card__link.secondary:hover {
   background: rgba(255, 255, 255, 0.05);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .project-card,
+  .project-card:hover {
+    transform: none !important;
+  }
+}

@@ -97,7 +97,7 @@ async function buildIcon(svg, { name, size, maskable }) {
 async function main() {
   if (process.argv.includes('--help') || process.argv.includes('-h')) {
     usage();
-    return 0;
+    return;
   }
 
   // Sanity-check that every source SVG we need actually exists so we fail
@@ -110,7 +110,7 @@ async function main() {
     console.error('build-og: missing source SVG files:');
     for (const p of missing) console.error(`  - ${p}`);
     usage();
-    return 1;
+    throw new Error(`build-og: ${missing.length} source SVG file(s) missing`);
   }
 
   let failed = 0;
@@ -139,8 +139,7 @@ async function main() {
     }
   }
 
-  return failed === 0 ? 0 : 1;
+  if (failed > 0) throw new Error(`build-og: ${failed} asset(s) failed to build`);
 }
 
-const code = await main();
-if (code !== 0) process.exit(code);
+await main();

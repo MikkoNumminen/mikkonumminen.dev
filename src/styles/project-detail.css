@@ -242,3 +242,19 @@
     padding: 5rem 1.5rem 2rem;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .project-detail,
+  .project-detail[data-open='true'] {
+    transform: none !important;
+  }
+
+  .project-detail__close:hover {
+    transform: none !important;
+  }
+
+  .project-detail__links a.primary:hover,
+  .project-detail__links a.secondary:hover {
+    transform: none !important;
+  }
+}

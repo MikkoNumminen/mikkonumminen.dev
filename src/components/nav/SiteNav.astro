@@ -76,7 +76,7 @@ const isActive = (href: string) => {
               <a
                 href={l.href}
                 hreflang={l.locale}
-                aria-current={l.isCurrent ? 'page' : undefined}
+                aria-current={l.isCurrent ? 'true' : undefined}
                 data-lang={l.locale}
                 class="site-nav__lang px-3 py-2 sm:px-2 sm:py-1 rounded-full transition-colors"
               >
@@ -149,7 +149,7 @@ const isActive = (href: string) => {
     opacity: 1;
   }
 
-  .site-nav__lang[aria-current='page'] {
+  .site-nav__lang[aria-current='true'] {
     opacity: 1;
     font-weight: 600;
   }
@@ -165,7 +165,7 @@ const isActive = (href: string) => {
     background-color: rgba(255, 255, 255, 0.14);
     color: #fff;
   }
-  .site-nav[data-theme='home'] .site-nav__lang[aria-current='page'] {
+  .site-nav[data-theme='home'] .site-nav__lang[aria-current='true'] {
     background-color: rgba(255, 255, 255, 0.14);
     color: #fff;
   }
@@ -182,7 +182,7 @@ const isActive = (href: string) => {
     background-color: rgba(120, 170, 255, 0.18);
     color: #fff;
   }
-  .site-nav[data-theme='projects'] .site-nav__lang[aria-current='page'] {
+  .site-nav[data-theme='projects'] .site-nav__lang[aria-current='true'] {
     background-color: rgba(120, 170, 255, 0.18);
     color: #fff;
   }
@@ -198,7 +198,7 @@ const isActive = (href: string) => {
     background-color: rgba(140, 180, 100, 0.2);
     color: #fff;
   }
-  .site-nav[data-theme='experience'] .site-nav__lang[aria-current='page'] {
+  .site-nav[data-theme='experience'] .site-nav__lang[aria-current='true'] {
     background-color: rgba(140, 180, 100, 0.2);
     color: #fff;
   }
@@ -216,7 +216,7 @@ const isActive = (href: string) => {
     color: var(--color-term-green-bright);
     text-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
   }
-  .site-nav[data-theme='contact'] .site-nav__lang[aria-current='page'] {
+  .site-nav[data-theme='contact'] .site-nav__lang[aria-current='true'] {
     background-color: rgba(74, 222, 128, 0.18);
     color: var(--color-term-green-bright);
   }

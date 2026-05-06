@@ -1,6 +1,6 @@
 import type { Translations, Locale } from '../../i18n';
 import { localizePath } from '../../i18n';
-import { escapeHTML as escape } from './dom';
+import { escapeHtml as escape } from '../utils/escapeHtml';
 import type { CommandContext, CommandSpec } from './types';
 
 const EMAIL = 'numminen.mikko.petteri@gmail.com';
@@ -199,8 +199,9 @@ export function buildCommands(t: Translations, locale: Locale): CommandSpec[] {
     {
       name: 'echo',
       description: tt.cmdEchoDesc,
-      handler: (args, ctx) => {
-        ctx.print(args.join(' '));
+      // Use rawArgs so that repeated whitespace is preserved as typed.
+      handler: (_args, ctx, rawArgs = '') => {
+        ctx.print(rawArgs);
       },
     },
     {

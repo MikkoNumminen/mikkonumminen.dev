@@ -14,6 +14,7 @@ import {
 } from 'three';
 import type { LocalizedProject } from '../../../data/projects';
 import { createGlowMaterial } from '../createGlowMaterial';
+import { PLANET_BASE_RADIUS } from './constants';
 
 export interface PlanetEntry {
   project: LocalizedProject;
@@ -25,7 +26,6 @@ export interface PlanetEntry {
   ring?: Mesh;
 }
 
-const PLANET_BASE_RADIUS = 0.55;
 const ORBIT_SEGMENTS = 128;
 
 export function buildPlanet(project: LocalizedProject): {
