@@ -1,5 +1,5 @@
-import { Color, Group, InterleavedBuffer, Vector3 } from 'three';
-import type { InterleavedBufferAttribute } from 'three';
+import { Color, Group, Vector3 } from 'three';
+import type { InterleavedBuffer, InterleavedBufferAttribute } from 'three';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
@@ -189,9 +189,12 @@ export function updateConnections(entries: ConnectionEntry[]): void {
     _mid.y += ARC_LIFT;
 
     // Mutate the interleaved buffer in place. Each segment occupies six
-    // floats: three for the start vertex, three for the end vertex. Vertex
-    // i is the "end" of segment (i-1) AND the "start" of segment i, so we
-    // write each computed point into both positions where applicable.
+    // floats: three for the start vertex, three for the end vertex. The
+    // layout is `[startX, startY, startZ, endX, endY, endZ, …]` per
+    // segment, so each *interior* vertex (vertex i for i in [1,N-1]) is
+    // written twice from the same (x,y,z) — once as `endX/Y/Z` of segment
+    // (i-1), once as `startX/Y/Z` of segment i, into different slots.
+    // The dash shader expects both slots populated.
     const halo = e.haloPositions;
     const core = e.corePositions;
 

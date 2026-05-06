@@ -147,12 +147,22 @@ const linkPaths: Record<Locale, Record<string, string>> = {
     }
   }
 
+  // Always unhide, even if the locale swap failed — better to show English
+  // than to leave the page blank. (CSS also has a fallback animation that
+  // unhides at 250ms in case this script fails to load entirely.)
   if (notFound) notFound.style.visibility = 'visible';
 </script>
 
 <style>
   .not-found {
+    /* Hidden until the bundled locale-swap script unhides it (or until the
+       fallback animation below fires at 250ms — defensive guard for the
+       case where the script fails to load entirely, e.g. a CSP misconfig
+       or a network blip on the chunk). The script's explicit
+       `style.visibility = 'visible'` write also wins over the animation
+       since inline styles are higher specificity. */
     visibility: hidden;
+    animation: not-found-show 0s 250ms forwards;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -161,6 +171,12 @@ const linkPaths: Record<Locale, Record<string, string>> = {
     text-align: center;
     padding: 2rem;
     gap: 1.5rem;
+  }
+
+  @keyframes not-found-show {
+    to {
+      visibility: visible;
+    }
   }
 
   .not-found__heading {
