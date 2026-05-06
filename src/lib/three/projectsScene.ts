@@ -11,13 +11,21 @@ import {
   Vector3,
 } from 'three';
 import { gsap } from 'gsap';
-import type { LocalizedProject } from '../../data/projects';
+import { connections, type LocalizedProject } from '../../data/projects';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { disposeMaterial } from './disposeMaterial';
 import { buildStarfield } from './projects/buildStarfield';
 import { buildSun } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
+import {
+  buildConnections,
+  updateConnections,
+  animateConnectionFlow,
+  fadeConnections,
+  resizeConnections,
+  disposeConnections,
+} from './projects/buildConnections';
 import { createHoverLabel } from './projects/createHoverLabel';
 
 export interface ProjectsSceneOptions {
@@ -110,6 +118,14 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   }
   // Cached once so the raycaster doesn't allocate per frame and per click.
   const planetMeshes: Mesh[] = planets.map((p) => p.mesh);
+
+  // ── Connections (semantic edges between related projects) ──────────
+  const connectionsBundle = buildConnections(connections, planets, {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+  scene.add(connectionsBundle.group);
+  let connectionVisibility = 1;
 
   // ── Hover label ─────────────────────────────────────────────────────
   const hoverLabelHandle = createHoverLabel(hoverLabel);
@@ -256,7 +272,11 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   }
 
   // ── Resize ──────────────────────────────────────────────────────────
-  const resize = createResizeHandler(renderer, camera);
+  // Line2's LineMaterial needs the viewport resolution to render proper
+  // pixel-space line widths — hook it into the existing resize handler.
+  const resize = createResizeHandler(renderer, camera, (w, h) => {
+    resizeConnections(connectionsBundle.entries, w, h);
+  });
 
   // ── Animation loop ──────────────────────────────────────────────────
   const startTime = performance.now();
@@ -299,6 +319,14 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       );
       entry.mesh.rotation.y += delta * 0.4;
     }
+
+    // Connections — recompute arc positions from current planet world
+    // positions, advance the dash flow, and dim while a planet is selected.
+    updateConnections(connectionsBundle.entries);
+    animateConnectionFlow(connectionsBundle.entries, elapsed);
+    const targetVisibility = selected ? 0.18 : 1;
+    connectionVisibility += (targetVisibility - connectionVisibility) * 0.08;
+    fadeConnections(connectionsBundle.entries, connectionVisibility);
 
     // Raycast hover (skip while a planet is selected)
     if (!selected) {
@@ -465,6 +493,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       sun.flareTexture.dispose();
       starfield.geometry.dispose();
       starfield.material.dispose();
+      disposeConnections(connectionsBundle.entries);
+      scene.remove(connectionsBundle.group);
 
       scene.remove(sunLight, ambient);
       sunLight.dispose();
