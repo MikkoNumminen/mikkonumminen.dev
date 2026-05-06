@@ -1,4 +1,4 @@
-import { ScrollTrigger, createScope, prefersReducedMotion } from './setup';
+import { gsap, ScrollTrigger, createScope, prefersReducedMotion } from './setup';
 
 export interface ExperienceTimelineOptions {
   reducedMotion?: boolean;
@@ -14,14 +14,19 @@ interface ColorPhase {
   vars: Record<string, string>;
 }
 
-// Goat sway constants — frequency × amplitude shape the wobble while climbing.
-const SWAY_FREQ = 6;
-const SWAY_AMPLITUDE_PX = 30;
+// Goat positioning constants. The goat anchors to the timeline entry
+// currently closest to the vertical center of the viewport, sitting just
+// to the LEFT of that card. State lerps toward the target each frame
+// (gsap.ticker) so changes between cards feel buttery rather than snapping.
+const GOAT_GAP_PX = 56; // visual gap between goat center and card's left edge
+const GOAT_DAMPING = 0.14; // higher = snappier; lower = more glide
+const GOAT_LEFT_CLAMP_PX = 44; // never let the goat go off the viewport left
+const GOAT_VERTICAL_PADDING = 80; // keep the goat at least this far from top/bottom
 
-// Inline custom properties written by the master scroll handler. We track
-// these so dispose can `removeProperty` each one and not leak inline state
-// across HMR / SPA navigation.
-const GOAT_PROPS = ['--goat-bottom', '--goat-x'] as const;
+// Inline custom properties written by the goat ticker. Tracked so dispose
+// can `removeProperty` each one and not leak inline state across HMR /
+// SPA navigation.
+const GOAT_PROPS = ['--goat-x', '--goat-y'] as const;
 
 /**
  * Color phases mapped to scroll progress.
@@ -208,15 +213,32 @@ function applyPhase(progress: number, root: HTMLElement): void {
   }
 }
 
+/**
+ * Keep the goat at least `GOAT_VERTICAL_PADDING` away from the top and
+ * bottom edges of the viewport. Useful when the active card is well past
+ * the viewport edge — without this clamp the goat would translate
+ * off-screen along with the card.
+ */
+function clampGoatY(y: number): number {
+  const min = GOAT_VERTICAL_PADDING;
+  const max = window.innerHeight - GOAT_VERTICAL_PADDING;
+  if (y < min) return min;
+  if (y > max) return max;
+  return y;
+}
+
 export function initExperienceTimeline(
   options: ExperienceTimelineOptions = {},
 ): ExperienceTimelineHandle {
   const sceneRoot = document.querySelector<HTMLElement>('[data-mountain-scene]');
   // Goat is optional — the page can be rendered without it. When it's
-  // absent, the goat-driving lines below are skipped but the rest of the
+  // absent, the goat-driving code below is skipped but the rest of the
   // parallax + timeline reveal logic continues to run.
   const goat = document.querySelector<HTMLElement>('[data-goat]');
   const trigger = document.querySelector<HTMLElement>('[data-experience-track]');
+  const timelineEntries = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-timeline-entry]'),
+  );
   if (!sceneRoot || !trigger) {
     return { dispose: (): void => {} };
   }
@@ -226,12 +248,18 @@ export function initExperienceTimeline(
   // ── Reduced-motion static fallback ────────────────────────────────────
   // Drop the user into a sensible mid-morning state with timeline cards
   // statically visible. No ScrollTriggers, no IntersectionObserver, no
-  // scroll-driven sun / parallax / goat sway.
+  // continuous goat ticker — but we still pin the goat to the FIRST
+  // entry once so it sits in a sensible place.
   if (reducedMotion) {
     applyPhase(0.6, sceneRoot);
-    document
-      .querySelectorAll<HTMLElement>('[data-timeline-entry]')
-      .forEach((el) => el.classList.add('is-visible'));
+    timelineEntries.forEach((el) => el.classList.add('is-visible'));
+    if (goat && timelineEntries[0]) {
+      const rect = timelineEntries[0].getBoundingClientRect();
+      const x = Math.max(GOAT_LEFT_CLAMP_PX, rect.left - GOAT_GAP_PX);
+      const y = clampGoatY(rect.top + rect.height / 2);
+      goat.style.setProperty('--goat-x', `${x}px`);
+      goat.style.setProperty('--goat-y', `${y}px`);
+    }
     return { dispose: (): void => {} };
   }
 
@@ -252,17 +280,6 @@ export function initExperienceTimeline(
         const progress = self.progress;
         applyPhase(progress, sceneRoot);
 
-        // Goat climbs from bottom up. Bottom = 18vh, summit = 70vh.
-        // Skipped when the goat element is absent on the page.
-        if (goat) {
-          const bottomVH = 18 + progress * 52;
-          goat.style.setProperty('--goat-bottom', `${bottomVH}vh`);
-
-          // Slight horizontal sway as the goat climbs
-          const sway = Math.sin(progress * SWAY_FREQ) * SWAY_AMPLITUDE_PX;
-          goat.style.setProperty('--goat-x', `${sway}px`);
-        }
-
         // Layer parallax — each layer drifts down faster than the last so the
         // foreground feels closer.
         const layers = sceneRoot.querySelectorAll<HTMLElement>('[data-parallax-speed]');
@@ -277,6 +294,58 @@ export function initExperienceTimeline(
       },
     });
   });
+
+  // ── Goat: anchor to the timeline entry currently closest to viewport ──
+  // center, sitting just to its LEFT. Lerped each frame for smooth motion
+  // both during scroll (the active card moves up/down) and across card
+  // changes (target snaps; lerp glides over).
+  let goatCurrentX = 0;
+  let goatCurrentY = 0;
+  let goatTargetX = 0;
+  let goatTargetY = 0;
+  let goatInitialized = false;
+
+  const tickGoat = (): void => {
+    if (!goat || timelineEntries.length === 0) return;
+
+    // Find the timeline entry whose center is closest to the viewport
+    // center. Linear scan — fine for the 7-15 entries we ever expect.
+    const viewportCenter = window.innerHeight / 2;
+    let closest: HTMLElement | null = null;
+    let closestDist = Infinity;
+    for (const el of timelineEntries) {
+      const rect = el.getBoundingClientRect();
+      const center = rect.top + rect.height / 2;
+      const dist = Math.abs(center - viewportCenter);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = el;
+      }
+    }
+    if (!closest) return;
+
+    const rect = closest.getBoundingClientRect();
+    goatTargetX = Math.max(GOAT_LEFT_CLAMP_PX, rect.left - GOAT_GAP_PX);
+    goatTargetY = clampGoatY(rect.top + rect.height / 2);
+
+    if (!goatInitialized) {
+      // First frame: snap to target so we don't see the goat fly in from
+      // (0, 0).
+      goatCurrentX = goatTargetX;
+      goatCurrentY = goatTargetY;
+      goatInitialized = true;
+    } else {
+      goatCurrentX += (goatTargetX - goatCurrentX) * GOAT_DAMPING;
+      goatCurrentY += (goatTargetY - goatCurrentY) * GOAT_DAMPING;
+    }
+
+    goat.style.setProperty('--goat-x', `${goatCurrentX.toFixed(1)}px`);
+    goat.style.setProperty('--goat-y', `${goatCurrentY.toFixed(1)}px`);
+  };
+
+  if (goat && timelineEntries.length > 0) {
+    gsap.ticker.add(tickGoat);
+  }
 
   // ── Timeline entry reveals (intersection-based, simpler than ScrollTrigger
   //     since each just toggles a class) ─────────────────────────────────────
@@ -301,12 +370,19 @@ export function initExperienceTimeline(
 
   return {
     dispose: (): void => {
+      // Detach the goat ticker before scope.dispose() so no further frames
+      // try to write to the DOM.
+      if (goat && timelineEntries.length > 0) {
+        gsap.ticker.remove(tickGoat);
+      }
+
       // Kill tweens + ScrollTriggers + revert any GSAP-set inline styles.
       scope.dispose();
       io.disconnect();
 
-      // Strip the inline custom properties we wrote in onUpdate. GSAP doesn't
-      // track raw `style.setProperty` calls, so we have to clean up by hand.
+      // Strip the inline custom properties we wrote in onUpdate / tickGoat.
+      // GSAP doesn't track raw `style.setProperty` calls, so we clean up
+      // by hand.
       if (goat) {
         GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
       }
