@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MountainScene from '../components/experience/MountainScene.astro';
+import Goat from '../components/experience/Goat.astro';
 import TimelineContent from '../components/experience/TimelineContent.astro';
 import { asLocale, getTranslations } from '../i18n';
 
@@ -16,6 +17,10 @@ const t = getTranslations(locale);
 >
   <!-- Fixed background scene (mountain layers + sun + stars) -->
   <MountainScene />
+
+  <!-- Goat overlay — absolute viewport coords driven by JS lerping toward
+       whichever timeline card is currently closest to viewport center. -->
+  <Goat />
 
   <!-- The scrollable track. Total height drives the parallax progress 0..1. -->
   <div class="experience-track" data-experience-track>

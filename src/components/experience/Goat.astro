@@ -92,14 +92,19 @@
 
 <style>
   .goat-wrap {
+    /* JS sets --goat-x / --goat-y to the viewport-coord position where the
+       goat's CENTER should sit. The trailing translate(-50%, -50%) recentres
+       the rendered SVG on that point regardless of its intrinsic size.
+       Smoothing happens in JS (gsap.ticker lerp) — no CSS transition here,
+       which would compound and feel rubbery. */
     position: fixed;
-    left: 50%;
-    bottom: var(--goat-bottom, 18vh);
+    top: 0;
+    left: 0;
     z-index: 5;
     pointer-events: none;
-    transform: translate(calc(-50% + var(--goat-x, 0px)), 0);
-    transition: bottom 0.05s linear;
-    will-change: transform, bottom;
+    transform: translate(var(--goat-x, 50vw), var(--goat-y, 50vh))
+      translate(-50%, -50%);
+    will-change: transform;
   }
 
   .goat {
