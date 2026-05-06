@@ -43,28 +43,28 @@ export const fi: Translations = {
   intro: {
     sectionAria: 'Tietoja',
     eyebrow: 'tietoja',
-    heading: 'Rakennan tuotantotason verkkosovelluksia.',
-    body: 'Full-stack-kehittäjä Suomesta. Vastaan koko ketjusta — arkkitehtuurista ja infrasta koodiin ja viimeistelyyn — tekoälyavusteisin työnkuluin, joiden ansiosta pienet tiimit toimittavat kuin isot.',
+    heading: 'Seitsemän repoa. Ne rakentavat toistensa päälle.',
+    body: 'Full-stack-kehittäjä Suomesta. HRM on Platformin arkkitehtuuripohja — Platform on tuotantokäytössä oikealla WoW-killalla osoitteessa vuohiliitto.com. AudiobookMaker tuottaa äänet Spacepotatikseen, tänä vuonna julkaisemaani selainpeliin; strudel-patterns säveltää sen musiikin. Jokainen repo seisoo omillaan — saumat niiden välillä ovat se juju.',
     statTests: 'testiä suurimmassa projektissa',
     statCoverage: 'rivikattavuus',
-    statProducts: 'tuotetta tuotannossa',
+    statProducts: 'julkaistua projektia',
   },
   focus: {
-    sectionAria: 'Mihin keskityn',
-    eyebrow: 'keskitys',
-    heading: 'Näin työskentelen.',
+    sectionAria: 'Miten projektit kytkeytyvät',
+    eyebrow: 'kytkennät',
+    heading: 'Miten projektit kytkeytyvät yhteen.',
     items: [
       {
-        title: 'Tuotantolaatu',
-        body: 'Testattu, seurattava ja rakennettu kestämään tuotantokäyttöä. Jokainen ominaisuus julkaistaan niin, että se pärjää oikeiden käyttäjien käsissä.',
+        title: 'Reposit syöttävät toisiaan',
+        body: 'HRM toimii git-alimoduulina Platformin sisällä — sama tunnistautuminen, sama auditloki, kaksi tuotetta yhdestä ytimestä. AudiobookMaker tuottaa äänet Spacepotatikseen, strudel-patterns sen musiikin. Jokainen repliikki ja jokainen sävel jäljitetään takaisin repoon, jonka omistan itse.',
       },
       {
-        title: 'AI-natiivit työnkulut',
-        body: 'Tekoäly on osa työkalupakkia, mutta jokaisen rivin pitää olla sellaista koodia jonka allekirjoitan itse.',
+        title: 'Testattu tai ei lähde',
+        body: 'Jokaisella repolla on CI joka pushissa. HRM:ssä 1828+ testiä 91,9 % kattavuudella, Spacepotatiksessa ~1170, AudiobookMakerissa yli 1800. Laatuportit painavat enemmän kuin mahtipontisin teknologiapinou.',
       },
       {
-        title: 'Päästä päähän',
-        body: 'Tietokannasta pikseliin. Backend, frontend, infra, käyttöönotto — sama tekijä, sama vaatimustaso.',
+        title: 'AI-natiivi, jäljitettävästi',
+        body: 'Spacepotatis ajaa kymmentä omaa Claude Code -skilliä .claude/skills/-hakemistossa — versionhallittuja, neljännesvuosittain auditoituja, kuten tuotantokoodia. Tekoäly on osa työkalupakkia; auditointijälki on kuitti.',
       },
     ],
   },
@@ -129,11 +129,31 @@ export const fi: Translations = {
     audiobookmaker: {
       tagline: 'PDF → äänikirja',
       description:
-        'Työpöytäsovellus joka muuntaa PDF-, EPUB- ja tekstitiedostot äänikirjoiksi. Kolme puhesynteesimoottoria: Edge-TTS (pilvi, 30+ ääntä kuudella kielellä), Piper (offline, ei vaadi GPU:ta) ja Chatterbox "Grandmom"-äänellä äänen kloonaukseen referenssinäytteestä. Englannin puhesynteesi toimii jo hyvin; suomi on vaikeampi syntetisoida käytettävissä olevilla resursseilla, joten sitä varten on rakennettu 19-vaiheinen normalisointiputki joka hoitaa numeroiden kontekstitaivutuksen, lyhenteiden purkamisen, yksikkösymbolien käsittelyn ja vierassanojen ääntämiskorjaukset — laatu paranee joka julkaisun myötä. Jaetaan Windows-asennusohjelmana automaattipäivityksillä ja 1729 testillä.',
+        'Työpöytäsovellus joka muuntaa PDF-, EPUB- ja tekstitiedostot äänikirjoiksi. Kolme puhesynteesimoottoria: Edge-TTS (pilvi, 30+ ääntä kuudella kielellä), Piper (offline, ei vaadi GPU:ta) ja Chatterbox "Grandmom"-äänellä äänen kloonaukseen referenssinäytteestä. Sama Chatterbox-moottori ääninäyttelee Spacepotatiksen pelin sisäisen tarinan. Englannin puhesynteesi toimii jo hyvin; suomi on vaikeampi syntetisoida käytettävissä olevilla resursseilla, joten sitä varten on rakennettu 19-vaiheinen normalisointiputki joka hoitaa numeroiden kontekstitaivutuksen, lyhenteiden purkamisen, yksikkösymbolien käsittelyn ja vierassanojen ääntämiskorjaukset — laatu paranee joka julkaisun myötä. Jaetaan Windows-asennusohjelmana automaattipäivityksillä ja 1729 testillä.',
       highlights: [
         'Chatterbox-ääniklooni Grandmom-äänellä',
         '19-vaiheinen suomen kielen normalisointi, 1729 testiä',
-        'Itsenäinen Windows-asennusohjelma automaattipäivityksillä',
+        'Antaa äänen Spacepotatiksen tarinalle',
+      ],
+    },
+    spacepotatis: {
+      tagline: 'Selainampumapeli — perunasi vastaan galaksi',
+      description:
+        'Selainpeli, jossa suojakuplaan suljettu peruna ampuu hyönteisiä proseduraalisessa galaksissa. Käynnistyy kuin vanha terminaali, avautuu 3D-aurinkokunnaksi jota voit pyörittää ja zoomata, ja heittää sinut ylhäältä alas vyöryvään taisteluun Tyrian 2000:n hengessä. Next.js 15 + React 19 -kuori Phaser 3 -taistelukentän ympärillä, Three.js + GSAP galaksinäkymässä ja kamerasiirtymässä taisteluun, PostgreSQL Neonissa Kyselyn (tyypitetty SQL-rakentaja, ei ORM:ää) kautta. Kaikki äänet AudiobookMakerin tuottamia, kaikki musiikki kirjoitettu strudel-patterns-repoon. Mukana kymmenen omaa Claude Code -skilliä .claude/skills/-hakemistossa — versionhallittuja, neljännesvuosittain auditoituja, kuten tuotantokoodia.',
+      highlights: [
+        'Next.js 15 + Phaser 3 + Three.js',
+        '~1170 testiä, CI joka pushissa',
+        '10 omaa Claude Code -skilliä tuotantotason artefakteina',
+      ],
+    },
+    'strudel-patterns': {
+      tagline: 'Algoritminen musiikki Strudelilla',
+      description:
+        'Live-koodattua elektronista musiikkia Strudelilla — JavaScript-pohjainen kuviomoottori, TidalCyclesin sukulainen. Jokainen kappale on yksi kompostoitavissa oleva ilmaisu: pinoja syntetisaattoreita, bassolinjoja, rumpukuvioita ja efektiketjuja. Sävelletty rakenteistetulla tekoälytyönkululla — luonnollinen kuvaus → generointi → kuuntelu → iterointi, päätökset kirjattu git-historian rinnalle. Valitut kappaleet säestävät Spacepotatista (galaksinäkymä, missioteemat, tarinan kerrontapohja). Uudelleenkäytettävä komponenttikirjasto, kuratoidut syntetisaattoriasetukset, sessiomuistiot iteraatioista.',
+      highlights: [
+        'Live-koodattu Strudelilla',
+        'Tekoälyohjattu iterointi, kirjattuna gitiin',
+        'Spacepotatiksen ääniraita',
       ],
     },
   },
