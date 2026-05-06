@@ -52,6 +52,15 @@ const t = getTranslations(asLocale(Astro.currentLocale));
 
     <div class="project-detail__highlights" data-field="highlights"></div>
 
+    <div
+      class="project-detail__externalApis-wrap"
+      data-field="externalApisWrap"
+      hidden
+    >
+      <p class="project-detail__label">{t.projectsPage.externalApisLabel}</p>
+      <ul class="project-detail__externalApis" data-field="externalApis"></ul>
+    </div>
+
     <div class="project-detail__tech-wrap">
       <p class="project-detail__label">{t.projectsPage.techLabel}</p>
       <ul class="project-detail__tech" data-field="tech"></ul>

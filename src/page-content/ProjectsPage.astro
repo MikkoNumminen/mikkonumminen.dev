@@ -171,6 +171,26 @@ const t = getTranslations(locale);
         });
       }
 
+      const externalApisWrap = detail.querySelector<HTMLElement>(
+        '[data-field="externalApisWrap"]',
+      );
+      const externalApis = detail.querySelector<HTMLElement>(
+        '[data-field="externalApis"]',
+      );
+      if (externalApisWrap && externalApis) {
+        externalApis.innerHTML = '';
+        if (p.externalApis && p.externalApis.length > 0) {
+          p.externalApis.forEach((api) => {
+            const li = document.createElement('li');
+            li.textContent = api;
+            externalApis.appendChild(li);
+          });
+          externalApisWrap.removeAttribute('hidden');
+        } else {
+          externalApisWrap.setAttribute('hidden', '');
+        }
+      }
+
       const tech = detail.querySelector<HTMLElement>('[data-field="tech"]');
       if (tech) {
         tech.innerHTML = '';

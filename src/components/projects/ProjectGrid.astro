@@ -40,6 +40,17 @@ const projects = localizeProjects(t);
             </ul>
           )}
 
+          {p.externalApis && p.externalApis.length > 0 && (
+            <div class="project-card__externalApis-wrap">
+              <p class="project-card__label">{t.projectsPage.externalApisLabel}</p>
+              <ul class="project-card__externalApis">
+                {p.externalApis.map((api) => (
+                  <li>{api}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <ul class="project-card__tech">
             {p.tech.map((t) => (
               <li>{t}</li>
