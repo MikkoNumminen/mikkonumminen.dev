@@ -68,61 +68,88 @@ const linkPaths: Record<Locale, Record<string, string>> = {
   set:html={JSON.stringify({ strings: localeStrings, links: linkPaths })}
 />
 
-<script is:inline>
+<noscript>
+  <style>.not-found { visibility: visible !important; }</style>
+</noscript>
+
+<script>
+  interface NotFoundStrings {
+    title: string;
+    description: string;
+    heading: string;
+    message: string;
+    navAria: string;
+    linkHome: string;
+    linkProjects: string;
+    linkExperience: string;
+    linkContact: string;
+  }
+  type Locale = 'en' | 'fi' | 'sv';
+  interface NotFoundData {
+    strings: Record<Locale, NotFoundStrings>;
+    links: Record<Locale, Record<string, string>>;
+  }
+
   // Detect the locale from the request URL and swap the rendered text +
   // metadata. Falls back to the build-time English content if anything
   // looks wrong.
-  (function () {
-    var path = location.pathname;
-    var locale = 'en';
-    if (path === '/fi' || path.indexOf('/fi/') === 0) locale = 'fi';
-    else if (path === '/sv' || path.indexOf('/sv/') === 0) locale = 'sv';
+  const path = location.pathname;
+  let locale: Locale = 'en';
+  if (path === '/fi' || path.startsWith('/fi/')) locale = 'fi';
+  else if (path === '/sv' || path.startsWith('/sv/')) locale = 'sv';
 
-    var dataEl = document.getElementById('not-found-locales');
-    if (!dataEl) return;
+  const dataEl = document.getElementById('not-found-locales');
+  const notFound = document.querySelector<HTMLElement>('.not-found');
 
-    var data;
+  if (dataEl) {
+    let data: NotFoundData | null = null;
     try {
-      data = JSON.parse(dataEl.textContent || '{}');
-    } catch (e) {
-      return;
+      data = JSON.parse(dataEl.textContent ?? '{}') as NotFoundData;
+    } catch {
+      // malformed JSON — fall through to unhide with English content
     }
 
-    var s = data.strings && data.strings[locale];
-    var l = data.links && data.links[locale];
-    if (!s || !l) return;
+    const s = data?.strings[locale];
+    const l = data?.links[locale];
 
-    document.documentElement.lang = locale;
-    document.title = s.title;
-    var meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', s.description);
+    if (s && l) {
+      document.documentElement.lang = locale;
+      document.title = s.title;
 
-    var heading = document.querySelector('[data-not-found-heading]');
-    if (heading) heading.textContent = s.heading;
-    var message = document.querySelector('[data-not-found-message]');
-    if (message) message.textContent = s.message;
-    var nav = document.querySelector('[data-not-found-nav]');
-    if (nav) nav.setAttribute('aria-label', s.navAria);
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+      meta?.setAttribute('content', s.description);
 
-    var labelByKey = {
-      home: s.linkHome,
-      projects: s.linkProjects,
-      experience: s.linkExperience,
-      contact: s.linkContact,
-    };
-    var links = document.querySelectorAll('[data-not-found-link]');
-    for (var i = 0; i < links.length; i++) {
-      var a = links[i];
-      var key = a.getAttribute('data-not-found-link');
-      if (!key) continue;
-      a.setAttribute('href', l[key]);
-      a.textContent = labelByKey[key];
+      const heading = document.querySelector('[data-not-found-heading]');
+      if (heading) heading.textContent = s.heading;
+
+      const message = document.querySelector('[data-not-found-message]');
+      if (message) message.textContent = s.message;
+
+      const nav = document.querySelector('[data-not-found-nav]');
+      nav?.setAttribute('aria-label', s.navAria);
+
+      const labelByKey: Record<string, string> = {
+        home: s.linkHome,
+        projects: s.linkProjects,
+        experience: s.linkExperience,
+        contact: s.linkContact,
+      };
+
+      for (const a of document.querySelectorAll<HTMLAnchorElement>('[data-not-found-link]')) {
+        const key = a.getAttribute('data-not-found-link');
+        if (!key) continue;
+        a.setAttribute('href', l[key]);
+        a.textContent = labelByKey[key];
+      }
     }
-  })();
+  }
+
+  if (notFound) notFound.style.visibility = 'visible';
 </script>
 
 <style>
   .not-found {
+    visibility: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
