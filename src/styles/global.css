@@ -25,10 +25,13 @@
   --color-ink: #0a0a0f;
   --color-paper: #f5f5f0;
 
-  /* Page-level accent colours — also consumed by component CSS files so
-     raw hex values only need to live in one place. */
-  --color-experience-accent: #d4ff80;
+  /* Page-level accent colours — also consumed by component CSS files and
+     the page-transition runtime so raw hex values only need to live in
+     one place. */
+  --color-home-accent: #c4d4ff;
   --color-projects-accent: #80a8ff;
+  --color-experience-accent: #d4ff80;
+  --color-contact-accent: #b5f5c8;
 }
 
 html {
