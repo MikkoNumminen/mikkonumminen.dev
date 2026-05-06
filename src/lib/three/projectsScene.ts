@@ -40,6 +40,18 @@ const FOG_COLOR = 0x020512;
 const SOLAR_CAMERA_POS = new Vector3(0, 8, 28);
 const SOLAR_LOOK_AT = new Vector3(0, 0, 0);
 
+// Camera-control tuning. Spherical coords (azimuth, polar, radius) are
+// damped each frame toward their target values, which the user nudges
+// via drag (rotate) and wheel (zoom).
+const SPHERICAL_DAMPING = 0.18;
+const ROTATE_SPEED = 0.005;
+const ZOOM_SPEED = 0.0015;
+const MIN_RADIUS = 12;
+const MAX_RADIUS = 60;
+const MIN_POLAR = 0.25;
+const MAX_POLAR = Math.PI - 0.25;
+const DRAG_THRESHOLD = 4;
+
 export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHandle {
   const {
     canvas,
@@ -82,7 +94,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   scene.add(sun.group);
 
   // ── Lighting ────────────────────────────────────────────────────────
-  const sunLight = new PointLight(0xffd6a0, 3.2, 180, 1.4);
+  const sunLight = new PointLight(0xffd6a0, 4.2, 220, 1.3);
   sunLight.position.set(0, 0, 0);
   scene.add(sunLight);
 
@@ -118,6 +130,93 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   window.addEventListener('pointermove', onPointerMove, { passive: true });
   window.addEventListener('pointerleave', onPointerLeave);
 
+  // ── Camera-control state ────────────────────────────────────────────
+  // Initial spherical derived from SOLAR_CAMERA_POS (0, 8, 28).
+  const initialRadius = Math.sqrt(
+    SOLAR_CAMERA_POS.x ** 2 + SOLAR_CAMERA_POS.y ** 2 + SOLAR_CAMERA_POS.z ** 2,
+  );
+  const sphericalCurrent = {
+    azimuth: Math.atan2(SOLAR_CAMERA_POS.x, SOLAR_CAMERA_POS.z),
+    polar: Math.acos(SOLAR_CAMERA_POS.y / initialRadius),
+    radius: initialRadius,
+  };
+  const sphericalTarget = { ...sphericalCurrent };
+
+  let dragging = false;
+  let dragMoved = false;
+  let dragPointerId = -1;
+  let lastDragX = 0;
+  let lastDragY = 0;
+  let dragStartX = 0;
+  let dragStartY = 0;
+
+  const onCanvasPointerDown = (e: PointerEvent): void => {
+    if (selected) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    dragging = true;
+    dragMoved = false;
+    dragPointerId = e.pointerId;
+    lastDragX = e.clientX;
+    lastDragY = e.clientY;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {
+      /* setPointerCapture can throw on some clients; safe to ignore */
+    }
+  };
+
+  const onCanvasPointerMove = (e: PointerEvent): void => {
+    if (!dragging || e.pointerId !== dragPointerId) return;
+    const dx = e.clientX - lastDragX;
+    const dy = e.clientY - lastDragY;
+    lastDragX = e.clientX;
+    lastDragY = e.clientY;
+    if (
+      !dragMoved &&
+      Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY) > DRAG_THRESHOLD
+    ) {
+      dragMoved = true;
+    }
+    if (dragMoved) {
+      sphericalTarget.azimuth -= dx * ROTATE_SPEED;
+      sphericalTarget.polar -= dy * ROTATE_SPEED;
+      if (sphericalTarget.polar < MIN_POLAR) sphericalTarget.polar = MIN_POLAR;
+      if (sphericalTarget.polar > MAX_POLAR) sphericalTarget.polar = MAX_POLAR;
+    }
+  };
+
+  const onCanvasPointerUp = (e: PointerEvent): void => {
+    if (e.pointerId !== dragPointerId) return;
+    dragging = false;
+    dragPointerId = -1;
+    try {
+      if (canvas.hasPointerCapture(e.pointerId)) {
+        canvas.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const onCanvasWheel = (e: WheelEvent): void => {
+    if (selected) return;
+    e.preventDefault();
+    const factor = Math.exp(e.deltaY * ZOOM_SPEED);
+    let next = sphericalTarget.radius * factor;
+    if (next < MIN_RADIUS) next = MIN_RADIUS;
+    if (next > MAX_RADIUS) next = MAX_RADIUS;
+    sphericalTarget.radius = next;
+  };
+
+  canvas.addEventListener('pointerdown', onCanvasPointerDown);
+  canvas.addEventListener('pointermove', onCanvasPointerMove);
+  canvas.addEventListener('pointerup', onCanvasPointerUp);
+  canvas.addEventListener('pointercancel', onCanvasPointerUp);
+  canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
+  canvas.style.touchAction = 'none';
+
   const findPlanetByMeshId = (id: string | undefined): PlanetEntry | null => {
     if (!id) return null;
     return planets.find((p) => p.project.id === id) ?? null;
@@ -125,6 +224,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
   const onClick = (e: MouseEvent): void => {
     if (selected) return;
+    // Suppress click when the gesture was a drag — otherwise the click that
+    // ends a rotate would also pick a planet underneath.
+    if (dragMoved) return;
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
@@ -177,6 +279,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     // ShaderMaterial uniforms are typed as Record<string, IUniform>; the
     // `intensity` key is set in createGlowMaterial so the lookup is safe.
     sun.glowMaterial.uniforms.intensity!.value = 1.3 + Math.sin(elapsed * 1.8) * 0.12;
+    // Independent sine pulses on the corona sprites give the sun a sense
+    // of life. Halo breathes slow, flare flickers faster.
+    const haloScale = 9 + Math.sin(elapsed * 0.9) * 0.45;
+    sun.halo.scale.set(haloScale, haloScale, 1);
+    const flareScale = 4.5 + Math.sin(elapsed * 2.3) * 0.35;
+    sun.flare.scale.set(flareScale, flareScale, 1);
 
     // Planets orbit
     const baseOrbitScale = reducedMotion ? 0.25 : 1.0;
@@ -256,12 +364,26 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       );
       lookAtCurrent.lerp(planetWorldPos, 0.08);
     } else {
-      cameraTarget.copy(SOLAR_CAMERA_POS);
+      // User-controlled spherical orbit. Damp current toward target each
+      // frame; project to Cartesian for the camera target.
+      sphericalCurrent.azimuth +=
+        (sphericalTarget.azimuth - sphericalCurrent.azimuth) * SPHERICAL_DAMPING;
+      sphericalCurrent.polar +=
+        (sphericalTarget.polar - sphericalCurrent.polar) * SPHERICAL_DAMPING;
+      sphericalCurrent.radius +=
+        (sphericalTarget.radius - sphericalCurrent.radius) * SPHERICAL_DAMPING;
+      const sinPolar = Math.sin(sphericalCurrent.polar);
+      cameraTarget.set(
+        sphericalCurrent.radius * sinPolar * Math.sin(sphericalCurrent.azimuth),
+        sphericalCurrent.radius * Math.cos(sphericalCurrent.polar),
+        sphericalCurrent.radius * sinPolar * Math.cos(sphericalCurrent.azimuth),
+      );
       lookAtCurrent.lerp(SOLAR_LOOK_AT, 0.08);
     }
 
-    // Smooth camera move
-    camera.position.lerp(cameraTarget, selected ? 0.06 : 0.045);
+    // Smooth camera move. Slightly higher lerp factor when free-orbiting so
+    // drag/zoom feel responsive without being snappy.
+    camera.position.lerp(cameraTarget, selected ? 0.06 : 0.12);
     camera.lookAt(lookAtCurrent);
 
     // Starfield slow drift (parallax)
@@ -303,6 +425,11 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerleave', onPointerLeave);
       canvas.removeEventListener('click', onClick);
+      canvas.removeEventListener('pointerdown', onCanvasPointerDown);
+      canvas.removeEventListener('pointermove', onCanvasPointerMove);
+      canvas.removeEventListener('pointerup', onCanvasPointerUp);
+      canvas.removeEventListener('pointercancel', onCanvasPointerUp);
+      canvas.removeEventListener('wheel', onCanvasWheel);
       document.removeEventListener('visibilitychange', onVisibilityChange);
 
       // Kill any in-flight hover tweens before the Vector3s they target are
@@ -332,6 +459,10 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       sun.coreMaterial.dispose();
       sun.glowGeometry.dispose();
       sun.glowMaterial.dispose();
+      sun.haloMaterial.dispose();
+      sun.haloTexture.dispose();
+      sun.flareMaterial.dispose();
+      sun.flareTexture.dispose();
       starfield.geometry.dispose();
       starfield.material.dispose();
 

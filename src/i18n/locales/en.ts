@@ -93,6 +93,8 @@ export const en: Translations = {
     lede: 'A small solar system of things I have built. Hover a planet for the elevator pitch, click to zoom in.',
     legendHover: 'to inspect',
     legendClick: 'a planet to focus',
+    legendDrag: 'to rotate the view',
+    legendZoom: 'to zoom in / out',
     detailAria: 'Project details',
     closeAria: 'Close project details',
     techLabel: 'Tech',

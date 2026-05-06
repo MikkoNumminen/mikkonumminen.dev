@@ -93,6 +93,8 @@ export const fi: Translations = {
     lede: 'Pieni aurinkokunta rakentamistani projekteista. Vie hiiri planeetan päälle nähdäksesi tiivistelmän, klikkaa lähemmäs.',
     legendHover: 'tutkiaksesi',
     legendClick: 'planeettaa kohdistaaksesi',
+    legendDrag: 'pyörittääksesi näkymää',
+    legendZoom: 'lähentääksesi / loitontaaksesi',
     detailAria: 'Projektin tiedot',
     closeAria: 'Sulje projektin tiedot',
     techLabel: 'Teknologiat',
