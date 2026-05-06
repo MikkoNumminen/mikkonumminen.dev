@@ -68,6 +68,44 @@ export const sv: Translations = {
       },
     ],
   },
+  integrations: {
+    sectionAria: 'Externa integrationer',
+    eyebrow: 'integrationer',
+    heading: 'Kopplad till världen.',
+    items: [
+      {
+        project: 'Platform',
+        api: 'Raider.IO API',
+        body: 'Live Mythic+-teamspårning för en riktig WoW-gille. Rosters, senaste runs och rio-poäng hämtas färska vid varje laddning — inga inaktuella skärmdumpar.',
+      },
+      {
+        project: 'ReadLog',
+        api: 'Open Library + Google Books',
+        body: 'Två bok-API:er körs parallellt; den med renare data vinner. Dubletter slås ihop innan de når gränssnittet.',
+      },
+      {
+        project: 'AudiobookMaker',
+        api: 'Microsoft Edge-TTS',
+        body: '30+ molnröster på sex språk, ovanpå två lokala motorer (Piper, Chatterbox). Välj rösten som passar boken.',
+      },
+      {
+        project: 'Spacepotatis',
+        api: 'Google OAuth',
+        body: 'Inloggning är valfri. Spela offline för evigt, eller logga in för molnsparningar och en plats på topplistan.',
+      },
+    ],
+  },
+  velocity: {
+    sectionAria: 'Utvecklingstempo',
+    eyebrow: 'tempo',
+    heading: 'Snabbt — på riktigt.',
+    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på två veckor: 387 commits, ~1170 tester, tio granskade Claude Code-skills, hela Next.js + Phaser 3 + Three.js-stacken. Sex av sju portföljrepor startade under de senaste sex veckorna. AI-nativt är inte snack — det är matematik.',
+    stats: [
+      { num: '12', label: 'dagar från tomt repo till live Spacepotatis' },
+      { num: '387', label: 'Spacepotatis-commits' },
+      { num: '~1170', label: 'Spacepotatis-tester som går igenom' },
+    ],
+  },
   navCards: {
     sectionAria: 'Utforska resten av sajten',
     eyebrow: 'fortsätt',

@@ -1,0 +1,124 @@
+---
+import { asLocale, getTranslations } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+---
+
+<section class="velocity" aria-label={t.velocity.sectionAria}>
+  <div class="velocity__inner">
+    <p class="velocity__eyebrow" data-reveal>{t.velocity.eyebrow}</p>
+    <h2 class="velocity__heading">
+      <span data-split data-reveal-chars>{t.velocity.heading}</span>
+    </h2>
+
+    <p class="velocity__body" data-reveal>{t.velocity.body}</p>
+
+    <div class="velocity__stats">
+      {
+        t.velocity.stats.map((stat) => (
+          <div class="velocity__stat" data-reveal>
+            <span class="velocity__stat-num">{stat.num}</span>
+            <span class="velocity__stat-label">{stat.label}</span>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .velocity {
+    position: relative;
+    padding: clamp(6rem, 14vh, 10rem) 1.5rem;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(15, 12, 30, 0.55) 30%,
+      rgba(15, 12, 30, 0.55) 70%,
+      transparent
+    );
+  }
+
+  .velocity__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .velocity__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0 0 1.5rem;
+  }
+
+  .velocity__heading {
+    font-size: clamp(2rem, 5vw, 3.6rem);
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0 0 1.75rem;
+    color: #fff;
+  }
+
+  .velocity__heading :global([data-split]) {
+    display: inline-block;
+    overflow: hidden;
+  }
+  .velocity__heading :global(.word) {
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .velocity__heading :global(.char) {
+    display: inline-block;
+    will-change: transform, opacity;
+  }
+
+  .velocity__body {
+    font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 720px;
+    margin: 0 0 4rem;
+  }
+
+  .velocity__stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    padding-top: 3rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .velocity__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .velocity__stat-num {
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fbbf24;
+    line-height: 1;
+  }
+
+  .velocity__stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+  }
+
+  @media (max-width: 720px) {
+    .velocity__stats {
+      grid-template-columns: 1fr;
+      gap: 2.25rem;
+    }
+  }
+</style>
