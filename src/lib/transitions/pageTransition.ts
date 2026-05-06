@@ -480,6 +480,12 @@ class TransitionRunner {
   phaseB(dstTheme: Theme): Promise<void> {
     return new Promise((resolve) => {
       const accent = readAccent(dstTheme);
+      // Parse the accent ONCE so the per-frame gradient stops can do a
+      // cheap string concatenation instead of regex + parseInt × 3 each
+      // tick. The prefix string holds everything except the alpha; the
+      // tick appends `${alpha})` per stop.
+      const rgb = parseAccentRgb(accent, this.ctx);
+      const rgbPrefix = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, `;
       const glyph = GLYPHS[dstTheme];
       const start = performance.now();
 
@@ -501,9 +507,9 @@ class TransitionRunner {
         const bloomT = Math.sin(t * Math.PI);
         const radius = size * (1.2 + bloomT * 0.4);
         const bloom = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-        bloom.addColorStop(0, hexAlpha(accent, 0.55 * bloomT));
-        bloom.addColorStop(0.5, hexAlpha(accent, 0.18 * bloomT));
-        bloom.addColorStop(1, hexAlpha(accent, 0));
+        bloom.addColorStop(0, `${rgbPrefix}${0.55 * bloomT})`);
+        bloom.addColorStop(0.5, `${rgbPrefix}${0.18 * bloomT})`);
+        bloom.addColorStop(1, `${rgbPrefix}0)`);
         this.ctx.fillStyle = bloom;
         this.ctx.fillRect(0, 0, w, h);
 
@@ -585,20 +591,86 @@ class TransitionRunner {
   }
 }
 
+interface AccentRgb {
+  r: number;
+  g: number;
+  b: number;
+}
+
+const FALLBACK_RGB: AccentRgb = { r: 255, g: 255, b: 255 };
+
 /**
- * Build an `rgba()` string from a `#rrggbb` accent and an alpha factor.
- * Used for the phase-B bloom gradient where alpha varies but the colour
- * stays constant. Unknown formats fall back to opaque white so the
- * gradient never silently goes invisible.
+ * Parse a CSS colour value to a concrete `{ r, g, b }` triple. Called once
+ * per phase (not per frame) so the bloom gradient's stops can interpolate
+ * alpha cheaply via string concatenation against a pre-built
+ * `rgba(r, g, b, ` prefix — no regex or `parseInt` in the tick loop.
+ *
+ * Fast path handles the hex formats our `--color-*-accent` tokens use
+ * today (`#rrggbb`, `#rgb`). Slow path delegates to the canvas's own
+ * colour normalisation: setting `fillStyle` to any valid CSS colour and
+ * reading it back returns `#rrggbb` or `rgba(r, g, b, a)`. This makes
+ * the function tolerant of future token formats (named colours, `rgb()`,
+ * `oklch()`, …) without code changes here. Returns white on parse
+ * failure so the gradient never silently goes invisible.
  */
-function hexAlpha(hex: string, alpha: number): string {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex);
-  if (!m) return `rgba(255, 255, 255, ${alpha})`;
-  const hexBody = m[1] ?? '';
-  const r = parseInt(hexBody.slice(0, 2), 16);
-  const g = parseInt(hexBody.slice(2, 4), 16);
-  const b = parseInt(hexBody.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+function parseAccentRgb(
+  input: string,
+  ctx: CanvasRenderingContext2D,
+): AccentRgb {
+  const hex6 = /^#([0-9a-f]{6})$/i.exec(input);
+  if (hex6) {
+    const h = hex6[1] ?? '';
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16),
+    };
+  }
+  const hex3 = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(input);
+  if (hex3) {
+    const r = hex3[1] ?? '0';
+    const g = hex3[2] ?? '0';
+    const b = hex3[3] ?? '0';
+    return {
+      r: parseInt(r + r, 16),
+      g: parseInt(g + g, 16),
+      b: parseInt(b + b, 16),
+    };
+  }
+  // Slow path: canvas-delegated normalisation. Invalid input doesn't
+  // update `fillStyle`, so we set a sentinel first and fall back to
+  // white if the read-back still equals it.
+  const SENTINEL = '#010203';
+  const previousFillStyle = ctx.fillStyle;
+  ctx.fillStyle = SENTINEL;
+  ctx.fillStyle = input;
+  const normalised = ctx.fillStyle;
+  // Restore so the parse has no observable side effect on the caller.
+  ctx.fillStyle = previousFillStyle;
+  if (typeof normalised !== 'string' || normalised === SENTINEL) {
+    return FALLBACK_RGB;
+  }
+  const fromHex = /^#([0-9a-f]{6})$/i.exec(normalised);
+  if (fromHex) {
+    const h = fromHex[1] ?? '';
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16),
+    };
+  }
+  const fromRgb =
+    /^rgba?\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)/i.exec(
+      normalised,
+    );
+  if (fromRgb) {
+    return {
+      r: Math.round(parseFloat(fromRgb[1] ?? '0')),
+      g: Math.round(parseFloat(fromRgb[2] ?? '0')),
+      b: Math.round(parseFloat(fromRgb[3] ?? '0')),
+    };
+  }
+  return FALLBACK_RGB;
 }
 
 export function initPageTransitions(): void {

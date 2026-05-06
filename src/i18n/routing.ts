@@ -85,8 +85,10 @@ export function localizePath(path: string, locale: Locale): string {
  */
 export function stripLocale(path: string): string {
   const { pathname, suffix } = splitPath(path);
+  // After normalisation `p` always starts with `/`, and the regex only
+  // ever replaces a `/locale[/...]` prefix with `/`, so the result can
+  // never be the empty string — minimum output is `/`.
   const p = pathname.startsWith('/') ? pathname : `/${pathname}`;
   const stripped = p.replace(LOCALE_PREFIX_REGEX, '/');
-  const normalized = stripped === '' ? '/' : stripped;
-  return `${normalized}${suffix}`;
+  return `${stripped}${suffix}`;
 }
