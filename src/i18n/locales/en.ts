@@ -243,7 +243,7 @@ export const en: Translations = {
     },
     '2026-build': {
       title: 'The 2026 build',
-      body: 'Seven shipped projects, one calendar year. The stack and decisions are the proof — what follows is what they taught me.',
+      body: 'As of May 2026: seven projects shipped in one calendar year. The stack and decisions are the proof — what follows is what they taught me.',
       tags: [
         '7 repos',
         'Real users',
