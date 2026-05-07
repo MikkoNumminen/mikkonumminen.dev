@@ -2,7 +2,7 @@
 import '../../styles/experience-timeline.css';
 import { localizeTimeline } from '../../data/timeline';
 import { asLocale, getTranslations, localizePath } from '../../i18n';
-import LinkifiedText from './LinkifiedText.astro';
+import LinkifiedText from '../LinkifiedText.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);

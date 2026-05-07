@@ -443,18 +443,24 @@
 }
 
 /* Thin connecting thread that spans from this lesson row's marker
-   down to the next row's marker. Positioned on the row container
-   (not the marker) so the height grows with the row's content
-   instead of staying a fixed 24-px stub. The marker sits at
-   `margin-top: 0.45rem` and is 8 px tall + 4 px breathing room, so
-   the thread starts 0.7rem below the row top. It extends 1rem
-   (the row gap) plus another 0.45rem (the next marker's margin-top)
-   below the row's bottom, landing exactly at the next marker. */
+   down through the row gap to the centre of the next row's marker.
+   Positioned on the row container (not the marker) so the height
+   grows with the row's content instead of staying a fixed stub.
+
+   Geometry:
+     top    = 0.45rem (next-marker's margin-top equivalent on this
+              row) + 8 px (this marker's height) + 4 px (breathing
+              room below this marker) → thread starts just below
+              this marker.
+     bottom = -1.45rem (row gap = 1rem) + (next marker's margin-top
+              = 0.45rem) − 4 px (push into the next marker so the
+              thread reads as passing through it, not stopping at
+              its top edge). */
 .timeline__lesson:not(:last-child)::after {
   content: '';
   position: absolute;
   top: calc(0.45rem + 8px + 4px);
-  bottom: -1.45rem;
+  bottom: calc(-1.45rem - 4px);
   left: 7px;
   width: 1px;
   background: linear-gradient(

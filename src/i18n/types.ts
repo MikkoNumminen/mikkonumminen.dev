@@ -5,6 +5,13 @@ export const DEFAULT_LOCALE: Locale = 'en';
 
 export interface TimelineLesson {
   title: string;
+  /**
+   * Single paragraph of body text. Multi-paragraph bodies are not
+   * supported — split into multiple `TimelineLesson` entries instead so
+   * each beat gets its own marker on the sub-timeline. URLs that match
+   * a known project's host (per `data/projects.ts`) auto-link via
+   * `LinkifiedText`.
+   */
   body: string;
 }
 
