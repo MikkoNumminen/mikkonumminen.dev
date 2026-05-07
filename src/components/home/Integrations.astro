@@ -7,9 +7,16 @@ const t = getTranslations(locale);
 const items = t.integrations.items;
 ---
 
-<section class="integrations" aria-label={t.integrations.sectionAria}>
+<section class="integrations has-grain" aria-label={t.integrations.sectionAria}>
+  <span class="ghost-num integrations__ghost" aria-hidden="true">03</span>
+
   <div class="integrations__inner">
-    <p class="integrations__eyebrow" data-reveal>{t.integrations.eyebrow}</p>
+    <p class="integrations__eyebrow eyebrow-marker" data-reveal>
+      <span class="eyebrow-marker__num" aria-hidden="true">/ 03</span>
+      <span class="eyebrow-marker__rule" aria-hidden="true"></span>
+      {t.integrations.eyebrow}
+    </p>
+
     <h2 class="integrations__heading">
       <span data-split data-reveal-chars>{t.integrations.heading}</span>
     </h2>
@@ -17,12 +24,10 @@ const items = t.integrations.items;
     <ul class="integrations__list">
       {
         items.map((item) => (
-          <li class="integrations__item" data-reveal>
-            <div class="integrations__head">
+          <li class="integrations__row" data-reveal>
+            <div class="integrations__row-head">
               <span class="integrations__project">{item.project}</span>
-              <span class="integrations__arrow" aria-hidden="true">
-                →
-              </span>
+              <span class="integrations__connector" aria-hidden="true" />
               <span class="integrations__api">{item.api}</span>
             </div>
             <p class="integrations__body">{item.body}</p>
@@ -36,30 +41,35 @@ const items = t.integrations.items;
 <style>
   .integrations {
     position: relative;
-    padding: clamp(6rem, 14vh, 10rem) 1.5rem;
+    padding: clamp(7rem, 16vh, 11rem) 1.5rem;
+    overflow: hidden;
+  }
+
+  .integrations__ghost {
+    top: 4rem;
+    right: -2vw;
+    color: rgba(251, 191, 36, 0.04);
   }
 
   .integrations__inner {
+    position: relative;
+    z-index: 1;
     max-width: 1100px;
     margin: 0 auto;
   }
 
   .integrations__eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.4em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.55);
     margin: 0 0 1.5rem;
   }
 
   .integrations__heading {
-    font-size: clamp(2rem, 5vw, 3.6rem);
-    line-height: 1.05;
+    font-size: clamp(2.25rem, 6vw, 4.25rem);
+    line-height: 1.02;
     font-weight: 700;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.035em;
     margin: 0 0 4rem;
     color: #fff;
+    max-width: 22ch;
   }
 
   .integrations__heading :global([data-split]) {
@@ -79,72 +89,83 @@ const items = t.integrations.items;
     list-style: none;
     padding: 0;
     margin: 0;
-    display: grid;
-    gap: 1.25rem;
-    grid-template-columns: repeat(2, 1fr);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .integrations__item {
+  .integrations__row {
     position: relative;
-    padding: 1.75rem 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(4px);
-    transition:
-      border-color 0.4s ease,
-      transform 0.4s ease,
-      background 0.4s ease;
+    padding: clamp(1.75rem, 3.5vh, 2.75rem) 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background 0.4s ease;
   }
 
-  .integrations__item:hover {
-    border-color: rgba(128, 168, 255, 0.35);
-    transform: translateY(-3px);
-    background: rgba(128, 168, 255, 0.05);
+  .integrations__row:hover {
+    background: linear-gradient(
+      to right,
+      rgba(251, 191, 36, 0.04),
+      transparent 70%
+    );
   }
 
-  .integrations__head {
+  .integrations__row-head {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 1rem;
     flex-wrap: wrap;
-    margin-bottom: 0.85rem;
+    margin-bottom: 1rem;
   }
 
   .integrations__project {
-    font-size: 1.05rem;
+    font-size: clamp(1.35rem, 2.4vw, 1.75rem);
     font-weight: 600;
     color: #fff;
-    letter-spacing: -0.005em;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
   }
 
-  .integrations__arrow {
-    color: rgba(128, 168, 255, 0.55);
-    font-size: 0.95rem;
-    line-height: 1;
+  .integrations__connector {
+    flex: 1 1 1.5rem;
+    min-width: 1.5rem;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.18),
+      rgba(251, 191, 36, 0.35)
+    );
+    align-self: center;
+    transform: translateY(-1px);
   }
 
   .integrations__api {
     font-family: var(--font-mono);
     font-size: 0.78rem;
     letter-spacing: 0.06em;
-    color: #80a8ff;
-    padding: 0.2rem 0.55rem;
-    border-radius: 6px;
-    background: rgba(128, 168, 255, 0.08);
-    border: 1px solid rgba(128, 168, 255, 0.18);
+    color: #fbbf24;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    white-space: nowrap;
   }
 
   .integrations__body {
-    font-size: 0.95rem;
-    line-height: 1.55;
-    color: rgba(255, 255, 255, 0.62);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.65);
     margin: 0;
+    max-width: 78ch;
   }
 
-  @media (max-width: 860px) {
-    .integrations__list {
-      grid-template-columns: 1fr;
+  @media (max-width: 720px) {
+    .integrations__connector {
+      display: none;
+    }
+    .integrations__row-head {
+      gap: 0.75rem;
+    }
+    .integrations__ghost {
+      right: -6vw;
+      font-size: clamp(7rem, 28vw, 12rem);
     }
   }
 </style>

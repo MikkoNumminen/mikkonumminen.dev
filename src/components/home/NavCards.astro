@@ -33,9 +33,19 @@ const cards = [
 ];
 ---
 
-<section class="nav-cards" data-section-nav-cards aria-label={t.navCards.sectionAria}>
+<section
+  class="nav-cards has-grain"
+  data-section-nav-cards
+  aria-label={t.navCards.sectionAria}
+>
+  <span class="ghost-num nav-cards__ghost" aria-hidden="true">05</span>
+
   <div class="nav-cards__inner">
-    <p class="nav-cards__eyebrow" data-reveal>{t.navCards.eyebrow}</p>
+    <p class="nav-cards__eyebrow eyebrow-marker" data-reveal>
+      <span class="eyebrow-marker__num" aria-hidden="true">/ 05</span>
+      <span class="eyebrow-marker__rule" aria-hidden="true"></span>
+      {t.navCards.eyebrow}
+    </p>
     <h2 class="nav-cards__heading">
       <span data-split data-reveal-chars>{t.navCards.heading}</span>
     </h2>

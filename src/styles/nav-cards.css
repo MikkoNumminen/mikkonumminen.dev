@@ -2,30 +2,35 @@
 
 .nav-cards {
   position: relative;
-  padding: clamp(6rem, 14vh, 10rem) 1.5rem clamp(3rem, 6vh, 4rem);
+  padding: clamp(7rem, 16vh, 11rem) 1.5rem clamp(3rem, 6vh, 4rem);
+  overflow: hidden;
+}
+
+.nav-cards__ghost {
+  top: 4rem;
+  right: -2vw;
+  color: rgba(255, 255, 255, 0.025);
 }
 
 .nav-cards__inner {
+  position: relative;
+  z-index: 1;
   max-width: 1100px;
   margin: 0 auto;
 }
 
 .nav-cards__eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
   margin: 0 0 1.5rem;
 }
 
 .nav-cards__heading {
-  font-size: clamp(2rem, 5vw, 3.6rem);
-  line-height: 1.05;
+  font-size: clamp(2.25rem, 6vw, 4.25rem);
+  line-height: 1.02;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   margin: 0 0 4rem;
   color: #fff;
+  max-width: 18ch;
 }
 
 .nav-cards__heading [data-split] {
