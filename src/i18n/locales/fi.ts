@@ -257,28 +257,28 @@ export const fi: Translations = {
       ],
       lessons: [
         {
-          title: 'Lieventäminen → observointi → arkkitehtuuri, tässä järjestyksessä',
-          body: 'Toukokuussa 2026 Spacepotatiksen tallennuksen korruptiobugi kaatui kehittäjän omaan tiliin — kolme anti-cheat-vahtia kaikki tarkistivat, ettei mikään kasvanut liian NOPEASTI, mutta yksikään ei tarkistanut, oliko jokin pienentynyt. Oikea vastaus ei ollut rakenteellinen uudelleenkirjoitus. Akuutti palvelinpuolen `validateNoRegression` -vahti tunneissa, sen jälkeen forensinen `save_audit` -taulu post-mortemia varten, sitten GitHub Actions -cron joka tarkkailee taulua päivittäin ja avaa GitHub-issuen kun dataa on kertynyt riittävästi syvempää rakenteellista korjausta varten (append-only save-snapshotit). Arkkitehtuuri viimeisenä, ei koskaan ensimmäisenä.',
+          title: 'Tyrehdytä vuoto ensin, suunnittele uusiksi viimeiseksi',
+          body: 'Toukokuussa 2026 Spacepotatikseen iski tallennuksen korruptiobugi. Saman päivän aikana ajoin palvelinpuolen vahdin pysäyttämään kaikki uudet vahingot. Seuraavana päivänä lisäsin audit-taulun, jonka avulla pääsin tutkimaan jokaisen jo tapahtuneen tilanteen. Vasta viikon datan jälkeen aloin suunnitella syvempää arkkitehtonista korjausta. Lieventäminen ostaa aikaa oppia, observointi muuttaa oppimisen faktoiksi ja arkkitehtuuri tulee viimeisenä, ei koskaan ensimmäisenä.',
         },
         {
-          title: 'AI-avusteinen kehitys vaatii versioidut skillit, ei fiilispohjaa',
-          body: 'Spacepotatis toimittaa kymmenen omaa Claude Code -skilliä tuotantoartefakteina — ohjetiedostoja, jotka opettavat agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki). Ne ovat versionhallinnassa, auditoidaan kvartaaleittain (drift skillin ja sen viittaaman koodin välillä on aito bugiluokka — kaksi oikeaa tällaista löydettiin viime auditoinnissa), ja säästävät noin 2,76 miljoonaa tokenia vuodessa. Reproducoituva AI-työnkulku, ei fiilispohjaista koodausta.',
+          title: 'Toistettavuus voittaa nokkeluuden — versioi AI-työnkulku',
+          body: 'Spacepotatis toimittaa kymmenen Claude Code -skilliä repon sisällä olevina tiedostoina. Jokainen on projektikohtainen resepti — "lisää vihollinen", "aja migraatio" — jota tekoäly seuraa askel askeleelta sen sijaan että aloittaisi alusta joka kerta. Ne käyvät koodikatselmoinnin, auditoidaan neljännesvuosittain ja säästivät viime vuonna noin 2,76 miljoonaa tokenia. Koska ne versioituvat koodikannan mukana, ne eivät karkaa synkronista. Fiilispohjalta ei skaalaa, talletetut ohjeet skaalaavat.',
         },
         {
-          title: 'Putkimaiset työkalut voittavat yhden työkalun lukituksen',
-          body: 'AudiobookMaker ei ole "Edge-TTS-sovellus". Kolme moottoria valitsee kompromissin ajonaikaisesti: Edge-TTS nopeisiin pilvi-ääniin verkossa, Piper offline-käyttöön kannettavalla, Chatterbox neuraaliseen laatuun LoRA-ääniklonauksella kun GPU on saatavilla. Sama putki, eri moottorit, käyttäjän valinta. Lukitus yhteen ääniteknologiaan olisi vanhentunut samana vuonna.',
+          title: 'Valitse kompromissi ajonaikaisesti, älä suunnittelupöydällä',
+          body: 'AudiobookMaker ei ole "Edge-TTS-sovellus". Se on yksi putki ja sen alla kolme moottoria: Edge-TTS nopeisiin pilvi-ääniin, Piper offline-läppärille, Chatterbox studiolaatuiseen kerrontaan ja äänikloonaukseen. Käyttäjä valitsee per kirja. Tuotteen lukittautuminen yhteen ääniteknologiaan olisi vanhentunut samana vuonna kun se shippasi.',
         },
         {
-          title: 'Mutaatiotestaus muuttaa "testit menee läpi" -lauseen "testit tekevät työnsä" -muotoon',
-          body: 'HRM ajaa Stryker-mutaatiotestausta jokaisessa PR:ssä PostgreSQL-palvelukontilla. 1828+ testiä 91,9 % kattavuudella on helppo huijata; mutaatiopistemäärä pakottaa testisarjan oikeasti kiinni bugeihin tuomalla keinotekoisia ja varmistamalla testien epäonnistumisen. Kattavuus kertoo, että rivit ajettiin. Mutaatio kertoo, että assertiot tarkoittivat jotain.',
+          title: 'Kattavuus kertoo että rivit ajettiin. Mutaatio kertoo että ne merkitsivät.',
+          body: 'HRM ajaa Stryker-mutaatiotestauksen jokaisessa pull requestissa. Se viskoo tahallaan pieniä bugeja tuotantokoodiin ja kaataa buildin, jos yksikään testi ei huomaa. 91,9 % rivikattavuutta on helppo huijata — mutaatiopistemäärä pakottaa testisarjan oikeasti löytämään bugit, jotka se väittää löytävänsä. Siinä on ero läpimenneen rastin ja hyödyllisen rastin välillä.',
         },
         {
-          title: 'Kun upstream on rikki, korjaa upstream',
-          body: 'AudiobookMakeria rakentaessa törmäsin forward-hook-vuotoon Chatterboxin monikielisessä T3-inference-polussa — moottori romahti tuottamaan vain ~0,4 sekuntia ääntä ensimmäisen kutsun jälkeen, mikä on showstopper kaikessa pitkämuotoisessa työssä. Diagnosoin bugin, kirjoitin korjauksen ja lähetin kaksi pull requestia upstreamille resemble-ai/chatterboxiin (24 000 tähden open-source TTS): #505 ja #510. Avoinna ja yhteisön bumppaamia. Aitoa tuotantotason debuggausta toisen koodikannan päällä, takaisin yhteisölle eikä paikallisesti paikattuna ja unohdettuna.',
+          title: 'Jos bugi asuu upstreamissa, korjauskin kuuluu sinne',
+          body: 'AudiobookMakeria rakentaessa törmäsin muistivuotoon syvällä Chatterboxin monikielisessä päättelypolussa — moottori romahti tuottamaan alle sekunnin äänitiedostoja ensimmäisen kutsun jälkeen. Diagnosoin sen, kirjoitin korjauksen ja lähetin kaksi pull requestia upstreamiin resemble-ai/chatterboxiin (24 000 tähteä GitHubissa): #505 ja #510. Molemmat ovat avoinna ja muiden kontribuuttoreiden bumppaamia. Paikallinen paikkaus olisi ollut laiska vastaus — seuraava bugin kohtaava olisi maksanut saman hinnan uudelleen.',
         },
         {
-          title: 'Päästä päähän omistajuus skaalautuu kun tiimi on yksi',
-          body: 'Skeema-migraatiosta tuotantolokeihin, ei kättelyitä. Postgres + MongoDB HRM:ssä, Postgres Neonissa Spacepotatiksessa, GitHub Actions CI jokaisessa repossa (typecheck, format, lint, sekä Stryker-mutaatiotestaus siellä missä se on relevanttia), Vercel-deploytit web-stackille, allekirjoitettu Windows-asennusohjelma GitHub Releasesin kautta AudiobookMakerille, OpenTelemetry siellä missä se shippaa. SQL → sovellus → CI → deploy → ops, omistettuna yksin. Rajoitus on työ, ei tiimien välinen odotusaika.',
+          title: 'Kun tiimi on yksi, pullonkaula on työ — ei odottelu',
+          body: 'Skeemamigraatiot, sovelluskoodi, CI-putket, Vercel-deployt webille, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry siellä missä se kantaa. Postgres ja MongoDB datapuolella, GitHub Actions joka repossa typecheckiä, formattausta, linttiä ja mutaatiotestausta varten siellä missä se on relevanttia. SQL:stä ihan ops-päähän, omistettuna yksin kaikissa seitsemässä projektissa. Ei luovutuksia tarkoittaa ei jonoja — ainoa työtä hidastava asia on itse työ.',
         },
       ],
     },

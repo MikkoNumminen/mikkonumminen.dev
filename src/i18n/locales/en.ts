@@ -256,28 +256,28 @@ export const en: Translations = {
       ],
       lessons: [
         {
-          title: 'Mitigation → observability → architecture, in that order',
-          body: 'Save corruption hit Spacepotatis\' dev account in May 2026 — three anti-cheat guards all checked things hadn\'t grown too FAST, none checked if something had grown SMALLER. The right response wasn\'t a structural rewrite. Acute `validateNoRegression` server guard within hours, then a forensic `save_audit` table to feed the post-mortem, then a GitHub Actions cron that watches that table daily and opens an Issue when there\'s enough data for the deeper structural fix (append-only save snapshots). Architecture last, never first.',
+          title: 'Stop the bleeding first, redesign last',
+          body: 'In May 2026 a save-corruption bug hit Spacepotatis. The same day I shipped a server-side guard to stop any new damage. The next day I added an audit table to study every occurrence I\'d already missed. Only after a week of real data did I start planning the deeper architectural fix. Mitigation buys the time to learn; observability turns the learning into facts; architecture comes last, never first.',
         },
         {
-          title: 'AI-assisted dev needs versioned skills, not vibes',
-          body: 'Spacepotatis ships ten custom Claude Code skills as production artifacts — instruction files that teach the agent project-specific recipes (add an enemy, ship a database migration, audit the save pipeline). They check into the repo, get audited quarterly (drift between a skill and the code it references is a real bug class — caught two real ones in the last audit), and save ~2.76M tokens/year. Reproducible AI workflow, not vibes coding.',
+          title: 'Reproducible beats clever — version your AI workflow',
+          body: 'Spacepotatis ships ten Claude Code skills as files inside the repo. Each one is a project-specific recipe — "add an enemy", "ship a migration" — that the AI follows step by step instead of figuring it out fresh every call. They go through code review, get audited quarterly, and saved roughly 2.76 million tokens last year. Because they version with the codebase, they don\'t drift out of sync. Vibes don\'t scale; checked-in instructions do.',
         },
         {
-          title: 'Pipeline-shaped tools beat single-tool lock-in',
-          body: 'AudiobookMaker isn\'t "an Edge-TTS app." Three engines pick the trade-off at runtime: Edge-TTS for fast cloud voices when online, Piper for offline-on-laptop, Chatterbox for neural quality with LoRA voice-cloning when a GPU is available. Same pipeline, different engines, user\'s call. Lock-in to any single voice technology would have aged badly within the same year I shipped it.',
+          title: 'Pick the trade-off at runtime, not at the drawing board',
+          body: 'AudiobookMaker isn\'t "an Edge-TTS app." It\'s one pipeline with three engines underneath: Edge-TTS for fast cloud voices, Piper for offline laptops, Chatterbox for studio-quality narration with voice cloning. The user picks per book. Locking the product into any single voice technology would have aged badly inside the same year I shipped it.',
         },
         {
-          title: 'Mutation testing turns "tests pass" into "tests are useful"',
-          body: 'HRM runs Stryker mutation testing on every PR with a PostgreSQL service container. 1828+ tests at 91.9% coverage are easy to game; mutation score forces the suite to actually catch bugs by introducing artificial ones and verifying the tests fail. Coverage tells you the lines ran. Mutation tells you the assertions meant something.',
+          title: 'Coverage says the lines ran. Mutation says they mattered.',
+          body: 'HRM runs Stryker mutation testing on every pull request. It deliberately introduces small bugs into the production code and fails the build if no test notices. 91.9 % line coverage is easy to game — a mutation score forces the suite to actually catch the bugs it claims to. That\'s the gap between a green check and a useful one.',
         },
         {
-          title: 'When the upstream is broken, fix the upstream',
-          body: 'While building AudiobookMaker I hit a forward-hook leak deep in Chatterbox\'s multilingual T3 inference path — the engine collapsed to ~0.4 s of audio after the first call, a showstopper for any long-form work. Diagnosed it, wrote the fix, sent two pull requests upstream to resemble-ai/chatterbox (24k-star open-source TTS): #505 and #510. Open and bumped by community contributors. Real production debugging in someone else\'s codebase, contributed back instead of patched locally and forgotten.',
+          title: 'If the bug lives upstream, the fix belongs upstream',
+          body: 'Building AudiobookMaker I hit a memory leak deep in Chatterbox\'s multilingual inference path — the engine collapsed to under a second of audio after the first call. I diagnosed it, wrote the fix, and sent two pull requests upstream to resemble-ai/chatterbox (24k stars on GitHub): #505 and #510. Both are open and bumped by other contributors. Patching locally would have been the lazy answer; the next person to hit the bug would have re-paid the same cost.',
         },
         {
-          title: 'Full-stack ownership scales when the team is one',
-          body: 'Schema migration to production logs, no handoffs. Postgres + MongoDB at HRM, Postgres on Neon at Spacepotatis, GitHub Actions CI on every repo (typecheck, format, lint, plus Stryker mutation testing where it matters), Vercel deploys for the web stack, signed Windows installer through GitHub Releases for AudiobookMaker, OpenTelemetry where it ships. SQL → app → CI → deploy → ops, owned solo. The constraint is the work, not the wait time between teams.',
+          title: 'When the team is one, the constraint is the work — not the wait',
+          body: 'Schema migrations, app code, CI pipelines, web deploys on Vercel, signed Windows installers through GitHub Releases, OpenTelemetry where it pays off. Postgres and MongoDB on the data side, GitHub Actions on every repo for typecheck, format, lint and mutation testing where it matters. SQL all the way through to ops, owned solo across all seven projects. No handoffs means no queues — the only thing slowing the work down is the work.',
         },
       ],
     },
