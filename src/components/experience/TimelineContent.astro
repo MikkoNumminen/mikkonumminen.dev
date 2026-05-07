@@ -15,11 +15,27 @@ const kindLabel: Record<string, string> = {
   craft: t.experiencePage.kindCraft,
   now: t.experiencePage.kindNow,
 };
+
+// The display-type "ghost" year that sits behind each card uses just the
+// last 4 chars of the year string (so "1998–2022" becomes "2022", "Now"
+// stays "Now") — keeps the ghost column visually consistent across
+// foundation entries that span multiple years and recent year-only entries.
+function ghostYear(year: string): string {
+  const trimmed = year.trim();
+  // Year ranges separated by an en-dash use the upper bound for the ghost
+  // (the year the chapter ends).
+  const dash = trimmed.lastIndexOf('–');
+  if (dash >= 0) return trimmed.slice(dash + 1).trim();
+  return trimmed;
+}
 ---
 
 <div class="timeline" data-timeline>
   <header class="timeline__header">
-    <p class="timeline__eyebrow">{t.experiencePage.eyebrow}</p>
+    <p class="timeline__eyebrow">
+      <span class="timeline__eyebrow-bar" aria-hidden="true"></span>
+      <span class="timeline__eyebrow-text">{t.experiencePage.eyebrow}</span>
+    </p>
     <h1 class="timeline__title">{t.experiencePage.title}</h1>
     <p class="timeline__lede">{t.experiencePage.lede}</p>
     <p class="timeline__hint" aria-hidden="true">
@@ -49,10 +65,16 @@ const kindLabel: Record<string, string> = {
           data-kind={entry.kind}
         >
           <div class="timeline__marker" aria-hidden="true">
-            <span class="timeline__dot" />
+            <span class="timeline__dot">
+              <span class="timeline__dot-ring" />
+              <span class="timeline__dot-ring timeline__dot-ring--late" />
+            </span>
             <span class="timeline__line" />
           </div>
           <div class="timeline__card">
+            <span class="timeline__year-bg" aria-hidden="true">
+              {ghostYear(entry.year)}
+            </span>
             <div class="timeline__meta">
               <span class="timeline__year">{entry.year}</span>
               <span class="timeline__kind">{kindLabel[entry.kind]}</span>
@@ -61,8 +83,8 @@ const kindLabel: Record<string, string> = {
             <p class="timeline__body">{entry.body}</p>
             {entry.tags && (
               <ul class="timeline__tags">
-                {entry.tags.map((t) => (
-                  <li>{t}</li>
+                {entry.tags.map((tag) => (
+                  <li>{tag}</li>
                 ))}
               </ul>
             )}
@@ -74,16 +96,22 @@ const kindLabel: Record<string, string> = {
 
   <footer class="timeline__summit">
     <p>{t.experiencePage.summit}</p>
-    <a href={localizePath('/contact', locale)} class="timeline__cta"
-      >{t.experiencePage.cta}</a
-    >
+    <a href={localizePath('/contact', locale)} class="timeline__cta">
+      <span class="timeline__cta-glow" aria-hidden="true"></span>
+      <span class="timeline__cta-text">{t.experiencePage.cta}</span>
+    </a>
   </footer>
 </div>
 
 <style>
   @keyframes timeline-scroll-bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(8px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(8px);
+    }
   }
 
   .timeline__scroll-circle {

@@ -235,20 +235,23 @@ export const en: Translations = {
       title: 'Becoming a father',
       body: 'Stepped back from full-time work for family. Personal projects kept moving in the background.',
     },
-    hrm: {
-      title: 'HRM',
-      body: 'Built a full-stack HR management system to portfolio standards. 1828+ tests, 91.9% coverage, two databases (PostgreSQL + MongoDB), TOTP 2FA, hash-chained audit log, OpenTelemetry. The architectural backbone for Platform.',
-      tags: ['Next.js', 'PostgreSQL', 'MongoDB', '1828+ tests', '91.9% coverage'],
-    },
-    platform: {
-      title: 'Platform',
-      body: 'Live community platform serving a real WoW guild at vuohiliitto.com. Built as a Turborepo monorepo with HRM as a submodule. Multi-tenant, with gamification, real-time chat, and a Mythic+ team tracker.',
-      tags: ['Real users', 'Multi-tenant', 'Turborepo'],
-    },
     'ai-workflows': {
       title: 'AI-native workflows',
-      body: 'Pair-programming with AI as part of the toolchain. Shipping faster without lowering the bar.',
+      body: 'Pair-programming with AI as part of the toolchain. The working method behind the 2026 build — shipping faster without lowering the bar.',
       tags: ['AI workflows', 'Velocity'],
+    },
+    '2026-build': {
+      title: 'HRM and Platform',
+      body: 'Two production projects shipped this year. HRM — a full-stack HR system at portfolio standards: 1828+ tests at 91.9% coverage, two databases, TOTP 2FA, hash-chained audit log, OpenTelemetry. Platform — a live community at vuohiliitto.com built on HRM as a submodule: multi-tenant, gamified, real-time chat, Mythic+ team tracker via Raider.IO.',
+      tags: [
+        'Next.js',
+        'Turborepo',
+        'PostgreSQL',
+        'MongoDB',
+        '1828+ tests',
+        '91.9% coverage',
+        'Real users',
+      ],
     },
     now: {
       title: 'Looking up',

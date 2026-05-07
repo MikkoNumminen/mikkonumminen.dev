@@ -28,11 +28,15 @@ export interface LocalizedTimelineEntry extends TimelineEntry {
 
 export const timeline: TimelineEntry[] = [
   { id: 'hardware-retail', altitude: 0.08, year: '1998–2022', kind: 'foundation' },
-  { id: 'kasvulabs', altitude: 0.3, year: '2022–2024', kind: 'work' },
-  { id: 'father', altitude: 0.5, year: '2024–2025', kind: 'life' },
-  { id: 'hrm', altitude: 0.68, year: '2026', kind: 'project' },
-  { id: 'platform', altitude: 0.8, year: '2026', kind: 'project' },
-  { id: 'ai-workflows', altitude: 0.9, year: '2026', kind: 'craft' },
+  { id: 'kasvulabs', altitude: 0.28, year: '2022–2024', kind: 'work' },
+  { id: 'father', altitude: 0.48, year: '2024–2025', kind: 'life' },
+  // ai-workflows now precedes the 2026 build because it's the working
+  // method that enabled the year's output, not a parallel craft track.
+  { id: 'ai-workflows', altitude: 0.66, year: '2025–2026', kind: 'craft' },
+  // Single 2026 entry consolidating HRM and Platform — they ship together
+  // (Platform consumes HRM as a submodule), so they read better as one
+  // beat on the timeline than as two adjacent ones.
+  { id: '2026-build', altitude: 0.86, year: '2026', kind: 'project' },
   { id: 'now', altitude: 0.97, year: 'Now', kind: 'now' },
 ];
 

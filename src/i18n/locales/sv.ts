@@ -237,20 +237,23 @@ export const sv: Translations = {
       title: 'Att bli pappa',
       body: 'Tog ett steg tillbaka från heltidsarbete för familjen. Personliga projekt fortsatte i bakgrunden.',
     },
-    hrm: {
-      title: 'HRM',
-      body: 'Byggde ett full-stack HR-hanteringssystem enligt portföljstandard. 1828+ tester, 91,9 % täckning, två databaser (PostgreSQL + MongoDB), TOTP-2FA, hash-kedjad granskningslogg, OpenTelemetry. Den arkitektoniska ryggraden för Platform.',
-      tags: ['Next.js', 'PostgreSQL', 'MongoDB', '1828+ tester', '91,9 % täckning'],
-    },
-    platform: {
-      title: 'Platform',
-      body: 'Live communityplattform som tjänar en riktig WoW-gille på vuohiliitto.com. Byggd som Turborepo-monorepo med HRM som undermodul. Fleranvändarstöd, spelifiering, chatt i realtid och en Mythic+-teamspårare.',
-      tags: ['Riktiga användare', 'Fleranvändarstöd', 'Turborepo'],
-    },
     'ai-workflows': {
       title: 'AI-nativa arbetsflöden',
-      body: 'Parprogrammering med AI som del av verktygskedjan. Snabbare leverans utan att sänka ribban.',
+      body: 'Parprogrammering med AI som del av verktygskedjan. Arbetsmetoden bakom 2026 års bygge — snabbare leverans utan att sänka ribban.',
       tags: ['AI-arbetsflöden', 'Tempo'],
+    },
+    '2026-build': {
+      title: 'HRM och Platform',
+      body: 'Två produktionsprojekt levererade i år. HRM — ett full-stack HR-system enligt portföljstandard: 1828+ tester med 91,9 % täckning, två databaser, TOTP-2FA, hash-kedjad granskningslogg, OpenTelemetry. Platform — en live community på vuohiliitto.com byggd på HRM som undermodul: fleranvändarstöd, spelifiering, chatt i realtid, Mythic+-teamspårare via Raider.IO.',
+      tags: [
+        'Next.js',
+        'Turborepo',
+        'PostgreSQL',
+        'MongoDB',
+        '1828+ tester',
+        '91,9 % täckning',
+        'Riktiga användare',
+      ],
     },
     now: {
       title: 'Blickar uppåt',

@@ -236,20 +236,23 @@ export const fi: Translations = {
       title: 'Isäksi tuleminen',
       body: 'Jäin pois kokopäivätyöstä perhesyistä. Omat projektit etenivät taustalla.',
     },
-    hrm: {
-      title: 'HRM',
-      body: 'Rakensin tuotantotasoisen HR-hallintajärjestelmän portfolioksi. Yli 1828 testiä, 91,9 % kattavuus, kaksi tietokantaa (PostgreSQL + MongoDB), TOTP-kaksivaiheinen tunnistautuminen, hajautusketjutettu auditloki, OpenTelemetry. Arkkitehtuuripohja Platformille.',
-      tags: ['Next.js', 'PostgreSQL', 'MongoDB', '1828+ testiä', '91,9 % kattavuus'],
-    },
-    platform: {
-      title: 'Platform',
-      body: 'Tuotantokäytössä oleva yhteisöalusta oikealle WoW-killalle osoitteessa vuohiliitto.com. Turborepo-monorepo jossa HRM alimoduulina. Monen käyttäjäryhmän tuki, pelillistäminen, reaaliaikainen chatti ja Mythic+ -tiimiseuranta.',
-      tags: ['Oikeita käyttäjiä', 'Monivuokrainen', 'Turborepo'],
-    },
     'ai-workflows': {
       title: 'AI-natiivit työnkulut',
-      body: 'Tekoäly osana työkalupakkia. Nopeammin tuotantoon ilman että rima laskee.',
+      body: 'Tekoäly osana työkalupakkia. Vuoden 2026 rakennusvuoden työtapa — nopeammin tuotantoon ilman että rima laskee.',
       tags: ['AI-työnkulut', 'Vauhti'],
+    },
+    '2026-build': {
+      title: 'HRM ja Platform',
+      body: 'Vuoden kaksi tuotantoprojektia. HRM — tuotantotasoinen full-stack HR-järjestelmä portfolio-laadulla: yli 1828 testiä 91,9 % kattavuudella, kaksi tietokantaa, TOTP-2FA, hajautusketjutettu auditloki, OpenTelemetry. Platform — tuotantokäytössä oleva yhteisöalusta osoitteessa vuohiliitto.com, HRM alimoduulina: monivuokrainen, pelillistetty, reaaliaikainen chatti, Mythic+ -tiimiseuranta Raider.IO-rajapinnalla.',
+      tags: [
+        'Next.js',
+        'Turborepo',
+        'PostgreSQL',
+        'MongoDB',
+        '1828+ testiä',
+        '91,9 % kattavuus',
+        'Oikeita käyttäjiä',
+      ],
     },
     now: {
       title: 'Katse ylöspäin',
