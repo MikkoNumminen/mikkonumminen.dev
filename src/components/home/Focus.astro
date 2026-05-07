@@ -7,9 +7,16 @@ const t = getTranslations(locale);
 const items = t.focus.items;
 ---
 
-<section class="focus" aria-label={t.focus.sectionAria}>
+<section class="focus has-grain" aria-label={t.focus.sectionAria}>
+  <span class="ghost-num focus__ghost" aria-hidden="true">02</span>
+
   <div class="focus__inner">
-    <p class="focus__eyebrow" data-reveal>{t.focus.eyebrow}</p>
+    <p class="focus__eyebrow eyebrow-marker" data-reveal>
+      <span class="eyebrow-marker__num" aria-hidden="true">/ 02</span>
+      <span class="eyebrow-marker__rule" aria-hidden="true"></span>
+      {t.focus.eyebrow}
+    </p>
+
     <h2 class="focus__heading">
       <span data-split data-reveal-chars>{t.focus.heading}</span>
     </h2>
@@ -17,10 +24,15 @@ const items = t.focus.items;
     <ol class="focus__list">
       {
         items.map((item, idx) => (
-          <li class="focus__item" data-reveal>
-            <span class="focus__index">0{idx + 1}</span>
-            <h3 class="focus__title">{item.title}</h3>
-            <p class="focus__body">{item.body}</p>
+          <li class="focus__row" data-reveal>
+            <span class="focus__row-num" aria-hidden="true">
+              0{idx + 1}
+            </span>
+            <div class="focus__row-body">
+              <h3 class="focus__title">{item.title}</h3>
+              <p class="focus__body">{item.body}</p>
+            </div>
+            <span class="focus__row-tick" aria-hidden="true" />
           </li>
         ))
       }
@@ -32,36 +44,34 @@ const items = t.focus.items;
   .focus {
     position: relative;
     padding: clamp(7rem, 16vh, 12rem) 1.5rem;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      rgba(10, 14, 28, 0.6) 30%,
-      rgba(10, 14, 28, 0.6) 70%,
-      transparent
-    );
+    overflow: hidden;
+  }
+
+  .focus__ghost {
+    top: 5rem;
+    left: -3vw;
+    color: rgba(128, 168, 255, 0.04);
   }
 
   .focus__inner {
+    position: relative;
+    z-index: 1;
     max-width: 1100px;
     margin: 0 auto;
   }
 
   .focus__eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.4em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.55);
     margin: 0 0 1.5rem;
   }
 
   .focus__heading {
-    font-size: clamp(2rem, 5vw, 3.6rem);
-    line-height: 1.05;
+    font-size: clamp(2.25rem, 6vw, 4.25rem);
+    line-height: 1.02;
     font-weight: 700;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.035em;
     margin: 0 0 4rem;
     color: #fff;
+    max-width: 22ch;
   }
 
   .focus__heading :global([data-split]) {
@@ -81,57 +91,104 @@ const items = t.focus.items;
     list-style: none;
     padding: 0;
     margin: 0;
-    display: grid;
-    gap: 1.25rem;
-    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .focus__item {
+  .focus__row {
     position: relative;
-    padding: 2rem 1.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(4px);
-    transition:
-      border-color 0.4s ease,
-      transform 0.4s ease,
-      background 0.4s ease;
+    display: grid;
+    grid-template-columns: minmax(8rem, 14rem) 1fr auto;
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: baseline;
+    padding: clamp(2rem, 4vh, 3rem) 0.5rem clamp(2rem, 4vh, 3rem);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background 0.4s ease;
   }
 
-  .focus__item:hover {
-    border-color: rgba(128, 168, 255, 0.35);
-    transform: translateY(-4px);
-    background: rgba(128, 168, 255, 0.05);
+  .focus__row:hover {
+    background: linear-gradient(
+      to right,
+      rgba(128, 168, 255, 0.04),
+      transparent 70%
+    );
   }
 
-  .focus__index {
-    display: inline-block;
+  .focus__row-num {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.2em;
-    color: #80a8ff;
-    margin-bottom: 1.5rem;
+    font-size: clamp(3.5rem, 9vw, 6.5rem);
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    line-height: 0.85;
+    color: rgba(128, 168, 255, 0.18);
+    transition: color 0.4s ease;
+    align-self: center;
+  }
+
+  .focus__row:hover .focus__row-num {
+    color: rgba(128, 168, 255, 0.55);
+  }
+
+  .focus__row-body {
+    align-self: center;
+    max-width: 56ch;
   }
 
   .focus__title {
-    font-size: 1.35rem;
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
     color: #fff;
-    margin: 0 0 0.75rem;
+    margin: 0 0 0.85rem;
+    line-height: 1.2;
   }
 
   .focus__body {
-    font-size: 0.95rem;
-    line-height: 1.55;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.65);
     margin: 0;
   }
 
-  @media (max-width: 860px) {
-    .focus__list {
-      grid-template-columns: 1fr;
+  .focus__row-tick {
+    align-self: center;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 1px solid rgba(128, 168, 255, 0.4);
+    border-top: 1px solid rgba(128, 168, 255, 0.4);
+    transform: rotate(45deg);
+    opacity: 0.4;
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease;
+  }
+
+  .focus__row:hover .focus__row-tick {
+    transform: translateX(6px) rotate(45deg);
+    opacity: 1;
+  }
+
+  @media (max-width: 720px) {
+    .focus__row {
+      grid-template-columns: auto 1fr;
+      gap: 1.25rem 1.5rem;
+      align-items: start;
+    }
+
+    .focus__row-num {
+      font-size: clamp(2.5rem, 12vw, 4rem);
+      grid-row: 1;
+    }
+
+    .focus__row-body {
+      grid-row: 1 / 3;
+      grid-column: 2;
+    }
+
+    .focus__row-tick {
+      display: none;
+    }
+
+    .focus__ghost {
+      left: -8vw;
+      font-size: clamp(7rem, 30vw, 12rem);
     }
   }
 </style>

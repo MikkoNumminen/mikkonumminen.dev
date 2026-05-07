@@ -39,6 +39,20 @@ const t = getTranslations(locale);
       <circle cx="7" cy="7" r="1.5" fill="currentColor" class="hero__scroll-circle"></circle>
     </svg>
   </div>
+
+  <div class="hero__corners" aria-hidden="true">
+    <span class="hero__corner hero__corner--tl">
+      <span class="hero__corner-num">/ 00</span>
+      <span class="hero__corner-rule"></span>
+      <span>cover</span>
+    </span>
+    <span class="hero__corner hero__corner--tr">
+      <span class="hero__corner-num">60° N · 24° E</span>
+    </span>
+    <span class="hero__corner hero__corner--br">
+      <span class="hero__corner-num">vol. 26</span>
+    </span>
+  </div>
 </section>
 
 <style>
@@ -162,6 +176,64 @@ const t = getTranslations(locale);
   @media (prefers-reduced-motion: reduce) {
     .hero__scroll-circle {
       animation: none;
+    }
+  }
+
+  /* Editorial corner markers — frame the hero like a magazine cover.
+     Hidden on small screens where the eyebrow already does this work. */
+  .hero__corners {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .hero__corner {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    padding: 0.4rem 0;
+  }
+
+  .hero__corner-num {
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.14em;
+  }
+
+  .hero__corner-rule {
+    width: 1.5rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.45;
+  }
+
+  /* Aligned with the centered .hero__eyebrow at top:7.5rem so the three
+     labels (corner-left · eyebrow · corner-right) sit on a single
+     editorial axis. */
+  .hero__corner--tl {
+    top: 7.5rem;
+    left: 2rem;
+  }
+
+  .hero__corner--tr {
+    top: 7.5rem;
+    right: 2rem;
+  }
+
+  .hero__corner--br {
+    bottom: 2.5rem;
+    right: 2rem;
+  }
+
+  @media (max-width: 860px) {
+    .hero__corners {
+      display: none;
     }
   }
 </style>
