@@ -374,7 +374,8 @@
 .timeline__body a:focus-visible {
   text-decoration-color: var(--accent);
   text-decoration-thickness: 2px;
-  outline: none;
+  /* Keep the global :focus-visible outline (defined in global.css) so
+     keyboard users get a louder signal than mouse hover. */
 }
 
 .timeline__tags {

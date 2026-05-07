@@ -44,6 +44,14 @@ for (const p of projects) {
   }
 }
 
+// Hoisted: sorted host list is invariant per build, so compute it once.
+// Longest hosts matched first so a host that's a prefix of another
+// (theoretical: `example.com` vs `sub.example.com`) doesn't win when
+// the longer one is present.
+const PROJECT_HOSTS = Object.keys(projectUrlsByHost).sort(
+  (a, b) => b.length - a.length,
+);
+
 type BodyPart =
   | { type: 'text'; value: string }
   | { type: 'link'; value: string; href: string };
@@ -53,20 +61,15 @@ type BodyPart =
  * A link span is created whenever the body contains the bare host of
  * a known project (e.g. `spacepotatis.vercel.app`); the host is the
  * visible text and the project's full `liveUrl` becomes the href.
- *
- * Linear scan, longest hosts matched first so a host that's a prefix
- * of another (theoretical: example.com vs sub.example.com) doesn't
- * win when the longer one is present.
  */
 function linkifyBody(body: string): BodyPart[] {
-  const hosts = Object.keys(projectUrlsByHost).sort((a, b) => b.length - a.length);
-  if (hosts.length === 0) return [{ type: 'text', value: body }];
+  if (PROJECT_HOSTS.length === 0) return [{ type: 'text', value: body }];
 
   const parts: BodyPart[] = [];
   let cursor = 0;
   while (cursor < body.length) {
     let earliest: { host: string; idx: number } | null = null;
-    for (const host of hosts) {
+    for (const host of PROJECT_HOSTS) {
       const idx = body.indexOf(host, cursor);
       if (idx < 0) continue;
       if (!earliest || idx < earliest.idx) earliest = { host, idx };
@@ -78,14 +81,13 @@ function linkifyBody(body: string): BodyPart[] {
     if (earliest.idx > cursor) {
       parts.push({ type: 'text', value: body.slice(cursor, earliest.idx) });
     }
-    const href = projectUrlsByHost[earliest.host];
-    if (href) {
-      parts.push({ type: 'link', value: earliest.host, href });
-    } else {
-      // Should be unreachable since `host` came from `projectUrlsByHost`
-      // keys, but keep the path total under noUncheckedIndexedAccess.
-      parts.push({ type: 'text', value: earliest.host });
-    }
+    // `host` came directly from `Object.keys(projectUrlsByHost)`, so the
+    // lookup is sound — the `!` satisfies noUncheckedIndexedAccess.
+    parts.push({
+      type: 'link',
+      value: earliest.host,
+      href: projectUrlsByHost[earliest.host]!,
+    });
     cursor = earliest.idx + earliest.host.length;
   }
   return parts;
