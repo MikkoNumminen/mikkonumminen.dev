@@ -245,7 +245,7 @@ export const sv: Translations = {
     },
     '2026-build': {
       title: '2026 — byggåret',
-      body: 'I maj 2026: sju projekt levererade på ett kalenderår. Stacken och besluten är beviset — det som följer är vad de lärde mig.',
+      body: 'I maj 2026: sju full-stack-projekt levererade solo på tolv månader. Riktiga användare, riktig drift, fullt ägarskap från schema till deploy.',
       tags: [
         '7 repos',
         'Riktiga användare',
@@ -258,28 +258,28 @@ export const sv: Translations = {
       ],
       lessons: [
         {
-          title: 'Stoppa blödningen. Tänk. Bygg om.',
-          body: 'Min första instinkt var alltid: se ett strukturellt problem, skriv en strukturell fix, leverera den eleganta lösningen, ta en bugning. Sedan i maj 2026 träffade en sparbug Spacepotatis och jag fick lära mig ordningen på det jobbiga sättet. Serversideguard samma dag, för att stoppa nya skador. Audit-tabell dagen efter, för att förvandla smärtan till fakta jag faktiskt kunde läsa. Arkitektonisk fix först efter en vecka av riktig data, när fakta hade fått en form. Instinkten som satt sig: mitigera först, observera sedan, arkitektur sist — varje gång, i den ordningen. Att hoppa direkt till "rita om" är att designa runt sin bästa gissning, och din bästa gissning brukar vara fel på en tisdag.',
+          title: 'Triage före omdesign',
+          body: 'När save-korruption slog till i Spacepotatis i maj 2026: serversideguard samma dag, audit-tabell dagen efter, arkitektonisk fix först efter en vecka av riktig data. Mitigera → observera → arkitektur.',
         },
         {
-          title: 'Sluta uppfinna samma konversation om och om igen',
-          body: 'I början med Claude Code gick jag in i varje session som om det var min första arbetsdag — "hej, lägg till en fiende här, här är hela kodbasen, lycka till." Till slut märkte jag att jag betalade för samma uppstartsstycke fyrtio gånger i veckan. Så jag skrev ner recepten. Spacepotatis har nu tio Claude Code-skills incheckade i repot — steg-för-steg-jobb som "lägg till en fiende" eller "kör en migration" som AI:n följer istället för att räkna ut det från noll varje gång. De går genom kodgranskning, auditeras kvartalsvis och sparade under sitt första år cirka 2,76 miljoner token. Det som växte är hur jag arbetar med AI: det är inte ett chattfönster jag skriker in i, det är en bidragsgivare vars instruktioner bor tillsammans med koden de rör.',
+          title: 'AI-flöde som incheckad kod',
+          body: 'Spacepotatis levererar tio Claude Code-skills i repot — kodgranskade, auditerade kvartalsvis. ~2,76M token sparat under första året.',
         },
         {
-          title: 'En produkt, tre motorer, utan ånger',
-          body: 'AudiobookMaker föddes som "ett Edge-TTS-program". Det dröjde inte länge innan varje röstteknologi jag i tysthet hade satsat emot antingen kom ikapp eller lappade fältet, och jag gav upp försöket att gissa vinnaren. AudiobookMaker är idag en pipeline med tre motorer under: Edge-TTS för snabba molnröster, Piper för offline-laptop, Chatterbox för studiokvalitet med röstkloning. Användaren väljer per bok. När marken rör sig måste produkten stå över den, inte på den. Att välja favoriter vid ritbordet är hur man levererar något som åldras ut innan lanseringstweeten.',
+          title: 'Ingen verktygsinlåsning',
+          body: 'AudiobookMaker kör tre TTS-motorer under en pipeline — Edge-TTS, Piper, Chatterbox. Användaren väljer per bok.',
         },
         {
-          title: 'Coverage är en känsla. Mutation är ett faktum.',
-          body: 'Länge var en grön testsvit något jag litade på på fläcken — på samma sätt som jag litar på en "varning: varmt"-etikett på en kaffekopp. Sedan lade jag till Stryker i HRM. Mutationstestning petar in små buggar i produktionskoden på varje pull request och får buildet att falla om inget test fångar dem. Den första körningen var ödmjukande: en hel del av mina "godkända" assertions visade sig vara dekorativa — de körde raderna och gick hem. 91,9 % radtäckning betyder att raderna kördes. En mutationspoäng betyder att assertions faktiskt betydde något. Jag läser de två som olika signaler nu, och är mycket mindre nöjd med mig själv när jag ser en grön bock.',
+          title: 'Mutationstestning > coverage',
+          body: 'HRM kör Stryker på varje PR. 91,9 % radtäckning betyder att raderna kördes; mutationspoäng betyder att assertions faktiskt fångar buggar.',
         },
         {
-          title: 'Laga läckan i grannens källare',
-          body: 'När jag byggde AudiobookMaker stötte jag på en minnesläcka djupt i Chatterboxs flerspråkiga inferensbana — motorn kollapsade till under en sekunds ljud efter första anropet, värdelös för något längre än en tweet. Förr hade jag patchat det lokalt, muttrat om det i en vecka och gått vidare. Den här gången satt jag med det: läste banan, hittade orsaken, skrev fixen och skickade två pull requests uppströms till resemble-ai/chatterbox, ett brett använt open-source-TTS-bibliotek — #505 och #510, båda öppna och bumpade av andra bidragsgivare. Att skriva fixen var den enkla halvan. Det som växte var att kunna läsa någon annans kodbas tillräckligt bra för att fixa den utan att gå sönder, och att se bidragandet tillbaka som det billiga alternativet, inte extrapoäng. Den lata patchen hade varit den dyra för alla som träffade buggen efter mig.',
+          title: 'Fixa uppströms, inte lokalt',
+          body: 'Diagnostiserade en minnesläcka djupt i Chatterboxs inferensbana; skickade två PR:ar uppströms till resemble-ai/chatterbox (#505, #510), båda öppna och bumpade av andra bidragsgivare.',
         },
         {
-          title: 'Solo betyder att det enda som väntar är arbetet',
-          body: 'Över alla sju projekt det här året ägde jag arbetet hela vägen. Schemamigreringar på måndagen, applikationskod på tisdagen, CI-pipelines på onsdagen, signerade Windows-installerare via GitHub Releases på torsdagen, OpenTelemetry på fredagen, helgledigt (lögn). Postgres och MongoDB på datasidan, GitHub Actions i varje repo för typecheck, format, lint och mutationstestning där det är relevant, Vercel för webb-deployer. SQL hela vägen till ops. Det som växte är inte bredd som en checklista — det är lugnet i att kunna välja rätt verktyg på varje lager för att jag har varit tvungen att leva på varje lager. När teamet är ett är flaskhalsen arbetet — inte väntetiden.',
+          title: 'Solo full-stack, inga köer',
+          body: 'SQL, app-kod, CI, Vercel-deployer, signerade Windows-installerare via GitHub Releases, OpenTelemetry — ägt från ände till ände över alla sju projekt.',
         },
       ],
     },
