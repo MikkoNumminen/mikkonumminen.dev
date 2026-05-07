@@ -21,11 +21,13 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
+    "@sentry/astro": "^10.51.0",
     "@tailwindcss/vite": "^4.2.2",
     "astro": "^5.18.1",
     "gsap": "^3.14.2",
     "tailwindcss": "^4.2.2",
-    "three": "^0.183.2"
+    "three": "^0.183.2",
+    "web-vitals": "^5.2.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
