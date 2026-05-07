@@ -48,7 +48,7 @@ for (const p of projects) {
 // Longest hosts matched first so a host that's a prefix of another
 // (theoretical: `example.com` vs `sub.example.com`) doesn't win when
 // the longer one is present.
-const PROJECT_HOSTS = Object.keys(projectUrlsByHost).sort(
+const PROJECT_HOSTS: readonly string[] = Object.keys(projectUrlsByHost).sort(
   (a, b) => b.length - a.length,
 );
 

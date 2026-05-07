@@ -378,6 +378,16 @@
      keyboard users get a louder signal than mouse hover. */
 }
 
+/* Align the focus outline to the entry's per-kind accent — the global
+   rule colours every focus ring with the page-level
+   `--color-experience-accent`, but each timeline entry has its own
+   `--accent`. Without this override the underline (per-kind) and the
+   outline ring (page-level) use different shades on the same focused
+   link. */
+.timeline__body a:focus-visible {
+  outline-color: var(--accent);
+}
+
 .timeline__tags {
   position: relative;
   list-style: none;
