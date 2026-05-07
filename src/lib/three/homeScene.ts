@@ -137,11 +137,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   scene.add(galaxy.group);
 
   // Galaxy B is an elliptical (no spiral arms) so the two read as visibly
-  // different shapes when they pass through each other.
+  // different shapes when they pass through each other. Color stays in
+  // the same blue family as Galaxy A — galaxies aren't pink.
   const galaxyB: GalaxyLayerHandle = buildGalaxyLayer({
     shape: 'elliptical',
     starCount: 480,
-    color: 0xc080ff,
+    color: 0xa0c0ff,
     starSize: 0.075,
     semiAxes: [3.4, 2.6, 2.2],
     // Position is updated each frame; this is just the initial spawn.
@@ -150,9 +151,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   });
   scene.add(galaxyB.group);
 
-  // ── Collision sparks (galaxy-on-galaxy fireworks) ────────────────────
+  // ── Collision flash sprites ──────────────────────────────────────────
+  // Bright additive sprites that scale up and fade out at the moment of
+  // each galaxy close-approach event. Replaces the earlier particle
+  // scatter — reads as a clean "flash of light" matching the text rim
+  // flashes, not a debris explosion.
   const sparks: CollisionSparksHandle = buildCollisionSparks();
-  scene.add(sparks.points);
+  scene.add(sparks.group);
 
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
@@ -214,7 +219,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   let lastSparkSpawnAt = -1;
   let collisionFlashEnergy = 0;
   const COLLISION_THRESHOLD = 3.6;
-  const SPARK_COOLDOWN = 0.18;
+  // Each flash is brief but impactful; pacing it at ~0.55 s gives 2-3
+  // distinct flashes per close-approach pass, mirroring the cadence of
+  // the title rim flashes during entrance.
+  const SPARK_COOLDOWN = 0.55;
 
   const onPointerMove = (e: PointerEvent): void => {
     targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -327,7 +335,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
           galaxyB.group.position.x + dx * t,
           galaxyB.group.position.y + dy * t,
           galaxyB.group.position.z + dz * t,
-          14 + Math.floor(Math.random() * 9),
         );
         lastSparkSpawnAt = elapsed;
         // Also pulse the collision flash light for an extra-bright moment.
@@ -434,7 +441,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         horizon.mesh,
         galaxy.group,
         galaxyB.group,
-        sparks.points,
+        sparks.group,
         meteors.group,
       );
       ambient.dispose();

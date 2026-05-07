@@ -1,48 +1,42 @@
 import {
   AdditiveBlending,
-  BufferAttribute,
-  BufferGeometry,
   CanvasTexture,
-  Points,
-  PointsMaterial,
+  Group,
+  Sprite,
+  SpriteMaterial,
   type Texture,
 } from 'three';
 
 export interface CollisionSparksHandle {
-  points: Points;
-  geometry: BufferGeometry;
-  material: PointsMaterial;
-  texture: Texture;
-  /** Activate `count` sparks emanating from the given world position. */
+  group: Group;
+  /** Activate one flash at the given world position. `count` is ignored. */
   spawn: (x: number, y: number, z: number, count?: number) => void;
-  /** Advance active sparks by `delta` seconds. */
+  /** Advance active flashes by `delta` seconds. */
   tick: (delta: number) => void;
   dispose: () => void;
 }
 
-const POOL_SIZE = 140;
-const OFFSCREEN = 9999;
+const POOL_SIZE = 4;
+const LIFETIME = 0.45;
+const SCALE_START = 1.6;
+const SCALE_END = 6.5;
 
-interface Spark {
+interface FlashState {
+  sprite: Sprite;
+  material: SpriteMaterial;
   active: boolean;
   age: number;
-  lifetime: number;
-  startX: number;
-  startY: number;
-  startZ: number;
-  velX: number;
-  velY: number;
-  velZ: number;
 }
 
-function makeSparkTexture(): Texture {
-  const size = 64;
+function makeFlashTexture(): Texture {
+  const size = 128;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('makeSparkTexture: 2D context unavailable');
-  const gradient = ctx.createRadialGradient(
+  if (!ctx) throw new Error('makeFlashTexture: 2D context unavailable');
+
+  const grad = ctx.createRadialGradient(
     size / 2,
     size / 2,
     0,
@@ -50,160 +44,91 @@ function makeSparkTexture(): Texture {
     size / 2,
     size / 2,
   );
-  gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.55)');
-  gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.12)');
-  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  ctx.fillStyle = gradient;
+  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  grad.addColorStop(0.14, 'rgba(232, 245, 255, 0.88)');
+  grad.addColorStop(0.4, 'rgba(180, 215, 255, 0.32)');
+  grad.addColorStop(0.75, 'rgba(140, 180, 255, 0.07)');
+  grad.addColorStop(1, 'rgba(140, 180, 255, 0)');
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
+
   const texture = new CanvasTexture(canvas);
   texture.needsUpdate = true;
   return texture;
 }
 
 /**
- * Pool of additive-blended sparks used for the periodic galaxy-collision
- * fireworks. `spawn(x, y, z, count)` activates up to `count` idle sparks
- * at the given position with random outward velocities; each spark fades
- * via per-vertex color brightness (additive blending makes black = no
- * contribution, so RGB encodes alpha for free).
+ * Pool of camera-facing flash sprites used for galaxy collisions. Each
+ * spawn activates an idle sprite at a world position; the sprite scales
+ * up from a small starting size to a much larger end size while its
+ * opacity ramps in fast and then fades out — the visual is a brief
+ * bright flash of light, not a debris particle scatter. Mirrors the
+ * stroboscopic "bright moment, then gone" feel of the title rim flashes.
  *
- * One pool serves all explosions — caller drives `tick(delta)` from the
- * main animation loop.
+ * Pool size of 4 lets close-spaced collisions overlap without one flash
+ * cancelling the next; once active, the per-flash lifetime is short
+ * (~0.45 s) so the pool turns over quickly.
  */
 export function buildCollisionSparks(): CollisionSparksHandle {
-  const positions = new Float32Array(POOL_SIZE * 3);
-  const colors = new Float32Array(POOL_SIZE * 3);
-  const sparks: Spark[] = [];
+  const group = new Group();
+  const flashes: FlashState[] = [];
+  const texture = makeFlashTexture();
 
   for (let i = 0; i < POOL_SIZE; i++) {
-    const i3 = i * 3;
-    positions[i3] = OFFSCREEN;
-    positions[i3 + 1] = OFFSCREEN;
-    positions[i3 + 2] = OFFSCREEN;
-    colors[i3] = 0;
-    colors[i3 + 1] = 0;
-    colors[i3 + 2] = 0;
-    sparks.push({
-      active: false,
-      age: 0,
-      lifetime: 0,
-      startX: 0,
-      startY: 0,
-      startZ: 0,
-      velX: 0,
-      velY: 0,
-      velZ: 0,
+    const material = new SpriteMaterial({
+      map: texture,
+      blending: AdditiveBlending,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
     });
+    const sprite = new Sprite(material);
+    sprite.scale.setScalar(SCALE_START);
+    sprite.visible = false;
+    group.add(sprite);
+    flashes.push({ sprite, material, active: false, age: 0 });
   }
 
-  const geometry = new BufferGeometry();
-  const positionsAttr = new BufferAttribute(positions, 3);
-  const colorsAttr = new BufferAttribute(colors, 3);
-  geometry.setAttribute('position', positionsAttr);
-  geometry.setAttribute('color', colorsAttr);
-
-  const texture = makeSparkTexture();
-  const material = new PointsMaterial({
-    size: 1.05,
-    sizeAttenuation: true,
-    transparent: true,
-    opacity: 1,
-    depthWrite: false,
-    blending: AdditiveBlending,
-    map: texture,
-    vertexColors: true,
-  });
-
-  const points = new Points(geometry, material);
-
-  const spawn = (x: number, y: number, z: number, count = 10): void => {
-    let spawned = 0;
-    for (let i = 0; i < POOL_SIZE && spawned < count; i++) {
-      const spark = sparks[i]!;
-      if (spark.active) continue;
-
-      spark.active = true;
-      spark.age = 0;
-      spark.lifetime = 0.7 + Math.random() * 0.85;
-      spark.startX = x;
-      spark.startY = y;
-      spark.startZ = z;
-
-      // Random outward 3D velocity — uniform sphere via cos/sin spherical.
-      const speed = 2.0 + Math.random() * 3.5;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      spark.velX = Math.sin(phi) * Math.cos(theta) * speed;
-      spark.velY = Math.cos(phi) * speed;
-      spark.velZ = Math.sin(phi) * Math.sin(theta) * speed;
-
-      const i3 = i * 3;
-      positions[i3] = x;
-      positions[i3 + 1] = y;
-      positions[i3 + 2] = z;
-      // Slight blue-white spark tint for the sci-fi vibe.
-      colors[i3] = 0.95;
-      colors[i3 + 1] = 0.98;
-      colors[i3 + 2] = 1.0;
-      spawned++;
-    }
-    positionsAttr.needsUpdate = true;
-    colorsAttr.needsUpdate = true;
+  const spawn = (x: number, y: number, z: number): void => {
+    const idle = flashes.find((f) => !f.active);
+    if (!idle) return;
+    idle.sprite.position.set(x, y, z);
+    idle.sprite.scale.setScalar(SCALE_START);
+    idle.sprite.visible = true;
+    idle.material.opacity = 0;
+    idle.active = true;
+    idle.age = 0;
   };
 
   const tick = (delta: number): void => {
-    let dirty = false;
-    for (let i = 0; i < POOL_SIZE; i++) {
-      const spark = sparks[i]!;
-      if (!spark.active) continue;
-
-      spark.age += delta;
-      const i3 = i * 3;
-
-      if (spark.age >= spark.lifetime) {
-        spark.active = false;
-        positions[i3] = OFFSCREEN;
-        positions[i3 + 1] = OFFSCREEN;
-        positions[i3 + 2] = OFFSCREEN;
-        colors[i3] = 0;
-        colors[i3 + 1] = 0;
-        colors[i3 + 2] = 0;
-        dirty = true;
+    for (const flash of flashes) {
+      if (!flash.active) continue;
+      flash.age += delta;
+      if (flash.age >= LIFETIME) {
+        flash.active = false;
+        flash.sprite.visible = false;
+        flash.material.opacity = 0;
         continue;
       }
-
-      positions[i3] = spark.startX + spark.velX * spark.age;
-      positions[i3 + 1] = spark.startY + spark.velY * spark.age;
-      positions[i3 + 2] = spark.startZ + spark.velZ * spark.age;
-
-      // Brightness envelope: rapid ramp-up over the first 12 % then a long
-      // fade. With additive blending, low brightness = low contribution,
-      // so this drives the per-spark alpha for free.
-      const lifeT = spark.age / spark.lifetime;
-      const alpha =
-        lifeT < 0.12 ? lifeT / 0.12 : Math.pow(1 - (lifeT - 0.12) / 0.88, 1.4);
-      colors[i3] = 0.95 * alpha;
-      colors[i3 + 1] = 0.98 * alpha;
-      colors[i3 + 2] = 1.0 * alpha;
-      dirty = true;
-    }
-    if (dirty) {
-      positionsAttr.needsUpdate = true;
-      colorsAttr.needsUpdate = true;
+      const t = flash.age / LIFETIME;
+      // Scale grows fast at first then plateaus — sqrt curve gives a
+      // satisfying "blooms outward" feel without overshooting.
+      flash.sprite.scale.setScalar(
+        SCALE_START + Math.sqrt(t) * (SCALE_END - SCALE_START),
+      );
+      // Opacity: ramp in over the first 8 % then fade out with a power
+      // curve so the flash is briefly fully-bright then dies smoothly.
+      const alpha = t < 0.08 ? t / 0.08 : Math.pow(1 - (t - 0.08) / 0.92, 1.5);
+      flash.material.opacity = alpha;
     }
   };
 
   return {
-    points,
-    geometry,
-    material,
-    texture,
+    group,
     spawn,
     tick,
     dispose: (): void => {
-      geometry.dispose();
-      material.dispose();
+      for (const f of flashes) f.material.dispose();
       texture.dispose();
     },
   };
