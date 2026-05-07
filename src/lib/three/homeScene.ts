@@ -77,10 +77,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   scene.add(keyLight);
 
   // Rim is animated on a slow orbit in the tick loop. Steady intensity
-  // is 70 % lower than before (0.045) so the ongoing sweep is essentially
-  // invisible — the title gets a clear bright sequence from the flash
-  // peaks below, then the chrome quiets right down.
-  const RIM_BASE_INTENSITY = 0.045;
+  // After the entrance, the rim only fires when galaxies collide — no
+  // random sweep, no idle baseline. The chrome's resting look is carried
+  // by ambient + fill + envMap; the rim is reserved for synced events.
+  const RIM_BASE_INTENSITY = 0;
   const rimLight = new DirectionalLight(0xa6c2ff, RIM_BASE_INTENSITY);
   rimLight.position.set(-8, -2, -4);
   scene.add(rimLight);
