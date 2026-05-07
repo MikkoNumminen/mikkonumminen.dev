@@ -236,20 +236,23 @@ export const fi: Translations = {
       title: 'Isäksi tuleminen',
       body: 'Jäin pois kokopäivätyöstä perhesyistä. Omat projektit etenivät taustalla.',
     },
-    hrm: {
-      title: 'HRM',
-      body: 'Rakensin tuotantotasoisen HR-hallintajärjestelmän portfolioksi. Yli 1828 testiä, 91,9 % kattavuus, kaksi tietokantaa (PostgreSQL + MongoDB), TOTP-kaksivaiheinen tunnistautuminen, hajautusketjutettu auditloki, OpenTelemetry. Arkkitehtuuripohja Platformille.',
-      tags: ['Next.js', 'PostgreSQL', 'MongoDB', '1828+ testiä', '91,9 % kattavuus'],
-    },
-    platform: {
-      title: 'Platform',
-      body: 'Tuotantokäytössä oleva yhteisöalusta oikealle WoW-killalle osoitteessa vuohiliitto.com. Turborepo-monorepo jossa HRM alimoduulina. Monen käyttäjäryhmän tuki, pelillistäminen, reaaliaikainen chatti ja Mythic+ -tiimiseuranta.',
-      tags: ['Oikeita käyttäjiä', 'Monivuokrainen', 'Turborepo'],
-    },
     'ai-workflows': {
       title: 'AI-natiivit työnkulut',
-      body: 'Tekoäly osana työkalupakkia. Nopeammin tuotantoon ilman että rima laskee.',
+      body: 'Tekoäly osana työkalupakkia. Vuoden 2026 rakennusvuoden työtapa — nopeammin tuotantoon ilman että rima laskee.',
       tags: ['AI-työnkulut', 'Vauhti'],
+    },
+    '2026-build': {
+      title: '2026 — rakennusvuosi',
+      body: 'Seitsemän tuotantoon vietyä projektia. HRM — portfolio-tasoinen HR-järjestelmä (yli 1828 testiä 91,9 % kattavuudella, kaksi tietokantaa, TOTP-2FA, hajautusketjutettu auditloki) — syöttää Platformia, tuotantokäytössä olevaa yhteisöalustaa osoitteessa vuohiliitto.com, joka rakentuu HRM:n päälle alimoduulina: pelillistäminen, reaaliaikainen chatti, Mythic+ -tiimiseuranta Raider.IO-rajapinnalla. Spacepotatis on Phaser 3 + Three.js -kosmos osoitteessa spacepotatis.vercel.app. AudiobookMaker on Python-työpöytäsovellus, joka muuntaa PDF-tiedostoja äänikirjoiksi edge-TTS-puhesyntetisaattorilla. ReadLog seuraa lukemista Open Library- ja Google Books -rajapintojen päällä. strudel-patterns tutkii live-koodattua musiikkia. Tämä Portfolio-sivusto (Astro + Three.js + GSAP) sitoo kaiken yhteen.',
+      tags: [
+        '7 repoa',
+        'Oikeita käyttäjiä',
+        'Next.js',
+        'Astro',
+        'Three.js',
+        'Python',
+        'Turborepo',
+      ],
     },
     now: {
       title: 'Katse ylöspäin',

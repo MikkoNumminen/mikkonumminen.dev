@@ -1,6 +1,7 @@
 ---
 import '../../styles/experience-timeline.css';
 import { localizeTimeline } from '../../data/timeline';
+import { projects } from '../../data/projects';
 import { asLocale, getTranslations, localizePath } from '../../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -15,11 +16,90 @@ const kindLabel: Record<string, string> = {
   craft: t.experiencePage.kindCraft,
   now: t.experiencePage.kindNow,
 };
+
+// The display-type "ghost" year that sits behind each card uses just the
+// last 4 chars of the year string (so "1998–2022" becomes "2022", "Now"
+// stays "Now") — keeps the ghost column visually consistent across
+// foundation entries that span multiple years and recent year-only entries.
+function ghostYear(year: string): string {
+  const trimmed = year.trim();
+  // Year ranges separated by an en-dash use the upper bound for the ghost
+  // (the year the chapter ends).
+  const dash = trimmed.lastIndexOf('–');
+  if (dash >= 0) return trimmed.slice(dash + 1).trim();
+  return trimmed;
+}
+
+// Auto-derive a host → liveUrl map from the projects data. Any timeline
+// body that mentions a known host (e.g. "vuohiliitto.com") gets that
+// host substring rendered as a clickable link, target=_blank, no rebuild
+// required when projects are added later.
+const projectUrlsByHost: Record<string, string> = {};
+for (const p of projects) {
+  if (!p.liveUrl) continue;
+  try {
+    projectUrlsByHost[new URL(p.liveUrl).host] = p.liveUrl;
+  } catch {
+    /* malformed liveUrl in data — skip rather than crash the build */
+  }
+}
+
+// Hoisted: sorted host list is invariant per build, so compute it once.
+// Longest hosts matched first so a host that's a prefix of another
+// (theoretical: `example.com` vs `sub.example.com`) doesn't win when
+// the longer one is present.
+const PROJECT_HOSTS: readonly string[] = Object.keys(projectUrlsByHost).sort(
+  (a, b) => b.length - a.length,
+);
+
+type BodyPart =
+  | { type: 'text'; value: string }
+  | { type: 'link'; value: string; href: string };
+
+/**
+ * Walk the body string and split it into text spans and link spans.
+ * A link span is created whenever the body contains the bare host of
+ * a known project (e.g. `spacepotatis.vercel.app`); the host is the
+ * visible text and the project's full `liveUrl` becomes the href.
+ */
+function linkifyBody(body: string): BodyPart[] {
+  if (PROJECT_HOSTS.length === 0) return [{ type: 'text', value: body }];
+
+  const parts: BodyPart[] = [];
+  let cursor = 0;
+  while (cursor < body.length) {
+    let earliest: { host: string; idx: number } | null = null;
+    for (const host of PROJECT_HOSTS) {
+      const idx = body.indexOf(host, cursor);
+      if (idx < 0) continue;
+      if (!earliest || idx < earliest.idx) earliest = { host, idx };
+    }
+    if (!earliest) {
+      parts.push({ type: 'text', value: body.slice(cursor) });
+      break;
+    }
+    if (earliest.idx > cursor) {
+      parts.push({ type: 'text', value: body.slice(cursor, earliest.idx) });
+    }
+    // `host` came directly from `Object.keys(projectUrlsByHost)`, so the
+    // lookup is sound — the `!` satisfies noUncheckedIndexedAccess.
+    parts.push({
+      type: 'link',
+      value: earliest.host,
+      href: projectUrlsByHost[earliest.host]!,
+    });
+    cursor = earliest.idx + earliest.host.length;
+  }
+  return parts;
+}
 ---
 
 <div class="timeline" data-timeline>
   <header class="timeline__header">
-    <p class="timeline__eyebrow">{t.experiencePage.eyebrow}</p>
+    <p class="timeline__eyebrow">
+      <span class="timeline__eyebrow-bar" aria-hidden="true"></span>
+      <span class="timeline__eyebrow-text">{t.experiencePage.eyebrow}</span>
+    </p>
     <h1 class="timeline__title">{t.experiencePage.title}</h1>
     <p class="timeline__lede">{t.experiencePage.lede}</p>
     <p class="timeline__hint" aria-hidden="true">
@@ -49,20 +129,41 @@ const kindLabel: Record<string, string> = {
           data-kind={entry.kind}
         >
           <div class="timeline__marker" aria-hidden="true">
-            <span class="timeline__dot" />
+            <span class="timeline__dot">
+              <span class="timeline__dot-ring" />
+              <span class="timeline__dot-ring timeline__dot-ring--late" />
+            </span>
             <span class="timeline__line" />
           </div>
           <div class="timeline__card">
+            <span class="timeline__year-bg" aria-hidden="true">
+              {ghostYear(entry.year)}
+            </span>
             <div class="timeline__meta">
               <span class="timeline__year">{entry.year}</span>
               <span class="timeline__kind">{kindLabel[entry.kind]}</span>
             </div>
             <h2 class="timeline__heading">{entry.title}</h2>
-            <p class="timeline__body">{entry.body}</p>
+            <p class="timeline__body">
+              {linkifyBody(entry.body).map((part) =>
+                part.type === 'link' ? (
+                  <a
+                    href={part.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${part.value} (opens in a new tab)`}
+                  >
+                    {part.value}
+                  </a>
+                ) : (
+                  part.value
+                ),
+              )}
+            </p>
             {entry.tags && (
               <ul class="timeline__tags">
-                {entry.tags.map((t) => (
-                  <li>{t}</li>
+                {entry.tags.map((tag) => (
+                  <li>{tag}</li>
                 ))}
               </ul>
             )}
@@ -74,16 +175,22 @@ const kindLabel: Record<string, string> = {
 
   <footer class="timeline__summit">
     <p>{t.experiencePage.summit}</p>
-    <a href={localizePath('/contact', locale)} class="timeline__cta"
-      >{t.experiencePage.cta}</a
-    >
+    <a href={localizePath('/contact', locale)} class="timeline__cta">
+      <span class="timeline__cta-glow" aria-hidden="true"></span>
+      <span class="timeline__cta-text">{t.experiencePage.cta}</span>
+    </a>
   </footer>
 </div>
 
 <style>
   @keyframes timeline-scroll-bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(8px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(8px);
+    }
   }
 
   .timeline__scroll-circle {

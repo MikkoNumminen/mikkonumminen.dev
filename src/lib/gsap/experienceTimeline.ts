@@ -301,21 +301,23 @@ export function initExperienceTimeline(
     });
   });
 
-  // ── Goat: anchor to the timeline entry currently closest to viewport ──
-  // center, sitting just to its LEFT. Lerped each frame for smooth motion
-  // both during scroll (the active card moves up/down) and across card
-  // changes (target snaps; lerp glides over).
+  // ── Active card + goat tracking ─────────────────────────────────
+  // Both share the same "find the entry closest to viewport centre"
+  // logic. The active entry gets `data-active="true"` (CSS lights up its
+  // accent border and ghost-year); the goat anchors to its left edge
+  // with a lerp so both feel coordinated rather than parallel.
   let goatCurrentX = 0;
   let goatCurrentY = 0;
   let goatTargetX = 0;
   let goatTargetY = 0;
   let goatInitialized = false;
+  let activeEntry: HTMLElement | null = null;
 
-  const tickGoat = (): void => {
-    if (!goat || timelineEntries.length === 0) return;
+  const tickActiveAndGoat = (): void => {
+    if (timelineEntries.length === 0) return;
 
-    // Find the timeline entry whose center is closest to the viewport
-    // center. Linear scan — fine for the 7-15 entries we ever expect.
+    // Find the timeline entry whose centre is closest to the viewport
+    // centre. Linear scan — fine for the 7-15 entries we ever expect.
     const viewportCenter = window.innerHeight / 2;
     let closest: HTMLElement | null = null;
     let closestDist = Infinity;
@@ -329,6 +331,17 @@ export function initExperienceTimeline(
       }
     }
     if (!closest) return;
+
+    // Update the active-entry attribute only when it actually changes,
+    // so the CSS transitions on the card glow / dot scale aren't being
+    // restarted every frame.
+    if (closest !== activeEntry) {
+      activeEntry?.removeAttribute('data-active');
+      closest.setAttribute('data-active', 'true');
+      activeEntry = closest;
+    }
+
+    if (!goat) return;
 
     const rect = closest.getBoundingClientRect();
     goatTargetX = Math.max(GOAT_LEFT_CLAMP_PX, rect.left - GOAT_GAP_PX);
@@ -349,8 +362,8 @@ export function initExperienceTimeline(
     goat.style.setProperty('--goat-y', `${goatCurrentY.toFixed(1)}px`);
   };
 
-  if (goat && timelineEntries.length > 0) {
-    gsap.ticker.add(tickGoat);
+  if (timelineEntries.length > 0) {
+    gsap.ticker.add(tickActiveAndGoat);
   }
 
   // ── Timeline entry reveals (intersection-based, simpler than ScrollTrigger
@@ -376,22 +389,25 @@ export function initExperienceTimeline(
 
   return {
     dispose: (): void => {
-      // Detach the goat ticker before scope.dispose() so no further frames
-      // try to write to the DOM.
-      if (goat && timelineEntries.length > 0) {
-        gsap.ticker.remove(tickGoat);
+      // Detach the active/goat ticker before scope.dispose() so no further
+      // frames try to write to the DOM.
+      if (timelineEntries.length > 0) {
+        gsap.ticker.remove(tickActiveAndGoat);
       }
 
       // Kill tweens + ScrollTriggers + revert any GSAP-set inline styles.
       scope.dispose();
       io.disconnect();
 
-      // Strip the inline custom properties we wrote in onUpdate / tickGoat.
-      // GSAP doesn't track raw `style.setProperty` calls, so we clean up
-      // by hand.
+      // Strip the inline custom properties we wrote (parallax layer Y and
+      // goat XY) and the data-active flag set on the closest card. GSAP
+      // doesn't track raw `style.setProperty` / attribute mutations, so
+      // we clean up by hand.
       if (goat) {
         GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
       }
+      activeEntry?.removeAttribute('data-active');
+      activeEntry = null;
       touchedLayers.forEach((layer) => {
         const layerName = layer.dataset.layer;
         if (layerName) layer.style.removeProperty(`--${layerName}-y`);

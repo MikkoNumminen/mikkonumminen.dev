@@ -237,20 +237,23 @@ export const sv: Translations = {
       title: 'Att bli pappa',
       body: 'Tog ett steg tillbaka från heltidsarbete för familjen. Personliga projekt fortsatte i bakgrunden.',
     },
-    hrm: {
-      title: 'HRM',
-      body: 'Byggde ett full-stack HR-hanteringssystem enligt portföljstandard. 1828+ tester, 91,9 % täckning, två databaser (PostgreSQL + MongoDB), TOTP-2FA, hash-kedjad granskningslogg, OpenTelemetry. Den arkitektoniska ryggraden för Platform.',
-      tags: ['Next.js', 'PostgreSQL', 'MongoDB', '1828+ tester', '91,9 % täckning'],
-    },
-    platform: {
-      title: 'Platform',
-      body: 'Live communityplattform som tjänar en riktig WoW-gille på vuohiliitto.com. Byggd som Turborepo-monorepo med HRM som undermodul. Fleranvändarstöd, spelifiering, chatt i realtid och en Mythic+-teamspårare.',
-      tags: ['Riktiga användare', 'Fleranvändarstöd', 'Turborepo'],
-    },
     'ai-workflows': {
       title: 'AI-nativa arbetsflöden',
-      body: 'Parprogrammering med AI som del av verktygskedjan. Snabbare leverans utan att sänka ribban.',
+      body: 'Parprogrammering med AI som del av verktygskedjan. Arbetsmetoden bakom 2026 års bygge — snabbare leverans utan att sänka ribban.',
       tags: ['AI-arbetsflöden', 'Tempo'],
+    },
+    '2026-build': {
+      title: '2026 — byggåret',
+      body: 'Sju produktionsprojekt levererade i år. HRM — ett HR-system enligt portföljstandard (1828+ tester med 91,9 % täckning, två databaser, TOTP-2FA, hash-kedjad granskningslogg) — matar Platform, en live community på vuohiliitto.com byggd på HRM som undermodul med spelifiering, chatt i realtid och en Mythic+-teamspårare via Raider.IO. Spacepotatis är en Phaser 3 + Three.js-kosmos på spacepotatis.vercel.app. AudiobookMaker är ett Python-skrivbordsprogram som omvandlar PDF-filer till uppläsningsljud via edge-TTS. ReadLog spårar läsning ovanpå Open Library + Google Books. strudel-patterns utforskar live-kodad musik. Den här Portfolio-sajten (Astro + Three.js + GSAP) binder ihop allt.',
+      tags: [
+        '7 repos',
+        'Riktiga användare',
+        'Next.js',
+        'Astro',
+        'Three.js',
+        'Python',
+        'Turborepo',
+      ],
     },
     now: {
       title: 'Blickar uppåt',
