@@ -354,6 +354,19 @@
   margin: 0;
 }
 
+/* The body is now a wrapper div containing one or more <p> elements
+   (split on `\n\n` in the i18n strings). The first paragraph clears its
+   default margin; consecutive paragraphs get a small breathing space
+   so longer entries — particularly the 2026 build — read as scannable
+   sections rather than a wall of text. */
+.timeline__body p {
+  margin: 0;
+}
+
+.timeline__body p + p {
+  margin-top: 0.85rem;
+}
+
 /* Inline links inside the body — currently used only for project URLs
    auto-detected from `data/projects.ts`. Underline tinted with the
    entry's `--accent`; thickens on hover/focus so the affordance is

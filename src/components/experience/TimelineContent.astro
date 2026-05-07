@@ -144,22 +144,26 @@ function linkifyBody(body: string): BodyPart[] {
               <span class="timeline__kind">{kindLabel[entry.kind]}</span>
             </div>
             <h2 class="timeline__heading">{entry.title}</h2>
-            <p class="timeline__body">
-              {linkifyBody(entry.body).map((part) =>
-                part.type === 'link' ? (
-                  <a
-                    href={part.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${part.value} (opens in a new tab)`}
-                  >
-                    {part.value}
-                  </a>
-                ) : (
-                  part.value
-                ),
-              )}
-            </p>
+            <div class="timeline__body">
+              {entry.body.split(/\n\n+/).map((paragraph) => (
+                <p>
+                  {linkifyBody(paragraph).map((part) =>
+                    part.type === 'link' ? (
+                      <a
+                        href={part.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${part.value} (opens in a new tab)`}
+                      >
+                        {part.value}
+                      </a>
+                    ) : (
+                      part.value
+                    ),
+                  )}
+                </p>
+              ))}
+            </div>
             {entry.tags && (
               <ul class="timeline__tags">
                 {entry.tags.map((tag) => (
