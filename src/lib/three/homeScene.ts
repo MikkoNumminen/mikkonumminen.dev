@@ -76,16 +76,34 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   scene.add(keyLight);
 
   // Rim is animated on a slow orbit in the tick loop so a specular streak
-  // periodically traverses the letterforms — the Apple-keynote sweep.
-  // Steady-state intensity is intentionally low (0.4) so the constant
-  // sweep reads as a subtle highlight rather than a flash. The entrance
-  // animation boosts it ~6× so the title arrives with a single bright
-  // specular pulse, then fades to the steady level.
-  const RIM_BASE_INTENSITY = 0.4;
-  const RIM_ENTRANCE_PEAK = 6;
+  // can periodically traverse the letterforms. Steady-state intensity is
+  // intentionally very low (0.15) so the ongoing sweep is barely
+  // perceptible; the entrance does the visible work via three sharp
+  // Gaussian flash peaks (see entranceFlashEnvelope below).
+  const RIM_BASE_INTENSITY = 0.15;
   const rimLight = new DirectionalLight(0xa6c2ff, RIM_BASE_INTENSITY);
   rimLight.position.set(-8, -2, -4);
   scene.add(rimLight);
+
+  /**
+   * Three stroboscopic flash peaks during the entrance — `[center, height,
+   * width]` in seconds. The third peak lands when the title settles into
+   * its final pose, giving the arrival a clear punctuation.
+   */
+  const ENTRANCE_FLASH_PEAKS: Array<[number, number, number]> = [
+    [0.15, 4.0, 0.1],
+    [0.55, 3.0, 0.13],
+    [1.05, 4.5, 0.18],
+  ];
+  const entranceFlashEnvelope = (t: number): number => {
+    let sum = 0;
+    for (const [c, h, w] of ENTRANCE_FLASH_PEAKS) {
+      const d = (t - c) / w;
+      if (Math.abs(d) > 4) continue;
+      sum += h * Math.exp(-d * d);
+    }
+    return sum;
+  };
 
   const fillLight = new PointLight(0xff8a4c, 0.55, 40);
   fillLight.position.set(-4, 4, 6);
@@ -211,10 +229,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     title.group.position.y =
       totalHeight / 2 + Math.sin(elapsed * 0.7) * 0.08 + scrollProgress * 1.5;
 
-    // Sweeping rim light — slow 14-second orbit around the title so a
-    // specular streak periodically traverses the chrome. Intensity is
-    // boosted while `entrance` ramps from 0→1 so the title arrives with
-    // a bright pulse, then settles to a much subtler steady glow.
+    // Rim light orbit (steady, very dim) plus three sharp flash peaks
+    // during the entrance — the title arrives with a stroboscopic burst,
+    // then the rim drops to a barely-perceptible ongoing highlight.
     const rimAngle = (elapsed * Math.PI * 2) / 14;
     rimLight.position.set(
       Math.cos(rimAngle) * 9,
@@ -223,7 +240,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     );
     rimLight.intensity = reducedMotion
       ? RIM_BASE_INTENSITY
-      : RIM_BASE_INTENSITY * (1 + (1 - entrance) * RIM_ENTRANCE_PEAK);
+      : RIM_BASE_INTENSITY + entranceFlashEnvelope(elapsed);
 
     // Horizon glow has a small pulse — kept narrow (0.04 amplitude, slower
     // 0.3 Hz) so it reads as atmospheric, not as a beat.
