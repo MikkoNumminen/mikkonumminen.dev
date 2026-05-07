@@ -76,6 +76,10 @@ scripts/          Build helpers (build-og.mjs)
 - Skip-link, semantic landmarks, ARIA labels, focus-visible rings per theme
 - All Three.js resources are explicitly disposed on `beforeunload`
 
+## Observability
+
+Client-side errors and Core Web Vitals (LCP, CLS, INP, FCP, TTFB) are reported to Sentry from real visitors. Activation is gated on the `PUBLIC_SENTRY_DSN` env var — forks without it run silent. Do Not Track is honored (init bails early). No session replay, no PII capture beyond Sentry defaults (URL, browser, stack trace). The init lives in `src/lib/observability/initObservability.ts` and is called once from `BaseLayout.astro`. Rationale + alternatives in [`docs/decisions/0001-observability-sentry.md`](docs/decisions/0001-observability-sentry.md).
+
 ## Deployment
 
 Deployed on [Vercel](https://vercel.com/) with caching and security headers configured in [`vercel.json`](./vercel.json):
@@ -96,13 +100,15 @@ script-src 'self' 'unsafe-inline';
 style-src 'self' 'unsafe-inline';
 img-src 'self' data:;
 font-src 'self' data:;
-connect-src 'self';
+connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io;
 frame-ancestors 'none';
 base-uri 'self';
 form-action 'self';
 object-src 'none';
 upgrade-insecure-requests
 ```
+
+`connect-src` allows `*.sentry.io` and `*.ingest.sentry.io` for the observability beacon (see the Observability section above). The init module no-ops when `PUBLIC_SENTRY_DSN` is unset, so this domain only sees traffic on deployments that have the DSN configured.
 
 `'unsafe-inline'` remains on both `script-src` and `style-src` because the site relies on:
 

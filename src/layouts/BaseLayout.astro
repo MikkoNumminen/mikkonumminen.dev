@@ -202,6 +202,13 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
 
     <script>
       import { initPageTransitions } from '../lib/transitions/pageTransition';
+      import { initObservability } from '../lib/observability/initObservability';
+
+      // Observability fires before page transitions so any error in the
+      // transition init itself is captured. Both are no-ops on a second run
+      // (transitions guard via globalThis; observability guards on missing
+      // DSN), so safe to call on bfcache restore.
+      initObservability();
 
       const start = () => initPageTransitions();
       if (document.readyState === 'loading') {
