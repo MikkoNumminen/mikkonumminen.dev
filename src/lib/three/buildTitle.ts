@@ -18,12 +18,39 @@ export function loadFont(url: string): Promise<Font> {
 }
 
 const SIZE = 2.2;
-const DEPTH = 0.7;
+/** Extrusion depth of the title geometry. Exported so per-zone decor can
+ * align to the midplane of the extruded letters. */
+export const DEPTH = 0.7;
 const CURVE_SEGMENTS = 12;
 const BEVEL_THICKNESS = 0.09;
 const BEVEL_SIZE = 0.07;
 const BEVEL_SEGMENTS = 6;
 const LINE_GAP = 0.6;
+
+/**
+ * Width of `text` rendered with the same TextGeometry settings buildTitle
+ * uses, so callers can compute world-space x ranges for substrings (e.g.
+ * "where in MIKKO does the K-K sit") and place per-zone decor accordingly.
+ * Disposes the throwaway geometry before returning.
+ */
+export function measureTextWidth(font: Font, text: string): number {
+  if (text.length === 0) return 0;
+  const geo = new TextGeometry(text, {
+    font,
+    size: SIZE,
+    depth: DEPTH,
+    curveSegments: CURVE_SEGMENTS,
+    bevelEnabled: true,
+    bevelThickness: BEVEL_THICKNESS,
+    bevelSize: BEVEL_SIZE,
+    bevelSegments: BEVEL_SEGMENTS,
+  });
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox!;
+  const w = bb.max.x - bb.min.x;
+  geo.dispose();
+  return w;
+}
 
 /**
  * Rewrite TextGeometry's UVs so they span [0, 1] across the geometry's
