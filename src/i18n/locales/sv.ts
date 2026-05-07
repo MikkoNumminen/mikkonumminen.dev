@@ -258,28 +258,28 @@ export const sv: Translations = {
       ],
       lessons: [
         {
-          title: 'Mitigering → observerbarhet → arkitektur, i den ordningen',
-          body: 'I maj 2026 träffade spar-korruption Spacepotatis utvecklarkonto — tre anti-cheat-vakter kontrollerade alla att saker inte hade vuxit för SNABBT, ingen kontrollerade om något hade krympt. Rätt svar var inte en strukturell omskrivning. En akut `validateNoRegression`-serversidesvakt inom timmar, sedan en forensisk `save_audit`-tabell för post-mortem, sedan en GitHub Actions-cron som dagligen läser tabellen och öppnar ett Issue när tillräckligt med data finns för den djupare strukturella fixen (append-only save-snapshots). Arkitektur sist, aldrig först.',
+          title: 'Stoppa läckan först, rita om sist',
+          body: 'I maj 2026 träffade en sparbug Spacepotatis. Samma dag körde jag en serversideguard som stoppade nya skador. Dagen efter lade jag till en audit-tabell som lät mig studera varje händelse jag redan hade missat. Först efter en vecka av riktig data började jag planera den djupare arkitektoniska fixen. Mitigering köper tid att lära, observerbarhet förvandlar lärandet till fakta, och arkitektur kommer sist — aldrig först.',
         },
         {
-          title: 'AI-assisterad utveckling kräver versionerade skills, inte känsla',
-          body: 'Spacepotatis levererar tio egna Claude Code-skills som produktionsartefakter — instruktionsfiler som lär agenten projektspecifika recept (lägg till en fiende, skjut en databasmigration, granska sparpipelinen). De versionshanteras, granskas kvartalsvis (drift mellan skill och kod den refererar till är en verklig buggkategori — två sådana fångades i den senaste granskningen), och sparar ~2,76 miljoner token per år. Reproducerbart AI-flöde, inte känslokodning.',
+          title: 'Reproducerbart slår klipskt — versionera ditt AI-flöde',
+          body: 'Spacepotatis levererar tio Claude Code-skills som filer i repot. Varje en är ett projektspecifikt recept — "lägg till en fiende", "kör en migration" — som AI:n följer steg för steg, istället för att räkna ut det från noll varje gång. De går genom kodgranskning, auditeras kvartalsvis och sparade förra året cirka 2,76 miljoner token. Eftersom de versioneras med kodbasen glider de aldrig ur synk. Magkänsla skalar inte — incheckade instruktioner gör det.',
         },
         {
-          title: 'Pipeline-formade verktyg slår enverktygsinlåsning',
-          body: 'AudiobookMaker är inte "ett Edge-TTS-program". Tre motorer väljer kompromissen vid körning: Edge-TTS för snabba molnröster online, Piper för offline-på-laptop, Chatterbox för neural kvalitet med LoRA-röstkloning när GPU finns. Samma pipeline, olika motorer, användarens val. Inlåsning till en enda röstteknologi hade åldrats illa redan inom samma år.',
+          title: 'Välj kompromissen vid körning, inte vid ritbordet',
+          body: 'AudiobookMaker är inte "ett Edge-TTS-program". Det är en pipeline med tre motorer under: Edge-TTS för snabba molnröster, Piper för offline-laptop, Chatterbox för studiokvalitet med röstkloning. Användaren väljer per bok. Att låsa in produkten i en enda röstteknologi hade åldrats illa redan inom samma år som den levererades.',
         },
         {
-          title: 'Mutationstestning förvandlar "testerna passerar" till "testerna gör jobbet"',
-          body: 'HRM kör Stryker-mutationstestning på varje PR med en PostgreSQL-tjänstcontainer. 1828+ tester med 91,9 % täckning är lätt att fuska med; mutationspoäng tvingar testsviten att verkligen fånga buggar genom att introducera artificiella sådana och verifiera att testerna fallerar. Täckning säger att raderna kördes. Mutation säger att assertionerna betydde något.',
+          title: 'Täckning säger att raderna kördes. Mutation säger att de betydde något.',
+          body: 'HRM kör Stryker-mutationstestning på varje pull request. Den introducerar små buggar i produktionskoden med flit och får buildet att falla om inget test märker det. 91,9 % radtäckning är lätt att luras med — en mutationspoäng tvingar sviten att faktiskt fånga de buggar den påstår sig fånga. Det är skillnaden mellan en grön bock och en användbar bock.',
         },
         {
-          title: 'När uppströms är trasigt, fixa uppströms',
-          body: 'Under arbetet med AudiobookMaker stötte jag på en forward-hook-läcka djupt i Chatterboxs flerspråkiga T3-inferensbana — motorn kollapsade till ~0,4 s ljud efter det första anropet, en showstopper för allt långformigt arbete. Diagnostiserade, skrev fixen, skickade två pull requests uppströms till resemble-ai/chatterbox (24k-stjärnors open-source TTS): #505 och #510. Öppna och bumpade av communitybidragsgivare. Riktig produktionsdebuggning i någon annans kodbas, bidragen tillbaka istället för lokalt patchade och glömda.',
+          title: 'Om buggen bor uppströms hör fixen hemma uppströms',
+          body: 'När jag byggde AudiobookMaker stötte jag på en minnesläcka djupt i Chatterboxs flerspråkiga inferensbana — motorn kollapsade till under en sekunds ljud efter första anropet. Jag diagnostiserade, skrev fixen och skickade två pull requests uppströms till resemble-ai/chatterbox (24 000 stjärnor på GitHub): #505 och #510. Båda är öppna och har bumpats av andra bidragsgivare. Lokal patchning hade varit det lata svaret — nästa person som träffade buggen hade fått betala samma kostnad igen.',
         },
         {
-          title: 'Helhetsansvar skalar när teamet är en',
-          body: 'Schemamigration till produktionsloggar, inga överlämningar. Postgres + MongoDB i HRM, Postgres på Neon i Spacepotatis, GitHub Actions CI på varje repo (typecheck, format, lint, plus Stryker-mutationstestning där det är relevant), Vercel-deploys för webbstacken, signerad Windows-installerare via GitHub Releases för AudiobookMaker, OpenTelemetry där det levereras. SQL → app → CI → deploy → ops, ägt solo. Begränsningen är arbetet, inte väntetiden mellan team.',
+          title: 'När teamet är ett är flaskhalsen arbetet — inte väntetiden',
+          body: 'Schemamigreringar, app-kod, CI-pipelines, webb-deployer på Vercel, signerade Windows-installerare via GitHub Releases, OpenTelemetry där det betalar sig. Postgres och MongoDB på datasidan, GitHub Actions i varje repo för typecheck, format, lint och mutationstestning där det är relevant. SQL hela vägen till ops, ägt solo över alla sju projekten. Inga överlämningar betyder inga köer — det enda som bromsar arbetet är arbetet.',
         },
       ],
     },
