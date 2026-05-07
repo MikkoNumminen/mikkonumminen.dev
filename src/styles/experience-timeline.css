@@ -401,11 +401,116 @@
   outline-color: var(--accent);
 }
 
+/* ── Lessons sub-timeline ───────────────────────────────────────
+   Optional nested list rendered inside an entry's card when
+   `lessons` is present in the i18n data. Visually a quieter
+   miniature of the outer timeline: small static dot per lesson,
+   thin vertical thread between them, lesson headlines as
+   sub-headings beneath the entry title. The colour story comes
+   from the entry's `--accent` variable so the sub-timeline reads
+   as part of the same chapter.
+
+   Currently only the 2026-build entry uses this. Other entries
+   skip it via the optional check in the Astro template, so card
+   layout for those is unchanged. */
+
+.timeline__lessons {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 1.25rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  counter-reset: lesson;
+}
+
+.timeline__lesson {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  position: relative;
+  counter-increment: lesson;
+}
+
+.timeline__lesson-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  margin-top: 0.45rem;
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
+  position: relative;
+  flex-shrink: 0;
+  justify-self: center;
+}
+
+/* Thin connecting thread from this marker to the next, so the
+   nested list reads as a vertical timeline rather than a bullet
+   list. The thread fades downward to keep the eye moving. */
+.timeline__lesson:not(:last-child) .timeline__lesson-marker::after {
+  content: '';
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: calc(100% + 1rem);
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--accent-rgb), 0.32),
+    rgba(var(--accent-rgb), 0.08)
+  );
+}
+
+.timeline__lesson-content {
+  min-width: 0;
+}
+
+.timeline__lesson-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: #fff;
+  margin: 0 0 0.3rem;
+  line-height: 1.35;
+}
+
+.timeline__lesson-body {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(243, 238, 217, 0.74);
+  margin: 0;
+}
+
+.timeline__lesson-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--accent-rgb), 0.45);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease,
+    text-decoration-thickness 0.2s ease;
+}
+
+.timeline__lesson-body a:hover,
+.timeline__lesson-body a:focus-visible {
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+}
+
+.timeline__lesson-body a:focus-visible {
+  outline-color: var(--accent);
+}
+
 .timeline__tags {
   position: relative;
   list-style: none;
   padding: 0;
-  margin: 1rem 0 0;
+  margin: 1.25rem 0 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;

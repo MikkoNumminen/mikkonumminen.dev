@@ -119,6 +119,14 @@ export interface Translations {
       title: string;
       body: string;
       tags?: string[];
+      /**
+       * Optional sub-timeline of "what this chapter taught me" entries.
+       * When present, the entry's card renders the lessons as a nested
+       * mini-timeline under the body. Each lesson is short (a headline
+       * naming the takeaway and a body explaining + pointing at the
+       * project / tech / decision that proves it).
+       */
+      lessons?: Array<{ title: string; body: string }>;
     }
   >;
   contactPage: {

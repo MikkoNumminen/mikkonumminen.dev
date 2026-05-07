@@ -164,6 +164,34 @@ function linkifyBody(body: string): BodyPart[] {
                 </p>
               ))}
             </div>
+            {entry.lessons && entry.lessons.length > 0 && (
+              <ol class="timeline__lessons" aria-label="Lessons from this chapter">
+                {entry.lessons.map((lesson) => (
+                  <li class="timeline__lesson">
+                    <span class="timeline__lesson-marker" aria-hidden="true" />
+                    <div class="timeline__lesson-content">
+                      <h3 class="timeline__lesson-title">{lesson.title}</h3>
+                      <p class="timeline__lesson-body">
+                        {linkifyBody(lesson.body).map((part) =>
+                          part.type === 'link' ? (
+                            <a
+                              href={part.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`${part.value} (opens in a new tab)`}
+                            >
+                              {part.value}
+                            </a>
+                          ) : (
+                            part.value
+                          ),
+                        )}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
             {entry.tags && (
               <ul class="timeline__tags">
                 {entry.tags.map((tag) => (
