@@ -46,7 +46,8 @@ export function buildEnvironment(renderer: WebGLRenderer): EnvironmentHandle {
   ctx.fillRect(0, 0, 1024, 512);
 
   // Warm sun in the upper-right quadrant of the sphere (azimuth ~110°, just
-  // above the horizon). Reflects in the metal as a bright warm blob.
+  // above the horizon). Reflects in the metal as a bright warm blob — also
+  // the "experience" world's signature warmth.
   const sun = ctx.createRadialGradient(720, 150, 0, 720, 150, 320);
   sun.addColorStop(0, 'rgba(255, 192, 130, 0.95)');
   sun.addColorStop(0.18, 'rgba(255, 156, 92, 0.7)');
@@ -62,6 +63,42 @@ export function buildEnvironment(renderer: WebGLRenderer): EnvironmentHandle {
   cool.addColorStop(0.5, 'rgba(80, 120, 220, 0.14)');
   cool.addColorStop(1, 'rgba(80, 120, 220, 0)');
   ctx.fillStyle = cool;
+  ctx.fillRect(0, 0, 1024, 512);
+
+  // ── Four-worlds color zones ─────────────────────────────────────────
+  // Each non-home world contributes a faint color zone to the envMap so
+  // the chrome reflects all four destinations as the rim light orbits.
+  // Opacities are kept low so the dominant warm-cool composition still reads;
+  // these are accent bounces that pick up only on the brightest specular
+  // peaks of the chrome.
+
+  // Galaxy blue (projects) — lower-left quadrant. Sits below horizon so
+  // reflections show on the underside of the letterforms.
+  const galaxy = ctx.createRadialGradient(180, 380, 0, 180, 380, 280);
+  galaxy.addColorStop(0, 'rgba(128, 168, 255, 0.55)');
+  galaxy.addColorStop(0.4, 'rgba(110, 150, 240, 0.22)');
+  galaxy.addColorStop(1, 'rgba(110, 150, 240, 0)');
+  ctx.fillStyle = galaxy;
+  ctx.fillRect(0, 0, 1024, 512);
+
+  // Earthy green (experience) — lower-right horizon. Echoes the mountain
+  // silhouette's color so the metal picks up a warm-earth bounce on its
+  // bottom edge.
+  const earth = ctx.createRadialGradient(820, 400, 0, 820, 400, 260);
+  earth.addColorStop(0, 'rgba(110, 130, 70, 0.45)');
+  earth.addColorStop(0.5, 'rgba(80, 100, 50, 0.16)');
+  earth.addColorStop(1, 'rgba(80, 100, 50, 0)');
+  ctx.fillStyle = earth;
+  ctx.fillRect(0, 0, 1024, 512);
+
+  // Phosphor green (contact) — narrow band across the top center. Echoes
+  // the CRT scan-line overlay; reads on the topmost specular highlights of
+  // the metal as a faint terminal-green flash.
+  const phosphor = ctx.createRadialGradient(512, 50, 0, 512, 50, 220);
+  phosphor.addColorStop(0, 'rgba(74, 222, 128, 0.32)');
+  phosphor.addColorStop(0.6, 'rgba(74, 222, 128, 0.08)');
+  phosphor.addColorStop(1, 'rgba(74, 222, 128, 0)');
+  ctx.fillStyle = phosphor;
   ctx.fillRect(0, 0, 1024, 512);
 
   const source = new CanvasTexture(canvas);

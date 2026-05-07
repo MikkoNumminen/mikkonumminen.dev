@@ -13,7 +13,9 @@ import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
 import { buildTitle, loadFont } from './buildTitle';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
+import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
+import { buildMountainLayer, type MountainLayerHandle } from './buildMountainLayer';
 import { createBloomComposer, type BloomComposerHandle } from './postprocessing';
 import { disposeMaterial } from './disposeMaterial';
 
@@ -84,6 +86,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // ── Horizon glow plate (sun-side halo behind the title) ──────────────
   const horizon: HorizonGlowHandle = buildHorizonGlow();
   scene.add(horizon.mesh);
+
+  // ── Galaxy layer (projects-world hint, far back lower-left) ──────────
+  const galaxy: GalaxyLayerHandle = buildGalaxyLayer();
+  scene.add(galaxy.group);
+
+  // ── Mountain silhouette (experience-world hint, lower-right horizon) ─
+  const mountain: MountainLayerHandle = buildMountainLayer();
+  scene.add(mountain.mesh);
 
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
@@ -191,10 +201,28 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       ? 0.85
       : 0.78 + Math.sin(elapsed * 0.45) * 0.08;
 
-    // Camera pulls back slightly with scroll
+    // Galaxy slowly rotates around its own normal axis so the spiral arms
+    // visibly turn as you watch — far enough back that the motion reads as
+    // a slow drift, not a foreground spin.
+    if (!reducedMotion) {
+      galaxy.group.rotation.z = elapsed * 0.025;
+    }
+
+    // Mountain silhouette gets a tiny mouse-driven parallax shift so it
+    // doesn't sit completely flat behind the title. Kept very subtle — it's
+    // a hint, not the main subject.
+    mountain.mesh.position.x = 3 + mouseX * 0.4;
+    mountain.mesh.position.y = -7.5 + mouseY * 0.18;
+
+    // Camera pulls back slightly with scroll, plus a slow lazy ~30-second
+    // orbit so each world layer rotates across the title's reflection. The
+    // orbit is tiny (≤1 unit) — sells "alive" without feeling drifty.
+    const orbit = reducedMotion ? 0 : 1;
+    const orbitAngle = (elapsed * Math.PI * 2) / 30;
     camera.position.z = 18 + scrollProgress * 4;
-    camera.position.x = mouseX * 0.6;
-    camera.position.y = -mouseY * 0.4 - scrollProgress * 0.5;
+    camera.position.x = mouseX * 0.6 + Math.sin(orbitAngle) * 0.9 * orbit;
+    camera.position.y =
+      -mouseY * 0.4 - scrollProgress * 0.5 + Math.cos(orbitAngle) * 0.45 * orbit;
     camera.lookAt(0, 0, 0);
 
     if (particleField) {
@@ -258,7 +286,15 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         particleField.texture.dispose();
       }
 
-      scene.remove(ambient, keyLight, rimLight, fillLight, horizon.mesh);
+      scene.remove(
+        ambient,
+        keyLight,
+        rimLight,
+        fillLight,
+        horizon.mesh,
+        galaxy.group,
+        mountain.mesh,
+      );
       ambient.dispose();
       keyLight.dispose();
       rimLight.dispose();
@@ -266,6 +302,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       horizon.geometry.dispose();
       horizon.material.dispose();
       horizon.texture.dispose();
+
+      galaxy.starsGeometry.dispose();
+      galaxy.starsMaterial.dispose();
+      galaxy.ringGeometry.dispose();
+      galaxy.ringMaterial.dispose();
+
+      mountain.geometry.dispose();
+      mountain.material.dispose();
 
       scene.environment = null;
       env.envMap.dispose();
