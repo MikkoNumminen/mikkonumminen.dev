@@ -304,7 +304,7 @@ export const fi: Translations = {
   mobileContact: {
     typedWhoamiOutputName: 'mikko numminen — full-stack-kehittäjä · suomi',
     typedWhoamiOutputBio:
-      'rakentaa tuotantotason verkkosovelluksia ai-avusteisilla työnkuluilla.',
+      'vie full-stack-tuotantosovellukset maaliin päästä päähän. sql:stä ops:iin.',
     typedContactLabelEmail: 'sähköposti',
     typedContactLabelLinkedin: 'linkedin',
     typedContactLabelGithub: 'github',
@@ -338,15 +338,14 @@ export const fi: Translations = {
     cmdWhoamiName: 'mikko numminen',
     cmdWhoamiTitle: 'full-stack-kehittäjä · suomi',
     cmdWhoamiIntro:
-      'rakentaa tuotantotason verkkosovelluksia ai-avusteisilla työnkuluilla.',
+      'vie full-stack-tuotantosovellukset maaliin päästä päähän. sql:stä ops:iin.',
     cmdWhoamiLargest: 'suurin:',
     cmdWhoamiAlso: 'myös:',
     cmdWhoamiYear: 'tänä vuonna:',
     cmdWhoamiCommunity: 'yhteisö',
     cmdWhoamiDesktop: 'työpöytä',
     cmdWhoamiGame: 'peli',
-    cmdWhoamiCurrently:
-      'parhaillaan perehtymässä three.js:ään, gsap:iin ja animaatioiden rakentamiseen.',
+    cmdWhoamiCurrently: 'saatavilla nyt kunnianhimoisiin full-stack-rooleihin.',
     cmdContactDesc: 'näytä yhteystiedot',
     cmdContactUsage: 'käyttö: contact [--email]',
     cmdContactUnknownFlag: 'tuntematon valitsin:',
