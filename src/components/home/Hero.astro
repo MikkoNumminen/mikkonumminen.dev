@@ -49,6 +49,7 @@ const t = getTranslations(locale);
     </span>
     <span class="hero__corner hero__corner--tr">
       <span class="hero__corner-num">61° N · 24° E</span>
+      <span class="hero__corner-rule hero__corner-rule--tr"></span>
       <span class="hero__corner-place">tampere · hervanta</span>
     </span>
     <span class="hero__corner hero__corner--br">
@@ -214,10 +215,21 @@ const t = getTranslations(locale);
   }
 
   /* Quieter than .hero__corner-num so the place reads as a hidden detail
-     rather than a label competing with the coords. */
+     rather than a label competing with the coords. Also slightly smaller
+     so the coords stay primary and the place reads as a caption. */
   .hero__corner-place {
     color: rgba(255, 255, 255, 0.22);
     letter-spacing: 0.22em;
+    font-size: 0.58rem;
+  }
+
+  /* Short horizontal accent between the coords and the place when stacked
+     vertically — gives the corner an editorial tag feel instead of just
+     two lines of text. */
+  .hero__corner-rule--tr {
+    width: 1.5rem;
+    margin: 0.1rem 0;
+    opacity: 0.35;
   }
 
   .hero__corner-rule {
@@ -238,10 +250,11 @@ const t = getTranslations(locale);
   .hero__corner--tr {
     top: 7.5rem;
     right: 2rem;
-    /* Stack the coords above the place label, right-aligned. */
+    /* Stack the coords above the place label, right-aligned, with a short
+       horizontal accent between them. */
     flex-direction: column;
     align-items: flex-end;
-    gap: 0.35rem;
+    gap: 0.25rem;
   }
 
   .hero__corner--br {
