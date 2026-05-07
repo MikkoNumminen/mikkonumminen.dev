@@ -17,6 +17,16 @@ export function loadFont(url: string): Promise<Font> {
   });
 }
 
+const SIZE = 2.2;
+/** Extrusion depth of the title geometry. Exported so per-zone decor can
+ * align to the midplane of the extruded letters. */
+export const DEPTH = 0.7;
+const CURVE_SEGMENTS = 12;
+const BEVEL_THICKNESS = 0.09;
+const BEVEL_SIZE = 0.07;
+const BEVEL_SEGMENTS = 6;
+const LINE_GAP = 0.6;
+
 /**
  * Width of `text` rendered with the same TextGeometry settings buildTitle
  * uses, so callers can compute world-space x ranges for substrings (e.g.
@@ -41,14 +51,6 @@ export function measureTextWidth(font: Font, text: string): number {
   geo.dispose();
   return w;
 }
-
-const SIZE = 2.2;
-const DEPTH = 0.7;
-const CURVE_SEGMENTS = 12;
-const BEVEL_THICKNESS = 0.09;
-const BEVEL_SIZE = 0.07;
-const BEVEL_SEGMENTS = 6;
-const LINE_GAP = 0.6;
 
 /**
  * Rewrite TextGeometry's UVs so they span [0, 1] across the geometry's

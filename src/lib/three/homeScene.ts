@@ -13,7 +13,7 @@ import {
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
-import { buildTitle, loadFont, measureTextWidth } from './buildTitle';
+import { buildTitle, DEPTH as TITLE_DEPTH, loadFont, measureTextWidth } from './buildTitle';
 import { buildTitleColorMap } from './buildTitleColorMap';
 import { buildCollisionSparks, type CollisionSparksHandle } from './buildCollisionSparks';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
@@ -210,17 +210,22 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // Geometry was translated by -wMIKKO/2 so the K-K range is centered on
   // (wMI + wMIKK)/2 - wMIKKO/2 in the MIKKO mesh's local x.
   const xCenterKK = (wMI + wMIKK) / 2 - wMIKKO / 2;
+  // Parent under the MIKKO mesh so the decor inherits all of the title's
+  // floats / pointer-driven sway / entrance offset for free.
+  const mikkoMesh = title.meshes[0];
+  if (!mikkoMesh) {
+    throw new Error('homeScene: MIKKO line missing — did TITLE lose a line?');
+  }
   const projectsDecor: ProjectsZoneDecorHandle = buildProjectsZoneDecor({
     envMap: env.envMap,
     scale: 0.78,
   });
-  // Parent under the MIKKO mesh so the decor inherits all of the title's
-  // floats / pointer-driven sway / entrance offset for free.
-  const mikkoMesh = title.meshes[0]!;
   mikkoMesh.add(projectsDecor.group);
-  // z = DEPTH/2 puts the decor at the midplane of the extruded letters,
-  // so the ring crosses through the K-K rather than floating in front.
-  projectsDecor.group.position.set(xCenterKK, 0, 0.35);
+  // Sit on the midplane of the extruded letters so the ring crosses
+  // through the K-K rather than floating in front. Imports DEPTH from
+  // buildTitle so the placement tracks any future change to the title's
+  // extrusion depth.
+  projectsDecor.group.position.set(xCenterKK, 0, TITLE_DEPTH / 2);
 
   let projectsHoverBoost = 0;
   // Reused each frame to avoid allocating Vector3 in the hot path.
@@ -246,12 +251,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const dx = e.clientX - x;
     const dy = e.clientY - y;
     if (Math.sqrt(dx * dx + dy * dy) > r) return;
-    // Route through an existing nav anchor so pageTransition picks it up
-    // and runs phase-A/B before navigating. Falls back to direct
-    // navigation if the anchor isn't on the page.
-    const anchor = document.querySelector<HTMLAnchorElement>(
-      'a[href$="/projects"], a[href$="/projects/"]',
-    );
+    // Route through the existing nav anchor so pageTransition picks it
+    // up and runs phase-A/B before navigating. Scoped to <nav> so it
+    // can't accidentally match an unrelated link whose href ends in
+    // "/projects". Falls back to direct navigation if the anchor isn't
+    // on the page.
+    const anchor =
+      document.querySelector<HTMLAnchorElement>('nav a[href$="/projects"]') ??
+      document.querySelector<HTMLAnchorElement>('nav a[href$="/projects/"]');
     if (anchor) anchor.click();
     else window.location.href = '/projects';
   };

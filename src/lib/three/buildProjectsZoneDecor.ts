@@ -97,6 +97,10 @@ export function buildProjectsZoneDecor(
     envMapIntensity: 0.9,
   });
   const planet = new Mesh(planetGeo, planetMat);
+  // Park the planet at a clean apex of the orbit so reduced-motion
+  // clients (where tick is called with delta=0 and the position never
+  // updates) see it sitting on the ring rather than at the dead center.
+  planet.position.set(1.22 * scale, 0, 0);
   group.add(planet);
 
   const flareTex = makeFlareTexture();
