@@ -6,7 +6,7 @@
  * + text into a `LocalizedTimelineEntry` for rendering.
  */
 
-import type { Translations } from '../i18n';
+import type { Translations, TimelineLesson } from '../i18n';
 
 export type TimelineKind = 'foundation' | 'work' | 'life' | 'project' | 'craft' | 'now';
 
@@ -24,6 +24,12 @@ export interface LocalizedTimelineEntry extends TimelineEntry {
   title: string;
   body: string;
   tags?: string[];
+  /**
+   * Optional list of "what this chapter taught me" items. Rendered as
+   * a nested mini-timeline under the body. See `Translations.timelineData`
+   * in `src/i18n/types.ts` for the shape contract.
+   */
+  lessons?: TimelineLesson[];
 }
 
 export const timeline: TimelineEntry[] = [
@@ -59,6 +65,7 @@ export function localizeTimeline(t: Translations): LocalizedTimelineEntry[] {
       title: text?.title ?? '',
       body: text?.body ?? '',
       tags: text?.tags,
+      lessons: text?.lessons,
     };
   });
 }

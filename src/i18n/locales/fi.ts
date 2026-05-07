@@ -220,6 +220,7 @@ export const fi: Translations = {
     kindNow: 'nyt',
     summit: 'Saavutit huipun.',
     cta: 'astu terminaaliin →',
+    lessonsAriaLabel: 'Tämän luvun opit',
   },
   timelineData: {
     'hardware-retail': {
@@ -243,7 +244,7 @@ export const fi: Translations = {
     },
     '2026-build': {
       title: '2026 — rakennusvuosi',
-      body: 'Seitsemän tuotantoon vietyä projektia. Pääpari on HRM ja Platform: HRM on portfolio-tasoinen HR-järjestelmä (yli 1828 testiä 91,9 % kattavuudella, Stryker-mutaatiotestaus jokaisessa PR:ssä PostgreSQL-palvelukontilla, kaksi tietokantaa, TOTP-2FA, hajautusketjutettu auditloki, OpenTelemetry), joka syöttää Platformia — tuotantokäytössä olevaa yhteisöalustaa osoitteessa vuohiliitto.com, joka rakentuu HRM:n päälle alimoduulina: monivuokrainen pelillistäminen, reaaliaikainen chatti, Mythic+ -tiimiseuranta Raider.IO-rajapinnalla.\n\nSpacepotatis (spacepotatis.vercel.app) on kokonainen selainpeli. Etusivu boottaa kuin vintage-terminaali; galaksinäkymä on aito 3D Three.js -aurinkokunta, jota voi pyörittää ja zoomata; planeettaa klikkaamalla siirrytään top-down Phaser 3 -taisteluun — Tyrian 2000 -sukulinjaa, agraarisempi versio. Noin 1170 testiä, PostgreSQL Neonissa Kysely-rakentajan kautta (ei ORM:ää), valinnainen Google-kirjautuminen pilvitallennuksiin ja tulostauluun, strict TypeScript läpi koko stackin. Repossa on kymmenen omaa Claude Code -skilliä, jotka tekevät kehitysworkflowsta itsestään versioidun artefaktin (~2,76 miljoonaa tokenia säästöä vuodessa, metodologia dokumentoitu). Toukokuussa 2026 sattui tallennuksen korruptiobugi (kehittäjän oma tili, julkisesti debuggattu README:ssä). Vastaus toimitettiin kerroksissa: akuutti palvelinpuolen `validateNoRegression` -vahti tunneissa, forensinen `save_audit` -taulu post-mortemia varten, ja päivittäinen GitHub Actions -cron, joka lukee tauluun kertyvää dataa ja avaa autonomisesti GitHub-issuen, kun dataa on kertynyt riittävästi syvempää rakenteellista korjausta varten (append-only save-snapshotit). Lieventäminen ensin, observointi toiseksi, arkkitehtuuri kolmanneksi — ops, joka kysyy itse itseltään ennen kuin operaattori kysyy.\n\nKaikki Spacepotatiksen musiikki ja jokainen puhuttu rivi on alkuperäistä ja paikallisesti generoitua. Musiikki tulee strudel-patterns-projektista — kirjoitettu Strudelissa, live-koodaustyökalussa jossa musiikkia kuvataan lyhyillä tekstipätkillä, ja exportattu puhtaaksi audioksi, joka putoaa suoraan peliin. Ääninäyttely on AudiobookMakerin tuotosta — Windows-työpöytäsovellus (1884 testiä), joka toimii myös itsenäisesti: muuntaa PDF-, EPUB- ja tekstitiedostoja MP3-äänikirjoiksi kolmella TTS-moottorilla — Edge-TTS pilvestä, Piper paikallisesti ilman verkkoa, ja Chatterbox neuraaliseen kerrontaan LoRA-ääniklonauksella (englanti vahvin, suomi tuettu). Allekirjoitettu asennusohjelma automaattipäivityksillä, testattu päästä päähän oikealla 10-tuntisella äänikirjalla. GitHub Actions windows-2022-runnereilla rakentaa allekirjoitetun asennusohjelman ja launcherin jokaisesta tag-pushista, ja kolmas workflow valvoo itse CI:tä. Spacepotatiksen ääni — "Grandma"-hahmo valikoissa, tiedotuksissa, esinepoiminnoissa ja toistettavassa Story-lokissa — on kaikki englanninkielistä Chatterboxia AudiobookMakerista.\n\nAudiobookMakerin parissa työskennellessä törmäsin forward-hook-vuotoon Chatterboxin monikielisessä T3-inference-polussa — sellaiseen bugiin, joka kutistaa moottorin tuottamaan vain ~0,4 sekuntia ääntä ensimmäisen kutsun jälkeen, mikä kaataa kaiken pitkämuotoisen työn. Diagnosoin bugin, kirjoitin korjauksen ja lähetin kaksi pull requestia upstreamille resemble-ai/chatterboxiin (24 000 tähden open-source TTS-projekti): #505 ja #510, molemmat korjaavat forward-hook-vuodon alignment-analyzerissa. Avoinna ja yhteisön bumppaamia. Aitoa tuotantotason debuggausta toisen koodikannan päällä, ja takaisin yhteisölle.\n\nReadLog seuraa lukemista Open Library- ja Google Books -rajapintojen päällä. Tämä Portfolio-sivusto (Astro + Three.js + GSAP) sitoo kaiken yhteen.\n\nPäästä päähän omistajuus jokaisessa repossa: SQL-skeema ja migraatiot, sovelluskoodi, GitHub Actions CI (typecheck, format, lint, sekä Stryker-mutaatiotestaus siellä missä sillä on merkitystä), build-putket, allekirjoitetut julkaisut. Viisi projektia seitsemästä deployataan Vercelillä (datan puolella Neon Postgres); AudiobookMaker toimitetaan GitHub Releasesin kautta. Skeema-migraatiosta tuotantolokeihin — yksin, ei kättelyitä tiimien välillä.',
+      body: 'Seitsemän tuotantoon vietyä projektia, yksi kalenterivuosi. Stack ja päätökset ovat todistus — alla on se mitä ne opettivat.',
       tags: [
         '7 repoa',
         'Oikeita käyttäjiä',
@@ -253,6 +254,32 @@ export const fi: Translations = {
         'Phaser 3',
         'Python',
         'Turborepo',
+      ],
+      lessons: [
+        {
+          title: 'Lieventäminen → observointi → arkkitehtuuri, tässä järjestyksessä',
+          body: 'Toukokuussa 2026 Spacepotatiksen tallennuksen korruptiobugi kaatui kehittäjän omaan tiliin — kolme anti-cheat-vahtia kaikki tarkistivat, ettei mikään kasvanut liian NOPEASTI, mutta yksikään ei tarkistanut, oliko jokin pienentynyt. Oikea vastaus ei ollut rakenteellinen uudelleenkirjoitus. Akuutti palvelinpuolen `validateNoRegression` -vahti tunneissa, sen jälkeen forensinen `save_audit` -taulu post-mortemia varten, sitten GitHub Actions -cron joka tarkkailee taulua päivittäin ja avaa GitHub-issuen kun dataa on kertynyt riittävästi syvempää rakenteellista korjausta varten (append-only save-snapshotit). Arkkitehtuuri viimeisenä, ei koskaan ensimmäisenä.',
+        },
+        {
+          title: 'AI-avusteinen kehitys vaatii versioidut skillit, ei fiilispohjaa',
+          body: 'Spacepotatis toimittaa kymmenen omaa Claude Code -skilliä tuotantoartefakteina — ohjetiedostoja, jotka opettavat agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki). Ne ovat versionhallinnassa, auditoidaan kvartaaleittain (drift skillin ja sen viittaaman koodin välillä on aito bugiluokka — kaksi oikeaa tällaista löydettiin viime auditoinnissa), ja säästävät noin 2,76 miljoonaa tokenia vuodessa. Reproducoituva AI-työnkulku, ei fiilispohjaista koodausta.',
+        },
+        {
+          title: 'Putkimaiset työkalut voittavat yhden työkalun lukituksen',
+          body: 'AudiobookMaker ei ole "Edge-TTS-sovellus". Kolme moottoria valitsee kompromissin ajonaikaisesti: Edge-TTS nopeisiin pilvi-ääniin verkossa, Piper offline-käyttöön kannettavalla, Chatterbox neuraaliseen laatuun LoRA-ääniklonauksella kun GPU on saatavilla. Sama putki, eri moottorit, käyttäjän valinta. Lukitus yhteen ääniteknologiaan olisi vanhentunut samana vuonna.',
+        },
+        {
+          title: 'Mutaatiotestaus muuttaa "testit menee läpi" -lauseen "testit tekevät työnsä" -muotoon',
+          body: 'HRM ajaa Stryker-mutaatiotestausta jokaisessa PR:ssä PostgreSQL-palvelukontilla. 1828+ testiä 91,9 % kattavuudella on helppo huijata; mutaatiopistemäärä pakottaa testisarjan oikeasti kiinni bugeihin tuomalla keinotekoisia ja varmistamalla testien epäonnistumisen. Kattavuus kertoo, että rivit ajettiin. Mutaatio kertoo, että assertiot tarkoittivat jotain.',
+        },
+        {
+          title: 'Kun upstream on rikki, korjaa upstream',
+          body: 'AudiobookMakeria rakentaessa törmäsin forward-hook-vuotoon Chatterboxin monikielisessä T3-inference-polussa — moottori romahti tuottamaan vain ~0,4 sekuntia ääntä ensimmäisen kutsun jälkeen, mikä on showstopper kaikessa pitkämuotoisessa työssä. Diagnosoin bugin, kirjoitin korjauksen ja lähetin kaksi pull requestia upstreamille resemble-ai/chatterboxiin (24 000 tähden open-source TTS): #505 ja #510. Avoinna ja yhteisön bumppaamia. Aitoa tuotantotason debuggausta toisen koodikannan päällä, takaisin yhteisölle eikä paikallisesti paikattuna ja unohdettuna.',
+        },
+        {
+          title: 'Päästä päähän omistajuus skaalautuu kun tiimi on yksi',
+          body: 'Skeema-migraatiosta tuotantolokeihin, ei kättelyitä. Postgres + MongoDB HRM:ssä, Postgres Neonissa Spacepotatiksessa, GitHub Actions CI jokaisessa repossa (typecheck, format, lint, sekä Stryker-mutaatiotestaus siellä missä se on relevanttia), Vercel-deploytit web-stackille, allekirjoitettu Windows-asennusohjelma GitHub Releasesin kautta AudiobookMakerille, OpenTelemetry siellä missä se shippaa. SQL → sovellus → CI → deploy → ops, omistettuna yksin. Rajoitus on työ, ei tiimien välinen odotusaika.',
+        },
       ],
     },
     now: {

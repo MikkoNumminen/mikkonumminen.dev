@@ -219,6 +219,7 @@ export const en: Translations = {
     kindNow: 'now',
     summit: 'You reached the summit.',
     cta: 'drop into the terminal →',
+    lessonsAriaLabel: 'Lessons from this chapter',
   },
   timelineData: {
     'hardware-retail': {
@@ -242,7 +243,7 @@ export const en: Translations = {
     },
     '2026-build': {
       title: 'The 2026 build',
-      body: 'Seven shipped projects this year. The headline pair is HRM and Platform: HRM is a portfolio-grade HR system (1828+ tests at 91.9% coverage, Stryker mutation testing on every PR with a PostgreSQL service container, two databases, TOTP 2FA, hash-chained audit log, OpenTelemetry) that feeds Platform — a live community at vuohiliitto.com built on HRM as a submodule, with multi-tenant gamification, real-time chat, and a Mythic+ tracker via Raider.IO.\n\nSpacepotatis (spacepotatis.vercel.app) is a full browser game. The front door boots like a vintage terminal; the galaxy view is a real 3D Three.js solar system you drag and zoom; clicking a planet warps you into top-down Phaser 3 combat — Tyrian 2000 lineage, more agricultural. Around 1170 tests, PostgreSQL on Neon via Kysely (no ORM), optional Google sign-in for cloud saves and a leaderboard, strict TypeScript throughout. Ten custom Claude Code skills live in the repo and turn the development workflow itself into a versioned artifact (~2.76M tokens/year saved, methodology documented). After a save-corruption incident hit the dev\'s own account in May 2026 (publicly debugged in the README), the response shipped in layers: acute server-side `validateNoRegression` guard within hours, a forensic `save_audit` table for the post-mortem, then a daily GitHub Actions cron that reads that table and autonomously opens a GitHub Issue once enough data has accumulated for the deeper structural fix (append-only save snapshots). Mitigation first, observability second, architecture third — ops that asks itself questions before the operator does.\n\nEvery note of music and every spoken line in Spacepotatis is original and locally generated. Music comes from strudel-patterns — written in Strudel, a live-coding tool where you describe music with short text snippets, then exported as clean audio that drops straight into the game. Voice is AudiobookMaker — a Windows desktop app (1884 tests) that also stands on its own: it turns PDF, EPUB, and plain text into MP3 audiobooks via three TTS engines — Edge-TTS for fast cloud voices, Piper for offline, and Chatterbox for neural narration with LoRA voice-cloning (English the strongest, Finnish supported). Signed installer with auto-updates, tested end-to-end on a real 10-hour audiobook. GitHub Actions on windows-2022 runners build the signed installer and launcher on every tag push, with a third workflow monitoring CI itself. The Spacepotatis voice — a "Grandma" character across menus, briefings, item-pickup cues, and a replayable Story log — is all English Chatterbox out of AudiobookMaker.\n\nWhile building AudiobookMaker I hit a forward-hook leak deep in Chatterbox\'s multilingual T3 inference path — the kind of bug that collapses the engine to ~0.4 s of audio after the first call, a showstopper for any long-form work. Diagnosed it, wrote the fix, sent two pull requests upstream to resemble-ai/chatterbox (the 24k-star open-source TTS project): #505 and #510, both fixing the forward-hook leak in the alignment analyzer. Open, and bumped by community contributors. Real production debugging on someone else\'s codebase, contributed back.\n\nReadLog tracks reading on top of Open Library + Google Books. This Portfolio site (Astro + Three.js + GSAP) ties them all together.\n\nEnd-to-end ownership across every repo: SQL schema and migrations, application code, GitHub Actions CI (typecheck, format, lint, plus Stryker mutation testing where it matters), build pipelines, signed releases. Five of the seven projects deploy on Vercel (with Neon Postgres on the data side); AudiobookMaker ships through GitHub Releases. Schema migration to production logs — solo, no handoffs.',
+      body: 'Seven shipped projects, one calendar year. The stack and decisions are the proof — what follows is what they taught me.',
       tags: [
         '7 repos',
         'Real users',
@@ -252,6 +253,32 @@ export const en: Translations = {
         'Phaser 3',
         'Python',
         'Turborepo',
+      ],
+      lessons: [
+        {
+          title: 'Mitigation → observability → architecture, in that order',
+          body: 'Save corruption hit Spacepotatis\' dev account in May 2026 — three anti-cheat guards all checked things hadn\'t grown too FAST, none checked if something had grown SMALLER. The right response wasn\'t a structural rewrite. Acute `validateNoRegression` server guard within hours, then a forensic `save_audit` table to feed the post-mortem, then a GitHub Actions cron that watches that table daily and opens an Issue when there\'s enough data for the deeper structural fix (append-only save snapshots). Architecture last, never first.',
+        },
+        {
+          title: 'AI-assisted dev needs versioned skills, not vibes',
+          body: 'Spacepotatis ships ten custom Claude Code skills as production artifacts — instruction files that teach the agent project-specific recipes (add an enemy, ship a database migration, audit the save pipeline). They check into the repo, get audited quarterly (drift between a skill and the code it references is a real bug class — caught two real ones in the last audit), and save ~2.76M tokens/year. Reproducible AI workflow, not vibes coding.',
+        },
+        {
+          title: 'Pipeline-shaped tools beat single-tool lock-in',
+          body: 'AudiobookMaker isn\'t "an Edge-TTS app." Three engines pick the trade-off at runtime: Edge-TTS for fast cloud voices when online, Piper for offline-on-laptop, Chatterbox for neural quality with LoRA voice-cloning when a GPU is available. Same pipeline, different engines, user\'s call. Lock-in to any single voice technology would have aged badly within the same year I shipped it.',
+        },
+        {
+          title: 'Mutation testing turns "tests pass" into "tests are useful"',
+          body: 'HRM runs Stryker mutation testing on every PR with a PostgreSQL service container. 1828+ tests at 91.9% coverage are easy to game; mutation score forces the suite to actually catch bugs by introducing artificial ones and verifying the tests fail. Coverage tells you the lines ran. Mutation tells you the assertions meant something.',
+        },
+        {
+          title: 'When the upstream is broken, fix the upstream',
+          body: 'While building AudiobookMaker I hit a forward-hook leak deep in Chatterbox\'s multilingual T3 inference path — the engine collapsed to ~0.4 s of audio after the first call, a showstopper for any long-form work. Diagnosed it, wrote the fix, sent two pull requests upstream to resemble-ai/chatterbox (24k-star open-source TTS): #505 and #510. Open and bumped by community contributors. Real production debugging in someone else\'s codebase, contributed back instead of patched locally and forgotten.',
+        },
+        {
+          title: 'Full-stack ownership scales when the team is one',
+          body: 'Schema migration to production logs, no handoffs. Postgres + MongoDB at HRM, Postgres on Neon at Spacepotatis, GitHub Actions CI on every repo (typecheck, format, lint, plus Stryker mutation testing where it matters), Vercel deploys for the web stack, signed Windows installer through GitHub Releases for AudiobookMaker, OpenTelemetry where it ships. SQL → app → CI → deploy → ops, owned solo. The constraint is the work, not the wait time between teams.',
+        },
       ],
     },
     now: {

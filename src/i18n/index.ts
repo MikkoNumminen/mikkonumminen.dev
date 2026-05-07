@@ -4,7 +4,7 @@ import { sv } from './locales/sv';
 import { LOCALES, DEFAULT_LOCALE, type Locale, type Translations } from './types';
 
 export { LOCALES, DEFAULT_LOCALE } from './types';
-export type { Locale, Translations };
+export type { Locale, Translations, TimelineLesson } from './types';
 
 // Path helpers live in `./routing` so runtime modules that only need
 // path manipulation (notably the page-transition runtime, which loads on

@@ -221,6 +221,7 @@ export const sv: Translations = {
     kindNow: 'nu',
     summit: 'Du nådde toppen.',
     cta: 'hoppa in i terminalen →',
+    lessonsAriaLabel: 'Lärdomar från detta kapitel',
   },
   timelineData: {
     'hardware-retail': {
@@ -244,7 +245,7 @@ export const sv: Translations = {
     },
     '2026-build': {
       title: '2026 — byggåret',
-      body: 'Sju produktionsprojekt levererade i år. Det centrala paret är HRM och Platform: HRM är ett HR-system enligt portföljstandard (1828+ tester med 91,9 % täckning, Stryker-mutationstestning på varje PR med en PostgreSQL-tjänstcontainer, två databaser, TOTP-2FA, hash-kedjad granskningslogg, OpenTelemetry) som matar Platform — en live community på vuohiliitto.com byggd på HRM som undermodul, med fleranvändarstöd, spelifiering, chatt i realtid och en Mythic+-teamspårare via Raider.IO.\n\nSpacepotatis (spacepotatis.vercel.app) är ett komplett webbläsarspel. Förstasidan startar som en vintage-terminal; galaxvyn är ett riktigt 3D Three.js-solsystem som du drar och zoomar; klicka på en planet och du varpas in i top-down Phaser 3-strid — Tyrian 2000-arv, mer agrart. Cirka 1170 tester, PostgreSQL på Neon via Kysely (ingen ORM), valfri Google-inloggning för molnsparning och topplista, strict TypeScript genom hela stacken. Tio egna Claude Code-skills i repot gör utvecklingsflödet självt till en versionerad artefakt (~2,76 miljoner token sparade per år, metodik dokumenterad). I maj 2026 inträffade en spar-korruptionsbug (utvecklarens eget konto, offentligt debuggad i README). Svaret levererades i lager: en akut serversidesvakt `validateNoRegression` inom timmar, en forensisk `save_audit`-tabell för post-mortem, och en daglig GitHub Actions-cron som läser tabellen och autonomt öppnar ett GitHub Issue när tillräckligt med data har samlats för den djupare strukturella fixen (append-only save-snapshots). Mitigering först, observerbarhet sedan, arkitektur sist — ops som frågar sig själv innan operatören frågar.\n\nVarje ton musik och varje uttalad rad i Spacepotatis är originellt och lokalt genererat. Musiken kommer från strudel-patterns — skriven i Strudel, ett live-kodningsverktyg där du beskriver musik med korta textsnuttar, och exporterad som ren audio som droppar rakt in i spelet. Rösten är AudiobookMakers verk — ett Windows-skrivbordsprogram (1884 tester) som också står på egna ben: omvandlar PDF-, EPUB- och textfiler till MP3-ljudböcker via tre TTS-motorer — Edge-TTS för snabba molnröster, Piper för offline, och Chatterbox för neural uppläsning med LoRA-röstkloning (engelska starkast, finska stöds). Signerad installerare med automatiska uppdateringar, helhetstestad på en riktig 10-timmars ljudbok. GitHub Actions på windows-2022-runners bygger den signerade installeraren och launchern på varje tag-push, med ett tredje workflow som övervakar själva CI:n. Spacepotatis-rösten — en "Grandma"-karaktär i menyer, briefings, item-pickup-cues och en spelbar Story-logg — är all engelsk Chatterbox från AudiobookMaker.\n\nUnder arbetet med AudiobookMaker stötte jag på en forward-hook-läcka djupt i Chatterboxs flerspråkiga T3-inferensbana — den sortens bugg som kollapsar motorn till ~0,4 s ljud efter det första anropet, en showstopper för allt långformigt arbete. Diagnostiserade buggen, skrev fixen och skickade två pull requests uppströms till resemble-ai/chatterbox (24k-stjärnors open-source TTS-projekt): #505 och #510, båda fixar forward-hook-läckan i alignment-analyzern. Öppna och bumpade av communitybidragsgivare. Riktig produktionsdebuggning i någon annans kodbas, bidragen tillbaka.\n\nReadLog spårar läsning ovanpå Open Library + Google Books. Den här Portfolio-sajten (Astro + Three.js + GSAP) binder ihop allt.\n\nHelhetsansvar i varje repo: SQL-schema och migrationer, applikationskod, GitHub Actions CI (typecheck, format, lint, plus Stryker-mutationstestning där det är relevant), byggpipelines, signerade releaser. Fem av sju projekt deployas på Vercel (med Neon Postgres på datasidan); AudiobookMaker levereras via GitHub Releases. Schemamigration till produktionsloggar — solo, inga överlämningar mellan team.',
+      body: 'Sju produktionsprojekt levererade, ett kalenderår. Stacken och besluten är beviset — det som följer är vad de lärde mig.',
       tags: [
         '7 repos',
         'Riktiga användare',
@@ -254,6 +255,32 @@ export const sv: Translations = {
         'Phaser 3',
         'Python',
         'Turborepo',
+      ],
+      lessons: [
+        {
+          title: 'Mitigering → observerbarhet → arkitektur, i den ordningen',
+          body: 'I maj 2026 träffade spar-korruption Spacepotatis utvecklarkonto — tre anti-cheat-vakter kontrollerade alla att saker inte hade vuxit för SNABBT, ingen kontrollerade om något hade krympt. Rätt svar var inte en strukturell omskrivning. En akut `validateNoRegression`-serversidesvakt inom timmar, sedan en forensisk `save_audit`-tabell för post-mortem, sedan en GitHub Actions-cron som dagligen läser tabellen och öppnar ett Issue när tillräckligt med data finns för den djupare strukturella fixen (append-only save-snapshots). Arkitektur sist, aldrig först.',
+        },
+        {
+          title: 'AI-assisterad utveckling kräver versionerade skills, inte känsla',
+          body: 'Spacepotatis levererar tio egna Claude Code-skills som produktionsartefakter — instruktionsfiler som lär agenten projektspecifika recept (lägg till en fiende, skjut en databasmigration, granska sparpipelinen). De versionshanteras, granskas kvartalsvis (drift mellan skill och kod den refererar till är en verklig buggkategori — två sådana fångades i den senaste granskningen), och sparar ~2,76 miljoner token per år. Reproducerbart AI-flöde, inte känslokodning.',
+        },
+        {
+          title: 'Pipeline-formade verktyg slår enverktygsinlåsning',
+          body: 'AudiobookMaker är inte "ett Edge-TTS-program". Tre motorer väljer kompromissen vid körning: Edge-TTS för snabba molnröster online, Piper för offline-på-laptop, Chatterbox för neural kvalitet med LoRA-röstkloning när GPU finns. Samma pipeline, olika motorer, användarens val. Inlåsning till en enda röstteknologi hade åldrats illa redan inom samma år.',
+        },
+        {
+          title: 'Mutationstestning förvandlar "testerna passerar" till "testerna gör jobbet"',
+          body: 'HRM kör Stryker-mutationstestning på varje PR med en PostgreSQL-tjänstcontainer. 1828+ tester med 91,9 % täckning är lätt att fuska med; mutationspoäng tvingar testsviten att verkligen fånga buggar genom att introducera artificiella sådana och verifiera att testerna fallerar. Täckning säger att raderna kördes. Mutation säger att assertionerna betydde något.',
+        },
+        {
+          title: 'När uppströms är trasigt, fixa uppströms',
+          body: 'Under arbetet med AudiobookMaker stötte jag på en forward-hook-läcka djupt i Chatterboxs flerspråkiga T3-inferensbana — motorn kollapsade till ~0,4 s ljud efter det första anropet, en showstopper för allt långformigt arbete. Diagnostiserade, skrev fixen, skickade två pull requests uppströms till resemble-ai/chatterbox (24k-stjärnors open-source TTS): #505 och #510. Öppna och bumpade av communitybidragsgivare. Riktig produktionsdebuggning i någon annans kodbas, bidragen tillbaka istället för lokalt patchade och glömda.',
+        },
+        {
+          title: 'Helhetsansvar skalar när teamet är en',
+          body: 'Schemamigration till produktionsloggar, inga överlämningar. Postgres + MongoDB i HRM, Postgres på Neon i Spacepotatis, GitHub Actions CI på varje repo (typecheck, format, lint, plus Stryker-mutationstestning där det är relevant), Vercel-deploys för webbstacken, signerad Windows-installerare via GitHub Releases för AudiobookMaker, OpenTelemetry där det levereras. SQL → app → CI → deploy → ops, ägt solo. Begränsningen är arbetet, inte väntetiden mellan team.',
+        },
       ],
     },
     now: {

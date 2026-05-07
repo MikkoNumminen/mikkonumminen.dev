@@ -401,11 +401,130 @@
   outline-color: var(--accent);
 }
 
+/* ── Lessons sub-timeline ───────────────────────────────────────
+   Optional nested list rendered inside an entry's card when
+   `lessons` is present in the i18n data. Visually a quieter
+   miniature of the outer timeline: small static dot per lesson,
+   thin vertical thread between them, lesson headlines as
+   sub-headings beneath the entry title. The colour story comes
+   from the entry's `--accent` variable so the sub-timeline reads
+   as part of the same chapter.
+
+   Currently only the 2026-build entry uses this. Other entries
+   skip it via the optional check in the Astro template, so card
+   layout for those is unchanged. */
+
+.timeline__lessons {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 1.25rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timeline__lesson {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  position: relative;
+}
+
+.timeline__lesson-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  margin-top: 0.45rem;
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
+  justify-self: center;
+}
+
+/* Thin connecting thread that spans from this lesson row's marker
+   down through the row gap to the centre of the next row's marker.
+   Positioned on the row container (not the marker) so the height
+   grows with the row's content instead of staying a fixed stub.
+
+   Geometry:
+     top    = 0.45rem (next-marker's margin-top equivalent on this
+              row) + 8 px (this marker's height) + 4 px (breathing
+              room below this marker) → thread starts just below
+              this marker.
+     bottom = -1.45rem (row gap = 1rem) + (next marker's margin-top
+              = 0.45rem) − 4 px (push into the next marker so the
+              thread reads as passing through it, not stopping at
+              its top edge). */
+.timeline__lesson:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: calc(0.45rem + 8px + 4px);
+  bottom: calc(-1.45rem - 4px);
+  left: 7px;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--accent-rgb), 0.32),
+    rgba(var(--accent-rgb), 0.08)
+  );
+}
+
+/* Active-card amplification cascades into the lesson markers — same
+   visual story as the outer dot scaling, just smaller. The thread
+   stays the same so the row of dots doesn't jitter when the card
+   becomes active. */
+.timeline__entry[data-active='true'] .timeline__lesson-marker {
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.28);
+}
+
+.timeline__lesson-content {
+  min-width: 0;
+}
+
+.timeline__lesson-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: #fff;
+  margin: 0 0 0.3rem;
+  line-height: 1.35;
+}
+
+.timeline__lesson-body {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(243, 238, 217, 0.74);
+  margin: 0;
+}
+
+.timeline__lesson-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--accent-rgb), 0.45);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease,
+    text-decoration-thickness 0.2s ease;
+}
+
+.timeline__lesson-body a:hover,
+.timeline__lesson-body a:focus-visible {
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+}
+
+.timeline__lesson-body a:focus-visible {
+  outline-color: var(--accent);
+}
+
 .timeline__tags {
   position: relative;
   list-style: none;
   padding: 0;
-  margin: 1rem 0 0;
+  margin: 1.25rem 0 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;

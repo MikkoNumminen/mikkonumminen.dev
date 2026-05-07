@@ -3,6 +3,18 @@ export type Locale = 'en' | 'fi' | 'sv';
 export const LOCALES: Locale[] = ['en', 'fi', 'sv'];
 export const DEFAULT_LOCALE: Locale = 'en';
 
+export interface TimelineLesson {
+  title: string;
+  /**
+   * Single paragraph of body text. Multi-paragraph bodies are not
+   * supported — split into multiple `TimelineLesson` entries instead so
+   * each beat gets its own marker on the sub-timeline. URLs that match
+   * a known project's host (per `data/projects.ts`) auto-link via
+   * `LinkifiedText`.
+   */
+  body: string;
+}
+
 export interface Translations {
   meta: {
     home: { title: string; description: string };
@@ -112,13 +124,25 @@ export interface Translations {
     kindNow: string;
     summit: string;
     cta: string;
+    /** ARIA label for the nested lessons sub-timeline rendered inside an
+     *  entry's card when `lessons` is present in `timelineData[id]`. */
+    lessonsAriaLabel: string;
   };
+  /** Single lesson inside a timeline entry's optional sub-timeline. */
   timelineData: Record<
     string,
     {
       title: string;
       body: string;
       tags?: string[];
+      /**
+       * Optional sub-timeline of "what this chapter taught me" entries.
+       * When present, the entry's card renders the lessons as a nested
+       * mini-timeline under the body. Each lesson is short (a headline
+       * naming the takeaway and a body explaining + pointing at the
+       * project / tech / decision that proves it).
+       */
+      lessons?: TimelineLesson[];
     }
   >;
   contactPage: {
