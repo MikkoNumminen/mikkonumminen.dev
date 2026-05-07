@@ -25,7 +25,8 @@
 
 .nav-cards__heading {
   font-size: clamp(2.25rem, 6vw, 4.25rem);
-  line-height: 1.02;
+  /* See Intro.astro for why 1.18 instead of the editorial-tight 1.02. */
+  line-height: 1.18;
   font-weight: 700;
   letter-spacing: -0.035em;
   margin: 0 0 4rem;

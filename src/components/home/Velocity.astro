@@ -73,7 +73,8 @@ const t = getTranslations(locale);
 
   .velocity__heading {
     font-size: clamp(2.25rem, 6vw, 4.25rem);
-    line-height: 1.02;
+    /* See Intro.astro for why 1.18 instead of the editorial-tight 1.02. */
+    line-height: 1.18;
     font-weight: 700;
     letter-spacing: -0.035em;
     margin: 0 0 1.75rem;
@@ -143,7 +144,9 @@ const t = getTranslations(locale);
     letter-spacing: -0.04em;
     line-height: 0.9;
     color: #fbbf24;
-    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    font-feature-settings:
+      'tnum' 1,
+      'lnum' 1;
   }
 
   .velocity__stat[data-rank='lead'] .velocity__stat-num {
@@ -179,11 +182,7 @@ const t = getTranslations(locale);
       right: 0;
       width: auto;
       height: 1px;
-      background: linear-gradient(
-        to right,
-        rgba(251, 191, 36, 0.2),
-        transparent 70%
-      );
+      background: linear-gradient(to right, rgba(251, 191, 36, 0.2), transparent 70%);
     }
 
     .velocity__ghost {

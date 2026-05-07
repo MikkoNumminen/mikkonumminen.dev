@@ -64,7 +64,10 @@ const items = t.integrations.items;
 
   .integrations__heading {
     font-size: clamp(2.25rem, 6vw, 4.25rem);
-    line-height: 1.02;
+    /* See Intro.astro for why 1.18 instead of the editorial-tight 1.02 —
+       descenders on "Plugged" / "Kytköksissä" were being clipped by the
+       [data-split] inline-block overflow:hidden. */
+    line-height: 1.18;
     font-weight: 700;
     letter-spacing: -0.035em;
     margin: 0 0 4rem;
@@ -100,11 +103,7 @@ const items = t.integrations.items;
   }
 
   .integrations__row:hover {
-    background: linear-gradient(
-      to right,
-      rgba(251, 191, 36, 0.04),
-      transparent 70%
-    );
+    background: linear-gradient(to right, rgba(251, 191, 36, 0.04), transparent 70%);
   }
 
   .integrations__row-head {

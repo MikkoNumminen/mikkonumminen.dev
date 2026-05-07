@@ -66,7 +66,8 @@ const items = t.focus.items;
 
   .focus__heading {
     font-size: clamp(2.25rem, 6vw, 4.25rem);
-    line-height: 1.02;
+    /* See Intro.astro for why 1.18 instead of the editorial-tight 1.02. */
+    line-height: 1.18;
     font-weight: 700;
     letter-spacing: -0.035em;
     margin: 0 0 4rem;
@@ -106,11 +107,7 @@ const items = t.focus.items;
   }
 
   .focus__row:hover {
-    background: linear-gradient(
-      to right,
-      rgba(128, 168, 255, 0.04),
-      transparent 70%
-    );
+    background: linear-gradient(to right, rgba(128, 168, 255, 0.04), transparent 70%);
   }
 
   .focus__row-num {
@@ -157,7 +154,9 @@ const items = t.focus.items;
     border-top: 1px solid rgba(128, 168, 255, 0.4);
     transform: rotate(45deg);
     opacity: 0.4;
-    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease;
+    transition:
+      transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.4s ease;
   }
 
   .focus__row:hover .focus__row-tick {

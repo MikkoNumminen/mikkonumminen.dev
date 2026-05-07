@@ -73,7 +73,10 @@ const t = getTranslations(locale);
 
   .intro__heading {
     font-size: clamp(2.25rem, 6vw, 4.25rem);
-    line-height: 1.02;
+    /* 1.18, not the editorial-tight 1.02, so descenders aren't clipped by
+       the [data-split] inline-block's overflow:hidden and so longer
+       FI/SV translations have room to wrap without lines colliding. */
+    line-height: 1.18;
     font-weight: 700;
     letter-spacing: -0.035em;
     margin: 0;
@@ -147,7 +150,9 @@ const t = getTranslations(locale);
     font-weight: 700;
     letter-spacing: -0.04em;
     line-height: 0.95;
-    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    font-feature-settings:
+      'tnum' 1,
+      'lnum' 1;
   }
 
   .intro__stat-suffix {
@@ -201,11 +206,7 @@ const t = getTranslations(locale);
       right: 0;
       width: auto;
       height: 1px;
-      background: linear-gradient(
-        to right,
-        rgba(255, 255, 255, 0.12),
-        transparent 70%
-      );
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.12), transparent 70%);
     }
 
     .intro__ghost {
