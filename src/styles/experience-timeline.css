@@ -422,7 +422,6 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  counter-reset: lesson;
 }
 
 .timeline__lesson {
@@ -431,7 +430,6 @@
   gap: 0.75rem;
   align-items: start;
   position: relative;
-  counter-increment: lesson;
 }
 
 .timeline__lesson-marker {
@@ -441,27 +439,37 @@
   background: var(--accent);
   margin-top: 0.45rem;
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
-  position: relative;
-  flex-shrink: 0;
   justify-self: center;
 }
 
-/* Thin connecting thread from this marker to the next, so the
-   nested list reads as a vertical timeline rather than a bullet
-   list. The thread fades downward to keep the eye moving. */
-.timeline__lesson:not(:last-child) .timeline__lesson-marker::after {
+/* Thin connecting thread that spans from this lesson row's marker
+   down to the next row's marker. Positioned on the row container
+   (not the marker) so the height grows with the row's content
+   instead of staying a fixed 24-px stub. The marker sits at
+   `margin-top: 0.45rem` and is 8 px tall + 4 px breathing room, so
+   the thread starts 0.7rem below the row top. It extends 1rem
+   (the row gap) plus another 0.45rem (the next marker's margin-top)
+   below the row's bottom, landing exactly at the next marker. */
+.timeline__lesson:not(:last-child)::after {
   content: '';
   position: absolute;
-  top: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(0.45rem + 8px + 4px);
+  bottom: -1.45rem;
+  left: 7px;
   width: 1px;
-  height: calc(100% + 1rem);
   background: linear-gradient(
     to bottom,
     rgba(var(--accent-rgb), 0.32),
     rgba(var(--accent-rgb), 0.08)
   );
+}
+
+/* Active-card amplification cascades into the lesson markers — same
+   visual story as the outer dot scaling, just smaller. The thread
+   stays the same so the row of dots doesn't jitter when the card
+   becomes active. */
+.timeline__entry[data-active='true'] .timeline__lesson-marker {
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.28);
 }
 
 .timeline__lesson-content {

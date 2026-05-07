@@ -6,7 +6,7 @@
  * + text into a `LocalizedTimelineEntry` for rendering.
  */
 
-import type { Translations } from '../i18n';
+import type { Translations, TimelineLesson } from '../i18n';
 
 export type TimelineKind = 'foundation' | 'work' | 'life' | 'project' | 'craft' | 'now';
 
@@ -29,7 +29,7 @@ export interface LocalizedTimelineEntry extends TimelineEntry {
    * a nested mini-timeline under the body. See `Translations.timelineData`
    * in `src/i18n/types.ts` for the shape contract.
    */
-  lessons?: Array<{ title: string; body: string }>;
+  lessons?: TimelineLesson[];
 }
 
 export const timeline: TimelineEntry[] = [

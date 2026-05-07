@@ -3,6 +3,11 @@ export type Locale = 'en' | 'fi' | 'sv';
 export const LOCALES: Locale[] = ['en', 'fi', 'sv'];
 export const DEFAULT_LOCALE: Locale = 'en';
 
+export interface TimelineLesson {
+  title: string;
+  body: string;
+}
+
 export interface Translations {
   meta: {
     home: { title: string; description: string };
@@ -112,7 +117,11 @@ export interface Translations {
     kindNow: string;
     summit: string;
     cta: string;
+    /** ARIA label for the nested lessons sub-timeline rendered inside an
+     *  entry's card when `lessons` is present in `timelineData[id]`. */
+    lessonsAriaLabel: string;
   };
+  /** Single lesson inside a timeline entry's optional sub-timeline. */
   timelineData: Record<
     string,
     {
@@ -126,7 +135,7 @@ export interface Translations {
        * naming the takeaway and a body explaining + pointing at the
        * project / tech / decision that proves it).
        */
-      lessons?: Array<{ title: string; body: string }>;
+      lessons?: TimelineLesson[];
     }
   >;
   contactPage: {

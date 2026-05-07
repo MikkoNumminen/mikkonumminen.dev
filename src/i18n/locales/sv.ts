@@ -221,6 +221,7 @@ export const sv: Translations = {
     kindNow: 'nu',
     summit: 'Du nådde toppen.',
     cta: 'hoppa in i terminalen →',
+    lessonsAriaLabel: 'Lärdomar från detta kapitel',
   },
   timelineData: {
     'hardware-retail': {

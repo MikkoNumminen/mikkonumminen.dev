@@ -1,0 +1,29 @@
+---
+import { linkifyBody } from '../../lib/timeline/linkify';
+
+interface Props {
+  /** The body text to render. Project hosts inside the text become
+   *  `<a target="_blank">` links via `linkifyBody`. */
+  text: string;
+}
+
+const { text } = Astro.props;
+const parts = linkifyBody(text);
+---
+
+{
+  parts.map((part) =>
+    part.type === 'link' ? (
+      <a
+        href={part.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${part.value} (opens in a new tab)`}
+      >
+        {part.value}
+      </a>
+    ) : (
+      part.value
+    ),
+  )
+}

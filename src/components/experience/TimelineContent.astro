@@ -1,8 +1,8 @@
 ---
 import '../../styles/experience-timeline.css';
 import { localizeTimeline } from '../../data/timeline';
-import { projects } from '../../data/projects';
 import { asLocale, getTranslations, localizePath } from '../../i18n';
+import LinkifiedText from './LinkifiedText.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
@@ -28,69 +28,6 @@ function ghostYear(year: string): string {
   const dash = trimmed.lastIndexOf('–');
   if (dash >= 0) return trimmed.slice(dash + 1).trim();
   return trimmed;
-}
-
-// Auto-derive a host → liveUrl map from the projects data. Any timeline
-// body that mentions a known host (e.g. "vuohiliitto.com") gets that
-// host substring rendered as a clickable link, target=_blank, no rebuild
-// required when projects are added later.
-const projectUrlsByHost: Record<string, string> = {};
-for (const p of projects) {
-  if (!p.liveUrl) continue;
-  try {
-    projectUrlsByHost[new URL(p.liveUrl).host] = p.liveUrl;
-  } catch {
-    /* malformed liveUrl in data — skip rather than crash the build */
-  }
-}
-
-// Hoisted: sorted host list is invariant per build, so compute it once.
-// Longest hosts matched first so a host that's a prefix of another
-// (theoretical: `example.com` vs `sub.example.com`) doesn't win when
-// the longer one is present.
-const PROJECT_HOSTS: readonly string[] = Object.keys(projectUrlsByHost).sort(
-  (a, b) => b.length - a.length,
-);
-
-type BodyPart =
-  | { type: 'text'; value: string }
-  | { type: 'link'; value: string; href: string };
-
-/**
- * Walk the body string and split it into text spans and link spans.
- * A link span is created whenever the body contains the bare host of
- * a known project (e.g. `spacepotatis.vercel.app`); the host is the
- * visible text and the project's full `liveUrl` becomes the href.
- */
-function linkifyBody(body: string): BodyPart[] {
-  if (PROJECT_HOSTS.length === 0) return [{ type: 'text', value: body }];
-
-  const parts: BodyPart[] = [];
-  let cursor = 0;
-  while (cursor < body.length) {
-    let earliest: { host: string; idx: number } | null = null;
-    for (const host of PROJECT_HOSTS) {
-      const idx = body.indexOf(host, cursor);
-      if (idx < 0) continue;
-      if (!earliest || idx < earliest.idx) earliest = { host, idx };
-    }
-    if (!earliest) {
-      parts.push({ type: 'text', value: body.slice(cursor) });
-      break;
-    }
-    if (earliest.idx > cursor) {
-      parts.push({ type: 'text', value: body.slice(cursor, earliest.idx) });
-    }
-    // `host` came directly from `Object.keys(projectUrlsByHost)`, so the
-    // lookup is sound — the `!` satisfies noUncheckedIndexedAccess.
-    parts.push({
-      type: 'link',
-      value: earliest.host,
-      href: projectUrlsByHost[earliest.host]!,
-    });
-    cursor = earliest.idx + earliest.host.length;
-  }
-  return parts;
 }
 ---
 
@@ -147,45 +84,19 @@ function linkifyBody(body: string): BodyPart[] {
             <div class="timeline__body">
               {entry.body.split(/\n\n+/).map((paragraph) => (
                 <p>
-                  {linkifyBody(paragraph).map((part) =>
-                    part.type === 'link' ? (
-                      <a
-                        href={part.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`${part.value} (opens in a new tab)`}
-                      >
-                        {part.value}
-                      </a>
-                    ) : (
-                      part.value
-                    ),
-                  )}
+                  <LinkifiedText text={paragraph} />
                 </p>
               ))}
             </div>
             {entry.lessons && entry.lessons.length > 0 && (
-              <ol class="timeline__lessons" aria-label="Lessons from this chapter">
+              <ol class="timeline__lessons" aria-label={t.experiencePage.lessonsAriaLabel}>
                 {entry.lessons.map((lesson) => (
                   <li class="timeline__lesson">
                     <span class="timeline__lesson-marker" aria-hidden="true" />
                     <div class="timeline__lesson-content">
                       <h3 class="timeline__lesson-title">{lesson.title}</h3>
                       <p class="timeline__lesson-body">
-                        {linkifyBody(lesson.body).map((part) =>
-                          part.type === 'link' ? (
-                            <a
-                              href={part.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`${part.value} (opens in a new tab)`}
-                            >
-                              {part.value}
-                            </a>
-                          ) : (
-                            part.value
-                          ),
-                        )}
+                        <LinkifiedText text={lesson.body} />
                       </p>
                     </div>
                   </li>

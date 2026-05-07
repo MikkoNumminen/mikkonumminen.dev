@@ -220,6 +220,7 @@ export const fi: Translations = {
     kindNow: 'nyt',
     summit: 'Saavutit huipun.',
     cta: 'astu terminaaliin →',
+    lessonsAriaLabel: 'Tämän luvun opit',
   },
   timelineData: {
     'hardware-retail': {

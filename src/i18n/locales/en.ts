@@ -219,6 +219,7 @@ export const en: Translations = {
     kindNow: 'now',
     summit: 'You reached the summit.',
     cta: 'drop into the terminal →',
+    lessonsAriaLabel: 'Lessons from this chapter',
   },
   timelineData: {
     'hardware-retail': {
