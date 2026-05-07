@@ -19,7 +19,7 @@ export const fi: Translations = {
     experience: {
       title: 'Kokemus — Mikko Numminen',
       description:
-        'Kiipeä vuorelle — Mikko Nummisen kokemus, taidot ja virstanpylväät peruslähtöpisteestä tähän hetkeen.',
+        'Kiipeä vuorelle — Mikko Nummisen kokemus, taidot ja virstanpylväät perusleiristä tähän hetkeen.',
     },
   },
   nav: {
@@ -55,7 +55,7 @@ export const fi: Translations = {
     heading: 'Miten projektit kytkeytyvät yhteen.',
     items: [
       {
-        title: 'Reposit syöttävät toisiaan',
+        title: 'Repot syöttävät toisiaan',
         body: 'HRM toimii git-alimoduulina Platformin sisällä — sama tunnistautuminen, sama auditloki, kaksi tuotetta yhdestä ytimestä. AudiobookMaker tuottaa äänet Spacepotatikseen, strudel-patterns sen musiikin. Jokainen repliikki ja jokainen sävel jäljitetään takaisin repoon, jonka omistan itse.',
       },
       {
@@ -64,7 +64,7 @@ export const fi: Translations = {
       },
       {
         title: 'AI-natiivi, jäljitettävästi',
-        body: 'Spacepotatis ajaa kymmentä omaa Claude Code -skilliä .claude/skills/-hakemistossa — versionhallittuja, neljännesvuosittain auditoituja, kuten tuotantokoodia. Tekoäly on osa työkalupakkia; auditointijälki on kuitti.',
+        body: 'Spacepotatis ajaa kymmentä omaa Claude Code -skilliä .claude/skills/-hakemistossa — versionhallittuja, neljännesvuosittain auditoituja, kuten tuotantokoodia. Pariohjelmointi tekoälyn kanssa on osa työkalupakkia; auditointijälki on kuitti.',
       },
     ],
   },
@@ -99,7 +99,7 @@ export const fi: Translations = {
     sectionAria: 'Kehitysvauhti',
     eyebrow: 'vauhti',
     heading: 'Nopeaa — todistettavasti.',
-    body: 'Spacepotatis ehti tyhjästä reposta tuotantoon kahdessa viikossa: 387 commitia, ~1170 testiä, kymmenen auditoitua Claude Code -skilliä, koko Next.js + Phaser 3 + Three.js -pino. Seitsemästä portfoliorepoista kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
+    body: 'Spacepotatis ehti tyhjästä reposta tuotantoon kahdessa viikossa: 387 commitia, ~1170 testiä, kymmenen auditoitua Claude Code -skilliä, koko Next.js + Phaser 3 + Three.js -pino. Seitsemästä portfolioreposta kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
     stats: [
       { num: '12', label: 'päivää tyhjästä reposta Spacepotatis-tuotantoon' },
       { num: '387', label: 'Spacepotatis-commitia' },
@@ -162,7 +162,7 @@ export const fi: Translations = {
     platform: {
       tagline: 'Yhteisöalusta HRM:n päälle rakennettuna',
       description:
-        'Tuotantokäytössä oleva yhteisöalusta oikealle WoW-killalle osoitteessa vuohiliitto.com. Turborepo-monorepo jossa HRM git-alimoduulina. Monen käyttäjäryhmän tuki, WoW-henkinen pelillistäminen (XP, tasot, saavutukset, questit), välilehtipohjainen chatti whispereineen ja slash-komentoineen, Mythic+ -tiimiseuranta Raider.IO API:n kautta ja opastettu tutustumiskierros uusille jäsenille.',
+        'Tuotantokäytössä oleva yhteisöalusta oikealle WoW-killalle osoitteessa vuohiliitto.com. Turborepo-monorepo jossa HRM git-alimoduulina. Monivuokrainen, WoW-henkinen pelillistäminen (XP, tasot, saavutukset, questit), välilehtipohjainen chatti whispereineen ja slash-komentoineen, Mythic+ -tiimiseuranta Raider.IO API:n kautta ja opastettu tutustumiskierros uusille jäsenille.',
       highlights: ['Oikeita käyttäjiä', 'Monivuokrainen', '1388+ testiä'],
     },
     portfolio: {
@@ -239,8 +239,14 @@ export const fi: Translations = {
     },
     'ai-workflows': {
       title: 'AI-natiivit työnkulut',
-      body: 'Agenttilähtöistä, AI-avusteista kehitystä versioituna kurinalaisuutena. Mukautetut Claude Code -skillit menevät repoon tuotantoartefakteina — jokainen opettaa agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki) niin että se menee suoraan asiaan eikä grepin sijaan jokaisella kutsulla. Parikoodausta rinnakkaisilla subagenteilla itsenäisten siivujen yli, sen jälkeen tulosten synteesi.\n\nSkillit ovat versionhallinnassa, auditoidaan kvartaaleittain (skillin ja sen viittaaman koodin välinen drift on aito bugiluokka — kaksi oikeaa tällaista löydettiin viime auditoinnissa), ja niitä käsitellään tuotantoartefaktteina. Arvioitu säästö pelkästään Spacepotatiksella: noin 2,76 miljoonaa tokenia vuodessa. Nopeammin tuotantoon ilman että rima laskee.',
-      tags: ['Agenttikehitys', 'Mukautetut skillit', 'Subagentit', 'Versioitu työnkulku', 'Vauhti'],
+      body: 'Agenttilähtöistä, AI-avusteista kehitystä versioituna kurinalaisuutena. Mukautetut Claude Code -skillit menevät repoon tuotantoartefakteina — jokainen opettaa agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki) niin että se menee suoraan asiaan eikä grepaa ympäriinsä jokaisella kutsulla. Parikoodausta rinnakkaisilla subagenteilla itsenäisten siivujen yli, sen jälkeen tulosten synteesi.\n\nSkillit ovat versionhallinnassa, auditoidaan kvartaaleittain (skillin ja sen viittaaman koodin välinen drift on aito bugiluokka — kaksi oikeaa tällaista löydettiin viime auditoinnissa), ja niitä käsitellään tuotantoartefakteina. Arvioitu säästö pelkästään Spacepotatiksella: noin 2,76 miljoonaa tokenia vuodessa. Nopeammin tuotantoon ilman että rima laskee.',
+      tags: [
+        'Agenttikehitys',
+        'Mukautetut skillit',
+        'Subagentit',
+        'Versioitu työnkulku',
+        'Vauhti',
+      ],
     },
     '2026-build': {
       title: '2026 — rakennusvuosi',
@@ -332,8 +338,7 @@ export const fi: Translations = {
     copyFallback: 'paina ctrl+c',
     cmdHelpDesc: 'listaa käytettävissä olevat komennot',
     cmdHelpAvailable: 'käytettävissä olevat komennot:',
-    cmdHelpTip:
-      'vinkki: kokeile `whoami`, `contact --email` tai `download --cv`.',
+    cmdHelpTip: 'vinkki: kokeile `whoami`, `contact --email` tai `download --cv`.',
     cmdWhoamiDesc: 'lyhyt esittely',
     cmdWhoamiName: 'mikko numminen',
     cmdWhoamiTitle: 'full-stack-kehittäjä · suomi',

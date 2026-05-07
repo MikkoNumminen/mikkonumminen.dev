@@ -44,7 +44,7 @@ export const sv: Translations = {
     sectionAria: 'Om',
     eyebrow: 'om',
     heading: 'Sju repon. De bygger på varandra.',
-    body: 'Full-stack-utvecklare i Finland. HRM är den arkitektoniska ryggraden i Platform — live för en riktig WoW-gille på vuohiliitto.com. AudiobookMaker ger rösten åt Spacepotatis, ett webbläsarspel jag släppte i år; strudel-patterns skriver musiken. Varje repo står för sig själv — fogarna mellan dem är poängen.',
+    body: 'Full-stack-utvecklare i Finland. HRM är den arkitektoniska ryggraden i Platform — live för ett riktigt WoW-gille på vuohiliitto.com. AudiobookMaker ger rösten åt Spacepotatis, ett webbläsarspel jag släppte i år; strudel-patterns skriver musiken. Varje repo står för sig själv — fogarna mellan dem är poängen.',
     statTests: 'tester i det största projektet',
     statCoverage: 'radtäckning',
     statProducts: 'levererade projekt',
@@ -76,7 +76,7 @@ export const sv: Translations = {
       {
         project: 'Platform',
         api: 'Raider.IO API',
-        body: 'Live Mythic+-teamspårning för en riktig WoW-gille. Rosters, senaste runs och rio-poäng hämtas färska vid varje laddning — inga inaktuella skärmdumpar. Inloggning via Google- eller GitHub-OAuth, plus en lösenordsfri demo för besökare.',
+        body: 'Live Mythic+-teamspårning för ett riktigt WoW-gille. Rosters, senaste runs och rio-poäng hämtas färska vid varje laddning — inga inaktuella skärmdumpar. Inloggning via Google- eller GitHub-OAuth, plus en lösenordsfri demo för besökare.',
       },
       {
         project: 'ReadLog',
@@ -163,7 +163,7 @@ export const sv: Translations = {
     platform: {
       tagline: 'Communityplattform byggd ovanpå HRM',
       description:
-        'Live communityplattform som tjänar en riktig WoW-gille på vuohiliitto.com. Turborepo-monorepo med HRM som git-undermodul. Fleranvändarstöd med WoW-temad spelifiering (XP, nivåer, prestationer, uppdrag), flikbaserad chatt med viskningar och slash-kommandon, en Mythic+-teamspårare via Raider.IO API och en guidad rundtur för nya medlemmar.',
+        'Live communityplattform som tjänar ett riktigt WoW-gille på vuohiliitto.com. Turborepo-monorepo med HRM som git-undermodul. Fleranvändarstöd med WoW-temad spelifiering (XP, nivåer, prestationer, uppdrag), flikbaserad chatt med viskningar och slash-kommandon, en Mythic+-teamspårare via Raider.IO API och en guidad rundtur för nya medlemmar.',
       highlights: ['Riktiga användare', 'Fleranvändarstöd', '1388+ tester'],
     },
     portfolio: {
@@ -200,7 +200,7 @@ export const sv: Translations = {
     'strudel-patterns': {
       tagline: 'Algoritmisk musik i Strudel',
       description:
-        'Live-kodad elektronisk musik skriven i Strudel — en JavaScript-mönstermotor, port av TidalCycles. Varje spår är ett enda komponerbart uttryck: staplade synthar, baslinjer, trumkomp och effektkedjor. Skapad genom ett strukturerat AI-arbetsflöde — naturlig språkriktning → generering → lyssna → iterera, med beslut loggade vid sidan av git-historiken. Utvalda spår tonsätter Spacepotatis (galaxvy, missionsteman, berättelsebakgrund). Återanvändbart komponentbibliotek, kuraterade synthpresets, sessionsanteckningar per iteration.',
+        'Live-kodad elektronisk musik skriven i Strudel — en JavaScript-mönstermotor, port av TidalCycles. Varje spår är ett enda komponerbart uttryck: staplade synthar, baslinjer, trumkomp och effektkedjor. Skapad genom ett strukturerat AI-arbetsflöde — instruktion på naturligt språk → generering → lyssna → iterera, med beslut loggade vid sidan av git-historiken. Utvalda spår tonsätter Spacepotatis (galaxvy, missionsteman, berättelsebakgrund). Återanvändbart komponentbibliotek, kuraterade synthpresets, sessionsanteckningar per iteration.',
       highlights: [
         'Live-kodat i Strudel',
         'AI-styrd iteration, loggad i git',
@@ -240,8 +240,14 @@ export const sv: Translations = {
     },
     'ai-workflows': {
       title: 'AI-nativa arbetsflöden',
-      body: 'Agentisk, AI-assisterad utveckling som en versionerad disciplin. Anpassade Claude Code-skills checkas in i repot som produktionsartefakter — varje skill lär agenten ett projektspecifikt recept (lägg till en fiende, skjut en databasmigration, granska sparpipelinen) så att den går rakt på sak istället för att grepa runt vid varje anrop. Parprogrammering med parallella delagenter över oberoende delar, sedan syntes av resultaten.\n\nSkillsen är versionshanterade, granskas kvartalsvis (drift mellan en skill och koden den refererar till är en verklig kategori av buggar — två sådana fångades i den senaste granskningen), och behandlas som produktionsartefakter. Uppskattad besparing enbart i Spacepotatis: ~2,76 miljoner token per år. Snabbare leverans utan att sänka ribban.',
-      tags: ['Agentisk utveckling', 'Anpassade skills', 'Delagenter', 'Versionerat flöde', 'Tempo'],
+      body: 'Agentisk, AI-assisterad utveckling som en versionerad disciplin. Anpassade Claude Code-skills checkas in i repot som produktionsartefakter — varje skill lär agenten ett projektspecifikt recept (lägg till en fiende, släpp en databasmigration, granska sparpipelinen) så att den går rakt på sak istället för att grepa runt vid varje anrop. Parprogrammering med parallella delagenter över oberoende delar, sedan syntes av resultaten.\n\nSkillsen är versionshanterade, granskas kvartalsvis (drift mellan en skill och koden den refererar till är en verklig kategori av buggar — två sådana fångades i den senaste granskningen), och behandlas som produktionsartefakter. Uppskattad besparing enbart i Spacepotatis: ~2,76 miljoner token per år. Snabbare leverans utan att sänka ribban.',
+      tags: [
+        'Agentisk utveckling',
+        'Anpassade skills',
+        'Delagenter',
+        'Versionerat flöde',
+        'Tempo',
+      ],
     },
     '2026-build': {
       title: '2026 — byggåret',
@@ -336,7 +342,8 @@ export const sv: Translations = {
     cmdWhoamiDesc: 'kort bio',
     cmdWhoamiName: 'mikko numminen',
     cmdWhoamiTitle: 'full-stack-utvecklare · finland',
-    cmdWhoamiIntro: 'levererar full-stack-produktionsappar från ände till ände. sql till drift.',
+    cmdWhoamiIntro:
+      'levererar full-stack-produktionsappar från ände till ände. sql till drift.',
     cmdWhoamiLargest: 'störst:',
     cmdWhoamiAlso: 'även:',
     cmdWhoamiYear: 'i år:',
