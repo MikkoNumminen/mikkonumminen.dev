@@ -1,58 +1,22 @@
-import type { Translations, Locale } from '../../i18n';
-import { localizePath } from '../../i18n';
+import type { Translations } from '../../i18n';
 import { escapeHtml as escape } from '../utils/escapeHtml';
-import type { CommandContext, CommandSpec } from './types';
+import type { CommandSpec } from './types';
 
 const EMAIL = 'numminen.mikko.petteri@gmail.com';
 const GITHUB = 'https://github.com/MikkoNumminen';
 const LINKEDIN = 'https://www.linkedin.com/in/mikko-numminen-269795205/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
 
-const NAV_DELAY_MS = 350;
-
-interface NavCommandOptions {
-  name: string;
-  descKey: keyof Translations['terminal'];
-  openingKey: keyof Translations['terminal'];
-  path: string;
-}
-
 /**
  * Build the terminal command set for a given locale.
  *
- * Command names (`help`, `whoami`, `sudo`, etc.) and their flag syntax
- * (`--email`, `--cv`) are intentionally NOT translated — they are part of
- * the CLI surface and stay in English across all locales. Only the
- * descriptions, output text, and error messages are localized.
+ * Command names (`help`, `whoami`, etc.) and their flag syntax (`--email`,
+ * `--cv`) are intentionally NOT translated — they are part of the CLI
+ * surface and stay in English across all locales. Only the descriptions,
+ * output text, and error messages are localized.
  */
-export function buildCommands(t: Translations, locale: Locale): CommandSpec[] {
+export function buildCommands(t: Translations): CommandSpec[] {
   const tt = t.terminal;
-
-  // In-flight navigation timers — `clear` cancels them so a quick
-  // `projects` followed by `clear` doesn't still navigate away.
-  const pendingNavTimers = new Set<ReturnType<typeof setTimeout>>();
-
-  const scheduleNavigate = (ctx: CommandContext, path: string): void => {
-    const timer = setTimeout(() => {
-      pendingNavTimers.delete(timer);
-      ctx.navigate(path);
-    }, NAV_DELAY_MS);
-    pendingNavTimers.add(timer);
-  };
-
-  const navCommand = ({
-    name,
-    descKey,
-    openingKey,
-    path,
-  }: NavCommandOptions): CommandSpec => ({
-    name,
-    description: tt[descKey],
-    handler: (_, ctx) => {
-      ctx.print(tt[openingKey], 'dim');
-      scheduleNavigate(ctx, localizePath(path, locale));
-    },
-  });
 
   const cmds: CommandSpec[] = [
     {
@@ -84,7 +48,10 @@ export function buildCommands(t: Translations, locale: Locale): CommandSpec[] {
           `<span class="line">${escape(tt.cmdWhoamiLargest)} <a href="https://hr-manager-pearl.vercel.app" target="_blank" rel="noopener noreferrer">hr-manager-pearl.vercel.app</a> — 1828+ tests, 91.9% coverage.</span>`,
         );
         ctx.printHTML(
-          `<span class="line">${escape(tt.cmdWhoamiAlso)} <a href="https://vuohiliitto.com" target="_blank" rel="noopener noreferrer">vuohiliitto.com</a> (${escape(tt.cmdWhoamiCommunity)}), <a href="https://read-log-pi.vercel.app" target="_blank" rel="noopener noreferrer">read-log-pi.vercel.app</a>, <a href="https://github.com/MikkoNumminen/AudiobookMaker" target="_blank" rel="noopener noreferrer">audiobookmaker</a> (${escape(tt.cmdWhoamiDesktop)})</span>`,
+          `<span class="line">${escape(tt.cmdWhoamiAlso)} <a href="https://spacepotatis.vercel.app" target="_blank" rel="noopener noreferrer">spacepotatis.vercel.app</a> (${escape(tt.cmdWhoamiGame)}), <a href="https://github.com/MikkoNumminen/AudiobookMaker" target="_blank" rel="noopener noreferrer">audiobookmaker</a> (${escape(tt.cmdWhoamiDesktop)}), <a href="https://vuohiliitto.com" target="_blank" rel="noopener noreferrer">vuohiliitto.com</a> (${escape(tt.cmdWhoamiCommunity)})</span>`,
+        );
+        ctx.printHTML(
+          `<span class="line">${escape(tt.cmdWhoamiYear)} 7 projects shipped solo · ~2.76M tokens saved · 2 PRs upstream to <a href="https://github.com/resemble-ai/chatterbox" target="_blank" rel="noopener noreferrer">resemble-ai/chatterbox</a></span>`,
         );
         ctx.print('');
         ctx.print(tt.cmdWhoamiCurrently, 'dim');
@@ -167,68 +134,11 @@ export function buildCommands(t: Translations, locale: Locale): CommandSpec[] {
         ctx.print(tt.cmdDownloadStarted, 'accent');
       },
     },
-    navCommand({
-      name: 'projects',
-      descKey: 'cmdProjectsDesc',
-      openingKey: 'cmdProjectsOpening',
-      path: '/projects',
-    }),
-    navCommand({
-      name: 'home',
-      descKey: 'cmdHomeDesc',
-      openingKey: 'cmdHomeOpening',
-      path: '/',
-    }),
-    navCommand({
-      name: 'experience',
-      descKey: 'cmdExperienceDesc',
-      openingKey: 'cmdExperienceOpening',
-      path: '/experience',
-    }),
     {
       name: 'clear',
       description: tt.cmdClearDesc,
       handler: (_, ctx) => {
-        // Cancel any in-flight navigation so `projects` then `clear`
-        // doesn't still send the user to /projects.
-        pendingNavTimers.forEach((timer) => clearTimeout(timer));
-        pendingNavTimers.clear();
         ctx.clear();
-      },
-    },
-    {
-      name: 'echo',
-      description: tt.cmdEchoDesc,
-      // Use rawArgs so that repeated whitespace is preserved as typed.
-      handler: (_args, ctx, rawArgs = '') => {
-        ctx.print(rawArgs);
-      },
-    },
-    {
-      name: 'date',
-      description: tt.cmdDateDesc,
-      handler: (_, ctx) => {
-        ctx.print(new Date().toString(), 'dim');
-      },
-    },
-    {
-      name: 'sudo',
-      description: tt.cmdSudoDesc,
-      handler: (args, ctx) => {
-        if (args[0] === 'hire' && args[1] === 'mikko') {
-          ctx.print(tt.cmdSudoPasswordPrompt, 'dim');
-          ctx.print(tt.cmdSudoApproved, 'accent');
-          ctx.print('');
-          ctx.print(tt.cmdSudoExcellent);
-          ctx.print(`${tt.cmdSudoReachOut} ${EMAIL}`, 'accent');
-          ctx.print(tt.cmdSudoOrRun, 'dim');
-          return;
-        }
-        ctx.print(
-          `sudo: ${args.join(' ') || tt.cmdSudoNoCommand}: ${tt.cmdSudoNotFound}`,
-          'err',
-        );
-        ctx.print(tt.cmdSudoHint, 'dim');
       },
     },
     {
