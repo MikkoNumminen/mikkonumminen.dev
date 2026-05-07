@@ -20,7 +20,7 @@ export interface CollisionSparksHandle {
   dispose: () => void;
 }
 
-const POOL_SIZE = 80;
+const POOL_SIZE = 140;
 const OFFSCREEN = 9999;
 
 interface Spark {
@@ -105,7 +105,7 @@ export function buildCollisionSparks(): CollisionSparksHandle {
 
   const texture = makeSparkTexture();
   const material = new PointsMaterial({
-    size: 0.55,
+    size: 1.05,
     sizeAttenuation: true,
     transparent: true,
     opacity: 1,
@@ -125,13 +125,13 @@ export function buildCollisionSparks(): CollisionSparksHandle {
 
       spark.active = true;
       spark.age = 0;
-      spark.lifetime = 0.55 + Math.random() * 0.65;
+      spark.lifetime = 0.7 + Math.random() * 0.85;
       spark.startX = x;
       spark.startY = y;
       spark.startZ = z;
 
       // Random outward 3D velocity — uniform sphere via cos/sin spherical.
-      const speed = 1.4 + Math.random() * 2.2;
+      const speed = 2.0 + Math.random() * 3.5;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       spark.velX = Math.sin(phi) * Math.cos(theta) * speed;

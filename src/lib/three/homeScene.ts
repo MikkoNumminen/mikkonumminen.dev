@@ -76,25 +76,29 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   keyLight.position.set(6, 8, 10);
   scene.add(keyLight);
 
-  // Rim is animated on a slow orbit in the tick loop so a specular streak
-  // can periodically traverse the letterforms. Steady-state intensity is
-  // intentionally very low (0.15) so the ongoing sweep is barely
-  // perceptible; the entrance does the visible work via three sharp
-  // Gaussian flash peaks (see entranceFlashEnvelope below).
-  const RIM_BASE_INTENSITY = 0.15;
+  // Rim is animated on a slow orbit in the tick loop. Steady intensity
+  // is 70 % lower than before (0.045) so the ongoing sweep is essentially
+  // invisible — the title gets a clear bright sequence from the flash
+  // peaks below, then the chrome quiets right down.
+  const RIM_BASE_INTENSITY = 0.045;
   const rimLight = new DirectionalLight(0xa6c2ff, RIM_BASE_INTENSITY);
   rimLight.position.set(-8, -2, -4);
   scene.add(rimLight);
 
   /**
-   * Three stroboscopic flash peaks during the entrance — `[center, height,
-   * width]` in seconds. The third peak lands when the title settles into
-   * its final pose, giving the arrival a clear punctuation.
+   * Stroboscopic flash peaks during AND just after the entrance —
+   * `[center, height, width]` in seconds. Three peaks land while the
+   * title is still arriving (entrance ends at 1.4 s), and two more
+   * land just after to extend the bright sequence so the arrival reads
+   * as a real moment rather than a single hit. After ~2.6 s the rim
+   * sits at the very dim steady level.
    */
   const ENTRANCE_FLASH_PEAKS: Array<[number, number, number]> = [
     [0.15, 4.0, 0.1],
-    [0.55, 3.0, 0.13],
-    [1.05, 4.5, 0.18],
+    [0.55, 3.5, 0.13],
+    [1.05, 5.0, 0.16],
+    [1.55, 4.2, 0.16],
+    [2.1, 3.6, 0.18],
   ];
   const entranceFlashEnvelope = (t: number): number => {
     let sum = 0;
@@ -110,6 +114,18 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   fillLight.position.set(-4, 4, 6);
   scene.add(fillLight);
 
+  // Shared center the two galaxies orbit around — also where the
+  // collision-flash light lives.
+  const SHARED_CENTER: [number, number, number] = [-10, -4.5, -14];
+
+  // Dedicated collision-flash PointLight that lives near the galaxies.
+  // Steady at 0; pulses to ~4.5 when sparks spawn and decays back over
+  // ~0.25 s, painting the chrome with a brief bright flash agreeing with
+  // the sparks.
+  const collisionFlashLight = new PointLight(0xeaf5ff, 0, 32);
+  collisionFlashLight.position.set(...SHARED_CENTER);
+  scene.add(collisionFlashLight);
+
   // ── Horizon glow plate (sun-side halo behind the title) ──────────────
   const horizon: HorizonGlowHandle = buildHorizonGlow();
   scene.add(horizon.mesh);
@@ -120,18 +136,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const galaxy: GalaxyLayerHandle = buildGalaxyLayer();
   scene.add(galaxy.group);
 
+  // Galaxy B is an elliptical (no spiral arms) so the two read as visibly
+  // different shapes when they pass through each other.
   const galaxyB: GalaxyLayerHandle = buildGalaxyLayer({
-    starCount: 380,
-    radius: 5,
-    arms: 4,
-    spiralTightness: 1.8,
+    shape: 'elliptical',
+    starCount: 480,
     color: 0xc080ff,
-    starSize: 0.07,
-    // Position is updated each frame in the tick loop — the value here is
-    // just the initial spawn so it doesn't appear at the origin briefly.
-    position: [-7, -3, -16],
-    rotation: [Math.PI * 0.22, Math.PI * 0.1, -Math.PI * 0.16],
-    diskThickness: 0.6,
+    starSize: 0.075,
+    semiAxes: [3.4, 2.6, 2.2],
+    // Position is updated each frame; this is just the initial spawn.
+    position: [-7, -3, -14],
+    rotation: [0, 0, 0],
   });
   scene.add(galaxyB.group);
 
@@ -197,8 +212,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   let targetMouseX = 0;
   let targetMouseY = 0;
   let lastSparkSpawnAt = -1;
-  const COLLISION_THRESHOLD = 5.5;
-  const SPARK_COOLDOWN = 0.45;
+  let collisionFlashEnergy = 0;
+  const COLLISION_THRESHOLD = 3.6;
+  const SPARK_COOLDOWN = 0.18;
 
   const onPointerMove = (e: PointerEvent): void => {
     targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -273,38 +289,60 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       ? 0.85
       : 0.82 + Math.sin(elapsed * 0.3) * 0.04;
 
-    // Both galaxies spin on their own axis. Galaxy B orbits Galaxy A on
-    // a long elliptical path (~32 s period); when the centers are close
-    // (< 5.5 units) the collision sparks system fires every ~0.45 s.
+    // Both galaxies orbit a shared center on perpendicular planes
+    // (Galaxy A on XY, Galaxy B on XZ) at slightly different speeds, so
+    // their paths cross periodically — guaranteed close approaches
+    // instead of two parallel orbits that never quite meet. Period
+    // ~22 s, threshold 3.6 units; while inside the threshold, sparks
+    // fire every 0.18 s with 14–22 particles per burst.
     if (!reducedMotion) {
-      galaxy.group.rotation.z = elapsed * 0.025;
-      galaxyB.group.rotation.z = -elapsed * 0.04;
+      galaxy.group.rotation.z = elapsed * 0.04;
+      galaxyB.group.rotation.x = elapsed * 0.06;
+      galaxyB.group.rotation.y = elapsed * 0.09;
 
-      const orbitT = (elapsed * Math.PI * 2) / 32;
-      const offsetX = Math.cos(orbitT) * 8;
-      const offsetY = Math.sin(orbitT * 0.7) * 3.5;
-      const offsetZ = Math.sin(orbitT) * 5;
+      const orbitT = (elapsed * Math.PI * 2) / 22;
+      // Galaxy A — ellipse on the XY plane.
+      galaxy.group.position.set(
+        SHARED_CENTER[0] + Math.cos(orbitT) * 4.5,
+        SHARED_CENTER[1] + Math.sin(orbitT) * 2.0,
+        SHARED_CENTER[2],
+      );
+      // Galaxy B — circle on the XZ plane at a 1.4× rate with a phase
+      // offset so the two galaxies don't share a relative phase that
+      // would lock them into never-touching parallel paths.
       galaxyB.group.position.set(
-        galaxy.group.position.x + offsetX,
-        galaxy.group.position.y + offsetY,
-        galaxy.group.position.z + offsetZ,
+        SHARED_CENTER[0] + Math.cos(orbitT * 1.4 + 0.7) * 3.6,
+        SHARED_CENTER[1],
+        SHARED_CENTER[2] + Math.sin(orbitT * 1.4 + 0.7) * 3,
       );
 
-      const dist = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ);
+      const dx = galaxy.group.position.x - galaxyB.group.position.x;
+      const dy = galaxy.group.position.y - galaxyB.group.position.y;
+      const dz = galaxy.group.position.z - galaxyB.group.position.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
       if (dist < COLLISION_THRESHOLD && elapsed - lastSparkSpawnAt > SPARK_COOLDOWN) {
-        // Spawn the spark cluster at a random point along the line between
-        // the two galaxy centers — biased toward the midpoint so most
-        // events look like they happen "between" the galaxies, with
-        // occasional asymmetric flashes.
         const t = 0.3 + Math.random() * 0.4;
         sparks.spawn(
-          galaxy.group.position.x + offsetX * t,
-          galaxy.group.position.y + offsetY * t,
-          galaxy.group.position.z + offsetZ * t,
-          7 + Math.floor(Math.random() * 5),
+          galaxyB.group.position.x + dx * t,
+          galaxyB.group.position.y + dy * t,
+          galaxyB.group.position.z + dz * t,
+          14 + Math.floor(Math.random() * 9),
         );
         lastSparkSpawnAt = elapsed;
+        // Also pulse the collision flash light for an extra-bright moment.
+        collisionFlashEnergy = 1;
       }
+
+      // Decay the collision-flash pulse each frame; bright on hit, fades
+      // smoothly to zero.
+      collisionFlashEnergy = Math.max(0, collisionFlashEnergy - delta * 4);
+      collisionFlashLight.intensity = collisionFlashEnergy * 4.5;
+      collisionFlashLight.position.set(
+        (galaxy.group.position.x + galaxyB.group.position.x) / 2,
+        (galaxy.group.position.y + galaxyB.group.position.y) / 2,
+        (galaxy.group.position.z + galaxyB.group.position.z) / 2,
+      );
 
       sparks.tick(delta);
     }
