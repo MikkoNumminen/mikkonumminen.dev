@@ -1,21 +1,11 @@
-import { Group, Mesh, MeshPhysicalMaterial } from 'three';
+import { type BufferAttribute, Group, Mesh, type MeshPhysicalMaterial } from 'three';
 import { FontLoader, type Font } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
-
-export interface TitleSegmentSpec {
-  text: string;
-  material: MeshPhysicalMaterial;
-}
-
-export interface TitleLineSpec {
-  segments: TitleSegmentSpec[];
-}
 
 export interface TitleHandle {
   group: Group;
   meshes: Mesh[];
-  /** All distinct materials referenced by the segments — caller disposes. */
-  materials: MeshPhysicalMaterial[];
+  material: MeshPhysicalMaterial;
   /** Total stacked height of all lines, used to vertically center the group. */
   totalHeight: number;
 }
@@ -36,120 +26,80 @@ const BEVEL_SEGMENTS = 6;
 const LINE_GAP = 0.6;
 
 /**
- * Build the title as a stack of lines, each composed of one or more
- * themed segments laid out adjacent left-to-right. Each segment has its
- * own material so the four worlds can each be visually represented in
- * the letterforms — e.g. "MIK" in projects-blue chrome, "KO" in home
- * white chrome, "NUMM" in experience-bronze, "INEN" in contact-phosphor
- * green. The segment seams are invisible because adjacent characters
- * (like the two K's in MIKKO) sit flush against each other.
+ * Rewrite TextGeometry's UVs so they span [0, 1] across the geometry's
+ * own bounding box, regardless of the geometry's world position.
+ *
+ * `ExtrudeGeometry`'s default UVs are world-coord based (`u = vertex.x`,
+ * `v = vertex.y`) which means a `texture.repeat` value would have to know
+ * the geometry's width and position to lay a single horizontal gradient
+ * across each line. Remapping to local-bbox space lets us share one
+ * gradient texture across both lines — `MIKKO` and `NUMMINEN` each get
+ * the full 0→1 sweep across their own width.
  */
-export function buildTitle(font: Font, lines: TitleLineSpec[]): TitleHandle {
+function remapUVsToLocalBBox(
+  geometry: TextGeometry,
+  bbMinX: number,
+  bbMinY: number,
+  width: number,
+  height: number,
+): void {
+  const positions = geometry.attributes.position as BufferAttribute;
+  const uvs = geometry.attributes.uv as BufferAttribute;
+  for (let i = 0; i < uvs.count; i++) {
+    const x = positions.getX(i);
+    const y = positions.getY(i);
+    uvs.setXY(i, (x - bbMinX) / width, (y - bbMinY) / height);
+  }
+  uvs.needsUpdate = true;
+}
+
+/**
+ * Build the title as a stack of lines, each rendered as a single
+ * TextGeometry sharing one material. The shared material's `map` (a
+ * horizontal four-world gradient) flows continuously across each line —
+ * no segment seams, no kerning artefacts.
+ */
+export function buildTitle(
+  font: Font,
+  title: string,
+  material: MeshPhysicalMaterial,
+): TitleHandle {
   const group = new Group();
-  const allMeshes: Mesh[] = [];
-  const allMaterials: MeshPhysicalMaterial[] = [];
+  const meshes: Mesh[] = [];
+  const lines = title.split('\n');
   let lineY = 0;
 
   for (const line of lines) {
-    const geometries: TextGeometry[] = [];
-    const widths: number[] = [];
-    let lineHeight = 0;
+    const geometry = new TextGeometry(line, {
+      font,
+      size: SIZE,
+      depth: DEPTH,
+      curveSegments: CURVE_SEGMENTS,
+      bevelEnabled: true,
+      bevelThickness: BEVEL_THICKNESS,
+      bevelSize: BEVEL_SIZE,
+      bevelSegments: BEVEL_SEGMENTS,
+    });
+    geometry.computeBoundingBox();
+    const bb = geometry.boundingBox!;
+    const width = bb.max.x - bb.min.x;
+    const height = bb.max.y - bb.min.y;
 
-    for (const seg of line.segments) {
-      const geometry = new TextGeometry(seg.text, {
-        font,
-        size: SIZE,
-        depth: DEPTH,
-        curveSegments: CURVE_SEGMENTS,
-        bevelEnabled: true,
-        bevelThickness: BEVEL_THICKNESS,
-        bevelSize: BEVEL_SIZE,
-        bevelSegments: BEVEL_SEGMENTS,
-      });
-      geometry.computeBoundingBox();
-      const bb = geometry.boundingBox!;
-      const width = bb.max.x - bb.min.x;
-      const height = bb.max.y - bb.min.y;
-      const cy = (bb.max.y + bb.min.y) / 2;
-      // Origin at left-edge / vertical-center so we can place segments by
-      // left x and align them on a shared horizontal axis.
-      geometry.translate(-bb.min.x, -cy, 0);
-      geometries.push(geometry);
-      widths.push(width);
-      lineHeight = Math.max(lineHeight, height);
-    }
+    // Remap UVs BEFORE we translate the geometry so the local-space
+    // measurement matches the original vertex positions.
+    remapUVsToLocalBBox(geometry, bb.min.x, bb.min.y, width, height);
 
-    const totalLineWidth = widths.reduce((a, b) => a + b, 0);
-    let xCursor = -totalLineWidth / 2;
+    geometry.translate(-width / 2, -height / 2, 0);
 
-    for (let i = 0; i < line.segments.length; i++) {
-      const seg = line.segments[i]!;
-      const geometry = geometries[i]!;
-      const width = widths[i]!;
-      const mesh = new Mesh(geometry, seg.material);
-      mesh.position.set(xCursor, lineY, 0);
-      group.add(mesh);
-      allMeshes.push(mesh);
-      if (!allMaterials.includes(seg.material)) {
-        allMaterials.push(seg.material);
-      }
-      xCursor += width;
-    }
-
-    lineY -= lineHeight + LINE_GAP;
+    const mesh = new Mesh(geometry, material);
+    mesh.position.y = lineY;
+    group.add(mesh);
+    meshes.push(mesh);
+    lineY -= height + LINE_GAP;
   }
 
   const totalHeight = -lineY - LINE_GAP;
   group.position.y = totalHeight / 2;
 
-  return { group, meshes: allMeshes, materials: allMaterials, totalHeight };
-}
-
-/**
- * Convenience: build the four themed materials used to decorate the four
- * segments of the title. Each is a chrome variant tinted toward one of the
- * four worlds; contact additionally emits a faint phosphor green so it
- * reads as a lit screen rather than just colored metal.
- */
-export interface TitleMaterials {
-  projects: MeshPhysicalMaterial;
-  home: MeshPhysicalMaterial;
-  experience: MeshPhysicalMaterial;
-  contact: MeshPhysicalMaterial;
-}
-
-export function buildTitleMaterials(): TitleMaterials {
-  const baseChrome = {
-    metalness: 0.95,
-    roughness: 0.08,
-    clearcoat: 1,
-    clearcoatRoughness: 0.04,
-    reflectivity: 1,
-    envMapIntensity: 1.25,
-  } as const;
-
-  const projects = new MeshPhysicalMaterial({
-    color: 0xa8c4ff,
-    ...baseChrome,
-  });
-  const home = new MeshPhysicalMaterial({
-    color: 0xffffff,
-    ...baseChrome,
-  });
-  const experience = new MeshPhysicalMaterial({
-    color: 0xd4a373,
-    ...baseChrome,
-    roughness: 0.14,
-    envMapIntensity: 1.1,
-  });
-  const contact = new MeshPhysicalMaterial({
-    color: 0x8df5a4,
-    ...baseChrome,
-    metalness: 0.85,
-    roughness: 0.12,
-    emissive: 0x4ade80,
-    emissiveIntensity: 0.22,
-  });
-
-  return { projects, home, experience, contact };
+  return { group, meshes, material, totalHeight };
 }

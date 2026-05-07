@@ -4,6 +4,7 @@ import {
   BufferAttribute,
   DirectionalLight,
   Fog,
+  MeshPhysicalMaterial,
   PerspectiveCamera,
   PointLight,
   Scene,
@@ -11,7 +12,8 @@ import {
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
-import { buildTitle, buildTitleMaterials, loadFont } from './buildTitle';
+import { buildTitle, loadFont } from './buildTitle';
+import { buildTitleColorMap } from './buildTitleColorMap';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
 import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
@@ -32,6 +34,7 @@ export interface HomeSceneHandle {
 }
 
 const FOG_COLOR = 0x05060c;
+const TITLE = 'MIKKO\nNUMMINEN';
 const TITLE_DESIGN_WIDTH = 1100;
 const TITLE_MIN_SCALE = 0.5;
 const PARTICLE_AREA_DIVISOR = 800;
@@ -103,27 +106,25 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     scene.add(particleField.points);
   }
 
-  // ── Title (segmented per world) ──────────────────────────────────────
-  // The four worlds are visually represented in the letterforms themselves:
-  // each segment of MIKKO NUMMINEN is a separate mesh with its own chrome
-  // material tinted toward one of the four worlds. Segments sit flush
-  // against each other so the joins are invisible — to a reader the word
-  // looks continuous, but the four metals are clearly different colors.
-  const titleMaterials = buildTitleMaterials();
-  const title = buildTitle(font, [
-    {
-      segments: [
-        { text: 'MIK', material: titleMaterials.projects },
-        { text: 'KO', material: titleMaterials.home },
-      ],
-    },
-    {
-      segments: [
-        { text: 'NUMM', material: titleMaterials.experience },
-        { text: 'INEN', material: titleMaterials.contact },
-      ],
-    },
-  ]);
+  // ── Title (continuous chrome with four-world gradient color map) ─────
+  // The four worlds are seamlessly painted across the letterforms via a
+  // horizontal gradient color map: galaxy blue on the left, chrome white
+  // in the middle-left, warm bronze in the middle-right, phosphor green
+  // on the right. The chrome metal multiplies its envMap reflections by
+  // this map, so the four worlds read as smooth color zones flowing
+  // through the letters with no segment seams.
+  const titleColorMap = buildTitleColorMap();
+  const titleMaterial = new MeshPhysicalMaterial({
+    color: 0xffffff,
+    map: titleColorMap,
+    metalness: 0.95,
+    roughness: 0.08,
+    clearcoat: 1,
+    clearcoatRoughness: 0.04,
+    reflectivity: 1,
+    envMapIntensity: 1.25,
+  });
+  const title = buildTitle(font, TITLE, titleMaterial);
   scene.add(title.group);
   const totalHeight = title.totalHeight;
 
@@ -296,7 +297,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       document.removeEventListener('visibilitychange', onVisibilityChange);
 
       title.meshes.forEach((m) => m.geometry.dispose());
-      for (const mat of title.materials) disposeMaterial(mat);
+      disposeMaterial(title.material);
+      titleColorMap.dispose();
 
       if (particleField) {
         particleField.geometry.dispose();
