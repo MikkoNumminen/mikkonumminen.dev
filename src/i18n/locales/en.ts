@@ -283,7 +283,7 @@ export const en: Translations = {
     },
     now: {
       title: 'Looking up',
-      body: 'Hardware career closed. Full focus on studies, code, and the next climb. Open to ambitious full-stack roles where craft and velocity matter equally.',
+      body: 'Available now. Open to ambitious full-stack roles where craft and velocity both matter. Seven solo-shipped projects this year — proof of both.',
       tags: ['Available', 'Remote / Finland'],
     },
   },

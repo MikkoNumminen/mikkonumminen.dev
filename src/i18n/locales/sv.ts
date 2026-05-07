@@ -285,7 +285,7 @@ export const sv: Translations = {
     },
     now: {
       title: 'Blickar uppåt',
-      body: 'Karriären inom järnhandeln avslutad. Fullt fokus på studier, kod och nästa klättring. Öppen för ambitiösa full-stack-roller där hantverk och tempo är lika viktigt.',
+      body: 'Tillgänglig nu. Öppen för ambitiösa full-stack-roller där både hantverk och tempo räknas. Sju solo-levererade projekt i år — bevis på båda.',
       tags: ['Tillgänglig', 'Distans / Finland'],
     },
   },

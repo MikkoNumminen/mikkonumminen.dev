@@ -284,7 +284,7 @@ export const fi: Translations = {
     },
     now: {
       title: 'Katse ylöspäin',
-      body: 'Rautakauppa-ura takana. Täysi fokus opintoihin, koodiin ja seuraavaan nousuun. Avoin kunnianhimoisille full-stack-rooleille joissa laatu ja vauhti ovat yhtä tärkeitä.',
+      body: 'Saatavilla nyt. Avoin kunnianhimoisille full-stack-rooleille, joissa sekä laatu että vauhti ratkaisevat. Seitsemän tänä vuonna yksin tuotantoon vietyä projektia — todiste molemmista.',
       tags: ['Saatavilla', 'Etänä / Suomi'],
     },
   },
