@@ -45,35 +45,33 @@ export function buildEnvironment(renderer: WebGLRenderer): EnvironmentHandle {
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, 1024, 512);
 
-  // Warm sun in the upper-right quadrant of the sphere (azimuth ~110°, just
-  // above the horizon). Reflects in the metal as a bright warm blob — also
-  // the "experience" world's signature warmth.
-  const sun = ctx.createRadialGradient(720, 150, 0, 720, 150, 320);
-  sun.addColorStop(0, 'rgba(255, 192, 130, 0.95)');
-  sun.addColorStop(0.18, 'rgba(255, 156, 92, 0.7)');
-  sun.addColorStop(0.5, 'rgba(255, 120, 60, 0.22)');
-  sun.addColorStop(1, 'rgba(255, 120, 60, 0)');
-  ctx.fillStyle = sun;
+  // Cool white-blue star in the upper-right quadrant — same azimuth as
+  // the in-scene horizon glow, so the chrome's reflected sun and the
+  // visible star match. Replaces the previous warm orange "manor" sun
+  // for a sci-fi look.
+  const star = ctx.createRadialGradient(720, 150, 0, 720, 150, 320);
+  star.addColorStop(0, 'rgba(245, 250, 255, 0.95)');
+  star.addColorStop(0.16, 'rgba(200, 225, 255, 0.65)');
+  star.addColorStop(0.45, 'rgba(150, 190, 255, 0.2)');
+  star.addColorStop(1, 'rgba(120, 160, 240, 0)');
+  ctx.fillStyle = star;
   ctx.fillRect(0, 0, 1024, 512);
 
-  // Cool counter-glow on the opposite side so the rim of the metal picks up
-  // a faint blue. Stops the warm side from feeling lopsided.
+  // Cool counter-glow on the opposite side so the rim of the metal picks
+  // up a faint blue from the other direction too. Slightly deeper /
+  // electric-blue tone than the star to differentiate.
   const cool = ctx.createRadialGradient(220, 220, 0, 220, 220, 360);
-  cool.addColorStop(0, 'rgba(110, 150, 255, 0.42)');
-  cool.addColorStop(0.5, 'rgba(80, 120, 220, 0.14)');
-  cool.addColorStop(1, 'rgba(80, 120, 220, 0)');
+  cool.addColorStop(0, 'rgba(120, 165, 255, 0.42)');
+  cool.addColorStop(0.5, 'rgba(90, 130, 230, 0.14)');
+  cool.addColorStop(1, 'rgba(90, 130, 230, 0)');
   ctx.fillStyle = cool;
   ctx.fillRect(0, 0, 1024, 512);
 
   // ── Four-worlds color zones ─────────────────────────────────────────
-  // Each non-home world contributes a faint color zone to the envMap so
-  // the chrome reflects all four destinations as the rim light orbits.
-  // Opacities are kept low so the dominant warm-cool composition still reads;
-  // these are accent bounces that pick up only on the brightest specular
-  // peaks of the chrome.
+  // Each non-home world contributes a faint color zone so the chrome
+  // reflects all four destinations as the rim light orbits.
 
-  // Galaxy blue (projects) — lower-left quadrant. Sits below horizon so
-  // reflections show on the underside of the letterforms.
+  // Galaxy blue (projects) — lower-left.
   const galaxy = ctx.createRadialGradient(180, 380, 0, 180, 380, 280);
   galaxy.addColorStop(0, 'rgba(128, 168, 255, 0.55)');
   galaxy.addColorStop(0.4, 'rgba(110, 150, 240, 0.22)');
@@ -81,19 +79,7 @@ export function buildEnvironment(renderer: WebGLRenderer): EnvironmentHandle {
   ctx.fillStyle = galaxy;
   ctx.fillRect(0, 0, 1024, 512);
 
-  // Earthy green (experience) — lower-right horizon. Echoes the mountain
-  // silhouette's color so the metal picks up a warm-earth bounce on its
-  // bottom edge.
-  const earth = ctx.createRadialGradient(820, 400, 0, 820, 400, 260);
-  earth.addColorStop(0, 'rgba(110, 130, 70, 0.45)');
-  earth.addColorStop(0.5, 'rgba(80, 100, 50, 0.16)');
-  earth.addColorStop(1, 'rgba(80, 100, 50, 0)');
-  ctx.fillStyle = earth;
-  ctx.fillRect(0, 0, 1024, 512);
-
-  // Phosphor green (contact) — narrow band across the top center. Echoes
-  // the CRT scan-line overlay; reads on the topmost specular highlights of
-  // the metal as a faint terminal-green flash.
+  // Phosphor green (contact) — narrow band across the top center.
   const phosphor = ctx.createRadialGradient(512, 50, 0, 512, 50, 220);
   phosphor.addColorStop(0, 'rgba(74, 222, 128, 0.32)');
   phosphor.addColorStop(0.6, 'rgba(74, 222, 128, 0.08)');
