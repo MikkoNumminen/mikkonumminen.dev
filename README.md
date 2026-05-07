@@ -100,7 +100,7 @@ script-src 'self' 'unsafe-inline';
 style-src 'self' 'unsafe-inline';
 img-src 'self' data:;
 font-src 'self' data:;
-connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io;
+connect-src 'self' https://*.ingest.sentry.io;
 frame-ancestors 'none';
 base-uri 'self';
 form-action 'self';
@@ -108,7 +108,7 @@ object-src 'none';
 upgrade-insecure-requests
 ```
 
-`connect-src` allows `*.sentry.io` and `*.ingest.sentry.io` for the observability beacon (see the Observability section above). The init module no-ops when `PUBLIC_SENTRY_DSN` is unset, so this domain only sees traffic on deployments that have the DSN configured.
+`connect-src` allows `*.ingest.sentry.io` for the observability beacon (see the Observability section above). The init module no-ops when `PUBLIC_SENTRY_DSN` is unset, so this domain only sees traffic on deployments that have the DSN configured.
 
 `'unsafe-inline'` remains on both `script-src` and `style-src` because the site relies on:
 

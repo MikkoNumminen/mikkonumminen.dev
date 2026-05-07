@@ -39,10 +39,21 @@ Implementation:
   var (default for forks, local dev) the init is a no-op.
 - Do Not Track honored: if `navigator.doNotTrack === '1'`, init bails before
   any beacon fires.
-- No session replay, no PII capture, `tracesSampleRate: 0.1`.
-- CSP `connect-src` extended to allow `https://*.sentry.io` and
-  `https://*.ingest.sentry.io`. Documented inline in
-  [`vercel.json`](../../vercel.json) and the README CSP rationale block.
+- `Sentry.browserTracingIntegration()` auto-starts a pageload span on every
+  visit so Web Vitals attach as span attributes (chartable in Sentry's
+  Performance / Insights views) rather than falling through to breadcrumbs.
+- `tracesSampleRate: 1.0`. Personal-portfolio traffic is well under
+  Sentry's free-tier 10K performance-units/month cap; full sampling gives
+  meaningful real-user metrics without breaking the budget. Initial draft
+  used 0.1 — that dropped 90% of pageload spans, leaving 90% of vitals
+  un-chartable. Revised before merge.
+- No session replay, no PII capture beyond Sentry defaults (URL, browser,
+  stack trace).
+- CSP `connect-src` extended to allow `https://*.ingest.sentry.io` only.
+  The Sentry SDK runtime only needs the DSN's ingest endpoint; `*.sentry.io`
+  proper (web UI, dashboard) is not reached from the browser. Documented
+  inline in [`vercel.json`](../../vercel.json) and the README CSP rationale
+  block.
 
 ## Considered alternatives
 
