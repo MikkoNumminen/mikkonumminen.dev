@@ -45,14 +45,14 @@ export function buildEnvironment(renderer: WebGLRenderer): EnvironmentHandle {
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, 1024, 512);
 
-  // Cool white-blue star in the upper-right quadrant — same azimuth as
-  // the in-scene horizon glow, so the chrome's reflected sun and the
-  // visible star match. Replaces the previous warm orange "manor" sun
-  // for a sci-fi look.
-  const star = ctx.createRadialGradient(720, 150, 0, 720, 150, 320);
-  star.addColorStop(0, 'rgba(245, 250, 255, 0.95)');
-  star.addColorStop(0.16, 'rgba(200, 225, 255, 0.65)');
-  star.addColorStop(0.45, 'rgba(150, 190, 255, 0.2)');
+  // Cool white-blue glow in the upper-right quadrant — diffuse only, no
+  // bright peak. A concentrated peak here would be re-rendered as a
+  // hotspot reflection on the chrome and read as a "star floating on
+  // the title". Spread it wide and keep alpha low so the chrome picks
+  // up just the cool tint, not a discrete reflected sun.
+  const star = ctx.createRadialGradient(900, 200, 0, 900, 200, 480);
+  star.addColorStop(0, 'rgba(200, 225, 255, 0.32)');
+  star.addColorStop(0.4, 'rgba(160, 200, 255, 0.14)');
   star.addColorStop(1, 'rgba(120, 160, 240, 0)');
   ctx.fillStyle = star;
   ctx.fillRect(0, 0, 1024, 512);

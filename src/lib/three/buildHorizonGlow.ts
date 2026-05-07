@@ -112,7 +112,7 @@ export function buildHorizonGlow(): HorizonGlowHandle {
   // as a distant point of light rather than something looming over the
   // letters. Same bearing as the envMap's bright zone so the chrome
   // reflection and the visible star agree.
-  mesh.position.set(8, 4.5, -18);
+  mesh.position.set(12, 4.5, -15);
 
   return { mesh, material, texture, geometry };
 }
