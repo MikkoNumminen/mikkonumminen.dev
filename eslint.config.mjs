@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import astro from 'eslint-plugin-astro';
+import globals from 'globals';
 
 export default [
   { ignores: ['dist/', '.astro/', 'node_modules/', '.vercel/'] },
@@ -14,6 +15,13 @@ export default [
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+  // Node-side build/config files need Node globals (console, process, …).
+  {
+    files: ['scripts/**/*.{js,mjs,cjs,ts}', '*.config.{js,mjs,cjs,ts}'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ];
