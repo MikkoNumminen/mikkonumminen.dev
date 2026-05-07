@@ -14,6 +14,7 @@ import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
 import { buildTitle, loadFont } from './buildTitle';
 import { buildTitleColorMap } from './buildTitleColorMap';
+import { buildCollisionSparks, type CollisionSparksHandle } from './buildCollisionSparks';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
 import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
@@ -113,9 +114,30 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const horizon: HorizonGlowHandle = buildHorizonGlow();
   scene.add(horizon.mesh);
 
-  // ── Galaxy layer (projects-world hint, far back lower-left) ──────────
+  // ── Galaxy layers ────────────────────────────────────────────────────
+  // Two procedural spirals that periodically pass through each other on a
+  // long elliptical orbit. The collision drives the sparks system below.
   const galaxy: GalaxyLayerHandle = buildGalaxyLayer();
   scene.add(galaxy.group);
+
+  const galaxyB: GalaxyLayerHandle = buildGalaxyLayer({
+    starCount: 380,
+    radius: 5,
+    arms: 4,
+    spiralTightness: 1.8,
+    color: 0xc080ff,
+    starSize: 0.07,
+    // Position is updated each frame in the tick loop — the value here is
+    // just the initial spawn so it doesn't appear at the origin briefly.
+    position: [-7, -3, -16],
+    rotation: [Math.PI * 0.22, Math.PI * 0.1, -Math.PI * 0.16],
+    diskThickness: 0.6,
+  });
+  scene.add(galaxyB.group);
+
+  // ── Collision sparks (galaxy-on-galaxy fireworks) ────────────────────
+  const sparks: CollisionSparksHandle = buildCollisionSparks();
+  scene.add(sparks.points);
 
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
@@ -174,6 +196,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   let mouseY = 0;
   let targetMouseX = 0;
   let targetMouseY = 0;
+  let lastSparkSpawnAt = -1;
+  const COLLISION_THRESHOLD = 5.5;
+  const SPARK_COOLDOWN = 0.45;
 
   const onPointerMove = (e: PointerEvent): void => {
     targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -248,11 +273,40 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       ? 0.85
       : 0.82 + Math.sin(elapsed * 0.3) * 0.04;
 
-    // Galaxy slowly rotates around its own normal axis so the spiral arms
-    // visibly turn as you watch — far enough back that the motion reads as
-    // a slow drift, not a foreground spin.
+    // Both galaxies spin on their own axis. Galaxy B orbits Galaxy A on
+    // a long elliptical path (~32 s period); when the centers are close
+    // (< 5.5 units) the collision sparks system fires every ~0.45 s.
     if (!reducedMotion) {
       galaxy.group.rotation.z = elapsed * 0.025;
+      galaxyB.group.rotation.z = -elapsed * 0.04;
+
+      const orbitT = (elapsed * Math.PI * 2) / 32;
+      const offsetX = Math.cos(orbitT) * 8;
+      const offsetY = Math.sin(orbitT * 0.7) * 3.5;
+      const offsetZ = Math.sin(orbitT) * 5;
+      galaxyB.group.position.set(
+        galaxy.group.position.x + offsetX,
+        galaxy.group.position.y + offsetY,
+        galaxy.group.position.z + offsetZ,
+      );
+
+      const dist = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ);
+      if (dist < COLLISION_THRESHOLD && elapsed - lastSparkSpawnAt > SPARK_COOLDOWN) {
+        // Spawn the spark cluster at a random point along the line between
+        // the two galaxy centers — biased toward the midpoint so most
+        // events look like they happen "between" the galaxies, with
+        // occasional asymmetric flashes.
+        const t = 0.3 + Math.random() * 0.4;
+        sparks.spawn(
+          galaxy.group.position.x + offsetX * t,
+          galaxy.group.position.y + offsetY * t,
+          galaxy.group.position.z + offsetZ * t,
+          7 + Math.floor(Math.random() * 5),
+        );
+        lastSparkSpawnAt = elapsed;
+      }
+
+      sparks.tick(delta);
     }
 
     // Meteors — randomized spawn schedule, fade-in/out envelope, trail
@@ -341,6 +395,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         fillLight,
         horizon.mesh,
         galaxy.group,
+        galaxyB.group,
+        sparks.points,
         meteors.group,
       );
       ambient.dispose();
@@ -353,7 +409,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
       galaxy.starsGeometry.dispose();
       galaxy.starsMaterial.dispose();
+      galaxyB.starsGeometry.dispose();
+      galaxyB.starsMaterial.dispose();
 
+      sparks.dispose();
       meteors.dispose();
 
       scene.environment = null;

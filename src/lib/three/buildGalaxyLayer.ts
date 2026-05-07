@@ -7,37 +7,48 @@ import {
   PointsMaterial,
 } from 'three';
 
+export interface GalaxyLayerOptions {
+  starCount?: number;
+  radius?: number;
+  arms?: number;
+  spiralTightness?: number;
+  color?: number;
+  starSize?: number;
+  /** Group position [x, y, z] in scene units. */
+  position?: [number, number, number];
+  /** Group rotation [x, y, z] in radians. */
+  rotation?: [number, number, number];
+  /** Multiplier applied each frame to make galaxies that should look denser. */
+  diskThickness?: number;
+}
+
 export interface GalaxyLayerHandle {
   group: Group;
   starsGeometry: BufferGeometry;
   starsMaterial: PointsMaterial;
 }
 
-/**
- * Far-back blue galaxy spiral — the projects-page world hint. Sits in the
- * lower-left of the scene (offset via group.position) so it appears behind
- * and to the side of the title without competing with it.
- *
- * Spiral arms are generated procedurally: three arms, log-spiral tightness,
- * with jitter for organic feel.
- */
-const GALAXY_STAR_COUNT = 700;
-const GALAXY_RADIUS = 8;
-const GALAXY_ARMS = 3;
-const SPIRAL_TIGHTNESS = 2.5;
-const GALAXY_COLOR = 0x80a8ff;
+const DEFAULTS: Required<GalaxyLayerOptions> = {
+  starCount: 700,
+  radius: 8,
+  arms: 3,
+  spiralTightness: 2.5,
+  color: 0x80a8ff,
+  starSize: 0.085,
+  position: [-14, -5, -18],
+  rotation: [-Math.PI * 0.18, 0, Math.PI * 0.12],
+  diskThickness: 0.8,
+};
 
-function generateSpiralStars(count: number): Float32Array {
-  const positions = new Float32Array(count * 3);
-  const armOffset = (Math.PI * 2) / GALAXY_ARMS;
+function generateSpiralStars(opts: Required<GalaxyLayerOptions>): Float32Array {
+  const positions = new Float32Array(opts.starCount * 3);
+  const armOffset = (Math.PI * 2) / opts.arms;
 
-  for (let i = 0; i < count; i++) {
-    const arm = i % GALAXY_ARMS;
-    // Bias toward the outer arms by sqrt-distributing t
-    const t = Math.sqrt(i / count);
-    const r = t * GALAXY_RADIUS;
-    const angle = arm * armOffset + t * Math.PI * SPIRAL_TIGHTNESS;
-    // Jitter angle and radial position so stars don't sit perfectly on the line
+  for (let i = 0; i < opts.starCount; i++) {
+    const arm = i % opts.arms;
+    const t = Math.sqrt(i / opts.starCount);
+    const r = t * opts.radius;
+    const angle = arm * armOffset + t * Math.PI * opts.spiralTightness;
     const angleJitter = (Math.random() - 0.5) * 0.45;
     const radialJitter = (Math.random() - 0.5) * 0.6;
     const finalAngle = angle + angleJitter;
@@ -46,22 +57,29 @@ function generateSpiralStars(count: number): Float32Array {
     const i3 = i * 3;
     positions[i3] = Math.cos(finalAngle) * finalR;
     positions[i3 + 1] = Math.sin(finalAngle) * finalR;
-    // Thin disk thickness — galaxies are mostly flat
-    positions[i3 + 2] = (Math.random() - 0.5) * 0.8;
+    positions[i3 + 2] = (Math.random() - 0.5) * opts.diskThickness;
   }
   return positions;
 }
 
-export function buildGalaxyLayer(): GalaxyLayerHandle {
+/**
+ * Procedural spiral galaxy — defaults to the cool blue projects-world hint
+ * in the lower-left of the hero scene. Pass options to make a different
+ * galaxy (different color, fewer arms, smaller radius, different position)
+ * — the second galaxy used for the periodic collision is just another
+ * call to this function with tighter parameters.
+ */
+export function buildGalaxyLayer(opts: GalaxyLayerOptions = {}): GalaxyLayerHandle {
+  const config: Required<GalaxyLayerOptions> = { ...DEFAULTS, ...opts };
+
   const group = new Group();
 
-  // Spiral stars
-  const positions = generateSpiralStars(GALAXY_STAR_COUNT);
+  const positions = generateSpiralStars(config);
   const starsGeometry = new BufferGeometry();
   starsGeometry.setAttribute('position', new BufferAttribute(positions, 3));
   const starsMaterial = new PointsMaterial({
-    size: 0.085,
-    color: GALAXY_COLOR,
+    size: config.starSize,
+    color: config.color,
     transparent: true,
     opacity: 0.85,
     blending: AdditiveBlending,
@@ -71,11 +89,8 @@ export function buildGalaxyLayer(): GalaxyLayerHandle {
   const stars = new Points(starsGeometry, starsMaterial);
   group.add(stars);
 
-  // Position the whole galaxy lower-left and far back
-  group.position.set(-14, -5, -18);
-  // Tilt so the spiral plane is angled toward the viewer
-  group.rotation.x = -Math.PI * 0.18;
-  group.rotation.z = Math.PI * 0.12;
+  group.position.set(...config.position);
+  group.rotation.set(...config.rotation);
 
   return { group, starsGeometry, starsMaterial };
 }
