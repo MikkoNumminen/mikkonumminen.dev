@@ -242,7 +242,7 @@ export const en: Translations = {
     },
     '2026-build': {
       title: 'The 2026 build',
-      body: 'Seven shipped projects this year. HRM — a portfolio-grade HR system (1828+ tests at 91.9% coverage, two databases, TOTP 2FA, hash-chained audit log) — feeds Platform, a live community at vuohiliitto.com built on HRM as a submodule with gamification, real-time chat, and a Mythic+ tracker via Raider.IO. Spacepotatis is a Phaser 3 + Three.js cosmos at spacepotatis.vercel.app. AudiobookMaker is a Python desktop app converting PDFs to audiobooks via edge-TTS. ReadLog tracks reading on top of Open Library + Google Books. strudel-patterns explores live-coded music. This Portfolio site (Astro + Three.js + GSAP) ties them together.',
+      body: 'Seven shipped projects this year. HRM — a portfolio-grade HR system (1828+ tests at 91.9% coverage, two databases, TOTP 2FA, hash-chained audit log) — feeds Platform, a live community at vuohiliitto.com built on HRM as a submodule with gamification, real-time chat, and a Mythic+ tracker via Raider.IO. Spacepotatis is a Phaser 3 + Three.js cosmos at spacepotatis.vercel.app. AudiobookMaker is a Windows desktop app (1884 tests) turning PDF, EPUB, and plain text into MP3 audiobooks via three TTS engines — Edge-TTS for fast cloud voices, Piper for offline, and Chatterbox for neural Finnish narration with LoRA voice-cloning; signed installer with auto-updates, tested end-to-end on a real 10-hour audiobook. ReadLog tracks reading on top of Open Library + Google Books. strudel-patterns explores live-coded music. This Portfolio site (Astro + Three.js + GSAP) ties them together.',
       tags: [
         '7 repos',
         'Real users',
