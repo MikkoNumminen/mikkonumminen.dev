@@ -239,18 +239,19 @@ export const sv: Translations = {
     },
     'ai-workflows': {
       title: 'AI-nativa arbetsflöden',
-      body: 'Parprogrammering med AI som del av verktygskedjan. Arbetsmetoden bakom 2026 års bygge — snabbare leverans utan att sänka ribban.',
-      tags: ['AI-arbetsflöden', 'Tempo'],
+      body: 'Agentisk, AI-assisterad utveckling som en versionerad disciplin. Anpassade Claude Code-skills checkas in i repot som produktionsartefakter — varje skill lär agenten ett projektspecifikt recept (lägg till en fiende, skjut en databasmigration, granska sparpipelinen) så att den går rakt på sak istället för att grepa runt vid varje anrop. Parprogrammering med parallella delagenter över oberoende delar, sedan syntes av resultaten.\n\nSkillsen är versionshanterade, granskas kvartalsvis (drift mellan en skill och koden den refererar till är en verklig kategori av buggar — två sådana fångades i den senaste granskningen), och behandlas som produktionsartefakter. Uppskattad besparing enbart i Spacepotatis: ~2,76 miljoner token per år. Snabbare leverans utan att sänka ribban.',
+      tags: ['Agentisk utveckling', 'Anpassade skills', 'Delagenter', 'Versionerat flöde', 'Tempo'],
     },
     '2026-build': {
       title: '2026 — byggåret',
-      body: 'Sju produktionsprojekt levererade i år. HRM — ett HR-system enligt portföljstandard (1828+ tester med 91,9 % täckning, två databaser, TOTP-2FA, hash-kedjad granskningslogg) — matar Platform, en live community på vuohiliitto.com byggd på HRM som undermodul med spelifiering, chatt i realtid och en Mythic+-teamspårare via Raider.IO. Spacepotatis är en Phaser 3 + Three.js-kosmos på spacepotatis.vercel.app. AudiobookMaker är ett Windows-skrivbordsprogram (1884 tester) som omvandlar PDF-, EPUB- och textfiler till MP3-ljudböcker via tre TTS-motorer — Edge-TTS för snabba molnröster, Piper för offline-bruk och Chatterbox för neural finsk uppläsning med LoRA-röstkloning; signerad installerare med automatiska uppdateringar, helhetstestad på en riktig 10-timmars ljudbok. ReadLog spårar läsning ovanpå Open Library + Google Books. strudel-patterns utforskar live-kodad musik. Den här Portfolio-sajten (Astro + Three.js + GSAP) binder ihop allt.',
+      body: 'Sju produktionsprojekt levererade i år. Det centrala paret är HRM och Platform: HRM är ett HR-system enligt portföljstandard (1828+ tester med 91,9 % täckning, två databaser, TOTP-2FA, hash-kedjad granskningslogg, OpenTelemetry) som matar Platform — en live community på vuohiliitto.com byggd på HRM som undermodul, med fleranvändarstöd, spelifiering, chatt i realtid och en Mythic+-teamspårare via Raider.IO.\n\nSpacepotatis (spacepotatis.vercel.app) är ett komplett webbläsarspel. Förstasidan startar som en vintage-terminal; galaxvyn är ett riktigt 3D Three.js-solsystem som du drar och zoomar; klicka på en planet och du varpas in i top-down Phaser 3-strid — Tyrian 2000-arv, mer agrart. Cirka 1170 tester, PostgreSQL på Neon via Kysely (ingen ORM), valfri Google-inloggning för molnsparning och topplista, strict TypeScript genom hela stacken. Tio egna Claude Code-skills i repot gör utvecklingsflödet självt till en versionerad artefakt (~2,76 miljoner token sparade per år, metodik dokumenterad).\n\nVarje ton musik och varje uttalad rad i Spacepotatis är originellt och lokalt genererat. Musiken kommer från strudel-patterns — skriven i Strudel, ett live-kodningsverktyg där du beskriver musik med korta textsnuttar, och exporterad som ren audio som droppar rakt in i spelet. Rösten är AudiobookMakers verk — ett Windows-skrivbordsprogram (1884 tester) som också står på egna ben: omvandlar PDF-, EPUB- och textfiler till MP3-ljudböcker via tre TTS-motorer — Edge-TTS för snabba molnröster, Piper för offline, och Chatterbox för neural uppläsning med LoRA-röstkloning (engelska starkast, finska stöds). Signerad installerare med automatiska uppdateringar, helhetstestad på en riktig 10-timmars ljudbok. Spacepotatis-rösten — en "Grandma"-karaktär i menyer, briefings, item-pickup-cues och en spelbar Story-logg — är all engelsk Chatterbox från AudiobookMaker.\n\nReadLog spårar läsning ovanpå Open Library + Google Books. Den här Portfolio-sajten (Astro + Three.js + GSAP) binder ihop allt.',
       tags: [
         '7 repos',
         'Riktiga användare',
         'Next.js',
         'Astro',
         'Three.js',
+        'Phaser 3',
         'Python',
         'Turborepo',
       ],
