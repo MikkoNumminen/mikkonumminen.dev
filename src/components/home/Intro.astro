@@ -25,24 +25,24 @@ const t = getTranslations(locale);
 
     <hr class="hairline intro__divider" aria-hidden="true" data-reveal />
 
-    <div class="intro__stats" role="list">
-      <div class="intro__stat" data-reveal data-stat="tests" role="listitem">
+    <ul class="intro__stats">
+      <li class="intro__stat" data-reveal data-stat="tests">
         <span class="intro__stat-num">
           1828<span class="intro__stat-suffix">+</span>
         </span>
         <span class="intro__stat-label">{t.intro.statTests}</span>
-      </div>
-      <div class="intro__stat" data-reveal data-stat="coverage" role="listitem">
+      </li>
+      <li class="intro__stat" data-reveal data-stat="coverage">
         <span class="intro__stat-num">
           91.9<span class="intro__stat-suffix">%</span>
         </span>
         <span class="intro__stat-label">{t.intro.statCoverage}</span>
-      </div>
-      <div class="intro__stat" data-reveal data-stat="products" role="listitem">
+      </li>
+      <li class="intro__stat" data-reveal data-stat="products">
         <span class="intro__stat-num">7</span>
         <span class="intro__stat-label">{t.intro.statProducts}</span>
-      </div>
-    </div>
+      </li>
+    </ul>
   </div>
 </section>
 
@@ -109,10 +109,12 @@ const t = getTranslations(locale);
   }
 
   .intro__stats {
+    list-style: none;
+    padding: 0;
+    margin: 2.5rem 0 0;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 2.5rem;
-    margin-top: 2.5rem;
   }
 
   .intro__stat {
