@@ -77,7 +77,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   // Rim is animated on a slow orbit in the tick loop so a specular streak
   // periodically traverses the letterforms — the Apple-keynote sweep.
-  const rimLight = new DirectionalLight(0xa6c2ff, 1.1);
+  // Steady-state intensity is intentionally low (0.4) so the constant
+  // sweep reads as a subtle highlight rather than a flash. The entrance
+  // animation boosts it ~6× so the title arrives with a single bright
+  // specular pulse, then fades to the steady level.
+  const RIM_BASE_INTENSITY = 0.4;
+  const RIM_ENTRANCE_PEAK = 6;
+  const rimLight = new DirectionalLight(0xa6c2ff, RIM_BASE_INTENSITY);
   rimLight.position.set(-8, -2, -4);
   scene.add(rimLight);
 
@@ -206,19 +212,24 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       totalHeight / 2 + Math.sin(elapsed * 0.7) * 0.08 + scrollProgress * 1.5;
 
     // Sweeping rim light — slow 14-second orbit around the title so a
-    // specular streak periodically traverses the chrome.
+    // specular streak periodically traverses the chrome. Intensity is
+    // boosted while `entrance` ramps from 0→1 so the title arrives with
+    // a bright pulse, then settles to a much subtler steady glow.
     const rimAngle = (elapsed * Math.PI * 2) / 14;
     rimLight.position.set(
       Math.cos(rimAngle) * 9,
       2 + Math.sin(rimAngle * 0.5) * 1.5,
       Math.sin(rimAngle) * 9 - 2,
     );
+    rimLight.intensity = reducedMotion
+      ? RIM_BASE_INTENSITY
+      : RIM_BASE_INTENSITY * (1 + (1 - entrance) * RIM_ENTRANCE_PEAK);
 
-    // Horizon glow gently pulses to sell "atmospheric" — half the period of
-    // the rim sweep so they never line up boringly.
+    // Horizon glow has a small pulse — kept narrow (0.04 amplitude, slower
+    // 0.3 Hz) so it reads as atmospheric, not as a beat.
     horizon.material.opacity = reducedMotion
       ? 0.85
-      : 0.78 + Math.sin(elapsed * 0.45) * 0.08;
+      : 0.82 + Math.sin(elapsed * 0.3) * 0.04;
 
     // Galaxy slowly rotates around its own normal axis so the spiral arms
     // visibly turn as you watch — far enough back that the motion reads as

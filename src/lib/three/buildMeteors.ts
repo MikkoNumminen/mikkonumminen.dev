@@ -88,9 +88,9 @@ export function buildMeteors(): MeteorsHandle {
     });
   }
 
-  // First meteor spawns 4 s after page boot to give the entrance animation
-  // room to land before adding more motion.
-  let nextSpawnTime = 4;
+  // First meteor spawns 6 s after page boot to give the entrance animation
+  // room to land before adding any extra motion.
+  let nextSpawnTime = 6;
 
   function spawnMeteor(meteor: MeteorState, elapsed: number): void {
     const positions = meteor.positionsAttr.array as Float32Array;
@@ -184,13 +184,14 @@ export function buildMeteors(): MeteorsHandle {
   return {
     group,
     tick: (elapsed: number, delta: number): void => {
-      // Spawn next meteor when the timer fires and a slot is free.
+      // Spawn next meteor when the timer fires and a slot is free. Range
+      // is 18–30 s — "every now and then", not a steady drumbeat.
       if (elapsed >= nextSpawnTime) {
         const idle = meteors.find((m) => !m.active);
         if (idle) {
           spawnMeteor(idle, elapsed);
         }
-        nextSpawnTime = elapsed + 10 + Math.random() * 8;
+        nextSpawnTime = elapsed + 18 + Math.random() * 12;
       }
 
       for (const meteor of meteors) {
