@@ -218,6 +218,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   let targetMouseY = 0;
   let lastSparkSpawnAt = -1;
   let collisionFlashEnergy = 0;
+  // Drives a rim flash on the title each time a galaxy collision spark
+  // spawns — keeps the title's rim flashes synced with the visible
+  // collision flashes so both events read as one moment.
+  let collisionRimEnergy = 0;
+  const COLLISION_RIM_PEAK = 4.0;
   const COLLISION_THRESHOLD = 3.6;
   // Each flash is brief but impactful; pacing it at ~0.55 s gives 2-3
   // distinct flashes per close-approach pass, mirroring the cadence of
@@ -289,7 +294,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     );
     rimLight.intensity = reducedMotion
       ? RIM_BASE_INTENSITY
-      : RIM_BASE_INTENSITY + entranceFlashEnvelope(elapsed);
+      : RIM_BASE_INTENSITY +
+        entranceFlashEnvelope(elapsed) +
+        collisionRimEnergy * COLLISION_RIM_PEAK;
 
     // Horizon glow has a small pulse — kept narrow (0.04 amplitude, slower
     // 0.3 Hz) so it reads as atmospheric, not as a beat.
@@ -339,12 +346,18 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         lastSparkSpawnAt = elapsed;
         // Also pulse the collision flash light for an extra-bright moment.
         collisionFlashEnergy = 1;
+        // And bump the title rim flash so the chrome flashes in sync
+        // with the visible galaxy collision flash.
+        collisionRimEnergy = 1;
       }
 
       // Decay the collision-flash pulse each frame; bright on hit, fades
       // smoothly to zero.
       collisionFlashEnergy = Math.max(0, collisionFlashEnergy - delta * 4);
       collisionFlashLight.intensity = collisionFlashEnergy * 4.5;
+      // Rim flash decays a touch faster than the point light so the
+      // title's bright moment is sharp rather than a lingering wash.
+      collisionRimEnergy = Math.max(0, collisionRimEnergy - delta * 5);
       collisionFlashLight.position.set(
         (galaxy.group.position.x + galaxyB.group.position.x) / 2,
         (galaxy.group.position.y + galaxyB.group.position.y) / 2,
