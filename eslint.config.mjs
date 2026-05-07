@@ -19,7 +19,7 @@ export default [
   },
   // Node-side build/config files need Node globals (console, process, …).
   {
-    files: ['scripts/**/*.{js,mjs,cjs}', '*.config.{js,mjs,cjs}'],
+    files: ['scripts/**/*.{js,mjs,cjs,ts}', '*.config.{js,mjs,cjs,ts}'],
     languageOptions: {
       globals: globals.node,
     },
