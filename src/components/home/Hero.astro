@@ -48,9 +48,8 @@ const t = getTranslations(locale);
       <span>cover</span>
     </span>
     <span class="hero__corner hero__corner--tr">
-      <span class="hero__corner-place">tampere · hervanta</span>
-      <span class="hero__corner-rule"></span>
       <span class="hero__corner-num">61° N · 24° E</span>
+      <span class="hero__corner-place">tampere · hervanta</span>
     </span>
     <span class="hero__corner hero__corner--br">
       <span class="hero__corner-num">vol. 26</span>
@@ -239,6 +238,10 @@ const t = getTranslations(locale);
   .hero__corner--tr {
     top: 7.5rem;
     right: 2rem;
+    /* Stack the coords above the place label, right-aligned. */
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
   }
 
   .hero__corner--br {
