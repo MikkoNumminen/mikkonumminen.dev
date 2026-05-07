@@ -11,11 +11,11 @@ import {
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
-import { buildTitle, loadFont } from './buildTitle';
+import { buildTitle, buildTitleMaterials, loadFont } from './buildTitle';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
 import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
-import { buildWorldGlints, type WorldGlintsHandle } from './buildWorldGlints';
+import { buildMeteors, type MeteorsHandle } from './buildMeteors';
 import { createBloomComposer, type BloomComposerHandle } from './postprocessing';
 import { disposeMaterial } from './disposeMaterial';
 
@@ -32,7 +32,6 @@ export interface HomeSceneHandle {
 }
 
 const FOG_COLOR = 0x05060c;
-const TITLE = 'MIKKO\nNUMMINEN';
 const TITLE_DESIGN_WIDTH = 1100;
 const TITLE_MIN_SCALE = 0.5;
 const PARTICLE_AREA_DIVISOR = 800;
@@ -104,20 +103,33 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     scene.add(particleField.points);
   }
 
-  // ── Title ────────────────────────────────────────────────────────────
-  const title = buildTitle(font, TITLE);
+  // ── Title (segmented per world) ──────────────────────────────────────
+  // The four worlds are visually represented in the letterforms themselves:
+  // each segment of MIKKO NUMMINEN is a separate mesh with its own chrome
+  // material tinted toward one of the four worlds. Segments sit flush
+  // against each other so the joins are invisible — to a reader the word
+  // looks continuous, but the four metals are clearly different colors.
+  const titleMaterials = buildTitleMaterials();
+  const title = buildTitle(font, [
+    {
+      segments: [
+        { text: 'MIK', material: titleMaterials.projects },
+        { text: 'KO', material: titleMaterials.home },
+      ],
+    },
+    {
+      segments: [
+        { text: 'NUMM', material: titleMaterials.experience },
+        { text: 'INEN', material: titleMaterials.contact },
+      ],
+    },
+  ]);
   scene.add(title.group);
   const totalHeight = title.totalHeight;
 
-  // ── World glints (decorate the title with the four worlds) ───────────
-  // Four small additive sprite clusters in the colors of the four worlds,
-  // pulsing at different frequencies so the metal looks like it's catching
-  // moments of each world rolling across its surface.
-  const glints: WorldGlintsHandle = buildWorldGlints();
-  // Parent the glints to the title group so they inherit the title's float,
-  // entrance offset, and tiny pointer-driven tilt — they really are ON the
-  // letters, not floating in front of them.
-  title.group.add(glints.group);
+  // ── Meteors (occasional shooting stars carrying world tints) ─────────
+  const meteors: MeteorsHandle = buildMeteors();
+  scene.add(meteors.group);
 
   // ── Postprocessing: bloom on bright specular peaks + sun glow ────────
   // Skipped for reduced-motion clients to keep them on the cheap path.
@@ -214,20 +226,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       galaxy.group.rotation.z = elapsed * 0.025;
     }
 
-    // World glints — each cluster pulses at its own frequency and phase so
-    // at any moment some worlds are bright and others are dimming. The
-    // sin-clamp gives a smooth on/off cycle rather than a steady throb.
-    if (reducedMotion) {
-      // Hold each cluster at a fixed mid-opacity for the still composition.
-      for (const cluster of glints.clusters) {
-        cluster.material.opacity = 0.35;
-      }
-    } else {
-      for (const cluster of glints.clusters) {
-        const phase = elapsed * cluster.freq * Math.PI * 2 + cluster.phase;
-        const v = Math.max(0, Math.sin(phase));
-        cluster.material.opacity = v * 0.7;
-      }
+    // Meteors — randomized spawn schedule, fade-in/out envelope, trail
+    // updated as a per-frame position queue inside the meteor module.
+    if (!reducedMotion) {
+      meteors.tick(elapsed, delta);
     }
 
     // Camera pulls back slightly with scroll, plus a slow lazy ~30-second
@@ -294,7 +296,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       document.removeEventListener('visibilitychange', onVisibilityChange);
 
       title.meshes.forEach((m) => m.geometry.dispose());
-      disposeMaterial(title.material);
+      for (const mat of title.materials) disposeMaterial(mat);
 
       if (particleField) {
         particleField.geometry.dispose();
@@ -302,7 +304,15 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         particleField.texture.dispose();
       }
 
-      scene.remove(ambient, keyLight, rimLight, fillLight, horizon.mesh, galaxy.group);
+      scene.remove(
+        ambient,
+        keyLight,
+        rimLight,
+        fillLight,
+        horizon.mesh,
+        galaxy.group,
+        meteors.group,
+      );
       ambient.dispose();
       keyLight.dispose();
       rimLight.dispose();
@@ -314,11 +324,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       galaxy.starsGeometry.dispose();
       galaxy.starsMaterial.dispose();
 
-      for (const cluster of glints.clusters) {
-        cluster.geometry.dispose();
-        cluster.material.dispose();
-      }
-      glints.texture.dispose();
+      meteors.dispose();
 
       scene.environment = null;
       env.envMap.dispose();
