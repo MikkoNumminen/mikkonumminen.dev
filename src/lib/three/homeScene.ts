@@ -15,7 +15,7 @@ import { buildTitle, loadFont } from './buildTitle';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
 import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
-import { buildMountainLayer, type MountainLayerHandle } from './buildMountainLayer';
+import { buildWorldGlints, type WorldGlintsHandle } from './buildWorldGlints';
 import { createBloomComposer, type BloomComposerHandle } from './postprocessing';
 import { disposeMaterial } from './disposeMaterial';
 
@@ -91,10 +91,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const galaxy: GalaxyLayerHandle = buildGalaxyLayer();
   scene.add(galaxy.group);
 
-  // ── Mountain silhouette (experience-world hint, lower-right horizon) ─
-  const mountain: MountainLayerHandle = buildMountainLayer();
-  scene.add(mountain.mesh);
-
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
     ? 0
@@ -112,6 +108,16 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const title = buildTitle(font, TITLE);
   scene.add(title.group);
   const totalHeight = title.totalHeight;
+
+  // ── World glints (decorate the title with the four worlds) ───────────
+  // Four small additive sprite clusters in the colors of the four worlds,
+  // pulsing at different frequencies so the metal looks like it's catching
+  // moments of each world rolling across its surface.
+  const glints: WorldGlintsHandle = buildWorldGlints();
+  // Parent the glints to the title group so they inherit the title's float,
+  // entrance offset, and tiny pointer-driven tilt — they really are ON the
+  // letters, not floating in front of them.
+  title.group.add(glints.group);
 
   // ── Postprocessing: bloom on bright specular peaks + sun glow ────────
   // Skipped for reduced-motion clients to keep them on the cheap path.
@@ -208,11 +214,21 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       galaxy.group.rotation.z = elapsed * 0.025;
     }
 
-    // Mountain silhouette gets a tiny mouse-driven parallax shift so it
-    // doesn't sit completely flat behind the title. Kept very subtle — it's
-    // a hint, not the main subject.
-    mountain.mesh.position.x = 3 + mouseX * 0.4;
-    mountain.mesh.position.y = -7.5 + mouseY * 0.18;
+    // World glints — each cluster pulses at its own frequency and phase so
+    // at any moment some worlds are bright and others are dimming. The
+    // sin-clamp gives a smooth on/off cycle rather than a steady throb.
+    if (reducedMotion) {
+      // Hold each cluster at a fixed mid-opacity for the still composition.
+      for (const cluster of glints.clusters) {
+        cluster.material.opacity = 0.35;
+      }
+    } else {
+      for (const cluster of glints.clusters) {
+        const phase = elapsed * cluster.freq * Math.PI * 2 + cluster.phase;
+        const v = Math.max(0, Math.sin(phase));
+        cluster.material.opacity = v * 0.7;
+      }
+    }
 
     // Camera pulls back slightly with scroll, plus a slow lazy ~30-second
     // orbit so each world layer rotates across the title's reflection. The
@@ -286,15 +302,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         particleField.texture.dispose();
       }
 
-      scene.remove(
-        ambient,
-        keyLight,
-        rimLight,
-        fillLight,
-        horizon.mesh,
-        galaxy.group,
-        mountain.mesh,
-      );
+      scene.remove(ambient, keyLight, rimLight, fillLight, horizon.mesh, galaxy.group);
       ambient.dispose();
       keyLight.dispose();
       rimLight.dispose();
@@ -305,11 +313,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
       galaxy.starsGeometry.dispose();
       galaxy.starsMaterial.dispose();
-      galaxy.ringGeometry.dispose();
-      galaxy.ringMaterial.dispose();
 
-      mountain.geometry.dispose();
-      mountain.material.dispose();
+      for (const cluster of glints.clusters) {
+        cluster.geometry.dispose();
+        cluster.material.dispose();
+      }
+      glints.texture.dispose();
 
       scene.environment = null;
       env.envMap.dispose();

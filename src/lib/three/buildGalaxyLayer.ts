@@ -3,28 +3,23 @@ import {
   BufferAttribute,
   BufferGeometry,
   Group,
-  Mesh,
-  MeshBasicMaterial,
   Points,
   PointsMaterial,
-  TorusGeometry,
 } from 'three';
 
 export interface GalaxyLayerHandle {
   group: Group;
   starsGeometry: BufferGeometry;
   starsMaterial: PointsMaterial;
-  ringGeometry: TorusGeometry;
-  ringMaterial: MeshBasicMaterial;
 }
 
 /**
- * Far-back blue galaxy spiral with a single orbital ring — the projects-page
- * world hint. Sits in the lower-left of the scene (offset via group.position)
- * so it appears behind and to the side of the title without competing with it.
+ * Far-back blue galaxy spiral — the projects-page world hint. Sits in the
+ * lower-left of the scene (offset via group.position) so it appears behind
+ * and to the side of the title without competing with it.
  *
  * Spiral arms are generated procedurally: three arms, log-spiral tightness,
- * with jitter for organic feel. The ring is a thin tilted torus, additive-blended.
+ * with jitter for organic feel.
  */
 const GALAXY_STAR_COUNT = 700;
 const GALAXY_RADIUS = 8;
@@ -76,26 +71,11 @@ export function buildGalaxyLayer(): GalaxyLayerHandle {
   const stars = new Points(starsGeometry, starsMaterial);
   group.add(stars);
 
-  // Tilted orbital ring at the galaxy's outer edge
-  const ringGeometry = new TorusGeometry(GALAXY_RADIUS * 1.05, 0.04, 8, 96);
-  const ringMaterial = new MeshBasicMaterial({
-    color: GALAXY_COLOR,
-    transparent: true,
-    opacity: 0.32,
-    blending: AdditiveBlending,
-    depthWrite: false,
-    fog: false,
-  });
-  const ring = new Mesh(ringGeometry, ringMaterial);
-  ring.rotation.x = Math.PI * 0.42;
-  ring.rotation.z = Math.PI * 0.18;
-  group.add(ring);
-
   // Position the whole galaxy lower-left and far back
   group.position.set(-14, -5, -18);
   // Tilt so the spiral plane is angled toward the viewer
   group.rotation.x = -Math.PI * 0.18;
   group.rotation.z = Math.PI * 0.12;
 
-  return { group, starsGeometry, starsMaterial, ringGeometry, ringMaterial };
+  return { group, starsGeometry, starsMaterial };
 }

@@ -9,8 +9,6 @@ const t = getTranslations(locale);
   <canvas id="home-canvas" class="hero__canvas" aria-hidden="true"></canvas>
 
   <div class="hero__overlay" aria-hidden="true"></div>
-  <div class="hero__scanlines" aria-hidden="true"></div>
-  <div class="hero__phosphor" aria-hidden="true"></div>
 
   <div class="hero__content">
     <p class="hero__eyebrow">{t.hero.eyebrow}</p>
@@ -91,58 +89,6 @@ const t = getTranslations(locale);
       rgba(0, 0, 0, 0.55) 100%
     );
     pointer-events: none;
-  }
-
-  /* CRT scan-line texture — the contact-page world hint. Very low opacity
-     (alpha 0.06 in the gradient stops, blended via multiply) so the chrome
-     and the other layers stay dominant. Drifts slowly downward to feel
-     "alive" without becoming distracting; pauses for reduced-motion. */
-  .hero__scanlines {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0) 0px,
-      rgba(0, 0, 0, 0) 3px,
-      rgba(0, 0, 0, 0.07) 4px,
-      rgba(0, 0, 0, 0) 5px
-    );
-    mix-blend-mode: multiply;
-    opacity: 0.55;
-    z-index: 1;
-    animation: hero-scanline-drift 16s linear infinite;
-  }
-
-  /* Phosphor-green vignette at the top of the hero — the contact-page
-     world's terminal glow leaking in from above. Read as the "ceiling" of
-     the four-worlds composition; pairs with the scanlines. */
-  .hero__phosphor {
-    position: absolute;
-    inset: 0 0 55% 0;
-    pointer-events: none;
-    background: radial-gradient(
-      ellipse at 50% -30%,
-      rgba(74, 222, 128, 0.08) 0%,
-      rgba(74, 222, 128, 0.025) 35%,
-      transparent 65%
-    );
-    z-index: 2;
-  }
-
-  @keyframes hero-scanline-drift {
-    from {
-      background-position: 0 0;
-    }
-    to {
-      background-position: 0 100px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hero__scanlines {
-      animation: none;
-    }
   }
 
   .hero__content {
