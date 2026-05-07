@@ -246,7 +246,7 @@ export const sv: Translations = {
       title: '2026 — byggåret',
       body: 'Sju produktionsprojekt levererade i år. HRM — ett HR-system enligt portföljstandard (1828+ tester med 91,9 % täckning, två databaser, TOTP-2FA, hash-kedjad granskningslogg) — matar Platform, en live community på vuohiliitto.com byggd på HRM som undermodul med spelifiering, chatt i realtid och en Mythic+-teamspårare via Raider.IO. Spacepotatis är en Phaser 3 + Three.js-kosmos på spacepotatis.vercel.app. AudiobookMaker är ett Python-skrivbordsprogram som omvandlar PDF-filer till uppläsningsljud via edge-TTS. ReadLog spårar läsning ovanpå Open Library + Google Books. strudel-patterns utforskar live-kodad musik. Den här Portfolio-sajten (Astro + Three.js + GSAP) binder ihop allt.',
       tags: [
-        '7 repon',
+        '7 repos',
         'Riktiga användare',
         'Next.js',
         'Astro',

@@ -242,8 +242,8 @@ export const fi: Translations = {
       tags: ['AI-työnkulut', 'Vauhti'],
     },
     '2026-build': {
-      title: 'Vuoden 2026 rakennusvuosi',
-      body: 'Seitsemän tuotantoon viety projekti. HRM — portfolio-tasoinen HR-järjestelmä (yli 1828 testiä 91,9 % kattavuudella, kaksi tietokantaa, TOTP-2FA, hajautusketjutettu auditloki) — syöttää Platformia, tuotantokäytössä olevaa yhteisöalustaa osoitteessa vuohiliitto.com, joka rakentuu HRM:n päälle alimoduulina: pelillistäminen, reaaliaikainen chatti, Mythic+ -tiimiseuranta Raider.IO-rajapinnalla. Spacepotatis on Phaser 3 + Three.js -kosmos osoitteessa spacepotatis.vercel.app. AudiobookMaker on Python-työpöytäsovellus, joka muuntaa PDF-tiedostoja äänikirjoiksi edge-TTS-puhesyntetisaattorilla. ReadLog seuraa lukemista Open Library- ja Google Books -rajapintojen päällä. strudel-patterns tutkii live-koodattua musiikkia. Tämä Portfolio-sivusto (Astro + Three.js + GSAP) sitoo kaiken yhteen.',
+      title: '2026 — rakennusvuosi',
+      body: 'Seitsemän tuotantoon vietyä projektia. HRM — portfolio-tasoinen HR-järjestelmä (yli 1828 testiä 91,9 % kattavuudella, kaksi tietokantaa, TOTP-2FA, hajautusketjutettu auditloki) — syöttää Platformia, tuotantokäytössä olevaa yhteisöalustaa osoitteessa vuohiliitto.com, joka rakentuu HRM:n päälle alimoduulina: pelillistäminen, reaaliaikainen chatti, Mythic+ -tiimiseuranta Raider.IO-rajapinnalla. Spacepotatis on Phaser 3 + Three.js -kosmos osoitteessa spacepotatis.vercel.app. AudiobookMaker on Python-työpöytäsovellus, joka muuntaa PDF-tiedostoja äänikirjoiksi edge-TTS-puhesyntetisaattorilla. ReadLog seuraa lukemista Open Library- ja Google Books -rajapintojen päällä. strudel-patterns tutkii live-koodattua musiikkia. Tämä Portfolio-sivusto (Astro + Three.js + GSAP) sitoo kaiken yhteen.',
       tags: [
         '7 repoa',
         'Oikeita käyttäjiä',

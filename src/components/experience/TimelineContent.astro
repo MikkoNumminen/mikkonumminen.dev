@@ -1,6 +1,7 @@
 ---
 import '../../styles/experience-timeline.css';
 import { localizeTimeline } from '../../data/timeline';
+import { projects } from '../../data/projects';
 import { asLocale, getTranslations, localizePath } from '../../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -27,6 +28,67 @@ function ghostYear(year: string): string {
   const dash = trimmed.lastIndexOf('–');
   if (dash >= 0) return trimmed.slice(dash + 1).trim();
   return trimmed;
+}
+
+// Auto-derive a host → liveUrl map from the projects data. Any timeline
+// body that mentions a known host (e.g. "vuohiliitto.com") gets that
+// host substring rendered as a clickable link, target=_blank, no rebuild
+// required when projects are added later.
+const projectUrlsByHost: Record<string, string> = {};
+for (const p of projects) {
+  if (!p.liveUrl) continue;
+  try {
+    projectUrlsByHost[new URL(p.liveUrl).host] = p.liveUrl;
+  } catch {
+    /* malformed liveUrl in data — skip rather than crash the build */
+  }
+}
+
+type BodyPart =
+  | { type: 'text'; value: string }
+  | { type: 'link'; value: string; href: string };
+
+/**
+ * Walk the body string and split it into text spans and link spans.
+ * A link span is created whenever the body contains the bare host of
+ * a known project (e.g. `spacepotatis.vercel.app`); the host is the
+ * visible text and the project's full `liveUrl` becomes the href.
+ *
+ * Linear scan, longest hosts matched first so a host that's a prefix
+ * of another (theoretical: example.com vs sub.example.com) doesn't
+ * win when the longer one is present.
+ */
+function linkifyBody(body: string): BodyPart[] {
+  const hosts = Object.keys(projectUrlsByHost).sort((a, b) => b.length - a.length);
+  if (hosts.length === 0) return [{ type: 'text', value: body }];
+
+  const parts: BodyPart[] = [];
+  let cursor = 0;
+  while (cursor < body.length) {
+    let earliest: { host: string; idx: number } | null = null;
+    for (const host of hosts) {
+      const idx = body.indexOf(host, cursor);
+      if (idx < 0) continue;
+      if (!earliest || idx < earliest.idx) earliest = { host, idx };
+    }
+    if (!earliest) {
+      parts.push({ type: 'text', value: body.slice(cursor) });
+      break;
+    }
+    if (earliest.idx > cursor) {
+      parts.push({ type: 'text', value: body.slice(cursor, earliest.idx) });
+    }
+    const href = projectUrlsByHost[earliest.host];
+    if (href) {
+      parts.push({ type: 'link', value: earliest.host, href });
+    } else {
+      // Should be unreachable since `host` came from `projectUrlsByHost`
+      // keys, but keep the path total under noUncheckedIndexedAccess.
+      parts.push({ type: 'text', value: earliest.host });
+    }
+    cursor = earliest.idx + earliest.host.length;
+  }
+  return parts;
 }
 ---
 
@@ -80,7 +142,22 @@ function ghostYear(year: string): string {
               <span class="timeline__kind">{kindLabel[entry.kind]}</span>
             </div>
             <h2 class="timeline__heading">{entry.title}</h2>
-            <p class="timeline__body">{entry.body}</p>
+            <p class="timeline__body">
+              {linkifyBody(entry.body).map((part) =>
+                part.type === 'link' ? (
+                  <a
+                    href={part.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${part.value} (opens in a new tab)`}
+                  >
+                    {part.value}
+                  </a>
+                ) : (
+                  part.value
+                ),
+              )}
+            </p>
             {entry.tags && (
               <ul class="timeline__tags">
                 {entry.tags.map((tag) => (

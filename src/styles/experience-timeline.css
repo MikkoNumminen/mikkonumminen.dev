@@ -354,6 +354,29 @@
   margin: 0;
 }
 
+/* Inline links inside the body — currently used only for project URLs
+   auto-detected from `data/projects.ts`. Underline tinted with the
+   entry's `--accent`; thickens on hover/focus so the affordance is
+   unambiguous against the body's already-faded text colour. */
+.timeline__body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--accent-rgb), 0.45);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease,
+    text-decoration-thickness 0.2s ease;
+}
+
+.timeline__body a:hover,
+.timeline__body a:focus-visible {
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  outline: none;
+}
+
 .timeline__tags {
   position: relative;
   list-style: none;
