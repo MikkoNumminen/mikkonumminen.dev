@@ -8,17 +8,22 @@ import {
   PerspectiveCamera,
   PointLight,
   Scene,
+  Vector3,
 } from 'three';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
-import { buildTitle, loadFont } from './buildTitle';
+import { buildTitle, loadFont, measureTextWidth } from './buildTitle';
 import { buildTitleColorMap } from './buildTitleColorMap';
 import { buildCollisionSparks, type CollisionSparksHandle } from './buildCollisionSparks';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
 import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
 import { buildMeteors, type MeteorsHandle } from './buildMeteors';
+import {
+  buildProjectsZoneDecor,
+  type ProjectsZoneDecorHandle,
+} from './buildProjectsZoneDecor';
 import { createBloomComposer, type BloomComposerHandle } from './postprocessing';
 import { disposeMaterial } from './disposeMaterial';
 
@@ -194,6 +199,64 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   scene.add(title.group);
   const totalHeight = title.totalHeight;
 
+  // ── Projects-zone decor (Saturn ring + orbiting planet on K-K) ───────
+  // First proof of the "text is a landscape" direction: the K-K of MIKKO
+  // gets a chrome ring + small orbiting planet + lens flare so the
+  // projects zone reads as a tiny solar system embedded in the title.
+  // Hover intensifies the orbit; click navigates to /projects.
+  const wMIKKO = measureTextWidth(font, 'MIKKO');
+  const wMI = measureTextWidth(font, 'MI');
+  const wMIKK = measureTextWidth(font, 'MIKK');
+  // Geometry was translated by -wMIKKO/2 so the K-K range is centered on
+  // (wMI + wMIKK)/2 - wMIKKO/2 in the MIKKO mesh's local x.
+  const xCenterKK = (wMI + wMIKK) / 2 - wMIKKO / 2;
+  const projectsDecor: ProjectsZoneDecorHandle = buildProjectsZoneDecor({
+    envMap: env.envMap,
+    scale: 0.78,
+  });
+  // Parent under the MIKKO mesh so the decor inherits all of the title's
+  // floats / pointer-driven sway / entrance offset for free.
+  const mikkoMesh = title.meshes[0]!;
+  mikkoMesh.add(projectsDecor.group);
+  // z = DEPTH/2 puts the decor at the midplane of the extruded letters,
+  // so the ring crosses through the K-K rather than floating in front.
+  projectsDecor.group.position.set(xCenterKK, 0, 0.35);
+
+  let projectsHoverBoost = 0;
+  // Reused each frame to avoid allocating Vector3 in the hot path.
+  const projectedDecorPos = new Vector3();
+
+  /**
+   * Returns the screen-pixel position of the decor's world center plus a
+   * hover hot-radius. Used by both the hover-boost lerp and the click
+   * hit test so the cursor area and the navigation area agree exactly.
+   */
+  const decorScreenHotspot = (): { x: number; y: number; r: number } => {
+    projectsDecor.group.getWorldPosition(projectedDecorPos);
+    projectedDecorPos.project(camera);
+    const x = (projectedDecorPos.x + 1) * 0.5 * window.innerWidth;
+    const y = (1 - projectedDecorPos.y) * 0.5 * window.innerHeight;
+    // Hot radius scales with the title (responsive layouts shrink it).
+    const r = 110 * title.group.scale.x;
+    return { x, y, r };
+  };
+
+  const onCanvasClick = (e: MouseEvent): void => {
+    const { x, y, r } = decorScreenHotspot();
+    const dx = e.clientX - x;
+    const dy = e.clientY - y;
+    if (Math.sqrt(dx * dx + dy * dy) > r) return;
+    // Route through an existing nav anchor so pageTransition picks it up
+    // and runs phase-A/B before navigating. Falls back to direct
+    // navigation if the anchor isn't on the page.
+    const anchor = document.querySelector<HTMLAnchorElement>(
+      'a[href$="/projects"], a[href$="/projects/"]',
+    );
+    if (anchor) anchor.click();
+    else window.location.href = '/projects';
+  };
+  canvas.addEventListener('click', onCanvasClick);
+
   // ── Meteors (occasional shooting stars carrying world tints) ─────────
   const meteors: MeteorsHandle = buildMeteors();
   scene.add(meteors.group);
@@ -367,6 +430,20 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       sparks.tick(delta);
     }
 
+    // Projects-zone decor: hover hot-zone updates the boost target,
+    // boost lerps smoothly, decor advances orbit/spin/flare. Cursor
+    // becomes a pointer when hovering so the user can tell it's clickable.
+    {
+      const { x: hx, y: hy, r: hr } = decorScreenHotspot();
+      const mxPx = (targetMouseX * 0.5 + 0.5) * window.innerWidth;
+      const myPx = (targetMouseY * 0.5 + 0.5) * window.innerHeight;
+      const hovering = Math.hypot(mxPx - hx, myPx - hy) < hr;
+      const targetBoost = hovering ? 1 : 0;
+      projectsHoverBoost += (targetBoost - projectsHoverBoost) * delta * 6;
+      canvas.style.cursor = hovering ? 'pointer' : '';
+    }
+    projectsDecor.tick(reducedMotion ? 0 : delta, projectsHoverBoost);
+
     // Meteors — randomized spawn schedule, fade-in/out envelope, trail
     // updated as a per-frame position queue inside the meteor module.
     if (!reducedMotion) {
@@ -435,6 +512,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       resize.dispose();
       window.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      canvas.removeEventListener('click', onCanvasClick);
+      canvas.style.cursor = '';
+
+      mikkoMesh.remove(projectsDecor.group);
+      projectsDecor.dispose();
 
       title.meshes.forEach((m) => m.geometry.dispose());
       disposeMaterial(title.material);
