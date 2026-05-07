@@ -244,7 +244,7 @@ export const fi: Translations = {
     },
     '2026-build': {
       title: '2026 — rakennusvuosi',
-      body: 'Seitsemän tuotantoon vietyä projektia, yksi kalenterivuosi. Stack ja päätökset ovat todistus — alla on se mitä ne opettivat.',
+      body: 'Toukokuussa 2026: seitsemän projektia tuotantoon yhden kalenterivuoden sisällä. Stack ja päätökset ovat todistus — alla on se mitä ne opettivat.',
       tags: [
         '7 repoa',
         'Oikeita käyttäjiä',
@@ -257,28 +257,28 @@ export const fi: Translations = {
       ],
       lessons: [
         {
-          title: 'Tyrehdytä vuoto ensin, suunnittele uusiksi viimeiseksi',
-          body: 'Toukokuussa 2026 Spacepotatikseen iski tallennuksen korruptiobugi. Saman päivän aikana ajoin palvelinpuolen vahdin pysäyttämään kaikki uudet vahingot. Seuraavana päivänä lisäsin audit-taulun, jonka avulla pääsin tutkimaan jokaisen jo tapahtuneen tilanteen. Vasta viikon datan jälkeen aloin suunnitella syvempää arkkitehtonista korjausta. Lieventäminen ostaa aikaa oppia, observointi muuttaa oppimisen faktoiksi ja arkkitehtuuri tulee viimeisenä, ei koskaan ensimmäisenä.',
+          title: 'Tyrehdytä vuoto. Sitten ajattele. Sitten suunnittele uusiksi.',
+          body: 'Vaistoni oli ennen suoraviivainen: rakenteellinen bugi, rakenteellinen korjaus, elegantti ratkaisu tuotantoon, ja kumarrus. Sitten toukokuussa 2026 Spacepotatikseen iski tallennuksen korruptiobugi ja opin oikean järjestyksen kantapään kautta. Palvelinpuolen vahti samana päivänä, pysäyttämään uudet vahingot. Audit-taulu seuraavana päivänä, muuttamaan kivun fakta-aineistoksi jonka voi oikeasti lukea. Arkkitehtoninen korjaus vasta viikon datan jälkeen, kun faktoilla oli muoto. Vaisto joka jäi: lievennä ensin, observoi toiseksi, arkkitehtuuri kolmanneksi — joka kerta, tässä järjestyksessä. Suoraan "uudelleensuunnitteluun" hyppääminen on pelkkää oman arvauksen ympärille suunnittelua, ja paras arvaus on yleensä väärä tiistaina.',
         },
         {
-          title: 'Toistettavuus voittaa nokkeluuden — versioi AI-työnkulku',
-          body: 'Spacepotatis toimittaa kymmenen Claude Code -skilliä repon sisällä olevina tiedostoina. Jokainen on projektikohtainen resepti — "lisää vihollinen", "aja migraatio" — jota tekoäly seuraa askel askeleelta sen sijaan että aloittaisi alusta joka kerta. Ne käyvät koodikatselmoinnin, auditoidaan neljännesvuosittain ja säästivät viime vuonna noin 2,76 miljoonaa tokenia. Koska ne versioituvat koodikannan mukana, ne eivät karkaa synkronista. Fiilispohjalta ei skaalaa, talletetut ohjeet skaalaavat.',
+          title: 'Lopeta saman keskustelun keksiminen uudelleen',
+          body: 'Alkuaikoina Claude Codessa kävelin jokaiseen sessioon kuin se olisi ollut ensimmäinen työpäivä — "hei, lisää tähän vihollinen, tässä koko koodikanta, onnea matkaan." Lopulta huomasin maksavani samasta alustusparagrafista neljäkymmentä kertaa viikossa. Joten kirjoitin reseptit ylös. Spacepotatiksessa on nyt kymmenen Claude Code -skilliä repon sisällä — askel-askeleelta tehtäviä kuten "lisää vihollinen" tai "aja migraatio" joita tekoäly seuraa sen sijaan että aloittaisi alusta joka kutsulla. Ne käyvät koodikatselmoinnin, auditoidaan neljännesvuosittain ja säästivät ensimmäisenä vuotenaan noin 2,76 miljoonaa tokenia. Mikä muuttui: tapani työskennellä tekoälyn kanssa. Se ei ole chat-ikkuna johon huudan, vaan kontribuuttori jonka ohjeet asuvat samassa paikassa kuin koodi jota se koskee.',
         },
         {
-          title: 'Valitse kompromissi ajonaikaisesti, älä suunnittelupöydällä',
-          body: 'AudiobookMaker ei ole "Edge-TTS-sovellus". Se on yksi putki ja sen alla kolme moottoria: Edge-TTS nopeisiin pilvi-ääniin, Piper offline-läppärille, Chatterbox studiolaatuiseen kerrontaan ja äänikloonaukseen. Käyttäjä valitsee per kirja. Tuotteen lukittautuminen yhteen ääniteknologiaan olisi vanhentunut samana vuonna kun se shippasi.',
+          title: 'Yksi tuote, kolme moottoria, ei katumusta',
+          body: 'AudiobookMaker syntyi "Edge-TTS-sovelluksena". Ei mennyt kauaa, kun jokainen ääniteknologia jota vastaan olin hiljaa lyönyt vetoa joko kuroi kiinni tai kiersi koko kentän — luovuin yrityksestä veikata voittajaa. AudiobookMaker on nykyään yksi putki ja sen alla kolme moottoria: Edge-TTS nopeisiin pilvi-ääniin, Piper offline-läppärille, Chatterbox studiolaatuiseen kerrontaan ja äänikloonaukseen. Käyttäjä valitsee per kirja. Kun maaperä liikkuu, tuotteen pitää seistä sen yllä, ei sen päällä. Suunnittelupöydällä suosikkien valitseminen on tapa tehdä jotain joka vanhenee jo ennen lanseeraustviittiä.',
         },
         {
-          title: 'Kattavuus kertoo että rivit ajettiin. Mutaatio kertoo että ne merkitsivät.',
-          body: 'HRM ajaa Stryker-mutaatiotestauksen jokaisessa pull requestissa. Se viskoo tahallaan pieniä bugeja tuotantokoodiin ja kaataa buildin, jos yksikään testi ei huomaa. 91,9 % rivikattavuutta on helppo huijata — mutaatiopistemäärä pakottaa testisarjan oikeasti löytämään bugit, jotka se väittää löytävänsä. Siinä on ero läpimenneen rastin ja hyödyllisen rastin välillä.',
+          title: 'Kattavuus on fiilis. Mutaatio on fakta.',
+          body: 'Pitkään vihreä testisarja oli minulle luotettava heti näkemältä — samaan tapaan kuin luotan "varoitus: kuumaa" -tarraan kahvikupissa. Sitten lisäsin Strykerin HRM:ään. Mutaatiotestaus tönäisee pieniä bugeja tuotantokoodiin jokaisessa pull requestissa ja kaataa buildin, jos yksikään testi ei ota niitä kiinni. Ensimmäinen ajo oli nöyryyttävä: iso osa "läpimenneistä" assertioistani osoittautui koristeellisiksi — ne ajoivat rivit ja menivät kotiin. 91,9 % rivikattavuus tarkoittaa että rivit ajettiin. Mutaatiopistemäärä tarkoittaa että assertiot oikeasti merkitsivät jotain. Luen näitä nyt eri signaaleina enkä ole läheskään yhtä omahyväinen vihreästä rastista.',
         },
         {
-          title: 'Jos bugi asuu upstreamissa, korjauskin kuuluu sinne',
-          body: 'AudiobookMakeria rakentaessa törmäsin muistivuotoon syvällä Chatterboxin monikielisessä päättelypolussa — moottori romahti tuottamaan alle sekunnin äänitiedostoja ensimmäisen kutsun jälkeen. Diagnosoin sen, kirjoitin korjauksen ja lähetin kaksi pull requestia upstreamiin resemble-ai/chatterboxiin (24 000 tähteä GitHubissa): #505 ja #510. Molemmat ovat avoinna ja muiden kontribuuttoreiden bumppaamia. Paikallinen paikkaus olisi ollut laiska vastaus — seuraava bugin kohtaava olisi maksanut saman hinnan uudelleen.',
+          title: 'Korjaa vuoto naapurin kellarissa',
+          body: 'AudiobookMakeria rakentaessa törmäsin muistivuotoon syvällä Chatterboxin monikielisessä päättelypolussa — moottori romahti tuottamaan alle sekunnin äänitiedostoja ensimmäisen kutsun jälkeen, käyttökelvoton mihinkään tviittiä pidempään. Ennen olisin paikannut sen paikallisesti, motkottanut siitä viikon ja jatkanut matkaa. Tällä kertaa istuin sen kanssa: luin polun, löysin syyn, kirjoitin korjauksen ja lähetin kaksi pull requestia upstreamiin resemble-ai/chatterboxiin, laajasti käytettyyn open-source-TTS-kirjastoon — #505 ja #510, molemmat avoinna ja muiden kontribuuttoreiden bumppaamia. Korjauksen kirjoittaminen oli helppo puolisko. Kasvu oli toisen koodikannan lukeminen niin hyvin että pystyi korjaamaan sen rikkomatta sitä, ja sen oivaltaminen että takaisin kontribuoiminen on halpa vaihtoehto, ei lisäpiste. Laiska paikkaus olisi ollut kallis kaikille jotka törmäsivät bugiin minun jälkeeni.',
         },
         {
-          title: 'Kun tiimi on yksi, pullonkaula on työ — ei odottelu',
-          body: 'Skeemamigraatiot, sovelluskoodi, CI-putket, Vercel-deployt webille, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry siellä missä se kantaa. Postgres ja MongoDB datapuolella, GitHub Actions joka repossa typecheckiä, formattausta, linttiä ja mutaatiotestausta varten siellä missä se on relevanttia. SQL:stä ihan ops-päähän, omistettuna yksin kaikissa seitsemässä projektissa. Ei luovutuksia tarkoittaa ei jonoja — ainoa työtä hidastava asia on itse työ.',
+          title: 'Yksin tarkoittaa että ainoa joka odottaa on työ',
+          body: 'Kaikissa seitsemässä projektissa tänä vuonna omistin työn päästä päähän. Skeemamigraatioita maanantaina, sovelluskoodia tiistaina, CI-putkia keskiviikkona, allekirjoitettuja Windows-asentajia GitHub Releasesin kautta torstaina, OpenTelemetryä perjantaina, viikonloppu vapaata (valhe). Postgres ja MongoDB datapuolella, GitHub Actions joka repossa typecheckiä, formattausta, linttiä ja mutaatiotestausta varten siellä missä se on relevanttia, Vercel web-deployhin. SQL:stä ihan ops-päähän. Se mikä kasvoi ei ole leveys listana — se on tyyneys jolla osaa valita oikean työkalun joka kerroksessa kun on joutunut elämään jokaisessa kerroksessa. Kun tiimi on yksi, pullonkaula on työ — ei odottelu.',
         },
       ],
     },

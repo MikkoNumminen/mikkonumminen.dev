@@ -243,7 +243,7 @@ export const en: Translations = {
     },
     '2026-build': {
       title: 'The 2026 build',
-      body: 'Seven shipped projects, one calendar year. The stack and decisions are the proof — what follows is what they taught me.',
+      body: 'As of May 2026: seven projects shipped in one calendar year. The stack and decisions are the proof — what follows is what they taught me.',
       tags: [
         '7 repos',
         'Real users',
@@ -256,28 +256,28 @@ export const en: Translations = {
       ],
       lessons: [
         {
-          title: 'Stop the bleeding first, redesign last',
-          body: 'In May 2026 a save-corruption bug hit Spacepotatis. The same day I shipped a server-side guard to stop any new damage. The next day I added an audit table to study every occurrence I\'d already missed. Only after a week of real data did I start planning the deeper architectural fix. Mitigation buys the time to learn; observability turns the learning into facts; architecture comes last, never first.',
+          title: 'Stop the bleeding. Then think. Then redesign.',
+          body: 'My first instinct used to be: see structural bug, write structural fix, ship the elegant thing, take a bow. Then in May 2026 a save-corruption bug hit Spacepotatis and I learned the order the hard way. Server-side guard the same day, to stop new damage. Audit table the next day, to turn the pain into facts I could actually read. Architectural fix only after a week of real data, when the facts had a shape. The instinct that stuck: mitigate first, observe second, architect third — every time, in that order. Skipping straight to "redesign" is just designing around your best guess, and your best guess is usually wrong on a Tuesday.',
         },
         {
-          title: 'Reproducible beats clever — version your AI workflow',
-          body: 'Spacepotatis ships ten Claude Code skills as files inside the repo. Each one is a project-specific recipe — "add an enemy", "ship a migration" — that the AI follows step by step instead of figuring it out fresh every call. They go through code review, get audited quarterly, and saved roughly 2.76 million tokens last year. Because they version with the codebase, they don\'t drift out of sync. Vibes don\'t scale; checked-in instructions do.',
+          title: 'Stop reinventing the same conversation',
+          body: 'Early days with Claude Code, I walked into every session like it was my first day on the job — "hi please add an enemy, here\'s the whole codebase, good luck." Eventually I noticed I was paying for the same setup paragraph forty times a week. So I wrote the recipes down. Spacepotatis now has ten Claude Code skills checked into the repo — step-by-step jobs like "add an enemy" or "ship a migration" the AI follows instead of figuring out fresh every call. They go through code review, get audited quarterly, and saved roughly 2.76 million tokens in their first year. What grew is how I work with AI: it\'s not a chat window I yell into, it\'s a contributor whose instructions live with the code.',
         },
         {
-          title: 'Pick the trade-off at runtime, not at the drawing board',
-          body: 'AudiobookMaker isn\'t "an Edge-TTS app." It\'s one pipeline with three engines underneath: Edge-TTS for fast cloud voices, Piper for offline laptops, Chatterbox for studio-quality narration with voice cloning. The user picks per book. Locking the product into any single voice technology would have aged badly inside the same year I shipped it.',
+          title: 'One product, three engines, no regrets',
+          body: 'AudiobookMaker started life as "an Edge-TTS app." It wasn\'t long before every voice technology I\'d quietly bet against was either catching up or lapping the field, and I gave up trying to pick the winner. AudiobookMaker today is one pipeline with three engines underneath: Edge-TTS for fast cloud voices, Piper for offline laptops, Chatterbox for studio-quality narration with voice cloning. The user picks per book. When the ground is moving, the product has to stand above it, not on it. Picking favorites at the drawing board is how you ship something that ages out before the launch tweet.',
         },
         {
-          title: 'Coverage says the lines ran. Mutation says they mattered.',
-          body: 'HRM runs Stryker mutation testing on every pull request. It deliberately introduces small bugs into the production code and fails the build if no test notices. 91.9 % line coverage is easy to game — a mutation score forces the suite to actually catch the bugs it claims to. That\'s the gap between a green check and a useful one.',
+          title: 'Coverage is a vibe. Mutation is a fact.',
+          body: 'For a long time a green test suite was a thing I trusted on sight — the same way I trust a "caution: hot" sticker on a coffee cup. Then I added Stryker to HRM. Mutation testing pokes small bugs into the production code on every pull request and fails the build if no test catches them. The first run was humbling: a lot of my "passing" assertions turned out to be ornamental — they ran the lines and went home. 91.9% line coverage means the lines ran. A mutation score means the assertions actually meant something. I now read the two as different signals, and I\'m a lot less smug about a green check.',
         },
         {
-          title: 'If the bug lives upstream, the fix belongs upstream',
-          body: 'Building AudiobookMaker I hit a memory leak deep in Chatterbox\'s multilingual inference path — the engine collapsed to under a second of audio after the first call. I diagnosed it, wrote the fix, and sent two pull requests upstream to resemble-ai/chatterbox (24k stars on GitHub): #505 and #510. Both are open and bumped by other contributors. Patching locally would have been the lazy answer; the next person to hit the bug would have re-paid the same cost.',
+          title: 'Fix the leak in someone else\'s basement',
+          body: 'Building AudiobookMaker I hit a memory leak deep in Chatterbox\'s multilingual inference path — the engine collapsed to under a second of audio after the first call, useless for anything longer than a tweet. Used to be I\'d have patched it locally, muttered about it for a week, and moved on. This time I sat with it: read the path, found the cause, wrote the fix, sent two pull requests upstream to resemble-ai/chatterbox, a widely-used open-source TTS library — #505 and #510, both open and bumped by other contributors. Writing the fix was the easy half. The growth was reading someone else\'s codebase well enough to fix it without breaking it, and seeing contributing back as the cheap option, not extra credit. The lazy patch would have been the expensive one for everyone who hit the bug after me.',
         },
         {
-          title: 'When the team is one, the constraint is the work — not the wait',
-          body: 'Schema migrations, app code, CI pipelines, web deploys on Vercel, signed Windows installers through GitHub Releases, OpenTelemetry where it pays off. Postgres and MongoDB on the data side, GitHub Actions on every repo for typecheck, format, lint and mutation testing where it matters. SQL all the way through to ops, owned solo across all seven projects. No handoffs means no queues — the only thing slowing the work down is the work.',
+          title: 'Solo means the only thing waiting is the work',
+          body: 'Across all seven projects this year I owned the work end to end. Schema migrations on Monday, application code on Tuesday, CI pipelines on Wednesday, signed Windows installers through GitHub Releases on Thursday, OpenTelemetry on Friday, weekend off (lies). Postgres and MongoDB on the data side, GitHub Actions on every repo for typecheck, format, lint and mutation testing where it matters, Vercel for the web deploys. SQL all the way through to ops. What grew isn\'t breadth as a checklist — it\'s the calm of being able to pick the right tool at each layer because I\'ve had to live at every layer. When the team is one, the constraint is the work — not the wait.',
         },
       ],
     },
