@@ -19,13 +19,18 @@ export function loadFont(url: string): Promise<Font> {
 
 export function buildTitle(font: Font, title: string): TitleHandle {
   const group = new Group();
+  // Pure white tint so the envMap dominates the look — the warm sun and cool
+  // counter-glow we baked into the environment carry the color story. High
+  // metalness + low roughness = real chrome that reflects the world; clearcoat
+  // adds a polished lacquer over the top.
   const material = new MeshPhysicalMaterial({
-    color: 0xf3f6ff,
-    metalness: 0.55,
-    roughness: 0.18,
+    color: 0xffffff,
+    metalness: 0.95,
+    roughness: 0.08,
     clearcoat: 1,
-    clearcoatRoughness: 0.12,
-    reflectivity: 0.85,
+    clearcoatRoughness: 0.04,
+    reflectivity: 1,
+    envMapIntensity: 1.25,
   });
 
   const lines = title.split('\n');
@@ -35,12 +40,12 @@ export function buildTitle(font: Font, title: string): TitleHandle {
     const geometry = new TextGeometry(line, {
       font,
       size: 2.2,
-      depth: 0.45,
-      curveSegments: 8,
+      depth: 0.7,
+      curveSegments: 12,
       bevelEnabled: true,
-      bevelThickness: 0.05,
-      bevelSize: 0.025,
-      bevelSegments: 4,
+      bevelThickness: 0.09,
+      bevelSize: 0.07,
+      bevelSegments: 6,
     });
     geometry.computeBoundingBox();
     // `computeBoundingBox` populates `boundingBox` synchronously, so the

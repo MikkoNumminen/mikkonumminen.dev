@@ -1,4 +1,5 @@
 import {
+  ACESFilmicToneMapping,
   AmbientLight,
   BufferAttribute,
   DirectionalLight,
@@ -11,6 +12,9 @@ import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
 import { buildTitle, loadFont } from './buildTitle';
+import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
+import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
+import { createBloomComposer, type BloomComposerHandle } from './postprocessing';
 import { disposeMaterial } from './disposeMaterial';
 
 interface HomeSceneOptions {
@@ -39,10 +43,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // we never enter the try-block, so there is nothing to clean up.
   const font = await loadFont(fontUrl);
 
-  const renderer = createRenderer(canvas);
+  const renderer = createRenderer(canvas, {
+    toneMapping: ACESFilmicToneMapping,
+    toneMappingExposure: 1.05,
+  });
 
   const scene = new Scene();
   scene.fog = new Fog(FOG_COLOR, 12, 60);
+
+  // ── Environment (drives the chrome reflection on the title) ──────────
+  const env: EnvironmentHandle = buildEnvironment(renderer);
+  scene.environment = env.envMap;
 
   const camera = new PerspectiveCamera(
     45,
@@ -53,20 +64,26 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   camera.position.set(0, 0, 18);
 
   // ── Lighting ─────────────────────────────────────────────────────────
-  const ambient = new AmbientLight(0xffffff, 0.35);
+  const ambient = new AmbientLight(0xffffff, 0.28);
   scene.add(ambient);
 
-  const keyLight = new DirectionalLight(0xeaf2ff, 1.6);
+  const keyLight = new DirectionalLight(0xeaf2ff, 1.4);
   keyLight.position.set(6, 8, 10);
   scene.add(keyLight);
 
-  const rimLight = new DirectionalLight(0x80a8ff, 0.9);
+  // Rim is animated on a slow orbit in the tick loop so a specular streak
+  // periodically traverses the letterforms — the Apple-keynote sweep.
+  const rimLight = new DirectionalLight(0xa6c2ff, 1.1);
   rimLight.position.set(-8, -2, -4);
   scene.add(rimLight);
 
-  const fillLight = new PointLight(0xff8a4c, 0.6, 40);
+  const fillLight = new PointLight(0xff8a4c, 0.55, 40);
   fillLight.position.set(-4, 4, 6);
   scene.add(fillLight);
+
+  // ── Horizon glow plate (sun-side halo behind the title) ──────────────
+  const horizon: HorizonGlowHandle = buildHorizonGlow();
+  scene.add(horizon.mesh);
 
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
@@ -85,6 +102,16 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const title = buildTitle(font, TITLE);
   scene.add(title.group);
   const totalHeight = title.totalHeight;
+
+  // ── Postprocessing: bloom on bright specular peaks + sun glow ────────
+  // Skipped for reduced-motion clients to keep them on the cheap path.
+  const bloom: BloomComposerHandle | null = reducedMotion
+    ? null
+    : createBloomComposer(renderer, scene, camera, {
+        strength: 0.55,
+        radius: 0.5,
+        threshold: 0.82,
+      });
 
   // ── State ────────────────────────────────────────────────────────────
   let disposed = false;
@@ -106,12 +133,20 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const resize = createResizeHandler(renderer, camera, (width) => {
     const baseScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
     title.group.scale.setScalar(Math.max(TITLE_MIN_SCALE, baseScale));
+    if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
   });
   resize.handler();
 
   // ── Animation loop (visibility-aware) ────────────────────────────────
   const startTime = performance.now();
   let lastFrame = startTime;
+
+  // One-shot entrance: title flies in from far-Z with a slight tilt over
+  // ENTRANCE_DURATION seconds, then settles into its idle float. Disabled
+  // for reduced-motion clients so they see the title in its final pose.
+  const ENTRANCE_DURATION = 1.4;
+
+  const easeOutCubic = (x: number): number => 1 - Math.pow(1 - x, 3);
 
   const tick = (): void => {
     if (disposed) return;
@@ -126,12 +161,35 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     mouseX += (targetMouseX - mouseX) * 0.05;
     mouseY += (targetMouseY - mouseY) * 0.05;
 
+    // Entrance: 0 → 1 over ENTRANCE_DURATION, then frozen at 1.
+    const entrance = reducedMotion
+      ? 1
+      : easeOutCubic(Math.min(1, elapsed / ENTRANCE_DURATION));
+    const entranceOffset = (1 - entrance) * -22;
+    const entranceTilt = (1 - entrance) * 0.18;
+
     // Title floats and reacts to pointer + scroll
-    title.group.rotation.x = mouseY * 0.12 + Math.sin(elapsed * 0.5) * 0.02;
+    title.group.rotation.x =
+      mouseY * 0.12 + Math.sin(elapsed * 0.5) * 0.02 - entranceTilt;
     title.group.rotation.y = mouseX * 0.18 + Math.sin(elapsed * 0.4) * 0.03;
-    title.group.position.z = -scrollProgress * 6;
+    title.group.position.z = -scrollProgress * 6 + entranceOffset;
     title.group.position.y =
       totalHeight / 2 + Math.sin(elapsed * 0.7) * 0.08 + scrollProgress * 1.5;
+
+    // Sweeping rim light — slow 14-second orbit around the title so a
+    // specular streak periodically traverses the chrome.
+    const rimAngle = (elapsed * Math.PI * 2) / 14;
+    rimLight.position.set(
+      Math.cos(rimAngle) * 9,
+      2 + Math.sin(rimAngle * 0.5) * 1.5,
+      Math.sin(rimAngle) * 9 - 2,
+    );
+
+    // Horizon glow gently pulses to sell "atmospheric" — half the period of
+    // the rim sweep so they never line up boringly.
+    horizon.material.opacity = reducedMotion
+      ? 0.85
+      : 0.78 + Math.sin(elapsed * 0.45) * 0.08;
 
     // Camera pulls back slightly with scroll
     camera.position.z = 18 + scrollProgress * 4;
@@ -156,7 +214,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       particleField.points.rotation.y = elapsed * 0.02;
     }
 
-    renderer.render(scene, camera);
+    if (bloom) {
+      bloom.composer.render();
+    } else {
+      renderer.render(scene, camera);
+    }
   };
 
   const onVisibilityChange = (): void => {
@@ -196,11 +258,22 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         particleField.texture.dispose();
       }
 
-      scene.remove(ambient, keyLight, rimLight, fillLight);
+      scene.remove(ambient, keyLight, rimLight, fillLight, horizon.mesh);
       ambient.dispose();
       keyLight.dispose();
       rimLight.dispose();
       fillLight.dispose();
+      horizon.geometry.dispose();
+      horizon.material.dispose();
+      horizon.texture.dispose();
+
+      scene.environment = null;
+      env.envMap.dispose();
+      env.source.dispose();
+      env.pmrem.dispose();
+
+      bloom?.dispose();
+
       scene.fog = null;
       scene.clear();
 
