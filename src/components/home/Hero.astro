@@ -36,7 +36,8 @@ const t = getTranslations(locale);
       focusable="false"
     >
       <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"></rect>
-      <circle cx="7" cy="7" r="1.5" fill="currentColor" class="hero__scroll-circle"></circle>
+      <circle cx="7" cy="7" r="1.5" fill="currentColor" class="hero__scroll-circle"
+      ></circle>
     </svg>
   </div>
 
@@ -47,7 +48,9 @@ const t = getTranslations(locale);
       <span>cover</span>
     </span>
     <span class="hero__corner hero__corner--tr">
-      <span class="hero__corner-num">60° N · 24° E</span>
+      <span class="hero__corner-place">tampere · hervanta</span>
+      <span class="hero__corner-rule"></span>
+      <span class="hero__corner-num">61° N · 24° E</span>
     </span>
     <span class="hero__corner hero__corner--br">
       <span class="hero__corner-num">vol. 26</span>
@@ -165,8 +168,13 @@ const t = getTranslations(locale);
   }
 
   @keyframes hero-scroll-bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(8px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(8px);
+    }
   }
 
   .hero__scroll-circle {
@@ -204,6 +212,13 @@ const t = getTranslations(locale);
   .hero__corner-num {
     color: rgba(255, 255, 255, 0.3);
     letter-spacing: 0.14em;
+  }
+
+  /* Quieter than .hero__corner-num so the place reads as a hidden detail
+     rather than a label competing with the coords. */
+  .hero__corner-place {
+    color: rgba(255, 255, 255, 0.22);
+    letter-spacing: 0.22em;
   }
 
   .hero__corner-rule {
