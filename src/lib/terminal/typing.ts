@@ -72,6 +72,5 @@ export async function runBoot(
   ctx.print(tt.bootWelcome, 'accent');
   await sleep(150);
   ctx.print(tt.bootTypeHelp, 'dim');
-  ctx.print(tt.bootSudoHint, 'dim');
   ctx.print('');
 }

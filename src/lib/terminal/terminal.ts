@@ -48,7 +48,7 @@ export async function initTerminal(
   // Read the active locale from <html lang="..."> set by BaseLayout.
   const locale = asLocale(document.documentElement.lang);
   const t = getTranslations(locale);
-  const commands = buildCommands(t, locale);
+  const commands = buildCommands(t);
   const commandMap = new Map(commands.map((c) => [c.name, c]));
 
   const elements: TerminalElements = { output, form, input, cursor };
