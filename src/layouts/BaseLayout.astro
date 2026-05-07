@@ -97,15 +97,15 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
           sessionStorage.setItem('mn_lang_checked', '1');
           if (localStorage.getItem('mn_preferred_locale')) return;
 
-          var path = location.pathname;
-          var current = 'en';
+          const path = location.pathname;
+          let current = 'en';
           if (path === '/fi' || path.indexOf('/fi/') === 0) current = 'fi';
           else if (path === '/sv' || path.indexOf('/sv/') === 0) current = 'sv';
 
-          var langs = navigator.languages || [navigator.language || 'en'];
-          var target = null;
-          for (var i = 0; i < langs.length; i++) {
-            var l = (langs[i] || '').toLowerCase().slice(0, 2);
+          const langs = navigator.languages || [navigator.language || 'en'];
+          let target = null;
+          for (let i = 0; i < langs.length; i++) {
+            const l = (langs[i] || '').toLowerCase().slice(0, 2);
             if (l === 'fi' || l === 'sv' || l === 'en') {
               target = l;
               break;
@@ -115,10 +115,10 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
           if (target === current) return;
 
           // Strip current locale prefix to get the bare path.
-          var bare = path.replace(/^\/(fi|sv)(\/|$)/, '/');
+          let bare = path.replace(/^\/(fi|sv)(\/|$)/, '/');
           if (bare === '') bare = '/';
 
-          var next;
+          let next;
           if (target === 'en') {
             next = bare;
           } else if (bare === '/') {
@@ -127,7 +127,7 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
             next = '/' + target + bare;
           }
           if (next !== path) location.replace(next + location.search + location.hash);
-        } catch (e) {
+        } catch {
           /* ignore */
         }
       })();

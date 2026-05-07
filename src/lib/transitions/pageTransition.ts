@@ -31,7 +31,6 @@ import type { Theme } from '../theme';
 import { stripLocale } from '../../i18n/routing';
 
 declare global {
-  // eslint-disable-next-line no-var
   var __pageTransitionAbortController: AbortController | undefined;
 }
 
