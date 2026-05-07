@@ -30,6 +30,8 @@ export interface ProjectsZoneDecorOptions {
 }
 
 const FLARE_TEX_SIZE = 128;
+/** Orbit radius of the planet around the ring center, in scale-units. */
+const ORBIT_RADIUS = 1.22;
 
 function makeFlareTexture(): Texture {
   const c = document.createElement('canvas');
@@ -100,7 +102,7 @@ export function buildProjectsZoneDecor(
   // Park the planet at a clean apex of the orbit so reduced-motion
   // clients (where tick is called with delta=0 and the position never
   // updates) see it sitting on the ring rather than at the dead center.
-  planet.position.set(1.22 * scale, 0, 0);
+  planet.position.set(ORBIT_RADIUS * scale, 0, 0);
   group.add(planet);
 
   const flareTex = makeFlareTexture();
@@ -123,7 +125,7 @@ export function buildProjectsZoneDecor(
     orbitT += delta * 0.7 * speedMul;
     ringSpinT += delta * 0.18 * speedMul;
 
-    const r = 1.22 * scale;
+    const r = ORBIT_RADIUS * scale;
     planet.position.set(
       Math.cos(orbitT) * r,
       Math.sin(orbitT * 0.4) * 0.06 * scale,

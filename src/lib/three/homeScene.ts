@@ -248,14 +248,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   const onCanvasClick = (e: MouseEvent): void => {
     const { x, y, r } = decorScreenHotspot();
-    const dx = e.clientX - x;
-    const dy = e.clientY - y;
-    if (Math.sqrt(dx * dx + dy * dy) > r) return;
+    if (Math.hypot(e.clientX - x, e.clientY - y) > r) return;
     // Route through the existing nav anchor so pageTransition picks it
     // up and runs phase-A/B before navigating. Scoped to <nav> so it
     // can't accidentally match an unrelated link whose href ends in
-    // "/projects". Falls back to direct navigation if the anchor isn't
-    // on the page.
+    // "/projects". The same nav link is the keyboard-accessible path —
+    // this canvas click is a discoverable shortcut, not the only route.
+    // Falls back to direct navigation if the anchor isn't on the page.
     const anchor =
       document.querySelector<HTMLAnchorElement>('nav a[href$="/projects"]') ??
       document.querySelector<HTMLAnchorElement>('nav a[href$="/projects/"]');
@@ -286,6 +285,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   let mouseY = 0;
   let targetMouseX = 0;
   let targetMouseY = 0;
+  // True after the first pointermove. Hover hit-tests treat the
+  // pre-move state as "no hover" — otherwise the (0, 0) defaults map
+  // to screen center and would falsely trigger hover on any decor
+  // that happens to project near the middle of the viewport.
+  let mouseSeen = false;
   let lastSparkSpawnAt = -1;
   let collisionFlashEnergy = 0;
   // Drives a rim flash on the title each time a galaxy collision spark
@@ -302,6 +306,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const onPointerMove = (e: PointerEvent): void => {
     targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
     targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    mouseSeen = true;
   };
   if (!reducedMotion) {
     window.addEventListener('pointermove', onPointerMove, { passive: true });
@@ -444,7 +449,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       const { x: hx, y: hy, r: hr } = decorScreenHotspot();
       const mxPx = (targetMouseX * 0.5 + 0.5) * window.innerWidth;
       const myPx = (targetMouseY * 0.5 + 0.5) * window.innerHeight;
-      const hovering = Math.hypot(mxPx - hx, myPx - hy) < hr;
+      const hovering = mouseSeen && Math.hypot(mxPx - hx, myPx - hy) < hr;
       const targetBoost = hovering ? 1 : 0;
       projectsHoverBoost += (targetBoost - projectsHoverBoost) * delta * 6;
       canvas.style.cursor = hovering ? 'pointer' : '';
