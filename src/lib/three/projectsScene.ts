@@ -539,9 +539,10 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       scene.remove(connectionsBundle.group);
       disposeExternalIndicators(externalIndicators);
 
-      scene.remove(sunLight, ambient);
+      scene.remove(sunLight, ambient, rimLight);
       sunLight.dispose();
       ambient.dispose();
+      rimLight.dispose();
 
       scene.fog = null;
       scene.clear();
