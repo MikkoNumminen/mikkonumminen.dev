@@ -17,13 +17,19 @@ export interface ImpactTextHandle {
 
 const POOL_SIZE = 6;
 const LIFETIME = 1.8;
-const RISE_SPEED = 1.2;
+// Throw kinematics — popups are flung from the impact point toward the
+// lower-left corner of the frame so they don't pile up behind the title.
+// Constant leftward velocity + initial upward bias + gravity-style accel
+// gives an arc that reads as "thrown" rather than "drifting".
+const THROW_VX = -8;
+const THROW_VY = 1.5;
+const THROW_AY = -4.5;
 // World-space size of the sprite at scale = 1. The sprite billboards a
 // canvas texture, so this maps the entire texture rectangle to this world
-// size. Sized so a typical commit subject reads cleanly at the meteor
-// impact distance (~12-16 units from the camera).
-const BASE_WORLD_WIDTH = 7.5;
-const BASE_WORLD_HEIGHT = 1.4;
+// size. Sized so a short conventional-commit prefix (e.g. "fix(projects)")
+// reads cleanly at the meteor impact distance (~28-32 units from camera).
+const BASE_WORLD_WIDTH = 5;
+const BASE_WORLD_HEIGHT = 0.94;
 // Off-screen canvas resolution. Wider than tall so monospace lines have
 // room to breathe; matches the BASE_WORLD aspect ratio. Halved from the
 // original 1024×192 — text still reads sharp at the popup's screen size
@@ -101,12 +107,14 @@ function drawText(
 /**
  * Pool of camera-facing text sprites that pop up at meteor impact points.
  * Each slot owns an offscreen canvas + CanvasTexture; on spawn we redraw
- * the canvas with the new commit subject in terminal-styled monospace,
- * tint-matched to the meteor that hit. Animation is RPG damage-popup
- * shaped: snappy scale overshoot, slow upward drift, late opacity fade.
+ * the canvas with the new commit prefix in terminal-styled monospace,
+ * tint-matched to the meteor that hit. Animation: snappy scale overshoot
+ * at spawn, then thrown toward the lower-left corner with an arc
+ * trajectory (strong leftward + initial upward, gravity pulls down),
+ * with a late opacity fade.
  *
  * Sized at 6 slots so closely-spaced impacts don't queue up and lose
- * messages. Lifetime ~1.8 s gives the user time to read each subject.
+ * messages. Lifetime ~1.8 s gives the user time to read each prefix.
  */
 export function buildImpactText(): ImpactTextHandle {
   const group = new Group();
@@ -125,6 +133,10 @@ export function buildImpactText(): ImpactTextHandle {
     const material = new SpriteMaterial({
       map: texture,
       transparent: true,
+      // Always render on top — popups originate at the galaxy (z=-12),
+      // well behind the title (z≈0). Without disabling the depth test
+      // the popup gets z-occluded and "lands behind" the chrome letters.
+      depthTest: false,
       depthWrite: false,
       blending: NormalBlending,
       opacity: 0,
@@ -189,8 +201,11 @@ export function buildImpactText(): ImpactTextHandle {
       }
       p.sprite.scale.set(BASE_WORLD_WIDTH * scaleMul, BASE_WORLD_HEIGHT * scaleMul, 1);
 
-      // Drift upward in world space — popup floats away from the impact.
-      p.sprite.position.y += RISE_SPEED * delta;
+      // Arc trajectory — fly left and slightly up at first, then gravity
+      // arcs the popup down. Reads as "thrown to the corner" rather than
+      // "drifting into the title".
+      p.sprite.position.x += THROW_VX * delta;
+      p.sprite.position.y += (THROW_VY + THROW_AY * p.age) * delta;
 
       // Opacity: fast pop in, hold, late fade.
       let alpha: number;
