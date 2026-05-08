@@ -499,6 +499,10 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       for (const p of planets) {
         p.mesh.geometry.dispose();
         disposeMaterial(p.mesh.material);
+        // Material.dispose() does NOT walk attached textures, so the
+        // procedural surface + bump textures must be freed explicitly.
+        p.surfaceMap.dispose();
+        p.bumpMap.dispose();
         p.glow.geometry.dispose();
         disposeMaterial(p.glow.material);
         p.orbitLine.geometry.dispose();
