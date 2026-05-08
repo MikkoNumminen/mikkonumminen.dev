@@ -92,9 +92,23 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // random sweep, no idle baseline. The chrome's resting look is carried
   // by ambient + fill + envMap; the rim is reserved for synced events.
   const RIM_BASE_INTENSITY = 0;
+  // Orbiting rim — drives the dramatic entrance burst only. After
+  // entrance it sits at 0 intensity and just slowly orbits in case it's
+  // ever wired up again.
   const rimLight = new DirectionalLight(0xa6c2ff, RIM_BASE_INTENSITY);
   rimLight.position.set(-8, -2, -4);
   scene.add(rimLight);
+
+  // Dedicated camera-facing flash light for galaxy collisions. The
+  // orbiting rim spends roughly half its time behind the title (z < 0),
+  // and a DirectionalLight from behind only lights the back faces — so
+  // every other collision was producing a "real but invisible" rim
+  // flash. This light is locked above-and-in-front of the title (camera
+  // is at +18 looking at the origin), so it always hits the front
+  // faces the user actually sees.
+  const collisionRimLight = new DirectionalLight(0xc8e0ff, 0);
+  collisionRimLight.position.set(2, 2, 6);
+  scene.add(collisionRimLight);
 
   /**
    * Stroboscopic flash peaks during AND just after the entrance —
@@ -370,7 +384,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // spawns — keeps the title's rim flashes synced with the visible
   // collision flashes so both events read as one moment.
   let collisionRimEnergy = 0;
-  const COLLISION_RIM_PEAK = 4.0;
+  // Bumped from 4.0 — the dedicated front-facing collision light hits
+  // a different surface than the old orbiting rim, so it needs more
+  // intensity to read as the same "bright moment" the user expects.
+  const COLLISION_RIM_PEAK = 6.0;
   const COLLISION_THRESHOLD = 3.6;
   // Each flash is brief but impactful; pacing it at ~0.55 s gives 2-3
   // distinct flashes per close-approach pass, mirroring the cadence of
@@ -432,9 +449,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     title.group.position.y =
       totalHeight / 2 + Math.sin(elapsed * 0.7) * 0.08 + scrollProgress * 1.5;
 
-    // Rim light orbit (steady, very dim) plus three sharp flash peaks
-    // during the entrance — the title arrives with a stroboscopic burst,
-    // then the rim drops to a barely-perceptible ongoing highlight.
+    // Orbiting rim drives the entrance burst (angle determines drama
+    // direction during the stroboscopic arrival).
     const rimAngle = (elapsed * Math.PI * 2) / 14;
     rimLight.position.set(
       Math.cos(rimAngle) * 9,
@@ -443,9 +459,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     );
     rimLight.intensity = reducedMotion
       ? RIM_BASE_INTENSITY
-      : RIM_BASE_INTENSITY +
-        entranceFlashEnvelope(elapsed) +
-        collisionRimEnergy * COLLISION_RIM_PEAK;
+      : RIM_BASE_INTENSITY + entranceFlashEnvelope(elapsed);
+
+    // Galaxy-collision flash uses a separate, camera-facing light so
+    // every collision lights the front faces of the title regardless
+    // of where the orbiting rim happens to be at that moment.
+    collisionRimLight.intensity = reducedMotion
+      ? 0
+      : collisionRimEnergy * COLLISION_RIM_PEAK;
 
     // Horizon glow has a small pulse — kept narrow (0.04 amplitude, slower
     // 0.3 Hz) so it reads as atmospheric, not as a beat.
@@ -623,6 +644,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         ambient,
         keyLight,
         rimLight,
+        collisionRimLight,
         fillLight,
         horizon.mesh,
         galaxy.group,
@@ -633,6 +655,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       ambient.dispose();
       keyLight.dispose();
       rimLight.dispose();
+      collisionRimLight.dispose();
       fillLight.dispose();
       horizon.geometry.dispose();
       horizon.material.dispose();
