@@ -59,9 +59,7 @@ function makeDustTexture(): Texture {
  * sprites and a horizontal mist plane were dropped after they read as
  * a "boxed divider" framing the letters rather than as ambient depth.
  */
-export function buildHomeZoneDecor(
-  opts: HomeZoneDecorOptions = {},
-): HomeZoneDecorHandle {
+export function buildHomeZoneDecor(opts: HomeZoneDecorOptions = {}): HomeZoneDecorHandle {
   const scale = opts.scale ?? 1;
   const group = new Group();
 

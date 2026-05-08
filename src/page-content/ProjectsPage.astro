@@ -55,11 +55,7 @@ const connectionLegendEntries = connections.map((c) => ({
     <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
     </div>
 
-    <aside
-      class="projects-scene__key"
-      data-key
-      aria-label={t.projectsPage.keyHeading}
-    >
+    <aside class="projects-scene__key" data-key aria-label={t.projectsPage.keyHeading}>
       <p class="projects-scene__key-heading">{t.projectsPage.keyHeading}</p>
 
       <p class="projects-scene__key-section">{t.projectsPage.keyConnectionsLabel}</p>
@@ -91,8 +87,8 @@ const connectionLegendEntries = connections.map((c) => ({
             height="28"
             aria-hidden="true"
           >
-            <circle cx="0" cy="0" r="5" fill="rgba(196, 212, 255, 0.45)" />
-            <circle cx="9" cy="-3" r="1.6" fill="#80c8ff" />
+            <circle cx="0" cy="0" r="5" fill="rgba(196, 212, 255, 0.45)"></circle>
+            <circle cx="9" cy="-3" r="1.6" fill="#80c8ff"></circle>
             <circle
               cx="9"
               cy="-3"
@@ -100,8 +96,7 @@ const connectionLegendEntries = connections.map((c) => ({
               stroke="#80c8ff"
               stroke-width="0.5"
               fill="none"
-              opacity="0.7"
-            />
+              opacity="0.7"></circle>
             <circle
               cx="9"
               cy="-3"
@@ -109,8 +104,7 @@ const connectionLegendEntries = connections.map((c) => ({
               stroke="#80c8ff"
               stroke-width="0.4"
               fill="none"
-              opacity="0.4"
-            />
+              opacity="0.4"></circle>
             <circle
               cx="9"
               cy="-3"
@@ -118,8 +112,7 @@ const connectionLegendEntries = connections.map((c) => ({
               stroke="#80c8ff"
               stroke-width="0.3"
               fill="none"
-              opacity="0.2"
-            />
+              opacity="0.2"></circle>
           </svg>
           <span class="projects-scene__key-text">
             {t.projectsPage.keyExternalDesc}

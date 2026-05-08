@@ -50,8 +50,7 @@ export function tabComplete(value: string, commands: CommandSpec[]): string {
   // Treat "cmd " (trailing space, empty last token) as still in first-token
   // mode so tab-completing "help " doesn't silently no-op.
   const inFirstToken =
-    tokens.length <= 1 ||
-    (tokens.length === 2 && endsWithSpace && tokens[1] === '');
+    tokens.length <= 1 || (tokens.length === 2 && endsWithSpace && tokens[1] === '');
   if (inFirstToken) {
     const partial = (tokens[0] ?? '').toLowerCase();
     const candidates = commands

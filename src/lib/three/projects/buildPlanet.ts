@@ -49,10 +49,11 @@ export function buildPlanet(project: LocalizedProject): {
   // craters) instead of a flat coloured sphere. `bumpScale` is per-style:
   // gas giants stay near 0 (cloud bands aren't surface relief), rocky /
   // volcanic worlds push higher.
-  const { map: surfaceMap, bumpMap, bumpScale } = buildPlanetTexture(
-    project.id,
-    baseColor.getHex(),
-  );
+  const {
+    map: surfaceMap,
+    bumpMap,
+    bumpScale,
+  } = buildPlanetTexture(project.id, baseColor.getHex());
   const material = new MeshStandardMaterial({
     map: surfaceMap,
     bumpMap,

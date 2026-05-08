@@ -66,10 +66,7 @@ const CURSOR_BLINK_MS = 520;
 /** Slide-up animation duration when a new line bumps the oldest off the top. */
 const SLIDE_DURATION_MS = 140;
 
-function colorsFor(
-  kind: LineKind,
-  opacity: number,
-): { prompt: string; text: string } {
+function colorsFor(kind: LineKind, opacity: number): { prompt: string; text: string } {
   switch (kind) {
     case 'cmd':
       return {

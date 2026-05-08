@@ -174,15 +174,7 @@ function drawGlyphProjects(
   ctx.strokeStyle = accent;
   ctx.lineWidth = Math.max(1.5, size * 0.012);
   ctx.beginPath();
-  ctx.ellipse(
-    0,
-    0,
-    size * 0.5 * draw,
-    size * 0.18 * draw,
-    -0.35,
-    0,
-    Math.PI * 2,
-  );
+  ctx.ellipse(0, 0, size * 0.5 * draw, size * 0.18 * draw, -0.35, 0, Math.PI * 2);
   ctx.stroke();
   // Planet
   ctx.fillStyle = accent;
@@ -612,10 +604,7 @@ const FALLBACK_RGB: AccentRgb = { r: 255, g: 255, b: 255 };
  * `oklch()`, …) without code changes here. Returns white on parse
  * failure so the gradient never silently goes invisible.
  */
-function parseAccentRgb(
-  input: string,
-  ctx: CanvasRenderingContext2D,
-): AccentRgb {
+function parseAccentRgb(input: string, ctx: CanvasRenderingContext2D): AccentRgb {
   const hex6 = /^#([0-9a-f]{6})$/i.exec(input);
   if (hex6) {
     const h = hex6[1] ?? '';
@@ -658,10 +647,9 @@ function parseAccentRgb(
       b: parseInt(h.slice(4, 6), 16),
     };
   }
-  const fromRgb =
-    /^rgba?\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)/i.exec(
-      normalised,
-    );
+  const fromRgb = /^rgba?\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)/i.exec(
+    normalised,
+  );
   if (fromRgb) {
     return {
       r: Math.round(parseFloat(fromRgb[1] ?? '0')),

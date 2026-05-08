@@ -124,10 +124,8 @@ export function buildConnections(
     // 6 * ARC_SEGMENTS; subsequent updates mutate this array directly.
     // The cast to InterleavedBufferAttribute is sound because LineGeometry
     // always stores instanceStart as an interleaved attribute.
-    const haloAttr = haloGeometry.attributes
-      .instanceStart as InterleavedBufferAttribute;
-    const coreAttr = coreGeometry.attributes
-      .instanceStart as InterleavedBufferAttribute;
+    const haloAttr = haloGeometry.attributes.instanceStart as InterleavedBufferAttribute;
+    const coreAttr = coreGeometry.attributes.instanceStart as InterleavedBufferAttribute;
     const haloPositions = haloAttr.data.array as Float32Array;
     const corePositions = coreAttr.data.array as Float32Array;
     const haloBuffer = haloAttr.data;

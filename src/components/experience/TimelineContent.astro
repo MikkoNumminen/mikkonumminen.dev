@@ -51,7 +51,8 @@ function ghostYear(year: string): string {
       >
         <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"
         ></rect>
-        <circle cx="7" cy="7" r="1.5" fill="currentColor" class="timeline__scroll-circle"></circle>
+        <circle cx="7" cy="7" r="1.5" fill="currentColor" class="timeline__scroll-circle"
+        ></circle>
       </svg>
     </p>
   </header>
@@ -89,7 +90,10 @@ function ghostYear(year: string): string {
               ))}
             </div>
             {entry.lessons && entry.lessons.length > 0 && (
-              <ol class="timeline__lessons" aria-label={t.experiencePage.lessonsAriaLabel}>
+              <ol
+                class="timeline__lessons"
+                aria-label={t.experiencePage.lessonsAriaLabel}
+              >
                 {entry.lessons.map((lesson) => (
                   <li class="timeline__lesson">
                     <span class="timeline__lesson-marker" aria-hidden="true" />
