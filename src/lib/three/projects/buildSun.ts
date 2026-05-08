@@ -53,45 +53,52 @@ function makeRadialTexture(stops: Array<[number, string]>, size = 256): CanvasTe
 export function buildSun(): SunHandle {
   const group = new Group();
 
-  const coreGeometry = new SphereGeometry(1.6, 48, 48);
-  const coreMaterial = new MeshBasicMaterial({ color: 0xfff0c8 });
+  // Near-white-hot core. Pure cream (#fff0c8) read as a beige disc once
+  // tone mapping compressed it; pushing the core toward white lets the
+  // additive corona/flare layers paint the warm amber halo around it
+  // without the body itself looking dull.
+  const coreGeometry = new SphereGeometry(1.85, 48, 48);
+  const coreMaterial = new MeshBasicMaterial({ color: 0xfff8e0 });
   const core = new Mesh(coreGeometry, coreMaterial);
   group.add(core);
 
   const glowMaterial = createGlowMaterial({
-    color: 0xffc865,
-    falloff: 0.7,
-    intensity: 1.4,
+    color: 0xffb858,
+    falloff: 0.55,
+    intensity: 1.75,
   });
-  const glowGeometry = new SphereGeometry(2.6, 48, 48);
+  const glowGeometry = new SphereGeometry(3.1, 48, 48);
   const glow = new Mesh(glowGeometry, glowMaterial);
   group.add(glow);
 
-  // Soft warm halo extending well beyond the Fresnel shell — gives the sun
-  // a corona-like atmospheric falloff.
+  // Wide, hot halo. Saturated amber inner stop with an extra warm-white
+  // inner ring gives the sun a real corona presence rather than a thin
+  // fringe.
   const haloTexture = makeRadialTexture([
-    [0, 'rgba(255, 220, 150, 0.95)'],
-    [0.35, 'rgba(255, 180, 100, 0.45)'],
-    [0.7, 'rgba(255, 150, 80, 0.12)'],
-    [1, 'rgba(255, 140, 80, 0)'],
+    [0, 'rgba(255, 240, 200, 1)'],
+    [0.18, 'rgba(255, 210, 140, 0.85)'],
+    [0.45, 'rgba(255, 170, 90, 0.35)'],
+    [0.75, 'rgba(255, 140, 70, 0.10)'],
+    [1, 'rgba(255, 130, 70, 0)'],
   ]);
   const haloMaterial = new SpriteMaterial({
     map: haloTexture,
     blending: AdditiveBlending,
     depthWrite: false,
     transparent: true,
-    opacity: 0.85,
+    opacity: 1.0,
   });
   const halo = new Sprite(haloMaterial);
-  halo.scale.set(9, 9, 1);
+  halo.scale.set(11.5, 11.5, 1);
   group.add(halo);
 
-  // Tighter, brighter flare for the sun's hot center. Pulses at a
-  // different frequency than the halo for a sense of life.
+  // Tight white-hot flare bloom over the core — pushes the visible
+  // brightness past the core's tone-mapped ceiling so the sun reads
+  // as actively radiating, not just a coloured ball.
   const flareTexture = makeRadialTexture([
-    [0, 'rgba(255, 250, 230, 1)'],
-    [0.25, 'rgba(255, 220, 160, 0.5)'],
-    [0.6, 'rgba(255, 180, 120, 0.08)'],
+    [0, 'rgba(255, 254, 245, 1)'],
+    [0.22, 'rgba(255, 235, 195, 0.7)'],
+    [0.5, 'rgba(255, 200, 140, 0.18)'],
     [1, 'rgba(255, 180, 120, 0)'],
   ]);
   const flareMaterial = new SpriteMaterial({
@@ -99,10 +106,10 @@ export function buildSun(): SunHandle {
     blending: AdditiveBlending,
     depthWrite: false,
     transparent: true,
-    opacity: 0.9,
+    opacity: 1.0,
   });
   const flare = new Sprite(flareMaterial);
-  flare.scale.set(4.5, 4.5, 1);
+  flare.scale.set(5.6, 5.6, 1);
   group.add(flare);
 
   return {
