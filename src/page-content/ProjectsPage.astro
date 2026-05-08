@@ -185,6 +185,7 @@ const connectionLegendEntries = connections.map((c) => ({
 
   let sceneHandle: {
     selectById: (id: string | null) => void;
+    hoverById: (id: string | null) => void;
     dispose: () => void;
   } | null = null;
 
@@ -216,6 +217,21 @@ const connectionLegendEntries = connections.map((c) => ({
 
     if (!canvas || !hoverLabel || !detail || !closeBtn) return;
 
+    // Mark the list item that matches the currently selected project so
+    // when the drawer closes the user can see which project was just
+    // opened. `scrollIntoView` keeps it in view if the list overflows.
+    const setListSelected = (id: string | null) => {
+      if (!list) return;
+      list.querySelectorAll<HTMLElement>('[data-project-id]').forEach((btn) => {
+        if (btn.getAttribute('data-project-id') === id) {
+          btn.setAttribute('data-selected', 'true');
+          btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else {
+          btn.removeAttribute('data-selected');
+        }
+      });
+    };
+
     const drawer = initProjectDrawer({
       detail,
       closeBtn,
@@ -225,16 +241,29 @@ const connectionLegendEntries = connections.map((c) => ({
       key,
       list,
       labels: { liveDemo: tp.liveDemo, githubLink: tp.githubLink },
-      onClose: () => sceneHandle?.selectById(null),
+      onClose: () => {
+        setListSelected(null);
+        sceneHandle?.selectById(null);
+      },
     });
 
-    // Delegated click handler on the list — clicking an item triggers
-    // the same selection flow as clicking the matching planet.
-    list?.addEventListener('click', (e) => {
-      const btn = (e.target as Element | null)?.closest<HTMLElement>('[data-project-id]');
-      if (!btn) return;
+    // Per-button listeners on the side-panel list. Click selects the
+    // project (mirroring planet click); hover/focus mirror the planet's
+    // hover (forced-hover scale-up + label) so the user can preview each
+    // project from the stationary list. `prepareOpen` hands the trigger
+    // to the drawer so closing returns focus to the list item even when
+    // the click-outside handler's interim close shifts activeElement.
+    list?.querySelectorAll<HTMLButtonElement>('[data-project-id]').forEach((btn) => {
       const id = btn.getAttribute('data-project-id');
-      if (id) sceneHandle?.selectById(id);
+      if (!id) return;
+      btn.addEventListener('click', () => {
+        drawer.prepareOpen(btn);
+        sceneHandle?.selectById(id);
+      });
+      btn.addEventListener('mouseenter', () => sceneHandle?.hoverById(id));
+      btn.addEventListener('mouseleave', () => sceneHandle?.hoverById(null));
+      btn.addEventListener('focus', () => sceneHandle?.hoverById(id));
+      btn.addEventListener('blur', () => sceneHandle?.hoverById(null));
     });
 
     try {
@@ -244,7 +273,10 @@ const connectionLegendEntries = connections.map((c) => ({
         hoverLabel,
         projects: localizedProjects,
         reducedMotion,
-        onSelect: (project) => drawer.open(project),
+        onSelect: (project) => {
+          setListSelected(project.id);
+          drawer.open(project);
+        },
         onDeselect: () => {
           /* triggered by drawer.close via onClose */
         },

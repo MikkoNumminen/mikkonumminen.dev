@@ -16,6 +16,14 @@ export interface DrawerLabels {
 export interface DrawerHandle {
   open: (project: LocalizedProject) => void;
   close: () => void;
+  /**
+   * Hint the next `open` call to restore focus to this element on close.
+   * Used by the side-panel list so that closing a drawer that was opened
+   * via a list item returns focus to that list item, even if the
+   * click-outside handler's interim `close()` reset activeElement back
+   * to the prior trigger before the new `open()` ran.
+   */
+  prepareOpen: (triggerEl: HTMLElement) => void;
   dispose: () => void;
 }
 
@@ -144,6 +152,9 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
   const { detail, closeBtn, intro, legend, credits, key, list, labels } = opts;
 
   let lastFocused: HTMLElement | null = null;
+  // Trigger element to use as `lastFocused` on the next `open()` call,
+  // overriding `document.activeElement`. Cleared after consumption.
+  let pendingTrigger: HTMLElement | null = null;
 
   const trapTab = (e: KeyboardEvent) => {
     if (e.key !== 'Tab') return;
@@ -171,7 +182,12 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
 
   const open = (project: LocalizedProject) => {
     populateDetail(detail, project, labels);
-    lastFocused = document.activeElement as HTMLElement | null;
+    if (pendingTrigger && document.contains(pendingTrigger)) {
+      lastFocused = pendingTrigger;
+    } else {
+      lastFocused = document.activeElement as HTMLElement | null;
+    }
+    pendingTrigger = null;
     detail.setAttribute('data-open', 'true');
     detail.setAttribute('aria-hidden', 'false');
     intro?.classList.add('is-hidden');
@@ -237,5 +253,9 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
     detail.removeEventListener('keydown', trapTab);
   };
 
-  return { open, close, dispose };
+  const prepareOpen = (triggerEl: HTMLElement) => {
+    pendingTrigger = triggerEl;
+  };
+
+  return { open, close, prepareOpen, dispose };
 }

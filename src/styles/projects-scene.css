@@ -291,6 +291,15 @@ body[data-theme='projects'] .site-footer {
   outline: none;
 }
 
+/* Marks the list item whose project is currently selected (drawer open
+   or just closed). Brand-color left accent makes the choice persistent
+   so when the user closes the drawer they see which planet they were
+   just looking at. */
+.projects-scene__list-item[data-selected='true'] {
+  background: color-mix(in srgb, var(--brand, #80c8ff) 12%, transparent);
+  border-color: color-mix(in srgb, var(--brand, #80c8ff) 55%, transparent);
+}
+
 .projects-scene__list-dot {
   flex: 0 0 0.55rem;
   width: 0.55rem;
