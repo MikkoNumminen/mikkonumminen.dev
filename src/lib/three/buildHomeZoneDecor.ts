@@ -97,6 +97,9 @@ export function buildHomeZoneDecor(
     sizeAttenuation: true,
     transparent: true,
     opacity: 0.72,
+    // Additive blending — dust is atmospheric ambient light, not a
+    // discrete object. Adding to the background reads as a soft glow
+    // around the letters rather than dots painted on top.
     blending: AdditiveBlending,
     depthWrite: false,
   });

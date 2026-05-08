@@ -195,6 +195,9 @@ export function buildExperienceZoneDecor(
     opacity: 0.85,
     depthWrite: false,
     sizeAttenuation: true,
+    // Normal blending — snow flakes are discrete white objects that
+    // occlude the background, not atmospheric haze. Additive would
+    // make them disappear into bright areas of the scene.
     blending: NormalBlending,
   });
   const snow = new Points(snowGeo, snowMat);

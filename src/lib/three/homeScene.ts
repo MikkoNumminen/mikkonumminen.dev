@@ -244,6 +244,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   if (!mikkoMesh || !nummMesh) {
     throw new Error('homeScene: title is missing a line — TITLE expected to be 2 lines.');
   }
+  // Letter top in mesh-local Y — derived from the geometry's bbox so the
+  // mountain placement tracks any future change to TextGeometry SIZE
+  // or bevel. `BufferGeometry.translate` updates the boundingBox in place
+  // so this reflects the post-centering state.
+  const mikkoTopY = mikkoMesh.geometry.boundingBox?.max.y ?? 1.1;
 
   // Each zone module's "design width" at scale=1, used to pick a scale
   // that fills the targeted letter span.
@@ -277,10 +282,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   nummMesh.add(homeDecor.group);
   nummMesh.add(contactDecor.group);
 
-  // Mountain rises ABOVE the M's letter top — y ≈ +1.0 puts the ridge
-  // base at the chrome top so the silhouette is visible against the
-  // dark background, not embedded in the letter solid.
-  experienceDecor.group.position.set(xCenterM, 1.0, TITLE_DEPTH / 2);
+  // Mountain rises ABOVE the M's letter top so the silhouette is
+  // visible against the dark background, not embedded in the letter
+  // solid. Anchored at the actual letter top from the bbox.
+  experienceDecor.group.position.set(xCenterM, mikkoTopY, TITLE_DEPTH / 2);
   projectsDecor.group.position.set(xCenterO, 0, TITLE_DEPTH / 2);
   // Home dust spans ± half-depth in z — sitting at the line midplane
   // gives a cloud "around the letters" with some dust passing in front
@@ -311,11 +316,15 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   }
   const zones: ZoneEntry[] = [
     {
+      // Mountain decor sits ABOVE the M letter (at letter top + ridge
+      // height). The user's instinct is to hover the M itself, which
+      // projects below the decor center — a wider radius covers both
+      // the letter and the mountain above it.
       decor: experienceDecor,
       parent: mikkoMesh,
       href: '/experience',
       boost: 0,
-      hotRadiusBase: 95,
+      hotRadiusBase: 160,
     },
     {
       decor: projectsDecor,
