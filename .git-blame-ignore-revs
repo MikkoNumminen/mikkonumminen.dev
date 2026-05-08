@@ -1,0 +1,7 @@
+# Format-only sweeps. `git blame` reads this file when configured via
+# `git config blame.ignoreRevsFile .git-blame-ignore-revs`, or pass
+# `--ignore-revs-file .git-blame-ignore-revs` per invocation, so the
+# original author of each line still surfaces past mechanical reformats.
+
+# chore: prettier sweep — reflow files at current printWidth 90 (#37)
+b8a4590eb4446fe32a9cfad65c2a954188042320
