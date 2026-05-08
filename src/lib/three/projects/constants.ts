@@ -4,4 +4,4 @@
  * planet base radius — the indicator orbit and pulse rings are sized
  * relative to it.
  */
-export const PLANET_BASE_RADIUS = 0.55;
+export const PLANET_BASE_RADIUS = 0.85;

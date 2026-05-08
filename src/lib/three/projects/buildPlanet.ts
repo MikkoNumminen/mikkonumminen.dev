@@ -68,12 +68,17 @@ export function buildPlanet(project: LocalizedProject): {
   const mesh = new Mesh(geometry, material);
   mesh.userData.projectId = project.id;
 
+  // Glow tightened from 1.55× → 1.18× radius and intensity 0.9 → 0.5.
+  // The earlier values made the halo bigger than the planet body, which
+  // (combined with the small default zoom) hid the procedural surface
+  // texture entirely — every planet read as a soft glowing dot. Smaller
+  // halo lets the textured sphere dominate the visual.
   const glowMaterial = createGlowMaterial({
     color: project.color,
-    falloff: 0.65,
-    intensity: 0.9,
+    falloff: 0.6,
+    intensity: 0.5,
   });
-  const glow = new Mesh(new SphereGeometry(radius * 1.55, 24, 24), glowMaterial);
+  const glow = new Mesh(new SphereGeometry(radius * 1.18, 24, 24), glowMaterial);
   glow.userData.projectId = project.id;
 
   const planetWrap = new Group();
