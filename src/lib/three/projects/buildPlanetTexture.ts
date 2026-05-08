@@ -25,8 +25,12 @@ import {
  * `MeshStandardMaterial` to fake surface relief without a normal map.
  */
 
-const TEX_W = 384;
-const TEX_H = 192;
+// 256×128 (down from 384×192) — at typical projects-view planet sizes
+// the smaller texture is visually indistinguishable while cutting the
+// per-pixel work to ~45 % so the synchronous build doesn't block the
+// main thread for a noticeable beat on first navigation.
+const TEX_W = 256;
+const TEX_H = 128;
 
 type Rgb = readonly [number, number, number];
 
@@ -41,11 +45,16 @@ interface SurfaceStyle {
   readonly featureMix: number;
   readonly craters: number;
   readonly craterSizeRange: readonly [number, number];
+  /** Bump-map relief depth on the final mesh. Gas giants stay near 0
+   *  (cloud bands aren't surface), rocky worlds push higher. */
+  readonly bumpScale: number;
 }
 
 export interface ProceduralPlanet {
   readonly map: CanvasTexture;
   readonly bumpMap: CanvasTexture;
+  /** Caller passes this to `MeshStandardMaterial.bumpScale`. */
+  readonly bumpScale: number;
 }
 
 /**
@@ -67,6 +76,7 @@ function styleFor(id: string): SurfaceStyle {
         featureMix: 0.65,
         craters: 0,
         craterSizeRange: [0, 0],
+        bumpScale: 0.05,
       };
     case 'platform':
       // Workhorse rocky world with vegetation patches + light cratering.
@@ -78,7 +88,8 @@ function styleFor(id: string): SurfaceStyle {
         featureThreshold: 0.55,
         featureMix: 0.55,
         craters: 18,
-        craterSizeRange: [3, 11],
+        craterSizeRange: [2, 7],
+        bumpScale: 0.22,
       };
     case 'portfolio':
       // Lush jungle world — heavy vegetation overlay, no craters.
@@ -91,6 +102,7 @@ function styleFor(id: string): SurfaceStyle {
         featureMix: 0.6,
         craters: 0,
         craterSizeRange: [0, 0],
+        bumpScale: 0.16,
       };
     case 'readlog':
       // Cool ethereal — subtle banding + bright cloud-tops feature color.
@@ -103,6 +115,7 @@ function styleFor(id: string): SurfaceStyle {
         featureMix: 0.55,
         craters: 0,
         craterSizeRange: [0, 0],
+        bumpScale: 0.08,
       };
     case 'audiobookmaker':
       // Icy world — banded blue-grey with bright frost peaks.
@@ -115,6 +128,7 @@ function styleFor(id: string): SurfaceStyle {
         featureMix: 0.7,
         craters: 0,
         craterSizeRange: [0, 0],
+        bumpScale: 0.10,
       };
     case 'spacepotatis':
       // Volcanic boss-vibe — molten ridges through cooled crust, cratered.
@@ -126,7 +140,8 @@ function styleFor(id: string): SurfaceStyle {
         featureThreshold: 0.58,
         featureMix: 0.85,
         craters: 18,
-        craterSizeRange: [3, 12],
+        craterSizeRange: [2, 8],
+        bumpScale: 0.26,
       };
     case 'strudel-patterns':
       // Exotic crystalline mineral world — tight banding, sharp highlights.
@@ -139,6 +154,7 @@ function styleFor(id: string): SurfaceStyle {
         featureMix: 0.65,
         craters: 0,
         craterSizeRange: [0, 0],
+        bumpScale: 0.18,
       };
     default:
       // Generic rocky world fallback.
@@ -150,7 +166,8 @@ function styleFor(id: string): SurfaceStyle {
         featureThreshold: 0.6,
         featureMix: 0.5,
         craters: 22,
-        craterSizeRange: [3, 11],
+        craterSizeRange: [2, 7],
+        bumpScale: 0.20,
       };
   }
 }
@@ -162,7 +179,7 @@ export function buildPlanetTexture(id: string, baseColor: number): ProceduralPla
   const heights = new Float32Array(TEX_W * TEX_H);
   const map = paintDiffuse(seed, palette, style, heights);
   const bumpMap = paintBump(heights);
-  return { map, bumpMap };
+  return { map, bumpMap, bumpScale: style.bumpScale };
 }
 
 /**
@@ -201,7 +218,10 @@ function paintDiffuse(
   canvas.width = TEX_W;
   canvas.height = TEX_H;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('paintDiffuse: 2D context unavailable');
+  // 2D context can fail in extremely locked-down environments. Return an
+  // unpainted CanvasTexture so the caller still gets a valid Three.js
+  // resource; planet renders dark but the page doesn't crash.
+  if (!ctx) return finishDiffuseTexture(canvas);
 
   const img = ctx.createImageData(TEX_W, TEX_H);
   const data = img.data;
@@ -260,19 +280,22 @@ function paintDiffuse(
 
   if (style.craters > 0) {
     const rng = mulberry32(seed ^ 0x9e3779b9);
+    const [minR, maxR] = style.craterSizeRange;
     for (let i = 0; i < style.craters; i++) {
       const cx = rng() * TEX_W;
       // Bias craters away from the poles where the equirect distortion is
       // worst (a circular crater near a pole would render as a long arc).
       const cy = TEX_H * 0.15 + rng() * TEX_H * 0.7;
-      const radius =
-        style.craterSizeRange[0]! +
-        rng() * (style.craterSizeRange[1]! - style.craterSizeRange[0]!);
+      const radius = minR + rng() * (maxR - minR);
       stampCrater(data, heightsOut, TEX_W, TEX_H, cx, cy, radius);
     }
   }
 
   ctx.putImageData(img, 0, 0);
+  return finishDiffuseTexture(canvas);
+}
+
+function finishDiffuseTexture(canvas: HTMLCanvasElement): CanvasTexture {
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   texture.anisotropy = 8;
@@ -289,7 +312,9 @@ function paintBump(heights: Float32Array): CanvasTexture {
   canvas.width = TEX_W;
   canvas.height = TEX_H;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('paintBump: 2D context unavailable');
+  // Same fallback rationale as paintDiffuse — return an unpainted texture
+  // rather than crashing the scene if the 2D context is unavailable.
+  if (!ctx) return finishBumpTexture(canvas);
 
   const img = ctx.createImageData(TEX_W, TEX_H);
   const data = img.data;
@@ -302,6 +327,10 @@ function paintBump(heights: Float32Array): CanvasTexture {
     data[idx + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
+  return finishBumpTexture(canvas);
+}
+
+function finishBumpTexture(canvas: HTMLCanvasElement): CanvasTexture {
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = NoColorSpace;
   texture.anisotropy = 4;

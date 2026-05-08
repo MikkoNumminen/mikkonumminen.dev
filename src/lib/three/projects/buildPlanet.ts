@@ -46,15 +46,17 @@ export function buildPlanet(project: LocalizedProject): {
   const baseColor = new Color(project.color);
   // Procedural surface texture + bump map — gives each planet a distinct
   // identity (gas giant bands, lava ridges, ice frost, vegetation,
-  // craters) instead of a flat coloured sphere.
-  const { map: surfaceMap, bumpMap } = buildPlanetTexture(
+  // craters) instead of a flat coloured sphere. `bumpScale` is per-style:
+  // gas giants stay near 0 (cloud bands aren't surface relief), rocky /
+  // volcanic worlds push higher.
+  const { map: surfaceMap, bumpMap, bumpScale } = buildPlanetTexture(
     project.id,
     baseColor.getHex(),
   );
   const material = new MeshStandardMaterial({
     map: surfaceMap,
     bumpMap,
-    bumpScale: 0.18,
+    bumpScale,
     // White multiplier so the texture's colors come through unmuddied.
     color: 0xffffff,
     roughness: 0.78,
