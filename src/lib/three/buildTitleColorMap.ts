@@ -1,15 +1,15 @@
 import { CanvasTexture, SRGBColorSpace } from 'three';
 
 /**
- * Horizontal four-world gradient texture used as the title material's
- * color map. The chrome metal multiplies its specular envMap reflections
- * by this color, so each letter takes on the world tint at its horizontal
- * position — galaxy blue on the left, chrome white in the middle-left,
- * warm bronze in the middle-right, phosphor green on the right.
+ * Horizontal gradient texture used as the title material's color map.
+ * Multiplies the chrome's specular envMap reflections so each letter
+ * picks up a tint at its horizontal position. All-cool sci-fi palette:
+ * slate-blue (mountain side) → chrome plateau (projects/home) → cool
+ * silver → electric cyan (matrix accent on the right edge). No phosphor
+ * green and no warm bronze — both rejected as not-tech / not-sci-fi.
  *
- * Stops are placed slightly off the linear midpoints so the chrome and
- * bronze "rest zones" each get a wider plateau and the four-world story
- * reads as four distinct colors rather than four imperceptible thirds.
+ * The chrome plateau covers the middle 40-55 % so most of the title
+ * stays neutral metal and the tints only show at the edges.
  */
 export function buildTitleColorMap(): CanvasTexture {
   const w = 2048;
@@ -21,18 +21,13 @@ export function buildTitleColorMap(): CanvasTexture {
   if (!ctx) throw new Error('buildTitleColorMap: 2D context unavailable');
 
   const grad = ctx.createLinearGradient(0, 0, w, 0);
-  // Galaxy blue (projects)
-  grad.addColorStop(0.0, '#a8c4ff');
-  grad.addColorStop(0.18, '#c7d8ff');
-  // Chrome white (home) — wider plateau in the middle-left
-  grad.addColorStop(0.34, '#ffffff');
-  grad.addColorStop(0.46, '#fff4dc');
-  // Warm bronze (experience)
-  grad.addColorStop(0.62, '#d4a373');
-  grad.addColorStop(0.76, '#c69b6a');
-  // Phosphor green (contact)
-  grad.addColorStop(0.9, '#9def9d');
-  grad.addColorStop(1.0, '#7df090');
+  grad.addColorStop(0.0, '#88a8d8'); // slate-blue (mountain side)
+  grad.addColorStop(0.2, '#c8d8f0');
+  grad.addColorStop(0.4, '#ffffff'); // chrome plateau (projects / home)
+  grad.addColorStop(0.55, '#ecf0ff');
+  grad.addColorStop(0.75, '#cdd6f0'); // silver-blue
+  grad.addColorStop(0.92, '#a8d4e8');
+  grad.addColorStop(1.0, '#6fcfe0'); // electric cyan (matrix accent)
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 

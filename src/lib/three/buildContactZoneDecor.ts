@@ -5,19 +5,16 @@ import {
   Mesh,
   MeshBasicMaterial,
   PlaneGeometry,
-  Sprite,
-  SpriteMaterial,
   type Texture,
 } from 'three';
 
 export interface ContactZoneDecorHandle {
   group: Group;
   /**
-   * Advance matrix cascade / scan-line scroll / glow pulse.
+   * Advance matrix cascade and scan-line scroll.
    *
    * `boost` ∈ [0, 1] intensifies the zone — cascade speeds up, scan
-   * lines brighten, glow strengthens — used by the caller to react to
-   * hover.
+   * lines brighten — used by the caller to react to hover.
    */
   tick: (delta: number, boost: number) => void;
   dispose: () => void;
@@ -31,14 +28,12 @@ export interface ContactZoneDecorOptions {
 
 const MATRIX_TEX_W = 256;
 const MATRIX_TEX_H = 256;
-const MATRIX_COLS = 18;
+const MATRIX_COLS = 14;
 const MATRIX_ROWS = 22;
-const MATRIX_REDRAW_INTERVAL = 0.075;
+const MATRIX_REDRAW_INTERVAL = 0.085;
 
 const SCAN_TEX_W = 4;
 const SCAN_TEX_H = 128;
-
-const GLOW_TEX_SIZE = 128;
 
 const MATRIX_GLYPHS =
   'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789{}<>/\\$#*+=';
@@ -68,12 +63,17 @@ function makeColumns(): Column[] {
   return cols;
 }
 
+/**
+ * Repaint the matrix canvas. Background is a near-opaque dark teal so
+ * the previous frame's glyphs slightly bleed through, giving the
+ * cascade a faint trail without a separate compositing pass.
+ */
 function paintMatrix(
   ctx: CanvasRenderingContext2D,
   cols: Column[],
   brightness: number,
 ): void {
-  ctx.fillStyle = 'rgba(2, 10, 8, 0.92)';
+  ctx.fillStyle = 'rgba(2, 8, 18, 0.92)';
   ctx.fillRect(0, 0, MATRIX_TEX_W, MATRIX_TEX_H);
 
   const cellW = MATRIX_TEX_W / MATRIX_COLS;
@@ -90,10 +90,13 @@ function paintMatrix(
       const ch = col.chars[r];
       if (!ch) continue;
       let alpha = 0;
-      let color = '74, 222, 128';
+      // Cool cyan / electric blue palette — Tron-ish sci-fi terminal,
+      // not phosphor green (which the brief explicitly rejected as a
+      // letter color).
+      let color = '95, 200, 230';
       if (dist === 0) {
         alpha = 1;
-        color = '220, 255, 230';
+        color = '230, 248, 255';
       } else if (dist < 4) {
         alpha = 0.85 - dist * 0.18;
       } else if (dist < 10) {
@@ -113,8 +116,8 @@ function makeScanTexture(): CanvasTexture {
   const ctx = c.getContext('2d');
   if (!ctx) throw new Error('makeScanTexture: 2D context unavailable');
   for (let y = 0; y < SCAN_TEX_H; y++) {
-    const stripe = y % 3 === 0 ? 0.55 : 0;
-    ctx.fillStyle = `rgba(180, 255, 200, ${stripe})`;
+    const stripe = y % 3 === 0 ? 0.5 : 0;
+    ctx.fillStyle = `rgba(170, 220, 255, ${stripe})`;
     ctx.fillRect(0, y, SCAN_TEX_W, 1);
   }
   const tex = new CanvasTexture(c);
@@ -122,29 +125,17 @@ function makeScanTexture(): CanvasTexture {
   return tex;
 }
 
-function makeGlowTexture(): Texture {
-  const c = document.createElement('canvas');
-  c.width = c.height = GLOW_TEX_SIZE;
-  const ctx = c.getContext('2d');
-  if (!ctx) throw new Error('makeGlowTexture: 2D context unavailable');
-  const cx = GLOW_TEX_SIZE / 2;
-  const grad = ctx.createRadialGradient(cx, cx, 0, cx, cx, cx);
-  grad.addColorStop(0, 'rgba(180, 255, 200, 0.95)');
-  grad.addColorStop(0.25, 'rgba(74, 222, 128, 0.55)');
-  grad.addColorStop(0.6, 'rgba(34, 140, 90, 0.18)');
-  grad.addColorStop(1, 'rgba(0, 40, 20, 0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, GLOW_TEX_SIZE, GLOW_TEX_SIZE);
-  const t = new CanvasTexture(c);
-  t.needsUpdate = true;
-  return t;
-}
-
 /**
- * Matrix-cascade panel + scan-line overlay + green base-glow sprite,
- * sized to wrap two letters ~2.4 units wide. Drives the contact-zone
- * of the hero title — sits centered over the N-U of NUMMINEN and reacts
- * to hover via the `boost` parameter on `tick`.
+ * Matrix-cascade panel + scan-line overlay, sized to wrap a single
+ * letter. Drives the contact zone of the hero title — sits centered on
+ * a single letter's face and reacts to hover via `boost` on `tick`.
+ *
+ * Panel is wider than tall (1.5×scale) so the cascade reads as a
+ * "screen embedded in the letter" rather than a square HUD that
+ * spills above and below the line. The bottom green glow from earlier
+ * iterations was dropped because it leaked outside the letter
+ * footprint and visually competed with the galaxy collisions in the
+ * lower-left of the scene.
  */
 export function buildContactZoneDecor(
   opts: ContactZoneDecorOptions = {},
@@ -153,7 +144,7 @@ export function buildContactZoneDecor(
   const group = new Group();
 
   const panelW = 2.4 * scale;
-  const panelH = 2.4 * scale;
+  const panelH = 1.5 * scale;
 
   const matrixCanvas = document.createElement('canvas');
   matrixCanvas.width = MATRIX_TEX_W;
@@ -170,52 +161,36 @@ export function buildContactZoneDecor(
   const matrixMat = new MeshBasicMaterial({
     map: matrixTex,
     transparent: true,
-    opacity: 0.92,
+    // Lower opacity so the chrome letter and the scene behind both read
+    // through the cascade — the matrix is decoration on the letter,
+    // not a discrete UI panel.
+    opacity: 0.55,
     depthWrite: false,
   });
   const matrixGeo = new PlaneGeometry(panelW, panelH);
   const matrixPlane = new Mesh(matrixGeo, matrixMat);
-  matrixPlane.position.z = 0.04 * scale;
+  matrixPlane.position.z = 0.02 * scale;
   group.add(matrixPlane);
 
   const scanTex = makeScanTexture();
   const scanMat = new MeshBasicMaterial({
     map: scanTex,
     transparent: true,
-    opacity: 0.22,
+    opacity: 0.16,
     depthWrite: false,
     blending: AdditiveBlending,
   });
   const scanGeo = new PlaneGeometry(panelW, panelH);
   const scanPlane = new Mesh(scanGeo, scanMat);
-  scanPlane.position.z = 0.06 * scale;
+  scanPlane.position.z = 0.04 * scale;
   group.add(scanPlane);
 
-  const glowTex = makeGlowTexture();
-  const glowMat = new SpriteMaterial({
-    map: glowTex,
-    color: 0x4ade80,
-    blending: AdditiveBlending,
-    transparent: true,
-    opacity: 0.55,
-    depthWrite: false,
-  });
-  const glow = new Sprite(glowMat);
-  glow.scale.set(panelW * 1.1, panelH * 0.45, 1);
-  glow.position.set(0, -panelH * 0.5, 0.02 * scale);
-  group.add(glow);
-
-  let cascadeT = 0;
   let redrawAccum = 0;
   let scanScrollT = 0;
-  let pulseT = 0;
 
   const tick = (delta: number, boost: number): void => {
-    const speedMul = 1 + boost * 1.8;
-    cascadeT += delta * speedMul;
     redrawAccum += delta;
     scanScrollT += delta * (0.35 + boost * 0.9);
-    pulseT += delta * (1.2 + boost * 1.4);
 
     if (redrawAccum >= MATRIX_REDRAW_INTERVAL) {
       const steps = Math.floor(redrawAccum / MATRIX_REDRAW_INTERVAL);
@@ -227,8 +202,7 @@ export function buildContactZoneDecor(
           if (Math.random() < 0.18 * col.speed * (1 + boost * 0.8)) {
             col.head = (col.head + 1) % MATRIX_ROWS;
             const idx = Math.floor(Math.random() * MATRIX_ROWS);
-            const next = pickGlyph();
-            col.chars[idx] = next;
+            col.chars[idx] = pickGlyph();
           }
         }
       }
@@ -236,12 +210,8 @@ export function buildContactZoneDecor(
       matrixTex.needsUpdate = true;
     }
 
-    const offset = (scanScrollT % 1) - Math.floor(scanScrollT % 1);
-    scanTex.offset.y = offset;
-    scanMat.opacity = 0.18 + boost * 0.22;
-
-    const pulse = 0.5 + 0.5 * Math.sin(pulseT);
-    glowMat.opacity = 0.42 + pulse * 0.18 + boost * 0.35;
+    scanTex.offset.y = scanScrollT % 1;
+    scanMat.opacity = 0.14 + boost * 0.22;
   };
 
   const dispose = (): void => {
@@ -251,8 +221,6 @@ export function buildContactZoneDecor(
     scanGeo.dispose();
     scanMat.dispose();
     scanTex.dispose();
-    glowMat.dispose();
-    glowTex.dispose();
   };
 
   return { group, tick, dispose };

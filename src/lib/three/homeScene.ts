@@ -211,45 +211,55 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   // ── Per-letter zone decor (text is a landscape) ──────────────────────
   // Each letter zone of the title becomes a tiny embedded scene
-  // representing one of the four pages of the site. The zones share a
-  // small `tick(delta, boost)` API so a single zone table drives hover
-  // boosts, click navigation, and disposal for all four.
-  //   M-I  → Experience (mountain peaks, snow, goat)
-  //   K-K  → (no decor — the "in-between" letters)
-  //   O    → Projects   (Saturn ring + orbiting planet)
-  //   N-U  → Contact    (matrix cascade + scan lines)
-  //   …    → Home       (dust + brushed-metal rim — the rest of NUMMINEN)
+  // representing one of the four pages. Single-letter targets (M, O,
+  // final N) keep each decor visually contained and let the chrome
+  // letters between them breathe. The home zone covers the wide back
+  // half of NUMMINEN with subtle drifting dust only.
+  //   M           → Experience (single ridge + drifting snow + goat)
+  //   I-K-K       → (no decor — quiet chrome between the loud zones)
+  //   O           → Projects   (Saturn ring + orbiting planet)
+  //   N-U-M-M-I-N-E → Home     (dust drifting through the back half)
+  //   N (final)   → Contact    (matrix cascade + scan-line overlay)
+  //
+  // Contact lives on the FAR RIGHT so the matrix panel doesn't sit
+  // visually on top of the colliding galaxies in the lower-left.
   const wMIKKO = measureTextWidth(font, 'MIKKO');
-  const wMI = measureTextWidth(font, 'MI');
+  const wM = measureTextWidth(font, 'M');
   const wMIKK = measureTextWidth(font, 'MIKK');
   const wNUMMINEN = measureTextWidth(font, 'NUMMINEN');
-  const wNU = measureTextWidth(font, 'NU');
+  const wNUMMINE = measureTextWidth(font, 'NUMMINE');
+  const wFinalN = wNUMMINEN - wNUMMINE;
 
-  // Each line's geometry was already translated by -lineWidth/2, so a
-  // mesh-local x = 0 sits at the line center. Substring centers in
-  // pre-translation coords are the midpoints of their cumulative widths;
-  // subtracting lineWidth/2 maps them into mesh-local space.
-  const xCenterMI = wMI / 2 - wMIKKO / 2;
+  // Each line's geometry was translated by -lineWidth/2, so a mesh-local
+  // x = 0 sits at the line center. Substring centers in pre-translation
+  // coords are midpoints of cumulative widths; subtracting lineWidth/2
+  // maps them into mesh-local space.
+  const xCenterM = wM / 2 - wMIKKO / 2;
   const xCenterO = wMIKK / 2; // = (wMIKK + wMIKKO)/2 - wMIKKO/2
-  const xCenterNU = wNU / 2 - wNUMMINEN / 2;
-  const xCenterMINEN = wNU / 2; // = (wNU + wNUMMINEN)/2 - wNUMMINEN/2
+  const xCenterNUMMINE = wNUMMINE / 2 - wNUMMINEN / 2;
+  const xCenterFinalN = wNUMMINE / 2; // = (wNUMMINE + wNUMMINEN)/2 - wNUMMINEN/2
 
   const mikkoMesh = title.meshes[0];
   const nummMesh = title.meshes[1];
   if (!mikkoMesh || !nummMesh) {
     throw new Error('homeScene: title is missing a line — TITLE expected to be 2 lines.');
   }
+  // Letter top in mesh-local Y — derived from the geometry's bbox so the
+  // mountain placement tracks any future change to TextGeometry SIZE
+  // or bevel. buildTitle always calls computeBoundingBox before the
+  // centering translate, and Three.js's BufferGeometry.translate updates
+  // the box in place, so it is always set here.
+  const mikkoTopY = mikkoMesh.geometry.boundingBox!.max.y;
 
   // Each zone module's "design width" at scale=1, used to pick a scale
-  // that fills the targeted letter span. Tweak per zone if the visual
-  // overshoots or under-fills the letters.
-  const EXPERIENCE_DESIGN_WIDTH = 2.4;
+  // that fills the targeted letter span.
+  const EXPERIENCE_DESIGN_WIDTH = 2.2; // single ridge spans ±1.1 ≈ M width
   const CONTACT_DESIGN_WIDTH = 2.4;
   const HOME_DESIGN_WIDTH = 6;
 
   const experienceDecor: ExperienceZoneDecorHandle = buildExperienceZoneDecor({
     envMap: env.envMap,
-    scale: wMI / EXPERIENCE_DESIGN_WIDTH,
+    scale: wM / EXPERIENCE_DESIGN_WIDTH,
   });
   const projectsDecor: ProjectsZoneDecorHandle = buildProjectsZoneDecor({
     envMap: env.envMap,
@@ -259,29 +269,40 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   });
   const contactDecor: ContactZoneDecorHandle = buildContactZoneDecor({
     envMap: env.envMap,
-    scale: wNU / CONTACT_DESIGN_WIDTH,
+    scale: wFinalN / CONTACT_DESIGN_WIDTH,
   });
   const homeDecor: HomeZoneDecorHandle = buildHomeZoneDecor({
     envMap: env.envMap,
-    scale: (wNUMMINEN - wNU) / HOME_DESIGN_WIDTH,
+    scale: wNUMMINE / HOME_DESIGN_WIDTH,
   });
 
   // Parent each decor under the appropriate line mesh so it inherits
-  // the title's floats / sway / entrance offset for free, then position
-  // it at the substring center on the line midplane.
+  // the title's floats / sway / entrance offset for free.
   mikkoMesh.add(experienceDecor.group);
   mikkoMesh.add(projectsDecor.group);
-  nummMesh.add(contactDecor.group);
   nummMesh.add(homeDecor.group);
-  experienceDecor.group.position.set(xCenterMI, 0, TITLE_DEPTH / 2);
+  nummMesh.add(contactDecor.group);
+
+  // Mountain rises ABOVE the M's letter top so the silhouette is
+  // visible against the dark background, not embedded in the letter
+  // solid. Anchored at the actual letter top from the bbox.
+  experienceDecor.group.position.set(xCenterM, mikkoTopY, TITLE_DEPTH / 2);
   projectsDecor.group.position.set(xCenterO, 0, TITLE_DEPTH / 2);
-  contactDecor.group.position.set(xCenterNU, 0, TITLE_DEPTH / 2);
-  homeDecor.group.position.set(xCenterMINEN, 0, TITLE_DEPTH / 2);
+  // Home dust spans ± half-depth in z — sitting at the line midplane
+  // gives a cloud "around the letters" with some dust passing in front
+  // and some behind.
+  homeDecor.group.position.set(xCenterNUMMINE, 0, TITLE_DEPTH / 2);
+  // Matrix sits ON the letter face — z just past the front face so the
+  // chrome doesn't depth-occlude the cascade.
+  contactDecor.group.position.set(xCenterFinalN, 0, TITLE_DEPTH + 0.05);
 
   /**
    * One row per zone. `boost` is mutable (lerps toward 1 on hover),
    * `href` drives click navigation (null = no nav, e.g. the home zone
-   * which is the current page).
+   * which is the current page). `hotRadiusBase` is the hover hot-zone
+   * radius in pixels before responsive title scaling — sized to the
+   * zone's screen footprint so wide zones get wide hover areas and
+   * single-letter zones stay precise.
    */
   interface ZoneEntry {
     decor:
@@ -292,12 +313,41 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     parent: Mesh;
     href: string | null;
     boost: number;
+    hotRadiusBase: number;
   }
   const zones: ZoneEntry[] = [
-    { decor: experienceDecor, parent: mikkoMesh, href: '/experience', boost: 0 },
-    { decor: projectsDecor, parent: mikkoMesh, href: '/projects', boost: 0 },
-    { decor: contactDecor, parent: nummMesh, href: '/contact', boost: 0 },
-    { decor: homeDecor, parent: nummMesh, href: null, boost: 0 },
+    {
+      // Mountain decor sits ABOVE the M letter (at letter top + ridge
+      // height). The user's instinct is to hover the M itself, which
+      // projects below the decor center — a wider radius covers both
+      // the letter and the mountain above it.
+      decor: experienceDecor,
+      parent: mikkoMesh,
+      href: '/experience',
+      boost: 0,
+      hotRadiusBase: 160,
+    },
+    {
+      decor: projectsDecor,
+      parent: mikkoMesh,
+      href: '/projects',
+      boost: 0,
+      hotRadiusBase: 110,
+    },
+    {
+      decor: homeDecor,
+      parent: nummMesh,
+      href: null,
+      boost: 0,
+      hotRadiusBase: 240,
+    },
+    {
+      decor: contactDecor,
+      parent: nummMesh,
+      href: '/contact',
+      boost: 0,
+      hotRadiusBase: 90,
+    },
   ];
 
   // Reused each frame to avoid allocating Vector3 in the hot path.
@@ -316,7 +366,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const x = (projectedDecorPos.x + 1) * 0.5 * window.innerWidth;
     const y = (1 - projectedDecorPos.y) * 0.5 * window.innerHeight;
     // Hot radius scales with the title (responsive layouts shrink it).
-    const r = 110 * title.group.scale.x;
+    const r = entry.hotRadiusBase * title.group.scale.x;
     return { x, y, r };
   };
 
