@@ -282,12 +282,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   homeDecor.group.position.set(0, 0, TITLE_DEPTH / 2);
 
   /**
-   * One row per zone. `boost` is mutable (lerps toward 1 on hover),
-   * `href` drives click navigation (null = no nav, e.g. the home zone
-   * which is the current page). `hotRadiusBase` is the hover hot-zone
-   * radius in pixels before responsive title scaling — sized to the
-   * zone's screen footprint so wide zones get wide hover areas and
-   * single-letter zones stay precise.
+   * One row per zone. `boost` is mutable (lerps toward 1 on hover) and
+   * drives subtle visual response in the per-zone decor. The title is
+   * NOT clickable — navigation goes through the visible <nav> only.
+   * `hotRadiusBase` sets the hover radius in pixels before responsive
+   * title scaling; sized to each zone's screen footprint.
    */
   interface ZoneEntry {
     decor:
@@ -295,33 +294,25 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       | ProjectsZoneDecorHandle
       | HomeZoneDecorHandle;
     parent: Mesh;
-    href: string | null;
     boost: number;
     hotRadiusBase: number;
   }
   const zones: ZoneEntry[] = [
     {
-      // Mountain decor sits ABOVE the M letter (at letter top + ridge
-      // height). The user's instinct is to hover the M itself, which
-      // projects below the decor center — a wider radius covers both
-      // the letter and the mountain above it.
       decor: experienceDecor,
       parent: mikkoMesh,
-      href: '/experience',
       boost: 0,
       hotRadiusBase: 160,
     },
     {
       decor: projectsDecor,
       parent: mikkoMesh,
-      href: '/projects',
       boost: 0,
       hotRadiusBase: 110,
     },
     {
       decor: homeDecor,
       parent: nummMesh,
-      href: null,
       boost: 0,
       hotRadiusBase: 240,
     },
@@ -332,8 +323,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   /**
    * Returns the screen-pixel position of the zone's world center plus a
-   * hover hot-radius. Used by both the per-frame hover-boost lerp and
-   * the click hit test so the cursor area and the navigation area agree.
+   * hover hot-radius. Used by the per-frame hover-boost lerp.
    */
   const zoneScreenHotspot = (
     entry: ZoneEntry,
@@ -346,35 +336,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const r = entry.hotRadiusBase * title.group.scale.x;
     return { x, y, r };
   };
-
-  const onCanvasClick = (e: MouseEvent): void => {
-    // Pick the closest hit so overlapping zones disambiguate cleanly,
-    // not the first-iterated zone.
-    let bestEntry: ZoneEntry | null = null;
-    let bestDist = Infinity;
-    for (const entry of zones) {
-      if (!entry.href) continue;
-      const { x, y, r } = zoneScreenHotspot(entry);
-      const d = Math.hypot(e.clientX - x, e.clientY - y);
-      if (d < r && d < bestDist) {
-        bestEntry = entry;
-        bestDist = d;
-      }
-    }
-    if (!bestEntry || !bestEntry.href) return;
-    // Route through the existing nav anchor so pageTransition picks it
-    // up and runs phase-A/B before navigating. Scoped to <nav> so it
-    // can't accidentally match an unrelated link. The same nav link is
-    // the keyboard-accessible path — this canvas click is a discoverable
-    // shortcut, not the only route. Falls back to direct navigation if
-    // the anchor isn't on the page.
-    const anchor =
-      document.querySelector<HTMLAnchorElement>(`nav a[href$="${bestEntry.href}"]`) ??
-      document.querySelector<HTMLAnchorElement>(`nav a[href$="${bestEntry.href}/"]`);
-    if (anchor) anchor.click();
-    else window.location.href = bestEntry.href;
-  };
-  canvas.addEventListener('click', onCanvasClick);
 
   // ── Meteors (occasional shooting stars carrying world tints) ─────────
   const meteors: MeteorsHandle = buildMeteors();
@@ -556,22 +517,19 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     }
 
     // Per-zone hover/boost/tick. Each zone's hover hot-zone lerps its
-    // boost toward 1 when the cursor is in range; the cursor flips to
-    // pointer if any clickable zone is hovered. Each decor advances
-    // its own visuals via its `tick(delta, boost)` regardless.
+    // boost toward 1 when the cursor is in range; the boost only drives
+    // visual response inside each decor module (the title is not
+    // clickable — navigation goes through the visible nav only).
     {
       const mxPx = (targetMouseX * 0.5 + 0.5) * window.innerWidth;
       const myPx = (targetMouseY * 0.5 + 0.5) * window.innerHeight;
-      let pointerHover = false;
       for (const entry of zones) {
         const { x: hx, y: hy, r: hr } = zoneScreenHotspot(entry);
         const hovering = mouseSeen && Math.hypot(mxPx - hx, myPx - hy) < hr;
         const targetBoost = hovering ? 1 : 0;
         entry.boost += (targetBoost - entry.boost) * delta * 6;
-        if (hovering && entry.href) pointerHover = true;
         entry.decor.tick(reducedMotion ? 0 : delta, entry.boost);
       }
-      canvas.style.cursor = pointerHover ? 'pointer' : '';
     }
 
     // Meteors — randomized spawn schedule, fade-in/out envelope, trail
@@ -645,8 +603,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       resize.dispose();
       window.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      canvas.removeEventListener('click', onCanvasClick);
-      canvas.style.cursor = '';
 
       for (const entry of zones) {
         entry.parent.remove(entry.decor.group);
