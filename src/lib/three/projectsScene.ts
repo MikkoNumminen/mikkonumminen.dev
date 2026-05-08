@@ -34,10 +34,13 @@ import {
   type ExternalIndicator,
 } from './projects/buildExternalIndicator';
 import { createHoverLabel } from './projects/createHoverLabel';
+import { createPlanetLabels } from './projects/createPlanetLabels';
 
 export interface ProjectsSceneOptions {
   canvas: HTMLCanvasElement;
   hoverLabel: HTMLElement;
+  /** Container for the persistent per-planet name labels. */
+  planetLabels: HTMLElement;
   /** Localized project data merged from i18n. */
   projects: LocalizedProject[];
   onSelect: (project: LocalizedProject) => void;
@@ -79,6 +82,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const {
     canvas,
     hoverLabel,
+    planetLabels: planetLabelsContainer,
     projects,
     onSelect,
     onDeselect,
@@ -159,6 +163,13 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   }
   // Cached once so the raycaster doesn't allocate per frame and per click.
   const planetMeshes: Mesh[] = planets.map((p) => p.mesh);
+
+  // ── Persistent planet name labels ──────────────────────────────────
+  // HTML overlay so users can identify any planet at a glance without
+  // hovering. Repositioned per frame from the planet's projected screen
+  // position; hidden while the drawer is open to keep focus on the
+  // selected project.
+  const planetLabels = createPlanetLabels(planetLabelsContainer, planets);
 
   // ── Connections (semantic edges between related projects) ──────────
   const connectionsBundle = buildConnections(connections, planets, {
@@ -337,12 +348,17 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     forcedHovered = null;
     canvas.style.cursor = '';
     hoverLabelHandle.hide();
+    // Hide planet name labels while a project is focused — the drawer
+    // already shows the project name prominently and the floating
+    // labels would compete for attention.
+    planetLabels.setHidden(true);
     selected = entry;
     onSelect(entry.project);
   }
 
   function deselect(): void {
     selected = null;
+    planetLabels.setHidden(false);
     onDeselect();
   }
 
@@ -509,6 +525,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     // hemisphere of each planet is facing the viewer stays lit.
     cameraFill.position.copy(camera.position);
 
+    // Planet name labels — projected screen-space follow each planet.
+    planetLabels.update(camera);
+
     renderer.render(scene, camera);
   };
 
@@ -601,6 +620,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       disposeConnections(connectionsBundle.entries);
       scene.remove(connectionsBundle.group);
       disposeExternalIndicators(externalIndicators);
+      planetLabels.dispose();
 
       scene.remove(sunLight, ambient, rimLight, cameraFill, cameraFill.target);
       sunLight.dispose();
