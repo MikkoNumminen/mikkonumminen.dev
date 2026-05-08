@@ -51,6 +51,17 @@ const t = getTranslations(locale);
       <span class="hero__corner-num">61° N · 24° E</span>
       <span class="hero__corner-rule hero__corner-rule--tr"></span>
       <span class="hero__corner-place">tampere · hervanta</span>
+      <div class="hero__data-feed" data-data-feed>
+        <span class="hero__data-feed-label">
+          <span class="hero__data-feed-pulse"></span>
+          <span>data · ch-01</span>
+        </span>
+        <canvas
+          class="hero__data-feed-canvas"
+          width="480"
+          height="144"
+          aria-hidden="true"></canvas>
+      </div>
     </span>
     <span class="hero__corner hero__corner--br">
       <span class="hero__corner-num">vol. 26</span>
@@ -267,4 +278,82 @@ const t = getTranslations(locale);
       display: none;
     }
   }
+
+  /* Live data-feed widget tucked under the editorial coords. The cyan
+     pulse + cascading glyphs read as "this location is where data
+     flows" — the corner is no longer just static labels. */
+  .hero__data-feed {
+    margin-top: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.4rem;
+  }
+
+  .hero__data-feed-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(180, 220, 255, 0.55);
+  }
+
+  .hero__data-feed-pulse {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #6fcfe0;
+    box-shadow: 0 0 6px rgba(111, 207, 224, 0.65);
+    animation: hero-data-feed-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes hero-data-feed-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .hero__data-feed-canvas {
+    width: 14rem;
+    height: 4.4rem;
+    display: block;
+    border-bottom: 1px solid rgba(111, 207, 224, 0.18);
+    /* Soft fade on the left so the cascade doesn't read as a hard
+       rectangle dropped onto the page. */
+    mask-image: linear-gradient(to right, transparent, black 18%, black 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 18%, black 100%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__data-feed-pulse {
+      animation: none;
+    }
+  }
 </style>
+
+<script>
+  import { buildDataFeedMatrix } from '../../lib/home/dataFeedMatrix';
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const init = (): void => {
+    const root = document.querySelector<HTMLElement>('[data-data-feed]');
+    if (!root) return;
+    const canvas = root.querySelector<HTMLCanvasElement>('.hero__data-feed-canvas');
+    if (!canvas) return;
+    const handle = buildDataFeedMatrix(canvas, reducedMotion);
+    window.addEventListener('beforeunload', () => handle.dispose(), { once: true });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+</script>

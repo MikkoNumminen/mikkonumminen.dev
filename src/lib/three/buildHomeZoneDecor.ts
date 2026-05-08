@@ -113,14 +113,17 @@ export function buildHomeZoneDecor(
     breatheT += delta * 0.6;
 
     const arr = dustGeo.attributes.position!.array as Float32Array;
-    const wrapTop = halfH;
+    const wrapBottom = -halfH;
     const span = halfH * 2;
     for (let i = 0; i < DUST_COUNT; i++) {
       const i3 = i * 3;
       const speed = driftSpeeds[i]!;
       const phase = phases[i]!;
-      let y = arr[i3 + 1]! + delta * speed * speedMul;
-      if (y > wrapTop) y -= span;
+      // Dust falls DOWN (subtract from y) — matches the snow direction
+      // in the mountain decor so the whole scene reads as a single
+      // weather system.
+      let y = arr[i3 + 1]! - delta * speed * speedMul;
+      if (y < wrapBottom) y += span;
       arr[i3 + 1] = y;
       arr[i3] = baseX[i]! + Math.sin(breatheT + phase) * 0.06 * scale;
     }
