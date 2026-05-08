@@ -147,6 +147,8 @@ export const sv: Translations = {
     keyHeading: 'Förklaring',
     keyConnectionsLabel: 'Kopplingar',
     keyExternalDesc: 'satellit i bana — kopplar till en extern tjänst',
+    listHeading: 'Hoppa till projekt',
+    listAriaLabel: 'Projektlista',
     connectionKindLabels: {
       submodule: 'undermodul',
       voice: 'röst',

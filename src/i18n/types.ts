@@ -97,6 +97,8 @@ export interface Translations {
     keyHeading: string;
     keyConnectionsLabel: string;
     keyExternalDesc: string;
+    listHeading: string;
+    listAriaLabel: string;
     connectionKindLabels: {
       submodule: string;
       voice: string;

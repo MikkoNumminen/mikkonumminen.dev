@@ -47,6 +47,14 @@ export interface ProjectsSceneOptions {
 
 export interface ProjectsSceneHandle {
   selectById: (id: string | null) => void;
+  /**
+   * Force a hover state on a specific planet, mirroring the raycast-driven
+   * hover. Used by the side-panel list so hovering a list item highlights
+   * the matching planet (scale-up + label) without requiring the user to
+   * locate the moving planet themselves. Pass `null` to release the forced
+   * hover and let raycast take over again.
+   */
+  hoverById: (id: string | null) => void;
   resize: () => void;
   dispose: () => void;
 }
@@ -179,6 +187,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const pointer = new Vector2(-1, -1);
   let hovered: PlanetEntry | null = null;
   let selected: PlanetEntry | null = null;
+  // Set by `hoverById` from the side-panel list. When non-null, overrides
+  // raycast hover so list-item hovers highlight the matching planet.
+  let forcedHovered: PlanetEntry | null = null;
 
   const onPointerMove = (e: PointerEvent): void => {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -306,6 +317,26 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const lookAtCurrent = SOLAR_LOOK_AT.clone();
 
   function selectPlanet(entry: PlanetEntry): void {
+    // Reset any in-progress hover state before locking the camera onto
+    // the new selection. Without this the previously-hovered planet
+    // keeps its 1.18× scale through the drawer's lifetime (the raycast
+    // tick block is gated on !selected, so it never gets a chance to
+    // tween down). Also clears any forced hover from the side-panel
+    // list so a list-then-click flow doesn't leave forcedHovered
+    // pointing at the now-selected planet's neighbour.
+    if (hovered) {
+      gsap.to(hovered.mesh.scale, {
+        x: 1,
+        y: 1,
+        z: 1,
+        duration: 0.35,
+        ease: 'power2.out',
+      });
+      hovered = null;
+    }
+    forcedHovered = null;
+    canvas.style.cursor = '';
+    hoverLabelHandle.hide();
     selected = entry;
     onSelect(entry.project);
   }
@@ -380,14 +411,18 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       updateExternalIndicator(ind, elapsed, connectionVisibility);
     }
 
-    // Raycast hover (skip while a planet is selected)
+    // Raycast hover (skip while a planet is selected). Forced hover from
+    // the side-panel list takes priority over raycast, so a list-item
+    // hover keeps the matching planet highlighted regardless of where
+    // the cursor actually sits in the canvas.
     if (!selected) {
       raycaster.setFromCamera(pointer, camera);
       const hits = raycaster.intersectObjects(planetMeshes);
-      const newHovered =
+      const raycastHovered =
         hits.length > 0
           ? findPlanetByMeshId(hits[0]!.object.userData.projectId as string | undefined)
           : null;
+      const newHovered = forcedHovered ?? raycastHovered;
 
       if (newHovered !== hovered) {
         if (hovered) {
@@ -499,6 +534,15 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       }
       const entry = planets.find((p) => p.project.id === id);
       if (entry && entry !== selected) selectPlanet(entry);
+    },
+    hoverById: (id: string | null): void => {
+      // Don't fight the selected-planet camera focus. Raycast hover is
+      // already disabled while a planet is selected; mirror that here.
+      if (selected) {
+        forcedHovered = null;
+        return;
+      }
+      forcedHovered = id ? (planets.find((p) => p.project.id === id) ?? null) : null;
     },
     resize: resize.handler,
     dispose: (): void => {

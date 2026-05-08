@@ -146,6 +146,8 @@ export const fi: Translations = {
     keyHeading: 'Selitykset',
     keyConnectionsLabel: 'Yhteydet',
     keyExternalDesc: 'kiertävä satelliitti — yhteys ulkomaailmaan',
+    listHeading: 'Hyppää projektiin',
+    listAriaLabel: 'Projektiluettelo',
     connectionKindLabels: {
       submodule: 'alimoduuli',
       voice: 'ääni',

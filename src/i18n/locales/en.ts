@@ -145,6 +145,8 @@ export const en: Translations = {
     keyHeading: 'Key',
     keyConnectionsLabel: 'Connections',
     keyExternalDesc: 'orbiting satellite — connects to an outside service',
+    listHeading: 'Jump to project',
+    listAriaLabel: 'Project list',
     connectionKindLabels: {
       submodule: 'submodule',
       voice: 'voice',

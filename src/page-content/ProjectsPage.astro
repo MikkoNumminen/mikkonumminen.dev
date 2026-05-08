@@ -3,7 +3,7 @@ import '../styles/projects-scene.css';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectDetail from '../components/projects/ProjectDetail.astro';
 import ProjectGrid from '../components/projects/ProjectGrid.astro';
-import { connections, projects } from '../data/projects';
+import { connections, localizeProjects, projects } from '../data/projects';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -12,6 +12,11 @@ const t = getTranslations(locale);
 // Build a project-name lookup so the legend can show "HRM → Platform"
 // using the brand names rather than the structural ids.
 const projectNameById = Object.fromEntries(projects.map((p) => [p.id, p.name]));
+
+// Localized list for the side panel — clicking an item triggers the same
+// `selectById` flow as clicking the matching planet, so users can jump
+// to any project without having to chase a moving target.
+const localizedList = localizeProjects(t);
 
 const connectionLegendEntries = connections.map((c) => ({
   color: c.color,
@@ -54,6 +59,30 @@ const connectionLegendEntries = connections.map((c) => ({
 
     <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
     </div>
+
+    <nav class="projects-scene__list" data-list aria-label={t.projectsPage.listAriaLabel}>
+      <p class="projects-scene__list-heading">{t.projectsPage.listHeading}</p>
+      <ul class="projects-scene__list-items">
+        {
+          localizedList.map((p) => (
+            <li>
+              <button
+                type="button"
+                class="projects-scene__list-item"
+                data-project-id={p.id}
+                style={`--brand:${p.color}`}
+              >
+                <span class="projects-scene__list-dot" aria-hidden="true" />
+                <span class="projects-scene__list-text">
+                  <span class="projects-scene__list-name">{p.name}</span>
+                  <span class="projects-scene__list-tagline">{p.tagline}</span>
+                </span>
+              </button>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
 
     <aside class="projects-scene__key" data-key aria-label={t.projectsPage.keyHeading}>
       <p class="projects-scene__key-heading">{t.projectsPage.keyHeading}</p>
@@ -156,6 +185,7 @@ const connectionLegendEntries = connections.map((c) => ({
 
   let sceneHandle: {
     selectById: (id: string | null) => void;
+    hoverById: (id: string | null) => void;
     dispose: () => void;
   } | null = null;
 
@@ -183,8 +213,29 @@ const connectionLegendEntries = connections.map((c) => ({
     const legend = document.querySelector<HTMLElement>('[data-legend]');
     const credits = document.querySelector<HTMLElement>('[data-credits]');
     const key = document.querySelector<HTMLElement>('[data-key]');
+    const list = document.querySelector<HTMLElement>('[data-list]');
 
     if (!canvas || !hoverLabel || !detail || !closeBtn) return;
+
+    // Mark the list item that matches the currently selected project so
+    // when the drawer closes the user can see which project was just
+    // opened. `scrollIntoView` keeps it in view if the list overflows.
+    // Modern browsers respect prefers-reduced-motion for CSSOM smooth
+    // scroll, but explicit fallback to instant scroll is belt-and-
+    // suspenders and matches the rest of the page's reduced-motion
+    // policy.
+    const scrollBehavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
+    const setListSelected = (id: string | null) => {
+      if (!list) return;
+      list.querySelectorAll<HTMLElement>('[data-project-id]').forEach((btn) => {
+        if (btn.getAttribute('data-project-id') === id) {
+          btn.setAttribute('data-selected', 'true');
+          btn.scrollIntoView({ block: 'nearest', behavior: scrollBehavior });
+        } else {
+          btn.removeAttribute('data-selected');
+        }
+      });
+    };
 
     const drawer = initProjectDrawer({
       detail,
@@ -193,8 +244,31 @@ const connectionLegendEntries = connections.map((c) => ({
       legend,
       credits,
       key,
+      list,
       labels: { liveDemo: tp.liveDemo, githubLink: tp.githubLink },
-      onClose: () => sceneHandle?.selectById(null),
+      onClose: () => {
+        setListSelected(null);
+        sceneHandle?.selectById(null);
+      },
+    });
+
+    // Per-button listeners on the side-panel list. Click selects the
+    // project (mirroring planet click); hover/focus mirror the planet's
+    // hover (forced-hover scale-up + label) so the user can preview each
+    // project from the stationary list. `prepareOpen` hands the trigger
+    // to the drawer so closing returns focus to the list item even when
+    // the click-outside handler's interim close shifts activeElement.
+    list?.querySelectorAll<HTMLButtonElement>('[data-project-id]').forEach((btn) => {
+      const id = btn.getAttribute('data-project-id');
+      if (!id) return;
+      btn.addEventListener('click', () => {
+        drawer.prepareOpen(btn);
+        sceneHandle?.selectById(id);
+      });
+      btn.addEventListener('mouseenter', () => sceneHandle?.hoverById(id));
+      btn.addEventListener('mouseleave', () => sceneHandle?.hoverById(null));
+      btn.addEventListener('focus', () => sceneHandle?.hoverById(id));
+      btn.addEventListener('blur', () => sceneHandle?.hoverById(null));
     });
 
     try {
@@ -204,7 +278,10 @@ const connectionLegendEntries = connections.map((c) => ({
         hoverLabel,
         projects: localizedProjects,
         reducedMotion,
-        onSelect: (project) => drawer.open(project),
+        onSelect: (project) => {
+          setListSelected(project.id);
+          drawer.open(project);
+        },
         onDeselect: () => {
           /* triggered by drawer.close via onClose */
         },

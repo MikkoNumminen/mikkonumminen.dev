@@ -16,6 +16,14 @@ export interface DrawerLabels {
 export interface DrawerHandle {
   open: (project: LocalizedProject) => void;
   close: () => void;
+  /**
+   * Hint the next `open` call to restore focus to this element on close.
+   * Used by the side-panel list so that closing a drawer that was opened
+   * via a list item returns focus to that list item, even if the
+   * click-outside handler's interim `close()` reset activeElement back
+   * to the prior trigger before the new `open()` ran.
+   */
+  prepareOpen: (triggerEl: HTMLElement) => void;
   dispose: () => void;
 }
 
@@ -26,6 +34,7 @@ export interface DrawerOpts {
   legend: HTMLElement | null;
   credits: HTMLElement | null;
   key: HTMLElement | null;
+  list: HTMLElement | null;
   labels: DrawerLabels;
   /** Called after the drawer closes so the scene can deselect the planet. */
   onClose?: () => void;
@@ -140,9 +149,12 @@ function populateDetail(
  * should invoke `dispose` on `beforeunload` or when tearing down the page.
  */
 export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
-  const { detail, closeBtn, intro, legend, credits, key, labels } = opts;
+  const { detail, closeBtn, intro, legend, credits, key, list, labels } = opts;
 
   let lastFocused: HTMLElement | null = null;
+  // Trigger element to use as `lastFocused` on the next `open()` call,
+  // overriding `document.activeElement`. Cleared after consumption.
+  let pendingTrigger: HTMLElement | null = null;
 
   const trapTab = (e: KeyboardEvent) => {
     if (e.key !== 'Tab') return;
@@ -170,13 +182,19 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
 
   const open = (project: LocalizedProject) => {
     populateDetail(detail, project, labels);
-    lastFocused = document.activeElement as HTMLElement | null;
+    if (pendingTrigger && document.contains(pendingTrigger)) {
+      lastFocused = pendingTrigger;
+    } else {
+      lastFocused = document.activeElement as HTMLElement | null;
+    }
+    pendingTrigger = null;
     detail.setAttribute('data-open', 'true');
     detail.setAttribute('aria-hidden', 'false');
     intro?.classList.add('is-hidden');
     legend?.classList.add('is-hidden');
     credits?.classList.add('is-hidden');
     key?.classList.add('is-hidden');
+    list?.classList.add('is-hidden');
     detail.addEventListener('keydown', trapTab);
     // Move focus to the close button once the drawer is open so keyboard
     // users can immediately tab through its contents.
@@ -190,6 +208,7 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
     legend?.classList.remove('is-hidden');
     credits?.classList.remove('is-hidden');
     key?.classList.remove('is-hidden');
+    list?.classList.remove('is-hidden');
     detail.removeEventListener('keydown', trapTab);
     opts.onClose?.();
     // Restore focus to the element that opened the drawer, or fall back
@@ -208,14 +227,35 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
     }
   };
 
+  // Click-outside-to-close. Capture phase so this fires before the canvas
+  // and project-list click handlers — when the user clicks another planet
+  // or list item, the drawer closes first (selected → null), then the
+  // bubbling click on the new target opens the drawer for it. Closing
+  // a click that itself opened the drawer is impossible because at the
+  // moment this fires the planet/list click hasn't run yet, so
+  // `data-open` is still 'false'.
+  const onDocumentClick = (e: MouseEvent) => {
+    if (detail.getAttribute('data-open') !== 'true') return;
+    const target = e.target as Node | null;
+    if (!target) return;
+    if (detail.contains(target)) return;
+    close();
+  };
+
   closeBtn.addEventListener('click', close);
   document.addEventListener('keydown', onEscape);
+  document.addEventListener('click', onDocumentClick, { capture: true });
 
   const dispose = () => {
     closeBtn.removeEventListener('click', close);
     document.removeEventListener('keydown', onEscape);
+    document.removeEventListener('click', onDocumentClick, { capture: true });
     detail.removeEventListener('keydown', trapTab);
   };
 
-  return { open, close, dispose };
+  const prepareOpen = (triggerEl: HTMLElement) => {
+    pendingTrigger = triggerEl;
+  };
+
+  return { open, close, prepareOpen, dispose };
 }
