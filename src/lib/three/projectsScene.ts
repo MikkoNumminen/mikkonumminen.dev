@@ -135,7 +135,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // always lit. Cool blue-white tint keeps the deep-space mood
   // intact rather than reading as studio fill.
   const cameraFill = new DirectionalLight(0x9cb6e0, 0.55);
-  scene.add(cameraFill);
+  // Target stays at scene origin; updating cameraFill.position each
+  // frame aims the directional ray camera→origin. Adding the target
+  // to the scene is the documented three.js pattern — it ensures
+  // matrixWorld updates correctly if anyone later enables shadows or
+  // moves the target.
+  scene.add(cameraFill, cameraFill.target);
 
   // ── Planets ─────────────────────────────────────────────────────────
   const planets: PlanetEntry[] = [];
@@ -553,7 +558,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       scene.remove(connectionsBundle.group);
       disposeExternalIndicators(externalIndicators);
 
-      scene.remove(sunLight, ambient, rimLight, cameraFill);
+      scene.remove(sunLight, ambient, rimLight, cameraFill, cameraFill.target);
       sunLight.dispose();
       ambient.dispose();
       rimLight.dispose();
