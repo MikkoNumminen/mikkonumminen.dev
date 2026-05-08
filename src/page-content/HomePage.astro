@@ -14,8 +14,10 @@ const t = getTranslations(locale);
 
 // Recent commit subjects, baked in at build time. Drives the impact-text
 // popups that burst from each meteor strike on the home hero galaxy.
-// Falls back to an empty array outside a git checkout; the scene then
-// uses its own hardcoded sentinel list.
+// We only keep the conventional-commit type+scope (e.g. "fix(projects)",
+// "chore", "feat(home)") — the popup is meant to read as a rhythm of
+// activity, not a wall of text. Falls back to an empty array outside a
+// git checkout; the scene then uses its own hardcoded sentinel list.
 let commitMessages: string[] = [];
 try {
   const subjects = execSync('git log --pretty=format:%s -n 80', {
@@ -24,7 +26,8 @@ try {
     .split('\n')
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
-    .filter((s) => !/^Merge /i.test(s));
+    .filter((s) => !/^Merge /i.test(s))
+    .map((s) => s.split(':')[0]!.trim());
   commitMessages = Array.from(new Set(subjects)).slice(0, 50);
 } catch {
   commitMessages = [];

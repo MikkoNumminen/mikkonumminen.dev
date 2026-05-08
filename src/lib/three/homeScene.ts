@@ -225,10 +225,20 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // anything ever fires onImpact during init.
   let collisionFlashEnergy = 0;
   let collisionRimEnergy = 0;
-  // Bumped from 4.0 — the dedicated front-facing collision light hits
-  // a different surface than the old orbiting rim, so it needs more
-  // intensity to read as the same "bright moment" the user expects.
-  const COLLISION_RIM_PEAK = 6.0;
+  // The flash on the title is the headline moment of every strike, so
+  // it's pushed hard into the saturation range — the bloom pass at
+  // threshold 0.82 amplifies anything past 1.0, turning each peak into
+  // a dramatic chrome bloom rather than a subtle rim brighten.
+  const COLLISION_RIM_PEAK = 14.0;
+  // Multiplier for the per-impact PointLight that paints the chrome
+  // from the impact's world position. Same scaling rationale as the
+  // rim — the higher the peak, the more bloom kicks in.
+  const COLLISION_FLASH_PEAK = 11.0;
+  // Decay rates (per second) for the rim and point-light energies. Lower
+  // values mean each flash lingers longer; tuned so the bright moment
+  // reads as a beat, not a strobe.
+  const COLLISION_RIM_DECAY = 3.5;
+  const COLLISION_FLASH_DECAY = 3.0;
 
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
@@ -528,11 +538,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
       // Decay the collision-flash pulse each frame; bright on hit, fades
       // smoothly to zero.
-      collisionFlashEnergy = Math.max(0, collisionFlashEnergy - delta * 4);
-      collisionFlashLight.intensity = collisionFlashEnergy * 4.5;
-      // Rim flash decays a touch faster than the point light so the
-      // title's bright moment is sharp rather than a lingering wash.
-      collisionRimEnergy = Math.max(0, collisionRimEnergy - delta * 5);
+      collisionFlashEnergy = Math.max(
+        0,
+        collisionFlashEnergy - delta * COLLISION_FLASH_DECAY,
+      );
+      collisionFlashLight.intensity = collisionFlashEnergy * COLLISION_FLASH_PEAK;
+      // Rim flash decays slightly faster than the point light so the
+      // bright moment on the title's chrome reads as a sharp peak.
+      collisionRimEnergy = Math.max(0, collisionRimEnergy - delta * COLLISION_RIM_DECAY);
 
       sparks.tick(delta);
       impactText.tick(delta);

@@ -267,13 +267,22 @@ export function buildMeteors(options: BuildMeteorsOptions): MeteorsHandle {
     group,
     tick: (elapsed: number, delta: number): void => {
       // Spawn next meteor when the timer fires and a slot is free.
-      // 5-10 s cadence keeps the strike rhythm visible without being busy.
+      // Wait time is drawn from an exponential distribution (mean ≈ 5 s)
+      // so impacts cluster organically — sometimes two strikes land
+      // close together, sometimes there's a longer lull. Reads as
+      // "random" instead of a steady drumbeat.
       if (elapsed >= nextSpawnTime) {
         const idle = meteors.find((m) => !m.active);
         if (idle) {
           spawnMeteor(idle, elapsed);
         }
-        nextSpawnTime = elapsed + 5 + Math.random() * 5;
+        // Inverse-CDF sampling of Exponential(λ = 1/5).
+        // 1 - random() to avoid log(0) when random() returns 0; clamp
+        // both ends so a tiny u doesn't stack two meteors on the same
+        // frame and a huge u doesn't leave the user staring at silence.
+        const u = 1 - Math.random();
+        const wait = Math.max(0.5, Math.min(16, -5 * Math.log(u)));
+        nextSpawnTime = elapsed + wait;
       }
 
       for (const meteor of meteors) {
