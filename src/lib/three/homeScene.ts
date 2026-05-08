@@ -14,7 +14,12 @@ import {
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { buildParticleField, type ParticleField } from './buildParticleField';
-import { buildTitle, DEPTH as TITLE_DEPTH, loadFont, measureTextWidth } from './buildTitle';
+import {
+  buildTitle,
+  DEPTH as TITLE_DEPTH,
+  loadFont,
+  measureTextWidth,
+} from './buildTitle';
 import { buildTitleColorMap } from './buildTitleColorMap';
 import { buildCollisionSparks, type CollisionSparksHandle } from './buildCollisionSparks';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
@@ -275,7 +280,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // Home dust spans the whole NUMMINEN line — scale to the line width
   // (≈ wMIKKO is a reasonable proxy for the bottom line, but use the
   // bottom mesh's actual bbox so this tracks future line changes).
-  const nummWidth = nummMesh.geometry.boundingBox!.max.x - nummMesh.geometry.boundingBox!.min.x;
+  const nummWidth =
+    nummMesh.geometry.boundingBox!.max.x - nummMesh.geometry.boundingBox!.min.x;
   const homeDecor: HomeZoneDecorHandle = buildHomeZoneDecor({
     envMap: env.envMap,
     scale: nummWidth / HOME_DESIGN_WIDTH,
@@ -303,10 +309,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
    * title scaling; sized to each zone's screen footprint.
    */
   interface ZoneEntry {
-    decor:
-      | ExperienceZoneDecorHandle
-      | ProjectsZoneDecorHandle
-      | HomeZoneDecorHandle;
+    decor: ExperienceZoneDecorHandle | ProjectsZoneDecorHandle | HomeZoneDecorHandle;
     parent: Mesh;
     boost: number;
     hotRadiusBase: number;
@@ -339,9 +342,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
    * Returns the screen-pixel position of the zone's world center plus a
    * hover hot-radius. Used by the per-frame hover-boost lerp.
    */
-  const zoneScreenHotspot = (
-    entry: ZoneEntry,
-  ): { x: number; y: number; r: number } => {
+  const zoneScreenHotspot = (entry: ZoneEntry): { x: number; y: number; r: number } => {
     entry.decor.group.getWorldPosition(projectedDecorPos);
     projectedDecorPos.project(camera);
     const x = (projectedDecorPos.x + 1) * 0.5 * window.innerWidth;

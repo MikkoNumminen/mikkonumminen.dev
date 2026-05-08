@@ -40,11 +40,7 @@ const linkPaths: Record<Locale, Record<string, string>> = {
   <div class="not-found">
     <h1 class="not-found__heading" data-not-found-heading>{en.notFound.heading}</h1>
     <p class="not-found__message" data-not-found-message>{en.notFound.message}</p>
-    <nav
-      class="not-found__links"
-      aria-label={en.notFound.navAria}
-      data-not-found-nav
-    >
+    <nav class="not-found__links" aria-label={en.notFound.navAria} data-not-found-nav>
       <a href={linkPaths.en.home} data-not-found-link="home">
         {en.notFound.linkHome}
       </a>
@@ -69,7 +65,11 @@ const linkPaths: Record<Locale, Record<string, string>> = {
 />
 
 <noscript>
-  <style>.not-found { visibility: visible !important; }</style>
+  <style>
+    .not-found {
+      visibility: visible !important;
+    }
+  </style>
 </noscript>
 
 <script>
@@ -135,7 +135,9 @@ const linkPaths: Record<Locale, Record<string, string>> = {
         contact: s.linkContact,
       };
 
-      for (const a of document.querySelectorAll<HTMLAnchorElement>('[data-not-found-link]')) {
+      for (const a of document.querySelectorAll<HTMLAnchorElement>(
+        '[data-not-found-link]',
+      )) {
         const key = a.getAttribute('data-not-found-link');
         if (!key) continue;
         const href = l[key];

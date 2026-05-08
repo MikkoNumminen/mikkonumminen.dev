@@ -128,7 +128,7 @@ function styleFor(id: string): SurfaceStyle {
         featureMix: 0.7,
         craters: 0,
         craterSizeRange: [0, 0],
-        bumpScale: 0.10,
+        bumpScale: 0.1,
       };
     case 'spacepotatis':
       // Volcanic boss-vibe — molten ridges through cooled crust, cratered.
@@ -167,7 +167,7 @@ function styleFor(id: string): SurfaceStyle {
         featureMix: 0.5,
         craters: 22,
         craterSizeRange: [2, 7],
-        bumpScale: 0.20,
+        bumpScale: 0.2,
       };
   }
 }
@@ -203,8 +203,7 @@ function derivePalette(baseColor: number): readonly [Rgb, Rgb, Rgb, Rgb] {
     ),
   ];
   return stops.map(
-    (s) =>
-      [Math.round(s.r * 255), Math.round(s.g * 255), Math.round(s.b * 255)] as Rgb,
+    (s) => [Math.round(s.r * 255), Math.round(s.g * 255), Math.round(s.b * 255)] as Rgb,
   ) as unknown as readonly [Rgb, Rgb, Rgb, Rgb];
 }
 

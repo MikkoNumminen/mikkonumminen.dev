@@ -60,11 +60,11 @@ export const en: Translations = {
       },
       {
         title: "Tested or it doesn't ship",
-        body: "Every repo runs CI on every push. HRM has 1828+ tests at 91.9% coverage, Spacepotatis ~1170, AudiobookMaker over 1800. Quality gates matter more than the fanciest stack.",
+        body: 'Every repo runs CI on every push. HRM has 1828+ tests at 91.9% coverage, Spacepotatis ~1170, AudiobookMaker over 1800. Quality gates matter more than the fanciest stack.',
       },
       {
         title: 'AI-native, on the record',
-        body: "Spacepotatis ships ten custom Claude Code skills under .claude/skills/ — version-controlled, audited quarterly, treated as production artifacts. Pair-programming with AI is part of the toolchain; the audit trail is the receipts.",
+        body: 'Spacepotatis ships ten custom Claude Code skills under .claude/skills/ — version-controlled, audited quarterly, treated as production artifacts. Pair-programming with AI is part of the toolchain; the audit trail is the receipts.',
       },
     ],
   },
@@ -239,7 +239,13 @@ export const en: Translations = {
     'ai-workflows': {
       title: 'AI-native workflows',
       body: 'Agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills check into the repo as production artifacts — each one teaches the agent a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so it goes straight to the work instead of grepping around at $X/token. Pair-programming with parallel subagents on independent slices, then synthesizing the results.\n\nThe skills are version-controlled, audited quarterly (drift between a skill and the code it references is a real category of bug — caught two real ones in the last audit), and treated as production artifacts. Estimated saving: ~2.76M tokens/year on Spacepotatis alone. Shipping faster without lowering the bar.',
-      tags: ['Agentic dev', 'Custom skills', 'Subagents', 'Versioned workflow', 'Velocity'],
+      tags: [
+        'Agentic dev',
+        'Custom skills',
+        'Subagents',
+        'Versioned workflow',
+        'Velocity',
+      ],
     },
     '2026-build': {
       title: 'The 2026 build',
@@ -273,7 +279,7 @@ export const en: Translations = {
         },
         {
           title: 'Fix upstream, not locally',
-          body: 'Diagnosed a memory leak deep in Chatterbox\'s inference path; sent two PRs upstream to resemble-ai/chatterbox (#505, #510), both open and bumped by other contributors.',
+          body: "Diagnosed a memory leak deep in Chatterbox's inference path; sent two PRs upstream to resemble-ai/chatterbox (#505, #510), both open and bumped by other contributors.",
         },
         {
           title: 'Solo full-stack, no queues',
