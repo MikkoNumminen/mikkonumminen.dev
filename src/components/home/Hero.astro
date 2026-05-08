@@ -51,7 +51,7 @@ const t = getTranslations(locale);
       <span class="hero__corner-num">61° N · 24° E</span>
       <span class="hero__corner-rule hero__corner-rule--tr"></span>
       <span class="hero__corner-place">tampere · hervanta</span>
-      <div class="hero__data-feed" data-data-feed>
+      <span class="hero__data-feed" data-data-feed>
         <span class="hero__data-feed-label">
           <span class="hero__data-feed-pulse"></span>
           <span>data · ch-01</span>
@@ -61,7 +61,7 @@ const t = getTranslations(locale);
           width="480"
           height="144"
           aria-hidden="true"></canvas>
-      </div>
+      </span>
     </span>
     <span class="hero__corner hero__corner--br">
       <span class="hero__corner-num">vol. 26</span>
@@ -343,6 +343,9 @@ const t = getTranslations(locale);
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const init = (): void => {
+    // Corner widgets are hidden via CSS at ≤860px; skip the cascade work
+    // on mobile so we don't burn CPU painting an invisible canvas.
+    if (window.matchMedia('(max-width: 860px)').matches) return;
     const root = document.querySelector<HTMLElement>('[data-data-feed]');
     if (!root) return;
     const canvas = root.querySelector<HTMLCanvasElement>('.hero__data-feed-canvas');

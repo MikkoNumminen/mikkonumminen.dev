@@ -94,10 +94,18 @@ export function buildDataFeedMatrix(
   const ctx = canvas.getContext('2d');
   if (!ctx) return { dispose: (): void => {} };
 
-  const w = canvas.width;
-  const h = canvas.height;
+  // Match the canvas backing store to the displayed CSS size × devicePixelRatio
+  // so the cascade renders crisp on retina displays. Falls back to the HTML
+  // attribute size if clientWidth is 0 (canvas not yet laid out).
+  const cssW = canvas.clientWidth || canvas.width;
+  const cssH = canvas.clientHeight || canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  ctx.scale(dpr, dpr);
+
   const columns = makeColumns();
-  paint(ctx, w, h, columns);
+  paint(ctx, cssW, cssH, columns);
 
   if (reducedMotion) {
     return { dispose: (): void => {} };
@@ -122,7 +130,7 @@ export function buildDataFeedMatrix(
         }
       }
     }
-    paint(ctx, w, h, columns);
+    paint(ctx, cssW, cssH, columns);
   };
   raf = requestAnimationFrame(tick);
 
