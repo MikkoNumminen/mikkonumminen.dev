@@ -317,6 +317,26 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const lookAtCurrent = SOLAR_LOOK_AT.clone();
 
   function selectPlanet(entry: PlanetEntry): void {
+    // Reset any in-progress hover state before locking the camera onto
+    // the new selection. Without this the previously-hovered planet
+    // keeps its 1.18× scale through the drawer's lifetime (the raycast
+    // tick block is gated on !selected, so it never gets a chance to
+    // tween down). Also clears any forced hover from the side-panel
+    // list so a list-then-click flow doesn't leave forcedHovered
+    // pointing at the now-selected planet's neighbour.
+    if (hovered) {
+      gsap.to(hovered.mesh.scale, {
+        x: 1,
+        y: 1,
+        z: 1,
+        duration: 0.35,
+        ease: 'power2.out',
+      });
+      hovered = null;
+    }
+    forcedHovered = null;
+    canvas.style.cursor = '';
+    hoverLabelHandle.hide();
     selected = entry;
     onSelect(entry.project);
   }

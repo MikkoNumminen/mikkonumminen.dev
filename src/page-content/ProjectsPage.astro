@@ -220,12 +220,17 @@ const connectionLegendEntries = connections.map((c) => ({
     // Mark the list item that matches the currently selected project so
     // when the drawer closes the user can see which project was just
     // opened. `scrollIntoView` keeps it in view if the list overflows.
+    // Modern browsers respect prefers-reduced-motion for CSSOM smooth
+    // scroll, but explicit fallback to instant scroll is belt-and-
+    // suspenders and matches the rest of the page's reduced-motion
+    // policy.
+    const scrollBehavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
     const setListSelected = (id: string | null) => {
       if (!list) return;
       list.querySelectorAll<HTMLElement>('[data-project-id]').forEach((btn) => {
         if (btn.getAttribute('data-project-id') === id) {
           btn.setAttribute('data-selected', 'true');
-          btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          btn.scrollIntoView({ block: 'nearest', behavior: scrollBehavior });
         } else {
           btn.removeAttribute('data-selected');
         }
