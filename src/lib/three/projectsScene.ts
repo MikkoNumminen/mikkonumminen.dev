@@ -128,6 +128,20 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   rimLight.position.set(-10, -2, -8);
   scene.add(rimLight);
 
+  // Camera-tracked fill light. Planets orbiting between camera and
+  // sun show their dark hemisphere to the viewer — physically correct
+  // but a portfolio scene needs every planet readable. This light
+  // follows the camera each frame so the side facing the viewer is
+  // always lit. Cool blue-white tint keeps the deep-space mood
+  // intact rather than reading as studio fill.
+  const cameraFill = new DirectionalLight(0x9cb6e0, 0.55);
+  // Target stays at scene origin; updating cameraFill.position each
+  // frame aims the directional ray camera→origin. Adding the target
+  // to the scene is the documented three.js pattern — it ensures
+  // matrixWorld updates correctly if anyone later enables shadows or
+  // moves the target.
+  scene.add(cameraFill, cameraFill.target);
+
   // ── Planets ─────────────────────────────────────────────────────────
   const planets: PlanetEntry[] = [];
   for (const project of projects) {
@@ -456,6 +470,10 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     // Starfield slow drift (parallax)
     starfield.points.rotation.y = elapsed * 0.005;
 
+    // Camera-tracked fill follows the camera each frame so whichever
+    // hemisphere of each planet is facing the viewer stays lit.
+    cameraFill.position.copy(camera.position);
+
     renderer.render(scene, camera);
   };
 
@@ -540,10 +558,11 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       scene.remove(connectionsBundle.group);
       disposeExternalIndicators(externalIndicators);
 
-      scene.remove(sunLight, ambient, rimLight);
+      scene.remove(sunLight, ambient, rimLight, cameraFill, cameraFill.target);
       sunLight.dispose();
       ambient.dispose();
       rimLight.dispose();
+      cameraFill.dispose();
 
       scene.fog = null;
       scene.clear();

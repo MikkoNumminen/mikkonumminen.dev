@@ -64,11 +64,15 @@ export function buildPlanet(project: LocalizedProject): {
     // the sun don't blow out the texture detail across the whole face.
     roughness: 0.95,
     metalness: 0.0,
-    // No emissive — even at 0.06 it laid a flat brand-color tint over
-    // every pixel of the texture, masking the gas-giant bands / lava
-    // ridges / vegetation patches we worked to generate. Brand color
-    // is conveyed by the per-planet glow halo and the texture's own
-    // palette ramp (which is derived from the brand color).
+    // Self-illuminate using the surface texture itself rather than a
+    // flat colour. Earlier flat-brand-colour emissive at 0.06 painted
+    // over the gas-giant bands / lava ridges; using the map as the
+    // emissive source preserves every per-pixel detail and just lifts
+    // the shadowed hemisphere so planets that orbit between camera
+    // and sun still read as textured bodies, not black silhouettes.
+    emissiveMap: surfaceMap,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.18,
   });
   const mesh = new Mesh(geometry, material);
   mesh.userData.projectId = project.id;
