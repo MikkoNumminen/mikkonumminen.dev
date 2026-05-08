@@ -14,9 +14,11 @@ const METEOR_COUNT = 5;
 // Spawn-radius sphere around the galaxy center. Meteors come from any
 // direction on this sphere and head inward toward the galaxy.
 const SPAWN_RADIUS = 22;
-// Distance from galaxy center at which a meteor detonates. Roughly the
-// galaxy's outer star halo so the explosion reads as "inside the disk".
-const IMPACT_RADIUS = 1.6;
+// Distance from galaxy center at which a meteor detonates. Sits well
+// inside the galaxy's 8-unit star disk but far enough from the core that
+// successive impacts visibly scatter across the disk rather than all
+// landing dead-center.
+const IMPACT_RADIUS = 4;
 // World-space speed range. Some meteors crawl in, others streak fast —
 // the variance is the point of "some are faster than others".
 const SPEED_MIN = 8;
@@ -34,7 +36,7 @@ interface MeteorState {
   active: boolean;
   velocity: Vector3;
   spawnTime: number;
-  /** Hard cutoff lifetime; if a meteor never reaches the galaxy, it expires. */
+  /** Fail-safe lifetime; if impact detection somehow misses, the meteor still expires. */
   lifetime: number;
   tint: Color;
   /** Set true when the meteor head crosses IMPACT_RADIUS. */
@@ -259,8 +261,6 @@ export function buildMeteors(options: BuildMeteorsOptions): MeteorsHandle {
     meteor.material.opacity = Math.max(0, Math.min(1, alpha));
 
     meteor.positionsAttr.needsUpdate = true;
-    // Suppress unused-warning when delta is only consumed conditionally.
-    void delta;
   }
 
   return {

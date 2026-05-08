@@ -18,15 +18,14 @@ const t = getTranslations(locale);
 // uses its own hardcoded sentinel list.
 let commitMessages: string[] = [];
 try {
-  commitMessages = execSync('git log --pretty=format:%s -n 80', {
+  const subjects = execSync('git log --pretty=format:%s -n 80', {
     encoding: 'utf8',
   })
     .split('\n')
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
-    .filter((s) => !/^Merge /i.test(s))
-    .filter((s, i, arr) => arr.indexOf(s) === i)
-    .slice(0, 50);
+    .filter((s) => !/^Merge /i.test(s));
+  commitMessages = Array.from(new Set(subjects)).slice(0, 50);
 } catch {
   commitMessages = [];
 }

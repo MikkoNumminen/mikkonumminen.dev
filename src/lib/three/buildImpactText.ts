@@ -25,9 +25,11 @@ const RISE_SPEED = 1.2;
 const BASE_WORLD_WIDTH = 7.5;
 const BASE_WORLD_HEIGHT = 1.4;
 // Off-screen canvas resolution. Wider than tall so monospace lines have
-// room to breathe; matches the BASE_WORLD aspect ratio.
-const CANVAS_W = 1024;
-const CANVAS_H = 192;
+// room to breathe; matches the BASE_WORLD aspect ratio. Halved from the
+// original 1024×192 — text still reads sharp at the popup's screen size
+// and the 6-slot pool fits in ~1.2 MB of texture memory instead of ~9 MB.
+const CANVAS_W = 512;
+const CANVAS_H = 96;
 
 interface PopupState {
   sprite: Sprite;
@@ -64,7 +66,7 @@ function drawText(
   // illegibility. Common conventional commits fit comfortably under 80.
   const display = text.length > 72 ? text.slice(0, 69) + '…' : text;
 
-  ctx.font = `700 96px "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, monospace`;
+  ctx.font = `700 48px "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -78,12 +80,12 @@ function drawText(
   )}, ${Math.round(tint.b * 255)})`;
   ctx.save();
   ctx.shadowColor = tintCss;
-  ctx.shadowBlur = 24;
+  ctx.shadowBlur = 12;
   ctx.lineJoin = 'round';
 
   // Black ink stroke for legibility against any backdrop.
   ctx.strokeStyle = 'rgba(0, 0, 0, 0.92)';
-  ctx.lineWidth = 12;
+  ctx.lineWidth = 6;
   ctx.strokeText(display, cx, cy);
 
   // Tinted core fill — brightened toward white so the body of the text

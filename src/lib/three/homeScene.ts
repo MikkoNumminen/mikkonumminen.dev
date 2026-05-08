@@ -206,12 +206,29 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // carries the meteor's signature into the explosion.
   const impactText: ImpactTextHandle = buildImpactText();
   scene.add(impactText.group);
-  let nextCommitIdx = Math.floor(Math.random() * commitMessages.length);
+
+  // Random commit pick with no immediate repeat — sequential indexing
+  // would cycle through the 50-message pool in the same order forever.
+  let lastCommitIdx = -1;
   const pickCommit = (): string => {
-    const msg = commitMessages[nextCommitIdx % commitMessages.length]!;
-    nextCommitIdx++;
-    return msg;
+    if (commitMessages.length === 0) return '';
+    if (commitMessages.length === 1) return commitMessages[0]!;
+    let idx = Math.floor(Math.random() * commitMessages.length);
+    if (idx === lastCommitIdx) idx = (idx + 1) % commitMessages.length;
+    lastCommitIdx = idx;
+    return commitMessages[idx]!;
   };
+
+  // Impact-flash energies are read/written by the meteor onImpact closure
+  // below. Declared up here so the closure captures already-initialized
+  // bindings — moving them after the buildMeteors call would TDZ if
+  // anything ever fires onImpact during init.
+  let collisionFlashEnergy = 0;
+  let collisionRimEnergy = 0;
+  // Bumped from 4.0 — the dedicated front-facing collision light hits
+  // a different surface than the old orbiting rim, so it needs more
+  // intensity to read as the same "bright moment" the user expects.
+  const COLLISION_RIM_PEAK = 6.0;
 
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
@@ -421,15 +438,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // to screen center and would falsely trigger hover on any decor
   // that happens to project near the middle of the viewport.
   let mouseSeen = false;
-  let collisionFlashEnergy = 0;
-  // Drives a rim flash on the title each time a meteor impact fires —
-  // keeps the title's rim flashes synced with the visible collision
-  // flashes so both events read as one moment.
-  let collisionRimEnergy = 0;
-  // Bumped from 4.0 — the dedicated front-facing collision light hits
-  // a different surface than the old orbiting rim, so it needs more
-  // intensity to read as the same "bright moment" the user expects.
-  const COLLISION_RIM_PEAK = 6.0;
 
   const onPointerMove = (e: PointerEvent): void => {
     targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
