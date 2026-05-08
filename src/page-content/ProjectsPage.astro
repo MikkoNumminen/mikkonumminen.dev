@@ -56,6 +56,8 @@ const connectionLegendEntries = connections.map((c) => ({
     <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
     </div>
 
+    <div class="planet-labels" id="planet-labels" aria-hidden="true"></div>
+
     <nav class="projects-scene__list" data-list aria-label={t.projectsPage.listAriaLabel}>
       <p class="projects-scene__list-heading">{t.projectsPage.listHeading}</p>
       <ul class="projects-scene__list-items">
@@ -201,6 +203,7 @@ const connectionLegendEntries = connections.map((c) => ({
 
     const canvas = document.getElementById('projects-canvas') as HTMLCanvasElement | null;
     const hoverLabel = document.getElementById('hover-label');
+    const planetLabels = document.getElementById('planet-labels');
     const detail = document.getElementById('project-detail');
     const closeBtn = document.getElementById(
       'project-detail-close',
@@ -211,7 +214,7 @@ const connectionLegendEntries = connections.map((c) => ({
     const key = document.querySelector<HTMLElement>('[data-key]');
     const list = document.querySelector<HTMLElement>('[data-list]');
 
-    if (!canvas || !hoverLabel || !detail || !closeBtn) return;
+    if (!canvas || !hoverLabel || !planetLabels || !detail || !closeBtn) return;
 
     // Mark the list item that matches the currently selected project so
     // when the drawer closes the user can see which project was just
@@ -272,6 +275,7 @@ const connectionLegendEntries = connections.map((c) => ({
       sceneHandle = createProjectsScene({
         canvas,
         hoverLabel,
+        planetLabels,
         projects: localizedProjects,
         reducedMotion,
         onSelect: (project) => {
