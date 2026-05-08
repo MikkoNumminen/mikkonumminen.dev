@@ -1,6 +1,7 @@
 import {
   ACESFilmicToneMapping,
   AmbientLight,
+  DirectionalLight,
   FogExp2,
   Mesh,
   PerspectiveCamera,
@@ -108,12 +109,23 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   scene.add(sun.group);
 
   // ── Lighting ────────────────────────────────────────────────────────
-  const sunLight = new PointLight(0xffd6a0, 4.2, 220, 1.3);
+  // Sun radiates outward without distance falloff — matches the
+  // Spacepotatis approach so outer planets aren't visibly dimmer than
+  // inner ones (with falloff at orbit radius 28 the far planets were
+  // mostly ambient-lit, washing out the procedural surface textures).
+  const sunLight = new PointLight(0xffd6a0, 2.6, 0, 0);
   sunLight.position.set(0, 0, 0);
   scene.add(sunLight);
 
-  const ambient = new AmbientLight(0x404060, 0.55);
+  // Low ambient + faint directional rim. Earlier ambient at 0.55 was
+  // ~8× brighter than the working Spacepotatis reference — it washed
+  // out the directional shading the textures need to read as 3D
+  // surfaces. Now the textures actually show light/dark variation.
+  const ambient = new AmbientLight(0x1a2440, 0.12);
   scene.add(ambient);
+  const rimLight = new DirectionalLight(0x3a5b8c, 0.18);
+  rimLight.position.set(-10, -2, -8);
+  scene.add(rimLight);
 
   // ── Planets ─────────────────────────────────────────────────────────
   const planets: PlanetEntry[] = [];

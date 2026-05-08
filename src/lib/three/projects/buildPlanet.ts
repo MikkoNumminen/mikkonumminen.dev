@@ -59,11 +59,15 @@ export function buildPlanet(project: LocalizedProject): {
     bumpScale,
     // White multiplier so the texture's colors come through unmuddied.
     color: 0xffffff,
-    roughness: 0.78,
-    metalness: 0.05,
-    // Faint glow in the project's brand color so each planet still reads
-    // as "the X color planet" at a glance, even with the texture on top.
-    emissive: baseColor.clone().multiplyScalar(0.06),
+    // Heavy matte (Spacepotatis uses 0.95) so specular highlights from
+    // the sun don't blow out the texture detail across the whole face.
+    roughness: 0.95,
+    metalness: 0.0,
+    // No emissive — even at 0.06 it laid a flat brand-color tint over
+    // every pixel of the texture, masking the gas-giant bands / lava
+    // ridges / vegetation patches we worked to generate. Brand color
+    // is conveyed by the per-planet glow halo and the texture's own
+    // palette ramp (which is derived from the brand color).
   });
   const mesh = new Mesh(geometry, material);
   mesh.userData.projectId = project.id;
