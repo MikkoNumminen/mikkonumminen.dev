@@ -246,9 +246,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   }
   // Letter top in mesh-local Y — derived from the geometry's bbox so the
   // mountain placement tracks any future change to TextGeometry SIZE
-  // or bevel. `BufferGeometry.translate` updates the boundingBox in place
-  // so this reflects the post-centering state.
-  const mikkoTopY = mikkoMesh.geometry.boundingBox?.max.y ?? 1.1;
+  // or bevel. buildTitle always calls computeBoundingBox before the
+  // centering translate, and Three.js's BufferGeometry.translate updates
+  // the box in place, so it is always set here.
+  const mikkoTopY = mikkoMesh.geometry.boundingBox!.max.y;
 
   // Each zone module's "design width" at scale=1, used to pick a scale
   // that fills the targeted letter span.
