@@ -14,10 +14,8 @@ const t = getTranslations(locale);
 
 // Recent commit subjects, baked in at build time. Drives the impact-text
 // popups that burst from each meteor strike on the home hero galaxy.
-// Filtered to drop merges and any defensive Claude refs (committed files
-// must not reference the AI tooling — see project guide). Falls back to
-// an empty array outside a git checkout; the scene then uses its own
-// hardcoded sentinel list.
+// Falls back to an empty array outside a git checkout; the scene then
+// uses its own hardcoded sentinel list.
 let commitMessages: string[] = [];
 try {
   commitMessages = execSync('git log --pretty=format:%s -n 80', {
@@ -27,7 +25,6 @@ try {
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
     .filter((s) => !/^Merge /i.test(s))
-    .filter((s) => !/claude/i.test(s))
     .filter((s, i, arr) => arr.indexOf(s) === i)
     .slice(0, 50);
 } catch {
