@@ -13,6 +13,9 @@ export interface DataFeedConsoleHandle {
   dispose: () => void;
 }
 
+/** Shared no-op for the early-return paths (no 2D context, reduced motion). */
+const NOOP_HANDLE: DataFeedConsoleHandle = { dispose: (): void => {} };
+
 type LineKind = 'cmd' | 'out' | 'status';
 
 interface ConsoleLine {
@@ -60,11 +63,13 @@ const CHAR_MAX_MS = 64;
 const PAUSE_MIN_MS = 380;
 const PAUSE_MAX_MS = 720;
 const CURSOR_BLINK_MS = 520;
+/** Slide-up animation duration when a new line bumps the oldest off the top. */
+const SLIDE_DURATION_MS = 140;
 
-function colorsFor(kind: LineKind, opacity: number): {
-  prompt: string;
-  text: string;
-} {
+function colorsFor(
+  kind: LineKind,
+  opacity: number,
+): { prompt: string; text: string } {
   switch (kind) {
     case 'cmd':
       return {
@@ -111,6 +116,7 @@ function paint(
   buffer: ConsoleLine[],
   active: ConsoleLine | null,
   cursorVisible: boolean,
+  slideOffset: number,
 ): void {
   // Pure dark navy — no green channel above blue, so the panel stays
   // strictly cool. Slight transparency lets the page bg bleed through.
@@ -122,13 +128,13 @@ function paint(
 
   // Visible window: most recent MAX_LINES total (active counts as one).
   // When active exists and the buffer is full, the oldest buffer line
-  // slides out of view at the top.
+  // slides out of view at the top via slideOffset.
   const all: ConsoleLine[] = active ? [...buffer, active] : buffer;
   const visible = all.slice(-MAX_LINES);
 
   for (let i = 0; i < visible.length; i++) {
     const line = visible[i]!;
-    const y = PAD_TOP + i * LINE_HEIGHT;
+    const y = PAD_TOP + i * LINE_HEIGHT + slideOffset;
     const isActive = line === active;
     // Older lines fade by row; the active line is always full opacity.
     const ageOffset = visible.length - 1 - i;
@@ -149,16 +155,23 @@ export function buildDataFeedConsole(
   reducedMotion: boolean,
 ): DataFeedConsoleHandle {
   const ctx = canvas.getContext('2d');
-  if (!ctx) return { dispose: (): void => {} };
+  if (!ctx) return NOOP_HANDLE;
 
-  // Match the canvas backing store to the displayed CSS size × DPR so
-  // the small text renders crisp on retina/3× displays.
-  const cssW = canvas.clientWidth || canvas.width;
-  const cssH = canvas.clientHeight || canvas.height;
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(cssW * dpr);
-  canvas.height = Math.round(cssH * dpr);
-  ctx.scale(dpr, dpr);
+  // Backing-store sizing. Re-runs if devicePixelRatio changes mid-session
+  // (window dragged between monitors with different DPR).
+  let cssW = canvas.clientWidth || canvas.width;
+  let cssH = canvas.clientHeight || canvas.height;
+  let lastDpr = window.devicePixelRatio || 1;
+
+  const setupBackingStore = (): void => {
+    cssW = canvas.clientWidth || canvas.width;
+    cssH = canvas.clientHeight || canvas.height;
+    canvas.width = Math.round(cssW * lastDpr);
+    canvas.height = Math.round(cssH * lastDpr);
+    // Setting canvas.width clears the 2D context state, so re-scale.
+    ctx.scale(lastDpr, lastDpr);
+  };
+  setupBackingStore();
 
   // Pre-fill with MAX_LINES-1 fully-typed lines so the widget is never
   // blank on first paint (and reduced-motion clients see a populated
@@ -174,27 +187,65 @@ export function buildDataFeedConsole(
   let active: ConsoleLine | null = null;
   let nextCharAt = 0;
   let pauseUntil = 0;
+  let slideOffset = 0;
+  let slideStartedAt = 0;
 
-  paint(ctx, cssW, cssH, buffer, null, false);
+  paint(ctx, cssW, cssH, buffer, null, false, 0);
 
-  if (reducedMotion) {
-    return { dispose: (): void => {} };
-  }
+  if (reducedMotion) return NOOP_HANDLE;
+
+  // Last-painted state — skip redundant paints when nothing visible
+  // changed. Scrolls / typing / cursor blink / DPR change all flip this.
+  let lastTyped = -1;
+  let lastBufferLen = -1;
+  let lastCursorOn = false;
+  let lastSlideOffset = -1;
+  let lastActive: ConsoleLine | null = null;
 
   let raf = 0;
 
   const tick = (now: number): void => {
     raf = requestAnimationFrame(tick);
 
+    // DPR can change when the window moves between monitors; resync the
+    // backing store and force a repaint when it does.
+    const dpr = window.devicePixelRatio || 1;
+    if (dpr !== lastDpr) {
+      lastDpr = dpr;
+      setupBackingStore();
+      lastTyped = -2; // sentinel that never matches typedNow → forces paint
+    }
+
+    // Advance slide animation toward 0.
+    if (slideOffset > 0) {
+      const elapsed = now - slideStartedAt;
+      const t = Math.min(1, elapsed / SLIDE_DURATION_MS);
+      // easeOutCubic — fast at start, settles smoothly at the end.
+      const eased = 1 - Math.pow(1 - t, 3);
+      slideOffset = LINE_HEIGHT * (1 - eased);
+      if (t >= 1) slideOffset = 0;
+    }
+
     const cursorOn = Math.floor(now / CURSOR_BLINK_MS) % 2 === 0;
 
     if (!active) {
       if (now < pauseUntil) {
-        // Still pausing between lines; repaint for cursor blink only.
-        paint(ctx, cssW, cssH, buffer, null, cursorOn);
+        // Pausing between lines — only repaint if the cursor blink
+        // toggled or a slide is still in progress.
+        if (cursorOn !== lastCursorOn || slideOffset !== lastSlideOffset) {
+          paint(ctx, cssW, cssH, buffer, null, cursorOn, slideOffset);
+          lastCursorOn = cursorOn;
+          lastSlideOffset = slideOffset;
+        }
         return;
       }
+      // Start a new active line. If the buffer is already full, the new
+      // line will displace the oldest from view — animate that.
       const spec = SCRIPT[scriptIdx]!;
+      if (buffer.length >= MAX_LINES) {
+        slideOffset = LINE_HEIGHT;
+        slideStartedAt = now;
+      }
       active = { text: spec.text, kind: spec.kind, typed: 0 };
       scriptIdx = (scriptIdx + 1) % SCRIPT.length;
       nextCharAt = now;
@@ -212,7 +263,24 @@ export function buildDataFeedConsole(
       pauseUntil = now + PAUSE_MIN_MS + Math.random() * (PAUSE_MAX_MS - PAUSE_MIN_MS);
     }
 
-    paint(ctx, cssW, cssH, buffer, active, cursorOn);
+    // Dirty-check before painting — at the cadence of typing (~50 ms per
+    // char) most rAF frames don't change visible state, so this skips
+    // ~2/3 of the per-frame paint work.
+    const typedNow = active?.typed ?? -1;
+    const dirty =
+      lastActive !== active ||
+      typedNow !== lastTyped ||
+      buffer.length !== lastBufferLen ||
+      cursorOn !== lastCursorOn ||
+      slideOffset !== lastSlideOffset;
+    if (dirty) {
+      paint(ctx, cssW, cssH, buffer, active, cursorOn, slideOffset);
+      lastActive = active;
+      lastTyped = typedNow;
+      lastBufferLen = buffer.length;
+      lastCursorOn = cursorOn;
+      lastSlideOffset = slideOffset;
+    }
   };
   raf = requestAnimationFrame(tick);
 
