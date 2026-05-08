@@ -25,6 +25,7 @@ import { buildCollisionSparks, type CollisionSparksHandle } from './buildCollisi
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
 import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
+import { buildImpactText, type ImpactTextHandle } from './buildImpactText';
 import { buildMeteors, type MeteorsHandle } from './buildMeteors';
 import {
   buildExperienceZoneDecor,
@@ -42,7 +43,24 @@ interface HomeSceneOptions {
   canvas: HTMLCanvasElement;
   fontUrl: string;
   reducedMotion?: boolean;
+  /**
+   * Recent commit subjects, baked in at build time. One is shown at each
+   * meteor impact as an RPG-style damage popup. Falls back to a small
+   * sentinel list when empty (e.g. dev outside a git checkout).
+   */
+  commitMessages?: string[];
 }
+
+const FALLBACK_COMMITS: string[] = [
+  'feat: ship the galaxy',
+  'fix: stabilize the orbit',
+  'chore: prettier sweep',
+  'refactor: lighten the loop',
+  'docs: update the field guide',
+  'style: tighten the type ramp',
+  'feat: add scroll trigger',
+  'fix: clamp camera bounds',
+];
 
 export interface HomeSceneHandle {
   setScrollProgress: (progress: number) => void;
@@ -59,6 +77,10 @@ const PARTICLE_MAX = 2200;
 
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
   const { canvas, fontUrl, reducedMotion = false } = opts;
+  const commitMessages =
+    opts.commitMessages && opts.commitMessages.length > 0
+      ? opts.commitMessages
+      : FALLBACK_COMMITS;
 
   // Load the font BEFORE allocating any GPU/DOM resources. If the font fails
   // we never enter the try-block, so there is nothing to clean up.
@@ -144,50 +166,69 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   fillLight.position.set(-4, 4, 6);
   scene.add(fillLight);
 
-  // Shared center the two galaxies orbit around — also where the
-  // collision-flash light lives.
-  const SHARED_CENTER: [number, number, number] = [-10, -4.5, -14];
+  // World-space center of the spiral galaxy. Meteors converge on this
+  // point; the collision-flash light moves to each impact as it fires.
+  const GALAXY_CENTER: [number, number, number] = [-7, -3.5, -12];
+  const galaxyCenter = new Vector3(...GALAXY_CENTER);
 
-  // Dedicated collision-flash PointLight that lives near the galaxies.
-  // Steady at 0; pulses to ~4.5 when sparks spawn and decays back over
-  // ~0.25 s, painting the chrome with a brief bright flash agreeing with
-  // the sparks.
+  // Dedicated collision-flash PointLight. Steady at 0; pulses bright on
+  // each meteor impact and decays back over ~0.25 s, painting the
+  // chrome with a brief bright flash that agrees with the sparks.
   const collisionFlashLight = new PointLight(0xeaf5ff, 0, 32);
-  collisionFlashLight.position.set(...SHARED_CENTER);
+  collisionFlashLight.position.copy(galaxyCenter);
   scene.add(collisionFlashLight);
 
   // ── Horizon glow plate (sun-side halo behind the title) ──────────────
   const horizon: HorizonGlowHandle = buildHorizonGlow();
   scene.add(horizon.mesh);
 
-  // ── Galaxy layers ────────────────────────────────────────────────────
-  // Two procedural spirals that periodically pass through each other on a
-  // long elliptical orbit. The collision drives the sparks system below.
-  const galaxy: GalaxyLayerHandle = buildGalaxyLayer();
-  scene.add(galaxy.group);
-
-  // Galaxy B is an elliptical (no spiral arms) so the two read as visibly
-  // different shapes when they pass through each other. Color stays in
-  // the same blue family as Galaxy A — galaxies aren't pink.
-  const galaxyB: GalaxyLayerHandle = buildGalaxyLayer({
-    shape: 'elliptical',
-    starCount: 480,
-    color: 0xa0c0ff,
-    starSize: 0.075,
-    semiAxes: [3.4, 2.6, 2.2],
-    // Position is updated each frame; this is just the initial spawn.
-    position: [-7, -3, -14],
-    rotation: [0, 0, 0],
+  // ── Galaxy ───────────────────────────────────────────────────────────
+  // Single focal spiral galaxy — meteors converge on it from all
+  // directions and detonate on impact, driving the sparks + rim flash +
+  // commit-message popup below.
+  const galaxy: GalaxyLayerHandle = buildGalaxyLayer({
+    starCount: 900,
+    position: GALAXY_CENTER,
   });
-  scene.add(galaxyB.group);
+  scene.add(galaxy.group);
 
   // ── Collision flash sprites ──────────────────────────────────────────
   // Bright additive sprites that scale up and fade out at the moment of
-  // each galaxy close-approach event. Replaces the earlier particle
-  // scatter — reads as a clean "flash of light" matching the text rim
-  // flashes, not a debris explosion.
+  // each meteor impact. Reads as a clean "flash of light" matching the
+  // text rim flashes, not a debris explosion.
   const sparks: CollisionSparksHandle = buildCollisionSparks();
   scene.add(sparks.group);
+
+  // ── Impact text popups ───────────────────────────────────────────────
+  // RPG-style damage popups in terminal monospace, one per meteor impact.
+  // Each pop renders a recent commit subject at the impact point, drifts
+  // upward, and fades. Tinted by the meteor's world color so the popup
+  // carries the meteor's signature into the explosion.
+  const impactText: ImpactTextHandle = buildImpactText();
+  scene.add(impactText.group);
+
+  // Random commit pick with no immediate repeat — sequential indexing
+  // would cycle through the 50-message pool in the same order forever.
+  let lastCommitIdx = -1;
+  const pickCommit = (): string => {
+    if (commitMessages.length === 0) return '';
+    if (commitMessages.length === 1) return commitMessages[0]!;
+    let idx = Math.floor(Math.random() * commitMessages.length);
+    if (idx === lastCommitIdx) idx = (idx + 1) % commitMessages.length;
+    lastCommitIdx = idx;
+    return commitMessages[idx]!;
+  };
+
+  // Impact-flash energies are read/written by the meteor onImpact closure
+  // below. Declared up here so the closure captures already-initialized
+  // bindings — moving them after the buildMeteors call would TDZ if
+  // anything ever fires onImpact during init.
+  let collisionFlashEnergy = 0;
+  let collisionRimEnergy = 0;
+  // Bumped from 4.0 — the dedicated front-facing collision light hits
+  // a different surface than the old orbiting rim, so it needs more
+  // intensity to read as the same "bright moment" the user expects.
+  const COLLISION_RIM_PEAK = 6.0;
 
   // ── Particle field ───────────────────────────────────────────────────
   const particleCount = reducedMotion
@@ -352,8 +393,26 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     return { x, y, r };
   };
 
-  // ── Meteors (occasional shooting stars carrying world tints) ─────────
-  const meteors: MeteorsHandle = buildMeteors();
+  // ── Meteors (converge on the galaxy and detonate on impact) ─────────
+  const meteors: MeteorsHandle = buildMeteors({
+    galaxyCenter,
+    onImpact: (impactWorldPos, color) => {
+      sparks.spawn(impactWorldPos.x, impactWorldPos.y, impactWorldPos.z);
+      // Brighten the chrome rim and the per-impact point light in sync
+      // with the visible spark — same wiring that the old galaxy-vs-
+      // galaxy collision drove.
+      collisionFlashEnergy = 1;
+      collisionRimEnergy = 1;
+      collisionFlashLight.position.copy(impactWorldPos);
+      impactText.spawn(
+        pickCommit(),
+        impactWorldPos.x,
+        impactWorldPos.y,
+        impactWorldPos.z,
+        color,
+      );
+    },
+  });
   scene.add(meteors.group);
 
   // ── Postprocessing: bloom on bright specular peaks + sun glow ────────
@@ -379,21 +438,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // to screen center and would falsely trigger hover on any decor
   // that happens to project near the middle of the viewport.
   let mouseSeen = false;
-  let lastSparkSpawnAt = -1;
-  let collisionFlashEnergy = 0;
-  // Drives a rim flash on the title each time a galaxy collision spark
-  // spawns — keeps the title's rim flashes synced with the visible
-  // collision flashes so both events read as one moment.
-  let collisionRimEnergy = 0;
-  // Bumped from 4.0 — the dedicated front-facing collision light hits
-  // a different surface than the old orbiting rim, so it needs more
-  // intensity to read as the same "bright moment" the user expects.
-  const COLLISION_RIM_PEAK = 6.0;
-  const COLLISION_THRESHOLD = 3.6;
-  // Each flash is brief but impactful; pacing it at ~0.55 s gives 2-3
-  // distinct flashes per close-approach pass, mirroring the cadence of
-  // the title rim flashes during entrance.
-  const SPARK_COOLDOWN = 0.55;
 
   const onPointerMove = (e: PointerEvent): void => {
     targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -475,52 +519,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       ? 0.85
       : 0.82 + Math.sin(elapsed * 0.3) * 0.04;
 
-    // Both galaxies orbit a shared center on perpendicular planes
-    // (Galaxy A on XY, Galaxy B on XZ) at slightly different speeds, so
-    // their paths cross periodically — guaranteed close approaches
-    // instead of two parallel orbits that never quite meet. Period
-    // ~22 s, threshold 3.6 units; while inside the threshold, sparks
-    // fire every 0.18 s with 14–22 particles per burst.
+    // The galaxy spins gently in place; meteors do all the spatial work.
+    // Each meteor impact (handled in buildMeteors → onImpact) bumps the
+    // collision-flash energy and the title rim-flash energy; both decay
+    // here every frame.
     if (!reducedMotion) {
       galaxy.group.rotation.z = elapsed * 0.04;
-      galaxyB.group.rotation.x = elapsed * 0.06;
-      galaxyB.group.rotation.y = elapsed * 0.09;
-
-      const orbitT = (elapsed * Math.PI * 2) / 22;
-      // Galaxy A — ellipse on the XY plane.
-      galaxy.group.position.set(
-        SHARED_CENTER[0] + Math.cos(orbitT) * 4.5,
-        SHARED_CENTER[1] + Math.sin(orbitT) * 2.0,
-        SHARED_CENTER[2],
-      );
-      // Galaxy B — circle on the XZ plane at a 1.4× rate with a phase
-      // offset so the two galaxies don't share a relative phase that
-      // would lock them into never-touching parallel paths.
-      galaxyB.group.position.set(
-        SHARED_CENTER[0] + Math.cos(orbitT * 1.4 + 0.7) * 3.6,
-        SHARED_CENTER[1],
-        SHARED_CENTER[2] + Math.sin(orbitT * 1.4 + 0.7) * 3,
-      );
-
-      const dx = galaxy.group.position.x - galaxyB.group.position.x;
-      const dy = galaxy.group.position.y - galaxyB.group.position.y;
-      const dz = galaxy.group.position.z - galaxyB.group.position.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (dist < COLLISION_THRESHOLD && elapsed - lastSparkSpawnAt > SPARK_COOLDOWN) {
-        const t = 0.3 + Math.random() * 0.4;
-        sparks.spawn(
-          galaxyB.group.position.x + dx * t,
-          galaxyB.group.position.y + dy * t,
-          galaxyB.group.position.z + dz * t,
-        );
-        lastSparkSpawnAt = elapsed;
-        // Also pulse the collision flash light for an extra-bright moment.
-        collisionFlashEnergy = 1;
-        // And bump the title rim flash so the chrome flashes in sync
-        // with the visible galaxy collision flash.
-        collisionRimEnergy = 1;
-      }
 
       // Decay the collision-flash pulse each frame; bright on hit, fades
       // smoothly to zero.
@@ -529,13 +533,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       // Rim flash decays a touch faster than the point light so the
       // title's bright moment is sharp rather than a lingering wash.
       collisionRimEnergy = Math.max(0, collisionRimEnergy - delta * 5);
-      collisionFlashLight.position.set(
-        (galaxy.group.position.x + galaxyB.group.position.x) / 2,
-        (galaxy.group.position.y + galaxyB.group.position.y) / 2,
-        (galaxy.group.position.z + galaxyB.group.position.z) / 2,
-      );
 
       sparks.tick(delta);
+      impactText.tick(delta);
     }
 
     // Per-zone hover/boost/tick. Each zone's hover hot-zone lerps its
@@ -649,14 +649,15 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         fillLight,
         horizon.mesh,
         galaxy.group,
-        galaxyB.group,
         sparks.group,
+        impactText.group,
         meteors.group,
       );
       ambient.dispose();
       keyLight.dispose();
       rimLight.dispose();
       collisionRimLight.dispose();
+      collisionFlashLight.dispose();
       fillLight.dispose();
       horizon.geometry.dispose();
       horizon.material.dispose();
@@ -664,10 +665,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
       galaxy.starsGeometry.dispose();
       galaxy.starsMaterial.dispose();
-      galaxyB.starsGeometry.dispose();
-      galaxyB.starsMaterial.dispose();
 
       sparks.dispose();
+      impactText.dispose();
       meteors.dispose();
 
       scene.environment = null;
