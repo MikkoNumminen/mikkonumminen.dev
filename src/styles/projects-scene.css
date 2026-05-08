@@ -216,13 +216,16 @@ body[data-theme='projects'] .site-footer {
 }
 
 /* Side-panel project list — primary alternative to chasing a moving
-   planet. Positioned below the intro on the left so the eye lands on
-   it after the title; pointer-events explicitly enabled so clicks
-   register on the buttons (the surrounding scene-overlay panels are
-   non-interactive). */
+   planet. Positioned just below the h1 on the left; pointer-events
+   explicitly enabled so clicks register on the buttons (surrounding
+   scene-overlay panels are non-interactive). The `top + max-height`
+   sum lands the bottom of the list at `100vh - 11rem`, reserving ~9rem
+   for the bottom-left interaction legend (which lives at
+   `bottom: 2.5rem` and is ~7rem tall) plus ~1.5rem of breathing
+   room. */
 .projects-scene__list {
   position: absolute;
-  top: 19rem;
+  top: 13rem;
   left: 3rem;
   z-index: 10;
   width: 22rem;
