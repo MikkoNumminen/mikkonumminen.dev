@@ -22,10 +22,6 @@ import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
 import { buildMeteors, type MeteorsHandle } from './buildMeteors';
 import {
-  buildContactZoneDecor,
-  type ContactZoneDecorHandle,
-} from './buildContactZoneDecor';
-import {
   buildExperienceZoneDecor,
   type ExperienceZoneDecorHandle,
 } from './buildExperienceZoneDecor';
@@ -211,24 +207,22 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   // ── Per-letter zone decor (text is a landscape) ──────────────────────
   // Each letter zone of the title becomes a tiny embedded scene
-  // representing one of the four pages. Single-letter targets (M, O,
-  // final N) keep each decor visually contained and let the chrome
-  // letters between them breathe. The home zone covers the wide back
-  // half of NUMMINEN with subtle drifting dust only.
-  //   M           → Experience (single ridge + drifting snow + goat)
-  //   I-K-K       → (no decor — quiet chrome between the loud zones)
-  //   O           → Projects   (Saturn ring + orbiting planet)
-  //   N-U-M-M-I-N-E → Home     (dust drifting through the back half)
-  //   N (final)   → Contact    (matrix cascade + scan-line overlay)
+  // representing one of the four pages. Single-letter targets (M, O)
+  // keep each decor visually contained and let the chrome letters
+  // between them breathe. The home zone covers the back half of
+  // NUMMINEN with subtle drifting dust only.
+  //   M       → Experience (single ridge + drifting snow + goat)
+  //   I-K-K   → (no decor — quiet chrome between the loud zones)
+  //   O       → Projects   (Saturn ring + orbiting planet)
+  //   NUMMINEN → Home      (dust drifting across the bottom line)
   //
-  // Contact lives on the FAR RIGHT so the matrix panel doesn't sit
-  // visually on top of the colliding galaxies in the lower-left.
+  // The contact zone is no longer in the 3D scene — it lives as a
+  // "data feed" widget under the editorial coords in the top-right
+  // corner of the page, so the matrix cascade doesn't block scene
+  // elements (galaxies, etc).
   const wMIKKO = measureTextWidth(font, 'MIKKO');
   const wM = measureTextWidth(font, 'M');
   const wMIKK = measureTextWidth(font, 'MIKK');
-  const wNUMMINEN = measureTextWidth(font, 'NUMMINEN');
-  const wNUMMINE = measureTextWidth(font, 'NUMMINE');
-  const wFinalN = wNUMMINEN - wNUMMINE;
 
   // Each line's geometry was translated by -lineWidth/2, so a mesh-local
   // x = 0 sits at the line center. Substring centers in pre-translation
@@ -236,8 +230,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // maps them into mesh-local space.
   const xCenterM = wM / 2 - wMIKKO / 2;
   const xCenterO = wMIKK / 2; // = (wMIKK + wMIKKO)/2 - wMIKKO/2
-  const xCenterNUMMINE = wNUMMINE / 2 - wNUMMINEN / 2;
-  const xCenterFinalN = wNUMMINE / 2; // = (wNUMMINE + wNUMMINEN)/2 - wNUMMINEN/2
 
   const mikkoMesh = title.meshes[0];
   const nummMesh = title.meshes[1];
@@ -254,7 +246,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // Each zone module's "design width" at scale=1, used to pick a scale
   // that fills the targeted letter span.
   const EXPERIENCE_DESIGN_WIDTH = 2.2; // single ridge spans ±1.1 ≈ M width
-  const CONTACT_DESIGN_WIDTH = 2.4;
   const HOME_DESIGN_WIDTH = 6;
 
   const experienceDecor: ExperienceZoneDecorHandle = buildExperienceZoneDecor({
@@ -267,13 +258,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // just outside the O's letter outline with a small breathing gap.
     scale: 0.7,
   });
-  const contactDecor: ContactZoneDecorHandle = buildContactZoneDecor({
-    envMap: env.envMap,
-    scale: wFinalN / CONTACT_DESIGN_WIDTH,
-  });
+  // Home dust spans the whole NUMMINEN line — scale to the line width
+  // (≈ wMIKKO is a reasonable proxy for the bottom line, but use the
+  // bottom mesh's actual bbox so this tracks future line changes).
+  const nummWidth = nummMesh.geometry.boundingBox!.max.x - nummMesh.geometry.boundingBox!.min.x;
   const homeDecor: HomeZoneDecorHandle = buildHomeZoneDecor({
     envMap: env.envMap,
-    scale: wNUMMINE / HOME_DESIGN_WIDTH,
+    scale: nummWidth / HOME_DESIGN_WIDTH,
   });
 
   // Parent each decor under the appropriate line mesh so it inherits
@@ -281,20 +272,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   mikkoMesh.add(experienceDecor.group);
   mikkoMesh.add(projectsDecor.group);
   nummMesh.add(homeDecor.group);
-  nummMesh.add(contactDecor.group);
 
   // Mountain rises ABOVE the M's letter top so the silhouette is
   // visible against the dark background, not embedded in the letter
   // solid. Anchored at the actual letter top from the bbox.
   experienceDecor.group.position.set(xCenterM, mikkoTopY, TITLE_DEPTH / 2);
   projectsDecor.group.position.set(xCenterO, 0, TITLE_DEPTH / 2);
-  // Home dust spans ± half-depth in z — sitting at the line midplane
-  // gives a cloud "around the letters" with some dust passing in front
-  // and some behind.
-  homeDecor.group.position.set(xCenterNUMMINE, 0, TITLE_DEPTH / 2);
-  // Matrix sits ON the letter face — z just past the front face so the
-  // chrome doesn't depth-occlude the cascade.
-  contactDecor.group.position.set(xCenterFinalN, 0, TITLE_DEPTH + 0.05);
+  // Home dust spans the full bottom line, centered on it.
+  homeDecor.group.position.set(0, 0, TITLE_DEPTH / 2);
 
   /**
    * One row per zone. `boost` is mutable (lerps toward 1 on hover),
@@ -308,7 +293,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     decor:
       | ExperienceZoneDecorHandle
       | ProjectsZoneDecorHandle
-      | ContactZoneDecorHandle
       | HomeZoneDecorHandle;
     parent: Mesh;
     href: string | null;
@@ -340,13 +324,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       href: null,
       boost: 0,
       hotRadiusBase: 240,
-    },
-    {
-      decor: contactDecor,
-      parent: nummMesh,
-      href: '/contact',
-      boost: 0,
-      hotRadiusBase: 90,
     },
   ];
 
@@ -624,8 +601,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         const i3 = i * 3;
         // Both lookups are in-bounds: i < count and the position array is
         // length count*3, the speed array is length count.
-        const next = arr[i3 + 1]! + speeds[i]! * delta;
-        arr[i3 + 1] = next > 25 ? -25 : next;
+        // Particles drift DOWN (subtract from y) — matches the snow
+        // direction in the mountain decor so the whole scene reads as a
+        // single weather system.
+        const next = arr[i3 + 1]! - speeds[i]! * delta;
+        arr[i3 + 1] = next < -25 ? 25 : next;
       }
       posAttr.needsUpdate = true;
       particleField.points.rotation.y = elapsed * 0.02;
