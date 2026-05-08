@@ -79,12 +79,14 @@ export function buildEnvironment(renderer: WebGLRenderer): EnvironmentHandle {
   ctx.fillStyle = galaxy;
   ctx.fillRect(0, 0, 1024, 512);
 
-  // Phosphor green (contact) — narrow band across the top center.
-  const phosphor = ctx.createRadialGradient(512, 50, 0, 512, 50, 220);
-  phosphor.addColorStop(0, 'rgba(74, 222, 128, 0.32)');
-  phosphor.addColorStop(0.6, 'rgba(74, 222, 128, 0.08)');
-  phosphor.addColorStop(1, 'rgba(74, 222, 128, 0)');
-  ctx.fillStyle = phosphor;
+  // Cool teal accent — narrow band across the top center, replacing the
+  // earlier phosphor green so the chrome's reflections stay sci-fi cool
+  // (the brief explicitly rejected green as a letter color).
+  const teal = ctx.createRadialGradient(512, 50, 0, 512, 50, 220);
+  teal.addColorStop(0, 'rgba(140, 215, 235, 0.28)');
+  teal.addColorStop(0.6, 'rgba(120, 195, 220, 0.08)');
+  teal.addColorStop(1, 'rgba(110, 180, 210, 0)');
+  ctx.fillStyle = teal;
   ctx.fillRect(0, 0, 1024, 512);
 
   const source = new CanvasTexture(canvas);
