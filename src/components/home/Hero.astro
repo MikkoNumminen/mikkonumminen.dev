@@ -339,18 +339,18 @@ const t = getTranslations(locale);
 </style>
 
 <script>
-  import { buildDataFeedMatrix } from '../../lib/home/dataFeedMatrix';
+  import { buildDataFeedConsole } from '../../lib/home/dataFeedConsole';
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const init = (): void => {
-    // Corner widgets are hidden via CSS at ≤860px; skip the cascade work
-    // on mobile so we don't burn CPU painting an invisible canvas.
+    // Corner widgets are hidden via CSS at ≤860px; skip the console
+    // work on mobile so we don't burn CPU painting an invisible canvas.
     if (window.matchMedia('(max-width: 860px)').matches) return;
     const root = document.querySelector<HTMLElement>('[data-data-feed]');
     if (!root) return;
     const canvas = root.querySelector<HTMLCanvasElement>('.hero__data-feed-canvas');
     if (!canvas) return;
-    const handle = buildDataFeedMatrix(canvas, reducedMotion);
+    const handle = buildDataFeedConsole(canvas, reducedMotion);
     window.addEventListener('beforeunload', () => handle.dispose(), { once: true });
   };
 
