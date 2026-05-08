@@ -60,9 +60,10 @@ function makeFlareTexture(): Texture {
 
 /**
  * Saturn-style ring + small orbiting planet + lens-flare sprite, sized
- * to wrap a letter ~2.2 units tall. Drives the projects-zone of the
- * hero title — sits centered over the K-K of MIKKO and reacts to hover
- * via the `boost` parameter on `tick`.
+ * to wrap a single round letter (the O of MIKKO). Drives the projects
+ * zone of the hero title — the round letter becomes the "planet" at the
+ * center, the chrome ring crosses through it, and a small body orbits.
+ * Reacts to hover via the `boost` parameter on `tick`.
  */
 export function buildProjectsZoneDecor(
   opts: ProjectsZoneDecorOptions = {},

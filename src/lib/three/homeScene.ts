@@ -4,6 +4,7 @@ import {
   BufferAttribute,
   DirectionalLight,
   Fog,
+  Mesh,
   MeshPhysicalMaterial,
   PerspectiveCamera,
   PointLight,
@@ -20,6 +21,15 @@ import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
 import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
 import { buildMeteors, type MeteorsHandle } from './buildMeteors';
+import {
+  buildContactZoneDecor,
+  type ContactZoneDecorHandle,
+} from './buildContactZoneDecor';
+import {
+  buildExperienceZoneDecor,
+  type ExperienceZoneDecorHandle,
+} from './buildExperienceZoneDecor';
+import { buildHomeZoneDecor, type HomeZoneDecorHandle } from './buildHomeZoneDecor';
 import {
   buildProjectsZoneDecor,
   type ProjectsZoneDecorHandle,
@@ -199,45 +209,109 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   scene.add(title.group);
   const totalHeight = title.totalHeight;
 
-  // ── Projects-zone decor (Saturn ring + orbiting planet on K-K) ───────
-  // First proof of the "text is a landscape" direction: the K-K of MIKKO
-  // gets a chrome ring + small orbiting planet + lens flare so the
-  // projects zone reads as a tiny solar system embedded in the title.
-  // Hover intensifies the orbit; click navigates to /projects.
+  // ── Per-letter zone decor (text is a landscape) ──────────────────────
+  // Each letter zone of the title becomes a tiny embedded scene
+  // representing one of the four pages of the site. The zones share a
+  // small `tick(delta, boost)` API so a single zone table drives hover
+  // boosts, click navigation, and disposal for all four.
+  //   M-I  → Experience (mountain peaks, snow, goat)
+  //   K-K  → (no decor — the "in-between" letters)
+  //   O    → Projects   (Saturn ring + orbiting planet)
+  //   N-U  → Contact    (matrix cascade + scan lines)
+  //   …    → Home       (dust + brushed-metal rim — the rest of NUMMINEN)
   const wMIKKO = measureTextWidth(font, 'MIKKO');
   const wMI = measureTextWidth(font, 'MI');
   const wMIKK = measureTextWidth(font, 'MIKK');
-  // Geometry was translated by -wMIKKO/2 so the K-K range is centered on
-  // (wMI + wMIKK)/2 - wMIKKO/2 in the MIKKO mesh's local x.
-  const xCenterKK = (wMI + wMIKK) / 2 - wMIKKO / 2;
-  // Parent under the MIKKO mesh so the decor inherits all of the title's
-  // floats / pointer-driven sway / entrance offset for free.
+  const wNUMMINEN = measureTextWidth(font, 'NUMMINEN');
+  const wNU = measureTextWidth(font, 'NU');
+
+  // Each line's geometry was already translated by -lineWidth/2, so a
+  // mesh-local x = 0 sits at the line center. Substring centers in
+  // pre-translation coords are the midpoints of their cumulative widths;
+  // subtracting lineWidth/2 maps them into mesh-local space.
+  const xCenterMI = wMI / 2 - wMIKKO / 2;
+  const xCenterO = wMIKK / 2; // = (wMIKK + wMIKKO)/2 - wMIKKO/2
+  const xCenterNU = wNU / 2 - wNUMMINEN / 2;
+  const xCenterMINEN = wNU / 2; // = (wNU + wNUMMINEN)/2 - wNUMMINEN/2
+
   const mikkoMesh = title.meshes[0];
-  if (!mikkoMesh) {
-    throw new Error('homeScene: MIKKO line missing — did TITLE lose a line?');
+  const nummMesh = title.meshes[1];
+  if (!mikkoMesh || !nummMesh) {
+    throw new Error('homeScene: title is missing a line — TITLE expected to be 2 lines.');
   }
+
+  // Each zone module's "design width" at scale=1, used to pick a scale
+  // that fills the targeted letter span. Tweak per zone if the visual
+  // overshoots or under-fills the letters.
+  const EXPERIENCE_DESIGN_WIDTH = 2.4;
+  const CONTACT_DESIGN_WIDTH = 2.4;
+  const HOME_DESIGN_WIDTH = 6;
+
+  const experienceDecor: ExperienceZoneDecorHandle = buildExperienceZoneDecor({
+    envMap: env.envMap,
+    scale: wMI / EXPERIENCE_DESIGN_WIDTH,
+  });
   const projectsDecor: ProjectsZoneDecorHandle = buildProjectsZoneDecor({
     envMap: env.envMap,
-    scale: 0.78,
+    // Scale tuned so the ring outer radius (1.12 * scale ≈ 0.78) sits
+    // just outside the O's letter outline with a small breathing gap.
+    scale: 0.7,
   });
-  mikkoMesh.add(projectsDecor.group);
-  // Sit on the midplane of the extruded letters so the ring crosses
-  // through the K-K rather than floating in front. Imports DEPTH from
-  // buildTitle so the placement tracks any future change to the title's
-  // extrusion depth.
-  projectsDecor.group.position.set(xCenterKK, 0, TITLE_DEPTH / 2);
+  const contactDecor: ContactZoneDecorHandle = buildContactZoneDecor({
+    envMap: env.envMap,
+    scale: wNU / CONTACT_DESIGN_WIDTH,
+  });
+  const homeDecor: HomeZoneDecorHandle = buildHomeZoneDecor({
+    envMap: env.envMap,
+    scale: (wNUMMINEN - wNU) / HOME_DESIGN_WIDTH,
+  });
 
-  let projectsHoverBoost = 0;
+  // Parent each decor under the appropriate line mesh so it inherits
+  // the title's floats / sway / entrance offset for free, then position
+  // it at the substring center on the line midplane.
+  mikkoMesh.add(experienceDecor.group);
+  mikkoMesh.add(projectsDecor.group);
+  nummMesh.add(contactDecor.group);
+  nummMesh.add(homeDecor.group);
+  experienceDecor.group.position.set(xCenterMI, 0, TITLE_DEPTH / 2);
+  projectsDecor.group.position.set(xCenterO, 0, TITLE_DEPTH / 2);
+  contactDecor.group.position.set(xCenterNU, 0, TITLE_DEPTH / 2);
+  homeDecor.group.position.set(xCenterMINEN, 0, TITLE_DEPTH / 2);
+
+  /**
+   * One row per zone. `boost` is mutable (lerps toward 1 on hover),
+   * `href` drives click navigation (null = no nav, e.g. the home zone
+   * which is the current page).
+   */
+  interface ZoneEntry {
+    decor:
+      | ExperienceZoneDecorHandle
+      | ProjectsZoneDecorHandle
+      | ContactZoneDecorHandle
+      | HomeZoneDecorHandle;
+    parent: Mesh;
+    href: string | null;
+    boost: number;
+  }
+  const zones: ZoneEntry[] = [
+    { decor: experienceDecor, parent: mikkoMesh, href: '/experience', boost: 0 },
+    { decor: projectsDecor, parent: mikkoMesh, href: '/projects', boost: 0 },
+    { decor: contactDecor, parent: nummMesh, href: '/contact', boost: 0 },
+    { decor: homeDecor, parent: nummMesh, href: null, boost: 0 },
+  ];
+
   // Reused each frame to avoid allocating Vector3 in the hot path.
   const projectedDecorPos = new Vector3();
 
   /**
-   * Returns the screen-pixel position of the decor's world center plus a
-   * hover hot-radius. Used by both the hover-boost lerp and the click
-   * hit test so the cursor area and the navigation area agree exactly.
+   * Returns the screen-pixel position of the zone's world center plus a
+   * hover hot-radius. Used by both the per-frame hover-boost lerp and
+   * the click hit test so the cursor area and the navigation area agree.
    */
-  const decorScreenHotspot = (): { x: number; y: number; r: number } => {
-    projectsDecor.group.getWorldPosition(projectedDecorPos);
+  const zoneScreenHotspot = (
+    entry: ZoneEntry,
+  ): { x: number; y: number; r: number } => {
+    entry.decor.group.getWorldPosition(projectedDecorPos);
     projectedDecorPos.project(camera);
     const x = (projectedDecorPos.x + 1) * 0.5 * window.innerWidth;
     const y = (1 - projectedDecorPos.y) * 0.5 * window.innerHeight;
@@ -247,19 +321,31 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   };
 
   const onCanvasClick = (e: MouseEvent): void => {
-    const { x, y, r } = decorScreenHotspot();
-    if (Math.hypot(e.clientX - x, e.clientY - y) > r) return;
+    // Pick the closest hit so overlapping zones disambiguate cleanly,
+    // not the first-iterated zone.
+    let bestEntry: ZoneEntry | null = null;
+    let bestDist = Infinity;
+    for (const entry of zones) {
+      if (!entry.href) continue;
+      const { x, y, r } = zoneScreenHotspot(entry);
+      const d = Math.hypot(e.clientX - x, e.clientY - y);
+      if (d < r && d < bestDist) {
+        bestEntry = entry;
+        bestDist = d;
+      }
+    }
+    if (!bestEntry || !bestEntry.href) return;
     // Route through the existing nav anchor so pageTransition picks it
     // up and runs phase-A/B before navigating. Scoped to <nav> so it
-    // can't accidentally match an unrelated link whose href ends in
-    // "/projects". The same nav link is the keyboard-accessible path —
-    // this canvas click is a discoverable shortcut, not the only route.
-    // Falls back to direct navigation if the anchor isn't on the page.
+    // can't accidentally match an unrelated link. The same nav link is
+    // the keyboard-accessible path — this canvas click is a discoverable
+    // shortcut, not the only route. Falls back to direct navigation if
+    // the anchor isn't on the page.
     const anchor =
-      document.querySelector<HTMLAnchorElement>('nav a[href$="/projects"]') ??
-      document.querySelector<HTMLAnchorElement>('nav a[href$="/projects/"]');
+      document.querySelector<HTMLAnchorElement>(`nav a[href$="${bestEntry.href}"]`) ??
+      document.querySelector<HTMLAnchorElement>(`nav a[href$="${bestEntry.href}/"]`);
     if (anchor) anchor.click();
-    else window.location.href = '/projects';
+    else window.location.href = bestEntry.href;
   };
   canvas.addEventListener('click', onCanvasClick);
 
@@ -442,19 +528,24 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       sparks.tick(delta);
     }
 
-    // Projects-zone decor: hover hot-zone updates the boost target,
-    // boost lerps smoothly, decor advances orbit/spin/flare. Cursor
-    // becomes a pointer when hovering so the user can tell it's clickable.
+    // Per-zone hover/boost/tick. Each zone's hover hot-zone lerps its
+    // boost toward 1 when the cursor is in range; the cursor flips to
+    // pointer if any clickable zone is hovered. Each decor advances
+    // its own visuals via its `tick(delta, boost)` regardless.
     {
-      const { x: hx, y: hy, r: hr } = decorScreenHotspot();
       const mxPx = (targetMouseX * 0.5 + 0.5) * window.innerWidth;
       const myPx = (targetMouseY * 0.5 + 0.5) * window.innerHeight;
-      const hovering = mouseSeen && Math.hypot(mxPx - hx, myPx - hy) < hr;
-      const targetBoost = hovering ? 1 : 0;
-      projectsHoverBoost += (targetBoost - projectsHoverBoost) * delta * 6;
-      canvas.style.cursor = hovering ? 'pointer' : '';
+      let pointerHover = false;
+      for (const entry of zones) {
+        const { x: hx, y: hy, r: hr } = zoneScreenHotspot(entry);
+        const hovering = mouseSeen && Math.hypot(mxPx - hx, myPx - hy) < hr;
+        const targetBoost = hovering ? 1 : 0;
+        entry.boost += (targetBoost - entry.boost) * delta * 6;
+        if (hovering && entry.href) pointerHover = true;
+        entry.decor.tick(reducedMotion ? 0 : delta, entry.boost);
+      }
+      canvas.style.cursor = pointerHover ? 'pointer' : '';
     }
-    projectsDecor.tick(reducedMotion ? 0 : delta, projectsHoverBoost);
 
     // Meteors — randomized spawn schedule, fade-in/out envelope, trail
     // updated as a per-frame position queue inside the meteor module.
@@ -527,8 +618,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       canvas.removeEventListener('click', onCanvasClick);
       canvas.style.cursor = '';
 
-      mikkoMesh.remove(projectsDecor.group);
-      projectsDecor.dispose();
+      for (const entry of zones) {
+        entry.parent.remove(entry.decor.group);
+        entry.decor.dispose();
+      }
 
       title.meshes.forEach((m) => m.geometry.dispose());
       disposeMaterial(title.material);
