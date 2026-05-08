@@ -1,4 +1,5 @@
 ---
+import { execSync } from 'node:child_process';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/home/Hero.astro';
 import Intro from '../components/home/Intro.astro';
@@ -10,6 +11,28 @@ import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
+
+// Recent commit subjects, baked in at build time. Drives the impact-text
+// popups that burst from each meteor strike on the home hero galaxy.
+// Filtered to drop merges and any defensive Claude refs (committed files
+// must not reference the AI tooling — see project guide). Falls back to
+// an empty array outside a git checkout; the scene then uses its own
+// hardcoded sentinel list.
+let commitMessages: string[] = [];
+try {
+  commitMessages = execSync('git log --pretty=format:%s -n 80', {
+    encoding: 'utf8',
+  })
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .filter((s) => !/^Merge /i.test(s))
+    .filter((s) => !/claude/i.test(s))
+    .filter((s, i, arr) => arr.indexOf(s) === i)
+    .slice(0, 50);
+} catch {
+  commitMessages = [];
+}
 
 const personSchema = {
   '@context': 'https://schema.org',
@@ -63,7 +86,7 @@ const personSchema = {
     />
   </Fragment>
 
-  <Hero />
+  <Hero commitMessages={commitMessages} />
   <Intro />
   <Focus />
   <Integrations />
@@ -90,11 +113,24 @@ const personSchema = {
 
     if (!skipScene && canvas) {
       try {
+        let commitMessages: string[] = [];
+        const raw = canvas.dataset.commitMessages;
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              commitMessages = parsed.filter((s): s is string => typeof s === 'string');
+            }
+          } catch {
+            // Bad JSON shouldn't kill the scene — fall back to defaults.
+          }
+        }
         const { createHomeScene } = await import('../lib/three/homeScene');
         sceneHandle = await createHomeScene({
           canvas,
           fontUrl: '/fonts/helvetiker_bold.typeface.json',
           reducedMotion,
+          commitMessages,
         });
       } catch (err) {
         console.warn('home scene failed to init', err);

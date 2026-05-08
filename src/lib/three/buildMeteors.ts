@@ -10,7 +10,20 @@ import {
 } from 'three';
 
 const TAIL_SEGMENTS = 28;
-const METEOR_COUNT = 2;
+const METEOR_COUNT = 5;
+// Spawn-radius sphere around the galaxy center. Meteors come from any
+// direction on this sphere and head inward toward the galaxy.
+const SPAWN_RADIUS = 22;
+// Distance from galaxy center at which a meteor detonates. Roughly the
+// galaxy's outer star halo so the explosion reads as "inside the disk".
+const IMPACT_RADIUS = 1.6;
+// World-space speed range. Some meteors crawl in, others streak fast —
+// the variance is the point of "some are faster than others".
+const SPEED_MIN = 8;
+const SPEED_MAX = 22;
+// After triggering onImpact, fade the meteor over this short window so
+// the tail visibly dies into the explosion rather than vanishing flat.
+const POST_IMPACT_FADE = 0.12;
 
 interface MeteorState {
   line: Line;
@@ -21,7 +34,19 @@ interface MeteorState {
   active: boolean;
   velocity: Vector3;
   spawnTime: number;
+  /** Hard cutoff lifetime; if a meteor never reaches the galaxy, it expires. */
   lifetime: number;
+  tint: Color;
+  /** Set true when the meteor head crosses IMPACT_RADIUS. */
+  impacted: boolean;
+  impactedAt: number;
+}
+
+export interface BuildMeteorsOptions {
+  /** World-space center the meteors converge on. Read each frame. */
+  galaxyCenter: Vector3;
+  /** Fired once per meteor when its head reaches the galaxy. */
+  onImpact: (impactWorldPos: Vector3, color: Color) => void;
 }
 
 export interface MeteorsHandle {
@@ -39,18 +64,20 @@ const METEOR_TINTS: Color[] = [
 ];
 
 /**
- * Occasional shooting stars across the hero scene. Each meteor is a Line
+ * Meteors that converge on the home hero galaxy. Each meteor is a Line
  * with N tail segments updated per-frame as a position queue: every frame
  * the trail shifts back by one and a new head position is computed from
  * the meteor's velocity. AdditiveBlending + a per-vertex brightness
- * gradient (1.0 at head → 0.0 at tail) gives a clean fading streak
- * without needing a custom shader.
+ * gradient (1.0 at head → 0.0 at tail) gives a clean fading streak.
  *
- * Spawned at random intervals (every 10-18 s) from off-screen positions
- * heading across-and-down through the visible scene; each shot picks one
- * of the four world tints so the meteors also carry the four-worlds story.
+ * Spawned every 5–10 s from a random direction on a sphere around the
+ * galaxy center, at a random speed (some noticeably faster than others).
+ * When the head crosses IMPACT_RADIUS, fires the supplied onImpact
+ * callback — the parent scene uses that to spawn a flash, pulse the
+ * collision rim light, and pop a commit-message text popup.
  */
-export function buildMeteors(): MeteorsHandle {
+export function buildMeteors(options: BuildMeteorsOptions): MeteorsHandle {
+  const { galaxyCenter, onImpact } = options;
   const group = new Group();
   const meteors: MeteorState[] = [];
 
@@ -85,33 +112,58 @@ export function buildMeteors(): MeteorsHandle {
       velocity: new Vector3(),
       spawnTime: 0,
       lifetime: 0,
+      tint: new Color(),
+      impacted: false,
+      impactedAt: 0,
     });
   }
 
-  // First meteor spawns 6 s after page boot to give the entrance animation
-  // room to land before adding any extra motion.
-  let nextSpawnTime = 6;
+  // First meteor lands quickly so the user sees a strike soon after the
+  // entrance settles. Subsequent intervals: 5–10 s.
+  let nextSpawnTime = 1.5;
+
+  // Reused each frame to avoid Vector3 allocations in the hot path.
+  const tmpDir = new Vector3();
+  const tmpHead = new Vector3();
+  const tmpImpactPos = new Vector3();
 
   function spawnMeteor(meteor: MeteorState, elapsed: number): void {
     const positions = meteor.positionsAttr.array as Float32Array;
     const colors = meteor.colorsAttr.array as Float32Array;
 
-    const lifetime = 1.4 + Math.random() * 0.7;
-    // Spawn from the upper hemisphere; head down-and-across. Z range is
-    // around the title's z so meteors look like they pass at title depth.
-    const startX = (Math.random() < 0.5 ? -1 : 1) * (22 + Math.random() * 6);
-    const startY = 9 + Math.random() * 6;
-    const startZ = -3 + Math.random() * 6;
-    // End on the opposite side, slightly below the title
-    const endX = -Math.sign(startX) * (22 + Math.random() * 6);
-    const endY = -9 - Math.random() * 4;
-    const endZ = startZ + (Math.random() - 0.5) * 4;
+    // Pick a random direction on the unit sphere — meteor origin = galaxy
+    // center + dir * SPAWN_RADIUS. Targeting back at the galaxy with a
+    // small jitter creates a near-miss tolerance so impacts don't all
+    // land dead-center.
+    const cosPhi = 2 * Math.random() - 1;
+    const sinPhi = Math.sqrt(Math.max(0, 1 - cosPhi * cosPhi));
+    const theta = Math.random() * Math.PI * 2;
+    tmpDir.set(sinPhi * Math.cos(theta), cosPhi, sinPhi * Math.sin(theta));
 
-    meteor.velocity.set(
-      (endX - startX) / lifetime,
-      (endY - startY) / lifetime,
-      (endZ - startZ) / lifetime,
-    );
+    const startX = galaxyCenter.x + tmpDir.x * SPAWN_RADIUS;
+    const startY = galaxyCenter.y + tmpDir.y * SPAWN_RADIUS;
+    const startZ = galaxyCenter.z + tmpDir.z * SPAWN_RADIUS;
+
+    // Aim back at the galaxy with a small lateral jitter so impacts
+    // scatter across the disk rather than always hitting the dead center.
+    const jitterX = (Math.random() - 0.5) * 0.9;
+    const jitterY = (Math.random() - 0.5) * 0.9;
+    const jitterZ = (Math.random() - 0.5) * 0.9;
+    const targetX = galaxyCenter.x + jitterX;
+    const targetY = galaxyCenter.y + jitterY;
+    const targetZ = galaxyCenter.z + jitterZ;
+
+    // Direction from start → target, normalized.
+    const dx = targetX - startX;
+    const dy = targetY - startY;
+    const dz = targetZ - startZ;
+    const len = Math.max(1e-6, Math.sqrt(dx * dx + dy * dy + dz * dz));
+    const speed = SPEED_MIN + Math.random() * (SPEED_MAX - SPEED_MIN);
+    meteor.velocity.set((dx / len) * speed, (dy / len) * speed, (dz / len) * speed);
+
+    // Hard fallback lifetime in case impact detection misses (shouldn't
+    // happen with the targeting above, but keeps a slot from sticking).
+    meteor.lifetime = (len / speed) * 1.4 + 0.5;
 
     // Initialize all trail vertices at the start point so the first frame
     // doesn't render a stale line from the meteor's previous run.
@@ -124,6 +176,7 @@ export function buildMeteors(): MeteorsHandle {
 
     // Pick a world tint and bake the brightness gradient into vertex colors.
     const tint = METEOR_TINTS[Math.floor(Math.random() * METEOR_TINTS.length)]!;
+    meteor.tint.copy(tint);
     for (let i = 0; i < TAIL_SEGMENTS; i++) {
       const t = i / (TAIL_SEGMENTS - 1);
       // Sharper falloff than linear so the head reads as a bright point
@@ -139,28 +192,23 @@ export function buildMeteors(): MeteorsHandle {
     meteor.colorsAttr.needsUpdate = true;
     meteor.positionsAttr.needsUpdate = true;
     meteor.spawnTime = elapsed;
-    meteor.lifetime = lifetime;
     meteor.material.opacity = 1;
     meteor.active = true;
+    meteor.impacted = false;
+    meteor.impactedAt = 0;
   }
 
   function tickMeteor(meteor: MeteorState, delta: number, elapsed: number): void {
     if (!meteor.active) return;
 
     const age = elapsed - meteor.spawnTime;
+
+    // Hard expiry — fail-safe so a slot is never permanently lost.
     if (age >= meteor.lifetime) {
       meteor.active = false;
       meteor.material.opacity = 0;
       return;
     }
-
-    // Soft alpha envelope: ramp in over the first 10 %, hold, ramp out
-    // over the last 18 %. Hides the abrupt appearance of the streak.
-    const t = age / meteor.lifetime;
-    let alpha = 1;
-    if (t < 0.1) alpha = t / 0.1;
-    else if (t > 0.82) alpha = (1 - t) / 0.18;
-    meteor.material.opacity = Math.max(0, Math.min(1, alpha));
 
     const positions = meteor.positionsAttr.array as Float32Array;
 
@@ -174,24 +222,58 @@ export function buildMeteors(): MeteorsHandle {
       positions[ic + 1] = positions[ip + 1]!;
       positions[ic + 2] = positions[ip + 2]!;
     }
-    positions[0]! += meteor.velocity.x * delta;
-    positions[1]! += meteor.velocity.y * delta;
-    positions[2]! += meteor.velocity.z * delta;
+
+    if (!meteor.impacted) {
+      positions[0]! += meteor.velocity.x * delta;
+      positions[1]! += meteor.velocity.y * delta;
+      positions[2]! += meteor.velocity.z * delta;
+
+      tmpHead.set(positions[0]!, positions[1]!, positions[2]!);
+      const dist = tmpHead.distanceTo(galaxyCenter);
+      if (dist < IMPACT_RADIUS) {
+        meteor.impacted = true;
+        meteor.impactedAt = elapsed;
+        // Snap the head onto the impact point so the flash reads as
+        // landing exactly where the meteor stops.
+        tmpImpactPos.copy(tmpHead);
+        onImpact(tmpImpactPos, meteor.tint);
+      }
+    }
+
+    // Fade envelope:
+    //   - Pre-impact: ramp in over first 6 % of lifetime, then hold full.
+    //   - Post-impact: ramp opacity to 0 over POST_IMPACT_FADE seconds.
+    let alpha: number;
+    if (meteor.impacted) {
+      const since = elapsed - meteor.impactedAt;
+      alpha = 1 - since / POST_IMPACT_FADE;
+      if (alpha <= 0) {
+        meteor.active = false;
+        meteor.material.opacity = 0;
+        return;
+      }
+    } else {
+      const t = age / meteor.lifetime;
+      alpha = t < 0.06 ? t / 0.06 : 1;
+    }
+    meteor.material.opacity = Math.max(0, Math.min(1, alpha));
 
     meteor.positionsAttr.needsUpdate = true;
+    // Suppress unused-warning when delta is only consumed conditionally.
+    void delta;
   }
 
   return {
     group,
     tick: (elapsed: number, delta: number): void => {
-      // Spawn next meteor when the timer fires and a slot is free. Range
-      // is 18–30 s — "every now and then", not a steady drumbeat.
+      // Spawn next meteor when the timer fires and a slot is free.
+      // 5-10 s cadence keeps the strike rhythm visible without being busy.
       if (elapsed >= nextSpawnTime) {
         const idle = meteors.find((m) => !m.active);
         if (idle) {
           spawnMeteor(idle, elapsed);
         }
-        nextSpawnTime = elapsed + 18 + Math.random() * 12;
+        nextSpawnTime = elapsed + 5 + Math.random() * 5;
       }
 
       for (const meteor of meteors) {

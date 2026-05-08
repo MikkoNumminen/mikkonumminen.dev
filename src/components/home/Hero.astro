@@ -1,12 +1,21 @@
 ---
 import { asLocale, getTranslations } from '../../i18n';
 
+interface Props {
+  commitMessages?: string[];
+}
+
+const { commitMessages = [] } = Astro.props;
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 ---
 
 <section class="hero" data-section-hero aria-label={t.hero.sectionAria}>
-  <canvas id="home-canvas" class="hero__canvas" aria-hidden="true"></canvas>
+  <canvas
+    id="home-canvas"
+    class="hero__canvas"
+    aria-hidden="true"
+    data-commit-messages={JSON.stringify(commitMessages)}></canvas>
 
   <div class="hero__overlay" aria-hidden="true"></div>
 
