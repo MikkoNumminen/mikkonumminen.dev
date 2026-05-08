@@ -11,10 +11,12 @@ import {
   MeshStandardMaterial,
   RingGeometry,
   SphereGeometry,
+  type CanvasTexture,
 } from 'three';
 import type { LocalizedProject } from '../../../data/projects';
 import { createGlowMaterial } from '../createGlowMaterial';
 import { PLANET_BASE_RADIUS } from './constants';
+import { buildPlanetTexture } from './buildPlanetTexture';
 
 export interface PlanetEntry {
   project: LocalizedProject;
@@ -24,6 +26,9 @@ export interface PlanetEntry {
   glow: Mesh;
   orbitLine: Line;
   ring?: Mesh;
+  /** Procedural surface textures — owned by the entry so dispose can free them. */
+  surfaceMap: CanvasTexture;
+  bumpMap: CanvasTexture;
 }
 
 const ORBIT_SEGMENTS = 128;
@@ -37,12 +42,28 @@ export function buildPlanet(project: LocalizedProject): {
   rootGroup.rotation.x = project.tilt;
 
   const radius = PLANET_BASE_RADIUS * project.scale;
-  const geometry = new SphereGeometry(radius, 36, 36);
+  const geometry = new SphereGeometry(radius, 48, 48);
+  const baseColor = new Color(project.color);
+  // Procedural surface texture + bump map — gives each planet a distinct
+  // identity (gas giant bands, lava ridges, ice frost, vegetation,
+  // craters) instead of a flat coloured sphere. `bumpScale` is per-style:
+  // gas giants stay near 0 (cloud bands aren't surface relief), rocky /
+  // volcanic worlds push higher.
+  const { map: surfaceMap, bumpMap, bumpScale } = buildPlanetTexture(
+    project.id,
+    baseColor.getHex(),
+  );
   const material = new MeshStandardMaterial({
-    color: new Color(project.color),
-    roughness: 0.55,
-    metalness: 0.1,
-    emissive: new Color(project.color).multiplyScalar(0.08),
+    map: surfaceMap,
+    bumpMap,
+    bumpScale,
+    // White multiplier so the texture's colors come through unmuddied.
+    color: 0xffffff,
+    roughness: 0.78,
+    metalness: 0.05,
+    // Faint glow in the project's brand color so each planet still reads
+    // as "the X color planet" at a glance, even with the texture on top.
+    emissive: baseColor.clone().multiplyScalar(0.06),
   });
   const mesh = new Mesh(geometry, material);
   mesh.userData.projectId = project.id;
@@ -106,6 +127,8 @@ export function buildPlanet(project: LocalizedProject): {
     glow,
     orbitLine,
     ring,
+    surfaceMap,
+    bumpMap,
   };
 
   return { entry, rootGroup };
