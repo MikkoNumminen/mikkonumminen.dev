@@ -3,7 +3,7 @@ import '../styles/projects-scene.css';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectDetail from '../components/projects/ProjectDetail.astro';
 import ProjectGrid from '../components/projects/ProjectGrid.astro';
-import { connections, projects } from '../data/projects';
+import { connections, localizeProjects, projects } from '../data/projects';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -12,6 +12,11 @@ const t = getTranslations(locale);
 // Build a project-name lookup so the legend can show "HRM → Platform"
 // using the brand names rather than the structural ids.
 const projectNameById = Object.fromEntries(projects.map((p) => [p.id, p.name]));
+
+// Localized list for the side panel — clicking an item triggers the same
+// `selectById` flow as clicking the matching planet, so users can jump
+// to any project without having to chase a moving target.
+const localizedList = localizeProjects(t);
 
 const connectionLegendEntries = connections.map((c) => ({
   color: c.color,
@@ -54,6 +59,30 @@ const connectionLegendEntries = connections.map((c) => ({
 
     <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
     </div>
+
+    <nav class="projects-scene__list" data-list aria-label={t.projectsPage.listAriaLabel}>
+      <p class="projects-scene__list-heading">{t.projectsPage.listHeading}</p>
+      <ul class="projects-scene__list-items">
+        {
+          localizedList.map((p) => (
+            <li>
+              <button
+                type="button"
+                class="projects-scene__list-item"
+                data-project-id={p.id}
+                style={`--brand:${p.color}`}
+              >
+                <span class="projects-scene__list-dot" aria-hidden="true" />
+                <span class="projects-scene__list-text">
+                  <span class="projects-scene__list-name">{p.name}</span>
+                  <span class="projects-scene__list-tagline">{p.tagline}</span>
+                </span>
+              </button>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
 
     <aside class="projects-scene__key" data-key aria-label={t.projectsPage.keyHeading}>
       <p class="projects-scene__key-heading">{t.projectsPage.keyHeading}</p>
@@ -183,6 +212,7 @@ const connectionLegendEntries = connections.map((c) => ({
     const legend = document.querySelector<HTMLElement>('[data-legend]');
     const credits = document.querySelector<HTMLElement>('[data-credits]');
     const key = document.querySelector<HTMLElement>('[data-key]');
+    const list = document.querySelector<HTMLElement>('[data-list]');
 
     if (!canvas || !hoverLabel || !detail || !closeBtn) return;
 
@@ -193,8 +223,18 @@ const connectionLegendEntries = connections.map((c) => ({
       legend,
       credits,
       key,
+      list,
       labels: { liveDemo: tp.liveDemo, githubLink: tp.githubLink },
       onClose: () => sceneHandle?.selectById(null),
+    });
+
+    // Delegated click handler on the list — clicking an item triggers
+    // the same selection flow as clicking the matching planet.
+    list?.addEventListener('click', (e) => {
+      const btn = (e.target as Element | null)?.closest<HTMLElement>('[data-project-id]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-project-id');
+      if (id) sceneHandle?.selectById(id);
     });
 
     try {

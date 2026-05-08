@@ -26,6 +26,7 @@ export interface DrawerOpts {
   legend: HTMLElement | null;
   credits: HTMLElement | null;
   key: HTMLElement | null;
+  list: HTMLElement | null;
   labels: DrawerLabels;
   /** Called after the drawer closes so the scene can deselect the planet. */
   onClose?: () => void;
@@ -140,7 +141,7 @@ function populateDetail(
  * should invoke `dispose` on `beforeunload` or when tearing down the page.
  */
 export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
-  const { detail, closeBtn, intro, legend, credits, key, labels } = opts;
+  const { detail, closeBtn, intro, legend, credits, key, list, labels } = opts;
 
   let lastFocused: HTMLElement | null = null;
 
@@ -177,6 +178,7 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
     legend?.classList.add('is-hidden');
     credits?.classList.add('is-hidden');
     key?.classList.add('is-hidden');
+    list?.classList.add('is-hidden');
     detail.addEventListener('keydown', trapTab);
     // Move focus to the close button once the drawer is open so keyboard
     // users can immediately tab through its contents.
@@ -190,6 +192,7 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
     legend?.classList.remove('is-hidden');
     credits?.classList.remove('is-hidden');
     key?.classList.remove('is-hidden');
+    list?.classList.remove('is-hidden');
     detail.removeEventListener('keydown', trapTab);
     opts.onClose?.();
     // Restore focus to the element that opened the drawer, or fall back
@@ -208,12 +211,29 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
     }
   };
 
+  // Click-outside-to-close. Capture phase so this fires before the canvas
+  // and project-list click handlers — when the user clicks another planet
+  // or list item, the drawer closes first (selected → null), then the
+  // bubbling click on the new target opens the drawer for it. Closing
+  // a click that itself opened the drawer is impossible because at the
+  // moment this fires the planet/list click hasn't run yet, so
+  // `data-open` is still 'false'.
+  const onDocumentClick = (e: MouseEvent) => {
+    if (detail.getAttribute('data-open') !== 'true') return;
+    const target = e.target as Node | null;
+    if (!target) return;
+    if (detail.contains(target)) return;
+    close();
+  };
+
   closeBtn.addEventListener('click', close);
   document.addEventListener('keydown', onEscape);
+  document.addEventListener('click', onDocumentClick, { capture: true });
 
   const dispose = () => {
     closeBtn.removeEventListener('click', close);
     document.removeEventListener('keydown', onEscape);
+    document.removeEventListener('click', onDocumentClick, { capture: true });
     detail.removeEventListener('keydown', trapTab);
   };
 

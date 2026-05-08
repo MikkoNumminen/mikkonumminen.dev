@@ -215,6 +215,114 @@ body[data-theme='projects'] .site-footer {
   color: rgba(120, 170, 255, 0.35);
 }
 
+/* Side-panel project list — primary alternative to chasing a moving
+   planet. Positioned below the intro on the left so the eye lands on
+   it after the title; pointer-events explicitly enabled so clicks
+   register on the buttons (the surrounding scene-overlay panels are
+   non-interactive). */
+.projects-scene__list {
+  position: absolute;
+  top: 19rem;
+  left: 3rem;
+  z-index: 10;
+  width: 22rem;
+  max-width: calc(100vw - 6rem);
+  max-height: calc(100vh - 24rem);
+  overflow-y: auto;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid rgba(120, 170, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(8, 14, 32, 0.55);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.projects-scene__list.is-hidden {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.projects-scene__list-heading {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(196, 212, 255, 0.6);
+  margin: 0 0 0.85rem;
+}
+
+.projects-scene__list-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.projects-scene__list-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.projects-scene__list-item:hover,
+.projects-scene__list-item:focus-visible {
+  background: rgba(120, 170, 255, 0.08);
+  border-color: color-mix(in srgb, var(--brand, #80c8ff) 45%, transparent);
+  transform: translateX(2px);
+  outline: none;
+}
+
+.projects-scene__list-dot {
+  flex: 0 0 0.55rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--brand, #80c8ff);
+  box-shadow: 0 0 8px var(--brand, #80c8ff);
+}
+
+.projects-scene__list-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.projects-scene__list-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #e6ecff;
+  letter-spacing: -0.005em;
+}
+
+.projects-scene__list-tagline {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: rgba(196, 212, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .hover-label {
   position: fixed;
   top: 0;
@@ -283,6 +391,16 @@ body[data-theme='projects'] .site-footer {
   .projects-scene__key-row {
     font-size: 0.72rem;
   }
+  .projects-scene__list {
+    width: 18rem;
+    padding: 0.9rem 1rem;
+  }
+  .projects-scene__list-name {
+    font-size: 0.85rem;
+  }
+  .projects-scene__list-tagline {
+    font-size: 0.65rem;
+  }
 }
 
 @media (max-width: 860px) {
@@ -302,7 +420,8 @@ body[data-theme='projects'] .site-footer {
     font-size: 0.6rem;
     letter-spacing: 0.15em;
   }
-  .projects-scene__key {
+  .projects-scene__key,
+  .projects-scene__list {
     display: none;
   }
   /* Fallback grid is the visible surface here — restore normal document
