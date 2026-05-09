@@ -166,10 +166,19 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   fillLight.position.set(-4, 4, 6);
   scene.add(fillLight);
 
-  // World-space center of the spiral galaxy. Meteors converge on this
-  // point; the collision-flash light moves to each impact as it fires.
-  const GALAXY_CENTER: [number, number, number] = [-7, -3.5, -12];
+  // World-space center of the spiral galaxy. Pushed deep into the left
+  // third of the frame so the chrome title can sit in the right third —
+  // editorial layout, not symmetric centre-stage. Meteors converge on
+  // this point; the collision-flash light moves to each impact as it
+  // fires.
+  const GALAXY_CENTER: [number, number, number] = [-13, -3, -13];
   const galaxyCenter = new Vector3(...GALAXY_CENTER);
+  // Title's resting offset along x. Tuned so on a 1440-px viewport the
+  // right edge of "NUMMINEN" clears the top-right data-feed widget; on
+  // wider screens the gap grows. The offset is scaled by the responsive
+  // title scale each frame so narrow viewports shrink it proportionally
+  // and "NUMMINEN" never clips the frame.
+  const TITLE_X_OFFSET = 3;
 
   // Dedicated collision-flash PointLight. Steady at 0; pulses bright on
   // each meteor impact and decays back over ~0.25 s, painting the
@@ -500,6 +509,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     title.group.rotation.x =
       mouseY * 0.12 + Math.sin(elapsed * 0.5) * 0.02 - entranceTilt;
     title.group.rotation.y = mouseX * 0.18 + Math.sin(elapsed * 0.4) * 0.03;
+    // Editorial offset: title sits in the right third of the frame,
+    // galaxy in the left third (see GALAXY_CENTER). Scaled by the
+    // responsive title scale so narrow viewports keep "NUMMINEN" inside
+    // the visible area.
+    title.group.position.x = TITLE_X_OFFSET * title.group.scale.x;
     title.group.position.z = -scrollProgress * 6 + entranceOffset;
     title.group.position.y =
       totalHeight / 2 + Math.sin(elapsed * 0.7) * 0.08 + scrollProgress * 1.5;
