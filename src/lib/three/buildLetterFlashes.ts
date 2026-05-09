@@ -36,6 +36,11 @@ interface FlashState {
   light: PointLight;
   parent: Mesh;
   parentWidth: number;
+  /** Mesh-local y range of the line's letter glyphs, derived once from
+   *  the geometry's bounding box so flash positions land *inside* the
+   *  letters rather than guessing a centred-around-zero range. */
+  yMin: number;
+  yMax: number;
   active: boolean;
   /** Negative pre-life delay (counts up to 0 before the flash starts). */
   delay: number;
@@ -63,6 +68,15 @@ export function buildLetterFlashes(
   const states: FlashState[] = [];
 
   for (const line of options.lines) {
+    // Derive the letter y range from the geometry's bounding box. Falls
+    // back to a small symmetric range if the bbox isn't computed yet
+    // (it always is for buildTitle's TextGeometry, but defensive).
+    if (!line.mesh.geometry.boundingBox) {
+      line.mesh.geometry.computeBoundingBox();
+    }
+    const bbox = line.mesh.geometry.boundingBox;
+    const yMin = bbox ? bbox.min.y : -0.5;
+    const yMax = bbox ? bbox.max.y : 0.5;
     for (let i = 0; i < perLine; i++) {
       const light = new PointLight(FLASH_COLOR, 0, radius);
       light.visible = false;
@@ -71,6 +85,8 @@ export function buildLetterFlashes(
         light,
         parent: line.mesh,
         parentWidth: line.width,
+        yMin,
+        yMax,
         active: false,
         delay: 0,
         age: 0,
@@ -88,11 +104,15 @@ export function buildLetterFlashes(
     for (const s of states) {
       if (triggered >= count) break;
       if (s.active) continue;
-      // Random x within the line, biased to the central 90 % so the
-      // halo doesn't poke out past the line's edges.
+      // Random x within the central 90 % of the line and random y inside
+      // the letters' actual bounding box (with a small inset). Keeps the
+      // halo painting the glyph faces, not the empty space above/below.
+      const yInset = (s.yMax - s.yMin) * 0.1;
+      const yLow = s.yMin + yInset;
+      const yHigh = s.yMax - yInset;
       s.light.position.set(
         (Math.random() - 0.5) * s.parentWidth * 0.9,
-        (Math.random() - 0.5) * 1.2,
+        yLow + Math.random() * (yHigh - yLow),
         1.2,
       );
       s.light.visible = true;
@@ -129,9 +149,10 @@ export function buildLetterFlashes(
   };
 
   const dispose = (): void => {
+    // PointLight.dispose() is a no-op without a shadow map (these don't
+    // have one), so we only need to detach from the parent.
     for (const s of states) {
       s.parent.remove(s.light);
-      s.light.dispose();
     }
   };
 

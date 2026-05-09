@@ -23,11 +23,19 @@ const BASE_WORLD_HEIGHT = 0.75;
 // Retina at the popup's on-screen size.
 const CANVAS_W = 768;
 const CANVAS_H = 144;
-// Single coherent terminal color, picked to match the cyan-teal pulse
-// in the data-feed widget (#6fcfe0). All popups share this color so the
-// commit-log feed reads as one consistent UI element across the page,
-// not as a randomized rainbow keyed off whichever meteor happened to hit.
+// Single coherent terminal color in the same cyan-teal family as the
+// data-feed widget (whose pulse is #6fcfe0 and whose label is
+// rgba(180,220,255)). Picked at the lighter end of that family so small
+// monospace text reads cleanly against the dark backdrop. All popups
+// share this color so the commit-log reads as one consistent UI element
+// across the page, not as a randomized rainbow keyed off the meteor.
 const TEXT_COLOR = 'rgb(170, 226, 240)';
+// Largest font we'll use; long scopes auto-shrink below this so the
+// glyphs always fit inside the canvas with margin for the drop-shadow.
+const FONT_SIZE_MAX = 64;
+// Roughly the per-character advance of JetBrains Mono at 1 em. Used to
+// estimate text width for the auto-fit decision below.
+const MONO_ADVANCE = 0.6;
 
 interface PopupState {
   sprite: Sprite;
@@ -46,7 +54,17 @@ function drawText(
 ): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.font = `500 64px "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, monospace`;
+  // Auto-shrink the font for unusually long scopes so the glyphs never
+  // clip the canvas edge. At FONT_SIZE_MAX the longest scope in current
+  // use ("feat(observability)" — 19 chars) sits with ~19 px of margin
+  // per side; this keeps that margin guaranteed for any future scope.
+  const maxAdvance = canvas.width - 24;
+  const naturalWidth = text.length * FONT_SIZE_MAX * MONO_ADVANCE;
+  const fontSize =
+    naturalWidth > maxAdvance
+      ? Math.floor((FONT_SIZE_MAX * maxAdvance) / naturalWidth)
+      : FONT_SIZE_MAX;
+  ctx.font = `500 ${fontSize}px "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 

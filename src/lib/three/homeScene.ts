@@ -190,13 +190,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   // ── Horizon glow plate (sun-side halo behind the title) ──────────────
   const horizon: HorizonGlowHandle = buildHorizonGlow();
-  // Override the builder's default upper-right position. Now that the
-  // chrome title sits in the right third, the original (12, 4.5, -15)
-  // landed the bright pinpoint right under "MIKKO". Move it upper-left
-  // — above the galaxy, balancing it diagonally — so the anamorphic
-  // streak still extends across the upper frame and reflects in the
-  // chrome, but the bright source is far from the letters.
-  horizon.mesh.position.set(-12, 7.5, -18);
+  // Override the builder's default position. With the title in the right
+  // third the original (12, 4.5, -15) landed the bright pinpoint right
+  // under "MIKKO". We keep the same upper-right *bearing* so the chrome's
+  // envMap reflection (baked at scene construction with the bright zone
+  // on the right) still agrees with the visible star — just lifted high
+  // enough that the star clears the title vertically.
+  horizon.mesh.position.set(13, 9, -18);
   scene.add(horizon.mesh);
 
   // ── Galaxy ───────────────────────────────────────────────────────────
