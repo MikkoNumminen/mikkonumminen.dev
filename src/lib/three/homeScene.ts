@@ -52,15 +52,21 @@ interface HomeSceneOptions {
   commitMessages?: string[];
 }
 
+// Sentinel pool used only when build-time `git log` returned nothing
+// (e.g. site previewed outside a git checkout). Mirrors the type(scope)
+// shape of real entries so a fallback popup is indistinguishable from
+// a real one — no full-sentence fragments leaking into the UI.
 const FALLBACK_COMMITS: string[] = [
-  'feat: ship the galaxy',
-  'fix: stabilize the orbit',
-  'chore: prettier sweep',
-  'refactor: lighten the loop',
-  'docs: update the field guide',
-  'style: tighten the type ramp',
-  'feat: add scroll trigger',
-  'fix: clamp camera bounds',
+  'feat(home)',
+  'fix(home)',
+  'feat(projects)',
+  'fix(projects)',
+  'chore(lint)',
+  'feat(experience)',
+  'fix(contact)',
+  'feat(observability)',
+  'docs(audit)',
+  'fix(a11y)',
 ];
 
 export interface HomeSceneHandle {

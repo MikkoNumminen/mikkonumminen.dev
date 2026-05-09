@@ -25,7 +25,12 @@ export interface BuildLetterFlashesOptions {
   radius?: number;
 }
 
-const DEFAULT_PER_LINE = 3;
+// 2 lights per line (4 total across "MIKKO"/"NUMMINEN") — each one
+// adds a permanent contribution to the chrome material's lighting
+// shader, so the count is kept low to avoid bloating the shader and
+// stuttering the scene on first render. Bursts of 2-3 against a pool
+// of 4 still create a clear stutter of bright spots across the title.
+const DEFAULT_PER_LINE = 2;
 const DEFAULT_RADIUS = 4;
 // Bright pale-chrome — the same family as the existing collisionRimLight,
 // so the per-letter highlights agree with the whole-title rim flash that
@@ -97,9 +102,10 @@ export function buildLetterFlashes(
   }
 
   const trigger = (): void => {
-    // 3-5 flashes per impact. With 6 slots in the pool that leaves
-    // headroom for back-to-back impacts without losing the strobe.
-    const count = 3 + Math.floor(Math.random() * 3);
+    // 2-3 flashes per impact. With 4 slots in the pool (2 per line)
+    // that exactly covers a worst-case burst without saturating, which
+    // keeps the shader's permanent light count low.
+    const count = 2 + Math.floor(Math.random() * 2);
     let triggered = 0;
     for (const s of states) {
       if (triggered >= count) break;
