@@ -296,6 +296,16 @@ const t = getTranslations(locale);
     gap: 0.4rem;
   }
 
+  /* Hide the data-feed widget below 1440 px — the chrome title now sits
+     in the right third of the frame and there isn't enough horizontal
+     room for both the title and the 224 px data-feed canvas without
+     them crashing into each other. The TR coords/place labels stay. */
+  @media (max-width: 1440px) {
+    .hero__data-feed {
+      display: none;
+    }
+  }
+
   .hero__data-feed-label {
     display: inline-flex;
     align-items: center;

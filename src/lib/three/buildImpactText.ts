@@ -25,11 +25,13 @@ const RISE_SPEED = 1.2;
 // title carry the composition; commit prefixes are a quiet rhythm.
 const BASE_WORLD_WIDTH = 3;
 const BASE_WORLD_HEIGHT = 0.56;
-// Off-screen canvas resolution. Aspect matches BASE_WORLD; resolution is
-// kept generous (3.4× the on-screen pixel size at typical viewports) so
-// the small text still rasterises crisp on Retina displays.
-const CANVAS_W = 512;
-const CANVAS_H = 96;
+// Off-screen canvas resolution. Aspect matches BASE_WORLD (5.33:1).
+// Sized to comfortably fit the longest realistic scope ("feat(observability)"
+// at 19 chars × ~33 px per glyph ≈ 630 px) inside 768 px of canvas with
+// margin for the drop-shadow blur. 768×144 stays sharp on Retina at the
+// popup's small on-screen size.
+const CANVAS_W = 768;
+const CANVAS_H = 144;
 
 interface PopupState {
   sprite: Sprite;

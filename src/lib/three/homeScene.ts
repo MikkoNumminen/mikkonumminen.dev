@@ -173,10 +173,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // fires.
   const GALAXY_CENTER: [number, number, number] = [-13, -3, -13];
   const galaxyCenter = new Vector3(...GALAXY_CENTER);
-  // Title's resting offset along x. Scaled by the responsive title scale
-  // each frame so on narrow viewports the offset shrinks proportionally
-  // and the right edge of "NUMMINEN" never clips the frame.
-  const TITLE_X_OFFSET = 5;
+  // Title's resting offset along x. Tuned so on a 1440-px viewport the
+  // right edge of "NUMMINEN" clears the top-right data-feed widget; on
+  // wider screens the gap grows. The offset is scaled by the responsive
+  // title scale each frame so narrow viewports shrink it proportionally
+  // and "NUMMINEN" never clips the frame.
+  const TITLE_X_OFFSET = 3;
 
   // Dedicated collision-flash PointLight. Steady at 0; pulses bright on
   // each meteor impact and decays back over ~0.25 s, painting the
