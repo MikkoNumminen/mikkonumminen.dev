@@ -48,7 +48,7 @@ export interface BuildMeteorsOptions {
   /** World-space center the meteors converge on. Read each frame. */
   galaxyCenter: Vector3;
   /** Fired once per meteor when its head reaches the galaxy. */
-  onImpact: (impactWorldPos: Vector3, color: Color) => void;
+  onImpact: (impactWorldPos: Vector3) => void;
 }
 
 export interface MeteorsHandle {
@@ -238,7 +238,7 @@ export function buildMeteors(options: BuildMeteorsOptions): MeteorsHandle {
         // Snap the head onto the impact point so the flash reads as
         // landing exactly where the meteor stops.
         tmpImpactPos.copy(tmpHead);
-        onImpact(tmpImpactPos, meteor.tint);
+        onImpact(tmpImpactPos);
       }
     }
 

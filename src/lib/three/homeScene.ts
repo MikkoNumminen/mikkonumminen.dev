@@ -26,6 +26,7 @@ import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
 import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
 import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
 import { buildImpactText, type ImpactTextHandle } from './buildImpactText';
+import { buildLetterFlashes, type LetterFlashesHandle } from './buildLetterFlashes';
 import { buildMeteors, type MeteorsHandle } from './buildMeteors';
 import {
   buildExperienceZoneDecor,
@@ -189,6 +190,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   // ── Horizon glow plate (sun-side halo behind the title) ──────────────
   const horizon: HorizonGlowHandle = buildHorizonGlow();
+  // Override the builder's default position. With the title in the right
+  // third the original (12, 4.5, -15) landed the bright pinpoint right
+  // under "MIKKO". We keep the same upper-right *bearing* so the chrome's
+  // envMap reflection (baked at scene construction with the bright zone
+  // on the right) still agrees with the visible star — just lifted high
+  // enough that the star clears the title vertically.
+  horizon.mesh.position.set(13, 9, -18);
   scene.add(horizon.mesh);
 
   // ── Galaxy ───────────────────────────────────────────────────────────
@@ -353,6 +361,18 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   mikkoMesh.add(projectsDecor.group);
   nummMesh.add(homeDecor.group);
 
+  // ── Per-letter flash highlights (impact strobing) ────────────────────
+  // Pool of brief PointLights parented to the line meshes; each meteor
+  // impact triggers 3-5 of them at random x positions with staggered
+  // start times. The result is a stutter of bright spots rippling
+  // across the chrome, on top of the whole-title rim flash.
+  const letterFlashes: LetterFlashesHandle = buildLetterFlashes({
+    lines: [
+      { mesh: mikkoMesh, width: wMIKKO },
+      { mesh: nummMesh, width: nummWidth },
+    ],
+  });
+
   // Mountain rises ABOVE the M's letter top so the silhouette is
   // visible against the dark background, not embedded in the letter
   // solid. Anchored at the actual letter top from the bbox.
@@ -415,20 +435,20 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // ── Meteors (converge on the galaxy and detonate on impact) ─────────
   const meteors: MeteorsHandle = buildMeteors({
     galaxyCenter,
-    onImpact: (impactWorldPos, color) => {
+    onImpact: (impactWorldPos) => {
       sparks.spawn(impactWorldPos.x, impactWorldPos.y, impactWorldPos.z);
-      // Brighten the chrome rim and the per-impact point light in sync
-      // with the visible spark — same wiring that the old galaxy-vs-
-      // galaxy collision drove.
+      // Brighten the chrome rim, the per-impact point light, and ripple
+      // a stutter of per-letter flashes across the title — three
+      // overlapping highlights that read as one rich "moment of impact".
       collisionFlashEnergy = 1;
       collisionRimEnergy = 1;
       collisionFlashLight.position.copy(impactWorldPos);
+      letterFlashes.trigger();
       impactText.spawn(
         pickCommit(),
         impactWorldPos.x,
         impactWorldPos.y,
         impactWorldPos.z,
-        color,
       );
     },
   });
@@ -563,6 +583,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
       sparks.tick(delta);
       impactText.tick(delta);
+      letterFlashes.tick(delta);
     }
 
     // Per-zone hover/boost/tick. Each zone's hover hot-zone lerps its
@@ -695,6 +716,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
       sparks.dispose();
       impactText.dispose();
+      letterFlashes.dispose();
       meteors.dispose();
 
       scene.environment = null;
