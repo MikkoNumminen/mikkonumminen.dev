@@ -60,14 +60,14 @@ const t = getTranslations(locale);
       <span class="hero__corner-num">61° N · 24° E</span>
       <span class="hero__corner-rule hero__corner-rule--tr"></span>
       <span class="hero__corner-place">tampere · hervanta</span>
-      <span class="hero__data-feed" data-data-feed>
-        <span class="hero__data-feed-label">
-          <span class="hero__data-feed-pulse"></span>
-          <span>data · ch-01</span>
-        </span>
-        <canvas class="hero__data-feed-canvas" width="480" height="144" aria-hidden="true"
-        ></canvas>
+    </span>
+    <span class="hero__data-feed" data-data-feed>
+      <span class="hero__data-feed-label">
+        <span class="hero__data-feed-pulse"></span>
+        <span>data · ch-01</span>
       </span>
+      <canvas class="hero__data-feed-canvas" width="480" height="144" aria-hidden="true"
+      ></canvas>
     </span>
     <span class="hero__corner hero__corner--br">
       <span class="hero__corner-num">vol. 26</span>
@@ -285,25 +285,19 @@ const t = getTranslations(locale);
     }
   }
 
-  /* Live data-feed widget tucked under the editorial coords. The cyan
-     pulse + cascading glyphs read as "this location is where data
-     flows" — the corner is no longer just static labels. */
+  /* Live data-feed widget. The cyan pulse + cascading glyphs read as
+     "this location is where data flows". Re-anchored to bottom-right so
+     it lives below the title's vertical band — no horizontal conflict
+     with the right-third chrome wordmark on any viewport. Sits just
+     above the "vol. 26" corner label, sharing the same right edge. */
   .hero__data-feed {
-    margin-top: 0.85rem;
+    position: absolute;
+    bottom: 5.25rem;
+    right: 2rem;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 0.4rem;
-  }
-
-  /* Hide the data-feed widget below 1440 px — the chrome title now sits
-     in the right third of the frame and there isn't enough horizontal
-     room for both the title and the 224 px data-feed canvas without
-     them crashing into each other. The TR coords/place labels stay. */
-  @media (max-width: 1440px) {
-    .hero__data-feed {
-      display: none;
-    }
   }
 
   .hero__data-feed-label {
