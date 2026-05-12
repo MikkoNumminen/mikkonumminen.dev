@@ -82,19 +82,6 @@ const t = getTranslations(locale);
     max-width: 18ch;
   }
 
-  .velocity__heading :global([data-split]) {
-    display: inline-block;
-    overflow: hidden;
-  }
-  .velocity__heading :global(.word) {
-    display: inline-block;
-    white-space: nowrap;
-  }
-  .velocity__heading :global(.char) {
-    display: inline-block;
-    will-change: transform, opacity;
-  }
-
   .velocity__body {
     font-size: clamp(1.05rem, 1.6vw, 1.2rem);
     line-height: 1.6;
