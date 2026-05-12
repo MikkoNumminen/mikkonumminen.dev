@@ -78,7 +78,11 @@ export interface HomeSceneHandle {
 const FOG_COLOR = 0x05060c;
 const TITLE = 'MIKKO\nNUMMINEN';
 const TITLE_DESIGN_WIDTH = 1100;
-const TITLE_MIN_SCALE = 0.5;
+// Floor below which the title would read as decorative noise rather than
+// a name. Set low enough that the frustum-fit cap can fully constrain
+// portrait-tablet aspect ratios (≈ 0.7 aspect needs scale ≈ 0.3) without
+// the floor kicking in and re-introducing right-edge clipping.
+const TITLE_MIN_SCALE = 0.3;
 const PARTICLE_AREA_DIVISOR = 800;
 const PARTICLE_MAX = 2200;
 
@@ -493,9 +497,51 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     window.addEventListener('pointermove', onPointerMove, { passive: true });
   }
 
+  // World-space half-width the title occupies at scale=1.0: the wider
+  // line's half-width plus the editorial x-offset, since the group is
+  // shifted right by TITLE_X_OFFSET * scale every frame.
+  const titleNaturalHalfWidth =
+    Math.max(wMIKKO, nummWidth) / 2 + TITLE_X_OFFSET;
+  // World-space breathing room between the title's right edge and the
+  // right edge of the visible frustum — keeps "NUMMINEN" clear of the
+  // top-right data-feed widget and absorbs the small extra horizontal
+  // span the pointer-driven Y-rotation (up to ≈ 12°) projects onto the
+  // x-axis at the small end of the fit envelope.
+  const TITLE_RIGHT_PADDING = 2;
+
+  // Camera fov (the *vertical* fov in Three.js) and z don't change after
+  // init — cache `tan(fov/2) * z` so each resize is just one multiply by
+  // `camera.aspect`. Note: the visible vertical extent at z=0 is
+  // `2 * cameraHalfHeightAtZ0` and is independent of viewport pixel
+  // height, so the title (≈ 5 world units tall) never needs a vertical
+  // fit constraint — only the horizontal extent changes with aspect.
+  const cameraHalfHeightAtZ0 =
+    Math.tan(((camera.fov * Math.PI) / 180) / 2) * camera.position.z;
+
   const resize = createResizeHandler(renderer, camera, (width) => {
-    const baseScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
-    title.group.scale.setScalar(Math.max(TITLE_MIN_SCALE, baseScale));
+    // Width-based scale preserves the original design intent: at viewport
+    // widths ≥ TITLE_DESIGN_WIDTH the title sits at its full size, narrower
+    // viewports scale it down.
+    const widthScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
+
+    // Frustum-fit scale: visible horizontal extent at the title's z-plane
+    // (z = 0) caps the scale so the widest line's right edge stays inside
+    // the viewport. Without this, narrow-aspect viewports (1366×768,
+    // tablets in portrait) clip "NUMMINEN" because width-based scaling
+    // alone doesn't know how wide the perspective frustum actually is.
+    const visibleHalfWidth = cameraHalfHeightAtZ0 * camera.aspect;
+    const fitScale =
+      (visibleHalfWidth - TITLE_RIGHT_PADDING) / titleNaturalHalfWidth;
+
+    // Fit is a hard cap (clipping is worse than tiny text); the
+    // readability floor is a soft minimum that yields to the fit cap.
+    // Apply the floor only when there's slack — i.e. when `fitScale`
+    // permits it. Order: `ideal = min(width, fit)`, lift to floor if
+    // possible, never exceed the fit cap.
+    const idealScale = Math.min(widthScale, fitScale);
+    const scale = Math.min(fitScale, Math.max(TITLE_MIN_SCALE, idealScale));
+
+    title.group.scale.setScalar(scale);
     if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
   });
   resize.handler();
