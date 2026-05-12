@@ -177,12 +177,30 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   fillLight.position.set(-4, 4, 6);
   scene.add(fillLight);
 
-  // World-space center of the spiral galaxy. Pushed deep into the left
-  // third of the frame so the chrome title can sit in the right third —
-  // editorial layout, not symmetric centre-stage. Meteors converge on
-  // this point; the collision-flash light moves to each impact as it
-  // fires.
-  const GALAXY_CENTER: [number, number, number] = [-13, -3, -13];
+  // Resting world-space center of the spiral galaxy. Pushed deep into
+  // the left third of the frame so the chrome title can sit in the
+  // right third — editorial layout, not symmetric centre-stage.
+  // Meteors converge on this point; the collision-flash light moves to
+  // each impact as it fires.
+  //
+  // On narrow-aspect viewports the design x (-13) sits outside the
+  // visible frustum at the galaxy's z-plane, clipping the spiral arms.
+  // The resize handler pulls the galaxy toward x=0 just enough to keep
+  // it inside the viewport (see GALAXY_RADIUS / GALAXY_LEFT_PADDING).
+  const GALAXY_DESIGN_X = -13;
+  const GALAXY_DESIGN_Y = -3;
+  const GALAXY_DESIGN_Z = -13;
+  // Approximate visual radius of the spiral disk. Matches the `radius`
+  // default in buildGalaxyLayer; updating either should track the other.
+  const GALAXY_RADIUS = 8;
+  // World-space breathing room between the galaxy's left edge and the
+  // visible frustum.
+  const GALAXY_LEFT_PADDING = 1;
+  const GALAXY_CENTER: [number, number, number] = [
+    GALAXY_DESIGN_X,
+    GALAXY_DESIGN_Y,
+    GALAXY_DESIGN_Z,
+  ];
   const galaxyCenter = new Vector3(...GALAXY_CENTER);
   // Title's resting offset along x. Tuned so on a 1440-px viewport the
   // right edge of "NUMMINEN" clears the top-right data-feed widget; on
@@ -515,8 +533,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // `2 * cameraHalfHeightAtZ0` and is independent of viewport pixel
   // height, so the title (≈ 5 world units tall) never needs a vertical
   // fit constraint — only the horizontal extent changes with aspect.
-  const cameraHalfHeightAtZ0 =
-    Math.tan(((camera.fov * Math.PI) / 180) / 2) * camera.position.z;
+  const tanHalfFov = Math.tan(((camera.fov * Math.PI) / 180) / 2);
+  const cameraHalfHeightAtZ0 = tanHalfFov * camera.position.z;
+  // Half-height of the visible frustum at the galaxy's z-plane. The
+  // galaxy sits at z = GALAXY_DESIGN_Z (a fixed depth — it never moves
+  // on the z-axis), so we can cache this once.
+  const cameraHalfHeightAtGalaxyZ =
+    tanHalfFov * (camera.position.z - GALAXY_DESIGN_Z);
 
   const resize = createResizeHandler(renderer, camera, (width) => {
     // Width-based scale preserves the original design intent: at viewport
@@ -542,6 +565,23 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const scale = Math.min(fitScale, Math.max(TITLE_MIN_SCALE, idealScale));
 
     title.group.scale.setScalar(scale);
+
+    // Galaxy responsive x-position. At narrow aspects the design x
+    // (-13) sits outside the visible frustum at the galaxy's z-plane,
+    // clipping the spiral disk on the left. Pull the center toward x=0
+    // just enough to keep the whole disk inside, never pushing it
+    // further left than the design position (so wide aspects are
+    // unchanged) and never crossing past x=0 onto the title's side.
+    // Mutating `galaxyCenter` propagates to the meteor spawn / target
+    // logic since buildMeteors reads it by reference.
+    const visibleHalfWidthAtGalaxyZ = cameraHalfHeightAtGalaxyZ * camera.aspect;
+    const maxGalaxyXMagnitude =
+      visibleHalfWidthAtGalaxyZ - GALAXY_RADIUS - GALAXY_LEFT_PADDING;
+    const galaxyX = Math.min(0, Math.max(GALAXY_DESIGN_X, -maxGalaxyXMagnitude));
+    galaxy.group.position.x = galaxyX;
+    galaxyCenter.x = galaxyX;
+    collisionFlashLight.position.x = galaxyX;
+
     if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
   });
   resize.handler();
