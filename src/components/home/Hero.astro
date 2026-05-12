@@ -96,6 +96,24 @@ const t = getTranslations(locale);
     display: block;
   }
 
+  /* On mobile and reduced-motion the chrome 3D type is replaced by the
+     flat `.hero__title-fallback`. The canvas was still rendering behind
+     the fallback in those cases, producing a small blue 3D wordmark
+     stacked above the white fallback — visible from ≤640px down to the
+     narrowest viewports. Hide the canvas wherever the fallback takes
+     over so only one title shows at a time. */
+  @media (max-width: 640px) {
+    .hero__canvas {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__canvas {
+      display: none;
+    }
+  }
+
   .hero__overlay {
     position: absolute;
     inset: 0;
