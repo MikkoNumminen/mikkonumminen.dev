@@ -509,8 +509,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // x-axis at the small end of the fit envelope.
   const TITLE_RIGHT_PADDING = 2;
 
-  // Camera fov and z don't change after init — cache `tan(fov/2) * z`
-  // so each resize is just one multiply by `camera.aspect`.
+  // Camera fov (the *vertical* fov in Three.js) and z don't change after
+  // init — cache `tan(fov/2) * z` so each resize is just one multiply by
+  // `camera.aspect`. Note: the visible vertical extent at z=0 is
+  // `2 * cameraHalfHeightAtZ0` and is independent of viewport pixel
+  // height, so the title (≈ 5 world units tall) never needs a vertical
+  // fit constraint — only the horizontal extent changes with aspect.
   const cameraHalfHeightAtZ0 =
     Math.tan(((camera.fov * Math.PI) / 180) / 2) * camera.position.z;
 
@@ -529,7 +533,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const fitScale =
       (visibleHalfWidth - TITLE_RIGHT_PADDING) / titleNaturalHalfWidth;
 
-    const scale = Math.max(TITLE_MIN_SCALE, Math.min(widthScale, fitScale));
+    // Fit is a hard cap (clipping is worse than tiny text); the
+    // readability floor is a soft minimum that yields to the fit cap.
+    // Apply the floor only when there's slack — i.e. when `fitScale`
+    // permits it. Order: `ideal = min(width, fit)`, lift to floor if
+    // possible, never exceed the fit cap.
+    const idealScale = Math.min(widthScale, fitScale);
+    const scale = Math.min(fitScale, Math.max(TITLE_MIN_SCALE, idealScale));
+
     title.group.scale.setScalar(scale);
     if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
   });
