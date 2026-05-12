@@ -30,7 +30,6 @@ import {
   buildExperienceZoneDecor,
   type ExperienceZoneDecorHandle,
 } from './buildExperienceZoneDecor';
-import { buildHomeZoneDecor, type HomeZoneDecorHandle } from './buildHomeZoneDecor';
 import {
   buildProjectsZoneDecor,
   type ProjectsZoneDecorHandle,
@@ -309,17 +308,18 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // Each letter zone of the title becomes a tiny embedded scene
   // representing one of the four pages. Single-letter targets (M, O)
   // keep each decor visually contained and let the chrome letters
-  // between them breathe. The home zone covers the back half of
-  // NUMMINEN with subtle drifting dust only.
+  // between them breathe.
   //   M       → Experience (single ridge + drifting snow + goat)
   //   I-K-K   → (no decor — quiet chrome between the loud zones)
   //   O       → Projects   (Saturn ring + orbiting planet)
-  //   NUMMINEN → Home      (dust drifting across the bottom line)
+  //   NUMMINEN → (no decor — the line reads as just the name)
   //
   // The contact zone is no longer in the 3D scene — it lives as a
   // "data feed" widget under the editorial coords in the top-right
   // corner of the page, so the matrix cascade doesn't block scene
-  // elements (galaxies, etc).
+  // elements (galaxies, etc). The "home" zone is also dropped —
+  // an earlier dust cloud across the NUMMINEN line read as snowfall
+  // competing with the title.
   const wMIKKO = measureTextWidth(font, 'MIKKO');
   const wM = measureTextWidth(font, 'M');
   const wMIKK = measureTextWidth(font, 'MIKK');
@@ -346,7 +346,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // Each zone module's "design width" at scale=1, used to pick a scale
   // that fills the targeted letter span.
   const EXPERIENCE_DESIGN_WIDTH = 2.2; // single ridge spans ±1.1 ≈ M width
-  const HOME_DESIGN_WIDTH = 6;
 
   const experienceDecor: ExperienceZoneDecorHandle = buildExperienceZoneDecor({
     envMap: env.envMap,
@@ -358,21 +357,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // just outside the O's letter outline with a small breathing gap.
     scale: 0.7,
   });
-  // Home dust spans the whole NUMMINEN line — scale to the line width
-  // (≈ wMIKKO is a reasonable proxy for the bottom line, but use the
-  // bottom mesh's actual bbox so this tracks future line changes).
   const nummWidth =
     nummMesh.geometry.boundingBox!.max.x - nummMesh.geometry.boundingBox!.min.x;
-  const homeDecor: HomeZoneDecorHandle = buildHomeZoneDecor({
-    envMap: env.envMap,
-    scale: nummWidth / HOME_DESIGN_WIDTH,
-  });
 
   // Parent each decor under the appropriate line mesh so it inherits
   // the title's floats / sway / entrance offset for free.
   mikkoMesh.add(experienceDecor.group);
   mikkoMesh.add(projectsDecor.group);
-  nummMesh.add(homeDecor.group);
 
   // ── Per-letter flash highlights (impact strobing) ────────────────────
   // Pool of brief PointLights parented to the line meshes; each meteor
@@ -391,8 +382,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // solid. Anchored at the actual letter top from the bbox.
   experienceDecor.group.position.set(xCenterM, mikkoTopY, TITLE_DEPTH / 2);
   projectsDecor.group.position.set(xCenterO, 0, TITLE_DEPTH / 2);
-  // Home dust spans the full bottom line, centered on it.
-  homeDecor.group.position.set(0, 0, TITLE_DEPTH / 2);
 
   /**
    * One row per zone. `boost` is mutable (lerps toward 1 on hover) and
@@ -402,7 +391,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
    * title scaling; sized to each zone's screen footprint.
    */
   interface ZoneEntry {
-    decor: ExperienceZoneDecorHandle | ProjectsZoneDecorHandle | HomeZoneDecorHandle;
+    decor: ExperienceZoneDecorHandle | ProjectsZoneDecorHandle;
     parent: Mesh;
     boost: number;
     hotRadiusBase: number;
@@ -419,12 +408,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       parent: mikkoMesh,
       boost: 0,
       hotRadiusBase: 110,
-    },
-    {
-      decor: homeDecor,
-      parent: nummMesh,
-      boost: 0,
-      hotRadiusBase: 240,
     },
   ];
 
