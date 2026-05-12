@@ -128,17 +128,31 @@ body {
 /* `[data-split]` is the per-character reveal mask used by GSAP on home-page
    headings (see src/lib/gsap/homeTimeline.ts). The mask needs `overflow:
    hidden` so chars are invisible before they slide up from `yPercent: 110`.
-   Headings here use a tight line-height (~1.02) for typographic feel, which
-   makes the mask box too short to contain font descenders (g, p, y, j) —
-   they get clipped flat in the static state. `padding-block-end: 0.18em`
-   extends the mask just enough to keep descenders visible while still
-   hiding the pre-animation chars sitting at yPercent: 110 below the baseline.
+
+   `padding-block-end: 0.4em` extends the bottom of the clip box well past
+   the baseline. The heading itself uses `line-height: 1.18`, which alone
+   isn't enough at the heavy display weight + ~68px desktop size where
+   descenders (g, j, p, y) on words like "projects" extend further below
+   the baseline than the visual line-height suggests. 0.4em is a brute
+   multiple of any reasonable font's descender depth (typically 0.2-0.3em).
+
+   Layout cost: the inline-block contributes (line-height 1.18em) + (padding
+   0.4em) = 1.58em to its parent's line box, so the heading's content box
+   grows by ~0.22em compared to no padding. Three of the five home-page
+   headings (Focus, Integrations, NavCards) sit above a 4rem margin gap that
+   absorbs that delta invisibly. Velocity has a 1.75rem gap — still plenty.
+   Intro has `margin: 0` on the heading, so the ~0.22em shifts the body
+   paragraph down by that amount — small enough to read as breathing room
+   rather than a layout bug, but worth knowing.
+
    Centralised here so every new section that uses `[data-split]` inherits
-   the fix instead of re-tripping the same clipping bug. */
+   the fix instead of re-tripping the same clipping bug. If a future heading
+   uses a font with even deeper descenders (some display serifs go to 0.5em),
+   or sits above content tighter than ~0.5em, revisit this number. */
 [data-split] {
   display: inline-block;
   overflow: hidden;
-  padding-block-end: 0.18em;
+  padding-block-end: 0.4em;
 }
 
 [data-split] .word {
