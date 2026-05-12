@@ -77,14 +77,15 @@
   z-index: 4;
   width: min(960px, 92vw);
   /* Fixed window height so overflow scrolls inside the terminal, not the
-     whole page. Derived from the viewport minus the top + bottom margins
-     used below; clamped so very tall viewports don't produce an empty
-     terminal and very short ones still get a usable size (page scroll
-     resumes below ~480 px tall). */
-  height: calc(100vh - clamp(5rem, 12vh, 9rem) - 4rem);
+     whole page. Derived from the dynamic viewport (so the iOS URL bar
+     collapsing doesn't leave the form + hints behind browser chrome)
+     minus the top + bottom margins used below; clamped so very tall
+     viewports don't produce an empty terminal and very short viewports
+     (below ~620 px) fall back to letting the page scroll. */
+  height: calc(100dvh - clamp(5rem, 12dvh, 9rem) - 4rem);
   max-height: 800px;
   min-height: 480px;
-  margin: clamp(5rem, 12vh, 9rem) auto 4rem;
+  margin: clamp(5rem, 12dvh, 9rem) auto 4rem;
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(74, 222, 128, 0.22);
@@ -347,7 +348,9 @@
   /* Hide the desktop interactive CRT terminal on phones — the
      MobileContactCard component takes over below 640px. The noscript
      fallback inside .crt is still served for no-JS desktop clients;
-     no-JS mobile is an accepted non-goal. */
+     no-JS mobile is an accepted non-goal. The `.terminal*` overrides
+     below only affect the noscript fallback, since `.crt` (which wraps
+     the interactive terminal) is display:none here. */
   .crt {
     display: none;
   }
@@ -355,10 +358,6 @@
     width: 96vw;
     margin-top: 5.5rem;
     border-radius: 10px;
-  }
-  .terminal__screen {
-    padding: 1rem 1rem 1.25rem;
-    min-height: 65vh;
   }
   .terminal__title {
     display: none;
