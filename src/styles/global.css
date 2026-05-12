@@ -125,6 +125,32 @@ body {
   );
 }
 
+/* `[data-split]` is the per-character reveal mask used by GSAP on home-page
+   headings (see src/lib/gsap/homeTimeline.ts). The mask needs `overflow:
+   hidden` so chars are invisible before they slide up from `yPercent: 110`.
+   Headings here use a tight line-height (~1.02) for typographic feel, which
+   makes the mask box too short to contain font descenders (g, p, y, j) —
+   they get clipped flat in the static state. `padding-block-end: 0.18em`
+   extends the mask just enough to keep descenders visible while still
+   hiding the pre-animation chars sitting at yPercent: 110 below the baseline.
+   Centralised here so every new section that uses `[data-split]` inherits
+   the fix instead of re-tripping the same clipping bug. */
+[data-split] {
+  display: inline-block;
+  overflow: hidden;
+  padding-block-end: 0.18em;
+}
+
+[data-split] .word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+[data-split] .char {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
 /* respect reduced motion globally */
 @media (prefers-reduced-motion: reduce) {
   *,
