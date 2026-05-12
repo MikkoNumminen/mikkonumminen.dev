@@ -575,9 +575,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // further left than the design position (so wide aspects are
     // unchanged) and never crossing past x=0 onto the title's side.
     // Mutating `galaxyCenter` propagates to the meteor spawn / target
-    // logic since buildMeteors reads it by reference; collisionFlashLight
-    // is initialised at galaxyCenter and repositioned per-impact in the
-    // onImpact handler, so it picks up the new center automatically.
+    // logic since buildMeteors reads it by reference. collisionFlashLight
+    // is repositioned per-impact in the onImpact handler; intensity is 0
+    // between impacts, so the stale design-x sitting on the light between
+    // init and the first impact is invisible.
     const visibleHalfWidthAtGalaxyZ = cameraHalfHeightAtGalaxyZ * camera.aspect;
     const maxGalaxyXMagnitude =
       visibleHalfWidthAtGalaxyZ - GALAXY_RADIUS - GALAXY_LEFT_PADDING;
