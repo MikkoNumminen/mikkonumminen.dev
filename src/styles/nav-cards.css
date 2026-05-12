@@ -29,7 +29,8 @@
   line-height: 1.18;
   font-weight: 700;
   letter-spacing: -0.035em;
-  margin: 0 0 4rem;
+  /* 2rem, not 4rem — see Focus.astro. */
+  margin: 0 0 2rem;
   color: #fff;
   max-width: 18ch;
 }

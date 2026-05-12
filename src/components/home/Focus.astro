@@ -70,7 +70,11 @@ const items = t.focus.items;
     line-height: 1.18;
     font-weight: 700;
     letter-spacing: -0.035em;
-    margin: 0 0 4rem;
+    /* 2rem, not 4rem — the [data-split] descender padding adds ~0.4em
+       of painted height to the heading and the list row's padding-top
+       already gives ~2-3rem of breathing room above the first numeral.
+       Stacking 4rem on top of those felt cavernous. */
+    margin: 0 0 2rem;
     color: #fff;
     max-width: 22ch;
   }
