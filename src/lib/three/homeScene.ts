@@ -1,7 +1,6 @@
 import {
   ACESFilmicToneMapping,
   AmbientLight,
-  BufferAttribute,
   DirectionalLight,
   Fog,
   Mesh,
@@ -13,7 +12,6 @@ import {
 } from 'three';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
-import { buildParticleField, type ParticleField } from './buildParticleField';
 import {
   buildTitle,
   DEPTH as TITLE_DEPTH,
@@ -83,8 +81,6 @@ const TITLE_DESIGN_WIDTH = 1100;
 // portrait-tablet aspect ratios (≈ 0.7 aspect needs scale ≈ 0.3) without
 // the floor kicking in and re-introducing right-edge clipping.
 const TITLE_MIN_SCALE = 0.3;
-const PARTICLE_AREA_DIVISOR = 800;
-const PARTICLE_MAX = 2200;
 
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
   const { canvas, fontUrl, reducedMotion = false } = opts;
@@ -286,19 +282,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // reads as a beat, not a strobe.
   const COLLISION_RIM_DECAY = 3.5;
   const COLLISION_FLASH_DECAY = 3.0;
-
-  // ── Particle field ───────────────────────────────────────────────────
-  const particleCount = reducedMotion
-    ? 0
-    : Math.min(
-        PARTICLE_MAX,
-        Math.floor((window.innerWidth * window.innerHeight) / PARTICLE_AREA_DIVISOR),
-      );
-  let particleField: ParticleField | null = null;
-  if (particleCount > 0) {
-    particleField = buildParticleField(particleCount);
-    scene.add(particleField.points);
-  }
 
   // ── Title (continuous chrome with four-world gradient color map) ─────
   // The four worlds are seamlessly painted across the letterforms via a
@@ -715,26 +698,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       -mouseY * 0.4 - scrollProgress * 0.5 + Math.cos(orbitAngle) * 0.45 * orbit;
     camera.lookAt(0, 0, 0);
 
-    if (particleField) {
-      const posAttr = particleField.geometry.getAttribute('position') as BufferAttribute;
-      // `array` is the same Float32Array we passed in via BufferAttribute,
-      // but Three.js types it as the typed-array union.
-      const arr = posAttr.array as Float32Array;
-      const speeds = particleField.speeds;
-      for (let i = 0; i < particleField.count; i++) {
-        const i3 = i * 3;
-        // Both lookups are in-bounds: i < count and the position array is
-        // length count*3, the speed array is length count.
-        // Particles drift DOWN (subtract from y) — matches the snow
-        // direction in the mountain decor so the whole scene reads as a
-        // single weather system.
-        const next = arr[i3 + 1]! - speeds[i]! * delta;
-        arr[i3 + 1] = next < -25 ? 25 : next;
-      }
-      posAttr.needsUpdate = true;
-      particleField.points.rotation.y = elapsed * 0.02;
-    }
-
     if (bloom) {
       bloom.composer.render();
     } else {
@@ -778,12 +741,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       title.meshes.forEach((m) => m.geometry.dispose());
       disposeMaterial(title.material);
       titleColorMap.dispose();
-
-      if (particleField) {
-        particleField.geometry.dispose();
-        disposeMaterial(particleField.material);
-        particleField.texture.dispose();
-      }
 
       scene.remove(
         ambient,
