@@ -19,17 +19,16 @@ const t = getTranslations(locale);
 
   <div class="hero__overlay" aria-hidden="true"></div>
 
-  <div class="hero__content">
+  <div class="hero__masthead">
     <p class="hero__eyebrow">{t.hero.eyebrow}</p>
+    <p class="hero__subtitle">{t.hero.subtitle}</p>
+  </div>
 
+  <div class="hero__content">
     <h1 class="hero__title sr-only">{t.hero.titleSrOnly}</h1>
 
     <p class="hero__title-fallback" data-fallback>
       {t.hero.titleFallbackTop}<br />{t.hero.titleFallbackBottom}
-    </p>
-
-    <p class="hero__subtitle">
-      {t.hero.subtitle}
     </p>
   </div>
 
@@ -121,11 +120,25 @@ const t = getTranslations(locale);
     gap: 2rem;
   }
 
-  .hero__eyebrow {
+  /* Masthead — eyebrow + subtitle paired at the top of the hero like a
+     magazine cover's banner. Subtitle used to sit in the centred flex
+     column below the 3D type and visually collided with the "NUMMINEN"
+     word; pairing it with the eyebrow keeps the cover information in
+     one block and frees the centre for the type alone. */
+  .hero__masthead {
     position: absolute;
     top: 7.5rem;
     left: 50%;
     transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+    text-align: center;
+  }
+
+  .hero__eyebrow {
+    margin: 0;
     font-family: var(--font-mono);
     font-size: 0.72rem;
     letter-spacing: 0.4em;
@@ -256,7 +269,7 @@ const t = getTranslations(locale);
     opacity: 0.45;
   }
 
-  /* Aligned with the centered .hero__eyebrow at top:7.5rem so the three
+  /* Aligned with the centered .hero__masthead at top:7.5rem so the three
      labels (corner-left · eyebrow · corner-right) sit on a single
      editorial axis. */
   .hero__corner--tl {
