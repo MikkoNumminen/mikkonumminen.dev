@@ -306,9 +306,11 @@ const t = getTranslations(locale);
      short window its top edge climbs up into the masthead band (and the
      top corner markers), causing the eyebrow + subtitle to overlap the
      letters. Pull the top chrome up to ~1.5rem so the centre is free for
-     the type. The 7.5rem default looks correct on tall viewports; this
-     compensates only when vertical room is tight. */
-  @media (max-height: 600px) {
+     the type. Scoped to landscape orientation specifically so the rule
+     doesn't fire on a tall narrow phone in portrait, where the masthead
+     position is already fine. The 7.5rem default looks correct on tall
+     viewports; this compensates only when vertical room is tight. */
+  @media (max-height: 600px) and (orientation: landscape) {
     .hero__masthead,
     .hero__corner--tl,
     .hero__corner--tr {
