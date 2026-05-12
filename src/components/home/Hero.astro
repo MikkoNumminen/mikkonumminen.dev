@@ -107,6 +107,12 @@ const t = getTranslations(locale);
     pointer-events: none;
   }
 
+  /* On the desktop default path this container has no visible children
+     (the only visible content lives in .hero__masthead at the top of the
+     hero, on the 3D canvas behind, and in .hero__scroll-hint at the bottom).
+     It still hosts .hero__title-fallback for the mobile / reduced-motion
+     paths where the 3D type can't render — those paths use the flex-column
+     centering below to drop the fallback text into the middle of the hero. */
   .hero__content {
     position: absolute;
     inset: 0;
@@ -117,7 +123,6 @@ const t = getTranslations(locale);
     padding-bottom: 14vh;
     pointer-events: none;
     text-align: center;
-    gap: 2rem;
   }
 
   /* Masthead — eyebrow + subtitle paired at the top of the hero like a
@@ -134,7 +139,6 @@ const t = getTranslations(locale);
     flex-direction: column;
     align-items: center;
     gap: 0.65rem;
-    text-align: center;
   }
 
   .hero__eyebrow {
