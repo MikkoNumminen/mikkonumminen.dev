@@ -321,11 +321,11 @@ export function buildExperienceZoneDecor(
       velY: 0,
       life: 0,
       maxLife: 0,
-      // Staggered initial pause so all three don't appear at once.
+      // The 0.5–2.5s random spread already separates the three initial
+      // spawns without a deterministic index offset.
       delayUntilRespawn:
         METEOR_RESPAWN_DELAY_MIN +
-        Math.random() * (METEOR_RESPAWN_DELAY_MAX - METEOR_RESPAWN_DELAY_MIN) +
-        i * 0.4,
+        Math.random() * (METEOR_RESPAWN_DELAY_MAX - METEOR_RESPAWN_DELAY_MIN),
     });
   }
 
