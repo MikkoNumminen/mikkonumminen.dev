@@ -76,7 +76,18 @@
   position: relative;
   z-index: 4;
   width: min(960px, 92vw);
-  margin: clamp(5rem, 12vh, 9rem) auto 4rem;
+  /* Fixed window height so overflow scrolls inside the terminal, not the
+     whole page. Derived from the dynamic viewport (so the iOS URL bar
+     collapsing doesn't leave the form + hints behind browser chrome)
+     minus the top + bottom margins used below; clamped so very tall
+     viewports don't produce an empty terminal and very short viewports
+     (below ~620 px) fall back to letting the page scroll. */
+  height: calc(100dvh - clamp(5rem, 12dvh, 9rem) - 4rem);
+  max-height: 800px;
+  min-height: 480px;
+  margin: clamp(5rem, 12dvh, 9rem) auto 4rem;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(74, 222, 128, 0.22);
   border-radius: 14px;
   background: rgba(3, 10, 6, 0.85);
@@ -89,6 +100,7 @@
 }
 
 .terminal__chrome {
+  flex: none;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -131,16 +143,42 @@
 }
 
 .terminal__screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 1.25rem 1.5rem 1.5rem;
-  min-height: 60vh;
   font-size: clamp(0.85rem, 1.6vw, 0.95rem);
   line-height: 1.55;
   text-shadow: 0 0 6px rgba(74, 222, 128, 0.35);
 }
 
 .terminal__output {
+  flex: 1;
+  /* `min-height: 0` lets the flex item shrink below its content size so
+     `overflow-y: auto` actually kicks in instead of pushing the parent. */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   white-space: pre-wrap;
   word-break: break-word;
+  /* Phosphor-toned scrollbar to match the terminal aesthetic. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 222, 128, 0.35) transparent;
+}
+
+.terminal__output::-webkit-scrollbar {
+  width: 8px;
+}
+.terminal__output::-webkit-scrollbar-track {
+  background: transparent;
+}
+.terminal__output::-webkit-scrollbar-thumb {
+  background: rgba(74, 222, 128, 0.28);
+  border-radius: 8px;
+}
+.terminal__output::-webkit-scrollbar-thumb:hover {
+  background: rgba(74, 222, 128, 0.45);
 }
 
 .terminal__output .line {
@@ -194,6 +232,7 @@
 }
 
 .terminal__form {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -270,6 +309,7 @@
 }
 
 .terminal__hints {
+  flex: none;
   margin-top: 1.5rem;
   display: flex;
   flex-wrap: wrap;
@@ -308,7 +348,9 @@
   /* Hide the desktop interactive CRT terminal on phones — the
      MobileContactCard component takes over below 640px. The noscript
      fallback inside .crt is still served for no-JS desktop clients;
-     no-JS mobile is an accepted non-goal. */
+     no-JS mobile is an accepted non-goal. The `.terminal*` overrides
+     below only affect the noscript fallback, since `.crt` (which wraps
+     the interactive terminal) is display:none here. */
   .crt {
     display: none;
   }
@@ -316,10 +358,6 @@
     width: 96vw;
     margin-top: 5.5rem;
     border-radius: 10px;
-  }
-  .terminal__screen {
-    padding: 1rem 1rem 1.25rem;
-    min-height: 65vh;
   }
   .terminal__title {
     display: none;
