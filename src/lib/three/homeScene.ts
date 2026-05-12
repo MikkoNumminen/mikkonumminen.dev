@@ -493,9 +493,35 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     window.addEventListener('pointermove', onPointerMove, { passive: true });
   }
 
+  // World-space half-width the title occupies at scale=1.0: the wider
+  // line's half-width plus the editorial x-offset, since the group is
+  // shifted right by TITLE_X_OFFSET * scale every frame.
+  const titleNaturalHalfWidth =
+    Math.max(wMIKKO, nummWidth) / 2 + TITLE_X_OFFSET;
+  // World-space breathing room between the title's right edge and the
+  // right edge of the visible frustum — keeps "NUMMINEN" clear of the
+  // top-right data-feed widget at every aspect ratio.
+  const TITLE_RIGHT_PADDING = 1.5;
+
   const resize = createResizeHandler(renderer, camera, (width) => {
-    const baseScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
-    title.group.scale.setScalar(Math.max(TITLE_MIN_SCALE, baseScale));
+    // Width-based scale preserves the original design intent: at viewport
+    // widths ≥ TITLE_DESIGN_WIDTH the title sits at its full size, narrower
+    // viewports scale it down.
+    const widthScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
+
+    // Frustum-fit scale: compute the visible horizontal extent at the
+    // title's z-plane (z = 0) and cap the scale so the widest line's
+    // right edge stays inside the viewport. Without this cap, narrow-
+    // aspect viewports (e.g. 1366×768) clip "NUMMINEN" because the
+    // width-based scale alone doesn't know how wide the frustum is.
+    const fovRad = (camera.fov * Math.PI) / 180;
+    const visibleHalfWidth =
+      Math.tan(fovRad / 2) * camera.position.z * camera.aspect;
+    const fitScale =
+      (visibleHalfWidth - TITLE_RIGHT_PADDING) / titleNaturalHalfWidth;
+
+    const scale = Math.max(TITLE_MIN_SCALE, Math.min(widthScale, fitScale));
+    title.group.scale.setScalar(scale);
     if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
   });
   resize.handler();
