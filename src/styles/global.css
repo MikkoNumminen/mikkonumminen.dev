@@ -128,27 +128,26 @@ body {
 /* `[data-split]` is the per-character reveal mask used by GSAP on home-page
    headings (see src/lib/gsap/homeTimeline.ts). The mask needs `overflow:
    hidden` so chars are invisible before they slide up from `yPercent: 110`.
-   Two cooperating fixes here, in defence-in-depth order:
 
-   1. `padding-block-end: 0.4em` extends the bottom of the clip box far
-      below the baseline. The heading uses `line-height: 1.18`, which alone
-      isn't enough at the heavy display weight + ~68px desktop size where
-      descenders (g, j, p, y) on words like "projects" extend further below
-      the baseline than the visual line-height suggests. 0.4em is a brute
-      multiple of any reasonable font's descender depth (typically 0.2-0.3em).
-   2. `margin-block-end: -0.4em` pulls the next sibling back up by the same
-      amount so subsequent layout doesn't shift. The mask gets taller; the
-      visual rhythm of the page stays identical.
+   `padding-block-end: 0.4em` extends the bottom of the clip box well past
+   the baseline. The heading itself uses `line-height: 1.18`, which alone
+   isn't enough at the heavy display weight + ~68px desktop size where
+   descenders (g, j, p, y) on words like "projects" extend further below
+   the baseline than the visual line-height suggests. 0.4em is a brute
+   multiple of any reasonable font's descender depth (typically 0.2-0.3em).
+
+   No layout compensation needed: each heading already has a 4rem margin-bottom,
+   which absorbs the ~0.4em of painted overhang invisibly. Subsequent rows
+   don't shift.
 
    Centralised here so every new section that uses `[data-split]` inherits
    the fix instead of re-tripping the same clipping bug. If a future heading
    uses a font with even deeper descenders (some display serifs go to 0.5em),
-   bump both numbers in lockstep. */
+   or the heading's margin-bottom shrinks below ~0.5em, revisit this number. */
 [data-split] {
   display: inline-block;
   overflow: hidden;
   padding-block-end: 0.4em;
-  margin-block-end: -0.4em;
 }
 
 [data-split] .word {
