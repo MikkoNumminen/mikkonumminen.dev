@@ -190,8 +190,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const GALAXY_DESIGN_X = -13;
   const GALAXY_DESIGN_Y = -3;
   const GALAXY_DESIGN_Z = -13;
-  // Approximate visual radius of the spiral disk. Matches the `radius`
-  // default in buildGalaxyLayer; updating either should track the other.
+  // Visual radius of the spiral disk. homeScene is the source of truth —
+  // passed into buildGalaxyLayer below so the value used to build the
+  // geometry and the value used by the fit math can never drift apart.
   const GALAXY_RADIUS = 8;
   // World-space breathing room between the galaxy's left edge and the
   // visible frustum.
@@ -234,6 +235,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const galaxy: GalaxyLayerHandle = buildGalaxyLayer({
     starCount: 900,
     position: GALAXY_CENTER,
+    radius: GALAXY_RADIUS,
   });
   scene.add(galaxy.group);
 
@@ -573,14 +575,15 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // further left than the design position (so wide aspects are
     // unchanged) and never crossing past x=0 onto the title's side.
     // Mutating `galaxyCenter` propagates to the meteor spawn / target
-    // logic since buildMeteors reads it by reference.
+    // logic since buildMeteors reads it by reference; collisionFlashLight
+    // is initialised at galaxyCenter and repositioned per-impact in the
+    // onImpact handler, so it picks up the new center automatically.
     const visibleHalfWidthAtGalaxyZ = cameraHalfHeightAtGalaxyZ * camera.aspect;
     const maxGalaxyXMagnitude =
       visibleHalfWidthAtGalaxyZ - GALAXY_RADIUS - GALAXY_LEFT_PADDING;
     const galaxyX = Math.min(0, Math.max(GALAXY_DESIGN_X, -maxGalaxyXMagnitude));
     galaxy.group.position.x = galaxyX;
     galaxyCenter.x = galaxyX;
-    collisionFlashLight.position.x = galaxyX;
 
     if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
   });
