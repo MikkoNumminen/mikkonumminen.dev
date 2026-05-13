@@ -1,0 +1,580 @@
+---
+// Background music. Renders inside BaseLayout, so the audio element + its
+// on/off toggle exist on every page. The audio source is shared across all
+// pages "for now" — a future change will let each theme pick its own
+// tune via a prop without touching this component's behaviour.
+//
+// Behaviour:
+// - Tries to start playing on load. Modern browsers will silently block
+//   autoplay without a prior user gesture; the script catches that and
+//   waits for the first pointer/keyboard event to retry, so the button
+//   reflects the actual playing/paused state.
+// - Position persists across page navigations. The current playhead is
+//   stored in sessionStorage on `beforeunload` and the next page seeks
+//   to it before resuming — so a click from `/` to `/projects` mid-track
+//   doesn't restart the music.
+// - Volume strategy depends on the page theme. The home page has a hero
+//   that scrolls past, so the volume eases between HERO_VOLUME (hero
+//   fully in view) and SCROLLED_VOLUME (hero scrolled past). Other
+//   pages get a constant background level (BACKGROUND_VOLUME).
+// - Seamless looping via two <audio> "decks" sharing the same source.
+//   The script crossfades active → standby in the last CROSSFADE_SEC of
+//   the active track. HTML5 `loop` would produce an audible gap at the
+//   join (especially in Safari) so we manage looping ourselves.
+// - On/off choice is remembered in sessionStorage so reloading any page
+//   in the same tab preserves the user's preference.
+//
+// Button styling reads from theme tokens via `body[data-theme=…]`
+// selectors — same accent palette other chrome (nav, focus ring) uses.
+---
+
+<div class="bg-audio" data-state="loading">
+  <audio id="bg-audio-a" preload="metadata" aria-hidden="true">
+    <source src="/audio/devlander.ogg" type="audio/ogg" />
+    <source src="/audio/devlander.mp3" type="audio/mpeg" />
+  </audio>
+  <audio id="bg-audio-b" preload="metadata" aria-hidden="true">
+    <source src="/audio/devlander.ogg" type="audio/ogg" />
+    <source src="/audio/devlander.mp3" type="audio/mpeg" />
+  </audio>
+
+  <button
+    type="button"
+    class="bg-audio__toggle"
+    aria-pressed="false"
+    aria-label="Toggle background music"
+    data-bg-audio-toggle
+  >
+    <span class="bg-audio__icon" aria-hidden="true">
+      <svg
+        class="bg-audio__svg bg-audio__svg--on"
+        viewBox="0 0 24 24"
+        width="20"
+        height="20"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M4 9h3.5L13 5v14L7.5 15H4z"></path>
+        <path class="bg-audio__wave bg-audio__wave--near" d="M16 9.2a4 4 0 0 1 0 5.6"></path>
+        <path class="bg-audio__wave bg-audio__wave--far" d="M18.5 6.7a7 7 0 0 1 0 10.6"></path>
+      </svg>
+      <svg
+        class="bg-audio__svg bg-audio__svg--off"
+        viewBox="0 0 24 24"
+        width="20"
+        height="20"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M4 9h3.5L13 5v14L7.5 15H4z"></path>
+        <path d="M16 9l5 6"></path>
+        <path d="M21 9l-5 6"></path>
+      </svg>
+    </span>
+    <span class="bg-audio__label">
+      <span class="bg-audio__label-on">sound on</span>
+      <span class="bg-audio__label-off">sound off</span>
+    </span>
+  </button>
+</div>
+
+<style>
+  /* Fixed-position floating control. Same spot on every page so the
+     user always knows where to find it. Bottom-left avoids the
+     bottom-right data-feed on home and the centered scroll hint. */
+  .bg-audio {
+    position: fixed;
+    bottom: 2rem;
+    left: 2rem;
+    z-index: 40;
+    /* Theme tokens — overridden per `body[data-theme=…]` below. The
+       fallback here matches the home palette so the control still has
+       sensible colours on un-themed pages (e.g. 404). */
+    --bg-audio-border: rgba(103, 232, 249, 0.3);
+    --bg-audio-border-hover: rgba(103, 232, 249, 0.55);
+    --bg-audio-text: rgba(196, 212, 255, 0.85);
+    --bg-audio-text-hover: #ffffff;
+    --bg-audio-icon: rgba(103, 232, 249, 0.9);
+    --bg-audio-icon-hover: #67e8f9;
+    --bg-audio-bg: rgba(8, 14, 22, 0.65);
+  }
+
+  .bg-audio__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 1rem 0.55rem 0.7rem;
+    border: 1px solid var(--bg-audio-border);
+    border-radius: 999px;
+    background: var(--bg-audio-bg);
+    color: var(--bg-audio-text);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition:
+      background 0.3s ease,
+      border-color 0.3s ease,
+      color 0.3s ease,
+      transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .bg-audio__toggle:hover,
+  .bg-audio__toggle:focus-visible {
+    border-color: var(--bg-audio-border-hover);
+    color: var(--bg-audio-text-hover);
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  .bg-audio__icon {
+    display: inline-flex;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--bg-audio-icon);
+    transition: color 0.3s ease;
+  }
+
+  .bg-audio__toggle:hover .bg-audio__icon {
+    color: var(--bg-audio-icon-hover);
+  }
+
+  /* Only one of the two SVGs is shown at a time. Default DOM order
+     shows "on" — the script flips `[data-state]` on the wrapper to
+     pick. */
+  .bg-audio__svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .bg-audio[data-state='on'] .bg-audio__svg--off,
+  .bg-audio[data-state='loading'] .bg-audio__svg--off,
+  .bg-audio[data-state='off'] .bg-audio__svg--on {
+    display: none;
+  }
+
+  .bg-audio__wave {
+    transform-origin: 14px 12px;
+    transform-box: fill-box;
+    opacity: 0.85;
+  }
+
+  .bg-audio[data-state='on'] .bg-audio__wave--near {
+    animation: bg-audio-wave 2.4s ease-in-out infinite;
+  }
+  .bg-audio[data-state='on'] .bg-audio__wave--far {
+    animation: bg-audio-wave 2.4s ease-in-out infinite 0.6s;
+  }
+
+  @keyframes bg-audio-wave {
+    0%, 100% {
+      opacity: 0.4;
+      transform: scale(0.9);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+
+  .bg-audio__label {
+    position: relative;
+    display: inline-block;
+    min-width: 4.5em;
+    line-height: 1;
+  }
+
+  .bg-audio__label-on,
+  .bg-audio__label-off {
+    display: inline-block;
+  }
+
+  .bg-audio[data-state='off'] .bg-audio__label-on,
+  .bg-audio[data-state='on'] .bg-audio__label-off,
+  .bg-audio[data-state='loading'] .bg-audio__label-off {
+    display: none;
+  }
+
+  /* Loading state — dimmed until the script resolves the actual state. */
+  .bg-audio[data-state='loading'] .bg-audio__toggle {
+    color: rgba(196, 212, 255, 0.55);
+  }
+  .bg-audio[data-state='loading'] .bg-audio__icon {
+    color: rgba(103, 232, 249, 0.5);
+  }
+
+  /* Per-theme palette. Same colour tokens the nav, focus ring, and
+     editorial chrome use for each theme — keeps the button consistent
+     with the rest of the page chrome. `:global(...)` bypasses Astro's
+     per-component scope so these selectors actually match the body. */
+  :global(body[data-theme='home']) .bg-audio {
+    --bg-audio-border: rgba(196, 212, 255, 0.3);
+    --bg-audio-border-hover: rgba(196, 212, 255, 0.55);
+    --bg-audio-text: rgba(196, 212, 255, 0.85);
+    --bg-audio-icon: rgba(103, 232, 249, 0.9);
+    --bg-audio-icon-hover: #67e8f9;
+  }
+  :global(body[data-theme='projects']) .bg-audio {
+    --bg-audio-border: rgba(128, 168, 255, 0.4);
+    --bg-audio-border-hover: rgba(128, 168, 255, 0.7);
+    --bg-audio-text: rgba(196, 212, 255, 0.85);
+    --bg-audio-icon: rgba(128, 168, 255, 0.95);
+    --bg-audio-icon-hover: #c4d4ff;
+    --bg-audio-bg: rgba(8, 12, 26, 0.7);
+  }
+  :global(body[data-theme='experience']) .bg-audio {
+    --bg-audio-border: rgba(212, 255, 128, 0.35);
+    --bg-audio-border-hover: rgba(212, 255, 128, 0.6);
+    --bg-audio-text: rgba(216, 232, 192, 0.85);
+    --bg-audio-icon: rgba(212, 255, 128, 0.9);
+    --bg-audio-icon-hover: #d4ff80;
+    --bg-audio-bg: rgba(14, 22, 10, 0.7);
+  }
+  :global(body[data-theme='contact']) .bg-audio {
+    --bg-audio-border: rgba(74, 222, 128, 0.45);
+    --bg-audio-border-hover: rgba(74, 222, 128, 0.7);
+    --bg-audio-text: rgba(181, 245, 200, 0.85);
+    --bg-audio-icon: rgba(74, 222, 128, 0.95);
+    --bg-audio-icon-hover: #86efac;
+    --bg-audio-bg: rgba(5, 12, 8, 0.85);
+  }
+
+  @media (max-width: 640px) {
+    .bg-audio {
+      bottom: 1.25rem;
+      left: 1.25rem;
+    }
+    .bg-audio__toggle {
+      padding: 0.5rem 0.85rem 0.5rem 0.65rem;
+      font-size: 0.6rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-audio__toggle,
+    .bg-audio__toggle:hover,
+    .bg-audio__toggle:focus-visible {
+      transform: none;
+    }
+    .bg-audio[data-state='on'] .bg-audio__wave--near,
+    .bg-audio[data-state='on'] .bg-audio__wave--far {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  const OFF_KEY = 'mn_bg_audio_off';
+  // Persisted across page navigations so the next page resumes mid-track.
+  // Key namespaced by track id so future per-page tracks each carry their
+  // own playhead.
+  const TRACK_ID = 'devlander';
+  const POS_KEY = `mn_bg_audio_pos:${TRACK_ID}`;
+  const DECK_KEY = `mn_bg_audio_deck:${TRACK_ID}`;
+
+  // Volume targets when the page has a hero that scrolls past (home).
+  const HERO_VOLUME = 0.85;
+  const SCROLLED_VOLUME = 0.35;
+  // Constant level on pages without that hero (projects, experience, contact).
+  const BACKGROUND_VOLUME = 0.5;
+  // Seconds of overlap between the outgoing and incoming track. Long
+  // enough that the boundary is inaudible, short enough that the user
+  // doesn't notice two copies of the music briefly stacking.
+  const CROSSFADE_SEC = 1.5;
+
+  const wrapper = document.querySelector<HTMLElement>('.bg-audio');
+  const deckA = document.getElementById('bg-audio-a') as HTMLAudioElement | null;
+  const deckB = document.getElementById('bg-audio-b') as HTMLAudioElement | null;
+  const button = document.querySelector<HTMLButtonElement>('[data-bg-audio-toggle]');
+  // Hero is home-page-only; presence drives the volume strategy below.
+  const hero = document.querySelector<HTMLElement>('[data-section-hero]');
+
+  if (wrapper && deckA && deckB && button) {
+    type DeckKey = 'a' | 'b';
+    let activeKey: DeckKey = 'a';
+    // Restore which deck was active when the previous page unloaded, so
+    // pause-state and currentTime line up with the right element.
+    try {
+      const savedDeck = sessionStorage.getItem(DECK_KEY);
+      if (savedDeck === 'a' || savedDeck === 'b') activeKey = savedDeck;
+    } catch {
+      /* ignore */
+    }
+    const getActive = (): HTMLAudioElement => (activeKey === 'a' ? deckA : deckB);
+    const getStandby = (): HTMLAudioElement => (activeKey === 'a' ? deckB : deckA);
+
+    let crossfading = false;
+    let crossfadeRaf: number | null = null;
+    let standbyPrefetched = false;
+
+    let userWantsOff = false;
+    try {
+      userWantsOff = sessionStorage.getItem(OFF_KEY) === '1';
+    } catch {
+      /* sessionStorage may be unavailable; default to wanting on */
+    }
+
+    const setState = (state: 'on' | 'off'): void => {
+      wrapper.dataset.state = state;
+      button.setAttribute('aria-pressed', state === 'on' ? 'true' : 'false');
+    };
+
+    const remember = (off: boolean): void => {
+      try {
+        if (off) sessionStorage.setItem(OFF_KEY, '1');
+        else sessionStorage.removeItem(OFF_KEY);
+      } catch {
+        /* ignore */
+      }
+    };
+
+    // Volume the track *should* be at right now. On home: scroll-driven
+    // from HERO_VOLUME (hero in view) down to SCROLLED_VOLUME (hero
+    // scrolled past). On other pages: a flat BACKGROUND_VOLUME so the
+    // music sits behind the page content without fighting it.
+    const computeVolume = (): number => {
+      if (!hero) return BACKGROUND_VOLUME;
+      const rect = hero.getBoundingClientRect();
+      const heroH = rect.height || 1;
+      const progress = Math.max(0, Math.min(1, -rect.top / heroH));
+      return HERO_VOLUME + (SCROLLED_VOLUME - HERO_VOLUME) * progress;
+    };
+
+    const prefetchStandby = (): void => {
+      if (standbyPrefetched) return;
+      standbyPrefetched = true;
+      try {
+        getStandby().load();
+      } catch {
+        /* ignore — the `ended` fallback recovers if the crossfade misses */
+      }
+    };
+
+    const abortCrossfade = (): void => {
+      if (crossfadeRaf !== null) {
+        cancelAnimationFrame(crossfadeRaf);
+        crossfadeRaf = null;
+      }
+      crossfading = false;
+    };
+
+    // Equal-power (cos/sin) crossfade from active → standby in the last
+    // CROSSFADE_SEC of the active track. The combined perceived loudness
+    // stays roughly constant during the overlap instead of dipping in
+    // the middle the way a linear fade would.
+    const startCrossfade = (): void => {
+      if (crossfading) return;
+      crossfading = true;
+
+      const outgoing = getActive();
+      const incoming = getStandby();
+
+      incoming.currentTime = 0;
+      incoming.volume = 0;
+      const playPromise = incoming.play();
+      if (playPromise) {
+        playPromise.catch(() => {
+          // Standby refused to play — bail out; the `ended` fallback
+          // below will restart the outgoing deck from 0 instead.
+          abortCrossfade();
+        });
+      }
+
+      const startTime = performance.now();
+      const outgoingStartVol = outgoing.volume;
+      const incomingTargetVol = computeVolume();
+
+      const tick = (now: number): void => {
+        if (!crossfading) return;
+        const elapsed = (now - startTime) / 1000;
+        const t = Math.min(1, elapsed / CROSSFADE_SEC);
+
+        const fadeOut = Math.cos((Math.PI / 2) * t);
+        const fadeIn = Math.sin((Math.PI / 2) * t);
+
+        outgoing.volume = outgoingStartVol * fadeOut;
+        incoming.volume = incomingTargetVol * fadeIn;
+
+        if (t < 1) {
+          crossfadeRaf = requestAnimationFrame(tick);
+        } else {
+          outgoing.pause();
+          outgoing.currentTime = 0;
+          outgoing.volume = 0;
+          activeKey = activeKey === 'a' ? 'b' : 'a';
+          crossfadeRaf = null;
+          crossfading = false;
+        }
+      };
+      crossfadeRaf = requestAnimationFrame(tick);
+    };
+
+    const onTimeUpdate = (e: Event): void => {
+      if (crossfading) return;
+      const el = e.target as HTMLAudioElement;
+      if (el !== getActive()) return;
+      const dur = el.duration;
+      if (!dur || !isFinite(dur)) return;
+      if (dur - el.currentTime > CROSSFADE_SEC) return;
+      startCrossfade();
+    };
+
+    // Safety net: if the crossfade never fires (standby failed to play,
+    // duration changed, browser hiccup) the active deck will naturally
+    // hit `ended` since we don't set the `loop` attribute. Restart it
+    // from 0 — at worst a sub-frame silent gap.
+    const onEnded = (e: Event): void => {
+      const el = e.target as HTMLAudioElement;
+      if (el !== getActive()) return;
+      el.currentTime = 0;
+      el.play().catch(() => setState('off'));
+    };
+
+    deckA.addEventListener('timeupdate', onTimeUpdate);
+    deckB.addEventListener('timeupdate', onTimeUpdate);
+    deckA.addEventListener('ended', onEnded);
+    deckB.addEventListener('ended', onEnded);
+
+    // Pull the previous page's playhead so the new page picks up mid-
+    // track. NaN-guard for the very first visit.
+    const restoredPos = (() => {
+      try {
+        const raw = sessionStorage.getItem(POS_KEY);
+        const n = raw === null ? 0 : Number(raw);
+        return isFinite(n) && n >= 0 ? n : 0;
+      } catch {
+        return 0;
+      }
+    })();
+
+    // Seek `el` to `t`, deferring until metadata is available if needed.
+    // Setting `currentTime` before `readyState >= HAVE_METADATA` is
+    // undefined behaviour across browsers (Chrome queues, Safari may
+    // play from 0 then seek). Wrapping in a readyState guard with a
+    // `loadedmetadata` fallback makes the restore deterministic.
+    const seekWhenReady = (el: HTMLAudioElement, t: number): void => {
+      if (el.readyState >= 1 /* HAVE_METADATA */) {
+        el.currentTime = t;
+        return;
+      }
+      const apply = (): void => {
+        try {
+          el.currentTime = t;
+        } catch {
+          /* ignore — best effort */
+        }
+      };
+      el.addEventListener('loadedmetadata', apply, { once: true });
+    };
+
+    const tryPlay = async (): Promise<boolean> => {
+      try {
+        // Reset standby to a clean slate so resume-after-pause-mid-
+        // crossfade restarts looping cleanly.
+        abortCrossfade();
+        const standby = getStandby();
+        standby.pause();
+        standby.currentTime = 0;
+        standby.volume = 0;
+
+        const active = getActive();
+        // Seek to the persisted position once per page lifetime — after
+        // playback starts the in-page state takes over.
+        if (restoredPos > 0 && active.currentTime < 0.05) {
+          seekWhenReady(active, restoredPos);
+        }
+        await active.play();
+        active.volume = computeVolume();
+
+        prefetchStandby();
+        setState('on');
+        return true;
+      } catch {
+        // Most likely the browser blocked autoplay because there hasn't
+        // been a user gesture yet. The unlock listener below will retry.
+        setState('off');
+        return false;
+      }
+    };
+
+    button.addEventListener('click', async () => {
+      if (getActive().paused) {
+        const started = await tryPlay();
+        if (started) remember(false);
+      } else {
+        abortCrossfade();
+        deckA.pause();
+        deckB.pause();
+        setState('off');
+        remember(true);
+      }
+    });
+
+    // First-interaction fallback. If the user wants audio on but the
+    // browser blocked the initial autoplay, the next pointer/keyboard
+    // event the page sees becomes the gesture that unlocks it.
+    const unlock = (): void => {
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
+      if (getActive().paused && !userWantsOff) {
+        tryPlay();
+      }
+    };
+    document.addEventListener('pointerdown', unlock, { once: true });
+    document.addEventListener('keydown', unlock, { once: true });
+
+    // Scroll-driven volume. Only mutates the active deck's volume and
+    // only when the track is actually playing; during a crossfade the
+    // rAF tick owns both decks' gain. On non-home pages computeVolume()
+    // returns a constant so this loop is effectively a no-op.
+    let ticking = false;
+    const onScroll = (): void => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        if (!crossfading) {
+          const active = getActive();
+          if (!active.paused) active.volume = computeVolume();
+        }
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Persist playhead + active deck on navigation away. `beforeunload`
+    // is invoked on every navigation (link clicks, reloads, tab close).
+    // sessionStorage scopes to the tab, so this resets when the tab dies.
+    window.addEventListener('beforeunload', () => {
+      try {
+        const active = getActive();
+        if (!active.paused && isFinite(active.currentTime)) {
+          sessionStorage.setItem(POS_KEY, String(active.currentTime));
+          sessionStorage.setItem(DECK_KEY, activeKey);
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+
+    // Initial play attempt. Astro inline scripts run after the DOM is
+    // parsed, so the elements above are already in scope.
+    getActive().volume = computeVolume();
+    if (!userWantsOff) {
+      tryPlay();
+    } else {
+      setState('off');
+    }
+  }
+</script>

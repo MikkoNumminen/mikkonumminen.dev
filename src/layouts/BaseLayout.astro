@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import SiteNav from '../components/nav/SiteNav.astro';
+import BackgroundAudio from '../components/BackgroundAudio.astro';
 import { asLocale, getTranslations, localizePath, stripLocale, LOCALES } from '../i18n';
 import type { Theme } from '../lib/theme';
 
@@ -153,6 +154,8 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
       <span>{t.navCards.footerCopyright}</span>
       <span>{t.navCards.footerBuiltWith}</span>
     </footer>
+
+    <BackgroundAudio />
 
     <!-- Page transition overlay (canvas-based particle dissolve) -->
     <div id="page-transition-overlay" data-state="idle" aria-hidden="true">
