@@ -19,7 +19,7 @@
 <div class="hero-audio" data-state="loading">
   <audio
     id="hero-audio"
-    preload="auto"
+    preload="metadata"
     loop
     playsinline
     aria-hidden="true"
@@ -89,7 +89,6 @@
     bottom: 2rem;
     left: 2rem;
     z-index: 40;
-    pointer-events: auto;
   }
 
   .hero-audio__toggle {
@@ -275,6 +274,11 @@
     const tryPlay = async (): Promise<boolean> => {
       try {
         await audio.play();
+        // Sync to the current scroll position the moment playback
+        // actually starts — otherwise enabling sound from below the
+        // hero would play at the page-load volume (full) instead of
+        // the scrolled-past target.
+        audio.volume = computeVolume();
         setState('on');
         return true;
       } catch {
