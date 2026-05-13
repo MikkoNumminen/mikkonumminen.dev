@@ -114,10 +114,10 @@
 
     // Mirror the music's on/off toggle. `on` resumes the voice from
     // wherever it was paused (so toggle-off-then-on doesn't restart
-    // the narration mid-sentence); `off` pauses it. We pause first and
-    // *then* update `wantOn`, so the post-await guard in `tryPlay`
-    // observes the new desire correctly even if the play() promise is
-    // still in flight from an earlier `on` call.
+    // the narration mid-sentence); `off` pauses it. We update `wantOn`
+    // *first* and then call pause/play, so the post-await guard in
+    // `tryPlay` observes the new desire correctly even if the play()
+    // promise is still in flight from an earlier `on` call.
     document.addEventListener('bg-audio:state', (e: Event) => {
       const detail = (e as CustomEvent<{ on: boolean }>).detail;
       wantOn = detail.on;
