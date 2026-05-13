@@ -14,11 +14,12 @@
 //   set on `ended` so navigating home → projects → home doesn't replay
 //   the voice, but a partial play (user paused or navigated mid-track)
 //   does NOT mark it done and will replay from the top next visit.
-// - Same autoplay-with-gesture-fallback story as the music: tries to
-//   start, falls back to the first pointer/keyboard event if blocked.
 // - Respects the music's on/off state. If the user has muted via the
-//   toggle (or it autoplay-blocked into `off`), the voice stays silent
-//   until the toggle goes back to `on`.
+//   toggle (or autoplay blocked it into `off`), the voice stays silent
+//   until the toggle goes back to `on`. There is no separate gesture
+//   unlock here — BackgroundAudio already owns that, and its first
+//   gesture flips state to `on`, which fires the `bg-audio:state` event
+//   and starts the voice.
 ---
 
 <audio
@@ -74,6 +75,10 @@
     voice.volume = computeVolume();
 
     voice.addEventListener('ended', () => {
+      // Update the local cache so a subsequent toggle-off-then-on
+      // doesn't call play() on an already-ended element — the call
+      // would be inaudible but redundant.
+      alreadyEnded = true;
       try {
         sessionStorage.setItem(DONE_KEY, '1');
       } catch {
@@ -81,39 +86,44 @@
       }
     });
 
+    // Tracks the latest desired-on state across rapid toggles. If the
+    // user clicks on then off before voice.play()'s promise resolves,
+    // browsers reject with "The play() request was interrupted by a
+    // call to pause()"; the post-await check pauses the voice when
+    // the user's intent flipped back to off mid-promise.
+    let wantOn = bgAudio.dataset.state !== 'off';
+
     // Try to play the voice — only when the music toggle is currently
     // `on` and the voice hasn't already run this session. Autoplay
-    // blocks are silent; the gesture unlock + state-change listeners
-    // below will retry once the user signals intent.
-    const tryPlay = (): void => {
+    // blocks are silent; the state-change listener below retries once
+    // BackgroundAudio's own gesture unlock flips the toggle to `on`.
+    const tryPlay = async (): Promise<void> => {
       if (alreadyEnded) return;
-      if (bgAudio.dataset.state === 'off') return;
+      if (!wantOn) return;
       voice.volume = computeVolume();
-      voice.play().catch(() => {
-        /* autoplay blocked — retry on first gesture / next toggle on */
-      });
+      try {
+        await voice.play();
+        // The user may have toggled off while we were awaiting; honour
+        // that here rather than leaving the voice playing under a
+        // visually-off button.
+        if (!wantOn) voice.pause();
+      } catch {
+        /* autoplay blocked or interrupted — next state-on retries */
+      }
     };
 
     // Mirror the music's on/off toggle. `on` resumes the voice from
     // wherever it was paused (so toggle-off-then-on doesn't restart
-    // the narration mid-sentence); `off` pauses it.
+    // the narration mid-sentence); `off` pauses it. We pause first and
+    // *then* update `wantOn`, so the post-await guard in `tryPlay`
+    // observes the new desire correctly even if the play() promise is
+    // still in flight from an earlier `on` call.
     document.addEventListener('bg-audio:state', (e: Event) => {
       const detail = (e as CustomEvent<{ on: boolean }>).detail;
+      wantOn = detail.on;
       if (detail.on) tryPlay();
       else voice.pause();
     });
-
-    // First-interaction fallback. If the music autoplay-blocked, the
-    // voice did too; the next user gesture unlocks both. We can't share
-    // BackgroundAudio's `unlock` listener (it's `{ once: true }`), so
-    // we register our own — also single-shot.
-    const unlock = (): void => {
-      document.removeEventListener('pointerdown', unlock);
-      document.removeEventListener('keydown', unlock);
-      tryPlay();
-    };
-    document.addEventListener('pointerdown', unlock, { once: true });
-    document.addEventListener('keydown', unlock, { once: true });
 
     // Scroll-driven volume. Same rAF-throttled pattern as the music.
     let ticking = false;
