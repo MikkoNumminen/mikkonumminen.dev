@@ -355,6 +355,13 @@ const t = getTranslations(locale);
        elements get a pointer cursor; the small Easter-egg ones (goat,
        ring, star) stay hidden. */
     cursor: pointer;
+    /* `.hero__corners` (this element's parent) sets `pointer-events:
+       none` so the chrome doesn't intercept canvas clicks. That value
+       propagates to descendants, so without re-enabling it here the
+       widget would be visually clickable (cursor + cursor: pointer)
+       but the `pointerdown` handler in the script below would never
+       fire and the click-to-animate ping line would silently drop. */
+    pointer-events: auto;
   }
 
   .hero__data-feed-label {
