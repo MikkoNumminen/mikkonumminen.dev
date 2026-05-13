@@ -29,21 +29,11 @@
 ---
 
 <div class="bg-audio" data-state="loading">
-  <audio
-    id="bg-audio-a"
-    preload="metadata"
-    playsinline
-    aria-hidden="true"
-  >
+  <audio id="bg-audio-a" preload="metadata" aria-hidden="true">
     <source src="/audio/devlander.ogg" type="audio/ogg" />
     <source src="/audio/devlander.mp3" type="audio/mpeg" />
   </audio>
-  <audio
-    id="bg-audio-b"
-    preload="metadata"
-    playsinline
-    aria-hidden="true"
-  >
+  <audio id="bg-audio-b" preload="metadata" aria-hidden="true">
     <source src="/audio/devlander.ogg" type="audio/ogg" />
     <source src="/audio/devlander.mp3" type="audio/mpeg" />
   </audio>
@@ -469,6 +459,26 @@
       }
     })();
 
+    // Seek `el` to `t`, deferring until metadata is available if needed.
+    // Setting `currentTime` before `readyState >= HAVE_METADATA` is
+    // undefined behaviour across browsers (Chrome queues, Safari may
+    // play from 0 then seek). Wrapping in a readyState guard with a
+    // `loadedmetadata` fallback makes the restore deterministic.
+    const seekWhenReady = (el: HTMLAudioElement, t: number): void => {
+      if (el.readyState >= 1 /* HAVE_METADATA */) {
+        el.currentTime = t;
+        return;
+      }
+      const apply = (): void => {
+        try {
+          el.currentTime = t;
+        } catch {
+          /* ignore — best effort */
+        }
+      };
+      el.addEventListener('loadedmetadata', apply, { once: true });
+    };
+
     const tryPlay = async (): Promise<boolean> => {
       try {
         // Reset standby to a clean slate so resume-after-pause-mid-
@@ -483,11 +493,7 @@
         // Seek to the persisted position once per page lifetime — after
         // playback starts the in-page state takes over.
         if (restoredPos > 0 && active.currentTime < 0.05) {
-          try {
-            active.currentTime = restoredPos;
-          } catch {
-            /* some browsers reject currentTime before metadata loads */
-          }
+          seekWhenReady(active, restoredPos);
         }
         await active.play();
         active.volume = computeVolume();
