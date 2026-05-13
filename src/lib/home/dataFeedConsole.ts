@@ -9,14 +9,25 @@
  * positioned regardless of camera sway.
  */
 
+type LineKind = 'cmd' | 'out' | 'status';
+
 export interface DataFeedConsoleHandle {
+  /**
+   * Inject one or more lines into the queue. The next line the widget
+   * starts typing will be the first injected line; subsequent SCRIPT
+   * cycling resumes once the injected queue is drained. Used by the
+   * hero's click handler to make the console respond to clicks on its
+   * own widget, the same way other scene elements respond to clicks.
+   */
+  pushLine: (...lines: ReadonlyArray<{ text: string; kind: LineKind }>) => void;
   dispose: () => void;
 }
 
 /** Shared no-op for the early-return paths (no 2D context, reduced motion). */
-const NOOP_HANDLE: DataFeedConsoleHandle = { dispose: (): void => {} };
-
-type LineKind = 'cmd' | 'out' | 'status';
+const NOOP_HANDLE: DataFeedConsoleHandle = {
+  pushLine: (): void => {},
+  dispose: (): void => {},
+};
 
 interface ConsoleLine {
   text: string;
@@ -180,6 +191,9 @@ export function buildDataFeedConsole(
     buffer.push({ text: spec.text, kind: spec.kind, typed: spec.text.length });
   }
   let scriptIdx = preFill % SCRIPT.length;
+  // Click-injected lines are drained from this queue before SCRIPT cycles
+  // resume. Each pushLine() appends; the next pick consumes the head.
+  const pending: LineSpec[] = [];
 
   let active: ConsoleLine | null = null;
   let nextCharAt = 0;
@@ -236,15 +250,22 @@ export function buildDataFeedConsole(
         }
         return;
       }
-      // Start a new active line. If the buffer is already full, the new
-      // line will displace the oldest from view — animate that.
-      const spec = SCRIPT[scriptIdx]!;
+      // Start a new active line. Click-injected lines from `pending` take
+      // priority over the SCRIPT cycle; the SCRIPT pointer doesn't advance
+      // while pending has items, so the loop picks up where it left off
+      // once the injected sequence drains.
+      let spec: LineSpec;
+      if (pending.length > 0) {
+        spec = pending.shift()!;
+      } else {
+        spec = SCRIPT[scriptIdx]!;
+        scriptIdx = (scriptIdx + 1) % SCRIPT.length;
+      }
       if (buffer.length >= MAX_LINES) {
         slideOffset = LINE_HEIGHT;
         slideStartedAt = now;
       }
       active = { text: spec.text, kind: spec.kind, typed: 0 };
-      scriptIdx = (scriptIdx + 1) % SCRIPT.length;
       nextCharAt = now;
     }
 
@@ -282,6 +303,12 @@ export function buildDataFeedConsole(
   raf = requestAnimationFrame(tick);
 
   return {
+    pushLine: (...lines): void => {
+      for (const line of lines) pending.push(line);
+      // Wake the typing loop immediately so an injected line responds on
+      // the next frame instead of waiting out the resting pause.
+      if (active === null) pauseUntil = 0;
+    },
     dispose: (): void => {
       cancelAnimationFrame(raf);
     },

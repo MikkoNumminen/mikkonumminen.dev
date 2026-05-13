@@ -12,6 +12,20 @@ export interface HorizonGlowHandle {
   material: MeshBasicMaterial;
   texture: Texture;
   geometry: PlaneGeometry;
+  /**
+   * Advance the breathing opacity pulse and decay any click impulse.
+   * `elapsed` drives the resting sine. Called every frame so the previous
+   * inline assignment in homeScene's tick loop now lives here alongside
+   * the click response, keeping all glow state in one place.
+   */
+  tick: (delta: number, elapsed: number) => void;
+  /**
+   * Trigger a one-shot bloom — opacity bumps and the plane scales up
+   * briefly. Reads as "this star flared". Reduced-motion clients still
+   * receive the call (so the future SFX layer fires), but the visual
+   * response decays instantly so the resting look isn't disturbed.
+   */
+  play: () => void;
 }
 
 /**
@@ -34,6 +48,22 @@ const TEX_SIZE = 512;
 const HALO_RADIUS = 88;
 const CORE_RADIUS = 24;
 const PLANE_SIZE = 14;
+/**
+ * Resting opacity sits around 0.82 ± 0.04. The click impulse adds an
+ * extra opacity bump on top — peak of 0.6 → resting takes the visible
+ * brightness from ~0.85 to ~1.45 (capped at 1.0 by the material). The
+ * scale also pops by 1 + impulse * 0.35, so the star "flares" outward
+ * rather than just brightening in place.
+ */
+const PLAY_OPACITY_PEAK = 0.6;
+const PLAY_SCALE_PEAK = 0.35;
+/** Per-second decay rate of the impulse. 1.6 → roughly 600 ms to fade
+ *  back to imperceptible, matching the cohesion budget on the other
+ *  elements (~400-600 ms across the scene). */
+const PLAY_DECAY = 1.6;
+/** Resting opacity baseline for the breathing pulse. */
+const RESTING_OPACITY_BASE = 0.82;
+const RESTING_OPACITY_AMP = 0.04;
 
 export function buildHorizonGlow(): HorizonGlowHandle {
   const canvas = document.createElement('canvas');
@@ -114,5 +144,22 @@ export function buildHorizonGlow(): HorizonGlowHandle {
   // reflection and the visible star agree.
   mesh.position.set(12, 4.5, -15);
 
-  return { mesh, material, texture, geometry };
+  let clickImpulse = 0;
+
+  const tick = (delta: number, elapsed: number): void => {
+    if (clickImpulse > 0) {
+      clickImpulse = Math.max(0, clickImpulse - delta * PLAY_DECAY);
+    }
+    const breathing =
+      RESTING_OPACITY_BASE + Math.sin(elapsed * 0.3) * RESTING_OPACITY_AMP;
+    material.opacity = breathing + clickImpulse * PLAY_OPACITY_PEAK;
+    const scale = 1 + clickImpulse * PLAY_SCALE_PEAK;
+    mesh.scale.setScalar(scale);
+  };
+
+  const play = (): void => {
+    clickImpulse = 1;
+  };
+
+  return { mesh, material, texture, geometry, tick, play };
 }

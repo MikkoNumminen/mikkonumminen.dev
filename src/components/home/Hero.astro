@@ -349,6 +349,12 @@ const t = getTranslations(locale);
     flex-direction: column;
     align-items: flex-end;
     gap: 0.4rem;
+    /* Discoverability — the widget is one of the click-to-animate
+       elements (alongside the 3D type and the galaxy). Per the
+       Mixed-cursor choice from the senior-designer review, the big
+       elements get a pointer cursor; the small Easter-egg ones (goat,
+       ring, star) stay hidden. */
+    cursor: pointer;
   }
 
   .hero__data-feed-label {
@@ -412,7 +418,28 @@ const t = getTranslations(locale);
     const canvas = root.querySelector<HTMLCanvasElement>('.hero__data-feed-canvas');
     if (!canvas) return;
     const handle = buildDataFeedConsole(canvas, reducedMotion);
-    window.addEventListener('beforeunload', () => handle.dispose(), { once: true });
+
+    // Click-to-animate: clicking the widget injects a "ping" exchange
+    // into the typing queue. Mirrors the click responses on the scene
+    // elements — each clickable corner of the hero acknowledges the user.
+    // Reduced-motion clients get the no-op handle from buildDataFeedConsole,
+    // so pushLine is a no-op there.
+    const onClick = (): void => {
+      handle.pushLine(
+        { text: '$ ping mikko', kind: 'cmd' },
+        { text: '> hi 0.01ms', kind: 'out' },
+      );
+    };
+    root.addEventListener('click', onClick);
+
+    window.addEventListener(
+      'beforeunload',
+      () => {
+        root.removeEventListener('click', onClick);
+        handle.dispose();
+      },
+      { once: true },
+    );
   };
 
   if (document.readyState === 'loading') {
