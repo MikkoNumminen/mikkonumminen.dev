@@ -10,10 +10,6 @@ export interface TitleLetter {
   char: string;
   /** Index within the line, 0-based. */
   charIndex: number;
-  /** X position of the letter's center in line-local space (the line group
-   *  is centered around x=0). Used by the click-ripple to find adjacent
-   *  letters and decay the pop with distance. */
-  centerX: number;
 }
 
 export interface TitleLine {
@@ -218,11 +214,7 @@ export function buildTitle(
       mesh.userData.char = ch;
       lineGroup.add(mesh);
 
-      // Letter center in line-local x (after line centering): used by the
-      // ripple to find neighbour letters and decay pop strength with
-      // distance from the click.
-      const centerX = cursorX + lineDX + (charBB.min.x + charBB.max.x) / 2;
-      const letter: TitleLetter = { mesh, char: ch, charIndex: i, centerX };
+      const letter: TitleLetter = { mesh, char: ch, charIndex: i };
       letters.push(letter);
       allLetters.push(letter);
 

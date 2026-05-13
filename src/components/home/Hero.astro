@@ -422,20 +422,23 @@ const t = getTranslations(locale);
     // Click-to-animate: clicking the widget injects a "ping" exchange
     // into the typing queue. Mirrors the click responses on the scene
     // elements — each clickable corner of the hero acknowledges the user.
-    // Reduced-motion clients get the no-op handle from buildDataFeedConsole,
-    // so pushLine is a no-op there.
-    const onClick = (): void => {
+    // Uses `pointerdown` (not `click`) to match the 3D scene's snappy
+    // press-to-fire feel; otherwise the data-feed would lag behind a
+    // letter pop in side-by-side comparison. Reduced-motion clients get
+    // the no-op handle from buildDataFeedConsole, so pushLine is a no-op
+    // there.
+    const onPointerDown = (): void => {
       handle.pushLine(
         { text: '$ ping mikko', kind: 'cmd' },
         { text: '> hi 0.01ms', kind: 'out' },
       );
     };
-    root.addEventListener('click', onClick);
+    root.addEventListener('pointerdown', onPointerDown);
 
     window.addEventListener(
       'beforeunload',
       () => {
-        root.removeEventListener('click', onClick);
+        root.removeEventListener('pointerdown', onPointerDown);
         handle.dispose();
       },
       { once: true },

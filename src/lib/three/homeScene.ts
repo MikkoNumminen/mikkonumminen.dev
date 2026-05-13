@@ -524,13 +524,23 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     reducedMotion,
   });
   for (const letter of title.allLetters) {
+    // ID encodes the character so the future SFX layer can play a
+    // different sound per letter if it wants to — e.g. tuned by the
+    // letter's column in the four-world gradient. A shared `title-letter`
+    // id collapsed that option.
     interactions.add({
-      id: `title-letter`,
+      id: `title-letter-${letter.char}`,
       object: letter.mesh,
       cursor: true,
       play: () => triggerLetterRipple(letter),
     });
   }
+  // Galaxy is a `Points` cloud — `Raycaster.params.Points.threshold`
+  // defaults to 1 world unit, so a click anywhere within ~1 unit of any
+  // star registers. With 900 stars on an 8-unit disk this gives a
+  // generous, "click the galaxy" target rather than requiring a pixel-
+  // perfect hit on an individual star. Deliberate default; tune the
+  // threshold on the raycaster if a tighter feel is wanted.
   interactions.add({
     id: 'galaxy',
     object: galaxy.group,

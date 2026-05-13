@@ -59,6 +59,12 @@ export function createInteractionManager(
   const { canvas, camera, reducedMotion = false } = opts;
 
   const targets: InteractionTarget[] = [];
+  // Pre-built object arrays for the raycaster. Updated only in `add()`
+  // so the per-frame pointermove hot path doesn't filter+map on every
+  // event. `clickObjects` mirrors every registered target; `cursorObjects`
+  // only the cursor=true ones (used for the hover-cursor raycast).
+  const clickObjects: Object3D[] = [];
+  const cursorObjects: Object3D[] = [];
   const listeners = new Set<(e: InteractionEmitterEvent) => void>();
   const raycaster = new Raycaster();
   const ndc = new Vector2();
@@ -107,8 +113,7 @@ export function createInteractionManager(
     if (targets.length === 0) return;
     toNDC(e);
     raycaster.setFromCamera(ndc, camera);
-    const objects = targets.map((t) => t.object);
-    const hits = raycaster.intersectObjects(objects, true);
+    const hits = raycaster.intersectObjects(clickObjects, true);
     const found = firstTargetHit(hits);
     if (!found) return;
     // Convert hit point to target-local space so animations don't have
@@ -132,13 +137,9 @@ export function createInteractionManager(
 
   const handlePointerMove = (e: PointerEvent): void => {
     if (!hoverEnabled) return;
-    if (targets.length === 0) return;
+    if (cursorObjects.length === 0) return;
     toNDC(e);
     raycaster.setFromCamera(ndc, camera);
-    const cursorObjects = targets
-      .filter((t) => t.cursor === true)
-      .map((t) => t.object);
-    if (cursorObjects.length === 0) return;
     const hits = raycaster.intersectObjects(cursorObjects, true);
     const found = firstTargetHit(hits);
     canvas.style.cursor = found ? 'pointer' : '';
@@ -168,6 +169,8 @@ export function createInteractionManager(
   return {
     add: (t: InteractionTarget): void => {
       targets.push(t);
+      clickObjects.push(t.object);
+      if (t.cursor === true) cursorObjects.push(t.object);
     },
     on: (cb): (() => void) => {
       listeners.add(cb);
@@ -183,6 +186,8 @@ export function createInteractionManager(
       hoverQuery.removeEventListener('change', onHoverChange);
       canvas.style.cursor = '';
       targets.length = 0;
+      clickObjects.length = 0;
+      cursorObjects.length = 0;
       listeners.clear();
     },
   };
