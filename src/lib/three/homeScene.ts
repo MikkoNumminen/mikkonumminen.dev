@@ -539,8 +539,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // defaults to 1 world unit, so a click anywhere within ~1 unit of any
   // star registers. With 900 stars on an 8-unit disk this gives a
   // generous, "click the galaxy" target rather than requiring a pixel-
-  // perfect hit on an individual star. Deliberate default; tune the
-  // threshold on the raycaster if a tighter feel is wanted.
+  // perfect hit on an individual star. Deliberate default; to tighten,
+  // set `raycaster.params.Points.threshold` on the Raycaster instance
+  // inside `createInteractionManager` (interactions.ts) before the
+  // first pointerdown.
   interactions.add({
     id: 'galaxy',
     object: galaxy.group,

@@ -26,8 +26,11 @@ export interface InteractionTarget {
    * Whether the cursor switches to a pointer when hovering this target.
    * `true` for the large, intentionally-discoverable elements (title,
    * galaxy, data feed); `false` for the small Easter-egg targets (goat,
-   * star, ring). See the senior-designer recommendation in the session
-   * notes for the rationale on this split.
+   * star, ring). The split is deliberate — making everything hover-
+   * affordant turns every visible scene element into "obviously a
+   * button", which crowds the editorial chrome; leaving the small ones
+   * silent rewards exploration without losing discoverability on the
+   * big targets.
    */
   cursor?: boolean;
 }

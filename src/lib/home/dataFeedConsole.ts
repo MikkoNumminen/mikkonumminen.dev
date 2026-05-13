@@ -194,8 +194,10 @@ export function buildDataFeedConsole(
   // Click-injected lines are drained from this queue before SCRIPT cycles
   // resume. Each pushLine() appends; the next pick consumes the head.
   // Capped at PENDING_MAX so a spam-click sequence can't queue up a
-  // minute of typing — the cap drops the newest additions once the
-  // queue is full, keeping the existing run intact.
+  // minute of typing. pushLine() is all-or-nothing: if a single call's
+  // lines wouldn't all fit, none are appended. This preserves cmd/out
+  // pairing — otherwise a half-accepted click could orphan a `$ ping`
+  // with no `> ack` reply.
   const PENDING_MAX = 8;
   const pending: LineSpec[] = [];
 
@@ -308,10 +310,10 @@ export function buildDataFeedConsole(
 
   return {
     pushLine: (...lines): void => {
-      for (const line of lines) {
-        if (pending.length >= PENDING_MAX) break;
-        pending.push(line);
-      }
+      // All-or-nothing: drop the whole call if any of its lines would
+      // overflow the cap. Keeps each pushLine's cmd/out pair intact.
+      if (pending.length + lines.length > PENDING_MAX) return;
+      for (const line of lines) pending.push(line);
       // Wake the typing loop immediately so an injected line responds on
       // the next frame instead of waiting out the resting pause.
       if (active === null) pauseUntil = 0;
