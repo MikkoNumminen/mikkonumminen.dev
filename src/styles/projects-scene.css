@@ -72,7 +72,12 @@ body[data-theme='projects'] .site-footer {
 
 .projects-scene__legend {
   position: absolute;
-  bottom: 2.5rem;
+  /* Lifted clear of the BackgroundAudio toggle that sits at
+     `bottom: 2rem; left: 2rem` (component lives in BaseLayout, applies
+     to every page). The toggle's top edge is around 4.5rem from the
+     viewport bottom; this `bottom: 5.5rem` leaves a small breathing
+     gap between the last legend line and the sound button. */
+  bottom: 5.5rem;
   left: 3rem;
   z-index: 10;
   display: flex;
@@ -455,7 +460,9 @@ body[data-theme='projects'] .site-footer {
   }
   .projects-scene__legend {
     left: 1.5rem;
-    bottom: 1.5rem;
+    /* Mirror the desktop lift on phones — the sound button sits at
+       `bottom: 1.25rem; left: 1.25rem` here, top edge ≈ 3.25 rem. */
+    bottom: 4rem;
   }
   .projects-scene__credits {
     bottom: 1rem;
