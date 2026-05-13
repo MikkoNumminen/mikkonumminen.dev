@@ -42,7 +42,7 @@
     type="button"
     class="bg-audio__toggle"
     aria-pressed="false"
-    aria-label="Toggle background music"
+    aria-label="Toggle background sound"
     data-bg-audio-toggle
   >
     <span class="bg-audio__icon" aria-hidden="true">
@@ -329,6 +329,12 @@
     const setState = (state: 'on' | 'off'): void => {
       wrapper.dataset.state = state;
       button.setAttribute('aria-pressed', state === 'on' ? 'true' : 'false');
+      // Broadcast to layered audio components (e.g. the home-page
+      // voiceover) so a single toggle press controls every track. Voice
+      // / SFX listeners pause when this goes `false`, resume when `true`.
+      document.dispatchEvent(
+        new CustomEvent('bg-audio:state', { detail: { on: state === 'on' } }),
+      );
     };
 
     const remember = (off: boolean): void => {

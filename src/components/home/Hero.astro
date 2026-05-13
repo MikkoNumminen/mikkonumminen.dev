@@ -1,5 +1,6 @@
 ---
 import { asLocale, getTranslations } from '../../i18n';
+import HeroVoiceover from './HeroVoiceover.astro';
 
 interface Props {
   commitMessages?: string[];
@@ -11,6 +12,8 @@ const t = getTranslations(locale);
 ---
 
 <section class="hero" data-section-hero aria-label={t.hero.sectionAria}>
+  <HeroVoiceover />
+
   <canvas
     id="home-canvas"
     class="hero__canvas"
