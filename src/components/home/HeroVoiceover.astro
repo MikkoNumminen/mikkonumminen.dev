@@ -1,0 +1,135 @@
+---
+// Home-page voiceover. Sits ON TOP of the looping music bed managed by
+// `BackgroundAudio.astro`, so the lander has narration + atmosphere
+// playing together. No visible UI — the single `sound on/off` toggle
+// from BackgroundAudio controls both tracks via a `bg-audio:state`
+// custom event.
+//
+// Behaviour:
+// - Layered on top of the music bed at slightly higher levels so the
+//   narration stays intelligible over the loop. Volume eases down with
+//   scroll exactly like the music does (HERO → SCROLLED).
+// - Non-looping. After the file ends, the music keeps playing alone.
+// - Plays at most once per tab session — a `sessionStorage` flag is
+//   set on `ended` so navigating home → projects → home doesn't replay
+//   the voice, but a partial play (user paused or navigated mid-track)
+//   does NOT mark it done and will replay from the top next visit.
+// - Same autoplay-with-gesture-fallback story as the music: tries to
+//   start, falls back to the first pointer/keyboard event if blocked.
+// - Respects the music's on/off state. If the user has muted via the
+//   toggle (or it autoplay-blocked into `off`), the voice stays silent
+//   until the toggle goes back to `on`.
+---
+
+<audio
+  id="hero-voice"
+  preload="metadata"
+  playsinline
+  aria-hidden="true"
+>
+  <source src="/audio/voice-landing.mp3" type="audio/mpeg" />
+</audio>
+
+<script>
+  // Per-session "the voice played all the way through" flag — keeps
+  // home → projects → home from re-narrating. Cleared when the tab dies.
+  const DONE_KEY = 'mn_voice_landing_done';
+
+  // Voice sits slightly above the music bed at both ends of the scroll
+  // ramp so the narration cuts through. Music targets are 0.85 / 0.35
+  // in BackgroundAudio.astro; voice is +0.15 at both ends. Capped at 1.
+  const VOICE_HERO_VOLUME = 1.0;
+  const VOICE_SCROLLED_VOLUME = 0.5;
+
+  const voice = document.getElementById('hero-voice') as HTMLAudioElement | null;
+  const hero = document.querySelector<HTMLElement>('[data-section-hero]');
+  // `.bg-audio` is rendered by BaseLayout's BackgroundAudio; reading
+  // `data-state` gives us the current on/off resolution including any
+  // sessionStorage user-wants-off restoration that happened above us
+  // in the DOM. The custom event below covers subsequent changes.
+  const bgAudio = document.querySelector<HTMLElement>('.bg-audio');
+
+  if (voice && bgAudio) {
+    let alreadyEnded = false;
+    try {
+      alreadyEnded = sessionStorage.getItem(DONE_KEY) === '1';
+    } catch {
+      /* sessionStorage may be unavailable */
+    }
+
+    // Volume the voice *should* be at right now, mirroring the music's
+    // scroll-driven curve so the two tracks fade together rather than
+    // one of them sitting weirdly at full volume after a scroll.
+    const computeVolume = (): number => {
+      if (!hero) return VOICE_HERO_VOLUME;
+      const rect = hero.getBoundingClientRect();
+      const heroH = rect.height || 1;
+      const progress = Math.max(0, Math.min(1, -rect.top / heroH));
+      return (
+        VOICE_HERO_VOLUME +
+        (VOICE_SCROLLED_VOLUME - VOICE_HERO_VOLUME) * progress
+      );
+    };
+
+    voice.volume = computeVolume();
+
+    voice.addEventListener('ended', () => {
+      try {
+        sessionStorage.setItem(DONE_KEY, '1');
+      } catch {
+        /* ignore */
+      }
+    });
+
+    // Try to play the voice — only when the music toggle is currently
+    // `on` and the voice hasn't already run this session. Autoplay
+    // blocks are silent; the gesture unlock + state-change listeners
+    // below will retry once the user signals intent.
+    const tryPlay = (): void => {
+      if (alreadyEnded) return;
+      if (bgAudio.dataset.state === 'off') return;
+      voice.volume = computeVolume();
+      voice.play().catch(() => {
+        /* autoplay blocked — retry on first gesture / next toggle on */
+      });
+    };
+
+    // Mirror the music's on/off toggle. `on` resumes the voice from
+    // wherever it was paused (so toggle-off-then-on doesn't restart
+    // the narration mid-sentence); `off` pauses it.
+    document.addEventListener('bg-audio:state', (e: Event) => {
+      const detail = (e as CustomEvent<{ on: boolean }>).detail;
+      if (detail.on) tryPlay();
+      else voice.pause();
+    });
+
+    // First-interaction fallback. If the music autoplay-blocked, the
+    // voice did too; the next user gesture unlocks both. We can't share
+    // BackgroundAudio's `unlock` listener (it's `{ once: true }`), so
+    // we register our own — also single-shot.
+    const unlock = (): void => {
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
+      tryPlay();
+    };
+    document.addEventListener('pointerdown', unlock, { once: true });
+    document.addEventListener('keydown', unlock, { once: true });
+
+    // Scroll-driven volume. Same rAF-throttled pattern as the music.
+    let ticking = false;
+    const onScroll = (): void => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        if (!voice.paused) voice.volume = computeVolume();
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Initial play attempt — runs after BackgroundAudio's script has
+    // resolved `data-state`, since the layout component renders earlier
+    // in the document than this home-only one.
+    tryPlay();
+  }
+</script>
