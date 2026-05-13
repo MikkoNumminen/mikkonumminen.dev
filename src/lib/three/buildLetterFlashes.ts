@@ -1,4 +1,4 @@
-import { Mesh, PointLight } from 'three';
+import { type Object3D, PointLight } from 'three';
 
 export interface LetterFlashesHandle {
   /** Trigger a burst of staggered, random per-letter flashes. */
@@ -9,11 +9,21 @@ export interface LetterFlashesHandle {
 }
 
 export interface LetterFlashLine {
-  /** The line mesh. Flash lights are parented to it so they inherit
-   *  the title's float / sway / responsive scale automatically. */
-  mesh: Mesh;
+  /** The line container. Flash lights are parented to it so they inherit
+   *  the title's float / sway / responsive scale automatically. Takes an
+   *  Object3D rather than a Mesh because each title line is now a Group
+   *  of per-letter Meshes (so the click raycaster can identify which
+   *  letter was hit). */
+  parent: Object3D;
   /** World-units width of the line at scale=1. Used to randomize x. */
   width: number;
+  /** y range of the visible glyphs in line-local space — used to keep
+   *  the random flash positions inside the letterforms instead of in the
+   *  empty space above or below. Previously read from the line mesh's
+   *  geometry bbox; now passed in explicitly because the per-letter
+   *  rewrite removed the single line-level geometry. */
+  yMin: number;
+  yMax: number;
 }
 
 export interface BuildLetterFlashesOptions {
@@ -39,11 +49,12 @@ const FLASH_COLOR = 0xeaf5ff;
 
 interface FlashState {
   light: PointLight;
-  parent: Mesh;
+  parent: Object3D;
   parentWidth: number;
-  /** Mesh-local y range of the line's letter glyphs, derived once from
-   *  the geometry's bounding box so flash positions land *inside* the
-   *  letters rather than guessing a centred-around-zero range. */
+  /** Line-local y range of the visible glyphs — flash positions land
+   *  *inside* the letters rather than guessing a centred-around-zero
+   *  range. Now passed in by the caller (was derived from line geometry
+   *  bbox before per-letter splitting). */
   yMin: number;
   yMax: number;
   active: boolean;
@@ -73,25 +84,16 @@ export function buildLetterFlashes(
   const states: FlashState[] = [];
 
   for (const line of options.lines) {
-    // Derive the letter y range from the geometry's bounding box. Falls
-    // back to a small symmetric range if the bbox isn't computed yet
-    // (it always is for buildTitle's TextGeometry, but defensive).
-    if (!line.mesh.geometry.boundingBox) {
-      line.mesh.geometry.computeBoundingBox();
-    }
-    const bbox = line.mesh.geometry.boundingBox;
-    const yMin = bbox ? bbox.min.y : -0.5;
-    const yMax = bbox ? bbox.max.y : 0.5;
     for (let i = 0; i < perLine; i++) {
       const light = new PointLight(FLASH_COLOR, 0, radius);
       light.visible = false;
-      line.mesh.add(light);
+      line.parent.add(light);
       states.push({
         light,
-        parent: line.mesh,
+        parent: line.parent,
         parentWidth: line.width,
-        yMin,
-        yMax,
+        yMin: line.yMin,
+        yMax: line.yMax,
         active: false,
         delay: 0,
         age: 0,

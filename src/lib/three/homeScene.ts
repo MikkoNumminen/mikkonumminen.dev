@@ -3,8 +3,8 @@ import {
   AmbientLight,
   DirectionalLight,
   Fog,
-  Mesh,
   MeshPhysicalMaterial,
+  type Object3D,
   PerspectiveCamera,
   PointLight,
   Scene,
@@ -17,7 +17,9 @@ import {
   DEPTH as TITLE_DEPTH,
   loadFont,
   measureTextWidth,
+  type TitleLetter,
 } from './buildTitle';
+import { createInteractionManager } from './interactions';
 import { buildTitleColorMap } from './buildTitleColorMap';
 import { buildCollisionSparks, type CollisionSparksHandle } from './buildCollisionSparks';
 import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
@@ -324,24 +326,23 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const wM = measureTextWidth(font, 'M');
   const wMIKK = measureTextWidth(font, 'MIKK');
 
-  // Each line's geometry was translated by -lineWidth/2, so a mesh-local
-  // x = 0 sits at the line center. Substring centers in pre-translation
-  // coords are midpoints of cumulative widths; subtracting lineWidth/2
-  // maps them into mesh-local space.
+  // Per-letter meshes are positioned so the line's visual center sits at
+  // line-local x = 0 (each letter's mesh.position.x = cursorX + lineDX).
+  // Substring centers in pre-translation coords are midpoints of
+  // cumulative advances; subtracting lineWidth/2 maps them into the
+  // centered line space used by the decor placements below.
   const xCenterM = wM / 2 - wMIKKO / 2;
   const xCenterO = wMIKK / 2; // = (wMIKK + wMIKKO)/2 - wMIKKO/2
 
-  const mikkoMesh = title.meshes[0];
-  const nummMesh = title.meshes[1];
-  if (!mikkoMesh || !nummMesh) {
+  const mikkoLine = title.lines[0];
+  const nummLine = title.lines[1];
+  if (!mikkoLine || !nummLine) {
     throw new Error('homeScene: title is missing a line — TITLE expected to be 2 lines.');
   }
-  // Letter top in mesh-local Y — derived from the geometry's bbox so the
-  // mountain placement tracks any future change to TextGeometry SIZE
-  // or bevel. buildTitle always calls computeBoundingBox before the
-  // centering translate, and Three.js's BufferGeometry.translate updates
-  // the box in place, so it is always set here.
-  const mikkoTopY = mikkoMesh.geometry.boundingBox!.max.y;
+  // Mikko's top y in line-local space — line bbox already accounts for
+  // the per-line centering offset, so this is the y above the visible
+  // glyphs where the mountain's base should sit.
+  const mikkoTopY = mikkoLine.yMax;
 
   // Each zone module's "design width" at scale=1, used to pick a scale
   // that fills the targeted letter span.
@@ -357,23 +358,22 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // just outside the O's letter outline with a small breathing gap.
     scale: 0.7,
   });
-  const nummWidth =
-    nummMesh.geometry.boundingBox!.max.x - nummMesh.geometry.boundingBox!.min.x;
+  const nummWidth = nummLine.width;
 
-  // Parent each decor under the appropriate line mesh so it inherits
+  // Parent each decor under the appropriate line group so it inherits
   // the title's floats / sway / entrance offset for free.
-  mikkoMesh.add(experienceDecor.group);
-  mikkoMesh.add(projectsDecor.group);
+  mikkoLine.group.add(experienceDecor.group);
+  mikkoLine.group.add(projectsDecor.group);
 
   // ── Per-letter flash highlights (impact strobing) ────────────────────
-  // Pool of brief PointLights parented to the line meshes; each meteor
+  // Pool of brief PointLights parented to the line groups; each meteor
   // impact triggers 3-5 of them at random x positions with staggered
   // start times. The result is a stutter of bright spots rippling
   // across the chrome, on top of the whole-title rim flash.
   const letterFlashes: LetterFlashesHandle = buildLetterFlashes({
     lines: [
-      { mesh: mikkoMesh, width: wMIKKO },
-      { mesh: nummMesh, width: nummWidth },
+      { parent: mikkoLine.group, width: wMIKKO, yMin: mikkoLine.yMin, yMax: mikkoLine.yMax },
+      { parent: nummLine.group, width: nummWidth, yMin: nummLine.yMin, yMax: nummLine.yMax },
     ],
   });
 
@@ -385,27 +385,28 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   /**
    * One row per zone. `boost` is mutable (lerps toward 1 on hover) and
-   * drives subtle visual response in the per-zone decor. The title is
-   * NOT clickable — navigation goes through the visible <nav> only.
-   * `hotRadiusBase` sets the hover radius in pixels before responsive
-   * title scaling; sized to each zone's screen footprint.
+   * drives subtle visual response in the per-zone decor. Click-to-animate
+   * responses (the loud one-shot effects) are wired separately via the
+   * InteractionManager below. `hotRadiusBase` sets the hover radius in
+   * pixels before responsive title scaling; sized to each zone's screen
+   * footprint.
    */
   interface ZoneEntry {
     decor: ExperienceZoneDecorHandle | ProjectsZoneDecorHandle;
-    parent: Mesh;
+    parent: Object3D;
     boost: number;
     hotRadiusBase: number;
   }
   const zones: ZoneEntry[] = [
     {
       decor: experienceDecor,
-      parent: mikkoMesh,
+      parent: mikkoLine.group,
       boost: 0,
       hotRadiusBase: 160,
     },
     {
       decor: projectsDecor,
-      parent: mikkoMesh,
+      parent: mikkoLine.group,
       boost: 0,
       hotRadiusBase: 110,
     },
@@ -459,6 +460,113 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         radius: 0.5,
         threshold: 0.82,
       });
+
+  // ── Click-to-animate state ───────────────────────────────────────────
+  // One animation state per title letter; the ripple writes into these
+  // and the tick loop reads them every frame. Storing state outside the
+  // letter mesh lets us reset position/rotation back to zero cleanly when
+  // an impulse ends, without having to remember pre-animation values.
+  interface LetterPopState {
+    letter: TitleLetter;
+    delay: number; // seconds until the pop starts (ripple stagger)
+    age: number; // seconds since pop started
+    lifetime: number; // total pop duration
+    peak: number; // animation amplitude (z-pop height in line-local units)
+    active: boolean;
+  }
+  const letterStates: LetterPopState[] = title.allLetters.map((letter) => ({
+    letter,
+    delay: 0,
+    age: 0,
+    lifetime: 0,
+    peak: 0,
+    active: false,
+  }));
+
+  /** Tuning for the per-letter pop+ripple. */
+  const RIPPLE_NEIGHBOUR_RANGE = 3;
+  const RIPPLE_BASE_PEAK = 0.18;
+  const RIPPLE_PEAK_FALLOFF = 0.55; // per-neighbour-step
+  const RIPPLE_DELAY_STEP = 0.05; // 50 ms per neighbour step
+  const RIPPLE_LIFETIME = 0.5;
+  /** Multiplier from `peak` to actual z translation in line-local units —
+   *  a peak of 0.18 gives ~0.72 units of forward pop on the clicked letter. */
+  const RIPPLE_Z_GAIN = 4;
+
+  const triggerLetterRipple = (clickedLetter: TitleLetter): void => {
+    const clickedLine = clickedLetter.mesh.userData.line as number;
+    const clickedChar = clickedLetter.mesh.userData.charIndex as number;
+    for (const s of letterStates) {
+      const sLine = s.letter.mesh.userData.line as number;
+      if (sLine !== clickedLine) continue;
+      const sChar = s.letter.mesh.userData.charIndex as number;
+      const d = Math.abs(sChar - clickedChar);
+      if (d > RIPPLE_NEIGHBOUR_RANGE) continue;
+      // Each fresh click restarts neighbours from the start of their pop
+      // — feels more responsive than letting a previous ripple suppress
+      // the new one.
+      s.delay = d * RIPPLE_DELAY_STEP;
+      s.age = 0;
+      s.lifetime = RIPPLE_LIFETIME;
+      s.peak = RIPPLE_BASE_PEAK * Math.pow(RIPPLE_PEAK_FALLOFF, d);
+      s.active = true;
+    }
+  };
+
+  // ── Interaction manager ──────────────────────────────────────────────
+  // Owns the click raycaster and the cursor-on-hover updates. Each
+  // clickable scene element is registered as a target with a `play`
+  // callback that triggers its visual response. Future sound layer can
+  // subscribe via `.on()` without rewiring the play callbacks.
+  const interactions = createInteractionManager({
+    canvas,
+    camera,
+    reducedMotion,
+  });
+  for (const letter of title.allLetters) {
+    // ID encodes the character so the future SFX layer can play a
+    // different sound per letter if it wants to — e.g. tuned by the
+    // letter's column in the four-world gradient. A shared `title-letter`
+    // id collapsed that option.
+    interactions.add({
+      id: `title-letter-${letter.char}`,
+      object: letter.mesh,
+      cursor: true,
+      play: () => triggerLetterRipple(letter),
+    });
+  }
+  // Galaxy is a `Points` cloud — `Raycaster.params.Points.threshold`
+  // defaults to 1 world unit, so a click anywhere within ~1 unit of any
+  // star registers. With 900 stars on an 8-unit disk this gives a
+  // generous, "click the galaxy" target rather than requiring a pixel-
+  // perfect hit on an individual star. Deliberate default; to tighten,
+  // set `raycaster.params.Points.threshold` on the Raycaster instance
+  // inside `createInteractionManager` (interactions.ts) before the
+  // first pointerdown.
+  interactions.add({
+    id: 'galaxy',
+    object: galaxy.group,
+    cursor: true,
+    play: () => galaxy.play(),
+  });
+  interactions.add({
+    id: 'star',
+    object: horizon.mesh,
+    cursor: false,
+    play: () => horizon.play(),
+  });
+  interactions.add({
+    id: 'experience-decor',
+    object: experienceDecor.group,
+    cursor: false,
+    play: () => experienceDecor.play(),
+  });
+  interactions.add({
+    id: 'projects-decor',
+    object: projectsDecor.group,
+    cursor: false,
+    play: () => projectsDecor.play(),
+  });
 
   // ── State ────────────────────────────────────────────────────────────
   let disposed = false;
@@ -619,19 +727,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       ? 0
       : collisionRimEnergy * COLLISION_RIM_PEAK;
 
-    // Horizon glow has a small pulse — kept narrow (0.04 amplitude, slower
-    // 0.3 Hz) so it reads as atmospheric, not as a beat.
-    horizon.material.opacity = reducedMotion
-      ? 0.85
-      : 0.82 + Math.sin(elapsed * 0.3) * 0.04;
+    // Horizon glow drives its own breathing pulse + click-impulse decay
+    // via horizon.tick(); reduced-motion clients still call it (delta=0)
+    // so click impulses fade to zero on the next frame.
+    horizon.tick(reducedMotion ? 0 : delta, elapsed);
 
-    // The galaxy spins gently in place; meteors do all the spatial work.
+    // Galaxy z-spin + click-flare decay live inside galaxy.tick now.
     // Each meteor impact (handled in buildMeteors → onImpact) bumps the
     // collision-flash energy and the title rim-flash energy; both decay
     // here every frame.
+    galaxy.tick(reducedMotion ? 0 : delta, elapsed);
     if (!reducedMotion) {
-      galaxy.group.rotation.z = elapsed * 0.04;
-
       // Decay the collision-flash pulse each frame; bright on hit, fades
       // smoothly to zero.
       collisionFlashEnergy = Math.max(
@@ -650,8 +756,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
     // Per-zone hover/boost/tick. Each zone's hover hot-zone lerps its
     // boost toward 1 when the cursor is in range; the boost only drives
-    // visual response inside each decor module (the title is not
-    // clickable — navigation goes through the visible nav only).
+    // visual response inside each decor module. Clicks on the decor (or
+    // on the title letters above it) are handled separately by the
+    // InteractionManager registered above.
     {
       const mxPx = (targetMouseX * 0.5 + 0.5) * window.innerWidth;
       const myPx = (targetMouseY * 0.5 + 0.5) * window.innerHeight;
@@ -661,6 +768,34 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         const targetBoost = hovering ? 1 : 0;
         entry.boost += (targetBoost - entry.boost) * delta * 6;
         entry.decor.tick(reducedMotion ? 0 : delta, entry.boost);
+      }
+    }
+
+    // Per-letter pop+ripple. The clicked letter (peak amplitude) and a
+    // few neighbours (decaying amplitude + staggered delay) push along
+    // the letter's local z axis with a sin(πt) envelope so the rise and
+    // fall are smooth. Reduced-motion clients skip the visual but the
+    // InteractionManager still fires play() for the future sound layer.
+    if (!reducedMotion) {
+      for (const s of letterStates) {
+        if (!s.active) continue;
+        if (s.delay > 0) {
+          s.delay = Math.max(0, s.delay - delta);
+          continue;
+        }
+        s.age += delta;
+        if (s.age >= s.lifetime) {
+          s.active = false;
+          s.letter.mesh.position.z = 0;
+          s.letter.mesh.rotation.x = 0;
+          continue;
+        }
+        const t = s.age / s.lifetime;
+        const env = Math.sin(t * Math.PI);
+        s.letter.mesh.position.z = s.peak * env * RIPPLE_Z_GAIN;
+        // Small forward tilt at apex so the pop reads as the letter
+        // leaning toward the viewer, not just sliding flat forward.
+        s.letter.mesh.rotation.x = -s.peak * env * 1.1;
       }
     }
 
@@ -716,12 +851,16 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       window.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('visibilitychange', onVisibilityChange);
 
+      interactions.dispose();
+
       for (const entry of zones) {
         entry.parent.remove(entry.decor.group);
         entry.decor.dispose();
       }
 
-      title.meshes.forEach((m) => m.geometry.dispose());
+      for (const letter of title.allLetters) {
+        letter.mesh.geometry.dispose();
+      }
       disposeMaterial(title.material);
       titleColorMap.dispose();
 

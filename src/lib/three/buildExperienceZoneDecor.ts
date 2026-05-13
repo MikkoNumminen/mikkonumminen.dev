@@ -25,6 +25,12 @@ export interface ExperienceZoneDecorHandle {
    * livelier goat — used by the caller to react to hover.
    */
   tick: (delta: number, boost: number) => void;
+  /**
+   * Trigger a one-shot goat bleat — the goat hops with a scale pulse and
+   * a small dust puff blooms at its hooves. Reads as "the goat reacted",
+   * the friendliest Easter egg of the lot.
+   */
+  play: () => void;
   dispose: () => void;
 }
 
@@ -72,6 +78,15 @@ const METEOR_THICKNESS = 0.05;
 // those bands the streak is at full opacity.
 const METEOR_FADE_IN_FRACTION = 0.15;
 const METEOR_FADE_OUT_FRACTION = 0.25;
+
+// Click-response constants. Goat scale tops out at 1 + 0.18 ≈ 1.18 at
+// the apex of the bleat; dust puff lives ~600 ms and grows from a tiny
+// dot to ~0.55× scale before fading out.
+const GOAT_PULSE_PEAK = 0.18;
+const GOAT_PULSE_HOP = 0.05;
+const CLICK_DECAY = 1.6;
+const DUST_LIFE = 0.6;
+const DUST_TEX_SIZE = 64;
 
 /**
  * Single mountain ridge — solo silhouette so the M doesn't get crowded
@@ -147,6 +162,25 @@ function makeSnowflakeTexture(): Texture {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, SNOW_TEX_SIZE, SNOW_TEX_SIZE);
 
+  const t = new CanvasTexture(c);
+  t.needsUpdate = true;
+  return t;
+}
+
+function makeDustTexture(): Texture {
+  const c = document.createElement('canvas');
+  c.width = c.height = DUST_TEX_SIZE;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('makeDustTexture: 2D context unavailable');
+  const cx = DUST_TEX_SIZE / 2;
+  // Soft, warm-grey radial cloud — reads as kicked-up dust rather than
+  // snow (the snowflakes already in the scene are cool-white).
+  const g = ctx.createRadialGradient(cx, cx, 0, cx, cx, cx);
+  g.addColorStop(0, 'rgba(225, 220, 210, 0.7)');
+  g.addColorStop(0.4, 'rgba(200, 190, 175, 0.32)');
+  g.addColorStop(1, 'rgba(170, 160, 145, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, DUST_TEX_SIZE, DUST_TEX_SIZE);
   const t = new CanvasTexture(c);
   t.needsUpdate = true;
   return t;
@@ -279,13 +313,33 @@ export function buildExperienceZoneDecor(
   const goat = new Sprite(goatMat);
   // Roughly 2× the earlier draft so the goat reads at single-letter
   // scale rather than disappearing into the silhouette.
-  goat.scale.setScalar(0.55 * scale);
+  const GOAT_BASE_SCALE = 0.55 * scale;
+  goat.scale.setScalar(GOAT_BASE_SCALE);
   // Perched on the hero peak (RIDGE_PEAKS[3] apex at x=0.45, y=0.95).
   // Y nudged so hooves sit on, not above, the peak.
   const goatHomeX = 0.45 * scale;
   const goatHomeY = 1.12 * scale;
   goat.position.set(goatHomeX, goatHomeY, 0.12 * scale);
   group.add(goat);
+
+  // Dust puff at the goat's hooves on click. One sprite, recycled each
+  // play — sits invisible at rest, gets reset to a tiny dot, then expands
+  // + fades over DUST_LIFE seconds. Cheaper than a particle burst, and
+  // visually reads as the same "hop kicked up dust" idea.
+  const dustTex = makeDustTexture();
+  const dustMat = new SpriteMaterial({
+    map: dustTex,
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  const dust = new Sprite(dustMat);
+  dust.position.set(goatHomeX, goatHomeY - 0.12 * scale, 0.08 * scale);
+  dust.scale.setScalar(0.15 * scale);
+  dust.visible = false;
+  group.add(dust);
+  let dustLife = 0;
 
   // Background meteors — sprite pool with per-instance rotation so each
   // streak aligns with its own velocity vector. Texture is shared; each
@@ -353,6 +407,7 @@ export function buildExperienceZoneDecor(
 
   let snowT = 0;
   let goatT = 0;
+  let clickImpulse = 0;
 
   const tick = (delta: number, boost: number): void => {
     const speedMul = 1 + boost * 1.4;
@@ -381,6 +436,35 @@ export function buildExperienceZoneDecor(
 
     goat.position.y = goatHomeY + Math.sin(goatT * 1.3) * 0.012 * scale;
     goat.position.x = goatHomeX + Math.sin(goatT * 0.7) * 0.008 * scale;
+
+    // Click impulse: a brief "hop" — scale pops up then settles, plus a
+    // small Y bump on top of the resting bob. Sine of (impulse * π) gives
+    // a smooth in-out curve over the decay so the apex hits at the
+    // midpoint of the impulse's life, not the start.
+    if (clickImpulse > 0) {
+      clickImpulse = Math.max(0, clickImpulse - delta * CLICK_DECAY);
+      const env = Math.sin(clickImpulse * Math.PI);
+      goat.scale.setScalar(GOAT_BASE_SCALE * (1 + env * GOAT_PULSE_PEAK));
+      goat.position.y += env * GOAT_PULSE_HOP * scale;
+    } else if (goat.scale.x !== GOAT_BASE_SCALE) {
+      goat.scale.setScalar(GOAT_BASE_SCALE);
+    }
+
+    // Dust puff lifecycle — grows and fades over DUST_LIFE seconds. Lives
+    // independently of the impulse decay so it can outlast the goat's
+    // visible hop (the puff lingers slightly, like real kicked-up dust).
+    if (dustLife > 0) {
+      dustLife = Math.max(0, dustLife - delta);
+      const t = 1 - dustLife / DUST_LIFE; // 0 → 1 over its life
+      dust.scale.setScalar((0.15 + t * 0.45) * scale);
+      // Opacity: ramps in over the first 20% of life, then fades to 0.
+      const opacityEnv = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8;
+      dustMat.opacity = Math.max(0, opacityEnv * 0.7);
+      if (dustLife <= 0) {
+        dust.visible = false;
+        dustMat.opacity = 0;
+      }
+    }
 
     // Meteor pool — each streak is either alive (life > 0, advancing along
     // its velocity vector with a fade-in/out envelope) or dead (counting
@@ -417,6 +501,16 @@ export function buildExperienceZoneDecor(
     }
   };
 
+  const play = (): void => {
+    clickImpulse = 1;
+    dustLife = DUST_LIFE;
+    dust.visible = true;
+    // Reset dust to its starting pose so back-to-back clicks each begin
+    // with a fresh tiny dot rather than picking up mid-expansion.
+    dust.scale.setScalar(0.15 * scale);
+    dustMat.opacity = 0;
+  };
+
   const dispose = (): void => {
     ridgeGeo.dispose();
     ridgeMat.dispose();
@@ -425,11 +519,13 @@ export function buildExperienceZoneDecor(
     snowTex.dispose();
     goatMat.dispose();
     goatTex.dispose();
+    dustMat.dispose();
+    dustTex.dispose();
     for (const m of meteors) {
       m.material.dispose();
     }
     meteorTex.dispose();
   };
 
-  return { group, tick, dispose };
+  return { group, tick, play, dispose };
 }

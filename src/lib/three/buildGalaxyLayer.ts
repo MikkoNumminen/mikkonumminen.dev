@@ -34,6 +34,20 @@ export interface GalaxyLayerHandle {
   group: Group;
   starsGeometry: BufferGeometry;
   starsMaterial: PointsMaterial;
+  /**
+   * Drive the slow z-axis rotation and decay any click impulse.
+   * `elapsed` is the scene clock in seconds — used as the absolute
+   * rotation angle so the spin never drifts after visibility-pause
+   * resumes. Previously the rotation was set inline in homeScene's tick;
+   * folded into the handle here so all galaxy state lives in one place.
+   */
+  tick: (delta: number, elapsed: number) => void;
+  /**
+   * Trigger a one-shot brightness flare — point size pops and opacity
+   * brightens for ~600 ms before easing back. Reads as "the galaxy lit
+   * up" without needing a per-vertex shader for a true radial wave.
+   */
+  play: () => void;
 }
 
 const DEFAULTS: Required<GalaxyLayerOptions> = {
@@ -128,6 +142,33 @@ export function buildGalaxyLayer(opts: GalaxyLayerOptions = {}): GalaxyLayerHand
 
   group.position.set(...config.position);
   group.rotation.set(...config.rotation);
+  // Snapshot the configured z-rotation so the per-frame tick can layer
+  // the slow spin on top of it without losing the original tilt.
+  const baseRotZ = group.rotation.z;
+  const baseSize = config.starSize;
+  const baseOpacity = 0.85;
 
-  return { group, starsGeometry, starsMaterial };
+  let clickImpulse = 0;
+  const SPIN_RATE = 0.04; // rad/s — matches the value previously hard-coded in homeScene
+  const PLAY_SIZE_PEAK = 0.5; // +50% point size at impulse=1
+  const PLAY_OPACITY_PEAK = 0.15; // 0.85 → 1.0 at impulse=1
+  const PLAY_DECAY = 1.8; // per-second; ~550 ms back to imperceptible
+
+  const tick = (delta: number, elapsed: number): void => {
+    group.rotation.z = baseRotZ + elapsed * SPIN_RATE;
+    if (clickImpulse > 0) {
+      clickImpulse = Math.max(0, clickImpulse - delta * PLAY_DECAY);
+    }
+    starsMaterial.size = baseSize * (1 + clickImpulse * PLAY_SIZE_PEAK);
+    starsMaterial.opacity = Math.min(
+      1,
+      baseOpacity + clickImpulse * PLAY_OPACITY_PEAK,
+    );
+  };
+
+  const play = (): void => {
+    clickImpulse = 1;
+  };
+
+  return { group, starsGeometry, starsMaterial, tick, play };
 }
