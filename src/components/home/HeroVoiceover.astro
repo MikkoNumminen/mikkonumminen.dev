@@ -9,17 +9,14 @@
 // - Layered on top of the music bed at slightly higher levels so the
 //   narration stays intelligible over the loop. Volume eases down with
 //   scroll exactly like the music does (HERO → SCROLLED).
-// - Non-looping. After the file ends, the music keeps playing alone.
-// - Plays at most once per tab session — a `sessionStorage` flag is
-//   set on `ended` so navigating home → projects → home doesn't replay
-//   the voice, but a partial play (user paused or navigated mid-track)
-//   does NOT mark it done and will replay from the top next visit.
-// - Respects the music's on/off state. If the user has muted via the
-//   toggle (or autoplay blocked it into `off`), the voice stays silent
-//   until the toggle goes back to `on`. There is no separate gesture
-//   unlock here — BackgroundAudio already owns that, and its first
-//   gesture flips state to `on`, which fires the `bg-audio:state` event
-//   and starts the voice.
+// - Loops with a fixed gap. After the clip ends a VOICE_REPEAT_GAP_MS
+//   timer schedules the next play from the start. The music bed (which
+//   persists position across page reloads via sessionStorage) keeps
+//   playing through the gap; the voice rejoins on cadence — so a user
+//   who refreshes mid-music doesn't miss the narration entirely.
+// - Respects the music's on/off state. Toggle off pauses + cancels the
+//   gap timer; toggle on resumes mid-clip if paused, otherwise plays
+//   fresh from the start.
 ---
 
 <audio
@@ -32,15 +29,17 @@
 </audio>
 
 <script>
-  // Per-session "the voice played all the way through" flag — keeps
-  // home → projects → home from re-narrating. Cleared when the tab dies.
-  const DONE_KEY = 'mn_voice_landing_done';
-
   // Voice sits slightly above the music bed at both ends of the scroll
   // ramp so the narration cuts through. Music targets are 0.85 / 0.35
   // in BackgroundAudio.astro; voice is +0.15 at both ends. Capped at 1.
   const VOICE_HERO_VOLUME = 1.0;
   const VOICE_SCROLLED_VOLUME = 0.5;
+
+  // Gap between the end of one playback and the start of the next.
+  // Tuned so the narration recurs often enough to register as
+  // intentional (not a one-shot the user might have missed) but rare
+  // enough to stay out of the music bed's way.
+  const VOICE_REPEAT_GAP_MS = 20_000;
 
   const voice = document.getElementById('hero-voice') as HTMLAudioElement | null;
   const hero = document.querySelector<HTMLElement>('[data-section-hero]');
@@ -51,13 +50,6 @@
   const bgAudio = document.querySelector<HTMLElement>('.bg-audio');
 
   if (voice && bgAudio) {
-    let alreadyEnded = false;
-    try {
-      alreadyEnded = sessionStorage.getItem(DONE_KEY) === '1';
-    } catch {
-      /* sessionStorage may be unavailable */
-    }
-
     // Volume the voice *should* be at right now, mirroring the music's
     // scroll-driven curve so the two tracks fade together rather than
     // one of them sitting weirdly at full volume after a scroll.
@@ -74,18 +66,6 @@
 
     voice.volume = computeVolume();
 
-    voice.addEventListener('ended', () => {
-      // Update the local cache so a subsequent toggle-off-then-on
-      // doesn't call play() on an already-ended element — the call
-      // would be inaudible but redundant.
-      alreadyEnded = true;
-      try {
-        sessionStorage.setItem(DONE_KEY, '1');
-      } catch {
-        /* ignore */
-      }
-    });
-
     // Tracks the latest desired-on state across rapid toggles. If the
     // user clicks on then off before voice.play()'s promise resolves,
     // browsers reject with "The play() request was interrupted by a
@@ -93,36 +73,71 @@
     // the user's intent flipped back to off mid-promise.
     let wantOn = bgAudio.dataset.state !== 'off';
 
-    // Try to play the voice — only when the music toggle is currently
-    // `on` and the voice hasn't already run this session. Autoplay
-    // blocks are silent; the state-change listener below retries once
-    // BackgroundAudio's own gesture unlock flips the toggle to `on`.
-    const tryPlay = async (): Promise<void> => {
-      if (alreadyEnded) return;
+    // Pending replay scheduled from the previous `ended`. Held so the
+    // off toggle can cancel it; without that, the voice would resume
+    // narrating moments after a user muted the audio.
+    let repeatTimer: number | null = null;
+    const cancelRepeat = (): void => {
+      if (repeatTimer !== null) {
+        clearTimeout(repeatTimer);
+        repeatTimer = null;
+      }
+    };
+
+    // Plays from the start. Cancels any pending repeat timer first so
+    // a manual play and a gap-fired play can't end up double-stacked.
+    const playFresh = async (): Promise<void> => {
+      if (!wantOn) return;
+      cancelRepeat();
+      voice.currentTime = 0;
+      voice.volume = computeVolume();
+      try {
+        await voice.play();
+        if (!wantOn) voice.pause();
+      } catch {
+        /* autoplay blocked — toggle-on retries via the state listener */
+      }
+    };
+
+    // Resumes from the current position. Used when the user toggled
+    // off mid-clip and is toggling back on; restarting from zero would
+    // erase the "you only missed half a sentence" continuity.
+    const playResume = async (): Promise<void> => {
       if (!wantOn) return;
       voice.volume = computeVolume();
       try {
         await voice.play();
-        // The user may have toggled off while we were awaiting; honour
-        // that here rather than leaving the voice playing under a
-        // visually-off button.
         if (!wantOn) voice.pause();
       } catch {
-        /* autoplay blocked or interrupted — next state-on retries */
+        /* autoplay blocked / play interrupted */
       }
     };
 
-    // Mirror the music's on/off toggle. `on` resumes the voice from
-    // wherever it was paused (so toggle-off-then-on doesn't restart
-    // the narration mid-sentence); `off` pauses it. We update `wantOn`
-    // *first* and then call pause/play, so the post-await guard in
-    // `tryPlay` observes the new desire correctly even if the play()
-    // promise is still in flight from an earlier `on` call.
+    voice.addEventListener('ended', () => {
+      if (!wantOn) return;
+      repeatTimer = window.setTimeout(() => {
+        repeatTimer = null;
+        playFresh();
+      }, VOICE_REPEAT_GAP_MS);
+    });
+
+    // Mirror the music's on/off toggle. Mid-clip pause resumes from the
+    // same position; ended/idle state starts a fresh play. We update
+    // `wantOn` *first* so the post-await guards in the play helpers
+    // observe the current desire even if a play() promise is in flight.
     document.addEventListener('bg-audio:state', (e: Event) => {
       const detail = (e as CustomEvent<{ on: boolean }>).detail;
       wantOn = detail.on;
-      if (detail.on) tryPlay();
-      else voice.pause();
+      if (detail.on) {
+        if (voice.paused && voice.currentTime > 0 && !voice.ended) {
+          playResume();
+        } else {
+          playFresh();
+        }
+      } else {
+        voice.pause();
+        cancelRepeat();
+      }
     });
 
     // Scroll-driven volume. Same rAF-throttled pattern as the music.
@@ -140,6 +155,6 @@
     // Initial play attempt — runs after BackgroundAudio's script has
     // resolved `data-state`, since the layout component renders earlier
     // in the document than this home-only one.
-    tryPlay();
+    playFresh();
   }
 </script>
