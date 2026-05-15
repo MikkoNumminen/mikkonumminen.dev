@@ -18,7 +18,11 @@ import { createResizeHandler } from './createResizeHandler';
 import { disposeMaterial } from './disposeMaterial';
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { readPerfFlags } from '../debug/perfFlags';
-import { mountPerfOverlay, type PerfOverlayHandle } from '../debug/perfOverlay';
+import {
+  mountPerfOverlay,
+  formatPerfOverlayLabel,
+  type PerfOverlayHandle,
+} from '../debug/perfOverlay';
 import { buildStarfield } from './projects/buildStarfield';
 import { buildSun } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
@@ -109,16 +113,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
   // Debug overlay (`?debug=perf`) — small FPS / ms-per-frame readout
   // in the top-left so a tester can report numbers instead of vibes.
-  // Label format mirrors homeScene: source of the lite-path + budget.
-  const lowPerfTag =
-    perfFlags.lowPerfReason === 'auto'
-      ? ' · low(auto)'
-      : perfFlags.lowPerfReason === 'url'
-        ? ' · low(url)'
-        : '';
-  const pixelTag = ` · ${(perfFlags.pixelBudget / 1_000_000).toFixed(1)}MP`;
   const perfOverlay: PerfOverlayHandle | null = perfFlags.debugOverlay
-    ? mountPerfOverlay(`projects${lowPerfTag}${pixelTag}`)
+    ? mountPerfOverlay(formatPerfOverlayLabel('projects', perfFlags))
     : null;
 
   // ── Scene + camera ──────────────────────────────────────────────────

@@ -18,15 +18,25 @@
  */
 
 /**
- * Pre-DPR-cap pixel count above which we assume the bloom + post chain
- * will dominate. Calibration points (`width × height × DPR²`):
+ * Total physical-device-pixel count above which we assume the bloom +
+ * post chain will dominate. `innerWidth × innerHeight × DPR²` reduces
+ * to physical pixels in the viewport regardless of OS scaling, so the
+ * gate is essentially "panel resolution" — DPR only changes the number
+ * on Mac retina (where the browser reports DPR=2 while CSS pixels are
+ * halved). Calibration:
  *
- *   1080p × DPR=1     →  2.1M ⇒ full quality
- *   1440p × DPR=1     →  3.7M ⇒ full quality
- *   1440p × DPR=1.25  →  5.8M ⇒ full quality
- *   1440p × DPR=2     →  7.4M ⇒ lite (Windows 200% scaling on a QHD panel)
- *   4K × DPR=1        →  8.3M ⇒ lite (standard 4K monitor)
- *   4K × DPR=2        → 33M   ⇒ lite (4K w/ OS scaling — was the tester case)
+ *   1080p panel              →  2.1M ⇒ full quality
+ *   1440p panel              →  3.7M ⇒ full quality
+ *   1440p ultrawide (3440)   →  4.9M ⇒ full quality
+ *   Mac retina "1440×900"    →  5.2M ⇒ full quality
+ *   4K panel                 →  8.3M ⇒ lite (the tester case)
+ *   Mac retina "1920×1080"   →  8.3M ⇒ lite
+ *   5K2K ultrawide (5120)    → 11M   ⇒ lite
+ *   Mac retina "2560×1440"   → 14.7M ⇒ lite
+ *
+ * Windows OS scaling does NOT change the budget: `innerWidth` shrinks
+ * proportionally as DPR rises, so the product is constant for a given
+ * physical panel. The gate fires from physical 4K-and-up, period.
  */
 const LOW_PERF_PIXEL_BUDGET = 6_000_000;
 
