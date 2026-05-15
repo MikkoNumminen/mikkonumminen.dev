@@ -111,6 +111,7 @@
     <text x="794" y="558" fill="#fbbf24">AI-NATIVE</text>
   </g>
 
-  <!-- URL anchor. -->
-  <text x="80" y="600" font-family="ui-monospace, SFMono-Regular, monospace" font-size="18" letter-spacing="3" fill="#80a8ff" opacity="0.7">mikkonumminen.dev</text>
+  <!-- No URL anchor in the card itself: the chat-app unfurler renders
+       the canonical URL under the image, so duplicating it here would
+       drift the moment the deployment host changes. -->
 </svg>

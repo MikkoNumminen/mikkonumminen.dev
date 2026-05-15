@@ -42,7 +42,10 @@ const personSchema = {
   '@type': 'Person',
   name: 'Mikko Numminen',
   jobTitle: t.intro.heading.replace(/\.$/, ''),
-  url: 'https://mikkonumminen.dev',
+  // Read from Astro.site so the JSON-LD url stays in lockstep with the
+  // canonical link — otherwise structured data drifts whenever the site
+  // host changes (see the comment in astro.config.mjs).
+  url: Astro.site?.href ?? 'https://mikkonumminen.dev',
   email: 'numminen.mikko.petteri@gmail.com',
   nationality: 'Finnish',
   sameAs: [
