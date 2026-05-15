@@ -4,13 +4,20 @@ import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
 
 // Canonical site URL. Used to build absolute canonical / og:image /
-// hreflang / sitemap URLs at build time. Currently set to the Vercel
+// hreflang / sitemap URLs at build time, and (via Astro.site) the
+// JSON-LD `url` on the home page. Currently set to the Vercel
 // production alias because the custom `mikkonumminen.dev` domain isn't
 // DNS-mapped yet — pages built with the custom domain produced
 // `og:image` URLs that didn't resolve, so chat-app unfurlers (Telegram,
 // WhatsApp, Slack) silently dropped the image while still rendering the
-// title + description. Flip back to `https://mikkonumminen.dev` once
-// the apex `A`/`CNAME` records point at Vercel.
+// title + description.
+//
+// When the apex `A`/`CNAME` records eventually point at Vercel:
+//   1. Flip this back to `https://mikkonumminen.dev`.
+//   2. Configure a 301 redirect at Vercel from
+//      `mikkonumminen-dev.vercel.app` to `mikkonumminen.dev` so any
+//      search-engine canonical built up while the alias was authoritative
+//      migrates to the custom domain cleanly.
 // https://astro.build/config
 export default defineConfig({
   site: 'https://mikkonumminen-dev.vercel.app',
