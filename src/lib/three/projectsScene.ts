@@ -109,8 +109,16 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
   // Debug overlay (`?debug=perf`) — small FPS / ms-per-frame readout
   // in the top-left so a tester can report numbers instead of vibes.
+  // Label format mirrors homeScene: source of the lite-path + budget.
+  const lowPerfTag =
+    perfFlags.lowPerfReason === 'auto'
+      ? ' · low(auto)'
+      : perfFlags.lowPerfReason === 'url'
+        ? ' · low(url)'
+        : '';
+  const pixelTag = ` · ${(perfFlags.pixelBudget / 1_000_000).toFixed(1)}MP`;
   const perfOverlay: PerfOverlayHandle | null = perfFlags.debugOverlay
-    ? mountPerfOverlay(perfFlags.lowPerf ? 'projects · perf=low' : 'projects')
+    ? mountPerfOverlay(`projects${lowPerfTag}${pixelTag}`)
     : null;
 
   // ── Scene + camera ──────────────────────────────────────────────────

@@ -680,8 +680,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // Debug overlay — `?debug=perf` mounts a small FPS / ms-per-frame
   // readout in the top-left. Cheap (DOM textContent every 500 ms) and
   // exits the rAF early if disabled, so production paths pay nothing.
+  // Label encodes the lite-path source so a tester can tell at a glance
+  // whether auto-detect kicked in or they hit the URL override.
+  const lowPerfTag =
+    perfFlags.lowPerfReason === 'auto'
+      ? ' · low(auto)'
+      : perfFlags.lowPerfReason === 'url'
+        ? ' · low(url)'
+        : '';
+  const pixelTag = ` · ${(perfFlags.pixelBudget / 1_000_000).toFixed(1)}MP`;
   const perfOverlay: PerfOverlayHandle | null = perfFlags.debugOverlay
-    ? mountPerfOverlay(perfFlags.lowPerf ? 'home · perf=low' : 'home')
+    ? mountPerfOverlay(`home${lowPerfTag}${pixelTag}`)
     : null;
 
   // ── Animation loop (visibility-aware) ────────────────────────────────
