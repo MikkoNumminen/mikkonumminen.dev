@@ -16,6 +16,7 @@ import { connections, type LocalizedProject } from '../../data/projects';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { disposeMaterial } from './disposeMaterial';
+import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { buildStarfield } from './projects/buildStarfield';
 import { buildSun } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
@@ -374,6 +375,11 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const startTime = performance.now();
   let lastFrame = startTime;
 
+  // Cap to ~60 fps regardless of monitor refresh — see homeScene.ts for
+  // the reasoning. The orbit / camera / connection logic is delta-driven
+  // so capping changes how often we render, not how fast things move.
+  const TARGET_FRAME_MS = 1000 / 60 - 1;
+
   const planetWorldPos = new Vector3();
   const labelProjectionVec = new Vector3();
 
@@ -382,6 +388,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     raf = requestAnimationFrame(tick);
 
     const now = performance.now();
+    if (now - lastFrame < TARGET_FRAME_MS) return;
     const elapsed = (now - startTime) / 1000;
     const delta = (now - lastFrame) / 1000;
     lastFrame = now;
@@ -531,12 +538,28 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     renderer.render(scene, camera);
   };
 
+  // Pause when the canvas is fully off-screen (e.g. user scrolled the
+  // side-panel content past the canvas on narrow viewports).
+  const pauser = createOffscreenPauser({
+    target: canvas,
+    onResume: (): void => {
+      if (disposed || document.hidden || raf !== 0) return;
+      lastFrame = performance.now();
+      tick();
+    },
+    onPause: (): void => {
+      if (raf === 0) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+    },
+  });
+
   const onVisibilityChange = (): void => {
     if (disposed) return;
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-    } else if (raf === 0) {
+    } else if (raf === 0 && pauser.isVisible()) {
       lastFrame = performance.now();
       tick();
     }
@@ -579,6 +602,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       canvas.removeEventListener('pointercancel', onCanvasPointerUp);
       canvas.removeEventListener('wheel', onCanvasWheel);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      pauser.dispose();
 
       // Kill any in-flight hover tweens before the Vector3s they target are
       // freed alongside the meshes below.

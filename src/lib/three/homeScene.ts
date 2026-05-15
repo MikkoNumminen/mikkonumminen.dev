@@ -12,6 +12,7 @@ import {
 } from 'three';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
+import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import {
   buildTitle,
   DEPTH as TITLE_DEPTH,
@@ -668,6 +669,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const startTime = performance.now();
   let lastFrame = startTime;
 
+  // Cap the render loop to ~60 fps regardless of monitor refresh. On a
+  // 144 / 240 Hz display rAF fires 2.4–4× as often as on 60 Hz; the bloom
+  // pass + chrome `MeshPhysicalMaterial` + 900-star galaxy scale linearly,
+  // so an uncapped loop on a high-refresh monitor was burning ~40–60% of
+  // one core for the same visual result. The simulation reads `delta` so
+  // capping doesn't break motion timing.
+  const TARGET_FRAME_MS = 1000 / 60 - 1;
+
   // One-shot entrance: title flies in from far-Z with a slight tilt over
   // ENTRANCE_DURATION seconds, then settles into its idle float. Disabled
   // for reduced-motion clients so they see the title in its final pose.
@@ -680,6 +689,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     raf = requestAnimationFrame(tick);
 
     const now = performance.now();
+    if (now - lastFrame < TARGET_FRAME_MS) return;
     const elapsed = (now - startTime) / 1000;
     const delta = (now - lastFrame) / 1000;
     lastFrame = now;
@@ -823,12 +833,29 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     }
   };
 
+  // Pause the loop when the canvas is scrolled off-screen. The hero is
+  // `height: 100vh`; once the user reads anything below it the canvas is
+  // fully out of view, and there's no reason to keep rendering.
+  const pauser = createOffscreenPauser({
+    target: canvas,
+    onResume: (): void => {
+      if (disposed || document.hidden || raf !== 0) return;
+      lastFrame = performance.now();
+      tick();
+    },
+    onPause: (): void => {
+      if (raf === 0) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+    },
+  });
+
   const onVisibilityChange = (): void => {
     if (disposed) return;
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-    } else if (raf === 0) {
+    } else if (raf === 0 && pauser.isVisible()) {
       lastFrame = performance.now();
       tick();
     }
@@ -850,6 +877,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       resize.dispose();
       window.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      pauser.dispose();
 
       interactions.dispose();
 
