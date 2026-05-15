@@ -14,7 +14,11 @@ import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { readPerfFlags } from '../debug/perfFlags';
-import { mountPerfOverlay, type PerfOverlayHandle } from '../debug/perfOverlay';
+import {
+  mountPerfOverlay,
+  formatPerfOverlayLabel,
+  type PerfOverlayHandle,
+} from '../debug/perfOverlay';
 import {
   buildTitle,
   DEPTH as TITLE_DEPTH,
@@ -681,7 +685,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // readout in the top-left. Cheap (DOM textContent every 500 ms) and
   // exits the rAF early if disabled, so production paths pay nothing.
   const perfOverlay: PerfOverlayHandle | null = perfFlags.debugOverlay
-    ? mountPerfOverlay(perfFlags.lowPerf ? 'home · perf=low' : 'home')
+    ? mountPerfOverlay(formatPerfOverlayLabel('home', perfFlags))
     : null;
 
   // ── Animation loop (visibility-aware) ────────────────────────────────

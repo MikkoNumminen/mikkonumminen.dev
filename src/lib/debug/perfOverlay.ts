@@ -8,6 +8,25 @@
  * measuring doesn't itself dominate the frame budget.
  */
 
+import type { PerfFlags } from './perfFlags';
+
+/**
+ * Build the overlay's first-line label. Encodes the scene name, the
+ * lite-path source (or absence), and the measured pixel budget so a
+ * single tester screenshot tells us all three. Shared so the home and
+ * projects scenes can't drift in formatting.
+ */
+export function formatPerfOverlayLabel(scene: string, flags: PerfFlags): string {
+  const tag =
+    flags.lowPerfReason === 'auto'
+      ? ' · low(auto)'
+      : flags.lowPerfReason === 'url'
+        ? ' · low(url)'
+        : '';
+  const mp = (flags.pixelBudget / 1_000_000).toFixed(1);
+  return `${scene}${tag} · ${mp}MP`;
+}
+
 export interface PerfOverlayHandle {
   /** Call once per rendered frame, passing the frame's delta in seconds. */
   tick: (deltaSec: number) => void;
