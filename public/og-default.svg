@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <defs>
-    <!-- Deep-space radial backdrop, centred slightly above-left so the
-         brightest area sits under MIKKO and falls off into the corners. -->
-    <radialGradient id="bg" cx="38%" cy="42%" r="80%">
+    <!-- Deep-space radial backdrop, centred on the canvas so the brightest
+         area sits behind the title and falls off into the corners. -->
+    <radialGradient id="bg" cx="50%" cy="48%" r="78%">
       <stop offset="0%" stop-color="#0f1430"/>
       <stop offset="55%" stop-color="#070b1a"/>
       <stop offset="100%" stop-color="#020308"/>
@@ -18,15 +18,12 @@
       <stop offset="100%" stop-color="#c4d4ff"/>
     </linearGradient>
 
-    <!-- Galaxy disk — the editorial counterweight in the lower-left,
-         mirroring the live hero composition. -->
     <radialGradient id="galaxy" cx="50%" cy="50%" r="50%">
       <stop offset="0%"  stop-color="#80a8ff" stop-opacity="0.95"/>
       <stop offset="55%" stop-color="#3060c8" stop-opacity="0.45"/>
       <stop offset="100%" stop-color="#80a8ff" stop-opacity="0"/>
     </radialGradient>
 
-    <!-- Sun-bright star top-right (same bearing as the live horizon glow). -->
     <radialGradient id="sun" cx="50%" cy="50%" r="50%">
       <stop offset="0%"  stop-color="#fff8e6" stop-opacity="1"/>
       <stop offset="35%" stop-color="#ffd58a" stop-opacity="0.55"/>
@@ -55,63 +52,51 @@
     <circle cx="60"   cy="220" r="1.0" opacity="0.45"/>
     <circle cx="1140" cy="310" r="1.2" opacity="0.55"/>
     <circle cx="1080" cy="430" r="1.0" opacity="0.4"/>
-    <circle cx="660"  cy="580" r="1.4" opacity="0.6"/>
-    <circle cx="780"  cy="540" r="1.0" opacity="0.45"/>
-    <circle cx="940"  cy="585" r="1.6" opacity="0.75"/>
-    <circle cx="1090" cy="555" r="1.2" opacity="0.55"/>
+    <circle cx="220"  cy="560" r="1.4" opacity="0.6"/>
+    <circle cx="100"  cy="450" r="1.0" opacity="0.45"/>
+    <circle cx="1050" cy="540" r="1.6" opacity="0.75"/>
+    <circle cx="990"  cy="585" r="1.2" opacity="0.55"/>
   </g>
 
-  <!-- Sun-bright star, top-right. Echoes the live horizon glow. -->
-  <g transform="translate(1060,135)">
-    <circle r="110" fill="url(#sun)"/>
-    <circle r="14"  fill="#fff8e6"/>
+  <!-- Sun-bright star, top-right. Pushed to the corner so it never collides
+       with the centred title — square crops drop it cleanly. -->
+  <g transform="translate(1110,110)">
+    <circle r="100" fill="url(#sun)"/>
+    <circle r="12"  fill="#fff8e6"/>
   </g>
 
-  <!-- Galaxy spiral, bottom-left of the title. Same bearing the live
-       scene uses; meteors strike here on the live page. -->
-  <g transform="translate(170,495)">
-    <circle r="110" fill="url(#galaxy)"/>
-    <path d="M -72 -4 Q -34 -42 18 -32 T 84 -12" stroke="#9fc0ff" stroke-width="1.4" fill="none" opacity="0.45"/>
-    <path d="M -88 10 Q -34 28 28 22 T 82 36"   stroke="#9fc0ff" stroke-width="1.2" fill="none" opacity="0.35"/>
-    <path d="M 10 -54 Q 36 -16 18 26 T -42 70"  stroke="#9fc0ff" stroke-width="1.1" fill="none" opacity="0.3"/>
+  <!-- Galaxy spiral, bottom-left corner. Same trick: corner-anchored so the
+       title strip stays clean. -->
+  <g transform="translate(110,520)">
+    <circle r="100" fill="url(#galaxy)"/>
+    <path d="M -68 -4 Q -32 -40 18 -30 T 76 -10" stroke="#9fc0ff" stroke-width="1.3" fill="none" opacity="0.42"/>
+    <path d="M -82 12 Q -32 28 28 22 T 78 36"    stroke="#9fc0ff" stroke-width="1.1" fill="none" opacity="0.32"/>
+    <path d="M 10 -52 Q 36 -16 18 26 T -42 64"   stroke="#9fc0ff" stroke-width="1.0" fill="none" opacity="0.28"/>
   </g>
 
-  <!-- Editorial corner markers — same language as the live hero. -->
+  <!-- Editorial corner markers. -->
   <g font-family="ui-monospace, SFMono-Regular, monospace" fill="#c4d4ff" opacity="0.5">
     <text x="80"   y="76" font-size="22" letter-spacing="6">/ PORTFOLIO · 2026</text>
     <text x="1120" y="76" font-size="22" letter-spacing="6" text-anchor="end">60° N · 24° E</text>
   </g>
 
-  <!-- Title. Two lines stacked, chrome gradient. -->
-  <g font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" letter-spacing="-4">
-    <text x="80" y="305" font-size="132" fill="url(#chrome)">MIKKO</text>
-    <text x="80" y="425" font-size="132" fill="url(#chrome)">NUMMINEN</text>
+  <!-- Title. Centred so chat-app thumbnails (which crop the middle strip)
+       land on the middle of the words rather than the edge of the lockup. -->
+  <g font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" letter-spacing="-3" text-anchor="middle">
+    <text x="600" y="295" font-size="116" fill="url(#chrome)">MIKKO</text>
+    <text x="600" y="415" font-size="116" fill="url(#chrome)">NUMMINEN</text>
   </g>
 
-  <!-- Subtitle, mono, mid-cyan. -->
-  <text x="80" y="478" font-family="ui-monospace, SFMono-Regular, monospace" font-size="24" letter-spacing="5" fill="#c4d4ff" opacity="0.78">FULL-STACK DEVELOPER · FINLAND</text>
+  <!-- Subtitle, mono, mid-cyan, centred. -->
+  <text x="600" y="470" font-family="ui-monospace, SFMono-Regular, monospace" font-size="22" letter-spacing="5" fill="#c4d4ff" opacity="0.78" text-anchor="middle">FULL-STACK DEVELOPER · FINLAND</text>
 
   <!-- Hairline rule between subtitle and stat row. -->
-  <rect x="80" y="510" width="1040" height="1.5" fill="url(#rule)"/>
+  <rect x="280" y="505" width="640" height="1.5" fill="url(#rule)"/>
 
-  <!-- Stat row of credibility signals.
-       NOTE: x positions are hand-tuned to the current chip text widths
-       at font-size 20 + letter-spacing 3. If any chip text changes
-       (different number, different word) recalc the next chip's x as
-       `prev_x + prev_text_advance + ~22px (dot gap)`. The OG PNG is a
-       committed artefact, so a visual re-check after regenerating is
-       cheap: `npm run build:og` and inspect public/og-default.png. -->
-  <g font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" letter-spacing="3">
-    <text x="80"  y="558" fill="#c4d4ff">7 PROJECTS</text>
-    <text x="252" y="558" fill="#9fc0ff" opacity="0.4">·</text>
-    <text x="274" y="558" fill="#c4d4ff">1828+ TESTS</text>
-    <text x="476" y="558" fill="#9fc0ff" opacity="0.4">·</text>
-    <text x="498" y="558" fill="#c4d4ff">91.9% COVERAGE</text>
-    <text x="772" y="558" fill="#9fc0ff" opacity="0.4">·</text>
-    <text x="794" y="558" fill="#fbbf24">AI-NATIVE</text>
+  <!-- Stat row, centred. Single tspan keeps the alignment correct under
+       text-anchor="middle". If chip text changes, regenerate the PNG and
+       eyeball — sharp/libvips renders at the host's installed fonts. -->
+  <g font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" letter-spacing="3" text-anchor="middle">
+    <text x="600" y="558" fill="#c4d4ff">7 PROJECTS <tspan fill="#9fc0ff" opacity="0.4">·</tspan> 1828+ TESTS <tspan fill="#9fc0ff" opacity="0.4">·</tspan> 91.9% COVERAGE <tspan fill="#9fc0ff" opacity="0.4">·</tspan> <tspan fill="#fbbf24">AI-NATIVE</tspan></text>
   </g>
-
-  <!-- No URL anchor in the card itself: the chat-app unfurler renders
-       the canonical URL under the image, so duplicating it here would
-       drift the moment the deployment host changes. -->
 </svg>

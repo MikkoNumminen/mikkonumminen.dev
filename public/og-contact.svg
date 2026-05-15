@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <defs>
-    <radialGradient id="ct-bg" cx="50%" cy="40%" r="80%">
+    <radialGradient id="ct-bg" cx="50%" cy="45%" r="80%">
       <stop offset="0%" stop-color="#0a1810"/>
       <stop offset="100%" stop-color="#020403"/>
     </radialGradient>
@@ -29,14 +29,14 @@
     <rect x="0" y="624" width="1200" height="2" fill="#000"/>
   </g>
 
-  <g font-family="ui-monospace, SFMono-Regular, monospace" fill="#4ade80">
-    <text x="80" y="160" font-size="28" opacity="0.55">guest@mikkonumminen:~$ ./contact</text>
-    <text x="80" y="290" font-size="92" font-weight="700">mikko numminen</text>
-    <text x="80" y="350" font-size="32" fill="#86efac" opacity="0.85">full-stack developer · finland</text>
+  <g font-family="ui-monospace, SFMono-Regular, monospace" fill="#4ade80" text-anchor="middle">
+    <text x="600" y="170" font-size="26" opacity="0.55">guest@mikkonumminen:~$ ./contact</text>
+    <text x="600" y="305" font-size="86" font-weight="700">mikko numminen</text>
+    <text x="600" y="360" font-size="30" fill="#86efac" opacity="0.85">full-stack developer · finland</text>
 
-    <text x="80" y="465" font-size="24" opacity="0.65">$ help</text>
-    <text x="80" y="500" font-size="22" opacity="0.5">→ contact --email · links --github · download --cv</text>
+    <text x="600" y="475" font-size="22" opacity="0.6">$ help</text>
+    <text x="600" y="510" font-size="22" opacity="0.5">→ contact --email · links --github · download --cv</text>
   </g>
 
-  <rect x="80" y="395" width="1040" height="2" fill="url(#ct-line)"/>
+  <rect x="280" y="405" width="640" height="2" fill="url(#ct-line)"/>
 </svg>
