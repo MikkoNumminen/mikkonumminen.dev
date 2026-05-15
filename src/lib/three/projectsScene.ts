@@ -16,6 +16,7 @@ import { connections, type LocalizedProject } from '../../data/projects';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { disposeMaterial } from './disposeMaterial';
+import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { buildStarfield } from './projects/buildStarfield';
 import { buildSun } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
@@ -538,34 +539,27 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   };
 
   // Pause when the canvas is fully off-screen (e.g. user scrolled the
-  // side-panel content past the canvas on narrow viewports). Same pattern
-  // as homeScene; assumes visible at start so the initial tick() below
-  // doesn't race the first IO callback.
-  let inViewport = true;
-  const intersectionObserver = new IntersectionObserver(
-    (entries) => {
-      if (disposed) return;
-      const visible = entries.some((e) => e.isIntersecting);
-      if (visible === inViewport) return;
-      inViewport = visible;
-      if (inViewport && raf === 0 && !document.hidden) {
-        lastFrame = performance.now();
-        tick();
-      } else if (!inViewport && raf !== 0) {
-        cancelAnimationFrame(raf);
-        raf = 0;
-      }
+  // side-panel content past the canvas on narrow viewports).
+  const pauser = createOffscreenPauser({
+    target: canvas,
+    onResume: () => {
+      if (disposed || document.hidden || raf !== 0) return;
+      lastFrame = performance.now();
+      tick();
     },
-    { threshold: 0 },
-  );
-  intersectionObserver.observe(canvas);
+    onPause: () => {
+      if (raf === 0) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+    },
+  });
 
   const onVisibilityChange = (): void => {
     if (disposed) return;
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-    } else if (raf === 0 && inViewport) {
+    } else if (raf === 0 && pauser.isVisible()) {
       lastFrame = performance.now();
       tick();
     }
@@ -608,7 +602,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       canvas.removeEventListener('pointercancel', onCanvasPointerUp);
       canvas.removeEventListener('wheel', onCanvasWheel);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      intersectionObserver.disconnect();
+      pauser.dispose();
 
       // Kill any in-flight hover tweens before the Vector3s they target are
       // freed alongside the meshes below.

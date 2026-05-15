@@ -12,6 +12,7 @@ import {
 } from 'three';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
+import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import {
   buildTitle,
   DEPTH as TITLE_DEPTH,
@@ -834,34 +835,27 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   // Pause the loop when the canvas is scrolled off-screen. The hero is
   // `height: 100vh`; once the user reads anything below it the canvas is
-  // fully out of view, and there's no reason to keep rendering. The
-  // observer assumes the canvas is visible until told otherwise so the
-  // initial tick() below doesn't race the first IO callback.
-  let inViewport = true;
-  const intersectionObserver = new IntersectionObserver(
-    (entries) => {
-      if (disposed) return;
-      const visible = entries.some((e) => e.isIntersecting);
-      if (visible === inViewport) return;
-      inViewport = visible;
-      if (inViewport && raf === 0 && !document.hidden) {
-        lastFrame = performance.now();
-        tick();
-      } else if (!inViewport && raf !== 0) {
-        cancelAnimationFrame(raf);
-        raf = 0;
-      }
+  // fully out of view, and there's no reason to keep rendering.
+  const pauser = createOffscreenPauser({
+    target: canvas,
+    onResume: () => {
+      if (disposed || document.hidden || raf !== 0) return;
+      lastFrame = performance.now();
+      tick();
     },
-    { threshold: 0 },
-  );
-  intersectionObserver.observe(canvas);
+    onPause: () => {
+      if (raf === 0) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+    },
+  });
 
   const onVisibilityChange = (): void => {
     if (disposed) return;
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-    } else if (raf === 0 && inViewport) {
+    } else if (raf === 0 && pauser.isVisible()) {
       lastFrame = performance.now();
       tick();
     }
@@ -883,7 +877,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       resize.dispose();
       window.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      intersectionObserver.disconnect();
+      pauser.dispose();
 
       interactions.dispose();
 

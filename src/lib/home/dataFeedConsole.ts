@@ -9,6 +9,8 @@
  * positioned regardless of camera sway.
  */
 
+import { createOffscreenPauser } from '../utils/createOffscreenPauser';
+
 type LineKind = 'cmd' | 'out' | 'status';
 
 export interface DataFeedConsoleHandle {
@@ -220,9 +222,21 @@ export function buildDataFeedConsole(
   let lastActive: ConsoleLine | null = null;
 
   let raf = 0;
+  let disposed = false;
+
+  // Cap to ~60 fps regardless of monitor refresh — the dirty-check below
+  // skips most paints already, but the per-rAF wakeup work (DPR check,
+  // slide math, cursor toggle) was still firing 144–240×/sec on a
+  // high-refresh display. The cap drops that to 60 with no visible
+  // difference: cursor blink is 520 ms and the slide animation is 140 ms.
+  const TARGET_FRAME_MS = 1000 / 60 - 1;
+  let lastTickTime = 0;
 
   const tick = (now: number): void => {
+    if (disposed) return;
     raf = requestAnimationFrame(tick);
+    if (now - lastTickTime < TARGET_FRAME_MS) return;
+    lastTickTime = now;
 
     // DPR can change when the window moves between monitors; resync the
     // backing store and force a repaint when it does.
@@ -307,25 +321,21 @@ export function buildDataFeedConsole(
     }
   };
   // Pause the loop when the widget is scrolled off-screen. The dirty
-  // check above skips most paints already, but rAF was still waking at
-  // the monitor refresh rate (potentially 144–240 Hz) just to early-out.
-  // IO drops that to zero work while the hero is out of view.
-  let inViewport = true;
-  const intersectionObserver = new IntersectionObserver(
-    (entries) => {
-      const visible = entries.some((e) => e.isIntersecting);
-      if (visible === inViewport) return;
-      inViewport = visible;
-      if (inViewport && raf === 0) {
-        raf = requestAnimationFrame(tick);
-      } else if (!inViewport && raf !== 0) {
-        cancelAnimationFrame(raf);
-        raf = 0;
-      }
+  // check above skips most paints already, but the rAF wakeup itself was
+  // still firing at the monitor refresh rate; the pauser drops that to
+  // zero work while the hero is out of view.
+  const pauser = createOffscreenPauser({
+    target: canvas,
+    onResume: (): void => {
+      if (disposed || raf !== 0) return;
+      raf = requestAnimationFrame(tick);
     },
-    { threshold: 0 },
-  );
-  intersectionObserver.observe(canvas);
+    onPause: (): void => {
+      if (raf === 0) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+    },
+  });
 
   raf = requestAnimationFrame(tick);
 
@@ -340,8 +350,10 @@ export function buildDataFeedConsole(
       if (active === null) pauseUntil = 0;
     },
     dispose: (): void => {
+      disposed = true;
       cancelAnimationFrame(raf);
-      intersectionObserver.disconnect();
+      raf = 0;
+      pauser.dispose();
     },
   };
 }
