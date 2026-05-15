@@ -160,10 +160,7 @@ export function buildGalaxyLayer(opts: GalaxyLayerOptions = {}): GalaxyLayerHand
       clickImpulse = Math.max(0, clickImpulse - delta * PLAY_DECAY);
     }
     starsMaterial.size = baseSize * (1 + clickImpulse * PLAY_SIZE_PEAK);
-    starsMaterial.opacity = Math.min(
-      1,
-      baseOpacity + clickImpulse * PLAY_OPACITY_PEAK,
-    );
+    starsMaterial.opacity = Math.min(1, baseOpacity + clickImpulse * PLAY_OPACITY_PEAK);
   };
 
   const play = (): void => {

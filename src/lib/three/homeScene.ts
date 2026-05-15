@@ -386,8 +386,18 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // across the chrome, on top of the whole-title rim flash.
   const letterFlashes: LetterFlashesHandle = buildLetterFlashes({
     lines: [
-      { parent: mikkoLine.group, width: wMIKKO, yMin: mikkoLine.yMin, yMax: mikkoLine.yMax },
-      { parent: nummLine.group, width: nummWidth, yMin: nummLine.yMin, yMax: nummLine.yMax },
+      {
+        parent: mikkoLine.group,
+        width: wMIKKO,
+        yMin: mikkoLine.yMin,
+        yMax: mikkoLine.yMax,
+      },
+      {
+        parent: nummLine.group,
+        width: nummWidth,
+        yMin: nummLine.yMin,
+        yMax: nummLine.yMax,
+      },
     ],
   });
 
@@ -611,8 +621,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // World-space half-width the title occupies at scale=1.0: the wider
   // line's half-width plus the editorial x-offset, since the group is
   // shifted right by TITLE_X_OFFSET * scale every frame.
-  const titleNaturalHalfWidth =
-    Math.max(wMIKKO, nummWidth) / 2 + TITLE_X_OFFSET;
+  const titleNaturalHalfWidth = Math.max(wMIKKO, nummWidth) / 2 + TITLE_X_OFFSET;
   // World-space breathing room between the title's right edge and the
   // right edge of the visible frustum — keeps "NUMMINEN" clear of the
   // top-right data-feed widget and absorbs the small extra horizontal
@@ -626,13 +635,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // `2 * cameraHalfHeightAtZ0` and is independent of viewport pixel
   // height, so the title (≈ 5 world units tall) never needs a vertical
   // fit constraint — only the horizontal extent changes with aspect.
-  const tanHalfFov = Math.tan(((camera.fov * Math.PI) / 180) / 2);
+  const tanHalfFov = Math.tan((camera.fov * Math.PI) / 180 / 2);
   const cameraHalfHeightAtZ0 = tanHalfFov * camera.position.z;
   // Half-height of the visible frustum at the galaxy's z-plane. The
   // galaxy sits at z = GALAXY_DESIGN_Z (a fixed depth — it never moves
   // on the z-axis), so we can cache this once.
-  const cameraHalfHeightAtGalaxyZ =
-    tanHalfFov * (camera.position.z - GALAXY_DESIGN_Z);
+  const cameraHalfHeightAtGalaxyZ = tanHalfFov * (camera.position.z - GALAXY_DESIGN_Z);
 
   const resize = createResizeHandler(renderer, camera, (width) => {
     // Width-based scale preserves the original design intent: at viewport
@@ -646,8 +654,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // tablets in portrait) clip "NUMMINEN" because width-based scaling
     // alone doesn't know how wide the perspective frustum actually is.
     const visibleHalfWidth = cameraHalfHeightAtZ0 * camera.aspect;
-    const fitScale =
-      (visibleHalfWidth - TITLE_RIGHT_PADDING) / titleNaturalHalfWidth;
+    const fitScale = (visibleHalfWidth - TITLE_RIGHT_PADDING) / titleNaturalHalfWidth;
 
     // Fit is a hard cap (clipping is worse than tiny text); the
     // readability floor is a soft minimum that yields to the fit cap.

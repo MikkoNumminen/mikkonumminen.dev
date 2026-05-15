@@ -4,7 +4,10 @@ import astro from 'eslint-plugin-astro';
 import globals from 'globals';
 
 export default [
-  { ignores: ['dist/', '.astro/', 'node_modules/', '.vercel/'] },
+  // `.claude/` holds local agent scratch (worktrees, etc.) — gitignored,
+  // never reaches CI. Listing it here keeps `npm run lint` locally honest
+  // about what the codebase actually contains.
+  { ignores: ['dist/', '.astro/', 'node_modules/', '.vercel/', '.claude/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...astro.configs.recommended,

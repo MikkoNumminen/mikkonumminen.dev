@@ -386,8 +386,7 @@ export function buildExperienceZoneDecor(
   const respawnMeteor = (m: MeteorState): void => {
     const sign = Math.random() < 0.5 ? 1 : -1;
     const x = (Math.random() * 2 - 1) * METEOR_FIELD_HALF_WIDTH * scale;
-    const y =
-      (METEOR_Y_MIN + Math.random() * (METEOR_Y_MAX - METEOR_Y_MIN)) * scale;
+    const y = (METEOR_Y_MIN + Math.random() * (METEOR_Y_MAX - METEOR_Y_MIN)) * scale;
     m.sprite.position.x = x;
     m.sprite.position.y = y;
     // Angle: -30° to -10° below horizontal. `sign` flips the direction
@@ -400,8 +399,7 @@ export function buildExperienceZoneDecor(
     // For leftward meteors, mirror the rotation so the bright head stays
     // at the leading edge of motion.
     m.material.rotation = sign > 0 ? angle : Math.PI - angle;
-    m.maxLife =
-      METEOR_LIFE_MIN + Math.random() * (METEOR_LIFE_MAX - METEOR_LIFE_MIN);
+    m.maxLife = METEOR_LIFE_MIN + Math.random() * (METEOR_LIFE_MAX - METEOR_LIFE_MIN);
     m.life = m.maxLife;
   };
 
@@ -487,10 +485,7 @@ export function buildExperienceZoneDecor(
         // METEOR_FADE_OUT_FRACTION of life. Prevents pop-in / pop-out.
         const age = m.maxLife - m.life;
         const fadeIn = Math.min(1, age / (METEOR_FADE_IN_FRACTION * m.maxLife));
-        const fadeOut = Math.min(
-          1,
-          m.life / (METEOR_FADE_OUT_FRACTION * m.maxLife),
-        );
+        const fadeOut = Math.min(1, m.life / (METEOR_FADE_OUT_FRACTION * m.maxLife));
         m.material.opacity = Math.min(fadeIn, fadeOut) * 0.85 * meteorBoost;
       } else {
         m.delayUntilRespawn -= delta;
