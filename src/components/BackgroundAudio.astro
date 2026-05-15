@@ -60,8 +60,10 @@
         focusable="false"
       >
         <path d="M4 9h3.5L13 5v14L7.5 15H4z"></path>
-        <path class="bg-audio__wave bg-audio__wave--near" d="M16 9.2a4 4 0 0 1 0 5.6"></path>
-        <path class="bg-audio__wave bg-audio__wave--far" d="M18.5 6.7a7 7 0 0 1 0 10.6"></path>
+        <path class="bg-audio__wave bg-audio__wave--near" d="M16 9.2a4 4 0 0 1 0 5.6"
+        ></path>
+        <path class="bg-audio__wave bg-audio__wave--far" d="M18.5 6.7a7 7 0 0 1 0 10.6"
+        ></path>
       </svg>
       <svg
         class="bg-audio__svg bg-audio__svg--off"
@@ -179,7 +181,8 @@
   }
 
   @keyframes bg-audio-wave {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.4;
       transform: scale(0.9);
     }

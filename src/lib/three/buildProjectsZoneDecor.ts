@@ -223,8 +223,7 @@ export function buildProjectsZoneDecor(
     // ring shape from the camera) and let them drift outward + tangent.
     for (let i = 0; i < sparkles.length; i++) {
       const s = sparkles[i]!;
-      const angle =
-        (i / sparkles.length) * Math.PI * 2 + Math.random() * 0.6;
+      const angle = (i / sparkles.length) * Math.PI * 2 + Math.random() * 0.6;
       const r = RING_OUTER_RADIUS * scale * (0.95 + Math.random() * 0.1);
       const cx = Math.cos(angle);
       const sy = Math.sin(angle);

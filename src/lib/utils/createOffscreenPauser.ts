@@ -27,7 +27,9 @@ export interface OffscreenPauserHandle {
   dispose: () => void;
 }
 
-export function createOffscreenPauser(opts: OffscreenPauserOptions): OffscreenPauserHandle {
+export function createOffscreenPauser(
+  opts: OffscreenPauserOptions,
+): OffscreenPauserHandle {
   let visible = true;
   const observer = new IntersectionObserver(
     (entries) => {

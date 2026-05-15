@@ -63,7 +63,12 @@ function measurePixelBudget(): number {
 export function readPerfFlags(): PerfFlags {
   if (cached) return cached;
   if (typeof window === 'undefined') {
-    cached = { lowPerf: false, lowPerfReason: 'none', pixelBudget: 0, debugOverlay: false };
+    cached = {
+      lowPerf: false,
+      lowPerfReason: 'none',
+      pixelBudget: 0,
+      debugOverlay: false,
+    };
     return cached;
   }
   const params = new URLSearchParams(window.location.search);
