@@ -13,6 +13,8 @@ import {
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
+import { readPerfFlags } from '../debug/perfFlags';
+import { mountPerfOverlay, type PerfOverlayHandle } from '../debug/perfOverlay';
 import {
   buildTitle,
   DEPTH as TITLE_DEPTH,
@@ -95,9 +97,14 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // we never enter the try-block, so there is nothing to clean up.
   const font = await loadFont(fontUrl);
 
+  const perfFlags = readPerfFlags();
+
   const renderer = createRenderer(canvas, {
     toneMapping: ACESFilmicToneMapping,
     toneMappingExposure: 1.05,
+    // `?perf=low` clamps DPR at 1 — halves the pixel work of the chain
+    // (RenderPass → UnrealBloomPass → OutputPass) versus the default 1.5.
+    maxPixelRatio: perfFlags.lowPerf ? 1 : undefined,
   });
 
   const scene = new Scene();
@@ -229,9 +236,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // ── Galaxy ───────────────────────────────────────────────────────────
   // Single focal spiral galaxy — meteors converge on it from all
   // directions and detonate on impact, driving the sparks + rim flash +
-  // commit-message popup below.
+  // commit-message popup below. `?perf=low` halves the star count; the
+  // visual change is subtle (still a clear spiral disk) but the per-frame
+  // vertex shader work drops with it.
   const galaxy: GalaxyLayerHandle = buildGalaxyLayer({
-    starCount: 900,
+    starCount: perfFlags.lowPerf ? 450 : 900,
     position: GALAXY_CENTER,
     radius: GALAXY_RADIUS,
   });
@@ -453,14 +462,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   scene.add(meteors.group);
 
   // ── Postprocessing: bloom on bright specular peaks + sun glow ────────
-  // Skipped for reduced-motion clients to keep them on the cheap path.
-  const bloom: BloomComposerHandle | null = reducedMotion
-    ? null
-    : createBloomComposer(renderer, scene, camera, {
-        strength: 0.55,
-        radius: 0.5,
-        threshold: 0.82,
-      });
+  // Skipped for reduced-motion clients to keep them on the cheap path,
+  // and for `?perf=low` because UnrealBloomPass's 5-mip downscale +
+  // blur + composite is the single biggest per-frame cost in the chain.
+  const bloom: BloomComposerHandle | null =
+    reducedMotion || perfFlags.lowPerf
+      ? null
+      : createBloomComposer(renderer, scene, camera, {
+          strength: 0.55,
+          radius: 0.5,
+          threshold: 0.82,
+        });
 
   // ── Click-to-animate state ───────────────────────────────────────────
   // One animation state per title letter; the ripple writes into these
@@ -665,6 +677,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   });
   resize.handler();
 
+  // Debug overlay — `?debug=perf` mounts a small FPS / ms-per-frame
+  // readout in the top-left. Cheap (DOM textContent every 500 ms) and
+  // exits the rAF early if disabled, so production paths pay nothing.
+  const perfOverlay: PerfOverlayHandle | null = perfFlags.debugOverlay
+    ? mountPerfOverlay(perfFlags.lowPerf ? 'home · perf=low' : 'home')
+    : null;
+
   // ── Animation loop (visibility-aware) ────────────────────────────────
   const startTime = performance.now();
   let lastFrame = startTime;
@@ -831,6 +850,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     } else {
       renderer.render(scene, camera);
     }
+
+    perfOverlay?.tick(delta);
   };
 
   // Pause the loop when the canvas is scrolled off-screen. The hero is
@@ -878,6 +899,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       window.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       pauser.dispose();
+      perfOverlay?.dispose();
 
       interactions.dispose();
 
