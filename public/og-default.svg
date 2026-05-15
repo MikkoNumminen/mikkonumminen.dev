@@ -94,7 +94,13 @@
   <!-- Hairline rule between subtitle and stat row. -->
   <rect x="80" y="510" width="1040" height="1.5" fill="url(#rule)"/>
 
-  <!-- Stat row of credibility signals. -->
+  <!-- Stat row of credibility signals.
+       NOTE: x positions are hand-tuned to the current chip text widths
+       at font-size 20 + letter-spacing 3. If any chip text changes
+       (different number, different word) recalc the next chip's x as
+       `prev_x + prev_text_advance + ~22px (dot gap)`. The OG PNG is a
+       committed artefact, so a visual re-check after regenerating is
+       cheap: `npm run build:og` and inspect public/og-default.png. -->
   <g font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" letter-spacing="3">
     <text x="80"  y="558" fill="#c4d4ff">7 PROJECTS</text>
     <text x="252" y="558" fill="#9fc0ff" opacity="0.4">·</text>
