@@ -17,6 +17,8 @@ import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { disposeMaterial } from './disposeMaterial';
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
+import { readPerfFlags } from '../debug/perfFlags';
+import { mountPerfOverlay, type PerfOverlayHandle } from '../debug/perfOverlay';
 import { buildStarfield } from './projects/buildStarfield';
 import { buildSun } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
@@ -94,11 +96,22 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   let disposed = false;
   let raf = 0;
 
+  const perfFlags = readPerfFlags();
+
   // ── Renderer ────────────────────────────────────────────────────────
   const renderer = createRenderer(canvas, {
     toneMapping: ACESFilmicToneMapping,
     toneMappingExposure: 1.05,
+    // See homeScene for reasoning — `?perf=low` clamps DPR at 1 so the
+    // pixel work of every draw call halves on retina/HiDPI displays.
+    maxPixelRatio: perfFlags.lowPerf ? 1 : undefined,
   });
+
+  // Debug overlay (`?debug=perf`) — small FPS / ms-per-frame readout
+  // in the top-left so a tester can report numbers instead of vibes.
+  const perfOverlay: PerfOverlayHandle | null = perfFlags.debugOverlay
+    ? mountPerfOverlay(perfFlags.lowPerf ? 'projects · perf=low' : 'projects')
+    : null;
 
   // ── Scene + camera ──────────────────────────────────────────────────
   const scene = new Scene();
@@ -536,6 +549,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     planetLabels.update(camera);
 
     renderer.render(scene, camera);
+
+    perfOverlay?.tick(delta);
   };
 
   // Pause when the canvas is fully off-screen (e.g. user scrolled the
@@ -603,6 +618,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       canvas.removeEventListener('wheel', onCanvasWheel);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       pauser.dispose();
+      perfOverlay?.dispose();
 
       // Kill any in-flight hover tweens before the Vector3s they target are
       // freed alongside the meshes below.
