@@ -5,7 +5,7 @@ export const en: Translations = {
     home: {
       title: 'Mikko Numminen — full-stack developer',
       description:
-        'Portfolio of Mikko Numminen, a full-stack developer from Finland building production web applications with AI-assisted workflows.',
+        'Full-stack developer in Finland. Seven production apps shipped solo this year — real users, 1828+ tests, AI-native by default.',
     },
     contact: {
       title: 'Contact — Mikko Numminen',

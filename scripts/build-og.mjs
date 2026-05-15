@@ -1,6 +1,13 @@
 // Build-time asset rasterizer: turns the SVG OG cards and the favicon into
 // the PNGs referenced by <head> meta tags and the web app manifest. Run via
 // `npm run build:og` whenever any of the source SVGs change.
+//
+// NOTE: The PNGs in public/ are the committed source of truth — Vercel does
+// NOT re-run this script during deploy. Text in the SVGs is rendered by
+// sharp / libvips via Pango + FontConfig, so the resulting glyph shapes
+// depend on whichever fonts are installed on whoever ran the script. If
+// you re-run it on a different host, eyeball each regenerated PNG (the
+// title and stat-chip text in particular) before committing.
 
 import sharp from 'sharp';
 import { existsSync, readFileSync, statSync } from 'node:fs';

@@ -1,48 +1,116 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <defs>
-    <radialGradient id="home-bg" cx="50%" cy="35%" r="75%">
-      <stop offset="0%" stop-color="#0d1226"/>
-      <stop offset="60%" stop-color="#050610"/>
+    <!-- Deep-space radial backdrop, centred slightly above-left so the
+         brightest area sits under MIKKO and falls off into the corners. -->
+    <radialGradient id="bg" cx="38%" cy="42%" r="80%">
+      <stop offset="0%" stop-color="#0f1430"/>
+      <stop offset="55%" stop-color="#070b1a"/>
       <stop offset="100%" stop-color="#020308"/>
     </radialGradient>
-    <linearGradient id="home-line" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#80a8ff" stop-opacity="0"/>
-      <stop offset="50%" stop-color="#80a8ff" stop-opacity="0.55"/>
+
+    <!-- Chrome gradient for the title — highlight / midtone / shadow /
+         midtone, evokes the live extruded 3D treatment without the cost. -->
+    <linearGradient id="chrome" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"  stop-color="#e6efff"/>
+      <stop offset="42%" stop-color="#a4b9e0"/>
+      <stop offset="55%" stop-color="#5b6f9c"/>
+      <stop offset="70%" stop-color="#a4b9e0"/>
+      <stop offset="100%" stop-color="#c4d4ff"/>
+    </linearGradient>
+
+    <!-- Galaxy disk — the editorial counterweight in the lower-left,
+         mirroring the live hero composition. -->
+    <radialGradient id="galaxy" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#80a8ff" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#3060c8" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#80a8ff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Sun-bright star top-right (same bearing as the live horizon glow). -->
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#fff8e6" stop-opacity="1"/>
+      <stop offset="35%" stop-color="#ffd58a" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffc060" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="rule" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#80a8ff" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#80a8ff" stop-opacity="0.55"/>
       <stop offset="100%" stop-color="#80a8ff" stop-opacity="0"/>
     </linearGradient>
   </defs>
 
-  <rect width="1200" height="630" fill="url(#home-bg)"/>
+  <rect width="1200" height="630" fill="url(#bg)"/>
 
-  <!-- Particle field -->
+  <!-- Sparse particle field. -->
   <g fill="#c4d4ff">
-    <circle cx="120" cy="60" r="1.6" opacity="0.85"/>
-    <circle cx="240" cy="50" r="1.2" opacity="0.6"/>
-    <circle cx="380" cy="80" r="1.8" opacity="0.9"/>
-    <circle cx="520" cy="40" r="1.4" opacity="0.7"/>
-    <circle cx="660" cy="60" r="1.2" opacity="0.55"/>
-    <circle cx="780" cy="90" r="1.6" opacity="0.8"/>
-    <circle cx="900" cy="50" r="1.4" opacity="0.7"/>
-    <circle cx="1020" cy="80" r="1.8" opacity="0.9"/>
-    <circle cx="1100" cy="100" r="1.2" opacity="0.55"/>
-    <circle cx="80" cy="500" r="1.4" opacity="0.7"/>
-    <circle cx="200" cy="540" r="1.6" opacity="0.8"/>
-    <circle cx="320" cy="480" r="1.2" opacity="0.55"/>
-    <circle cx="440" cy="560" r="1.8" opacity="0.85"/>
-    <circle cx="600" cy="510" r="1.4" opacity="0.7"/>
-    <circle cx="760" cy="550" r="1.2" opacity="0.6"/>
-    <circle cx="880" cy="480" r="1.6" opacity="0.8"/>
-    <circle cx="1000" cy="540" r="1.4" opacity="0.7"/>
-    <circle cx="1120" cy="500" r="1.8" opacity="0.9"/>
+    <circle cx="120"  cy="60"  r="1.6" opacity="0.85"/>
+    <circle cx="260"  cy="40"  r="1.2" opacity="0.55"/>
+    <circle cx="420"  cy="80"  r="1.8" opacity="0.9"/>
+    <circle cx="540"  cy="35"  r="1.0" opacity="0.5"/>
+    <circle cx="700"  cy="100" r="1.4" opacity="0.7"/>
+    <circle cx="830"  cy="55"  r="1.2" opacity="0.55"/>
+    <circle cx="980"  cy="40"  r="1.6" opacity="0.8"/>
+    <circle cx="1100" cy="90"  r="1.4" opacity="0.7"/>
+    <circle cx="60"   cy="220" r="1.0" opacity="0.45"/>
+    <circle cx="1140" cy="310" r="1.2" opacity="0.55"/>
+    <circle cx="1080" cy="430" r="1.0" opacity="0.4"/>
+    <circle cx="660"  cy="580" r="1.4" opacity="0.6"/>
+    <circle cx="780"  cy="540" r="1.0" opacity="0.45"/>
+    <circle cx="940"  cy="585" r="1.6" opacity="0.75"/>
+    <circle cx="1090" cy="555" r="1.2" opacity="0.55"/>
   </g>
 
-  <g font-family="Inter, system-ui, -apple-system, sans-serif" fill="#ffffff">
-    <text x="80" y="180" font-family="ui-monospace, SFMono-Regular, monospace" font-size="22" letter-spacing="6" opacity="0.55">PORTFOLIO · 2026</text>
-    <text x="80" y="340" font-size="110" font-weight="700" letter-spacing="-3">Mikko Numminen</text>
-    <text x="80" y="395" font-family="ui-monospace, SFMono-Regular, monospace" font-size="26" fill="#c4d4ff" opacity="0.75" letter-spacing="3">full-stack developer · finland</text>
+  <!-- Sun-bright star, top-right. Echoes the live horizon glow. -->
+  <g transform="translate(1060,135)">
+    <circle r="110" fill="url(#sun)"/>
+    <circle r="14"  fill="#fff8e6"/>
   </g>
 
-  <rect x="80" y="430" width="1040" height="1.5" fill="url(#home-line)"/>
+  <!-- Galaxy spiral, bottom-left of the title. Same bearing the live
+       scene uses; meteors strike here on the live page. -->
+  <g transform="translate(170,495)">
+    <circle r="110" fill="url(#galaxy)"/>
+    <path d="M -72 -4 Q -34 -42 18 -32 T 84 -12" stroke="#9fc0ff" stroke-width="1.4" fill="none" opacity="0.45"/>
+    <path d="M -88 10 Q -34 28 28 22 T 82 36"   stroke="#9fc0ff" stroke-width="1.2" fill="none" opacity="0.35"/>
+    <path d="M 10 -54 Q 36 -16 18 26 T -42 70"  stroke="#9fc0ff" stroke-width="1.1" fill="none" opacity="0.3"/>
+  </g>
 
-  <text x="80" y="485" font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" fill="#80a8ff" opacity="0.7" letter-spacing="2">mikkonumminen.dev</text>
+  <!-- Editorial corner markers — same language as the live hero. -->
+  <g font-family="ui-monospace, SFMono-Regular, monospace" fill="#c4d4ff" opacity="0.5">
+    <text x="80"   y="76" font-size="22" letter-spacing="6">/ PORTFOLIO · 2026</text>
+    <text x="1120" y="76" font-size="22" letter-spacing="6" text-anchor="end">60° N · 24° E</text>
+  </g>
+
+  <!-- Title. Two lines stacked, chrome gradient. -->
+  <g font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" letter-spacing="-4">
+    <text x="80" y="305" font-size="132" fill="url(#chrome)">MIKKO</text>
+    <text x="80" y="425" font-size="132" fill="url(#chrome)">NUMMINEN</text>
+  </g>
+
+  <!-- Subtitle, mono, mid-cyan. -->
+  <text x="80" y="478" font-family="ui-monospace, SFMono-Regular, monospace" font-size="24" letter-spacing="5" fill="#c4d4ff" opacity="0.78">FULL-STACK DEVELOPER · FINLAND</text>
+
+  <!-- Hairline rule between subtitle and stat row. -->
+  <rect x="80" y="510" width="1040" height="1.5" fill="url(#rule)"/>
+
+  <!-- Stat row of credibility signals.
+       NOTE: x positions are hand-tuned to the current chip text widths
+       at font-size 20 + letter-spacing 3. If any chip text changes
+       (different number, different word) recalc the next chip's x as
+       `prev_x + prev_text_advance + ~22px (dot gap)`. The OG PNG is a
+       committed artefact, so a visual re-check after regenerating is
+       cheap: `npm run build:og` and inspect public/og-default.png. -->
+  <g font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" letter-spacing="3">
+    <text x="80"  y="558" fill="#c4d4ff">7 PROJECTS</text>
+    <text x="252" y="558" fill="#9fc0ff" opacity="0.4">·</text>
+    <text x="274" y="558" fill="#c4d4ff">1828+ TESTS</text>
+    <text x="476" y="558" fill="#9fc0ff" opacity="0.4">·</text>
+    <text x="498" y="558" fill="#c4d4ff">91.9% COVERAGE</text>
+    <text x="772" y="558" fill="#9fc0ff" opacity="0.4">·</text>
+    <text x="794" y="558" fill="#fbbf24">AI-NATIVE</text>
+  </g>
+
+  <!-- URL anchor. -->
+  <text x="80" y="600" font-family="ui-monospace, SFMono-Regular, monospace" font-size="18" letter-spacing="3" fill="#80a8ff" opacity="0.7">mikkonumminen.dev</text>
 </svg>
