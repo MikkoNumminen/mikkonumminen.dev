@@ -374,6 +374,11 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const startTime = performance.now();
   let lastFrame = startTime;
 
+  // Cap to ~60 fps regardless of monitor refresh — see homeScene.ts for
+  // the reasoning. The orbit / camera / connection logic is delta-driven
+  // so capping changes how often we render, not how fast things move.
+  const TARGET_FRAME_MS = 1000 / 60 - 1;
+
   const planetWorldPos = new Vector3();
   const labelProjectionVec = new Vector3();
 
@@ -382,6 +387,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     raf = requestAnimationFrame(tick);
 
     const now = performance.now();
+    if (now - lastFrame < TARGET_FRAME_MS) return;
     const elapsed = (now - startTime) / 1000;
     const delta = (now - lastFrame) / 1000;
     lastFrame = now;
@@ -531,12 +537,35 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     renderer.render(scene, camera);
   };
 
+  // Pause when the canvas is fully off-screen (e.g. user scrolled the
+  // side-panel content past the canvas on narrow viewports). Same pattern
+  // as homeScene; assumes visible at start so the initial tick() below
+  // doesn't race the first IO callback.
+  let inViewport = true;
+  const intersectionObserver = new IntersectionObserver(
+    (entries) => {
+      if (disposed) return;
+      const visible = entries.some((e) => e.isIntersecting);
+      if (visible === inViewport) return;
+      inViewport = visible;
+      if (inViewport && raf === 0 && !document.hidden) {
+        lastFrame = performance.now();
+        tick();
+      } else if (!inViewport && raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    },
+    { threshold: 0 },
+  );
+  intersectionObserver.observe(canvas);
+
   const onVisibilityChange = (): void => {
     if (disposed) return;
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-    } else if (raf === 0) {
+    } else if (raf === 0 && inViewport) {
       lastFrame = performance.now();
       tick();
     }
@@ -579,6 +608,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       canvas.removeEventListener('pointercancel', onCanvasPointerUp);
       canvas.removeEventListener('wheel', onCanvasWheel);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      intersectionObserver.disconnect();
 
       // Kill any in-flight hover tweens before the Vector3s they target are
       // freed alongside the meshes below.

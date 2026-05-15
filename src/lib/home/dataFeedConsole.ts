@@ -306,6 +306,27 @@ export function buildDataFeedConsole(
       lastSlideOffset = slideOffset;
     }
   };
+  // Pause the loop when the widget is scrolled off-screen. The dirty
+  // check above skips most paints already, but rAF was still waking at
+  // the monitor refresh rate (potentially 144–240 Hz) just to early-out.
+  // IO drops that to zero work while the hero is out of view.
+  let inViewport = true;
+  const intersectionObserver = new IntersectionObserver(
+    (entries) => {
+      const visible = entries.some((e) => e.isIntersecting);
+      if (visible === inViewport) return;
+      inViewport = visible;
+      if (inViewport && raf === 0) {
+        raf = requestAnimationFrame(tick);
+      } else if (!inViewport && raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    },
+    { threshold: 0 },
+  );
+  intersectionObserver.observe(canvas);
+
   raf = requestAnimationFrame(tick);
 
   return {
@@ -320,6 +341,7 @@ export function buildDataFeedConsole(
     },
     dispose: (): void => {
       cancelAnimationFrame(raf);
+      intersectionObserver.disconnect();
     },
   };
 }
