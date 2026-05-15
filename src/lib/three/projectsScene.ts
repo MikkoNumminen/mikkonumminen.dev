@@ -542,12 +542,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // side-panel content past the canvas on narrow viewports).
   const pauser = createOffscreenPauser({
     target: canvas,
-    onResume: () => {
+    onResume: (): void => {
       if (disposed || document.hidden || raf !== 0) return;
       lastFrame = performance.now();
       tick();
     },
-    onPause: () => {
+    onPause: (): void => {
       if (raf === 0) return;
       cancelAnimationFrame(raf);
       raf = 0;

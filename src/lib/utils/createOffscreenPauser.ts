@@ -1,8 +1,10 @@
 /**
  * Pauses an animation loop when the observed element is fully off-screen
- * and resumes it on first re-intersection. Used by the home / projects
- * WebGL scenes and the data-feed matrix-cascade canvas to stop work
- * while the user is scrolled past the hero.
+ * and resumes it on first re-intersection. Used wherever a long-lived
+ * `requestAnimationFrame` loop drives a single element that the user
+ * may scroll past — there's no reason to keep rendering pixels nobody
+ * sees, and rAF doesn't pause on its own outside the document-hidden
+ * (tab-switch) case.
  *
  * The pauser starts with `visible = true` so the caller's loop can boot
  * normally — the first IntersectionObserver callback corrects to the

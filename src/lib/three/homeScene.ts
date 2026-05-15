@@ -838,12 +838,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // fully out of view, and there's no reason to keep rendering.
   const pauser = createOffscreenPauser({
     target: canvas,
-    onResume: () => {
+    onResume: (): void => {
       if (disposed || document.hidden || raf !== 0) return;
       lastFrame = performance.now();
       tick();
     },
-    onPause: () => {
+    onPause: (): void => {
       if (raf === 0) return;
       cancelAnimationFrame(raf);
       raf = 0;
