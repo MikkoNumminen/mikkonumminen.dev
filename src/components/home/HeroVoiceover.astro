@@ -20,6 +20,13 @@
 // - Respects the music's on/off state. Toggle off pauses + cancels the
 //   idle timer; toggle on resumes mid-clip if paused, otherwise plays
 //   fresh from the start.
+// - Driven entirely by the `bg-audio:state` event — no eager initial
+//   play. BackgroundAudio renders with `data-state="loading"` and only
+//   resolves to `on`/`off` once its async `tryPlay()` settles; jumping
+//   the gun produced two races: (a) on first visit with autoplay
+//   permitted, the voice started, then the resolved `on` dispatch
+//   restarted it mid-clip; (b) on a click that both unlocks autoplay
+//   and toggles state, the second dispatch restarted it again.
 ---
 
 <audio id="hero-voice" preload="metadata" playsinline aria-hidden="true">
@@ -70,7 +77,13 @@
     // browsers reject with "The play() request was interrupted by a
     // call to pause()"; the post-await check pauses the voice when
     // the user's intent flipped back to off mid-promise.
-    let wantOn = bgAudio.dataset.state !== 'off';
+    //
+    // Only `'on'` counts as on here — the initial `'loading'` value is
+    // *not* a green light. BackgroundAudio dispatches `bg-audio:state`
+    // as soon as its async `tryPlay()` settles, and that event is what
+    // starts the voice. Treating `'loading'` as on would race that
+    // dispatch and cause a mid-clip restart.
+    let wantOn = bgAudio.dataset.state === 'on';
 
     // Idle-replay timer. Re-armed on every user-activity event below
     // (each reset extends the wait by another full IDLE_REPLAY_MS).
@@ -156,7 +169,14 @@
       const detail = (e as CustomEvent<{ on: boolean }>).detail;
       wantOn = detail.on;
       if (detail.on) {
-        if (voice.paused && voice.currentTime > 0 && !voice.ended) {
+        // Already playing — do nothing. Without this, the resolved
+        // `on` dispatch that follows a successful autoplay would
+        // restart the voice from zero mid-clip. Same guard covers
+        // the unlock-then-click case where BackgroundAudio's first-
+        // gesture autoplay and its own toggle handler both fire on
+        // a single click.
+        if (!voice.paused) return;
+        if (voice.currentTime > 0 && !voice.ended) {
           playResume();
         } else {
           playFresh();
@@ -178,10 +198,5 @@
       });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-
-    // Initial play attempt — runs after BackgroundAudio's script has
-    // resolved `data-state`, since the layout component renders earlier
-    // in the document than this home-only one.
-    playFresh();
   }
 </script>
