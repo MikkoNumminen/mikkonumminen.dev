@@ -207,6 +207,14 @@ None. No actively-broken behaviour on mobile; nothing crashes; Lighthouse green 
 - **Suggested fix:** scope `will-change` to `:has(:hover)` or move it to a `data-active` attribute set only during scroll-induced movement. Or just leave it — `will-change` is widely considered cheap on modern compositors.
 - **Effort:** 5 min, or close as won't-fix.
 
+#### m-F · DPR cap drifts from 1.5 → 2 on every resize (Three.js)
+- **Files:** [src/lib/three/createRenderer.ts:14, 27-28](src/lib/three/createRenderer.ts#L14-L28), [src/lib/three/createResizeHandler.ts:21](src/lib/three/createResizeHandler.ts#L21)
+- **Classification:** **OA** (inconsistent defaults; relevant if Three.js ever runs on mobile)
+- **Why this matters:** `createRenderer.ts` exposes a `maxPixelRatio` constructor option that defaults to **1.5** — the documented "nice middle ground" between sharpness and pixel-fill cost — and sets `renderer.setPixelRatio(Math.min(devicePixelRatio, maxPixelRatio))`. But `createResizeHandler.ts:21` independently calls `renderer.setPixelRatio(Math.min(devicePixelRatio, 2))` with a **hardcoded 2** — no `maxPixelRatio` plumbing. Every resize event (including the synthetic one Astro fires on init) overrides the constructor cap. Net effect: the `maxPixelRatio` option silently has no observable effect once any resize fires. Today this is invisible because Three.js doesn't run on mobile; if you ship a mobile-scoped scene (per §4 "Mobile-scoped Three.js"), this will quietly burn ~78 % more pixel fill on a DPR-3 phone than the 1.5 cap promises.
+- **Suggested fix:** thread `maxPixelRatio` through the resize handler — either as an option on `createResizeHandler` or by reading it back from `renderer.getPixelRatio()` (which captures the construct-time cap if no resize has run yet). One-liner once the plumbing is in place.
+- **Effort:** 15–30 min.
+- **Perf delta:** none today; future-proofs the mobile Three.js path.
+
 #### m-E · Hero corners + data-feed are tangled (`.hero__data-feed` is inside `.hero__corners`)
 - **File:** [Hero.astro:52-74](src/components/home/Hero.astro#L52-L74)
 - **Classification:** **OA**
@@ -244,7 +252,7 @@ None. No actively-broken behaviour on mobile; nothing crashes; Lighthouse green 
 | **`env(safe-area-inset-*)` respected?** | Only `safe-area-inset-top` in SiteNav. No bottom usage — sound toggle and scroll hint could overlap iOS gesture bar. See m-C. |
 | **Horizontal scroll on mobile?** | No (verified via Lighthouse audit `layout-shift-elements` clean across all routes, plus no `width: > 100vw` rules outside scene canvases). |
 | **Reduced-motion vs mobile separated?** | **No** — see M-D. |
-| **DPR capped where Three.js runs?** | **Yes** — `createRenderer.ts:18` and `createResizeHandler.ts:21` both `Math.min(devicePixelRatio, 2)`. Postprocessing inherits. Three.js doesn't run on mobile currently, but the cap is in place if you change that. |
+| **DPR capped where Three.js runs?** | **Yes, but inconsistently** — `createRenderer.ts:28` uses `Math.min(devicePixelRatio, maxPixelRatio)` where `maxPixelRatio` is a constructor option defaulting to **1.5**; `createResizeHandler.ts:21` uses a hardcoded `Math.min(devicePixelRatio, 2)`. The resize handler does not receive the constructor's `maxPixelRatio` value, so every resize event (including the synthetic one fired on init) overrides the 1.5 cap back to 2. Postprocessing inherits whichever value is current. Three.js doesn't run on mobile currently, but the cap *would* drift on first resize if it did. See **m-F**. |
 
 ---
 
