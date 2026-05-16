@@ -182,6 +182,16 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // Cached once so the raycaster doesn't allocate per frame and per click.
   const planetMeshes: Mesh[] = planets.map((p) => p.mesh);
 
+  // Per-planet accumulated orbital angle. Advanced by `delta * speed *
+  // scale` each frame rather than recomputed from `phase + elapsed *
+  // speed * scale`, because the multiplicative form teleports whenever
+  // the scale changes mid-stream — clicking a planet drops the ambient
+  // scale from 1.0 to 0.18 and the elapsed-based formula then jumps
+  // every planet ~80% of an orbit instantly. Delta accumulation only
+  // changes the *rate*, so a scale switch is a smooth slowdown.
+  const planetAngles = new Map<PlanetEntry, number>();
+  for (const entry of planets) planetAngles.set(entry, entry.project.phase);
+
   // ── Persistent planet name labels ──────────────────────────────────
   // HTML overlay so users can identify any planet at a glance without
   // hovering. Repositioned per frame from the planet's projected screen
@@ -424,10 +434,17 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
     // Planets orbit
     const baseOrbitScale = reducedMotion ? 0.25 : 1.0;
-    const orbitSpeedScale = (selected ? 0.18 : 1.0) * baseOrbitScale;
+    // Ambient slowdown for the unselected planets while a drawer is
+    // open — keeps the scene calm so the user can read. The focused
+    // planet itself gets `scale = 0` so it freezes at the click point
+    // and the camera tween lands precisely where the user aimed.
+    const ambientOrbitScale = (selected ? 0.18 : 1.0) * baseOrbitScale;
     for (const entry of planets) {
+      const scale = entry === selected ? 0 : ambientOrbitScale;
       const angle =
-        entry.project.phase + elapsed * entry.project.orbitSpeed * orbitSpeedScale;
+        (planetAngles.get(entry) ?? entry.project.phase) +
+        delta * entry.project.orbitSpeed * scale;
+      planetAngles.set(entry, angle);
       entry.group.position.set(
         Math.cos(angle) * entry.project.orbitRadius,
         0,
