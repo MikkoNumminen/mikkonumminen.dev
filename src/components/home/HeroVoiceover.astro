@@ -9,13 +9,16 @@
 // - Layered on top of the music bed at slightly higher levels so the
 //   narration stays intelligible over the loop. Volume eases down with
 //   scroll exactly like the music does (HERO → SCROLLED).
-// - Loops with a fixed gap. After the clip ends a VOICE_REPEAT_GAP_MS
-//   timer schedules the next play from the start. The music bed (which
-//   persists position across page reloads via sessionStorage) keeps
-//   playing through the gap; the voice rejoins on cadence — so a user
-//   who refreshes mid-music doesn't miss the narration entirely.
+// - Loops only while the user is idle. After the clip ends we arm an
+//   IDLE_REPLAY_MS timer; any pointerdown / touchstart / keydown /
+//   scroll on the document resets it. (Pointermove is deliberately
+//   excluded — a drifting mouse on an uneven desk would pin the timer
+//   indefinitely.) The voice rejoins after the user has been still for
+//   the full idle window — so an actively-scrolling or clicking visitor
+//   doesn't get re-narrated at them, but someone who tab-parks the page
+//   eventually hears it again.
 // - Respects the music's on/off state. Toggle off pauses + cancels the
-//   gap timer; toggle on resumes mid-clip if paused, otherwise plays
+//   idle timer; toggle on resumes mid-clip if paused, otherwise plays
 //   fresh from the start.
 ---
 
@@ -30,11 +33,15 @@
   const VOICE_HERO_VOLUME = 1.0;
   const VOICE_SCROLLED_VOLUME = 0.5;
 
-  // Gap between the end of one playback and the start of the next.
-  // Tuned so the narration recurs often enough to register as
-  // intentional (not a one-shot the user might have missed) but rare
-  // enough to stay out of the music bed's way.
-  const VOICE_REPEAT_GAP_MS = 20_000;
+  // Idle window the user must sit still through before the voice
+  // replays. Any pointerdown / touchstart / keydown / scroll resets
+  // the clock (pointermove deliberately excluded — see the listener
+  // block below). 50 s is long enough that an actively-engaged
+  // visitor (who scrolls or clicks) almost never gets re-narrated at;
+  // short enough that someone who parks the tab eventually hears the
+  // line again. Tuned, not scientific — adjust if the cadence feels
+  // wrong on the live site.
+  const IDLE_REPLAY_MS = 50_000;
 
   const voice = document.getElementById('hero-voice') as HTMLAudioElement | null;
   const hero = document.querySelector<HTMLElement>('[data-section-hero]');
@@ -65,22 +72,36 @@
     // the user's intent flipped back to off mid-promise.
     let wantOn = bgAudio.dataset.state !== 'off';
 
-    // Pending replay scheduled from the previous `ended`. Held so the
-    // off toggle can cancel it; without that, the voice would resume
-    // narrating moments after a user muted the audio.
-    let repeatTimer: number | null = null;
-    const cancelRepeat = (): void => {
-      if (repeatTimer !== null) {
-        clearTimeout(repeatTimer);
-        repeatTimer = null;
+    // Idle-replay timer. Re-armed on every user-activity event below
+    // (each reset extends the wait by another full IDLE_REPLAY_MS).
+    // Held so the off toggle can cancel it; without that, the voice
+    // would resume narrating moments after a user muted the audio.
+    let idleTimer: number | null = null;
+    const cancelIdleTimer = (): void => {
+      if (idleTimer !== null) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
       }
     };
 
-    // Plays from the start. Cancels any pending repeat timer first so
-    // a manual play and a gap-fired play can't end up double-stacked.
+    // Arm (or re-arm) the idle-replay timer. No-op unless the voice
+    // has ended AND sound is currently on — otherwise an activity ping
+    // during normal playback would schedule a phantom replay.
+    const scheduleIdleReplay = (): void => {
+      cancelIdleTimer();
+      if (!wantOn) return;
+      if (!voice.ended) return;
+      idleTimer = window.setTimeout(() => {
+        idleTimer = null;
+        playFresh();
+      }, IDLE_REPLAY_MS);
+    };
+
+    // Plays from the start. Cancels any pending idle timer first so
+    // a manual play and an idle-fired play can't end up double-stacked.
     const playFresh = async (): Promise<void> => {
       if (!wantOn) return;
-      cancelRepeat();
+      cancelIdleTimer();
       voice.currentTime = 0;
       voice.volume = computeVolume();
       try {
@@ -106,12 +127,26 @@
     };
 
     voice.addEventListener('ended', () => {
-      if (!wantOn) return;
-      repeatTimer = window.setTimeout(() => {
-        repeatTimer = null;
-        playFresh();
-      }, VOICE_REPEAT_GAP_MS);
+      // Arm the idle timer; activity events below keep pushing it back
+      // until the user has actually been still for the full window.
+      scheduleIdleReplay();
     });
+
+    // Activity events that reset the idle countdown. Deliberately
+    // excludes `pointermove` — a mouse drifting on an uneven desk would
+    // pin the timer forever even though the user is sitting still. The
+    // remaining four (`pointerdown` / `touchstart` / `keydown` /
+    // `scroll`) all require explicit intent. The `if (idleTimer !== null)`
+    // guard makes these no-ops while the voice is actively playing or
+    // sound is off; only during the 50-second idle window do they pay
+    // for a clearTimeout + setTimeout.
+    const onActivity = (): void => {
+      if (idleTimer !== null) scheduleIdleReplay();
+    };
+    document.addEventListener('pointerdown', onActivity, { passive: true });
+    document.addEventListener('touchstart', onActivity, { passive: true });
+    document.addEventListener('keydown', onActivity);
+    document.addEventListener('scroll', onActivity, { passive: true });
 
     // Mirror the music's on/off toggle. Mid-clip pause resumes from the
     // same position; ended/idle state starts a fresh play. We update
@@ -128,7 +163,7 @@
         }
       } else {
         voice.pause();
-        cancelRepeat();
+        cancelIdleTimer();
       }
     });
 
