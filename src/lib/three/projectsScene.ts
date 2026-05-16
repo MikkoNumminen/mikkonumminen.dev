@@ -182,6 +182,20 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // Cached once so the raycaster doesn't allocate per frame and per click.
   const planetMeshes: Mesh[] = planets.map((p) => p.mesh);
 
+  // Runtime orbital angle per planet, advanced delta-style each frame.
+  // The original formula was `project.phase + elapsed * speed * scale`
+  // — elastic against `scale = 0`, which would teleport the planet back
+  // to its base `phase`; leave the scale > 0 and the planet drifts
+  // during the camera lerp so the user ends up looking at a position
+  // the planet wasn't at when they clicked. Tracking the angle
+  // ourselves lets us simply *not* advance it for the selected entry;
+  // the value persists across the selection and resumes seamlessly on
+  // deselect.
+  const planetAngles = new Map<PlanetEntry, number>();
+  for (const entry of planets) {
+    planetAngles.set(entry, entry.project.phase);
+  }
+
   // ── Persistent planet name labels ──────────────────────────────────
   // HTML overlay so users can identify any planet at a glance without
   // hovering. Repositioned per frame from the planet's projected screen
@@ -422,12 +436,20 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     const flareScale = 5.6 + Math.sin(elapsed * 2.3) * 0.45;
     sun.flare.scale.set(flareScale, flareScale, 1);
 
-    // Planets orbit
+    // Planets orbit. The selected planet's angle stays frozen — the
+    // camera lerp toward it (factor 0.06 below) takes ~1 s to settle,
+    // and if the planet keeps moving during that time the click target
+    // and the framed-final position don't match. Other planets keep
+    // drifting at the reduced 0.18× speed so the scene stays alive.
     const baseOrbitScale = reducedMotion ? 0.25 : 1.0;
     const orbitSpeedScale = (selected ? 0.18 : 1.0) * baseOrbitScale;
     for (const entry of planets) {
-      const angle =
-        entry.project.phase + elapsed * entry.project.orbitSpeed * orbitSpeedScale;
+      if (entry !== selected) {
+        const next =
+          planetAngles.get(entry)! + delta * entry.project.orbitSpeed * orbitSpeedScale;
+        planetAngles.set(entry, next);
+      }
+      const angle = planetAngles.get(entry)!;
       entry.group.position.set(
         Math.cos(angle) * entry.project.orbitRadius,
         0,
