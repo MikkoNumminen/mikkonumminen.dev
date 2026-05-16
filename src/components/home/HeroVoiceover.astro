@@ -10,11 +10,13 @@
 //   narration stays intelligible over the loop. Volume eases down with
 //   scroll exactly like the music does (HERO → SCROLLED).
 // - Loops only while the user is idle. After the clip ends we arm an
-//   IDLE_REPLAY_MS timer; any pointermove / scroll / keydown / touch on
-//   the document resets it. The voice rejoins after the user has been
-//   still for the full idle window — so an actively-reading or
-//   actively-scrolling visitor doesn't get re-narrated at them, but
-//   someone who tab-parks the page eventually hears it again.
+//   IDLE_REPLAY_MS timer; any pointerdown / touchstart / keydown /
+//   scroll on the document resets it. (Pointermove is deliberately
+//   excluded — a drifting mouse on an uneven desk would pin the timer
+//   indefinitely.) The voice rejoins after the user has been still for
+//   the full idle window — so an actively-scrolling or clicking visitor
+//   doesn't get re-narrated at them, but someone who tab-parks the page
+//   eventually hears it again.
 // - Respects the music's on/off state. Toggle off pauses + cancels the
 //   idle timer; toggle on resumes mid-clip if paused, otherwise plays
 //   fresh from the start.
@@ -32,12 +34,13 @@
   const VOICE_SCROLLED_VOLUME = 0.5;
 
   // Idle window the user must sit still through before the voice
-  // replays. Any pointermove / scroll / keydown / touch resets the
-  // clock. 50 s is long enough that an actively-reading visitor (who
-  // moves the mouse, scrolls, or types) almost never gets re-narrated
-  // at; short enough that someone who parks the tab eventually hears
-  // the line again. Tuned, not scientific — adjust if the cadence
-  // feels wrong on the live site.
+  // replays. Any pointerdown / touchstart / keydown / scroll resets
+  // the clock (pointermove deliberately excluded — see the listener
+  // block below). 50 s is long enough that an actively-engaged
+  // visitor (who scrolls or clicks) almost never gets re-narrated at;
+  // short enough that someone who parks the tab eventually hears the
+  // line again. Tuned, not scientific — adjust if the cadence feels
+  // wrong on the live site.
   const IDLE_REPLAY_MS = 50_000;
 
   const voice = document.getElementById('hero-voice') as HTMLAudioElement | null;
@@ -129,20 +132,21 @@
       scheduleIdleReplay();
     });
 
-    // Activity events that reset the idle countdown. Listed flatly so a
-    // pointermove burst doesn't re-arm the timer twenty times per frame —
-    // re-arming is just two setTimeout/clearTimeout calls, but keeping
-    // the listeners passive and the body branch-only is the right shape
-    // for a hot input path. The `if (idleTimer !== null)` guard makes
-    // these no-ops while the voice is actively playing or sound is off.
+    // Activity events that reset the idle countdown. Deliberately
+    // excludes `pointermove` — a mouse drifting on an uneven desk would
+    // pin the timer forever even though the user is sitting still. The
+    // remaining four (`pointerdown` / `touchstart` / `keydown` /
+    // `scroll`) all require explicit intent. The `if (idleTimer !== null)`
+    // guard makes these no-ops while the voice is actively playing or
+    // sound is off; only during the 50-second idle window do they pay
+    // for a clearTimeout + setTimeout.
     const onActivity = (): void => {
       if (idleTimer !== null) scheduleIdleReplay();
     };
-    document.addEventListener('pointermove', onActivity, { passive: true });
     document.addEventListener('pointerdown', onActivity, { passive: true });
     document.addEventListener('touchstart', onActivity, { passive: true });
     document.addEventListener('keydown', onActivity);
-    document.addEventListener('scroll', onActivity, { passive: true, capture: true });
+    document.addEventListener('scroll', onActivity, { passive: true });
 
     // Mirror the music's on/off toggle. Mid-clip pause resumes from the
     // same position; ended/idle state starts a fresh play. We update
