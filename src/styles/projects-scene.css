@@ -334,10 +334,8 @@ body[data-theme='projects'] .site-footer {
 .projects-scene__list-tagline {
   font-family: var(--font-mono);
   font-size: 0.7rem;
+  line-height: 1.35;
   color: rgba(196, 212, 255, 0.6);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* Persistent planet name labels — one fixed-position span per planet,
