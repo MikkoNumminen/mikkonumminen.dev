@@ -38,8 +38,13 @@ const voiceSrc = `/audio/voice-projects-${locale}.mp3`;
   // `.bg-audio` is rendered by BaseLayout's BackgroundAudio component
   // and dispatches `bg-audio:state` whenever the sound toggle resolves.
   const bgAudio = document.querySelector<HTMLElement>('.bg-audio');
+  // Honor reduced-motion: skip the narration entirely. Music keeps
+  // playing (BackgroundAudio doesn't gate on RM) and the sound toggle
+  // still controls it; we just don't add a recurring spoken layer on
+  // top for users who've opted out of attention-grabbing content.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  if (voice && bgAudio) {
+  if (voice && bgAudio && !reducedMotion) {
     voice.volume = VOICE_VOLUME;
 
     // `'on'` is the only resolved-on state — `'loading'` is the initial
