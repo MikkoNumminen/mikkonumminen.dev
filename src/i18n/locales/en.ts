@@ -181,10 +181,10 @@ export const en: Translations = {
     audiobookmaker: {
       tagline: 'PDF → audiobook',
       description:
-        'Desktop app that turns PDF, EPUB, or plain text files into audiobooks. Three TTS engines: Edge-TTS (cloud, 30+ voices in 6 languages), Piper (offline, no GPU needed), and Chatterbox with the "Grandmom" voice for voice cloning from a short reference clip. The same Chatterbox engine voices the in-game story of Spacepotatis. English output quality is already strong; Finnish is harder to synthesize with available resources, so it gets a dedicated 19-pass text normalization pipeline that handles governor-word number inflection, abbreviation expansion, unit agreement, and loanword respelling — advancing with every release. Ships as a Windows installer with auto-updates and 1729 tests.',
+        'Desktop app that turns PDF, EPUB, or plain text files into audiobooks. Four TTS engines: Edge-TTS (cloud, 30+ voices in 6 languages), Piper (offline, no GPU needed), Chatterbox with the "Grandmom" voice for voice cloning from a short reference clip, and VoxCPM2 for zero-shot voice cloning and voice design from text (NVIDIA GPU, developer setup). The same Chatterbox engine voices the in-game story of Spacepotatis. English output quality is already strong; Finnish is harder to synthesize with available resources, so it gets a dedicated 16-pass text normalization pipeline that handles governor-word number inflection, abbreviation expansion, unit agreement, and loanword respelling — advancing with every release. Ships as a Windows installer with auto-updates and 2400+ tests.',
       highlights: [
         'Chatterbox voice cloning with the Grandmom voice',
-        '19-pass Finnish text normalization, 1729 tests',
+        '16-pass Finnish text normalization, 2400+ tests',
         'Voices the in-game story of Spacepotatis',
       ],
     },
@@ -201,7 +201,7 @@ export const en: Translations = {
     'strudel-patterns': {
       tagline: 'Algorithmic music in Strudel',
       description:
-        'Live-coded electronic music written in Strudel — a JavaScript pattern engine, port of TidalCycles. Every track is a single composable expression: stacked synths, basslines, drum patterns, and effect chains. Composed through a structured AI workflow — natural-language direction → generation → listen → iterate, with decisions logged alongside the git history. Selected tracks score Spacepotatis (galaxy overworld, mission themes, story narration bed). Reusable component library, curated synth presets, session notes per iteration.',
+        'Live-coded electronic music written in Strudel — a JavaScript pattern engine, port of TidalCycles. Every track is a single composable expression: stacked synths, basslines, drum patterns, and effect chains. Composed through a structured AI workflow — natural-language direction → generation → listen → iterate, with decisions logged alongside the git history. Selected tracks score Spacepotatis (galaxy overworld, mission themes, story narration bed) and the mikkonumminen.dev landing page. Reusable component library, curated synth presets, session notes per iteration.',
       highlights: [
         'Live-coded in Strudel',
         'AI-directed iteration, logged in git',
