@@ -392,4 +392,8 @@ export const fi: Translations = {
     linkExperience: 'Kokemus',
     linkContact: 'Yhteystiedot',
   },
+  bgAudio: {
+    soundOn: 'ääni päällä',
+    soundOff: 'ääni pois',
+  },
 };

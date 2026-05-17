@@ -392,4 +392,8 @@ export const sv: Translations = {
     linkExperience: 'Erfarenhet',
     linkContact: 'Kontakt',
   },
+  bgAudio: {
+    soundOn: 'ljud på',
+    soundOff: 'ljud av',
+  },
 };
