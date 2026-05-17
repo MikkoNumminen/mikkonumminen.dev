@@ -33,7 +33,6 @@ pnpm-debug.log*
 .vercel
 
 # notes & planning (local only)
-CLAUDE.md
 TODO.md
 NOTES.md
 .notes/
