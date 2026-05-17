@@ -27,10 +27,18 @@
 //   permitted, the voice started, then the resolved `on` dispatch
 //   restarted it mid-clip; (b) on a click that both unlocks autoplay
 //   and toggles state, the second dispatch restarted it again.
+// - Audio source is picked per locale: `/audio/voice-landing-${locale}.mp3`.
+//   Locales without a recorded narration (file 404s) fail silently via
+//   the existing `voice.play()` try/catch — site stays usable until the
+//   asset lands. Drop new MP3s into `public/audio/` to enable a locale.
+import { asLocale } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const voiceSrc = `/audio/voice-landing-${locale}.mp3`;
 ---
 
 <audio id="hero-voice" preload="metadata" playsinline aria-hidden="true">
-  <source src="/audio/voice-landing.mp3" type="audio/mpeg" />
+  <source src={voiceSrc} type="audio/mpeg" />
 </audio>
 
 <script>
@@ -112,16 +120,21 @@
 
     // Plays from the start. Cancels any pending idle timer first so
     // a manual play and an idle-fired play can't end up double-stacked.
+    // `currentTime` / `volume` writes are inside the try block because a
+    // 404'd `<source>` leaves the element at HAVE_NOTHING and Safari
+    // throws `InvalidStateError` on the seek — without the wrap that
+    // surfaces as an unhandled promise rejection on locales that don't
+    // have a recording yet.
     const playFresh = async (): Promise<void> => {
       if (!wantOn) return;
       cancelIdleTimer();
-      voice.currentTime = 0;
-      voice.volume = computeVolume();
       try {
+        voice.currentTime = 0;
+        voice.volume = computeVolume();
         await voice.play();
         if (!wantOn) voice.pause();
       } catch {
-        /* autoplay blocked — toggle-on retries via the state listener */
+        /* autoplay blocked, source missing, or play interrupted */
       }
     };
 
@@ -130,12 +143,12 @@
     // erase the "you only missed half a sentence" continuity.
     const playResume = async (): Promise<void> => {
       if (!wantOn) return;
-      voice.volume = computeVolume();
       try {
+        voice.volume = computeVolume();
         await voice.play();
         if (!wantOn) voice.pause();
       } catch {
-        /* autoplay blocked / play interrupted */
+        /* autoplay blocked, source missing, or play interrupted */
       }
     };
 
