@@ -4,28 +4,24 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectDetail from '../components/projects/ProjectDetail.astro';
 import ProjectGrid from '../components/projects/ProjectGrid.astro';
 import ProjectsVoiceover from '../components/projects/ProjectsVoiceover.astro';
-import { connections, localizeProjects, projects } from '../data/projects';
+import { connections, localizeProjects } from '../data/projects';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
-
-// Build a project-name lookup so the legend can show "HRM → Platform"
-// using the brand names rather than the structural ids.
-const projectNameById = Object.fromEntries(projects.map((p) => [p.id, p.name]));
 
 // Localized list for the side panel — clicking an item triggers the same
 // `selectById` flow as clicking the matching planet, so users can jump
 // to any project without having to chase a moving target.
 const localizedList = localizeProjects(t);
 
+// Legend rows show only the *kind* of relation (submodule / voice /
+// music). Earlier iterations named the endpoints ("HRM ↔ Platform"),
+// but the hover/click affordances on the planets themselves already
+// surface that detail — keeping the legend general avoids stating the
+// same fact twice and lets the box stay narrow.
 const connectionLegendEntries = connections.map((c) => ({
   color: c.color,
-  source: projectNameById[c.sourceId] ?? c.sourceId,
-  target: projectNameById[c.targetId] ?? c.targetId,
-  // Submodule is a structural sharing relation (HRM lives inside Platform);
-  // voice / music are unidirectional flows. Render arrows accordingly.
-  arrow: c.kind === 'submodule' ? '↔' : '→',
   kindLabel: t.projectsPage.connectionKindLabels[c.kind],
 }));
 ---
@@ -42,10 +38,6 @@ const connectionLegendEntries = connections.map((c) => ({
   <div class="projects-scene" data-projects-scene>
     <canvas id="projects-canvas" class="projects-scene__canvas" aria-hidden="true"
     ></canvas>
-
-    <header class="projects-scene__intro" data-intro>
-      <h1 class="projects-scene__title">{t.projectsPage.title}</h1>
-    </header>
 
     <div class="projects-scene__legend" data-legend aria-hidden="true">
       <span><code>hover</code> {t.projectsPage.legendHover}</span>
@@ -96,10 +88,7 @@ const connectionLegendEntries = connections.map((c) => ({
                 style={`--line-color:${entry.color}`}
                 aria-hidden="true"
               />
-              <span class="projects-scene__key-text">
-                {entry.source} {entry.arrow} {entry.target}
-                <span class="projects-scene__key-kind">— {entry.kindLabel}</span>
-              </span>
+              <span class="projects-scene__key-text">{entry.kindLabel}</span>
             </li>
           ))
         }
