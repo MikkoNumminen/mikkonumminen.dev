@@ -38,8 +38,9 @@ TODO.md
 NOTES.md
 .notes/
 
-# AI tooling
-.claude/
+# AI tooling — keep settings.json tracked; exclude personal/transient paths
+.claude/worktrees/
+.claude/*.md
 .cursor/
 .aider*
 .continue/
