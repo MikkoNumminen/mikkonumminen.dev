@@ -120,16 +120,21 @@ const voiceSrc = `/audio/voice-landing-${locale}.mp3`;
 
     // Plays from the start. Cancels any pending idle timer first so
     // a manual play and an idle-fired play can't end up double-stacked.
+    // `currentTime` / `volume` writes are inside the try block because a
+    // 404'd `<source>` leaves the element at HAVE_NOTHING and Safari
+    // throws `InvalidStateError` on the seek — without the wrap that
+    // surfaces as an unhandled promise rejection on locales that don't
+    // have a recording yet.
     const playFresh = async (): Promise<void> => {
       if (!wantOn) return;
       cancelIdleTimer();
-      voice.currentTime = 0;
-      voice.volume = computeVolume();
       try {
+        voice.currentTime = 0;
+        voice.volume = computeVolume();
         await voice.play();
         if (!wantOn) voice.pause();
       } catch {
-        /* autoplay blocked — toggle-on retries via the state listener */
+        /* autoplay blocked, source missing, or play interrupted */
       }
     };
 
@@ -138,12 +143,12 @@ const voiceSrc = `/audio/voice-landing-${locale}.mp3`;
     // erase the "you only missed half a sentence" continuity.
     const playResume = async (): Promise<void> => {
       if (!wantOn) return;
-      voice.volume = computeVolume();
       try {
+        voice.volume = computeVolume();
         await voice.play();
         if (!wantOn) voice.pause();
       } catch {
-        /* autoplay blocked / play interrupted */
+        /* autoplay blocked, source missing, or play interrupted */
       }
     };
 
