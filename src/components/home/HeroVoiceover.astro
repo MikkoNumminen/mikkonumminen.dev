@@ -65,8 +65,14 @@ const voiceSrc = `/audio/voice-landing-${locale}.mp3`;
   // sessionStorage user-wants-off restoration that happened above us
   // in the DOM. The custom event below covers subsequent changes.
   const bgAudio = document.querySelector<HTMLElement>('.bg-audio');
+  // Honor reduced-motion: skip the narration entirely. Music keeps
+  // playing (BackgroundAudio doesn't gate on RM) and the sound toggle
+  // still controls it; we just don't add a recurring spoken layer on
+  // top for users who've opted out of attention-grabbing content.
+  // Mirrors the same gate in ProjectsVoiceover.astro.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  if (voice && bgAudio) {
+  if (voice && bgAudio && !reducedMotion) {
     // Volume the voice *should* be at right now, mirroring the music's
     // scroll-driven curve so the two tracks fade together rather than
     // one of them sitting weirdly at full volume after a scroll.
