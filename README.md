@@ -19,6 +19,12 @@ Page-to-page navigation triggers a canvas particle dissolve coloured to the dest
 
 Available in English, Finnish, and Swedish — served from `/`, `/fi`, and `/sv` respectively. English is the default locale and is served without a prefix. Translations live under `src/i18n/locales/`.
 
+## Audio
+
+A looping music bed plays across every page, dual-decked and crossfaded so the loop join is inaudible. On `/` and `/projects` a locale-specific voiceover narration is layered on top of the music. A single floating **sound on/off** button in `BackgroundAudio.astro` controls both tracks via a custom `bg-audio:state` event; on/off preference and music playhead persist across navigation through `sessionStorage`. Voice clips don't autostart — they kick in after the audio toggle resolves and recycle on a 50-second idle window so an active visitor isn't re-narrated at. Both narration layers respect `prefers-reduced-motion: reduce` and stay silent; music still plays.
+
+Assets live in [`public/audio/`](public/audio/) and are keyed by locale: `voice-landing-{en|fi|sv}.mp3` (home) and `voice-projects-{en|fi|sv}.mp3` (galaxy view). Locales without a recording 404 the audio element silently and the page stays usable.
+
 ## Tech stack
 
 - [Astro](https://astro.build/) — static site generator with island architecture
@@ -72,7 +78,7 @@ scripts/          Build helpers (build-og.mjs)
 
 - Three.js is dynamically imported and only loaded on the pages that need it
 - Three.js scenes are skipped entirely on small screens and when `prefers-reduced-motion: reduce` is set, with a static fallback
-- All animations respect `prefers-reduced-motion`
+- All animations respect `prefers-reduced-motion`; the home and projects voiceovers also skip narration on RM (music still plays)
 - Skip-link, semantic landmarks, ARIA labels, focus-visible rings per theme
 - All Three.js resources are explicitly disposed on `beforeunload`
 
