@@ -18,12 +18,13 @@
 // the right tradeoff is full sampling. Bump down only if traffic grows past
 // the cap.
 //
-// Privacy: Do Not Track is honored (skip init entirely). No replay, no
-// session recording, no PII capture beyond Sentry's defaults (URL, browser,
-// stack trace).
+// Privacy: Do Not Track is honored (skip init entirely). `sendDefaultPii`
+// is explicitly false so Sentry does not attach the client IP to events —
+// material for EU/GDPR posture. No replay, no session recording.
 //
-// CSP: connect-src must include https://*.sentry.io and
-// https://*.ingest.sentry.io for the beacon to land. See vercel.json.
+// CSP: connect-src must include https://*.ingest.sentry.io for the beacon
+// to land (SDK v10 routes all traffic through *.ingest.*; the bare
+// *.sentry.io entry from older SDKs is no longer needed). See vercel.json.
 
 import * as Sentry from '@sentry/browser';
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals';
@@ -78,6 +79,10 @@ export function initObservability(): void {
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
+    // Suppress the default IP-address capture for EU/GDPR posture. Errors
+    // and Web Vitals still flow; only the client IP is dropped from event
+    // envelopes.
+    sendDefaultPii: false,
     // browserTracingIntegration auto-creates a pageload transaction so Web
     // Vitals always have a span to attach attributes to. Without it, vitals
     // fall through to the breadcrumb fallback and aren't chartable.
