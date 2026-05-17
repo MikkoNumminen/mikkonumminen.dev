@@ -30,7 +30,7 @@ The codebase is in markedly better shape than a typical portfolio project. TypeS
 
 ### Type-system escape hatches
 
-`grep -rnE ': any|as any|@ts-ignore|@ts-expect-error|@ts-nocheck'` returned **zero results** across all of `src/`. Clean.
+`grep -rnE ': any|as any|@ts-ignore|@ts-expect-error|@ts-nocheck'` returned **zero results** across all of [`src/`](src/). Clean.
 
 ### Non-null assertions (`!.`)
 
@@ -38,10 +38,10 @@ Four occurrences, all justified:
 
 | File | Line | Pattern | Verdict |
 |------|------|---------|---------|
-| `src/lib/three/projectsScene.ts` | 351 | `hits[0]!.object.userData.projectId as string \| undefined` | Load-bearing: `hits.length > 0` guard is on the preceding line; `noUncheckedIndexedAccess` forces the `!`. |
-| `src/lib/three/projectsScene.ts` | 431 | `sun.glowMaterial.uniforms.intensity!.value` | Sloppy — `!` suppresses a type-system warning about an index-signature lookup on `uniforms: Record<string, IUniform>`. The comment next to it (`// ShaderMaterial uniforms are typed as Record<string, IUniform>; the 'intensity' key is set in createGlowMaterial so the lookup is safe.`) is honest but the design is fragile: if the uniform is ever renamed in `createGlowMaterial` this silently breaks. |
-| `src/lib/three/projectsScene.ts` | 485 | Same pattern as line 351 — `hits[0]!.object.userData...` inside `!selected` raycast block with `hits.length > 0` guard. | Justified. |
-| `src/page-content/HomePage.astro` | 33 | `s.split(':')[0]!.trim()` | Load-bearing: `split(':')` on a non-empty string always yields at least one element; `noUncheckedIndexedAccess` forces the `!`. |
+| [`src/lib/three/projectsScene.ts`](src/lib/three/projectsScene.ts) | 351 | `hits[0]!.object.userData.projectId as string \| undefined` | Load-bearing: `hits.length > 0` guard is on the preceding line; `noUncheckedIndexedAccess` forces the `!`. |
+| [`src/lib/three/projectsScene.ts`](src/lib/three/projectsScene.ts) | [431](src/lib/three/projectsScene.ts#L431) | `sun.glowMaterial.uniforms.intensity!.value` | Sloppy — `!` suppresses a type-system warning about an index-signature lookup on `uniforms: Record<string, IUniform>`. The comment next to it (`// ShaderMaterial uniforms are typed as Record<string, IUniform>; the 'intensity' key is set in createGlowMaterial so the lookup is safe.`) is honest but the design is fragile: if the uniform is ever renamed in `createGlowMaterial` this silently breaks. |
+| [`src/lib/three/projectsScene.ts`](src/lib/three/projectsScene.ts) | [485](src/lib/three/projectsScene.ts#L485) | Same pattern as line 351 — `hits[0]!.object.userData...` inside `!selected` raycast block with `hits.length > 0` guard. | Justified. |
+| [`src/page-content/HomePage.astro`](src/page-content/HomePage.astro) | [33](src/page-content/HomePage.astro#L33) | `s.split(':')[0]!.trim()` | Load-bearing: `split(':')` on a non-empty string always yields at least one element; `noUncheckedIndexedAccess` forces the `!`. |
 
 **Finding (LOW):** `projectsScene.ts:431` — `uniforms.intensity!.value` — is the one assertion worth flagging as sloppy. The proper fix is to type `createGlowMaterial`'s return as a narrowed interface that includes `intensity: IUniform<number>` instead of relying on a runtime assumption.
 
@@ -51,8 +51,8 @@ Two `as unknown as` casts exist:
 
 | File | Line | Pattern | Verdict |
 |------|------|---------|---------|
-| `src/lib/three/buildTitle.ts` | 98 | `(font as unknown as { data: FontDataShape }).data` | Three.js's `Font` type doesn't expose `.data`, but the underlying JSON structure does. The cast is well-documented with an interface `FontDataShape`. Justified, but brittle against Three.js upgrades. |
-| `src/lib/three/projects/buildPlanetTexture.ts` | 207 | `stops.map(...) as unknown as readonly [Rgb, Rgb, Rgb, Rgb]` | Sloppy — the function generates exactly 4 stops but TypeScript can't infer the tuple width from `.map()`. A typed `const stops = [a, b, c, d] as const` literal with explicit indices would avoid the cast entirely. |
+| [`src/lib/three/buildTitle.ts`](src/lib/three/buildTitle.ts) | [98](src/lib/three/buildTitle.ts#L98) | `(font as unknown as { data: FontDataShape }).data` | Three.js's `Font` type doesn't expose `.data`, but the underlying JSON structure does. The cast is well-documented with an interface `FontDataShape`. Justified, but brittle against Three.js upgrades. |
+| [`src/lib/three/projects/buildPlanetTexture.ts`](src/lib/three/projects/buildPlanetTexture.ts) | [207](src/lib/three/projects/buildPlanetTexture.ts#L207) | `stops.map(...) as unknown as readonly [Rgb, Rgb, Rgb, Rgb]` | Sloppy — the function generates exactly 4 stops but TypeScript can't infer the tuple width from `.map()`. A typed `const stops = [a, b, c, d] as const` literal with explicit indices would avoid the cast entirely. |
 
 ---
 
@@ -291,14 +291,14 @@ There is also a comment in `projects-scene.css:446` that mentions `!important` i
 ## Findings Summary by Severity
 
 ### Medium (1)
-- **M1 — Test coverage reality** (`src/i18n/locales/en.ts:8`): "1828+ tests" tagline contextually misrepresents this repo. Audio state machine and terminal dispatch are testable today with mocks — add tests or qualify the claim.
+- **I-MI1 — Test coverage reality** ([`src/i18n/locales/en.ts:8`](src/i18n/locales/en.ts#L8)): "1828+ tests" tagline contextually misrepresents this repo. Audio state machine and terminal dispatch are testable today with mocks — add tests or qualify the claim.
 
 ### Low (5)
-- **L1 — `noPropertyAccessFromIndexSignature` missing** (`tsconfig.json`): Only strict-family flag not enabled. Low practical risk given current code patterns; add it for completeness.
-- **L2 — Sloppy non-null assertion** (`projectsScene.ts:431`): `uniforms.intensity!.value` — type `createGlowMaterial`'s return with an explicit `intensity` uniform to remove this.
-- **L3 — `as unknown as` cast in buildPlanetTexture** (`buildPlanetTexture.ts:207`): Use a typed literal tuple instead of casting `.map()` result.
-- **L4 — Copy-pasted visibility pause lifecycle** (`homeScene.ts:870–895`, `projectsScene.ts:584–608`): Identical `visibilitychange` subscription block; extract into `createOffscreenPauser` or a new helper.
-- **L5 — `TARGET_FRAME_MS` constant duplicated** (`homeScene.ts:708`, `projectsScene.ts:412`): Move to a shared `src/lib/three/constants.ts`.
+- **I-NI1 — `noPropertyAccessFromIndexSignature` missing** ([`tsconfig.json`](tsconfig.json)): Only strict-family flag not enabled. Low practical risk given current code patterns; add it for completeness.
+- **I-NI2 — Sloppy non-null assertion** ([`src/lib/three/projectsScene.ts:431`](src/lib/three/projectsScene.ts#L431)): `uniforms.intensity!.value` — type `createGlowMaterial`'s return with an explicit `intensity` uniform to remove this.
+- **I-NI3 — `as unknown as` cast in buildPlanetTexture** ([`src/lib/three/projects/buildPlanetTexture.ts:207`](src/lib/three/projects/buildPlanetTexture.ts#L207)): Use a typed literal tuple instead of casting `.map()` result.
+- **I-NI4 — Copy-pasted visibility pause lifecycle** ([`src/lib/three/homeScene.ts:870`](src/lib/three/homeScene.ts#L870)–895, [`src/lib/three/projectsScene.ts:584`](src/lib/three/projectsScene.ts#L584)–608): Identical `visibilitychange` subscription block; extract into `createOffscreenPauser` or a new helper.
+- **I-NI5 — `TARGET_FRAME_MS` constant duplicated** ([`src/lib/three/homeScene.ts:708`](src/lib/three/homeScene.ts#L708), [`src/lib/three/projectsScene.ts:412`](src/lib/three/projectsScene.ts#L412)): Move to a shared `src/lib/three/constants.ts`.
 
 ### Info / Positive (6)
 - **I1** — Zero `as any`, `@ts-ignore`, `@ts-expect-error` escapes across all of `src/`.

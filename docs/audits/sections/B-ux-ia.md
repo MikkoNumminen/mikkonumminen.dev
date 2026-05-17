@@ -22,9 +22,9 @@ None identified.
 
 ### Majors
 
-#### M-1: `/projects` — no keyboard path to the 3D scene; canvas is unreachable from keyboard [judgment]
+#### B-MA1: `/projects` — no keyboard path to the 3D scene; canvas is unreachable from keyboard [judgment]
 
-**Files:** `src/page-content/ProjectsPage.astro:38`, `src/lib/three/projectsScene.ts:267–356`
+**Files:** [`src/page-content/ProjectsPage.astro:38`](src/page-content/ProjectsPage.astro#L38), [`src/lib/three/projectsScene.ts:267`](src/lib/three/projectsScene.ts#L267)–356
 
 **Evidence:** The WebGL canvas (`#projects-canvas`) has `aria-hidden="true"` and no `tabindex`. The scene's drag/click handlers are pointer-only (`pointerdown`, `wheel`, `click`). There is no keyboard equivalent for orbit-rotate, scroll-zoom, or click-to-select-planet. The side-panel list (`[data-list]`) is keyboard-reachable (it contains `<button>` elements) and triggers `selectById` on click, which also drives `drawer.open()` — so *opening a project* is possible from the keyboard. However, *exploring the solar system* (rotate, zoom, discovering which planets are visible) is not. A user who cannot use a pointer has one path: read the side-panel list in DOM order.
 
@@ -32,9 +32,9 @@ None identified.
 
 ---
 
-#### M-2: `/projects` — time-to-first-project-read exceeds 15 s for a cautious first-time visitor
+#### B-MA2: `/projects` — time-to-first-project-read exceeds 15 s for a cautious first-time visitor
 
-**Files:** `src/lib/projects/boot.ts:22–62`, `src/page-content/ProjectsPage.astro:158–295`
+**Files:** [`src/lib/projects/boot.ts:22`](src/lib/projects/boot.ts#L22)–62, [`src/page-content/ProjectsPage.astro:158`](src/page-content/ProjectsPage.astro#L158)–295
 
 **Evidence:** The Three.js scene is deferred behind an interaction gate (`scheduleProjectsSceneBoot`). Boot fires on the first of: `scroll`, `mousemove`, `touchstart`, `keydown`, `pointerdown` — or a 2 000 ms fallback timer. After the interaction event the dynamic `import('../lib/three/projectsScene')` must resolve (39 kB raw / 14 kB gzip, cold-cache), Three.js must initialise (planets placed, animation loop started), and only then is the canvas interactive.
 
@@ -48,9 +48,9 @@ However, the *hover prompt* (legend text "hover / click / drag / scroll") is vis
 
 ### Minors
 
-#### N-1: Four orthogonal interaction models — no shared grammar [judgment]
+#### B-MI1: Four orthogonal interaction models — no shared grammar [judgment]
 
-**Files:** `src/components/home/NavCards.astro`, `src/lib/three/projectsScene.ts`, `src/lib/gsap/experienceTimeline.ts`, `src/lib/terminal/terminal.ts`
+**Files:** [`src/components/home/NavCards.astro`](src/components/home/NavCards.astro), [`src/lib/three/projectsScene.ts`](src/lib/three/projectsScene.ts), [`src/lib/gsap/experienceTimeline.ts`](src/lib/gsap/experienceTimeline.ts), [`src/lib/terminal/terminal.ts`](src/lib/terminal/terminal.ts)
 
 **Evidence:**
 
@@ -69,9 +69,9 @@ This is a deliberate artistic choice — the site presents itself as four chapte
 
 ---
 
-#### N-2: Side-panel "Jump to project" list — visible immediately but visually deprioritised
+#### B-MI2: Side-panel "Jump to project" list — visible immediately but visually deprioritised
 
-**Files:** `src/styles/projects-scene.css:185–209`, `src/page-content/ProjectsPage.astro:54–76`
+**Files:** [`src/styles/projects-scene.css:185`](src/styles/projects-scene.css#L185)–209, [`src/page-content/ProjectsPage.astro:54`](src/page-content/ProjectsPage.astro#L54)–76
 
 **Evidence:**
 
@@ -101,9 +101,9 @@ The legend box (top-right, `top: 4.5rem`) with "hover / click / drag / scroll" r
 
 ---
 
-#### N-3: Drawer browser-back path missing
+#### B-MI3: Drawer browser-back path missing
 
-**Files:** `src/lib/projects/drawer.ts:204–261`
+**Files:** [`src/lib/projects/drawer.ts:204`](src/lib/projects/drawer.ts#L204)–261
 
 **Evidence:** The drawer supports: X button (`closeBtn`), ESC key (`onEscape`), click-outside (`onDocumentClick`). It does not listen on `popstate`. On mobile Chrome, pressing the hardware back button while the drawer is open navigates the page away from `/projects` rather than closing the drawer. This is a common expectation: dialogs/drawers intercept the back gesture via `history.pushState` + `popstate`.
 
@@ -120,9 +120,9 @@ Focus return on close is correctly implemented (`lastFocused.focus()`). The `pre
 
 ---
 
-#### N-4: `/experience` — timeline entries are scroll-revealed but have no keyboard mechanism to jump between them
+#### B-MI4: `/experience` — timeline entries are scroll-revealed but have no keyboard mechanism to jump between them
 
-**Files:** `src/components/experience/TimelineContent.astro:60–100`, `src/lib/gsap/experienceTimeline.ts` (not read directly — inferred from page structure)
+**Files:** [`src/components/experience/TimelineContent.astro:60`](src/components/experience/TimelineContent.astro#L60)–100, [`src/lib/gsap/experienceTimeline.ts`](src/lib/gsap/experienceTimeline.ts) (not read directly — inferred from page structure)
 
 **Evidence:** The timeline `<ol>` contains `<li data-timeline-entry>` elements. They are static HTML with no `tabindex`, no focusable children by default (unless a lesson contains a link). The goat climber and parallax layers are scroll-driven. There is no "next entry" / "previous entry" keyboard shortcut announced on the page. A screen-reader user will read the entries in DOM order (correct), but a sighted keyboard user has no way to snap the parallax view to a specific entry.
 
@@ -130,9 +130,9 @@ Focus return on close is correctly implemented (`lastFocused.focus()`). The `pre
 
 ---
 
-#### N-5: Page transition has no reduced-motion fallback beyond "do nothing"
+#### B-MI5: Page transition has no reduced-motion fallback beyond "do nothing"
 
-**Files:** `src/lib/transitions/pageTransition.ts:664–665`
+**Files:** [`src/lib/transitions/pageTransition.ts:664`](src/lib/transitions/pageTransition.ts#L664)–665
 
 **Evidence:**
 
@@ -148,9 +148,9 @@ When `prefers-reduced-motion` is set, `initPageTransitions()` returns immediatel
 
 ---
 
-#### N-6: Hero scroll-hint is `aria-hidden="true"` — no programmatic scroll signal for AT users
+#### B-MI6: Hero scroll-hint is `aria-hidden="true"` — no programmatic scroll signal for AT users
 
-**Files:** `src/components/home/Hero.astro:38–53`
+**Files:** [`src/components/home/Hero.astro:38`](src/components/home/Hero.astro#L38)–53
 
 **Evidence:**
 
@@ -169,17 +169,17 @@ The animated scroll indicator (mouse SVG with bouncing dot) and its text label a
 
 ### Nits
 
-#### Nit-1: Legend box (`hover / click / drag / scroll`) uses `aria-hidden="true"` — fine, but consider whether it belongs in a `<details>` for keyboard discovery
+#### B-NI1: Legend box (`hover / click / drag / scroll`) uses `aria-hidden="true"` — fine, but consider whether it belongs in a `<details>` for keyboard discovery
 
-**Files:** `src/page-content/ProjectsPage.astro:42–47`
+**Files:** [`src/page-content/ProjectsPage.astro:42`](src/page-content/ProjectsPage.astro#L42)–47
 
 The legend is decorative chrome for sighted mouse users. Hiding it from the AT is intentional (the side-panel list is the AT surface). No action required; noted for completeness.
 
 ---
 
-#### Nit-2: Terminal `<kbd>` hints in the footer are `aria-hidden="true"`
+#### B-NI2: Terminal `<kbd>` hints in the footer are `aria-hidden="true"`
 
-**Files:** `src/components/contact/Terminal.astro:63–67`
+**Files:** [`src/components/contact/Terminal.astro:63`](src/components/contact/Terminal.astro#L63)–67
 
 ```astro
 <div class="terminal__hints" aria-hidden="true">
@@ -193,9 +193,9 @@ The terminal input itself has `aria-label` and the boot sequence produces access
 
 ---
 
-#### Nit-3: `onCanvasPointerDown` in projectsScene guards `e.button !== 0` for mouse but not for touch
+#### B-NI3: `onCanvasPointerDown` in projectsScene guards `e.button !== 0` for mouse but not for touch
 
-**Files:** `src/lib/three/projectsScene.ts:268–269`
+**Files:** [`src/lib/three/projectsScene.ts:268`](src/lib/three/projectsScene.ts#L268)–269
 
 ```typescript
 if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -205,9 +205,9 @@ Touch events have `button === 0` by spec, so this guard is correct. Noted for cl
 
 ---
 
-#### Nit-4: `data-transition="false"` escape hatch is undocumented
+#### B-NI4: `data-transition="false"` escape hatch is undocumented
 
-**Files:** `src/lib/transitions/pageTransition.ts:112–113`
+**Files:** [`src/lib/transitions/pageTransition.ts:112`](src/lib/transitions/pageTransition.ts#L112)–113
 
 Any anchor with `data-transition="false"` bypasses the particle transition. Useful for external-looking internal links. Not documented in comments; easy to forget if future contributors add links. Low priority.
 

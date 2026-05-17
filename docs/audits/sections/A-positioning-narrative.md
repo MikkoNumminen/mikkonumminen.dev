@@ -15,9 +15,9 @@ All citations are source files in the worktree unless noted as `dist/index.html`
 
 ### BLOCKERS
 
-#### B-1: JSON-LD `jobTitle` is populated from narrative copy, not a job title
+#### A-BL1: JSON-LD `jobTitle` is populated from narrative copy, not a job title
 
-**File:** `src/page-content/HomePage.astro:44`
+**File:** [`src/page-content/HomePage.astro:44`](src/page-content/HomePage.astro#L44)
 **Evidence:**
 ```js
 jobTitle: t.intro.heading.replace(/\.$/, ''),
@@ -34,9 +34,9 @@ This is the value Google and LinkedIn read when a recruiter pastes the URL into 
 
 ### MAJORS
 
-#### M-1: Time-to-understanding is deferred past the hero entirely
+#### A-MA1: Time-to-understanding is deferred past the hero entirely
 
-**Files:** `src/components/home/Hero.astro`, `dist/index.html`
+**Files:** [`src/components/home/Hero.astro`](src/components/home/Hero.astro), `dist/index.html`
 
 **Evidence (cold-read, desktop):**
 
@@ -59,18 +59,18 @@ For (c) — proof — there is nothing in the hero. The scroll hint says `"scrol
 
 ---
 
-#### M-2: Headline claims are stated but not linkable — "1828+ tests" and "91.9% coverage"
+#### A-MA2: Headline claims are stated but not linkable — "1828+ tests" and "91.9% coverage"
 
-**Files:** `src/components/home/Intro.astro:29–45`, `src/i18n/locales/en.ts:62–63`, `src/i18n/locales/en.ts:161`
+**Files:** [`src/components/home/Intro.astro:29`](src/components/home/Intro.astro#L29)–45, [`src/i18n/locales/en.ts:62`](src/i18n/locales/en.ts#L62)–63, [`src/i18n/locales/en.ts:161`](src/i18n/locales/en.ts#L161)
 
 **Evidence:**
 
 The Intro section displays `1828+` and `91.9%` as large typographic numbers. Focus section (`en.ts:62`) and project detail for HRM (`en.ts:161`) both repeat these figures. None of these are linked. The HRM planet in `/projects` has a GitHub link (`https://github.com/MikkoNumminen/HRManager`) and a live demo link, but when a recruiter reads `"1828+ tests at 91.9% coverage"` from the home page, there is no path to verify it without already knowing to navigate to Projects, click HRM, then open GitHub, then look at CI. That is a five-step verification chain for a claim positioned as the most prominent proof point on the page.
 
 Additional unlinked figures:
-- `"387 commits"` in Velocity (`en.ts:103`) — no link to the Spacepotatis GitHub
+- `"387 commits"` in Velocity ([`src/i18n/locales/en.ts:103`](src/i18n/locales/en.ts#L103)) — no link to the Spacepotatis GitHub
 - `"~1170 tests"` in Velocity — same issue
-- `"ten audited Claude Code skills"` in Focus item 03 (`en.ts:67`) — references `.claude/skills/` but not a link
+- `"ten audited Claude Code skills"` in Focus item 03 ([`src/i18n/locales/en.ts:67`](src/i18n/locales/en.ts#L67)) — references `.claude/skills/` but not a link
 
 The live demo at `https://hr-manager-pearl.vercel.app` is only surfaced after clicking through to the projects page and clicking the HRM planet. It is invisible on the home page.
 
@@ -78,9 +78,9 @@ The live demo at `https://hr-manager-pearl.vercel.app` is only surfaced after cl
 
 ---
 
-#### M-3: "VUOHITIIMI" is named nowhere on the live site; the narrative claim is invisible to first-time visitors
+#### A-MA3: "VUOHITIIMI" is named nowhere on the live site; the narrative claim is invisible to first-time visitors
 
-**Files:** `src/i18n/locales/en.ts:47`, `README.md:1`
+**Files:** [`src/i18n/locales/en.ts:47`](src/i18n/locales/en.ts#L47), `README.md:1`
 
 **Evidence:**
 
@@ -92,15 +92,15 @@ The README header reads `# mikkonumminen.dev` with a subtitle referencing "VUOHI
 
 ---
 
-#### M-4: `/projects` and `/experience` have no CTA pointing toward conversion
+#### A-MA4: `/projects` and `/experience` have no CTA pointing toward conversion
 
-**Files:** `src/page-content/ProjectsPage.astro`, `src/page-content/ExperiencePage.astro`
+**Files:** [`src/page-content/ProjectsPage.astro`](src/page-content/ProjectsPage.astro), [`src/page-content/ExperiencePage.astro`](src/page-content/ExperiencePage.astro)
 
 **Evidence:**
 
 `/projects` (`ProjectsPage.astro`): The page is a full-screen WebGL solar system with a side panel listing projects. The only navigation affordance is the persistent top nav. There is no bottom section, no footer CTA, no "want to work together?" prompt. After a recruiter finishes exploring the projects, the only path forward is the nav bar or the browser back button.
 
-`/experience` (`TimelineContent.astro:125–129`): The experience page is the exception — it does have a CTA at the summit:
+`/experience` ([`src/components/experience/TimelineContent.astro:125`](src/components/experience/TimelineContent.astro#L125)–129): The experience page is the exception — it does have a CTA at the summit:
 ```html
 <a href="/contact" class="timeline__cta">
   <span class="timeline__cta-text">drop into the terminal →</span>
@@ -116,15 +116,15 @@ This is good. But it is only reachable after scrolling past all timeline entries
 
 ### MINORS
 
-#### m-1: "12-day Spacepotatis" statistic is inconsistently stated
+#### A-MI1: "12-day Spacepotatis" statistic is inconsistently stated
 
-**File:** `src/i18n/locales/en.ts:104`, `103`
+**File:** [`src/i18n/locales/en.ts:104`](src/i18n/locales/en.ts#L104), [`src/i18n/locales/en.ts:103`](src/i18n/locales/en.ts#L103)
 
 **Evidence:**
 
-Velocity section body (`en.ts:102`): `"Spacepotatis went from empty repo to live browser game in two weeks"`
+Velocity section body ([`src/i18n/locales/en.ts:102`](src/i18n/locales/en.ts#L102)): `"Spacepotatis went from empty repo to live browser game in two weeks"`
 
-Velocity stat label (`en.ts:104`): `"days from empty repo to live Spacepotatis"` with `num: '12'`
+Velocity stat label ([`src/i18n/locales/en.ts:104`](src/i18n/locales/en.ts#L104)): `"days from empty repo to live Spacepotatis"` with `num: '12'`
 
 "Two weeks" vs. "12 days" — these are not equivalent. One is rounded up (14 days = 2 weeks), the other is the precise figure. A recruiter who reads both in one scroll will notice the inconsistency. This is minor because they are adjacent and the stat number "12" is the more prominent figure, but the body copy should say "12 days" not "two weeks" to match.
 
@@ -132,24 +132,24 @@ Velocity stat label (`en.ts:104`): `"days from empty repo to live Spacepotatis"`
 
 ---
 
-#### m-2: Project descriptions mention "Stryker mutation testing" only in experience timeline, not in project detail
+#### A-MI2: Project descriptions mention "Stryker mutation testing" only in experience timeline, not in project detail
 
-**File:** `src/i18n/locales/en.ts:280–283`
+**File:** [`src/i18n/locales/en.ts:280`](src/i18n/locales/en.ts#L280)–283
 
 **Evidence:**
 
 The timeline entry for `2026-build` includes a lesson:
 > `"HRM runs Stryker on every PR. 91.9% line coverage means the lines ran; the mutation score means the assertions actually catch bugs."`
 
-This is a meaningful quality signal. But the HRM project detail description (`en.ts:160`) does not mention mutation testing or Stryker. The projects page is where a recruiter would look for technical rigor, but the supporting evidence is buried in the experience timeline.
+This is a meaningful quality signal. But the HRM project detail description ([`src/i18n/locales/en.ts:160`](src/i18n/locales/en.ts#L160)) does not mention mutation testing or Stryker. The projects page is where a recruiter would look for technical rigor, but the supporting evidence is buried in the experience timeline.
 
 **Suggested direction:** Add Stryker/mutation testing to HRM project highlights or description.
 
 ---
 
-#### m-3: AudiobookMaker has no live demo link; its proof of craft is inaccessible
+#### A-MI3: AudiobookMaker has no live demo link; its proof of craft is inaccessible
 
-**File:** `src/data/projects.ts:169–194`
+**File:** [`src/data/projects.ts:169`](src/data/projects.ts#L169)–194
 
 **Evidence:**
 ```ts
@@ -169,9 +169,9 @@ AudiobookMaker ships "as a Windows installer with auto-updates" but there is no 
 
 ### NITS
 
-#### n-1: `strudel-patterns` has no live demo link despite being a "live-coded" project
+#### A-NI1: `strudel-patterns` has no live demo link despite being a "live-coded" project
 
-**File:** `src/data/projects.ts:200–235`
+**File:** [`src/data/projects.ts:200`](src/data/projects.ts#L200)–235
 
 **Evidence:** The description says `"Live-coded electronic music written in Strudel"` but there is no `liveUrl`. Strudel patterns can typically be shared as URLs on the Strudel REPL. A link to even one playable track would substantiate the claim.
 
@@ -179,9 +179,9 @@ AudiobookMaker ships "as a Windows installer with auto-updates" but there is no 
 
 ---
 
-#### n-2 [judgment]: "Spacepotatis" — the name pays for itself
+#### A-NI2 [judgment]: "Spacepotatis" — the name pays for itself
 
-**File:** `src/i18n/locales/en.ts:190`, `src/data/projects.ts:196`
+**File:** [`src/i18n/locales/en.ts:190`](src/i18n/locales/en.ts#L190), [`src/data/projects.ts:196`](src/data/projects.ts#L196)
 
 **Assessment:** "Spacepotatis" (Swedish: "space potato") is unusual but immediately decoded in context: `"browser shooter — your potato vs the galaxy"`. The tagline does the translation work. The name is memorable, consistent with the project's tone (a deliberately campy terminal-boot-to-arcade-combat game), and signals that the creator does not take themselves too seriously. Cognitive load is low because the tagline eliminates ambiguity in one line.
 
@@ -189,9 +189,9 @@ AudiobookMaker ships "as a Windows installer with auto-updates" but there is no 
 
 ---
 
-#### n-3 [judgment]: "Strudel Patterns" — marginally confusing without context
+#### A-NI3 [judgment]: "Strudel Patterns" — marginally confusing without context
 
-**File:** `src/data/projects.ts:225`, `src/i18n/locales/en.ts:201`
+**File:** [`src/data/projects.ts:225`](src/data/projects.ts#L225), [`src/i18n/locales/en.ts:201`](src/i18n/locales/en.ts#L201)
 
 **Assessment:** "Strudel" is the name of a JavaScript pattern engine (a TidalCycles port). For anyone outside the live-coding community, the word reads as the pastry. The description clarifies this in sentence two (`"a JavaScript pattern engine, port of TidalCycles"`), but the tagline `"Algorithmic music in Strudel"` leaves the uninitiated visitor parsing "algorithmic music in pastry" for a beat.
 
@@ -199,7 +199,7 @@ AudiobookMaker ships "as a Windows installer with auto-updates" but there is no 
 
 ---
 
-#### n-4 [judgment]: "VUOHITIIMI" — zero cost because it is invisible to visitors
+#### A-NI4 [judgment]: "VUOHITIIMI" — zero cost because it is invisible to visitors
 
 **File:** Not present on the live site (README-only)
 

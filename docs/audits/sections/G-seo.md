@@ -183,7 +183,7 @@ JSON is syntactically valid and parses without error. No comments or trailing co
 The `jobTitle` field is populated from `t.intro.heading.replace(/\.$/, '')`:
 
 ```typescript
-// src/page-content/HomePage.astro line 44
+// src/page-content/HomePage.astro:44
 jobTitle: t.intro.heading.replace(/\.$/, ''),
 ```
 
@@ -195,7 +195,7 @@ jobTitle: t.intro.heading.replace(/\.$/, ''),
 
 A valid `jobTitle` for a Person schema would be something like `"Full-Stack Developer"` (EN), `"Full-Stack-kehittäjä"` (FI), `"Full-stack-utvecklare"` (SV). The current value will not be recognized as a job title by Google's Rich Results processing and will fail the Rich Results Test. It also reduces the likelihood of appearing in "About this person" knowledge-panel snippets.
 
-**Fix:** Add a `meta.jobTitle` key to each locale file and reference `t.meta.jobTitle` in the schema. Alternatively, derive it from `t.meta.home.title` by extracting the substring after the em-dash.
+**Fix:** Add a `meta.jobTitle` key to each locale file and reference `t.meta.jobTitle` in [`src/page-content/HomePage.astro`](src/page-content/HomePage.astro). Alternatively, derive it from `t.meta.home.title` by extracting the substring after the em-dash.
 
 ### 5.3 JSON-LD url Field Does Not Match Locale
 
@@ -300,7 +300,7 @@ PR #86 (`chore(projects): drop the white 'Projects' title overlay`) intentionall
 
 > "The h1 sat at the top-left of the scene and was redundant with the nav chip plus the document `<title>`."
 
-As a result, **on desktop (viewport > 860 px), the projects page has no visible or in-DOM `<h1>`**. The only `<h1>` element for "Projects" exists inside `.projects-fallback`, which is `display: none` on desktop via CSS media query.
+As a result, **on desktop (viewport > 860 px), [`src/page-content/ProjectsPage.astro`](src/page-content/ProjectsPage.astro) has no visible or in-DOM `<h1>`**. The only `<h1>` element for "Projects" exists inside `.projects-fallback`, which is `display: none` on desktop via CSS media query.
 
 From Google's perspective (Googlebot renders JavaScript but does not run Three.js):
 - It sees the fallback grid (`.projects-fallback` has `display: none` but is present in DOM).
@@ -314,12 +314,10 @@ From Google's perspective (Googlebot renders JavaScript but does not run Three.j
 ### 8.3 Contact Page — Two `<h1>` Elements
 
 `/contact` renders two `<h1>` elements:
-1. `<h1 class="sr-only">Contact</h1>` — screen-reader-only, at line 12 of `Terminal.astro`
-2. `<h1>Contact</h1>` — the visible terminal heading, at line 73 of `Terminal.astro`
+1. `<h1 class="sr-only">Contact</h1>` — screen-reader-only, at [`src/components/contact/Terminal.astro:12`](src/components/contact/Terminal.astro#L12)
+2. `<h1>Contact</h1>` — the visible terminal heading, at [`src/components/contact/Terminal.astro:73`](src/components/contact/Terminal.astro#L73)
 
 Having two `<h1>` elements on a page is an HTML spec violation and an SEO anti-pattern. One is intentionally `sr-only`, so the fix is to demote the visible heading to `<h2>` (or promote the sr-only to be the only `<h1>` and remove the duplicate).
-
-Source: `src/components/contact/Terminal.astro` lines 12 and 73.
 
 ### 8.4 Home Page h1 — Screen-Reader Only
 
@@ -341,39 +339,39 @@ Until the custom domain is promoted:
 
 ## 10. Findings by Severity
 
-### MEDIUM — jobTitle is a marketing slogan, not a job title (JSON-LD)
+### G-MI1 — jobTitle is a marketing slogan, not a job title (JSON-LD)
 
-`src/page-content/HomePage.astro:44` — `t.intro.heading` produces `"Seven repos. They build on each other"` as the `jobTitle` in the Person schema. This will fail Google's Rich Results Test and prevents knowledge-panel eligibility. Fix: dedicate a `meta.jobTitle` locale string (e.g. `"Full-Stack Developer"`).
+[`src/page-content/HomePage.astro:44`](src/page-content/HomePage.astro#L44) — `t.intro.heading` produces `"Seven repos. They build on each other"` as the `jobTitle` in the Person schema. This will fail Google's Rich Results Test and prevents knowledge-panel eligibility. Fix: dedicate a `meta.jobTitle` locale string (e.g. `"Full-Stack Developer"`).
 
-### MEDIUM — Desktop projects page has no h1
+### G-MI2 — Desktop projects page has no h1
 
-`/projects`, `/fi/projects`, `/sv/projects` — the only `<h1>` is inside `.projects-fallback`, which is `display:none` on desktop. A CSS-hidden h1 is not reliably indexed by Google as a primary heading signal. Fix: add `<h1 class="sr-only">` (or locale-equivalent) inside `.projects-scene` in `ProjectsPage.astro`.
+`/projects`, `/fi/projects`, `/sv/projects` — the only `<h1>` is inside `.projects-fallback`, which is `display:none` on desktop. A CSS-hidden h1 is not reliably indexed by Google as a primary heading signal. Fix: add `<h1 class="sr-only">` (or locale-equivalent) inside `.projects-scene` in [`src/page-content/ProjectsPage.astro`](src/page-content/ProjectsPage.astro).
 
-### LOW — Two h1 elements on /contact
+### G-NI1 — Two h1 elements on /contact
 
-`src/components/contact/Terminal.astro` lines 12 and 73. One is sr-only, one is visible — both say "Contact". Demote the visible one to `<h2>` or remove the sr-only duplicate.
+[`src/components/contact/Terminal.astro:12`](src/components/contact/Terminal.astro#L12) and [`src/components/contact/Terminal.astro:73`](src/components/contact/Terminal.astro#L73). One is sr-only, one is visible — both say "Contact". Demote the visible one to `<h2>` or remove the sr-only duplicate.
 
-### LOW — No machine-readable dates anywhere
+### G-NI2 — No machine-readable dates anywhere
 
 No `datePublished`, `dateModified`, or `<time datetime="...">` in any of the 12 pages. The 2026 brand story is human-visible but not structured. Fix: add `"dateModified"` to the Person JSON-LD and `<time>` elements to the experience timeline.
 
-### LOW — Sitemap missing x-default hreflang and lastmod
+### G-NI3 — Sitemap missing x-default hreflang and lastmod
 
-`dist/sitemap-0.xml` omits `hreflang="x-default"` annotations (present in HTML but not sitemap) and has no `<lastmod>` entries. Add a `serialize` hook in `astro.config.mjs` to emit `lastmod` as the build date, and open a feature request / patch for `@astrojs/sitemap` to support `x-default`.
+`dist/sitemap-0.xml` omits `hreflang="x-default"` annotations (present in HTML but not sitemap) and has no `<lastmod>` entries. Add a `serialize` hook in [`astro.config.mjs`](astro.config.mjs) to emit `lastmod` as the build date, and open a feature request / patch for `@astrojs/sitemap` to support `x-default`.
 
-### LOW — OG images are English-only for all locales
+### G-NI4 — OG images are English-only for all locales
 
 All FI and SV pages use the same OG PNG/SVG as their EN counterparts. The images contain English copy. Low impact for a technical/bilingual audience, but worth noting if locale-specific social sharing ever becomes a priority.
 
-### LOW — JSON-LD url does not match locale page
+### G-NI5 — JSON-LD url does not match locale page
 
 The Person schema `url` field always points to the site root (`/`), even on `/fi/` and `/sv/`. Each locale's home page should use its own canonical URL as the `url` value to avoid ambiguity.
 
-### INFO — robots.txt Sitemap directive points to apex domain; canonical/sitemap point to vercel.app subdomain
+### G-NI6 — robots.txt Sitemap directive points to apex domain; canonical/sitemap point to vercel.app subdomain
 
 Intentional and documented. Revisit when custom domain goes live.
 
-### INFO — No structured data on /projects, /experience, /contact
+### G-NI7 — No structured data on /projects, /experience, /contact
 
 Enhancement opportunity only: `SoftwareApplication` items on projects, `WorkExperience` nodes on experience, `ContactPoint` on contact.
 

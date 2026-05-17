@@ -23,10 +23,10 @@ This report extends the baseline measurements with root-cause analysis. The base
 
 ### HIGH
 
-#### H-1: DPR cap regression — resize handler overrides the 1.5 cap with hardcoded 2
+#### E-MA1: DPR cap regression — resize handler overrides the 1.5 cap with hardcoded 2
 
-**File:** `src/lib/three/createResizeHandler.ts` line 21  
-**File:** `src/lib/three/createRenderer.ts` lines 27–28
+**File:** [`src/lib/three/createResizeHandler.ts:21`](src/lib/three/createResizeHandler.ts#L21)  
+**File:** [`src/lib/three/createRenderer.ts:27`](src/lib/three/createRenderer.ts#L27)–28
 
 `createRenderer` correctly caps pixel ratio at 1.5 by default (or 1.0 for `?perf=low`):
 
@@ -45,15 +45,15 @@ This means: on any screen with DPR ≥ 2 (all Retina Macs, most modern Android f
 
 The cap value (1.5) is not forwarded from `createRenderer` to `createResizeHandler`, so the two callers cannot share a single source of truth without refactoring.
 
-**Impact:** The home and projects scenes both use this pairing (`homeScene.ts:645`, `projectsScene.ts:400`). On Retina/HiDPI displays, any resize event — including orientation change on mobile — resets the DPR cap that the entire `perf=low` auto-detect path was designed to enforce.
+**Impact:** The home and projects scenes both use this pairing ([`src/lib/three/homeScene.ts:645`](src/lib/three/homeScene.ts#L645), [`src/lib/three/projectsScene.ts:400`](src/lib/three/projectsScene.ts#L400)). On Retina/HiDPI displays, any resize event — including orientation change on mobile — resets the DPR cap that the entire `perf=low` auto-detect path was designed to enforce.
 
 **Fix:** Pass `maxPixelRatio` as a parameter to `createResizeHandler` (or close over it at call site) and use the same capped value instead of the hardcoded `2`.
 
 ---
 
-#### H-2: `perfOverlay.CYSh3NvJ.js` is 558 kB in dist and contains a full Three.js bundle
+#### E-MA2: `perfOverlay.CYSh3NvJ.js` is 558 kB in dist and contains a full Three.js bundle
 
-**File:** `src/lib/debug/perfOverlay.ts` (import path, not the overlay itself)  
+**File:** [`src/lib/debug/perfOverlay.ts`](src/lib/debug/perfOverlay.ts) (import path, not the overlay itself)  
 **Dist:** `dist/_astro/perfOverlay.CYSh3NvJ.js` — 544.7 kB raw, 143 kB gzipped
 
 The chunk is dynamically imported only when `?debug=perf` is in the URL (guarded by `readPerfFlags()` returning `debugOverlay: true`). Real users never trigger this import. However:
@@ -69,9 +69,9 @@ The `?debug=perf` guard is airtight at runtime — the import call only executes
 
 ### MEDIUM
 
-#### M-1: CLS 0.014 on `/experience` — SVG goat uses `height: auto`
+#### E-MI1: CLS 0.014 on `/experience` — SVG goat uses `height: auto`
 
-**File:** `src/styles/experience-timeline.css` (inlined into `experience.DfHu_pb-.css`)  
+**File:** [`src/styles/experience-timeline.css`](src/styles/experience-timeline.css) (inlined into `experience.DfHu_pb-.css`)  
 **Measurement:** CLS 0.014 on `/experience` and `/experience` locales; 0.000 on `/` and `/projects`
 
 The goat SVG element has `height: auto` in the compiled CSS:
@@ -86,7 +86,7 @@ Neither `/contact` nor `/projects` nor `/` has this SVG. The 0.014 CLS on `/cont
 
 **Fix for `/experience`:** Add explicit `viewBox` dimensions to the goat SVG and set `height: clamp(56px, 7vw, 90px)` directly on the `<svg>` element (matching the `width: clamp(...)` already set on `.goat`). This gives the browser intrinsic dimensions to reserve space before layout.
 
-#### M-2: Music bed at 64 kbps — already compressed, but no Opus alternative shipped
+#### E-MI2: Music bed at 64 kbps — already compressed, but no Opus alternative shipped
 
 **Files:** `dist/audio/devlander.mp3` (3.88 MB), `dist/audio/devlander.ogg` (2.72 MB)  
 **Detected bitrate:** 64 kbps MPEG-1 Layer III, 48 kHz (both files via header read)
@@ -100,11 +100,11 @@ The music bed is already at 64 kbps, which is near the perceptual floor for ster
 
 No Opus (`.opus`) file is shipped. Modern browsers support Opus in a WebM container natively. A `<source type="audio/ogg; codecs=opus">` ahead of the Vorbis `.ogg` source would serve the smaller file to 95%+ of browsers.
 
-**Fix:** Add `devlander.opus` at ~64 kbps Opus quality. Estimated size: ~1.6–1.9 MB (vs 2.72 MB OGG). Add it as the first `<source>` in `BackgroundAudio.astro`.
+**Fix:** Add `devlander.opus` at ~64 kbps Opus quality. Estimated size: ~1.6–1.9 MB (vs 2.72 MB OGG). Add it as the first `<source>` in [`src/components/BackgroundAudio.astro`](src/components/BackgroundAudio.astro).
 
-#### M-3: Font strategy relies entirely on system fallbacks — no web font load, no FOIT risk, but font availability is inconsistent across platforms
+#### E-MI3: Font strategy relies entirely on system fallbacks — no web font load, no FOIT risk, but font availability is inconsistent across platforms
 
-**Files:** `src/styles/global.css` lines 6–7  
+**Files:** [`src/styles/global.css:6`](src/styles/global.css#L6)–7  
 
 ```css
 --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
@@ -123,9 +123,9 @@ There are zero `@font-face` declarations in `src/styles/` and no Google Fonts `<
 
 ### LOW
 
-#### L-1: GSAP ScrollTrigger — scoped correctly, no leaks on unload
+#### E-NI1: GSAP ScrollTrigger — scoped correctly, no leaks on unload
 
-**Files:** `src/lib/gsap/homeTimeline.ts`, `src/lib/gsap/experienceTimeline.ts`
+**Files:** [`src/lib/gsap/homeTimeline.ts`](src/lib/gsap/homeTimeline.ts), [`src/lib/gsap/experienceTimeline.ts`](src/lib/gsap/experienceTimeline.ts)
 
 `homeTimeline.ts` wraps all ScrollTriggers inside a `gsap.context` scope (`createScope`) and tracks owned triggers in an `ownedTriggers` array. The `dispose` path calls `scope.dispose()`, which GSAP uses to kill all tweens and ScrollTriggers created within the scope. The refresh path is scoped: `ownedTriggers.forEach(t => t.refresh())` rather than the global `ScrollTrigger.refresh()` (explicitly noted in a comment at line 107).
 
@@ -138,19 +138,19 @@ There are zero `@font-face` declarations in `src/styles/` and no Google Fonts `<
 
 No stray triggers on unexpected routes. The `?debug=perf` path does not add triggers.
 
-#### L-2: Offscreen pauser verified working on both scenes
+#### E-NI2: Offscreen pauser verified working on both scenes
 
-**File:** `src/lib/utils/createOffscreenPauser.ts`
+**File:** [`src/lib/utils/createOffscreenPauser.ts`](src/lib/utils/createOffscreenPauser.ts)
 
-Both `homeScene.ts` (line 871) and `projectsScene.ts` (line 584) call `createOffscreenPauser`. The implementation uses `IntersectionObserver` with `threshold: 0` — meaning the rAF loop pauses the moment the canvas has zero intersection with the viewport. The resume path guards against double-start (`raf !== 0` check) and respects tab visibility (`document.hidden` check). The pauser handle is disposed in both scene dispose paths.
+Both [`src/lib/three/homeScene.ts:871`](src/lib/three/homeScene.ts#L871) and [`src/lib/three/projectsScene.ts:584`](src/lib/three/projectsScene.ts#L584) call `createOffscreenPauser`. The implementation uses `IntersectionObserver` with `threshold: 0` — meaning the rAF loop pauses the moment the canvas has zero intersection with the viewport. The resume path guards against double-start (`raf !== 0` check) and respects tab visibility (`document.hidden` check). The pauser handle is disposed in both scene dispose paths.
 
 The rAF loop is also paused on `document.visibilitychange` (tab hide). Both pause paths cancel the rAF handle and set `raf = 0`. The resume guard `raf === 0 && pauser.isVisible()` prevents starting while the canvas is still off-screen.
 
 **Confirmed: rAF is genuinely paused when the canvas is off-screen.**
 
-#### L-3: Memory leak analysis — dispose coverage is thorough, one gap in projectsScene
+#### E-NI3: Memory leak analysis — dispose coverage is thorough, one gap in projectsScene
 
-**Files:** `src/lib/three/homeScene.ts` (lines 904–970), `src/lib/three/projectsScene.ts` (lines 631–699)
+**Files:** [`src/lib/three/homeScene.ts:904`](src/lib/three/homeScene.ts#L904)–970, [`src/lib/three/projectsScene.ts:631`](src/lib/three/projectsScene.ts#L631)–699
 
 **homeScene.ts dispose coverage:**
 - All lights disposed individually (`ambient.dispose()`, `keyLight.dispose()`, etc.)
@@ -182,7 +182,7 @@ The rAF loop is also paused on `document.visibilitychange` (tab hide). Both paus
 
 **Overall: No confirmed memory leaks. Dispose coverage is comprehensive.**
 
-#### L-4: Render-blocking resource count is minimal and well-structured
+#### E-NI4: Render-blocking resource count is minimal and well-structured
 
 **Per-route head analysis (from compiled dist):**
 
@@ -198,18 +198,18 @@ The two CSS files per route are the only genuine render-blocking resources. Tota
 
 **One naming oddity:** The shared nav/base CSS is named `contact.CjBxSr16.css` (24.8 kB) but loads on every route, including `/`, `/projects`, and `/experience`. This is an Astro build artifact — the chunk was named after the first route to reference it. Not a bug, but confusing for future auditors.
 
-#### L-5: Three.js claimed to not load on `/contact` — verified CORRECT
+#### E-NI5: Three.js claimed to not load on `/contact` — verified CORRECT
 
-**File:** `src/page-content/ContactPage.astro`  
+**File:** [`src/page-content/ContactPage.astro`](src/page-content/ContactPage.astro)  
 **Dist:** `dist/contact/index.html`
 
 `ContactPage.astro` imports only `initTerminal` (no Three.js). The compiled HTML references only three external scripts: `page.sJrt8mpm.js`, `BaseLayout.js`, and `ContactPage.js`. The only appearance of "three.js" in the contact HTML is the footer text ("built with astro · three.js · gsap"). No `homeScene`, `projectsScene`, or `perfOverlay` chunks are referenced.
 
 **Confirmed: Three.js is not loaded on `/contact`.**
 
-#### L-6: Three.js init cost — homeScene
+#### E-NI6: Three.js init cost — homeScene
 
-**File:** `src/lib/three/homeScene.ts`
+**File:** [`src/lib/three/homeScene.ts`](src/lib/three/homeScene.ts)
 
 Scene objects created at init (pre-first-frame):
 - **Geometries:** N letter geometries (created by `buildTitle` via `FontLoader`/`TextGeometry` — one per character of "MIKKO\nNUMMINEN" = 11 geometries)
@@ -223,9 +223,9 @@ The font is the primary async gate. The scene does not allocate GPU resources un
 
 **Galaxy star count:** 900 stars (450 on `?perf=low`). Each star is a point in a single `BufferGeometry` with a custom `ShaderMaterial` — a single draw call regardless of star count. Minimal GPU overhead.
 
-#### L-7: Three.js init cost — projectsScene + procedural planet textures
+#### E-NI7: Three.js init cost — projectsScene + procedural planet textures
 
-**File:** `src/lib/three/projects/buildPlanetTexture.ts`
+**File:** [`src/lib/three/projects/buildPlanetTexture.ts`](src/lib/three/projects/buildPlanetTexture.ts)
 
 Per-planet texture size: **256×128 pixels** each (note in source: "down from 384×192 — cuts per-pixel work to ~45%"). Each planet gets 2 textures (diffuse + bump), so 7 projects = 14 canvas-painted textures at 256×128.
 
@@ -237,28 +237,28 @@ This runs synchronously during `createProjectsScene`. With 7 planets, this is 14
 
 **No OffscreenCanvas / Worker offloading**: the textures are built on the main thread using `document.createElement('canvas')`. This is a known limitation and the source comment acknowledges it.
 
-#### L-8: `beforeunload` dispose listeners verified on all Three.js pages
+#### E-NI8: `beforeunload` dispose listeners verified on all Three.js pages
 
 **Files:**
-- `src/page-content/HomePage.astro` line 163: `window.addEventListener('beforeunload', () => { sceneHandle?.dispose(); })`
-- `src/page-content/ProjectsPage.astro` line 291: `window.addEventListener('beforeunload', () => { bootHandle.cancel(); sceneHandle?.dispose(); })`
-- `src/page-content/ExperiencePage.astro` line 47: `window.addEventListener('beforeunload', () => handle?.dispose())`
+- [`src/page-content/HomePage.astro:163`](src/page-content/HomePage.astro#L163): `window.addEventListener('beforeunload', () => { sceneHandle?.dispose(); })`
+- [`src/page-content/ProjectsPage.astro:291`](src/page-content/ProjectsPage.astro#L291): `window.addEventListener('beforeunload', () => { bootHandle.cancel(); sceneHandle?.dispose(); })`
+- [`src/page-content/ExperiencePage.astro:47`](src/page-content/ExperiencePage.astro#L47): `window.addEventListener('beforeunload', () => handle?.dispose())`
 
 All Three.js pages call `.dispose()` on `beforeunload`. `/contact` has no Three.js scene to dispose; it calls `cleanup` on `beforeunload` to stop the MCC animation loop.
 
 **Confirmed: "All Three.js resources explicitly disposed on beforeunload" — claim is accurate.**
 
-#### L-9: No self-hosted fonts, no FOIT, no font-display setting needed
+#### E-NI9: No self-hosted fonts, no FOIT, no font-display setting needed
 
-**Files:** `src/styles/global.css`, `dist/fonts/`
+**Files:** [`src/styles/global.css`](src/styles/global.css), `dist/fonts/`
 
 `dist/fonts/` contains only `helvetiker_bold.typeface.json` (a JSON-encoded Three.js font used for the 3D title geometry in homeScene). This is not a CSS web font. No `@font-face` declarations exist in any CSS file.
 
 `Inter` and `JetBrains Mono` are declared as first choices in CSS custom properties but are not loaded — the site falls back to `system-ui` / `ui-monospace` on platforms that don't have them installed. There is no FOIT risk and no font-swap CLS. Font loading is not a performance concern.
 
-#### L-10: `?debug=perf` URL guard is airtight at runtime
+#### E-NI10: `?debug=perf` URL guard is airtight at runtime
 
-**File:** `src/lib/debug/perfFlags.ts` lines 98–99
+**File:** [`src/lib/debug/perfFlags.ts:98`](src/lib/debug/perfFlags.ts#L98)–99
 
 ```ts
 cached = {
@@ -267,7 +267,7 @@ cached = {
 };
 ```
 
-Both `homeScene.ts` (line 694) and `projectsScene.ts` (line 116) gate the `mountPerfOverlay` call on `perfFlags.debugOverlay`. `perfOverlay.CYSh3NvJ.js` is only imported inside a ternary:
+Both [`src/lib/three/homeScene.ts:694`](src/lib/three/homeScene.ts#L694) and [`src/lib/three/projectsScene.ts:116`](src/lib/three/projectsScene.ts#L116) gate the `mountPerfOverlay` call on `perfFlags.debugOverlay`. `perfOverlay.CYSh3NvJ.js` is only imported inside a ternary:
 
 ```ts
 const perfOverlay = perfFlags.debugOverlay

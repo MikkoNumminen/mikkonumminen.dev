@@ -10,8 +10,8 @@
 
 ### Implementation
 
-Single init module: `src/lib/observability/initObservability.ts` (110 lines).
-Called once from `src/layouts/BaseLayout.astro:214`, so every route is covered.
+Single init module: [`src/lib/observability/initObservability.ts`](src/lib/observability/initObservability.ts) (110 lines).
+Called once from [`src/layouts/BaseLayout.astro:214`](src/layouts/BaseLayout.astro#L214), so every route is covered.
 SDK: `@sentry/browser` (not `@sentry/astro`) + `web-vitals@5.2.0`.
 
 ### What is tracked
@@ -39,7 +39,7 @@ traffic levels; the comment directs the reader to dial it back if traffic grows.
 
 ### DSN gating
 
-Lines 75–76:
+[`src/lib/observability/initObservability.ts:75`](src/lib/observability/initObservability.ts#L75)–76:
 ```ts
 const dsn = import.meta.env[DSN_ENV_KEY] as string | undefined;
 if (!dsn) return;
@@ -51,7 +51,7 @@ console noise. The gate is solid.
 
 ### Do Not Track
 
-Lines 73 and 33–41: `dntEnabled()` checks both `navigator.doNotTrack` and
+[`src/lib/observability/initObservability.ts:33`](src/lib/observability/initObservability.ts#L33)–41 and line 73: `dntEnabled()` checks both `navigator.doNotTrack` and
 `window.doNotTrack` for the values `'1'` and `'yes'`. If either is set, the
 function returns before `Sentry.init` is called — meaning zero SDK
 initialisation, zero beacons. The README claim is accurate; the code honors it
@@ -164,7 +164,7 @@ zero cost.
 
 ## 5. manifest.webmanifest Validity
 
-File: `public/manifest.webmanifest`
+File: [`public/manifest.webmanifest`](public/manifest.webmanifest)
 
 | Required field | Present? | Value |
 |----------------|----------|-------|
@@ -224,7 +224,7 @@ immediately activates) would unlock PWA install if that becomes desirable.
 
 ## 7. Deploy Posture (CI + Vercel)
 
-File: `.github/workflows/ci.yml`
+File: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
 The CI job (`check`) runs on both `push` to `master` AND `pull_request`. Steps:
 
@@ -342,31 +342,31 @@ story for this site is as good as it can practically be.
 
 ## Findings by Severity
 
-### Medium — CI does not hard-gate Vercel deploys
+### K-MI1 — CI does not hard-gate Vercel deploys
 A push that breaks `npm test` or `npm run typecheck` still deploys to production
 because Vercel's webhook fires concurrently with CI, not after it. Branch
 protection rules with required-status-checks on `master` are not verifiable from
 this audit (dashboard setting) but are likely absent. **Fix:** enable a
 `master` branch protection rule requiring the `check` job to pass, or use
 Vercel's "Ignored Build Step" to defer deployment until CI is green.
-(`.github/workflows/ci.yml`)
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml))
 
-### Low — IP address sent to Sentry without suppression
+### K-NI1 — IP address sent to Sentry without suppression
 `Sentry.init` does not set `sendDefaultPii: false`, so the client's IP address
 is forwarded to Sentry (a US company) in the HTTP envelope. For EU/Finnish
 visitors this is a personal-data transfer without explicit consent or documented
 legitimate-interest basis. **Fix:** add `sendDefaultPii: false` to `Sentry.init`
-in `src/lib/observability/initObservability.ts:78`. This removes the IP with
+in [`src/lib/observability/initObservability.ts:78`](src/lib/observability/initObservability.ts#L78). This removes the IP with
 zero functional impact on error tracking or Web Vitals reporting.
 
-### Low — Sentry is fire-and-forget; no alert rules documented
+### K-NI2 — Sentry is fire-and-forget; no alert rules documented
 ADR 0001 motivates Sentry as a MTTD reducer but does not commit to any review
 cadence or alert configuration. Without at least a "new issue" email alert, the
 data accumulates unread and the MTTD benefit is not realised.
 **Fix:** configure one Sentry alert rule: notify owner email on first occurrence
 of any new issue. Takes ~2 minutes in the Sentry dashboard.
 
-### Low — No source maps uploaded
+### K-NI3 — No source maps uploaded
 Stack traces in Sentry are unsymbolicated (minified function names, hashed
 filenames). ADR 0001 acknowledges this as an open follow-up. Until source maps
 are uploaded (`SENTRY_AUTH_TOKEN` + `@sentry/astro` or Sentry webpack plugin),

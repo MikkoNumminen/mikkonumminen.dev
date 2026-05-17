@@ -23,7 +23,7 @@
 **Command run:** `npm audit --omit=dev --json`
 **Result:** 3 vulnerabilities (1 high, 2 moderate). No critical.
 
-### 1a. devalue — DoS via sparse array deserialization (HIGH)
+### H-MA1 — devalue — DoS via sparse array deserialization (HIGH)
 
 - **Advisory:** GHSA-77vg-94rm-hx3p
 - **CVE:** none assigned
@@ -35,7 +35,7 @@
 - **Fix:** Upgrade `astro` to 6.3.3 (semver major); `devalue` will resolve to a fixed version transitively. No direct `devalue` installation to pin.
 - **Effort:** Major version bump — moderate effort. Astro 5 → 6 brings breaking changes; requires smoke-testing all four routes and reviewing the Astro 6 migration guide. Non-urgent given zero reachability.
 
-### 1b. astro — XSS via incomplete `</script>` sanitization in `define:vars` (MODERATE)
+### H-MI1 — astro — XSS via incomplete `</script>` sanitization in `define:vars` (MODERATE)
 
 - **Advisory:** GHSA-j687-52p2-xcff
 - **CVE:** none assigned
@@ -46,7 +46,7 @@
 - **Reachability:** grep for `define:vars` across all `.astro` files returns zero results. No component in this codebase passes user-controlled values through `define:vars`. **Not reachable.**
 - **Fix:** Same Astro 6.3.3 upgrade as above.
 
-### 1c. astro — server island encrypted parameters vulnerable to cross-component replay (LOW, reported as moderate by npm)
+### H-MI2 — astro — server island encrypted parameters vulnerable to cross-component replay (MODERATE)
 
 - **Advisory:** GHSA-xr5h-phrj-8vxv
 - **CVSS:** 6.1 (AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N)
@@ -55,7 +55,7 @@
 - **Reachability:** grep for `server:defer` returns zero results. The site has no server islands (`output: 'static'`). **Not reachable.**
 - **Fix:** Astro 6.3.3 upgrade.
 
-### 1d. postcss — XSS via unescaped `</style>` in CSS Stringify output (MODERATE)
+### H-MI3 — postcss — XSS via unescaped `</style>` in CSS Stringify output (MODERATE)
 
 - **Advisory:** GHSA-qx2v-qp2m-jg93
 - **CVE:** none assigned
@@ -101,7 +101,7 @@ upgrade-insecure-requests
 **`'unsafe-inline'` on `script-src` and `style-src`:**
 The README (line 121–128) documents the rationale: Astro's island bootstrap hoists, JSON-LD `<script type="application/ld+json">`, a language-detection inline script, and scoped inline styles all require inline execution. A nonce-based strict CSP cannot work with fully static output because nonces must be unique per response. The justification is sound for the current architecture. Accept as known limitation.
 
-**Missing directives — LOW severity:**
+**Missing directives — H-NI1 (LOW severity):**
 
 | Directive | Current state | Assessment |
 |-----------|--------------|------------|
@@ -109,13 +109,13 @@ The README (line 121–128) documents the rationale: Astro's island bootstrap ho
 | `manifest-src` | Absent — falls back to `default-src 'self'` | `manifest.webmanifest` is served from `'self'`. Fallback is correct. Adding `manifest-src 'self'` would be explicit hygiene. |
 | `frame-src` | Absent — falls back to `default-src 'self'` | No iframes in the codebase. `default-src 'self'` disallows cross-origin frames. Acceptable; explicit `frame-src 'none'` would be cleaner. |
 
-**`connect-src` and Sentry:**
-The policy allows `https://*.ingest.sentry.io`. The Sentry SDK (`@sentry/browser`) sends envelopes to `https://o<orgId>.ingest.sentry.io`. The wildcard covers all Sentry ingest regions. The comment in `initObservability.ts` (line 25–26) says `connect-src` must include both `https://*.sentry.io` **and** `https://*.ingest.sentry.io`, but the actual policy only has `https://*.ingest.sentry.io`. Modern Sentry SDKs (including v10 used here) route exclusively through `*.ingest.sentry.io`; the `*.sentry.io` notation is legacy. The code comment is misleading but the actual header is correct. The comment in `initObservability.ts` should be updated to remove the stale `*.sentry.io` reference.
+**`connect-src` and Sentry (H-NI2):**
+The policy allows `https://*.ingest.sentry.io`. The Sentry SDK (`@sentry/browser`) sends envelopes to `https://o<orgId>.ingest.sentry.io`. The wildcard covers all Sentry ingest regions. The comment in [`src/lib/observability/initObservability.ts:25`](src/lib/observability/initObservability.ts#L25)–26 says `connect-src` must include both `https://*.sentry.io` **and** `https://*.ingest.sentry.io`, but the actual policy only has `https://*.ingest.sentry.io`. Modern Sentry SDKs (including v10 used here) route exclusively through `*.ingest.sentry.io`; the `*.sentry.io` notation is legacy. The code comment is misleading but the actual header is correct. The comment in [`src/lib/observability/initObservability.ts`](src/lib/observability/initObservability.ts) should be updated to remove the stale `*.sentry.io` reference.
 
 **OG images served cross-origin:**
 OG images (`/og-*.png`, `/og-*.svg`) are served from the same origin (`'self'`). No external image CDN. `img-src 'self' data:` is sufficient.
 
-### 2b. Permissions-Policy (line 56)
+### 2b. Permissions-Policy — [`vercel.json:56`](vercel.json#L56) (H-NI3)
 
 Current value:
 ```
@@ -279,8 +279,8 @@ If a future feature required cross-origin font loading (e.g., moving fonts to a 
 
 | Priority | Action | Effort |
 |----------|--------|--------|
-| 1 | Add `overrides: { "postcss": ">=8.5.10" }` to `package.json` to resolve GHSA-qx2v-qp2m-jg93 without a major bump | 5 min |
-| 2 | Fix stale comment in `initObservability.ts:25` — remove `https://*.sentry.io` (not needed; SDK only uses `*.ingest.sentry.io`) | 2 min |
-| 3 | Add explicit `worker-src 'none'; manifest-src 'self'; frame-src 'none'` to CSP in `vercel.json` | 10 min |
-| 4 | Expand Permissions-Policy with `midi=(), bluetooth=(), display-capture=(), gamepad=(), accelerometer=(), gyroscope=(), magnetometer=()` | 5 min |
-| 5 | Plan Astro 5 → 6 upgrade to resolve all three remaining advisories (devalue, astro XSS, astro replay) | 2–4 h |
+| 1 | H-MI3 | Add `overrides: { "postcss": ">=8.5.10" }` to [`package.json`](package.json) to resolve GHSA-qx2v-qp2m-jg93 | 5 min |
+| 2 | H-NI2 | Fix stale comment in [`src/lib/observability/initObservability.ts:25`](src/lib/observability/initObservability.ts#L25) — remove `https://*.sentry.io` (SDK only uses `*.ingest.sentry.io`) | 2 min |
+| 3 | H-NI1 | Add explicit `worker-src 'none'; manifest-src 'self'; frame-src 'none'` to CSP in [`vercel.json`](vercel.json) | 10 min |
+| 4 | H-NI3 | Expand Permissions-Policy with `midi=(), bluetooth=(), display-capture=(), gamepad=(), accelerometer=(), gyroscope=(), magnetometer=()` | 5 min |
+| 5 | H-MA1, H-MI1, H-MI2 | Plan Astro 5 → 6 upgrade to resolve all three remaining advisories (devalue, astro XSS, astro replay) | 2–4 h |

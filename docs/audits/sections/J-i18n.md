@@ -37,9 +37,9 @@
 
 ### MAJOR
 
-#### J-01 — Voice audio files absent for FI and SV (confirmed from baseline)
+#### J-MA1 — Voice audio files absent for FI and SV (confirmed from baseline)
 
-**Files:** `public/audio/`
+**Files:** [`public/audio/`](public/audio/)
 **Severity:** Major — feature ships broken for 2 of 3 locales
 
 `public/audio/` contains only:
@@ -49,11 +49,11 @@ voice-projects-en.mp3  (301 kB)
 ```
 The locale-keyed filenames `voice-landing-fi.mp3`, `voice-landing-sv.mp3`, `voice-projects-fi.mp3`, and `voice-projects-sv.mp3` are absent.
 
-`HeroVoiceover.astro` (line 37) resolves the source as:
+[`src/components/home/HeroVoiceover.astro:37`](src/components/home/HeroVoiceover.astro#L37) resolves the source as:
 ```
 const voiceSrc = `/audio/voice-landing-${locale}.mp3`;
 ```
-`ProjectsVoiceover.astro` (line 20) uses the same pattern for `/audio/voice-projects-${locale}.mp3`.
+[`src/components/projects/ProjectsVoiceover.astro:20`](src/components/projects/ProjectsVoiceover.astro#L20) uses the same pattern for `/audio/voice-projects-${locale}.mp3`.
 
 The components handle 404 silently via try/catch (`/* autoplay blocked, source missing, or play interrupted */`) so no visible error occurs — the feature simply does nothing for Finnish and Swedish visitors. This is a silent regression: the locale-aware voice feature described in commits #82 and #83 is only operational in English.
 
@@ -61,9 +61,9 @@ The components handle 404 silently via try/catch (`/* autoplay blocked, source m
 
 ---
 
-#### J-02 — Background audio toggle labels hardcoded in English
+#### J-MA2 — Background audio toggle labels hardcoded in English
 
-**File:** `src/components/BackgroundAudio.astro` lines 45, 87–88
+**File:** [`src/components/BackgroundAudio.astro:45`](src/components/BackgroundAudio.astro#L45), [`src/components/BackgroundAudio.astro:87`](src/components/BackgroundAudio.astro#L87)–88
 **Severity:** Major — visible UI text, not localized
 
 The sound-toggle button contains three hardcoded English strings that are not pulled from `src/i18n/locales/`:
@@ -76,13 +76,13 @@ aria-label="Toggle background sound"   <!-- line 45 -->
 
 `BackgroundAudio.astro` is rendered inside `BaseLayout.astro` on every page and every locale. Finnish and Swedish users see "sound on" / "sound off" in English. The `aria-label` is exposed to screen readers in all locales.
 
-The component does not currently accept a `locale` prop and does not import `getTranslations`. Fixing this requires either: (a) adding a `locale` prop threaded from `BaseLayout`, or (b) adding a `bgAudio` key group to the `Translations` interface and passing it via a `data-*` attribute (the same pattern used in `MobileContactCard.astro`).
+The component does not currently accept a `locale` prop and does not import `getTranslations`. Fixing this requires either: (a) adding a `locale` prop threaded from [`src/layouts/BaseLayout.astro`](src/layouts/BaseLayout.astro), or (b) adding a `bgAudio` key group to the `Translations` interface and passing it via a `data-*` attribute (the same pattern used in [`src/components/contact/MobileContactCard.astro`](src/components/contact/MobileContactCard.astro)).
 
 ---
 
-#### J-03 — LinkedIn button `aria-label` hardcoded in English
+#### J-MA3 — LinkedIn button `aria-label` hardcoded in English
 
-**File:** `src/components/contact/MobileContactCard.astro` line 56
+**File:** [`src/components/contact/MobileContactCard.astro:56`](src/components/contact/MobileContactCard.astro#L56)
 **Severity:** Major — visible to screen readers in all locales
 
 ```html
@@ -95,9 +95,9 @@ This label is hardcoded English on the mobile contact card. Finnish and Swedish 
 
 ### MODERATE
 
-#### J-04 — `Now` timeline year not localized
+#### J-MI1 — `Now` timeline year not localized
 
-**File:** `src/data/timeline.ts` line 46
+**File:** [`src/data/timeline.ts:46`](src/data/timeline.ts#L46)
 **Severity:** Moderate — visible to all users on the Experience page
 
 ```typescript
@@ -112,7 +112,7 @@ The `year` field is explicitly noted in the type comment as "never translated" a
 
 ### INFORMATIONAL / JUDGMENT CALL
 
-#### J-05 — Translation quality assessment (10 non-trivial strings sampled)
+#### J-NI1 — Translation quality assessment (10 non-trivial strings sampled)
 
 Sampled strings from `fi.ts` and `sv.ts`:
 
@@ -133,7 +133,7 @@ Sampled strings from `fi.ts` and `sv.ts`:
 
 ---
 
-#### J-06 — "Spacepotatis" and "vuohitiimi" brand names handled correctly
+#### J-NI2 — "Spacepotatis" and "vuohitiimi" brand names handled correctly
 
 Both are proper nouns / brand names and are correctly **kept as-is** in all three locales:
 
@@ -147,9 +147,9 @@ Both are proper nouns / brand names and are correctly **kept as-is** in all thre
 
 ---
 
-#### J-07 — `liveDemo` intentional localization divergence
+#### J-NI3 — `liveDemo` intentional localization divergence
 
-**File:** `src/i18n/locales/fi.ts` line 141, `sv.ts` line 141
+**File:** [`src/i18n/locales/fi.ts:141`](src/i18n/locales/fi.ts#L141), [`src/i18n/locales/sv.ts:141`](src/i18n/locales/sv.ts#L141)
 **Severity:** Informational
 
 Both FI and SV use `'demo →'` while EN uses `'live demo →'`. This is an intentional editorial decision documented in a comment in both locale files:

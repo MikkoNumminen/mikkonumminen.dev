@@ -77,31 +77,31 @@ Legend: [OK] = no concern identified | [WARN] = potential issue | [CRIT] = likel
 
 iOS HIG minimum: 44 × 44 pt (roughly 44 CSS px on standard density).
 
-### `.bg-audio__toggle` (BackgroundAudio.astro:114–134)
+### `.bg-audio__toggle` ([`src/components/BackgroundAudio.astro:114`](src/components/BackgroundAudio.astro#L114)–134)
 
 Default (desktop): `padding: 0.55rem 1rem 0.55rem 0.7rem`. Vertical padding = 1.1rem ≈ 17.6 px. Combined with an inline-flex with a 20 px icon, total height ≈ 20 + 17.6 = ~38 px. **Below 44 px.**
 
-At `max-width: 640px` (BackgroundAudio.astro:257–265): `padding: 0.5rem 0.85rem 0.5rem 0.65rem`. Vertical = 1rem ≈ 16 px. Height ≈ 20 + 16 = **~36 px — below 44 px minimum on mobile where it matters most.**
+At `max-width: 640px` ([`src/components/BackgroundAudio.astro:257`](src/components/BackgroundAudio.astro#L257)–265): `padding: 0.5rem 0.85rem 0.5rem 0.65rem`. Vertical = 1rem ≈ 16 px. Height ≈ 20 + 16 = **~36 px — below 44 px minimum on mobile where it matters most.**
 
-### Nav links — `SiteNav.astro:58`
+### Nav links — [`src/components/nav/SiteNav.astro:58`](src/components/nav/SiteNav.astro#L58)
 
 Tailwind classes: `px-4 py-3 sm:px-3 sm:py-1.5`. On mobile (`< sm` / below Tailwind's 640 px breakpoint): `py-3` = 0.75rem = 12 px vertical padding each side → total height ≈ 12 + 12 + line-height. Font is `text-xs` (0.75rem / 12 px) with `line-height: ~1.5` = 18 px. Total ≈ 42 px. **Just under the 44 px threshold.**
 
 On `sm:` (≥640 px): `py-1.5` = 0.375rem = 6 px each side → height ≈ 12 + 30 px? Wait — at sm the intent is the desktop version so this is less of a concern; sm breakpoint aligns with the phone boundary.
 
-### Language switcher links — `SiteNav.astro:81`
+### Language switcher links — [`src/components/nav/SiteNav.astro:81`](src/components/nav/SiteNav.astro#L81)
 
 Classes: `px-3 py-2 sm:px-2 sm:py-1`. On mobile: `py-2` = 0.5rem = 8 px each side. Height ≈ 8 + 8 + 12 = **28 px — significantly below 44 px.** These are tappable locale-switch links inside the nav pill. [CRIT] for touch accessibility.
 
-### `.project-detail__close` (project-detail.css:36–53)
+### `.project-detail__close` ([`src/styles/project-detail.css:36`](src/styles/project-detail.css#L36)–53)
 
 `width: 2.5rem; height: 2.5rem` = **40 × 40 px**. Below 44 × 44 px. However this element only appears when the projects 3D scene is active (>860 px), so it is not reachable on phones.
 
-### `.mcc__btn` (mobile-contact-card.css:237–260)
+### `.mcc__btn` ([`src/styles/mobile-contact-card.css:237`](src/styles/mobile-contact-card.css#L237)–260)
 
 `min-height: 56px` — well above the 44 px minimum. [OK]
 
-### `timeline__cta` (experience-timeline.css:658–675)
+### `timeline__cta` ([`src/styles/experience-timeline.css:658`](src/styles/experience-timeline.css#L658)–675)
 
 `padding: 0.85rem 1.5rem` = 13.6 px vertical each side, total ≈ ~44 px at 1rem = 16 px base. Borderline but likely OK. Not a concern.
 
@@ -282,63 +282,63 @@ The hero has `height: 100vh`. On iPhone SE landscape (375 px tall): hero is 375 
 
 ### CRITICAL
 
-**C1 — Audio button obscured by iOS home indicator**
-`src/components/BackgroundAudio.astro` lines 257–265. The `.bg-audio` button is positioned `bottom: 1.25rem` (20 px) on mobile, but `viewport-fit=cover` is declared. On iPhones without a physical home button (iPhone X and later, all current models), the home indicator swipe zone is ~34 px. The button's **bottom edge** at 20 px from the viewport bottom falls inside this swipe zone. Users may trigger the home indicator gesture instead of toggling audio. **Fix: add `padding-bottom: env(safe-area-inset-bottom, 0px)` to `.bg-audio` or adjust `bottom` to `max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem))`.**
+**D-BL1 — Audio button obscured by iOS home indicator**
+[`src/components/BackgroundAudio.astro:257`](src/components/BackgroundAudio.astro#L257)–265. The `.bg-audio` button is positioned `bottom: 1.25rem` (20 px) on mobile, but `viewport-fit=cover` is declared. On iPhones without a physical home button (iPhone X and later, all current models), the home indicator swipe zone is ~34 px. The button's **bottom edge** at 20 px from the viewport bottom falls inside this swipe zone. Users may trigger the home indicator gesture instead of toggling audio. **Fix: add `padding-bottom: env(safe-area-inset-bottom, 0px)` to `.bg-audio` or adjust `bottom` to `max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem))`.**
 
-**C2 — Language switcher tap targets are 28 px tall on mobile**
-`src/components/nav/SiteNav.astro:81`. Tailwind class `py-2` = 8 px padding each side + 12 px line-height = ~28 px total. iOS HIG requires 44 px. The EN/FI/SV language links are used on a phone to switch locale — a core internationalization interaction. **Fix: on mobile, increase to at least `py-3` (12 px) or add `min-height: 44px; display: inline-flex; align-items: center`.**
+**D-BL2 — Language switcher tap targets are 28 px tall on mobile**
+[`src/components/nav/SiteNav.astro:81`](src/components/nav/SiteNav.astro#L81). Tailwind class `py-2` = 8 px padding each side + 12 px line-height = ~28 px total. iOS HIG requires 44 px. The EN/FI/SV language links are used on a phone to switch locale — a core internationalization interaction. **Fix: on mobile, increase to at least `py-3` (12 px) or add `min-height: 44px; display: inline-flex; align-items: center`.**
 
 ---
 
 ### HIGH
 
-**H1 — `100vh` hero and MCC don't account for URL-bar collapse on mobile Safari**
-`src/components/home/Hero.astro:83` and `src/styles/mobile-contact-card.css:12`. The hero is sized to `100vh` (static viewport height), so on first load with the URL bar visible, the hero occupies more than the visual viewport. When the user scrolls and the URL bar collapses, the next section snaps into view. This is the common `100vh` / mobile Safari issue. For the hero this is a known acceptable trade-off (no jump, just the scroll "feels natural"), but the MCC `min-height: 100vh` means the contact background may not fully fill the screen initially.
+**D-MA1 — `100vh` hero and MCC don't account for URL-bar collapse on mobile Safari**
+[`src/components/home/Hero.astro:83`](src/components/home/Hero.astro#L83) and [`src/styles/mobile-contact-card.css:12`](src/styles/mobile-contact-card.css#L12). The hero is sized to `100vh` (static viewport height), so on first load with the URL bar visible, the hero occupies more than the visual viewport. When the user scrolls and the URL bar collapses, the next section snaps into view. This is the common `100vh` / mobile Safari issue. For the hero this is a known acceptable trade-off (no jump, just the scroll "feels natural"), but the MCC `min-height: 100vh` means the contact background may not fully fill the screen initially.
 
 *Judgment call: the hero's `100vh` pattern is industry-standard and unlikely to cause user harm. The MCC background gap is cosmetic. Recommend switching both to `min-height: 100dvh` for correctness, but not urgent.*
 
-**H2 — Nav-cards grid stays 3-column down to 320 px**
-`src/styles/nav-cards.css:38–42`. `.nav-cards__grid { grid-template-columns: repeat(3, 1fr) }` collapses to 1-col only at `max-width: 860px`. At 320–640 px (all phones) each card is only ~90–180 px wide. The card labels (`font-size: 1.4rem`) and descriptions (`font-size: 0.9rem`) will overflow or wrap very aggressively. This is the home page "nav" section — a primary discovery surface. **Fix: add `@media (max-width: 640px)` or relax to 2-col at 640 px. The 860 px rule alone is not sufficient.**
+**D-MA2 — Nav-cards grid stays 3-column down to 320 px**
+[`src/styles/nav-cards.css:38`](src/styles/nav-cards.css#L38)–42. `.nav-cards__grid { grid-template-columns: repeat(3, 1fr) }` collapses to 1-col only at `max-width: 860px`. At 320–640 px (all phones) each card is only ~90–180 px wide. The card labels (`font-size: 1.4rem`) and descriptions (`font-size: 0.9rem`) will overflow or wrap very aggressively. This is the home page "nav" section — a primary discovery surface. **Fix: add `@media (max-width: 640px)` or relax to 2-col at 640 px. The 860 px rule alone is not sufficient.**
 
-**H3 — Three.js home scene loads on landscape iPhone (>640 px wide)**
-`src/page-content/HomePage.astro:117`. `isSmall = matchMedia('max-width: 640px')`. In landscape, a 667-px wide phone (iPhone SE/standard) has a 375 px tall viewport. The Three.js scene runs at `height: 100vh = 375 px`. There is a landscape masthead override in `Hero.astro:334` but the scene still loads and the viewport is very short. This likely renders correctly given the landscape rule, but on underpowered older phones running the full WebGL scene in a 375×667 landscape is an unnecessary load. **Recommendation: consider gating on `min-height: 500px` in addition to width.**
+**D-MA3 — Three.js home scene loads on landscape iPhone (>640 px wide)**
+[`src/page-content/HomePage.astro:117`](src/page-content/HomePage.astro#L117). `isSmall = matchMedia('max-width: 640px')`. In landscape, a 667-px wide phone (iPhone SE/standard) has a 375 px tall viewport. The Three.js scene runs at `height: 100vh = 375 px`. There is a landscape masthead override in [`src/components/home/Hero.astro:334`](src/components/home/Hero.astro#L334) but the scene still loads and the viewport is very short. This likely renders correctly given the landscape rule, but on underpowered older phones running the full WebGL scene in a 375×667 landscape is an unnecessary load. **Recommendation: consider gating on `min-height: 500px` in addition to width.**
 
 ---
 
 ### MEDIUM
 
-**M1 — Body text at 0.96rem (15.4 px) on /experience with no mobile override**
-`src/styles/experience-timeline.css:350`. `.timeline__body { font-size: 0.96rem }`. The experience page has no mobile-specific font-size increase. At 320–375 px body text is 15.4 px. Acceptable but below the 16 px recommendation for body copy. Consider bumping to `1rem` at `≤640 px`.
+**D-MI1 — Body text at 0.96rem (15.4 px) on /experience with no mobile override**
+[`src/styles/experience-timeline.css:350`](src/styles/experience-timeline.css#L350). `.timeline__body { font-size: 0.96rem }`. The experience page has no mobile-specific font-size increase. At 320–375 px body text is 15.4 px. Acceptable but below the 16 px recommendation for body copy. Consider bumping to `1rem` at `≤640 px`.
 
-**M2 — MCC screen text at 0.85rem (13.6 px)**
-`src/styles/mobile-contact-card.css:153`. `.mcc__screen { font-size: 0.85rem }`. This IS the mobile contact experience. Output includes email addresses and links. 13.6 px is below the minimum for interactive/content text on mobile. Matches the terminal aesthetic but real contact information is shown here.
+**D-MI2 — MCC screen text at 0.85rem (13.6 px)**
+[`src/styles/mobile-contact-card.css:153`](src/styles/mobile-contact-card.css#L153). `.mcc__screen { font-size: 0.85rem }`. This IS the mobile contact experience. Output includes email addresses and links. 13.6 px is below the minimum for interactive/content text on mobile. Matches the terminal aesthetic but real contact information is shown here.
 
-**M3 — Project fallback card body text at 0.92rem (14.7 px)**
-`src/styles/project-grid.css:114`. `.project-card__description { font-size: 0.92rem }`. Mobile-only surface (shown at ≤860 px). Slightly below 16 px but above the 13.6 px MCC concern.
+**D-MI3 — Project fallback card body text at 0.92rem (14.7 px)**
+[`src/styles/project-grid.css:114`](src/styles/project-grid.css#L114). `.project-card__description { font-size: 0.92rem }`. Mobile-only surface (shown at ≤860 px). Slightly below 16 px but above the 13.6 px MCC concern.
 
-**M4 — Orphan 1100 px breakpoint**
-`src/styles/projects-scene.css:385`. Used once to shrink the `.projects-scene__key` and `.projects-scene__list` panels. These panels are themselves hidden at ≤860 px, so the 1100 px rule only applies at 861–1100 px on desktop. It works but is undocumented and inconsistent with the established breakpoint set.
+**D-MI4 — Orphan 1100 px breakpoint**
+[`src/styles/projects-scene.css:385`](src/styles/projects-scene.css#L385). Used once to shrink the `.projects-scene__key` and `.projects-scene__list` panels. These panels are themselves hidden at ≤860 px, so the 1100 px rule only applies at 861–1100 px on desktop. It works but is undocumented and inconsistent with the established breakpoint set.
 
-**M5 — `timeline__header { min-height: 100vh }` on /experience**
-`src/styles/experience-timeline.css:17`. The header section of the experience page uses `100vh`. On mobile this causes the same URL-bar ambiguity as the hero — the "full screen" header may be slightly taller than the actual viewport when the URL bar is present. No `dvh` alternative used here.
+**D-MI5 — `timeline__header { min-height: 100vh }` on /experience**
+[`src/styles/experience-timeline.css:17`](src/styles/experience-timeline.css#L17). The header section of the experience page uses `100vh`. On mobile this causes the same URL-bar ambiguity as the hero — the "full screen" header may be slightly taller than the actual viewport when the URL bar is present. No `dvh` alternative used here.
 
 ---
 
 ### LOW / INFORMATIONAL
 
-**L1 — Audio button height is ~36 px on mobile (below 44 px)**
-`src/components/BackgroundAudio.astro:257`. The audio toggle is a secondary control (not primary navigation), but it is the only way to silence background music — a meaningful accessibility action. At 36 px it is measurably below the 44 px iOS minimum.
+**D-NI1 — Audio button height is ~36 px on mobile (below 44 px)**
+[`src/components/BackgroundAudio.astro:257`](src/components/BackgroundAudio.astro#L257). The audio toggle is a secondary control (not primary navigation), but it is the only way to silence background music — a meaningful accessibility action. At 36 px it is measurably below the 44 px iOS minimum.
 
-**L2 — Nav link tap targets are ~42 px (slightly below 44 px)**
-`src/components/nav/SiteNav.astro:58`. `px-4 py-3` = 12 px each side. With `text-xs` (12 px) and standard line-height ≈ 18 px, total ≈ 42 px. Two pixels under threshold — borderline, unlikely to cause real issues.
+**D-NI2 — Nav link tap targets are ~42 px (slightly below 44 px)**
+[`src/components/nav/SiteNav.astro:58`](src/components/nav/SiteNav.astro#L58). `px-4 py-3` = 12 px each side. With `text-xs` (12 px) and standard line-height ≈ 18 px, total ≈ 42 px. Two pixels under threshold — borderline, unlikely to cause real issues.
 
-**L3 — `project-detail` drawer uses `100vh` on desktop**
-`src/styles/project-detail.css:8`. Fixed-height drawer, but only shown on desktop >860 px where URL-bar collapse is not a concern. Informational.
+**D-NI3 — `project-detail` drawer uses `100vh` on desktop**
+[`src/styles/project-detail.css:8`](src/styles/project-detail.css#L8). Fixed-height drawer, but only shown on desktop >860 px where URL-bar collapse is not a concern. Informational.
 
-**L4 — No mobile breakpoints in experience-timeline.css**
+**D-NI4 — No mobile breakpoints in experience-timeline.css**
 The timeline CSS has zero width-based `@media` queries. The layout relies entirely on CSS Grid (`32px 1fr`) and the `max-width: 760px` container. Works down to ~320 px because the `1fr` column absorbs the width, but the 32 px fixed marker column leaves only ~270 px of text width at 320 px.
 
-**L5 — `prefers-reduced-motion` consistently implemented**
+**D-NI5 — `prefers-reduced-motion` consistently implemented**
 All animation files (timelines, scene loaders, audio waves) respect `prefers-reduced-motion`. This is good cross-cutting implementation.
 
 ---
