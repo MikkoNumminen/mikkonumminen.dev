@@ -401,9 +401,14 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // ── Resize ──────────────────────────────────────────────────────────
   // Line2's LineMaterial needs the viewport resolution to render proper
   // pixel-space line widths — hook it into the existing resize handler.
-  const resize = createResizeHandler(renderer, camera, (w, h) => {
-    resizeConnections(connectionsBundle.entries, w, h);
-  }, maxPixelRatio);
+  const resize = createResizeHandler(
+    renderer,
+    camera,
+    (w, h) => {
+      resizeConnections(connectionsBundle.entries, w, h);
+    },
+    maxPixelRatio,
+  );
   resize.handler();
 
   // ── Animation loop ──────────────────────────────────────────────────

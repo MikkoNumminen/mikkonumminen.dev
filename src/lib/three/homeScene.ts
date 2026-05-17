@@ -646,50 +646,55 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // on the z-axis), so we can cache this once.
   const cameraHalfHeightAtGalaxyZ = tanHalfFov * (camera.position.z - GALAXY_DESIGN_Z);
 
-  const resize = createResizeHandler(renderer, camera, (width) => {
-    // Width-based scale preserves the original design intent: at viewport
-    // widths ≥ TITLE_DESIGN_WIDTH the title sits at its full size, narrower
-    // viewports scale it down.
-    const widthScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
+  const resize = createResizeHandler(
+    renderer,
+    camera,
+    (width) => {
+      // Width-based scale preserves the original design intent: at viewport
+      // widths ≥ TITLE_DESIGN_WIDTH the title sits at its full size, narrower
+      // viewports scale it down.
+      const widthScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
 
-    // Frustum-fit scale: visible horizontal extent at the title's z-plane
-    // (z = 0) caps the scale so the widest line's right edge stays inside
-    // the viewport. Without this, narrow-aspect viewports (1366×768,
-    // tablets in portrait) clip "NUMMINEN" because width-based scaling
-    // alone doesn't know how wide the perspective frustum actually is.
-    const visibleHalfWidth = cameraHalfHeightAtZ0 * camera.aspect;
-    const fitScale = (visibleHalfWidth - TITLE_RIGHT_PADDING) / titleNaturalHalfWidth;
+      // Frustum-fit scale: visible horizontal extent at the title's z-plane
+      // (z = 0) caps the scale so the widest line's right edge stays inside
+      // the viewport. Without this, narrow-aspect viewports (1366×768,
+      // tablets in portrait) clip "NUMMINEN" because width-based scaling
+      // alone doesn't know how wide the perspective frustum actually is.
+      const visibleHalfWidth = cameraHalfHeightAtZ0 * camera.aspect;
+      const fitScale = (visibleHalfWidth - TITLE_RIGHT_PADDING) / titleNaturalHalfWidth;
 
-    // Fit is a hard cap (clipping is worse than tiny text); the
-    // readability floor is a soft minimum that yields to the fit cap.
-    // Apply the floor only when there's slack — i.e. when `fitScale`
-    // permits it. Order: `ideal = min(width, fit)`, lift to floor if
-    // possible, never exceed the fit cap.
-    const idealScale = Math.min(widthScale, fitScale);
-    const scale = Math.min(fitScale, Math.max(TITLE_MIN_SCALE, idealScale));
+      // Fit is a hard cap (clipping is worse than tiny text); the
+      // readability floor is a soft minimum that yields to the fit cap.
+      // Apply the floor only when there's slack — i.e. when `fitScale`
+      // permits it. Order: `ideal = min(width, fit)`, lift to floor if
+      // possible, never exceed the fit cap.
+      const idealScale = Math.min(widthScale, fitScale);
+      const scale = Math.min(fitScale, Math.max(TITLE_MIN_SCALE, idealScale));
 
-    title.group.scale.setScalar(scale);
+      title.group.scale.setScalar(scale);
 
-    // Galaxy responsive x-position. At narrow aspects the design x
-    // (-13) sits outside the visible frustum at the galaxy's z-plane,
-    // clipping the spiral disk on the left. Pull the center toward x=0
-    // just enough to keep the whole disk inside, never pushing it
-    // further left than the design position (so wide aspects are
-    // unchanged) and never crossing past x=0 onto the title's side.
-    // Mutating `galaxyCenter` propagates to the meteor spawn / target
-    // logic since buildMeteors reads it by reference. collisionFlashLight
-    // is repositioned per-impact in the onImpact handler; intensity is 0
-    // between impacts, so the stale design-x sitting on the light between
-    // init and the first impact is invisible.
-    const visibleHalfWidthAtGalaxyZ = cameraHalfHeightAtGalaxyZ * camera.aspect;
-    const maxGalaxyXMagnitude =
-      visibleHalfWidthAtGalaxyZ - GALAXY_RADIUS - GALAXY_LEFT_PADDING;
-    const galaxyX = Math.min(0, Math.max(GALAXY_DESIGN_X, -maxGalaxyXMagnitude));
-    galaxy.group.position.x = galaxyX;
-    galaxyCenter.x = galaxyX;
+      // Galaxy responsive x-position. At narrow aspects the design x
+      // (-13) sits outside the visible frustum at the galaxy's z-plane,
+      // clipping the spiral disk on the left. Pull the center toward x=0
+      // just enough to keep the whole disk inside, never pushing it
+      // further left than the design position (so wide aspects are
+      // unchanged) and never crossing past x=0 onto the title's side.
+      // Mutating `galaxyCenter` propagates to the meteor spawn / target
+      // logic since buildMeteors reads it by reference. collisionFlashLight
+      // is repositioned per-impact in the onImpact handler; intensity is 0
+      // between impacts, so the stale design-x sitting on the light between
+      // init and the first impact is invisible.
+      const visibleHalfWidthAtGalaxyZ = cameraHalfHeightAtGalaxyZ * camera.aspect;
+      const maxGalaxyXMagnitude =
+        visibleHalfWidthAtGalaxyZ - GALAXY_RADIUS - GALAXY_LEFT_PADDING;
+      const galaxyX = Math.min(0, Math.max(GALAXY_DESIGN_X, -maxGalaxyXMagnitude));
+      galaxy.group.position.x = galaxyX;
+      galaxyCenter.x = galaxyX;
 
-    if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
-  }, maxPixelRatio);
+      if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
+    },
+    maxPixelRatio,
+  );
   resize.handler();
 
   // Debug overlay — `?debug=perf` mounts a small FPS / ms-per-frame
