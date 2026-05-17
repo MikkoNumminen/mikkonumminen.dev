@@ -256,7 +256,7 @@
 
   @media (max-width: 640px) {
     .bg-audio {
-      bottom: 1.25rem;
+      bottom: max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem));
       left: 1.25rem;
     }
     .bg-audio__toggle {
