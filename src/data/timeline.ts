@@ -70,8 +70,7 @@ export function localizeTimeline(t: Translations): LocalizedTimelineEntry[] {
     }
     return {
       ...entry,
-      year:
-        entry.year === NOW_YEAR_SENTINEL ? t.experiencePage.yearNow : entry.year,
+      year: entry.year === NOW_YEAR_SENTINEL ? t.experiencePage.yearNow : entry.year,
       title: text?.title ?? '',
       body: text?.body ?? '',
       tags: text?.tags,
