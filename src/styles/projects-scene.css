@@ -29,47 +29,6 @@ body[data-theme='projects'] .site-footer {
   display: block;
 }
 
-.projects-scene__intro {
-  position: absolute;
-  top: 4.5rem;
-  left: 3rem;
-  max-width: 380px;
-  z-index: 10;
-  pointer-events: none;
-  transition:
-    opacity 0.45s ease,
-    transform 0.45s ease;
-}
-
-.projects-scene__intro.is-hidden {
-  opacity: 0;
-  transform: translateY(-12px);
-}
-
-.projects-scene__eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: rgba(196, 212, 255, 0.5);
-  margin: 0 0 1rem;
-}
-
-.projects-scene__title {
-  font-size: clamp(2.5rem, 5vw, 3.6rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: #fff;
-  margin: 0 0 1rem;
-}
-
-.projects-scene__lede {
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: rgba(230, 236, 255, 0.65);
-  margin: 0;
-}
-
 .projects-scene__legend {
   position: absolute;
   /* Lifted clear of the BackgroundAudio toggle that sits at
@@ -450,12 +409,6 @@ body[data-theme='projects'] .site-footer {
 }
 
 @media (max-width: 860px) {
-  .projects-scene__intro {
-    left: 1.5rem;
-    right: 1.5rem;
-    top: 6.5rem;
-    max-width: none;
-  }
   .projects-scene__legend {
     left: 1.5rem;
     /* Mirror the desktop lift on phones — the sound button sits at
