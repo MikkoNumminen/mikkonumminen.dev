@@ -20,6 +20,14 @@ export interface TimelineEntry {
   kind: TimelineKind;
 }
 
+/**
+ * Sentinel value used for entries whose "year" is a present-tense word
+ * rather than a date. `localizeTimeline` substitutes it with
+ * `t.experiencePage.yearNow` so the marker reads in the visitor's
+ * language ("Now" / "Nyt" / "Nu").
+ */
+export const NOW_YEAR_SENTINEL = 'NOW';
+
 export interface LocalizedTimelineEntry extends TimelineEntry {
   title: string;
   body: string;
@@ -43,7 +51,7 @@ export const timeline: TimelineEntry[] = [
   // (Platform consumes HRM as a submodule), so they read better as one
   // beat on the timeline than as two adjacent ones.
   { id: '2026-build', altitude: 0.86, year: '2026', kind: 'project' },
-  { id: 'now', altitude: 0.97, year: 'Now', kind: 'now' },
+  { id: 'now', altitude: 0.97, year: NOW_YEAR_SENTINEL, kind: 'now' },
 ];
 
 /**
@@ -62,6 +70,8 @@ export function localizeTimeline(t: Translations): LocalizedTimelineEntry[] {
     }
     return {
       ...entry,
+      year:
+        entry.year === NOW_YEAR_SENTINEL ? t.experiencePage.yearNow : entry.year,
       title: text?.title ?? '',
       body: text?.body ?? '',
       tags: text?.tags,
