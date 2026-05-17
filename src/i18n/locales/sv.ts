@@ -99,7 +99,7 @@ export const sv: Translations = {
     sectionAria: 'Utvecklingstempo',
     eyebrow: 'tempo',
     heading: 'Snabbt — på riktigt.',
-    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på två veckor: 387 commits, ~1170 tester, tio granskade Claude Code-skills, hela Next.js + Phaser 3 + Three.js-stacken. Sex av sju portföljrepor startade under de senaste sex veckorna. AI-nativt är inte snack — det är matematik.',
+    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 387 commits, ~1170 tester, tio granskade Claude Code-skills, hela Next.js + Phaser 3 + Three.js-stacken. Sex av sju portföljrepor startade under de senaste sex veckorna. AI-nativt är inte snack — det är matematik.',
     stats: [
       { num: '12', label: 'dagar från tomt repo till live Spacepotatis' },
       { num: '387', label: 'Spacepotatis-commits' },
@@ -224,6 +224,7 @@ export const sv: Translations = {
     summit: 'Du nådde toppen.',
     cta: 'hoppa in i terminalen →',
     lessonsAriaLabel: 'Lärdomar från detta kapitel',
+    yearNow: 'Nu',
   },
   timelineData: {
     'hardware-retail': {
@@ -324,6 +325,7 @@ export const sv: Translations = {
     btnLinkedin: 'LinkedIn',
     btnDownloadCv: 'Ladda ner CV',
     cardAria: 'Mobil kontaktkort med automatiskt uppspelad terminalsession',
+    ariaLinkedIn: 'LinkedIn (öppnas i en ny flik)',
   },
   terminal: {
     bootBooting: 'startar mikkOS v1.0.0 ...',

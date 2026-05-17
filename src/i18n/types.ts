@@ -129,6 +129,8 @@ export interface Translations {
     /** ARIA label for the nested lessons sub-timeline rendered inside an
      *  entry's card when `lessons` is present in `timelineData[id]`. */
     lessonsAriaLabel: string;
+    /** Localized label for the sentinel year value 'NOW' in timeline entries. */
+    yearNow: string;
   };
   /** Single lesson inside a timeline entry's optional sub-timeline. */
   timelineData: Record<
@@ -173,6 +175,7 @@ export interface Translations {
     btnLinkedin: string;
     btnDownloadCv: string;
     cardAria: string;
+    ariaLinkedIn: string;
   };
   terminal: {
     bootBooting: string;

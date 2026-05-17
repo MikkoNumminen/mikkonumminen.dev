@@ -175,6 +175,9 @@ export const projects: Project[] = [
     tilt: 0.06,
     color: '#22d3ee',
     githubUrl: 'https://github.com/MikkoNumminen/AudiobookMaker',
+    // Desktop app — `liveUrl` points to releases (closest equivalent of a
+    // "live demo" for a packaged executable, vs. the web demos elsewhere).
+    liveUrl: 'https://github.com/MikkoNumminen/AudiobookMaker/releases',
     tech: [
       'Python',
       'PyMuPDF',

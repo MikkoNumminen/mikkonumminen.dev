@@ -99,7 +99,7 @@ export const fi: Translations = {
     sectionAria: 'Kehitysvauhti',
     eyebrow: 'vauhti',
     heading: 'Nopeaa — todistettavasti.',
-    body: 'Spacepotatis ehti tyhjästä reposta tuotantoon kahdessa viikossa: 387 commitia, ~1170 testiä, kymmenen auditoitua Claude Code -skilliä, koko Next.js + Phaser 3 + Three.js -pino. Seitsemästä portfolioreposta kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
+    body: 'Spacepotatis ehti tyhjästä reposta tuotantoon 12 päivässä: 387 commitia, ~1170 testiä, kymmenen auditoitua Claude Code -skilliä, koko Next.js + Phaser 3 + Three.js -pino. Seitsemästä portfolioreposta kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
     stats: [
       { num: '12', label: 'päivää tyhjästä reposta Spacepotatis-tuotantoon' },
       { num: '387', label: 'Spacepotatis-commitia' },
@@ -223,6 +223,7 @@ export const fi: Translations = {
     summit: 'Saavutit huipun.',
     cta: 'astu terminaaliin →',
     lessonsAriaLabel: 'Tämän luvun opit',
+    yearNow: 'Nyt',
   },
   timelineData: {
     'hardware-retail': {
@@ -324,6 +325,7 @@ export const fi: Translations = {
     btnDownloadCv: 'Lataa CV',
     cardAria:
       'Mobiilin yhteystietokortti automaattisesti soitetulla terminaali-istunnolla',
+    ariaLinkedIn: 'LinkedIn (avautuu uuteen välilehteen)',
   },
   terminal: {
     bootBooting: 'käynnistetään mikkOS v1.0.0 ...',
