@@ -103,12 +103,16 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const perfFlags = readPerfFlags();
 
   // ── Renderer ────────────────────────────────────────────────────────
+  // Keep a local reference so the same cap can be forwarded to
+  // createResizeHandler — otherwise every resize event would silently
+  // upgrade the DPR back to the browser's native value (up to 2).
+  const maxPixelRatio = perfFlags.lowPerf ? 1 : 1.5;
   const renderer = createRenderer(canvas, {
     toneMapping: ACESFilmicToneMapping,
     toneMappingExposure: 1.05,
     // See homeScene for reasoning — `?perf=low` clamps DPR at 1 so the
     // pixel work of every draw call halves on retina/HiDPI displays.
-    maxPixelRatio: perfFlags.lowPerf ? 1 : undefined,
+    maxPixelRatio,
   });
 
   // Debug overlay (`?debug=perf`) — small FPS / ms-per-frame readout
@@ -399,7 +403,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // pixel-space line widths — hook it into the existing resize handler.
   const resize = createResizeHandler(renderer, camera, (w, h) => {
     resizeConnections(connectionsBundle.entries, w, h);
-  });
+  }, maxPixelRatio);
   resize.handler();
 
   // ── Animation loop ──────────────────────────────────────────────────
