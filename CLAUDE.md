@@ -16,7 +16,7 @@ Conventions for AI agents (Claude Code and friends) working in this repo. Skim t
 - **Comments explain *why*, not *what*.** Default is no comments. Add one when the WHY is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, behavior that would surprise a reader. Don't reference the current task / fix / callers in comments — that belongs in the PR description.
 - **Rule of three before refactoring.** Wait for the third duplicate before extracting a shared helper. `HeroVoiceover.astro` and `ProjectsVoiceover.astro` are intentionally duplicated; add a "PARALLEL TO" header comment in both so bug fixes get mirrored.
 - **TypeScript strict + `noUncheckedIndexedAccess`.** Don't suppress with `as` / `!` unless the invariant is documented.
-- **No new tests in this pass** — there's no test infra yet. If you find yourself wanting one, note it; don't bolt on a one-off harness.
+- **Don't bolt on test infra for a single fix.** If the repo has a test suite, use its existing patterns. If it doesn't yet, file the gap rather than spinning up a one-off harness.
 
 ## Project specifics
 

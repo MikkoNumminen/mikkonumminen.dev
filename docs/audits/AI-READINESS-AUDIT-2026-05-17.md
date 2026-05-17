@@ -76,4 +76,4 @@ Total realistic effort: about a half-day, dominated by the test-suite item.
 | 3 | Add a Vitest test suite | Pending |
 | 4 | Write 2–3 more ADRs | Pending |
 
-Items 2–4 are tracked in Claude's project memory at [`memory/project_ai_readiness_roadmap.md`](../../) so they survive across sessions.
+Items 2–4 are tracked in Claude's per-project memory (outside the repo, in `~/.claude/projects/...`) so the roadmap survives across sessions.
