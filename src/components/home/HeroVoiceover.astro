@@ -27,10 +27,18 @@
 //   permitted, the voice started, then the resolved `on` dispatch
 //   restarted it mid-clip; (b) on a click that both unlocks autoplay
 //   and toggles state, the second dispatch restarted it again.
+// - Audio source is picked per locale: `/audio/voice-landing-${locale}.mp3`.
+//   Locales without a recorded narration (file 404s) fail silently via
+//   the existing `voice.play()` try/catch — site stays usable until the
+//   asset lands. Drop new MP3s into `public/audio/` to enable a locale.
+import { asLocale } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const voiceSrc = `/audio/voice-landing-${locale}.mp3`;
 ---
 
 <audio id="hero-voice" preload="metadata" playsinline aria-hidden="true">
-  <source src="/audio/voice-landing.mp3" type="audio/mpeg" />
+  <source src={voiceSrc} type="audio/mpeg" />
 </audio>
 
 <script>
