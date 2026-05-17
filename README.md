@@ -50,6 +50,8 @@ npm run typecheck     # astro check
 npm run format        # prettier --write across src/
 npm run format:check  # prettier --check (CI-friendly)
 npm run build:og      # rasterize OG cards + manifest icons from the source SVGs
+npm test              # run the Vitest suite (i18n + project data)
+npm run test:watch    # Vitest in watch mode for TDD
 ```
 
 `build:og` reads `public/og-*.svg` and `public/favicon.svg` and writes the PNGs referenced by `<head>` meta and `public/manifest.webmanifest`. Run it whenever any of those source SVGs change.
