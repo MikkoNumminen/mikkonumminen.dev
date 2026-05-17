@@ -1,0 +1,130 @@
+---
+// Projects-page (galaxy view) voiceover. Mirrors HeroVoiceover.astro's
+// behaviour — sits on top of the looping music bed managed by
+// `BackgroundAudio.astro`, recycled while the user is idle, controlled
+// by the global `sound on/off` toggle via the `bg-audio:state` event.
+//
+// Differences from the hero voice:
+// - No scroll-driven volume curve. The projects scene is a fixed
+//   full-viewport WebGL canvas (no scrolling hero to fade through);
+//   `BackgroundAudio` runs the music at a constant `BACKGROUND_VOLUME`
+//   = 0.5, so the voice sits at a constant `VOICE_VOLUME` = 0.7 —
+//   just enough above the bed to stay intelligible.
+// - Audio src is `/audio/voice-projects-${locale}.mp3` (parallel to
+//   the home-page `voice-landing-${locale}.mp3`). Locales without a
+//   recording 404 the audio element; `voice.play()`'s try/catch
+//   swallows the resulting rejection silently.
+import { asLocale } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const voiceSrc = `/audio/voice-projects-${locale}.mp3`;
+---
+
+<audio id="projects-voice" preload="metadata" playsinline aria-hidden="true">
+  <source src={voiceSrc} type="audio/mpeg" />
+</audio>
+
+<script>
+  // Constant volume — see component header for why.
+  const VOICE_VOLUME = 0.7;
+
+  // Idle window the user must sit still through before the voice
+  // replays. Same 50 s window as the hero voice for parity; tuned long
+  // enough that an actively-engaged visitor (clicking planets, dragging
+  // the camera) doesn't get re-narrated at.
+  const IDLE_REPLAY_MS = 50_000;
+
+  const voice = document.getElementById('projects-voice') as HTMLAudioElement | null;
+  // `.bg-audio` is rendered by BaseLayout's BackgroundAudio component
+  // and dispatches `bg-audio:state` whenever the sound toggle resolves.
+  const bgAudio = document.querySelector<HTMLElement>('.bg-audio');
+
+  if (voice && bgAudio) {
+    voice.volume = VOICE_VOLUME;
+
+    // `'on'` is the only resolved-on state — `'loading'` is the initial
+    // pre-resolve value and must wait for the `bg-audio:state` event.
+    // Treating `'loading'` as on would race the dispatch and restart
+    // the voice mid-clip (same bug we fixed in HeroVoiceover earlier).
+    let wantOn = bgAudio.dataset.state === 'on';
+
+    let idleTimer: number | null = null;
+    const cancelIdleTimer = (): void => {
+      if (idleTimer !== null) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+    };
+
+    const scheduleIdleReplay = (): void => {
+      cancelIdleTimer();
+      if (!wantOn) return;
+      if (!voice.ended) return;
+      idleTimer = window.setTimeout(() => {
+        idleTimer = null;
+        playFresh();
+      }, IDLE_REPLAY_MS);
+    };
+
+    const playFresh = async (): Promise<void> => {
+      if (!wantOn) return;
+      cancelIdleTimer();
+      try {
+        voice.currentTime = 0;
+        voice.volume = VOICE_VOLUME;
+        await voice.play();
+        if (!wantOn) voice.pause();
+      } catch {
+        /* autoplay blocked, source missing, or play interrupted */
+      }
+    };
+
+    const playResume = async (): Promise<void> => {
+      if (!wantOn) return;
+      try {
+        voice.volume = VOICE_VOLUME;
+        await voice.play();
+        if (!wantOn) voice.pause();
+      } catch {
+        /* autoplay blocked, source missing, or play interrupted */
+      }
+    };
+
+    voice.addEventListener('ended', () => {
+      scheduleIdleReplay();
+    });
+
+    // Activity events that reset the idle countdown. `pointermove` is
+    // deliberately excluded — a drifting mouse on an uneven desk would
+    // pin the timer indefinitely even though the user is sitting still.
+    // The remaining four require explicit intent. The `idleTimer !==
+    // null` guard makes these no-ops while the voice is actively
+    // playing or sound is off.
+    const onActivity = (): void => {
+      if (idleTimer !== null) scheduleIdleReplay();
+    };
+    document.addEventListener('pointerdown', onActivity, { passive: true });
+    document.addEventListener('touchstart', onActivity, { passive: true });
+    document.addEventListener('keydown', onActivity);
+    document.addEventListener('scroll', onActivity, { passive: true });
+
+    document.addEventListener('bg-audio:state', (e: Event) => {
+      const detail = (e as CustomEvent<{ on: boolean }>).detail;
+      wantOn = detail.on;
+      if (detail.on) {
+        // Already playing — do nothing. Without this, the resolved
+        // `on` dispatch that follows a successful autoplay would
+        // restart the voice from zero mid-clip.
+        if (!voice.paused) return;
+        if (voice.currentTime > 0 && !voice.ended) {
+          playResume();
+        } else {
+          playFresh();
+        }
+      } else {
+        voice.pause();
+        cancelIdleTimer();
+      }
+    });
+  }
+</script>

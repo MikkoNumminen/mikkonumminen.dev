@@ -3,6 +3,7 @@ import '../styles/projects-scene.css';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectDetail from '../components/projects/ProjectDetail.astro';
 import ProjectGrid from '../components/projects/ProjectGrid.astro';
+import ProjectsVoiceover from '../components/projects/ProjectsVoiceover.astro';
 import { connections, localizeProjects, projects } from '../data/projects';
 import { asLocale, getTranslations } from '../i18n';
 
@@ -155,6 +156,8 @@ const connectionLegendEntries = connections.map((c) => ({
     </div>
 
     <ProjectDetail />
+
+    <ProjectsVoiceover />
   </div>
 
   <!-- Mobile / no-JS / reduced-motion fallback -->
