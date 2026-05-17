@@ -17,6 +17,7 @@ export interface TimelineLesson {
 
 export interface Translations {
   meta: {
+    jobTitle: string;
     home: { title: string; description: string };
     contact: { title: string; description: string };
     projects: { title: string; description: string };

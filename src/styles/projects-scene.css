@@ -21,6 +21,18 @@ body[data-theme='projects'] .site-footer {
   display: none;
 }
 
+.projects-scene__sr-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .projects-scene__canvas {
   position: absolute;
   inset: 0;

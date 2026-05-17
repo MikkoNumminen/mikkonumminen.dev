@@ -2,6 +2,7 @@ import type { Translations } from '../types';
 
 export const en: Translations = {
   meta: {
+    jobTitle: 'Full-Stack Developer',
     home: {
       title: 'Mikko Numminen — full-stack developer',
       description:
