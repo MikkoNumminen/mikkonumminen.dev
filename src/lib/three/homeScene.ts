@@ -103,12 +103,16 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   const perfFlags = readPerfFlags();
 
+  // Keep a local reference so the same cap can be forwarded to
+  // createResizeHandler — otherwise every resize event would silently
+  // upgrade the DPR back to the browser's native value (up to 2).
+  const maxPixelRatio = perfFlags.lowPerf ? 1 : 1.5;
   const renderer = createRenderer(canvas, {
     toneMapping: ACESFilmicToneMapping,
     toneMappingExposure: 1.05,
     // `?perf=low` clamps DPR at 1 — halves the pixel work of the chain
     // (RenderPass → UnrealBloomPass → OutputPass) versus the default 1.5.
-    maxPixelRatio: perfFlags.lowPerf ? 1 : undefined,
+    maxPixelRatio,
   });
 
   const scene = new Scene();
@@ -685,7 +689,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     galaxyCenter.x = galaxyX;
 
     if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
-  });
+  }, maxPixelRatio);
   resize.handler();
 
   // Debug overlay — `?debug=perf` mounts a small FPS / ms-per-frame
