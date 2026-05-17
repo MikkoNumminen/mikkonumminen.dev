@@ -36,7 +36,7 @@ const connectionLegendEntries = connections.map((c) => ({
        CSS on small viewports / reduced motion so the layout is stable before
        JS runs. The fallback grid is shown via the same CSS rules. -->
   <div class="projects-scene" data-projects-scene>
-    <h1 class="projects-scene__sr-heading">{t.projectsPage.title}</h1>
+    <h1 class="sr-only">{t.projectsPage.title}</h1>
     <canvas id="projects-canvas" class="projects-scene__canvas" aria-hidden="true"
     ></canvas>
 
