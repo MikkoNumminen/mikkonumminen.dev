@@ -239,4 +239,8 @@ export interface Translations {
     linkExperience: string;
     linkContact: string;
   };
+  bgAudio: {
+    soundOn: string;
+    soundOff: string;
+  };
 }

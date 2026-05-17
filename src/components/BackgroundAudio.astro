@@ -26,6 +26,9 @@
 //
 // Button styling reads from theme tokens via `body[data-theme=…]`
 // selectors — same accent palette other chrome (nav, focus ring) uses.
+import { asLocale, getTranslations } from '../i18n';
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
 ---
 
 <div class="bg-audio" data-state="loading">
@@ -42,7 +45,6 @@
     type="button"
     class="bg-audio__toggle"
     aria-pressed="false"
-    aria-label="Toggle background sound"
     data-bg-audio-toggle
   >
     <span class="bg-audio__icon" aria-hidden="true">
@@ -84,8 +86,8 @@
       </svg>
     </span>
     <span class="bg-audio__label">
-      <span class="bg-audio__label-on">sound on</span>
-      <span class="bg-audio__label-off">sound off</span>
+      <span class="bg-audio__label-on">{t.bgAudio.soundOn}</span>
+      <span class="bg-audio__label-off">{t.bgAudio.soundOff}</span>
     </span>
   </button>
 </div>

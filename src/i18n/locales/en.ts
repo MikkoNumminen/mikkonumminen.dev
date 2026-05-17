@@ -387,4 +387,8 @@ export const en: Translations = {
     linkExperience: 'Experience',
     linkContact: 'Contact',
   },
+  bgAudio: {
+    soundOn: 'sound on',
+    soundOff: 'sound off',
+  },
 };
