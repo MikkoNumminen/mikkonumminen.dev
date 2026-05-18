@@ -20,6 +20,20 @@ const t = getTranslations(locale);
     </h2>
 
     <p class="velocity__body" data-reveal>{t.velocity.body}</p>
+    {
+      t.velocity.link && (
+        <a
+          class="receipt-link"
+          href={t.velocity.link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-reveal
+        >
+          {t.velocity.link.label}
+          <span aria-hidden="true"> →</span>
+        </a>
+      )
+    }
 
     <hr class="hairline velocity__divider" aria-hidden="true" data-reveal />
 
@@ -88,6 +102,10 @@ const t = getTranslations(locale);
     color: rgba(255, 255, 255, 0.7);
     max-width: 64ch;
     margin: 0;
+  }
+
+  .velocity :global(.receipt-link) {
+    --receipt-rgb: 251, 191, 36;
   }
 
   .velocity__divider {

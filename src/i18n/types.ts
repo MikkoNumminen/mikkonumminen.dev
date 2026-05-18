@@ -3,6 +3,11 @@ export type Locale = 'en' | 'fi' | 'sv';
 export const LOCALES: Locale[] = ['en', 'fi', 'sv'];
 export const DEFAULT_LOCALE: Locale = 'en';
 
+export interface ReceiptLink {
+  href: string;
+  label: string;
+}
+
 export interface TimelineLesson {
   title: string;
   /**
@@ -13,6 +18,8 @@ export interface TimelineLesson {
    * `LinkifiedText`.
    */
   body: string;
+  /** Optional external link rendered after the body so readers can verify the claim. */
+  link?: ReceiptLink;
 }
 
 export interface Translations {
@@ -54,7 +61,7 @@ export interface Translations {
     sectionAria: string;
     eyebrow: string;
     heading: string;
-    items: Array<{ title: string; body: string }>;
+    items: Array<{ title: string; body: string; link?: ReceiptLink }>;
   };
   integrations: {
     sectionAria: string;
@@ -67,6 +74,8 @@ export interface Translations {
     eyebrow: string;
     heading: string;
     body: string;
+    /** Optional external link rendered after the body so readers can verify the token-saving claim. */
+    link?: ReceiptLink;
     stats: Array<{ num: string; label: string }>;
   };
   navCards: {

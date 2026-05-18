@@ -125,6 +125,31 @@ body {
   );
 }
 
+/* Receipt links — small stand-alone "verify this claim" affordances
+   rendered after a body paragraph (Focus item, Velocity body, timeline
+   lesson). Each call site sets `--receipt-rgb` to a comma-separated R,G,B
+   triple via a scoped rule; resting/hover alphas are computed here so the
+   underline weight and hover ramp stay identical across sections. */
+.receipt-link {
+  display: inline-block;
+  margin-top: 0.65rem;
+  font-size: 0.85rem;
+  color: rgba(var(--receipt-rgb, 255, 255, 255), 0.8);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--receipt-rgb, 255, 255, 255), 0.35);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease;
+}
+
+.receipt-link:hover,
+.receipt-link:focus-visible {
+  color: rgba(var(--receipt-rgb, 255, 255, 255), 1);
+  text-decoration-color: rgba(var(--receipt-rgb, 255, 255, 255), 0.8);
+}
+
 /* `[data-split]` is the per-character reveal mask used by GSAP on home-page
    headings (see src/lib/gsap/homeTimeline.ts). The mask needs `overflow:
    hidden` so chars are invisible before they slide up from `yPercent: 110`.
