@@ -182,10 +182,10 @@ export const fi: Translations = {
     audiobookmaker: {
       tagline: 'PDF → äänikirja',
       description:
-        'Työpöytäsovellus joka muuntaa PDF-, EPUB- ja tekstitiedostot äänikirjoiksi. Kolme puhesynteesimoottoria: Edge-TTS (pilvi, 30+ ääntä kuudella kielellä), Piper (offline, ei vaadi GPU:ta) ja Chatterbox "Grandmom"-äänellä äänen kloonaukseen referenssinäytteestä. Sama Chatterbox-moottori ääninäyttelee Spacepotatiksen pelin sisäisen tarinan. Englannin puhesynteesi toimii jo hyvin; suomi on vaikeampi syntetisoida käytettävissä olevilla resursseilla, joten sitä varten on rakennettu 19-vaiheinen normalisointiputki joka hoitaa numeroiden kontekstitaivutuksen, lyhenteiden purkamisen, yksikkösymbolien käsittelyn ja vierassanojen ääntämiskorjaukset — laatu paranee joka julkaisun myötä. Jaetaan Windows-asennusohjelmana automaattipäivityksillä ja 1729 testillä.',
+        'Työpöytäsovellus joka muuntaa PDF-, EPUB- ja tekstitiedostot äänikirjoiksi; skannatut PDF:t käytetään ensin Tesseract-OCR:n läpi. Neljä puhesynteesimoottoria: Edge-TTS (pilvi, 30+ ääntä kuudella kielellä), Piper (offline, ei vaadi GPU:ta), Chatterbox "Grandmom"-äänellä äänen kloonaukseen referenssinäytteestä ja VoxCPM2 nollanäytteen äänen kloonaukseen ja suunnitteluun tekstistä (vaatii NVIDIA-näytönohjaimen, vain kehittäjäasennus). Sama Chatterbox-moottori ääninäyttelee Spacepotatiksen pelin sisäisen tarinan. Englannin puhesynteesi toimii jo hyvin; suomi on vaikeampi syntetisoida käytettävissä olevilla resursseilla, joten sitä varten on rakennettu 16-vaiheinen normalisointiputki joka hoitaa numeroiden kontekstitaivutuksen, lyhenteiden purkamisen, yksikkösymbolien käsittelyn ja vierassanojen ääntämiskorjaukset — laatu paranee joka julkaisun myötä. Jaetaan Windows-asennusohjelmana automaattipäivityksillä ja 2400+ testillä.',
       highlights: [
         'Chatterbox-ääniklooni Grandmom-äänellä',
-        '19-vaiheinen suomen kielen normalisointi, 1729 testiä',
+        '16-vaiheinen suomen kielen normalisointi, 2400+ testiä',
         'Antaa äänen Spacepotatiksen tarinalle',
       ],
     },
@@ -202,7 +202,7 @@ export const fi: Translations = {
     'strudel-patterns': {
       tagline: 'Algoritminen musiikki Strudelilla',
       description:
-        'Live-koodattua elektronista musiikkia Strudelilla — JavaScript-pohjainen kuviomoottori, TidalCyclesin sukulainen. Jokainen kappale on yksi kompostoitavissa oleva ilmaisu: pinoja syntetisaattoreita, bassolinjoja, rumpukuvioita ja efektiketjuja. Sävelletty rakenteistetulla tekoälytyönkululla — luonnollinen kuvaus → generointi → kuuntelu → iterointi, päätökset kirjattu git-historian rinnalle. Valitut kappaleet säestävät Spacepotatista (galaksinäkymä, missioteemat, tarinan kerrontapohja). Uudelleenkäytettävä komponenttikirjasto, kuratoidut syntetisaattoriasetukset, sessiomuistiot iteraatioista.',
+        'Live-koodattua elektronista musiikkia Strudelilla — JavaScript-pohjainen kuviomoottori, TidalCyclesin sukulainen. Jokainen kappale on yksi kompostoitavissa oleva ilmaisu: pinoja syntetisaattoreita, bassolinjoja, rumpukuvioita ja efektiketjuja. Sävelletty rakenteistetulla tekoälytyönkululla — luonnollinen kuvaus → generointi → kuuntelu → iterointi, päätökset kirjattu git-historian rinnalle. Valitut kappaleet säestävät Spacepotatista (galaksinäkymä, missioteemat, tarinan kerrontapohja) ja mikkonumminen.dev-aloitussivua. Uudelleenkäytettävä komponenttikirjasto, kuratoidut syntetisaattoriasetukset, sessiomuistiot iteraatioista.',
       highlights: [
         'Live-koodattu Strudelilla',
         'Tekoälyohjattu iterointi, kirjattuna gitiin',

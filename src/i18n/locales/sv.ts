@@ -183,10 +183,10 @@ export const sv: Translations = {
     audiobookmaker: {
       tagline: 'PDF → ljudbok',
       description:
-        'Skrivbordsapp som omvandlar PDF-, EPUB- och textfiler till ljudböcker. Tre TTS-motorer: Edge-TTS (moln, 30+ röster på sex språk), Piper (offline, ingen GPU krävs) och Chatterbox med "Grandmom"-rösten för röstkloning från ett kort referensklipp. Samma Chatterbox-motor ger rösten åt berättelsen i Spacepotatis. Engelsk talsyntes fungerar redan bra; finska är svårare att syntetisera med tillgängliga resurser, så den har en dedikerad 19-stegs textnormaliseringspipeline som hanterar kontextbaserad nummerböjning, förkortningsexpansion, enhetsavtal och lånordsuttalskorrigeringar — kvaliteten förbättras med varje release. Levereras som en Windows-installerare med automatiska uppdateringar och 1729 tester.',
+        'Skrivbordsapp som omvandlar PDF-, EPUB- och textfiler till ljudböcker; skannade PDF:er körs först genom Tesseract-OCR. Fyra TTS-motorer: Edge-TTS (moln, 30+ röster på sex språk), Piper (offline, ingen GPU krävs), Chatterbox med "Grandmom"-rösten för röstkloning från ett kort referensklipp och VoxCPM2 för zero-shot röstkloning och röstdesign från text (kräver NVIDIA-GPU, endast utvecklarinstallation). Samma Chatterbox-motor ger rösten åt berättelsen i Spacepotatis. Engelsk talsyntes fungerar redan bra; finska är svårare att syntetisera med tillgängliga resurser, så den har en dedikerad 16-stegs textnormaliseringspipeline som hanterar kontextbaserad nummerböjning, förkortningsexpansion, enhetsavtal och lånordsuttalskorrigeringar — kvaliteten förbättras med varje release. Levereras som en Windows-installerare med automatiska uppdateringar och 2400+ tester.',
       highlights: [
         'Chatterbox röstkloning med Grandmom-rösten',
-        '19-stegs finsk textnormalisering, 1729 tester',
+        '16-stegs finsk textnormalisering, 2400+ tester',
         'Ger rösten åt berättelsen i Spacepotatis',
       ],
     },
@@ -203,7 +203,7 @@ export const sv: Translations = {
     'strudel-patterns': {
       tagline: 'Algoritmisk musik i Strudel',
       description:
-        'Live-kodad elektronisk musik skriven i Strudel — en JavaScript-mönstermotor, port av TidalCycles. Varje spår är ett enda komponerbart uttryck: staplade synthar, baslinjer, trumkomp och effektkedjor. Skapad genom ett strukturerat AI-arbetsflöde — instruktion på naturligt språk → generering → lyssna → iterera, med beslut loggade vid sidan av git-historiken. Utvalda spår tonsätter Spacepotatis (galaxvy, missionsteman, berättelsebakgrund). Återanvändbart komponentbibliotek, kuraterade synthpresets, sessionsanteckningar per iteration.',
+        'Live-kodad elektronisk musik skriven i Strudel — en JavaScript-mönstermotor, port av TidalCycles. Varje spår är ett enda komponerbart uttryck: staplade synthar, baslinjer, trumkomp och effektkedjor. Skapad genom ett strukturerat AI-arbetsflöde — instruktion på naturligt språk → generering → lyssna → iterera, med beslut loggade vid sidan av git-historiken. Utvalda spår tonsätter Spacepotatis (galaxvy, missionsteman, berättelsebakgrund) och landningssidan på mikkonumminen.dev. Återanvändbart komponentbibliotek, kuraterade synthpresets, sessionsanteckningar per iteration.',
       highlights: [
         'Live-kodat i Strudel',
         'AI-styrd iteration, loggad i git',
