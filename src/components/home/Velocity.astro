@@ -23,7 +23,7 @@ const t = getTranslations(locale);
     {
       t.velocity.link && (
         <a
-          class="velocity__receipt-link"
+          class="receipt-link"
           href={t.velocity.link.href}
           target="_blank"
           rel="noopener noreferrer"
@@ -104,24 +104,8 @@ const t = getTranslations(locale);
     margin: 0;
   }
 
-  .velocity__receipt-link {
-    display: inline-block;
-    margin-top: 0.65rem;
-    font-size: 0.9rem;
-    color: rgba(251, 191, 36, 0.8);
-    text-decoration: underline;
-    text-decoration-color: rgba(251, 191, 36, 0.35);
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
-    transition:
-      color 0.2s ease,
-      text-decoration-color 0.2s ease;
-  }
-
-  .velocity__receipt-link:hover,
-  .velocity__receipt-link:focus-visible {
-    color: rgba(251, 191, 36, 1);
-    text-decoration-color: rgba(251, 191, 36, 0.8);
+  .velocity :global(.receipt-link) {
+    --receipt-rgb: 251, 191, 36;
   }
 
   .velocity__divider {

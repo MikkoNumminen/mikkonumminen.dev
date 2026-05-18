@@ -104,7 +104,7 @@ export const en: Translations = {
     sectionAria: 'Development velocity',
     eyebrow: 'velocity',
     heading: 'Fast — for real.',
-    body: 'Spacepotatis went from empty repo to live browser game in 12 days: 387 commits, ~1170 tests, audited Claude Code skills as production artifacts, full Next.js + Phaser 3 + Three.js stack. Six of the seven portfolio repos started in the last six weeks. AI-native isn’t rhetoric — it’s the math.',
+    body: 'Spacepotatis went from empty repo to live browser game in 12 days: 387 commits, ~1170 tests, full Next.js + Phaser 3 + Three.js stack — backed by audited Claude Code skills as production artifacts. Six of the seven portfolio repos started in the last six weeks. AI-native isn’t rhetoric — it’s the math.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
       label: 'How 2.76M tokens was estimated',

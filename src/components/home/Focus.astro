@@ -33,7 +33,7 @@ const items = t.focus.items;
               <p class="focus__body">{item.body}</p>
               {item.link && (
                 <a
-                  class="focus__receipt-link"
+                  class="receipt-link"
                   href={item.link.href}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -148,24 +148,8 @@ const items = t.focus.items;
     margin: 0;
   }
 
-  .focus__receipt-link {
-    display: inline-block;
-    margin-top: 0.65rem;
-    font-size: 0.85rem;
-    color: rgba(128, 168, 255, 0.8);
-    text-decoration: underline;
-    text-decoration-color: rgba(128, 168, 255, 0.35);
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
-    transition:
-      color 0.2s ease,
-      text-decoration-color 0.2s ease;
-  }
-
-  .focus__receipt-link:hover,
-  .focus__receipt-link:focus-visible {
-    color: rgba(128, 168, 255, 1);
-    text-decoration-color: rgba(128, 168, 255, 0.8);
+  .focus__row :global(.receipt-link) {
+    --receipt-rgb: 128, 168, 255;
   }
 
   .focus__row-tick {
