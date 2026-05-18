@@ -520,6 +520,34 @@
   outline-color: var(--accent);
 }
 
+/* Receipt links — optional "verify this claim" links that appear below
+   a lesson body when `link` is present in the i18n data. Distinct from
+   the auto-linked project URLs in `.timeline__lesson-body a` above: those
+   are inline within the sentence; these are stand-alone affordances. */
+.timeline__lesson-receipt-link {
+  display: inline-block;
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: rgba(var(--accent-rgb), 0.8);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--accent-rgb), 0.35);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease;
+}
+
+.timeline__lesson-receipt-link:hover,
+.timeline__lesson-receipt-link:focus-visible {
+  color: var(--accent);
+  text-decoration-color: rgba(var(--accent-rgb), 0.8);
+}
+
+.timeline__lesson-receipt-link:focus-visible {
+  outline-color: var(--accent);
+}
+
 .timeline__tags {
   position: relative;
   list-style: none;

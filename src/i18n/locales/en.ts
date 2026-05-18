@@ -66,6 +66,10 @@ export const en: Translations = {
       {
         title: 'AI-native, on the record',
         body: 'Spacepotatis ships ten custom Claude Code skills under .claude/skills/ — version-controlled, audited quarterly, treated as production artifacts. Pair-programming with AI is part of the toolchain; the audit trail is the receipts.',
+        link: {
+          href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
+          label: 'See the receipts',
+        },
       },
     ],
   },
@@ -101,6 +105,10 @@ export const en: Translations = {
     eyebrow: 'velocity',
     heading: 'Fast — for real.',
     body: 'Spacepotatis went from empty repo to live browser game in 12 days: 387 commits, ~1170 tests, ten audited Claude Code skills, full Next.js + Phaser 3 + Three.js stack. Six of the seven portfolio repos started in the last six weeks. AI-native isn’t rhetoric — it’s the math.',
+    link: {
+      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
+      label: 'How 2.76M tokens was estimated',
+    },
     stats: [
       { num: '12', label: 'days from empty repo to live Spacepotatis' },
       { num: '387', label: 'Spacepotatis commits' },
@@ -272,6 +280,10 @@ export const en: Translations = {
         {
           title: 'AI workflow as checked-in code',
           body: 'Spacepotatis ships ten Claude Code skills inside the repo — code-reviewed, audited quarterly. ~2.76M tokens saved in their first year.',
+          link: {
+            href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
+            label: 'Methodology',
+          },
         },
         {
           title: 'No tool lock-in',

@@ -20,6 +20,20 @@ const t = getTranslations(locale);
     </h2>
 
     <p class="velocity__body" data-reveal>{t.velocity.body}</p>
+    {
+      t.velocity.link && (
+        <a
+          class="velocity__receipt-link"
+          href={t.velocity.link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-reveal
+        >
+          {t.velocity.link.label}
+          <span aria-hidden="true"> →</span>
+        </a>
+      )
+    }
 
     <hr class="hairline velocity__divider" aria-hidden="true" data-reveal />
 
@@ -88,6 +102,26 @@ const t = getTranslations(locale);
     color: rgba(255, 255, 255, 0.7);
     max-width: 64ch;
     margin: 0;
+  }
+
+  .velocity__receipt-link {
+    display: inline-block;
+    margin-top: 0.65rem;
+    font-size: 0.9rem;
+    color: rgba(251, 191, 36, 0.8);
+    text-decoration: underline;
+    text-decoration-color: rgba(251, 191, 36, 0.35);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition:
+      color 0.2s ease,
+      text-decoration-color 0.2s ease;
+  }
+
+  .velocity__receipt-link:hover,
+  .velocity__receipt-link:focus-visible {
+    color: rgba(251, 191, 36, 1);
+    text-decoration-color: rgba(251, 191, 36, 0.8);
   }
 
   .velocity__divider {

@@ -31,6 +31,17 @@ const items = t.focus.items;
             <div class="focus__row-body">
               <h3 class="focus__title">{item.title}</h3>
               <p class="focus__body">{item.body}</p>
+              {item.link && (
+                <a
+                  class="focus__receipt-link"
+                  href={item.link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {item.link.label}
+                  <span aria-hidden="true"> →</span>
+                </a>
+              )}
             </div>
             <span class="focus__row-tick" aria-hidden="true" />
           </li>
@@ -135,6 +146,26 @@ const items = t.focus.items;
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.65);
     margin: 0;
+  }
+
+  .focus__receipt-link {
+    display: inline-block;
+    margin-top: 0.65rem;
+    font-size: 0.85rem;
+    color: rgba(128, 168, 255, 0.8);
+    text-decoration: underline;
+    text-decoration-color: rgba(128, 168, 255, 0.35);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition:
+      color 0.2s ease,
+      text-decoration-color 0.2s ease;
+  }
+
+  .focus__receipt-link:hover,
+  .focus__receipt-link:focus-visible {
+    color: rgba(128, 168, 255, 1);
+    text-decoration-color: rgba(128, 168, 255, 0.8);
   }
 
   .focus__row-tick {

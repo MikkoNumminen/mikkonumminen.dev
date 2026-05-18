@@ -102,6 +102,17 @@ function ghostYear(year: string): string {
                       <p class="timeline__lesson-body">
                         <LinkifiedText text={lesson.body} />
                       </p>
+                      {lesson.link && (
+                        <a
+                          class="timeline__lesson-receipt-link"
+                          href={lesson.link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {lesson.link.label}
+                          <span aria-hidden="true"> →</span>
+                        </a>
+                      )}
                     </div>
                   </li>
                 ))}
