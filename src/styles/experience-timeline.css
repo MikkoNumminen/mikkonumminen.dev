@@ -522,9 +522,16 @@
 
 /* Lesson receipt links — share the global `.receipt-link` chrome. Each
    timeline entry already carries its own accent via `--accent-rgb`, so
-   we forward it into the shared custom property. */
+   we forward it into the shared custom property. The focus-ring override
+   keeps the keyboard outline matching the lesson's per-entry accent —
+   without it the global :focus-visible would paint the projects-blue ring,
+   which would be the only non-accent-matching link in the card. */
 .timeline__lessons .receipt-link {
   --receipt-rgb: var(--accent-rgb);
+}
+
+.timeline__lessons .receipt-link:focus-visible {
+  outline-color: var(--accent);
 }
 
 .timeline__tags {
