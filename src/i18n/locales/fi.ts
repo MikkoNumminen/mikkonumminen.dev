@@ -206,7 +206,7 @@ export const fi: Translations = {
       highlights: [
         'Live-koodattu Strudelilla',
         'Tekoälyohjattu iterointi, kirjattuna gitiin',
-        'Spacepotatiksen ääniraita',
+        'Spacepotatiksen ja mikkonumminen.devin ääniraita',
       ],
     },
   },

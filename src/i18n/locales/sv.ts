@@ -207,7 +207,7 @@ export const sv: Translations = {
       highlights: [
         'Live-kodat i Strudel',
         'AI-styrd iteration, loggad i git',
-        'Soundtrack till Spacepotatis',
+        'Soundtrack till Spacepotatis och mikkonumminen.dev',
       ],
     },
   },
