@@ -95,7 +95,7 @@ Return EXACTLY this JSON (no preamble, no markdown):
   }, ...]
 }
 
-Conventions: integers (no commas, no "K" suffix — `13500` not `"13.5K"`); `annual_total = tokens_per_use × uses_per_year` when both known; redirect skills get `receipt: null`.
+Conventions: integers (no commas, no "K" suffix — `13500` not `"13.5K"`); `annual_total = tokens_per_use × uses_per_year` when both known; redirect skills get `receipt: null`; **no HTML entities — bare `<` and `>` are valid in JSON strings** (write `<word>` not `&lt;word&gt;`); leave fields `null` when the source doesn't state them (do NOT impute cadence or extrapolate from absence).
 ```
 
 ### 3. Wait for completion + aggregate (main thread)
@@ -105,12 +105,12 @@ Each agent posts a `task-notification` when done; the harness re-invokes the mai
 When all agents have returned, parse each per-repo JSON and assemble the final document:
 
 - `generated_at`: current UTC ISO 8601 timestamp.
-- `repos`: array of agent outputs, ordered alphabetically by repo name.
+- `repos`: array of agent outputs, **ASCII-sorted by repo name** (uppercase letters before lowercase). Current portfolio orders as `AudiobookMaker, Spacepotatis, mikkonumminen.dev`.
 - `totals`: computed from `repos`:
   - `skills`: sum of `repos[].skills.length`.
   - `redirects`: count where `redirect === true`.
-  - `with_receipts`: count where `receipt !== null`.
-  - `annual_tokens_saved`: sum of `receipt.annual_total` where present.
+  - `with_receipts`: count where `receipt !== null`. A receipt can have a non-null `path` / `source` but still have `tokens_per_use`, `uses_per_year`, or `annual_total` set to null — that skill counts toward `with_receipts` but contributes nothing to `annual_tokens_saved`. The gap between these two counts is meaningful and is visible in [the verdict doc's "with_receipts vs annual contributors" note](../../agent-verdicts/SKILL-REGISTRY-AGENT.md#open-questions--future-work).
+  - `annual_tokens_saved`: sum of `receipt.annual_total` where non-null.
 
 Validate that `totals.annual_tokens_saved` equals the sum of all `receipt.annual_total` values before writing. If a sub-agent returned a malformed entry (missing required field, inconsistent total), flag the entry in a one-line note when reporting the path back to the user.
 
@@ -151,8 +151,8 @@ If the report introduces new findings or supersedes a prior dated report, commit
   totals: {
     skills: number,               // sum of skills[] across all repos, INCLUDING redirects
     redirects: number,            // sum of skills where redirect === true
-    with_receipts: number,        // sum of skills where receipt !== null
-    annual_tokens_saved: number   // sum of receipt.annual_total where present
+    with_receipts: number,        // count of skills with any receipt object (non-null). NOTE: receipts can have null tokens_per_use / uses_per_year / annual_total — those skills count here but don't contribute to annual_tokens_saved. See verdict doc.
+    annual_tokens_saved: number   // sum of receipt.annual_total where non-null. Strictly less than or equal to the contribution from with_receipts skills (≥ 0 of those can have null annual_total).
   }
 }
 ```
