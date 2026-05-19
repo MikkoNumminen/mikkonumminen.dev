@@ -365,12 +365,11 @@ export const sv: Translations = {
     cmdLinksUnknownFlag: 'okänd flagga:',
     cmdDownloadDesc: 'ladda ner en fil',
     cmdDownloadUsage: 'download [--cv|--skills]',
-    cmdDownloadHint: 'användning: download [--cv|--skills]',
     // i18n: awaiting Swedish translation — English placeholders for now.
     cmdDownloadIntro: "pick what you'd like to grab:",
-    cmdDownloadOptionCv: 'my cv — pdf, the full résumé',
+    cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
-      "the claude code skill catalog — pdf, every skill i've built across the portfolio with token-savings estimates",
+      'every claude code skill across my portfolio — pdf with token-savings estimates',
     cmdDownloadTryHint: 'try `download --cv` or `download --skills`.',
     // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadAmbiguous: 'specify only one of --cv or --skills.',

@@ -109,9 +109,14 @@ export function buildCommands(t: Translations): CommandSpec[] {
             ['--cv', tt.cmdDownloadOptionCv],
             ['--skills', tt.cmdDownloadOptionSkills],
           ];
-          const flagWidth = Math.max(...opts.map(([f]) => f.length)) + 4;
+          // Two-space indent + flag + four-space gap before description, so
+          // the description column lines up regardless of which flag is
+          // longest. `padEnd` handles the variable flag length.
+          const INDENT = 2;
+          const GAP = 4;
+          const colWidth = INDENT + Math.max(...opts.map(([f]) => f.length)) + GAP;
           opts.forEach(([flag, desc]) => {
-            const padded = `  ${flag}`.padEnd(flagWidth + 2, ' ');
+            const padded = ' '.repeat(INDENT) + flag.padEnd(colWidth - INDENT, ' ');
             ctx.printHTML(
               `<span class="line"><span style="color:var(--color-term-green)">${escape(padded)}</span><span style="color:var(--color-term-dim)">${escape(desc)}</span></span>`,
             );

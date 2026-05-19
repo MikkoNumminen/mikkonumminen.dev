@@ -223,7 +223,6 @@ export interface Translations {
     cmdLinksUnknownFlag: string;
     cmdDownloadDesc: string;
     cmdDownloadUsage: string;
-    cmdDownloadHint: string;
     cmdDownloadIntro: string;
     cmdDownloadOptionCv: string;
     cmdDownloadOptionSkills: string;
