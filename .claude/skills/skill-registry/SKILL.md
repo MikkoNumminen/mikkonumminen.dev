@@ -117,6 +117,28 @@ Validate that `totals.annual_tokens_saved` equals the sum of all `receipt.annual
 
 **Post-process: strip HTML entities.** Sonnet sub-agents have repeatedly returned descriptions with `&lt;` / `&gt;` / `&amp;` despite explicit "no HTML entities" instructions in the agent prompt. The convention text alone is insufficient. As defense-in-depth, before writing the aggregated JSON, replace `&lt;` → `<`, `&gt;` → `>`, `&amp;` → `&` across every `description` field. This is mechanical and safe — JSON strings never legitimately contain HTML entities.
 
+**Post-process: overlay transcript measurements.** Check for `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` (the [skill-usage](https://github.com/MikkoNumminen/claude-skills/blob/main/skills/skill-usage/SKILL.md) skill's output — measured invocation counts and token totals from real Claude Code session transcripts). If the file exists, parse it. For each entry in its `skills[]`:
+
+1. Search every `repos[].skills[]` in this run for an entry whose `name` matches the usage entry's `name` (exact match — no aliasing).
+2. If found, **replace** that entry's `receipt` with a measurement-sourced one:
+   - `path: ".claude/agent-verdicts/SKILL-USAGE-LATEST.json"`
+   - `source: "transcript-measurement"`
+   - `tokens_per_use: <usage.tokens_per_use_avg>`
+   - `uses_per_year: <usage.uses_per_year>`
+   - `annual_total: <usage.annual_total>`
+3. If no matching registry row is found (e.g. usage entry for a built-in `review`, a deprecated skill, or a personal `mikko-*` alias not yet ported to a consumer repo), skip silently. The registry only enumerates skills present as `.claude/skills/<name>/SKILL.md` files; non-catalog usage stays visible in the `SKILL-USAGE-*.json` itself.
+
+This overlay runs **after** the sub-agent editorial lookup so measured values supersede editorial estimates. The displaced editorial receipt stays on disk in its source file (`docs/SKILLS.md`, `agent-verdicts/X-AGENT.md`, etc.); only the registry-row choice changes. The receipt-source priority is therefore:
+
+| Priority | Source                          | Set by                                                                |
+| -------: | ------------------------------- | --------------------------------------------------------------------- |
+|        1 | `transcript-measurement`        | Main-thread overlay using `SKILL-USAGE-LATEST.json`                   |
+|        2 | `docs/SKILLS.md`                | Sub-agent step 3a                                                     |
+|        3 | `agent-verdicts/<NAME>-AGENT.md` | Sub-agent step 3b                                                    |
+|        4 | `readme.md`                     | Sub-agent step 3c                                                     |
+|        5 | `skill-body`                    | Sub-agent step 3d                                                     |
+|        — | `null`                          | None of the above matched                                             |
+
 ### 4. Emit the report
 
 Write **two** files:
@@ -152,7 +174,7 @@ If the report introduces new findings or supersedes a prior dated report, commit
       redirect: boolean,          // true if description matches the redirect heuristic
       receipt: null | {
         path: string,             // file path or URL (only http(s) is clickable)
-        source: string,           // "docs/SKILLS.md" | "agent-verdicts/X.md" | "readme.md" | "skill-body"
+        source: string,           // "transcript-measurement" | "docs/SKILLS.md" | "agent-verdicts/X.md" | "readme.md" | "skill-body"
         tokens_per_use: number | null,
         uses_per_year: number | null,
         annual_total: number | null
@@ -174,8 +196,9 @@ If the report introduces new findings or supersedes a prior dated report, commit
 - `generated_at` is ISO 8601 with `Z` suffix for UTC.
 - Numbers are integers (not strings, not formatted with commas).
 - `annual_total` should equal `tokens_per_use × uses_per_year` whenever both are present; if only the annual figure is known directly (e.g. extracted from a docs/SKILLS.md "Total" column), per-use and per-year can stay `null`.
-- `path` for Spacepotatis-style receipts is the GitHub URL to `docs/SKILLS.md`; for local-only verdicts it is the relative path (e.g. `.claude/agent-verdicts/README-SYNC-AGENT.md`).
+- `path` for Spacepotatis-style receipts is the GitHub URL to `docs/SKILLS.md`; for local-only verdicts it is the relative path (e.g. `.claude/agent-verdicts/README-SYNC-AGENT.md`); for `transcript-measurement` it is `.claude/agent-verdicts/SKILL-USAGE-LATEST.json`.
 - `redirect: true` rows have `receipt: null` and are excluded from `with_receipts` and `annual_tokens_saved` totals.
+- When a `transcript-measurement` receipt replaces an editorial one, the disclaimer notes in skill source files (`pending the in-flight skill-usage measurement tool`) become accurate — the measurement landed; the estimate is superseded. The disclaimer text in the source file can be removed at next edit but the registry row no longer references the editorial source.
 
 A human-readable view can be rendered from this JSON by any consumer (Claude session, dashboard, script). The JSON is the source of truth; renderings are derived.
 
