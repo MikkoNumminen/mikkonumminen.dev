@@ -11,7 +11,7 @@ This is intentionally not a typical web app. It's a visual showcase, with each p
 - **`/`** — Immersive scroll experience. 3D name in WebGL, particle field, GSAP scroll triggers, parallax sections, animated nav cards.
 - **`/projects`** — Interactive solar system. Each project orbits a central sun. Hover a planet for the elevator pitch, click to zoom in.
 - **`/experience`** — Parallax mountain landscape. A goat climbs as you scroll. The sky shifts from pre-dawn to bright day across the climb. Timeline markers fade in along the way.
-- **`/contact`** — Terminal / CRT aesthetic. Real command parser, command history, tab completion, scan lines, blinking cursor, copy-to-clipboard. Try `help` — `whoami`, `contact --email`, `links`, `skills` (renders the live cross-repo skill registry), `download --cv`, `download --skills` (PDF of the registry).
+- **`/contact`** — Terminal / CRT aesthetic. Real command parser, command history, tab completion, scan lines, blinking cursor, copy-to-clipboard. Try `help` for the command list — `skills` and `download --skills` surface the live cross-repo skill registry.
 
 Page-to-page navigation triggers a canvas particle dissolve coloured to the destination page's theme.
 

@@ -205,7 +205,7 @@ deployed site — humans review the PDF in a PR, not Vercel's renderer.
 - [x] Terminal `skills` command shipped (PR #112)
 - [x] `download --skills` PDF download shipped (PR #112)
 - [x] `md-to-pdf` skill + scripts shipped (PR #112)
-- [x] `prebuild` auto-sync hook shipped (PR #112 follow-up)
+- [x] `prebuild` auto-sync hook shipped (PR #112)
 - [x] Help-screen tip surfaces `skills` and `download --skills` (PR #113)
 - [ ] Frontmatter schema adoption across all 26 skills — the structural
       upgrade path that would turn the editorial figures into measured
