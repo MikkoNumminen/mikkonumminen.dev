@@ -49,7 +49,9 @@ End-to-end with no user pauses. The report is editorial-grade until a frontmatte
 
 ### 1. Enumerate repos
 
-Use `Glob` with pattern `d:/koodaamista/*/.claude/skills/*/SKILL.md`. Group results by repo name (the segment after `koodaamista/`). Drop the `claude-audit-skill` repo if present.
+Use `Glob` with pattern `*/.claude/skills/*/SKILL.md` and `path: d:/koodaamista`. Absolute paths in the pattern argument return zero results on Windows — the tool requires `path:` as a separate parameter with the pattern relative to it. If `Glob` still returns nothing for any reason, fall back to `ls d:/koodaamista/*/.claude/skills/*/SKILL.md` via Bash.
+
+Group results by repo name (the segment after `koodaamista/`). Drop the `claude-audit-skill` repo if present.
 
 ### 2. Parse each SKILL.md
 
@@ -58,7 +60,7 @@ For each path, `Read` the first ~30 lines. Extract from YAML frontmatter:
 - `name` — the skill's invocation slug
 - `description` — the one-line summary Claude uses for skill matching
 
-Mark a file as a **redirect stub** if the body (after the frontmatter) is shorter than 5 lines and contains a word like "renamed", "redirect", "moved to", "see " followed by a slash-prefixed name. Example: Spacepotatis's `new-weapon` is a redirect to `equipment`.
+Mark a file as a **redirect stub** if the YAML `description` field contains "superseded", "redirect", "renamed", "moved to", or "see also". The description signal is more reliable than body-length heuristics — `new-weapon`'s body is 9 lines (would slip past a "< 5 lines" filter) but its description explicitly says _"Superseded by /equipment. ... This stub redirects."_ The first body line (after frontmatter) is also typically `# Superseded ...` or `# Renamed ...`, which is a secondary signal if the description is ambiguous.
 
 ### 3. Locate per-repo token-savings receipts
 

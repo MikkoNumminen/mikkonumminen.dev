@@ -51,7 +51,7 @@ export function buildCommands(t: Translations): CommandSpec[] {
           `<span class="line">${escape(tt.cmdWhoamiAlso)} <a href="https://spacepotatis.vercel.app" target="_blank" rel="noopener noreferrer">spacepotatis.vercel.app</a> (${escape(tt.cmdWhoamiGame)}), <a href="https://github.com/MikkoNumminen/AudiobookMaker" target="_blank" rel="noopener noreferrer">audiobookmaker</a> (${escape(tt.cmdWhoamiDesktop)}), <a href="https://vuohiliitto.com" target="_blank" rel="noopener noreferrer">vuohiliitto.com</a> (${escape(tt.cmdWhoamiCommunity)})</span>`,
         );
         ctx.printHTML(
-          `<span class="line">${escape(tt.cmdWhoamiYear)} 7 projects shipped solo · ~2.76M tokens saved · 2 PRs upstream to <a href="https://github.com/resemble-ai/chatterbox" target="_blank" rel="noopener noreferrer">resemble-ai/chatterbox</a></span>`,
+          `<span class="line">${escape(tt.cmdWhoamiYear)} 7 projects shipped solo · ~3.13M tokens saved · 2 PRs upstream to <a href="https://github.com/resemble-ai/chatterbox" target="_blank" rel="noopener noreferrer">resemble-ai/chatterbox</a></span>`,
         );
         ctx.print('');
         ctx.print(tt.cmdWhoamiCurrently, 'dim');
