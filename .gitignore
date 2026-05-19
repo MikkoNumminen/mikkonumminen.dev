@@ -38,9 +38,13 @@ TODO.md
 NOTES.md
 .notes/
 
-# AI tooling
+# AI tooling — local by default; opt in `.claude/skills/` and
+# `.claude/agent-verdicts/` so checked-in skills can ship with their
+# design-rationale companion docs. Everything else under `.claude/`
+# (settings, worktrees, transcripts) stays local.
 .claude/*
 !.claude/skills/
+!.claude/agent-verdicts/
 .cursor/
 .aider*
 .continue/
