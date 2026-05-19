@@ -1,0 +1,275 @@
+import type { Translations } from '../../i18n';
+import { escapeHtml as escape } from '../utils/escapeHtml';
+import type { CommandContext } from './types';
+
+/**
+ * Consumer of the `skill-registry` skill's JSON output.
+ *
+ * The skill lives in `.claude/skills/skill-registry/` and is run locally by
+ * the author. It scans every sibling repo under `D:/koodaamista` and writes
+ * a dated markdown report plus a JSON sibling. To surface the registry in
+ * the contact-page terminal, the author copies the JSON output to
+ * `public/data/skills-registry.json` and the `skills` command fetches it at
+ * runtime. Until the file exists, the command renders a graceful empty
+ * state — the page does not 404, and nothing in CI breaks if the file is
+ * absent.
+ */
+
+export interface SkillReceipt {
+  /** File path or URL the token-savings estimate is traceable to. */
+  path: string;
+  /** Where the estimate was sourced from. */
+  source: string;
+  tokens_per_use: number | null;
+  uses_per_year: number | null;
+  annual_total: number | null;
+}
+
+export interface RegistrySkill {
+  name: string;
+  description: string;
+  /** True when the SKILL.md is a redirect stub for another skill (e.g. `new-weapon` → `equipment`). */
+  redirect: boolean;
+  receipt: SkillReceipt | null;
+  /** ISO date of the last audit, if recorded in frontmatter. */
+  last_audited?: string;
+}
+
+export interface RegistryRepo {
+  name: string;
+  github_url?: string;
+  skills: RegistrySkill[];
+}
+
+export interface SkillRegistry {
+  /** ISO 8601 timestamp of when the registry was generated. */
+  generated_at: string;
+  repos: RegistryRepo[];
+  totals: {
+    skills: number;
+    redirects: number;
+    with_receipts: number;
+    annual_tokens_saved: number;
+  };
+}
+
+const REGISTRY_PATH = '/data/skills-registry.json';
+
+// Cache the fetch promise for a minute so repeated `skills` invocations in
+// one session don't re-hit the network. Long enough to be useful, short
+// enough that replacing the file on disk shows up within a reload.
+const CACHE_TTL_MS = 60_000;
+let registryCache: { promise: Promise<SkillRegistry | null>; loadedAt: number } | null =
+  null;
+
+async function fetchRegistry(): Promise<SkillRegistry | null> {
+  const now = Date.now();
+  if (registryCache && now - registryCache.loadedAt < CACHE_TTL_MS) {
+    return registryCache.promise;
+  }
+  const promise = (async () => {
+    try {
+      const res = await fetch(REGISTRY_PATH, { cache: 'no-store' });
+      if (!res.ok) return null;
+      return (await res.json()) as SkillRegistry;
+    } catch {
+      return null;
+    }
+  })();
+  registryCache = { promise, loadedAt: now };
+  return promise;
+}
+
+// Only http(s) URLs become clickable; local paths are rendered as plain
+// text. This blocks `javascript:` / `data:` payloads from a malformed
+// registry file from ever reaching an `href`.
+function isSafeHref(url: string): boolean {
+  return url.startsWith('https://') || url.startsWith('http://');
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
+  return String(n);
+}
+
+function printTable(ctx: CommandContext, headers: string[], rows: string[][]): void {
+  const widths = headers.map((h, i) =>
+    Math.max(h.length, ...rows.map((r) => (r[i] ?? '').length)),
+  );
+  const fmtRow = (cells: string[]): string =>
+    cells
+      .map((c, i) => {
+        const w = widths[i] ?? 0;
+        return i === 0 ? c.padEnd(w) : c.padStart(w);
+      })
+      .join('  ');
+  ctx.print(fmtRow(headers), 'accent');
+  ctx.print(fmtRow(widths.map((w) => '─'.repeat(w))), 'dim');
+  for (const row of rows) ctx.print(fmtRow(row));
+}
+
+function renderSkillLine(s: RegistrySkill, ctx: CommandContext): void {
+  const nameLabel = s.redirect ? `${s.name} (redirect)` : s.name;
+  const tokens =
+    s.receipt && s.receipt.annual_total !== null
+      ? `~${formatNumber(s.receipt.annual_total)}/yr`
+      : '—';
+  const padded = nameLabel.padEnd(22, ' ');
+  const tokenCol = tokens.padStart(12, ' ');
+
+  const receiptCell =
+    s.receipt && isSafeHref(s.receipt.path)
+      ? `<a href="${escape(s.receipt.path)}" target="_blank" rel="noopener noreferrer">[receipt]</a>`
+      : s.receipt
+        ? `<span style="color:var(--color-term-dim)">[${escape(s.receipt.source)}]</span>`
+        : '';
+
+  ctx.printHTML(
+    `<span class="line">` +
+      `<span style="color:var(--color-term-green)">${escape(padded)}</span>` +
+      `<span style="color:var(--color-term-dim)">${escape(tokenCol)}  </span>` +
+      `${receiptCell}` +
+      `<span> ${escape(s.description)}</span>` +
+      `</span>`,
+  );
+}
+
+function renderAggregate(
+  reg: SkillRegistry,
+  ctx: CommandContext,
+  tt: Translations['terminal'],
+): void {
+  const rows = reg.repos.map((r) => {
+    const total = r.skills.length;
+    const redirects = r.skills.filter((s) => s.redirect).length;
+    const withReceipts = r.skills.filter(
+      (s) => s.receipt && s.receipt.annual_total !== null,
+    ).length;
+    const annual = r.skills.reduce((sum, s) => sum + (s.receipt?.annual_total ?? 0), 0);
+    return [
+      r.name,
+      String(total),
+      String(redirects),
+      String(withReceipts),
+      formatNumber(annual),
+    ];
+  });
+
+  printTable(ctx, ['Repo', 'Skills', 'Redirects', 'Receipts', 'Tokens/yr'], rows);
+
+  ctx.print('');
+  ctx.print(
+    `total: ${reg.totals.skills} skills · ${reg.totals.redirects} redirects · ${reg.totals.with_receipts} with receipts · ~${formatNumber(reg.totals.annual_tokens_saved)} tokens/yr`,
+    'accent',
+  );
+  ctx.print('');
+  ctx.print(tt.cmdSkillsAggregateTip, 'dim');
+}
+
+function renderRepo(repo: RegistryRepo, ctx: CommandContext): void {
+  const headerHtml =
+    repo.github_url && isSafeHref(repo.github_url)
+      ? `<span class="line" style="color:var(--color-term-cyan)">${escape(repo.name)} — <a href="${escape(repo.github_url)}" target="_blank" rel="noopener noreferrer">${escape(repo.github_url)}</a></span>`
+      : `<span class="line" style="color:var(--color-term-cyan)">${escape(repo.name)}</span>`;
+  ctx.printHTML(headerHtml);
+  ctx.print('');
+
+  if (repo.skills.length === 0) {
+    ctx.print('(no skills)', 'dim');
+    return;
+  }
+  for (const s of repo.skills) {
+    renderSkillLine(s, ctx);
+  }
+}
+
+function renderAll(reg: SkillRegistry, ctx: CommandContext): void {
+  reg.repos.forEach((repo, i) => {
+    if (i > 0) ctx.print('');
+    renderRepo(repo, ctx);
+  });
+}
+
+export async function runSkillsCommand(
+  args: string[],
+  ctx: CommandContext,
+  t: Translations,
+): Promise<void> {
+  const tt = t.terminal;
+
+  let mode: 'aggregate' | 'all' | 'repo' | 'json' = 'aggregate';
+  let repoName: string | null = null;
+
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === '--all') mode = 'all';
+    else if (a === '--json') mode = 'json';
+    else if (a === '--repo') {
+      mode = 'repo';
+      const next = args[i + 1];
+      if (next && !next.startsWith('--')) {
+        repoName = next;
+        i++;
+      }
+    } else if (a && a.startsWith('--')) {
+      ctx.print(`${tt.cmdSkillsUnknownFlag} ${a}`, 'err');
+      ctx.print(tt.cmdSkillsUsage, 'dim');
+      return;
+    }
+  }
+
+  if (mode === 'json') {
+    // Probe the file first so we don't pop a 404 tab on a missing registry.
+    const res = await fetch(REGISTRY_PATH, { method: 'HEAD', cache: 'no-store' }).catch(
+      () => null,
+    );
+    if (!res || !res.ok) {
+      ctx.print(tt.cmdSkillsNotGenerated, 'err');
+      ctx.print(tt.cmdSkillsNotGeneratedHint, 'dim');
+      return;
+    }
+    window.open(REGISTRY_PATH, '_blank', 'noopener');
+    ctx.print(tt.cmdSkillsJsonOpened, 'dim');
+    return;
+  }
+
+  ctx.print(tt.cmdSkillsLoading, 'dim');
+  const registry = await fetchRegistry();
+  if (!registry) {
+    ctx.print(tt.cmdSkillsNotGenerated, 'err');
+    ctx.print(tt.cmdSkillsNotGeneratedHint, 'dim');
+    return;
+  }
+
+  const generated = new Date(registry.generated_at);
+  const dateStr = Number.isNaN(generated.getTime())
+    ? registry.generated_at
+    : generated.toISOString().slice(0, 10);
+  ctx.print(`${tt.cmdSkillsGeneratedLabel} ${dateStr}`, 'dim');
+  ctx.print('');
+
+  if (mode === 'aggregate') {
+    renderAggregate(registry, ctx, tt);
+    return;
+  }
+  if (mode === 'all') {
+    renderAll(registry, ctx);
+    return;
+  }
+  if (mode === 'repo') {
+    if (!repoName) {
+      ctx.print(tt.cmdSkillsUsage, 'dim');
+      return;
+    }
+    const target = repoName.toLowerCase();
+    const repo = registry.repos.find((r) => r.name.toLowerCase() === target);
+    if (!repo) {
+      ctx.print(`${tt.cmdSkillsRepoNotFound} ${repoName}`, 'err');
+      const known = registry.repos.map((r) => r.name).join(', ');
+      ctx.print(`known repos: ${known}`, 'dim');
+      return;
+    }
+    renderRepo(repo, ctx);
+  }
+}

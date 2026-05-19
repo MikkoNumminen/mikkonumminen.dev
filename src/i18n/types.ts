@@ -226,6 +226,7 @@ export interface Translations {
     cmdDownloadHint: string;
     cmdDownloadPreparing: string;
     cmdDownloadNotAvailable: string;
+    cmdDownloadSkillsNotAvailable: string;
     cmdDownloadMeantime: string;
     cmdDownloadStarted: string;
     cmdClearDesc: string;
@@ -234,6 +235,16 @@ export interface Translations {
     cmdManNoEntry: string;
     cmdManNameLabel: string;
     cmdManUsageLabel: string;
+    cmdSkillsDesc: string;
+    cmdSkillsUsage: string;
+    cmdSkillsUnknownFlag: string;
+    cmdSkillsLoading: string;
+    cmdSkillsNotGenerated: string;
+    cmdSkillsNotGeneratedHint: string;
+    cmdSkillsGeneratedLabel: string;
+    cmdSkillsAggregateTip: string;
+    cmdSkillsRepoNotFound: string;
+    cmdSkillsJsonOpened: string;
   };
   langSwitcher: {
     label: string;

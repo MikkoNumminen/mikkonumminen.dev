@@ -1,11 +1,13 @@
 import type { Translations } from '../../i18n';
 import { escapeHtml as escape } from '../utils/escapeHtml';
+import { runSkillsCommand } from './skills';
 import type { CommandSpec } from './types';
 
 const EMAIL = 'numminen.mikko.petteri@gmail.com';
 const GITHUB = 'https://github.com/MikkoNumminen';
 const LINKEDIN = 'https://www.linkedin.com/in/mikko-numminen-269795205/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
+const SKILLS_PDF_PATH = '/skills-registry.pdf';
 
 /**
  * Build the terminal command set for a given locale.
@@ -99,10 +101,24 @@ export function buildCommands(t: Translations): CommandSpec[] {
       description: tt.cmdDownloadDesc,
       usage: tt.cmdDownloadUsage,
       handler: async (args, ctx) => {
-        if (!args.includes('--cv')) {
+        const wantsCv = args.includes('--cv');
+        const wantsSkills = args.includes('--skills');
+        if (!wantsCv && !wantsSkills) {
           ctx.print(tt.cmdDownloadHint, 'dim');
           return;
         }
+        const target = wantsCv
+          ? {
+              url: CV_PATH,
+              filename: 'mikko-numminen-cv.pdf',
+              notAvailableMsg: tt.cmdDownloadNotAvailable,
+            }
+          : {
+              url: SKILLS_PDF_PATH,
+              filename: 'skills-registry.pdf',
+              notAvailableMsg: tt.cmdDownloadSkillsNotAvailable,
+            };
+
         ctx.print(tt.cmdDownloadPreparing, 'dim');
 
         // Verify the file actually exists before triggering the browser download —
@@ -110,14 +126,14 @@ export function buildCommands(t: Translations): CommandSpec[] {
         // instead of useful feedback inside the terminal.
         let available = false;
         try {
-          const res = await fetch(CV_PATH, { method: 'HEAD', cache: 'no-store' });
+          const res = await fetch(target.url, { method: 'HEAD', cache: 'no-store' });
           available = res.ok;
         } catch {
           available = false;
         }
 
         if (!available) {
-          ctx.print(tt.cmdDownloadNotAvailable, 'err');
+          ctx.print(target.notAvailableMsg, 'err');
           ctx.printHTML(
             `<span class="line line--dim">${escape(tt.cmdDownloadMeantime)} <a href="mailto:${EMAIL}">${EMAIL}</a></span>`,
           );
@@ -125,13 +141,21 @@ export function buildCommands(t: Translations): CommandSpec[] {
         }
 
         const a = document.createElement('a');
-        a.href = CV_PATH;
-        a.download = 'mikko-numminen-cv.pdf';
+        a.href = target.url;
+        a.download = target.filename;
         a.rel = 'noopener';
         document.body.appendChild(a);
         a.click();
         a.remove();
         ctx.print(tt.cmdDownloadStarted, 'accent');
+      },
+    },
+    {
+      name: 'skills',
+      description: tt.cmdSkillsDesc,
+      usage: tt.cmdSkillsUsage,
+      handler: async (args, ctx) => {
+        await runSkillsCommand(args, ctx, t);
       },
     },
     {
