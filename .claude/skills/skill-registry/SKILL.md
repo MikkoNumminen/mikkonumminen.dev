@@ -188,6 +188,7 @@ For a portfolio of ~25 skill files across 3 repos (current scale, 2026-05), runn
 - Main-context absorption: ~5K — read N small JSON blobs + write the aggregate report
 - Wall-clock: ~30s parallel agents + ~5s main-thread aggregation
 - Sonnet pricing is materially cheaper per token than Opus, so the dollar-equivalent cost is well under the raw 80K input figure
+- ~12 uses/year — monthly during active skill-development phases, quarterly otherwise; run total ~12 × 95K ≈ 1.14M tokens/year. Author estimate pending the in-flight skill-usage measurement tool.
 
 Compare to a serial main-thread version of the same work (~60K input read directly into Opus context): the parallel version is roughly the same total token cost, but ~3-5× faster in wall-clock and keeps the main context free for synthesis. Worth it for a quarterly run; mandatory if the portfolio grows past ~50 skills.
 

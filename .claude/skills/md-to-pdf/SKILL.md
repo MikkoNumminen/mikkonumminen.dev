@@ -151,6 +151,8 @@ For a typical report (~500 lines of markdown, ~10 tables):
 
 Wall-clock: ~15s for the model work + ~3s for Chrome to render. Under 30s end-to-end.
 
+- ~10 uses/year — occasional one-off when a markdown artefact needs to ship as PDF; run total ~10 × 25K ≈ 250K tokens/year. Author estimate pending the in-flight skill-usage measurement tool.
+
 For very large reports (thousands of lines, dozens of tables), consider splitting the HTML composition into a Sonnet sub-agent and only verifying the result in the main thread — same pattern as `sync-readmes` / `skill-registry`.
 
 ## Limitations (good enough, not LaTeX-perfect)
