@@ -110,30 +110,13 @@ Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/) — versi
 - **`/md-to-pdf`** — renders any HTML document to a styled PDF using the developer's locally-installed Chrome via `--print-to-pdf`. Zero npm install — no puppeteer or Chromium download (~150MB avoided). Page setup (orientation, size, margins) lives in the HTML's `@page` CSS, so the caller controls layout fully. The skill assembles the HTML in-context (markdown → HTML conversion + per-document CSS) and invokes [`scripts/build-pdf.mjs`](scripts/build-pdf.mjs); a content-aware wrapper at [`scripts/build-skills-pdf.mjs`](scripts/build-skills-pdf.mjs) powers the `download --skills` registry PDF. Rationale in [`docs/decisions/0005-skill-registry-pdf-surface.md`](docs/decisions/0005-skill-registry-pdf-surface.md).
   - **Token economics per use:** ~10K Read of the source + ~10-15K HTML composition + ~1K Bash + ~1K verify ≈ ~25K end to end, ~15-20s wall-clock including Chrome render.
 
-### Portfolio at a glance
+Each of the three skills above ships with a written verdict or ADR — the token numbers and "results to date" lines come from real runs, not author estimates:
 
-Most skills don't live here — they live in the sibling repos this site links to. The registry keeps a current inventory across all of them. Numbers below are from the [current registry snapshot](.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json) (dated snapshots preserved in [`.claude/agent-verdicts/`](.claude/agent-verdicts/)):
+- `/sync-readmes` → [`.claude/agent-verdicts/README-SYNC-AGENT.md`](.claude/agent-verdicts/README-SYNC-AGENT.md) — per-sub-agent token measurements from 2 real runs (Run 1 sum: 141,080), cumulative drift caught, design comparison vs inline-on-Opus.
+- `/skill-registry` → [`.claude/agent-verdicts/SKILL-REGISTRY-AGENT.md`](.claude/agent-verdicts/SKILL-REGISTRY-AGENT.md) — design rationale, schema gaps, validation notes; backed by dated JSON snapshots committed alongside every refresh.
+- `/md-to-pdf` → [`docs/decisions/0005-skill-registry-pdf-surface.md`](docs/decisions/0005-skill-registry-pdf-surface.md) — why local-Chrome over puppeteer, layout-via-`@page`, the content-aware wrapper for the contact-terminal PDF download.
 
-| Repo                                                              | Skills | With token receipts | Est. annual tokens saved |
-| ----------------------------------------------------------------- | -----: | ------------------: | -----------------------: |
-| [AudiobookMaker](https://github.com/MikkoNumminen/AudiobookMaker) |     10 |                   0 |                        — |
-| [Spacepotatis](https://github.com/MikkoNumminen/Spacepotatis)     |     14 |                  13 |               ~3,134,300 |
-| mikkonumminen.dev (this repo)                                     |      2 |                   2 |                        — |
-| **Total**                                                         | **26** |              **15** |           **~3,134,300** |
-
-Three quirks worth flagging:
-
-- One of the 26 (`new-weapon` in Spacepotatis) is a redirect stub superseded by `/equipment` — counted under "Skills" but excluded from receipts.
-- mikkonumminen.dev's two skills have receipts (`tokens_per_use` is recorded) but no stated cadence. The registry strict-leaves `uses_per_year` `null` when the source doesn't claim one, so neither skill contributes to the annual total. That's why "With token receipts" totals 15 but the dollar-equivalent column doesn't move when this repo's skills are added.
-- Numbers reflect the 2026-05-19 registry run; the `/md-to-pdf` skill shipped after that, so the next registry refresh will bump this repo to 3 skills (27 total).
-
-### Validation — what these numbers are and aren't
-
-Editorial-grade, not audit-grade. The token-savings figures are author-estimated educated guesses produced when each skill was authored, not measurements from instrumented runs. Aggregating them across repos doesn't make them more verifiable — it makes them visible. The registry exists so portfolio claims are falsifiable against the file system rather than vibes-based:
-
-- **What's verifiable today:** every entry in the registry maps to an on-disk `SKILL.md` whose frontmatter `name` and `description` are quoted verbatim; redirect stubs are flagged from description heuristics; receipt paths point to a real source file (`docs/SKILLS.md` for Spacepotatis, `.claude/agent-verdicts/*-AGENT.md` for this repo, the SKILL body for `/skill-registry`).
-- **What's editorial:** `tokens_per_use` and `uses_per_year`. Until a frontmatter schema with `last_audited` lands across all 26 skills, the totals are a surface-area map, not a measured saving. See [Limitations in `skill-registry/SKILL.md`](.claude/skills/skill-registry/SKILL.md#limitations-editorial-grade-not-audit-grade).
-- **What "savings" means here:** mostly _context-budget savings_, not dollar savings. The real win is keeping the orchestrator's Opus context free for synthesis work without triggering compaction — and surfacing drift across 6 sibling repos that nobody hand-grep-audits. Dollar savings vs an inline read are modest.
+The portfolio-wide registry that aggregates skills from every sibling repo lives in [`.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json`](.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json) and is downloadable from the contact terminal via `download --skills`; it's not republished here because this section is about what ships in this repo.
 
 ## Observability
 
