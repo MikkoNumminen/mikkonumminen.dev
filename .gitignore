@@ -39,7 +39,8 @@ NOTES.md
 .notes/
 
 # AI tooling
-.claude/
+.claude/*
+!.claude/skills/
 .cursor/
 .aider*
 .continue/
