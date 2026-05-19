@@ -19,11 +19,11 @@
         },
         {
           "name": "skill-registry",
-          "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry — per-repo tables of skill name, description, and (where receipts exist) token-savings estimates. Output goes to a dated markdown report under `.claude/agent-verdicts/` for the user to validate.",
+          "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-REGISTRY-AGENT.md",
-            "source": "agent-verdicts/SKILL-REGISTRY-AGENT.md",
+            "path": ".claude/skills/skill-registry/SKILL.md",
+            "source": "skill-body",
             "tokens_per_use": 65000,
             "uses_per_year": 4,
             "annual_total": 260000

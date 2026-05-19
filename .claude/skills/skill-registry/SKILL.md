@@ -1,11 +1,11 @@
 ---
 name: skill-registry
-description: Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry — per-repo tables of skill name, description, and (where receipts exist) token-savings estimates. Output goes to a dated markdown report under `.claude/agent-verdicts/` for the user to validate.
+description: Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.
 ---
 
 # Skill registry
 
-Walk every sibling repo under `D:/koodaamista`, find each Claude Code skill, and produce one consolidated markdown report listing every skill the portfolio operates: name, description, token-savings estimate (if a per-repo receipt exists), and the file path that backs each claim.
+Walk every sibling repo under `D:/koodaamista`, find each Claude Code skill, and produce one consolidated JSON document listing every skill the portfolio operates: name, description, token-savings estimate (if a per-repo receipt exists), and the file path that backs each claim. Reads are parallelised — one Sonnet sub-agent per repo — so the whole run lands in ~30s.
 
 **Companion doc:** [.claude/agent-verdicts/SKILL-REGISTRY-AGENT.md](../../agent-verdicts/SKILL-REGISTRY-AGENT.md) — design rationale, what's verifiable vs editorial, schema gaps, validation notes.
 
@@ -19,15 +19,13 @@ NOT for: editing skills, validating skill correctness, measuring actual run-time
 
 ## What this skill does
 
-1. Walk `D:/koodaamista/*` for sibling directories.
-2. For each directory, look for `.claude/skills/*/SKILL.md`.
-3. Parse each `SKILL.md`'s YAML frontmatter (`name`, `description`).
-4. Detect "redirect" stubs (single-line `# Renamed → ...` or `See <other>`) and mark them separately so they're not double-counted.
-5. For each repo, look for a sibling token-savings doc in known locations (see "Token-savings receipts" below) and extract per-skill estimates.
-6. Emit a single markdown report grouped per repo, with an aggregate table at the top.
-7. Write the report to `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.md` and print the path. Do not commit.
+1. **Main thread** enumerates `D:/koodaamista/*/.claude/skills/*/SKILL.md` and groups paths by repo.
+2. **Dispatches one Sonnet sub-agent per repo in parallel** (all in a single message) — each agent reads the YAML frontmatter (`name`, `description`) of every SKILL.md in its repo, classifies redirects from the description, locates a token-savings receipt from `docs/SKILLS.md` / `agent-verdicts/*-AGENT.md` / the SKILL.md body, and returns a structured per-repo JSON blob.
+3. **Main thread aggregates** the per-repo blobs into the final document, computes `totals`, validates the arithmetic.
+4. Writes `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` and prints the path.
+5. If the report introduces new findings or supersedes a prior dated report, commits and pushes it as a fresh registry snapshot — the JSON is the canonical "what skills the portfolio operates today" document, and other Claude sessions read it without re-running.
 
-End-to-end with no user pauses. The report is editorial-grade until a frontmatter schema is adopted — see "Limitations" below.
+End-to-end with no user pauses. The numbers are editorial-grade until a frontmatter schema is adopted — see "Limitations" below.
 
 ## Scope
 
@@ -43,7 +41,7 @@ End-to-end with no user pauses. The report is editorial-grade until a frontmatte
 - `D:/koodaamista/*/docs/SKILLS.md` — Spacepotatis's methodology doc (and any repo that adopts the same pattern)
 - `D:/koodaamista/*/.claude/agent-verdicts/*.md` — per-skill verdict docs (mikkonumminen.dev pattern); look for "Token expectations" sections
 
-**Files written:** one dated report under `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.md` in this repo only.
+**Files written:** one dated report under `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` in this repo only.
 
 ## Procedure
 
@@ -73,9 +71,9 @@ For each path, do all of:
 1. Read the first 30 lines and extract YAML frontmatter `name` and `description`.
 2. Classify as a redirect stub if `description` contains "superseded", "redirect", "renamed", "moved to", or "see also" (case-insensitive). Redirect stubs have `receipt: null`.
 3. For non-redirect skills, locate a token-savings receipt by checking these sources in order:
-   a. `D:/koodaamista/{REPO}/docs/SKILLS.md` — markdown table with rows like `| /<skill> | ~X K | Y | ~Z K |`
-   b. `D:/koodaamista/{REPO}/.claude/agent-verdicts/<NAME>-AGENT.md` — `## Token expectations` section
-   c. The SKILL.md body — `## Token expectations` section
+   a. `D:/koodaamista/{REPO}/docs/SKILLS.md` — markdown table with rows like `| /<skill> | ~X K | Y | ~Z K |`. Label `source: "docs/SKILLS.md"`.
+   b. `D:/koodaamista/{REPO}/.claude/agent-verdicts/<NAME>-AGENT.md` — `## Token expectations` or `## Token economics` section per skill. Label `source: "agent-verdicts/<NAME>-AGENT.md"`.
+   c. The SKILL.md body itself — `## Token expectations` section. Label `source: "skill-body"` and use the SKILL.md's own path (e.g. `.claude/skills/<NAME>/SKILL.md`) as `path`.
    Use the first source that names the skill. If none, `receipt: null`.
 
 Return EXACTLY this JSON (no preamble, no markdown):
@@ -89,7 +87,7 @@ Return EXACTLY this JSON (no preamble, no markdown):
     "redirect": true | false,
     "receipt": null | {
       "path": "<URL or relative path>",
-      "source": "docs/SKILLS.md" | "agent-verdicts/<NAME>-AGENT.md" | "frontmatter",
+      "source": "docs/SKILLS.md" | "agent-verdicts/<NAME>-AGENT.md" | "skill-body",
       "tokens_per_use": <int or null>,
       "uses_per_year": <int or null>,
       "annual_total": <int or null>
@@ -142,7 +140,7 @@ If the report introduces new findings or supersedes a prior dated report, commit
       redirect: boolean,          // true if description matches the redirect heuristic
       receipt: null | {
         path: string,             // file path or URL (only http(s) is clickable)
-        source: string,           // "docs/SKILLS.md" | "agent-verdicts/X.md" | "frontmatter"
+        source: string,           // "docs/SKILLS.md" | "agent-verdicts/X.md" | "skill-body"
         tokens_per_use: number | null,
         uses_per_year: number | null,
         annual_total: number | null
@@ -186,7 +184,7 @@ Compare to a serial main-thread version of the same work (~60K input read direct
 - **Repo deleted or renamed:** Glob returns no match for that path; skip silently. Report excludes the missing repo.
 - **Malformed frontmatter** (no `name` or `description`): use the parent directory name as the skill name, mark description as `(missing frontmatter)`, log in the "Notes & gaps" section.
 - **Token-savings doc points to a skill not in `.claude/skills/`** (drift between receipts and reality): list the orphan in the "Notes & gaps" section.
-- **`.claude/` is gitignored on most repos / most paths:** that's expected. The report runs against the local working tree, not git history. Even in this repo (which tracks `.claude/skills/` and the verdict file specifically), the dated output report is re-ignored — it's point-in-time data, not a checked-in artifact.
+- **`.claude/` is gitignored on most repos / most paths:** that's expected. Sub-agents read the local working tree, not git history. In **this** repo, `.claude/skills/` is tracked and the `SKILL-REGISTRY-*` pattern is opted in — both the verdict doc and dated JSON reports land in git so other Claude sessions can read them. Sibling repos (Spacepotatis, AudiobookMaker) keep their `.claude/` local; their `docs/SKILLS.md` is what gets read across machines.
 
 ## Limitations (editorial-grade, not audit-grade)
 
