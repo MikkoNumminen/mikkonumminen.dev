@@ -104,12 +104,25 @@ export function buildCommands(t: Translations): CommandSpec[] {
         const wantsCv = args.includes('--cv');
         const wantsSkills = args.includes('--skills');
         if (!wantsCv && !wantsSkills) {
-          ctx.print(tt.cmdDownloadHint, 'dim');
+          ctx.print(tt.cmdDownloadIntro, 'dim');
+          const opts: Array<[string, string]> = [
+            ['--cv', tt.cmdDownloadOptionCv],
+            ['--skills', tt.cmdDownloadOptionSkills],
+          ];
+          const flagWidth = Math.max(...opts.map(([f]) => f.length)) + 4;
+          opts.forEach(([flag, desc]) => {
+            const padded = `  ${flag}`.padEnd(flagWidth + 2, ' ');
+            ctx.printHTML(
+              `<span class="line"><span style="color:var(--color-term-green)">${escape(padded)}</span><span style="color:var(--color-term-dim)">${escape(desc)}</span></span>`,
+            );
+          });
+          ctx.print('');
+          ctx.print(tt.cmdDownloadTryHint, 'dim');
           return;
         }
         if (wantsCv && wantsSkills) {
           ctx.print(tt.cmdDownloadAmbiguous, 'err');
-          ctx.print(tt.cmdDownloadHint, 'dim');
+          ctx.print(tt.cmdDownloadTryHint, 'dim');
           return;
         }
         const target = wantsCv

@@ -366,6 +366,12 @@ export const fi: Translations = {
     cmdDownloadDesc: 'lataa tiedosto',
     cmdDownloadUsage: 'download [--cv|--skills]',
     cmdDownloadHint: 'käyttö: download [--cv|--skills]',
+    // i18n: awaiting Finnish translation — English placeholders for now.
+    cmdDownloadIntro: "pick what you'd like to grab:",
+    cmdDownloadOptionCv: 'my cv — pdf, the full résumé',
+    cmdDownloadOptionSkills:
+      "the claude code skill catalog — pdf, every skill i've built across the portfolio with token-savings estimates",
+    cmdDownloadTryHint: 'try `download --cv` or `download --skills`.',
     // i18n: awaiting Finnish translation — English placeholder for now.
     cmdDownloadAmbiguous: 'specify only one of --cv or --skills.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
