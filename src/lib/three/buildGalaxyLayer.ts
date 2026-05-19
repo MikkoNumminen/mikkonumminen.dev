@@ -149,7 +149,9 @@ export function buildGalaxyLayer(opts: GalaxyLayerOptions = {}): GalaxyLayerHand
   const baseOpacity = 0.85;
 
   let clickImpulse = 0;
-  const SPIN_RATE = 0.04; // rad/s — matches the value previously hard-coded in homeScene
+  // Negative so arms trail rotation (real spiral galaxies rotate against the
+  // arm curl). Arm geometry sweeps CCW with radius, so spin must be CW.
+  const SPIN_RATE = -0.04;
   const PLAY_SIZE_PEAK = 0.5; // +50% point size at impulse=1
   const PLAY_OPACITY_PEAK = 0.15; // 0.85 → 1.0 at impulse=1
   const PLAY_DECAY = 1.8; // per-second; ~550 ms back to imperceptible
