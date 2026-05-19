@@ -225,3 +225,4 @@ For a 6-repo run (first-run measured):
 - Sonnet input ~140K, output ~7K, across all parallel agents
 - Main-context absorption ~10K (structured reports only)
 - Wall-clock ~45s parallel + ~3 min orchestration
+- ~30 uses/year — weekly when actively iterating on README copy / project data, slower in between; run total ~30 × 141K ≈ 4.2M tokens/year. Author estimate pending the in-flight skill-usage measurement tool.
