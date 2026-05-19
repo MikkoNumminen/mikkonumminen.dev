@@ -366,6 +366,8 @@ export const sv: Translations = {
     cmdDownloadDesc: 'ladda ner en fil',
     cmdDownloadUsage: 'download [--cv|--skills]',
     cmdDownloadHint: 'användning: download [--cv|--skills]',
+    // i18n: awaiting Swedish translation — English placeholder for now.
+    cmdDownloadAmbiguous: 'specify only one of --cv or --skills.',
     cmdDownloadPreparing: 'förbereder nedladdning...',
     cmdDownloadNotAvailable: 'cv inte tillgänglig än — fortfarande under finputsning.',
     // i18n: awaiting Swedish translation — English placeholder for now.

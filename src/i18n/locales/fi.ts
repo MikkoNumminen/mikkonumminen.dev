@@ -366,6 +366,8 @@ export const fi: Translations = {
     cmdDownloadDesc: 'lataa tiedosto',
     cmdDownloadUsage: 'download [--cv|--skills]',
     cmdDownloadHint: 'käyttö: download [--cv|--skills]',
+    // i18n: awaiting Finnish translation — English placeholder for now.
+    cmdDownloadAmbiguous: 'specify only one of --cv or --skills.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla — vielä viimeistelyssä.',
     // i18n: awaiting Finnish translation — English placeholder for now.

@@ -224,6 +224,7 @@ export interface Translations {
     cmdDownloadDesc: string;
     cmdDownloadUsage: string;
     cmdDownloadHint: string;
+    cmdDownloadAmbiguous: string;
     cmdDownloadPreparing: string;
     cmdDownloadNotAvailable: string;
     cmdDownloadSkillsNotAvailable: string;

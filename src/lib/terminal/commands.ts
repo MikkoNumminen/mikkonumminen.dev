@@ -107,6 +107,11 @@ export function buildCommands(t: Translations): CommandSpec[] {
           ctx.print(tt.cmdDownloadHint, 'dim');
           return;
         }
+        if (wantsCv && wantsSkills) {
+          ctx.print(tt.cmdDownloadAmbiguous, 'err');
+          ctx.print(tt.cmdDownloadHint, 'dim');
+          return;
+        }
         const target = wantsCv
           ? {
               url: CV_PATH,

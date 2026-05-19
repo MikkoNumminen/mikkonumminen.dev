@@ -8,17 +8,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { printHtmlToPdf } from './lib/chrome-pdf.mjs';
+import { locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
+import { escapeHtml as esc, isSafeHref } from './lib/escape.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const OUT = path.join(ROOT, 'public', 'skills-registry.pdf');
 
-const esc = (s) =>
-  String(s).replace(
-    /[<>&"]/g,
-    (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c],
-  );
 const fmt = (n) =>
   n >= 1_000_000
     ? `${(n / 1_000_000).toFixed(2)}M`
@@ -50,16 +46,24 @@ function buildHtml(data) {
           const tpu = s.receipt?.tokens_per_use ? fmt(s.receipt.tokens_per_use) : '—';
           const upy = s.receipt?.uses_per_year ?? '—';
           const tot = s.receipt?.annual_total ? `~${fmt(s.receipt.annual_total)}` : '—';
+          // Local-path receipts (e.g. `.claude/agent-verdicts/X.md`) don't
+          // resolve from inside a PDF viewer, so render them as plain
+          // source-label text. Only http(s) URLs become clickable.
           const receipt = s.receipt
-            ? `<a href="${esc(s.receipt.path)}">${esc(s.receipt.source)}</a>`
+            ? isSafeHref(s.receipt.path)
+              ? `<a href="${esc(s.receipt.path)}">${esc(s.receipt.source)}</a>`
+              : esc(s.receipt.source)
             : '—';
           const name = `<strong>${esc(s.name)}</strong>${s.redirect ? ' <em>(redirect)</em>' : ''}`;
           return `<tr><td>${name}</td><td class="desc">${esc(s.description)}</td><td>${tpu}</td><td>${upy}</td><td>${tot}</td><td>${receipt}</td></tr>`;
         })
         .join('\n');
-      const url = r.github_url ? ` — <a href="${esc(r.github_url)}">${esc(r.github_url)}</a>` : '';
+      const url =
+        r.github_url && isSafeHref(r.github_url)
+          ? ` — <a href="${esc(r.github_url)}">${esc(r.github_url)}</a>`
+          : '';
       return `<h2>${esc(r.name)}${url}</h2>
-<table>
+<table class="per-repo">
   <thead><tr><th>Skill</th><th>Description</th><th>Tokens / use</th><th>Uses / year</th><th>Total</th><th>Receipt</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>`;
@@ -82,7 +86,10 @@ function buildHtml(data) {
   tr { page-break-inside: avoid; }
   th, td { border: 1px solid #ddd; padding: 3pt 5pt; text-align: left; vertical-align: top; }
   th { background: #f4f4f4; font-weight: 600; }
-  td:nth-child(n+3) { text-align: right; white-space: nowrap; }
+  /* Aggregate table: every column past col 1 is numeric. Per-repo tables:
+     cols 1-2 (Skill, Description) stay left, numerics start at col 3. */
+  table.aggregate td:nth-child(n+2) { text-align: right; white-space: nowrap; }
+  table.per-repo td:nth-child(n+3) { text-align: right; white-space: nowrap; }
   td.desc { text-align: left; white-space: normal; max-width: 380pt; }
   a { color: #0a66c2; text-decoration: none; }
   hr { border: none; border-top: 1px solid #ccc; margin: 16pt 0; }
@@ -95,7 +102,7 @@ function buildHtml(data) {
 <p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Token figures are author-estimated, not measured — trace each row to its receipt.</p>
 
 <h2>Aggregate</h2>
-<table>
+<table class="aggregate">
   <thead><tr><th>Repo</th><th>Skills</th><th>Redirects</th><th>With receipts</th><th>Tokens / yr</th></tr></thead>
   <tbody>
     ${aggregateRows}
@@ -115,6 +122,15 @@ function main() {
     console.error(`source missing: ${SRC}`);
     console.error('Run the skill-registry skill and copy its JSON output here first.');
     process.exit(1);
+  }
+  // Skip silently when Chrome is absent (Vercel build environment, CI without
+  // headless Chrome installed) — the committed PDF in public/ acts as the
+  // fallback. Local dev with Chrome installed regenerates as expected.
+  if (!locateChrome()) {
+    console.log(
+      'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
+    );
+    process.exit(0);
   }
   const data = JSON.parse(fs.readFileSync(SRC, 'utf8'));
   const html = buildHtml(data);

@@ -374,6 +374,7 @@ export const en: Translations = {
     cmdDownloadDesc: 'download a file',
     cmdDownloadUsage: 'download [--cv|--skills]',
     cmdDownloadHint: 'usage: download [--cv|--skills]',
+    cmdDownloadAmbiguous: 'specify only one of --cv or --skills.',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet — still being polished.',
     cmdDownloadSkillsNotAvailable:

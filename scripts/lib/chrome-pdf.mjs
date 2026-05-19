@@ -69,4 +69,19 @@ export function printHtmlToPdf({ htmlPath, pdfPath, chromePath }) {
     ],
     { stdio: 'inherit' },
   );
+
+  // Chrome can exit 0 having written nothing — verify the file actually
+  // landed with non-zero bytes before reporting success. (SKILL.md flags
+  // this in the failure-modes section; enforce it here.)
+  let size = 0;
+  try {
+    size = fs.statSync(pdfPath).size;
+  } catch {
+    // fall through — size stays 0
+  }
+  if (size === 0) {
+    throw new Error(
+      `chrome exited 0 but wrote 0 bytes to ${pdfPath}. Check the source HTML and retry.`,
+    );
+  }
 }
