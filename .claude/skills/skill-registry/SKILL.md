@@ -47,30 +47,74 @@ End-to-end with no user pauses. The report is editorial-grade until a frontmatte
 
 ## Procedure
 
-### 1. Enumerate repos
+The expensive part (reading 26 SKILL.md files + 3 receipt sources) is parallelised across one Sonnet sub-agent per repo. Main thread handles enumeration and final aggregation.
 
-Use `Glob` with pattern `*/.claude/skills/*/SKILL.md` and `path: d:/koodaamista`. Absolute paths in the pattern argument return zero results on Windows — the tool requires `path:` as a separate parameter with the pattern relative to it. If `Glob` still returns nothing for any reason, fall back to `ls d:/koodaamista/*/.claude/skills/*/SKILL.md` via Bash.
+### 1. Enumerate repos (main thread)
 
-Group results by repo name (the segment after `koodaamista/`). Drop the `claude-audit-skill` repo if present.
+`ls d:/koodaamista/*/.claude/skills/*/SKILL.md` via Bash. (Equivalent `Glob` invocations have proven unreliable in some Windows sessions — see [SKILL-REGISTRY-AGENT.md "Open questions"](../../agent-verdicts/SKILL-REGISTRY-AGENT.md); the `ls` fallback always works.)
 
-### 2. Parse each SKILL.md
+Group the resulting paths by repo name (the segment after `koodaamista/`). Drop the `claude-audit-skill` repo if present.
 
-For each path, `Read` the first ~30 lines. Extract from YAML frontmatter:
+### 2. Dispatch one Sonnet agent per repo (parallel, in a single message)
 
-- `name` — the skill's invocation slug
-- `description` — the one-line summary Claude uses for skill matching
+Spawn **N parallel** `Agent` tool calls — one per repo with skills, **all in the same message** so they run concurrently. Use `subagent_type: "general-purpose"`, `model: "sonnet"`, `run_in_background: true`. Each agent does the read-heavy work for its repo and returns a structured JSON blob; the main thread does NOT read SKILL.md frontmatter itself.
 
-Mark a file as a **redirect stub** if the YAML `description` field contains "superseded", "redirect", "renamed", "moved to", or "see also". The description signal is more reliable than body-length heuristics — `new-weapon`'s body is 9 lines (would slip past a "< 5 lines" filter) but its description explicitly says _"Superseded by /equipment. ... This stub redirects."_ The first body line (after frontmatter) is also typically `# Superseded ...` or `# Renamed ...`, which is a secondary signal if the description is ambiguous.
+**Agent prompt template** — substitute `{REPO}` and `{PATHS}` per dispatch:
 
-### 3. Locate per-repo token-savings receipts
+```
+You are processing one repo for the portfolio skill registry. READ-ONLY — do not edit, do not commit.
 
-For each repo, in priority order:
+**Repo:** {REPO}
+**Skill paths (already enumerated):**
+{PATHS}
 
-1. **`docs/SKILLS.md`** — if present, parse the markdown table for `| skill | tokens-per-use | uses-per-year | total |` shape. Spacepotatis uses this pattern with footnotes.
-2. **`.claude/agent-verdicts/*.md`** — if present, look for `## Token expectations` or `## Token economics` sections per skill.
-3. **Embedded in the SKILL.md body** — last fallback. Look for `## Token expectations` or `Token economics` in the skill file itself.
+For each path, do all of:
 
-If no receipt is found for a skill, mark the row as `—` (em-dash) for the token columns. Do not fabricate numbers.
+1. Read the first 30 lines and extract YAML frontmatter `name` and `description`.
+2. Classify as a redirect stub if `description` contains "superseded", "redirect", "renamed", "moved to", or "see also" (case-insensitive). Redirect stubs have `receipt: null`.
+3. For non-redirect skills, locate a token-savings receipt by checking these sources in order:
+   a. `D:/koodaamista/{REPO}/docs/SKILLS.md` — markdown table with rows like `| /<skill> | ~X K | Y | ~Z K |`
+   b. `D:/koodaamista/{REPO}/.claude/agent-verdicts/<NAME>-AGENT.md` — `## Token expectations` section
+   c. The SKILL.md body — `## Token expectations` section
+   Use the first source that names the skill. If none, `receipt: null`.
+
+Return EXACTLY this JSON (no preamble, no markdown):
+
+{
+  "name": "{REPO}",
+  "github_url": "https://github.com/MikkoNumminen/{REPO}" or null,
+  "skills": [{
+    "name": "...",
+    "description": "...",
+    "redirect": true | false,
+    "receipt": null | {
+      "path": "<URL or relative path>",
+      "source": "docs/SKILLS.md" | "agent-verdicts/<NAME>-AGENT.md" | "frontmatter",
+      "tokens_per_use": <int or null>,
+      "uses_per_year": <int or null>,
+      "annual_total": <int or null>
+    }
+  }, ...]
+}
+
+Conventions: integers (no commas, no "K" suffix — `13500` not `"13.5K"`); `annual_total = tokens_per_use × uses_per_year` when both known; redirect skills get `receipt: null`.
+```
+
+### 3. Wait for completion + aggregate (main thread)
+
+Each agent posts a `task-notification` when done; the harness re-invokes the main thread. Do not poll.
+
+When all agents have returned, parse each per-repo JSON and assemble the final document:
+
+- `generated_at`: current UTC ISO 8601 timestamp.
+- `repos`: array of agent outputs, ordered alphabetically by repo name.
+- `totals`: computed from `repos`:
+  - `skills`: sum of `repos[].skills.length`.
+  - `redirects`: count where `redirect === true`.
+  - `with_receipts`: count where `receipt !== null`.
+  - `annual_tokens_saved`: sum of `receipt.annual_total` where present.
+
+Validate that `totals.annual_tokens_saved` equals the sum of all `receipt.annual_total` values before writing. If a sub-agent returned a malformed entry (missing required field, inconsistent total), flag the entry in a one-line note when reporting the path back to the user.
 
 ### 4. Emit the report
 
@@ -127,14 +171,15 @@ A human-readable view can be rendered from this JSON by any consumer (Claude ses
 
 ## Token expectations
 
-For a portfolio of ~25 skill files across 3-4 repos (current scale, 2026-05):
+For a portfolio of ~25 skill files across 3 repos (current scale, 2026-05), running with one Sonnet sub-agent per repo:
 
-- 25 × `Read` of first 30 lines ≈ 30K tokens input
-- 3 × `Read` of sibling SKILLS.md docs (~250 lines each) ≈ 30K tokens input
-- 1 × `Write` of the report ≈ 5K tokens output
-- Wall-clock: under 60s. No Sonnet sub-agents needed — scan is mechanical enough for the main thread.
+- Sub-agent input (parallel, across 3 agents): ~80K total — each agent reads its repo's SKILL.md files (~30 lines each) plus the per-repo receipt doc (`docs/SKILLS.md` or `agent-verdicts/<NAME>.md`)
+- Sub-agent output: ~10K total — each returns a structured JSON blob for its repo
+- Main-context absorption: ~5K — read N small JSON blobs + write the aggregate report
+- Wall-clock: ~30s parallel agents + ~5s main-thread aggregation
+- Sonnet pricing is materially cheaper per token than Opus, so the dollar-equivalent cost is well under the raw 80K input figure
 
-If the portfolio grows past ~50 skills, consider extracting the file-read step to a Sonnet sub-agent and only synthesizing the table in the main context.
+Compare to a serial main-thread version of the same work (~60K input read directly into Opus context): the parallel version is roughly the same total token cost, but ~3-5× faster in wall-clock and keeps the main context free for synthesis. Worth it for a quarterly run; mandatory if the portfolio grows past ~50 skills.
 
 ## Failure modes
 

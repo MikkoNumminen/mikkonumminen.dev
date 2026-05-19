@@ -27,15 +27,25 @@ Considered but rejected: `scripts/scan-skills.mjs`. The skill approach wins beca
 
 1. **Discoverability** — the user already runs `/<skill-name>` for everything else; a node script needs different muscle memory and a place to live.
 2. **Zero install cost** — a SKILL.md is a markdown file. A node script needs `node`, possibly dependencies, possibly a `package.json` entry.
-3. **The work is light** — ~25 small file reads + 1 markdown write. Claude can do this in the main context faster than spinning up a process.
+3. **Sub-agent parallelism is built-in** — one Sonnet agent per repo finishes in ~30s wall-clock vs ~60s serial in the main thread. A node script would have to reinvent the cross-repo orchestration this skill gets for free.
 
 Considered but rejected: store the registry generator in `claude-audit-skill/` and distribute it. The registry is portfolio-specific (knows the directory layout, the receipt-doc conventions, which repos to exclude). Generalising it would require frontmatter schema adoption first — premature.
+
+### Why parallel Sonnet sub-agents
+
+One agent per repo (rather than serial main-thread file reads) wins because:
+
+1. **Wall-clock.** Three agents read three repos' SKILL.md files concurrently in ~30s; the serial version takes ~60-90s of main-context I/O for the same work.
+2. **Main-context discipline.** The aggregate JSON the agents return is ~10K total; the raw SKILL.md frontmatter (~30 lines × 26 files) plus receipt docs would be ~60K of input into the main context. Keeping the synthesis context clean lets the main thread focus on assembly and validation.
+3. **Cost.** Sonnet is materially cheaper per token than Opus for read-heavy mechanical work like frontmatter extraction. The total token spend is similar; the dollar spend is lower.
+
+Matches the existing `sync-readmes` skill's pattern — one Sonnet sub-agent per sibling repo, main thread synthesises. Same shape, applied here.
 
 ### Why output goes to `agent-verdicts/` and is checked in
 
 Matches the existing pattern (`README-SYNC-AGENT.md` lives alongside as a sibling local-only verdict). But the registry report is _committed_ — other Claude sessions on other machines need to read it to know what the portfolio offers, and `git log` becomes the audit trail of quarter-over-quarter drift.
 
-The tracking is narrowly scoped: only files matching `SKILL-REGISTRY-*.md` are tracked. Other future verdict docs stay local unless they explicitly opt in (one bang line in `.gitignore`). `README-SYNC-AGENT.md` is unaffected — it remains gitignored.
+The tracking is narrowly scoped: only files matching `SKILL-REGISTRY-*` are tracked (the verdict doc, the dated JSON registry reports, and any companion `.md` writeup). Other future verdict docs stay local unless they explicitly opt in (one bang line in `.gitignore`). `README-SYNC-AGENT.md` is unaffected — it remains gitignored.
 
 ### Why receipts can come from three places (docs/SKILLS.md, agent-verdicts/\*.md, SKILL.md body)
 
@@ -51,7 +61,7 @@ It's a distribution repo, not a consumption repo. The same audit skill exists in
 
 Two reasons. First, other Claude instances on other machines need the report to answer "what skills do we have?" without re-running the scan — without the commit, every session that wanted the answer would have to enumerate all 26 SKILL.md files itself. Second, dated filenames become a `git log` of quarterly drift: "did the catalog grow this quarter, did any skill's token-savings receipt change, did a redirect appear" — all visible from the commit history.
 
-This is enforced by `.gitignore`: `.claude/agent-verdicts/*` re-ignores everything in the directory, then a single `!`-bang opts in everything matching `SKILL-REGISTRY-*.md`. That covers both this verdict doc and every dated report (`SKILL-REGISTRY-2026-05-19.md`, `SKILL-REGISTRY-2026-08-19.md`, …). The SKILL.md itself is also tracked via the broader `!.claude/skills/`. Other verdict docs (e.g. `README-SYNC-AGENT.md`) stay local unless they explicitly opt in — one more bang line each.
+This is enforced by `.gitignore`: `.claude/agent-verdicts/*` re-ignores everything in the directory, then a single `!`-bang opts in everything matching `SKILL-REGISTRY-*` (no extension restriction). That covers this verdict doc (`SKILL-REGISTRY-AGENT.md`), the dated JSON registry files (`SKILL-REGISTRY-2026-05-19.json`, …), and any companion markdown writeups (`SKILL-REGISTRY-2026-05-19.md`, …). The SKILL.md itself is also tracked via the broader `!.claude/skills/`. Other verdict docs (e.g. `README-SYNC-AGENT.md`) stay local unless they explicitly opt in — one more bang line each.
 
 ## What's verifiable vs editorial
 
