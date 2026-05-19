@@ -88,11 +88,13 @@ scripts/          Build helpers (build-og.mjs)
 
 Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/) — version-controlled, reviewed when added, audited per run. Each skill spawns N parallel Sonnet sub-agents that return structured reports; an Opus synthesizer applies the agreed-on rules and opens a PR. The orchestrator never merges — human review is the gate.
 
-| Skill                                                   | Description                                                                                                                                                                                                                                                                 | Token economics per run                                                                                                                                               |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`/sync-readmes`](.claude/skills/sync-readmes/SKILL.md) | Audits this site's project data (`src/data/projects.ts` + en/fi/sv `projectsData`) against the canonical READMEs of all 6 sibling repos in parallel. Opens a PR with drift corrections — factual fixes mirrored to all three locales, tech-list additions in `projects.ts`. | ~140K Sonnet input across 6 parallel sub-agents, ~10K kept on the orchestrator's main context (vs ~31K if read inline), ~45s parallel wall-clock, ~$0.80 in API spend |
+### [`/sync-readmes`](.claude/skills/sync-readmes/SKILL.md)
 
-**Results to date** (2 runs, `/sync-readmes`): 15 factually wrong copy fixes across three locales (test counts, engine counts, normalization-pass counts), 14 missing tech tags across 5 projects, 4 cross-project link gaps caught. Self-correcting: run 2 caught a highlight that hadn't received the cross-project update its description got in run 1.
+**Description:** Audits this site's project data (`src/data/projects.ts` + en/fi/sv `projectsData`) against the canonical READMEs of all 6 sibling repos in parallel. Opens a PR with drift corrections — factual fixes mirrored to all three locales, tech-list additions in `projects.ts`.
+
+**Token economics per run:** ~140K Sonnet input across 6 parallel sub-agents, ~10K kept on the orchestrator's main context (vs ~31K if read inline), ~45s parallel wall-clock, ~$0.80 in API spend.
+
+**Results to date** (2 runs): 15 factually wrong copy fixes across three locales (test counts, engine counts, normalization-pass counts), 14 missing tech tags across 5 projects, 4 cross-project link gaps caught. Self-correcting: run 2 caught a highlight that hadn't received the cross-project update its description got in run 1.
 
 The token-savings story is honest: dollar savings vs an inline read are modest. The real win is keeping the orchestrator's context budget free for the actual edit work without triggering compaction — and surfacing factual drift that nobody hand-grep-audits across 6 sibling repos.
 
