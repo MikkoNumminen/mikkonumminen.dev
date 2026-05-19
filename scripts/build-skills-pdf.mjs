@@ -123,9 +123,20 @@ function main() {
     console.error('Run the skill-registry skill and copy its JSON output here first.');
     process.exit(1);
   }
-  // Skip silently when Chrome is absent (Vercel build environment, CI without
-  // headless Chrome installed) — the committed PDF in public/ acts as the
-  // fallback. Local dev with Chrome installed regenerates as expected.
+  // CI / hosted-build environments (Vercel, GitHub Actions, etc.) should NOT
+  // regenerate the PDF — even if their build image happens to include Chrome,
+  // we don't want a transient deploy-time render to diverge from the
+  // committed artifact. Force the committed PDF to be the source of truth on
+  // every hosted build by short-circuiting here when standard CI env vars
+  // are present.
+  if (process.env.CI || process.env.VERCEL) {
+    console.log(
+      'build-skills-pdf: CI environment detected — skipping regeneration, committed PDF is canonical.',
+    );
+    process.exit(0);
+  }
+  // Local dev with no Chrome (unusual but possible) — same fallback: leave
+  // the committed PDF in place and continue.
   if (!locateChrome()) {
     console.log(
       'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',

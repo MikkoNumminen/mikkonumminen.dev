@@ -126,6 +126,8 @@ Report the file path and a one-line summary: `Wrote SKILL-REGISTRY-{date}.json �
 
 If the report introduces new findings or supersedes a prior dated report, commit and push it as a fresh registry snapshot — the JSON is the canonical "what skills the portfolio operates today" document. Do not mutate any other file as part of the run. The user reviews the report contents and decides whether to act on its findings (e.g. update site copy, backfill receipts).
 
+**Auto-sync to the site surface.** The contact-page terminal reads the registry from `public/data/skills-registry.json`. A `prebuild` hook (see [package.json](../../../package.json) and [scripts/sync-skill-registry.mjs](../../../scripts/sync-skill-registry.mjs)) finds the latest dated `SKILL-REGISTRY-*.json` in this directory and copies it into place on every `npm run build` — so committing a fresh dated JSON is enough; no manual copy needed. The companion `scripts/build-skills-pdf.mjs` regenerates `public/skills-registry.pdf` on local builds (skipped in CI to keep the committed PDF canonical). When you ship a registry refresh that should also update the PDF, run `npm run build:skills-pdf` locally before pushing.
+
 ## Output schema
 
 ```ts
