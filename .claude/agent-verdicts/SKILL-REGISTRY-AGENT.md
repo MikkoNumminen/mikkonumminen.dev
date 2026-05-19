@@ -70,11 +70,11 @@ The registry is honest about which numbers are which by tagging the receipt colu
 
 Before this skill is "shipped" (which here means "trusted to inform site copy"):
 
-1. **Dry-run on the current portfolio.** Invoke the skill, read the output report, count by hand: expected ~25 skills (1 in mikkonumminen.dev + 14 in Spacepotatis + 10 in AudiobookMaker, with `new-weapon` flagged as a redirect so 24 catalog + 1 redirect). Are the receipts that exist (Spacepotatis `docs/SKILLS.md`, this repo's `README-SYNC-AGENT.md`) extracted correctly?
-2. **Verify the redirect heuristic.** Open `D:/koodaamista/Spacepotatis/.claude/skills/new-weapon/SKILL.md` by hand and confirm the file matches the "short body + redirect-keyword" pattern. If it doesn't (e.g. the file is long, or uses a phrasing the heuristic doesn't match), tighten the heuristic in `SKILL.md` step 2 before trusting the redirect column.
-3. **Catch one false positive.** Look for at least one row in the output where the registry is wrong — wrong description, wrong category, missing receipt. Fix the heuristic in `SKILL.md` and re-run.
-4. **Catch one false negative.** Search the working tree for any `.md` file under `.claude/` containing skill-shaped content (frontmatter with `name:` and `description:`) that the registry missed. If none, the glob is tight enough.
-5. **Reconcile with the site copy.** Compare the aggregate count + receipt count to the current `en.ts` claims. The recent PR #102 softened the copy to "a catalog of …"; check that this is still a defensible reading once the registry reports an actual number.
+1. **Dry-run on the current portfolio.** [DONE 2026-05-19] Enumerated 26 SKILL.md files across 3 repos: 2 in mikkonumminen.dev (`sync-readmes`, `skill-registry`) + 14 in Spacepotatis (catalog of 13 + 1 redirect) + 10 in AudiobookMaker. Spacepotatis's `docs/SKILLS.md` now catalogs 13 entries totaling ~3.13M tokens/year (up from the 10 + ~2.76M referenced in the prior site copy — drift caught, fixed in the same PR). AudiobookMaker has no aggregate doc; all 10 of its skills are without receipts.
+2. **Verify the redirect heuristic.** [DONE 2026-05-19] `new-weapon`'s body is 9 lines, not <5 — the original "short body + redirect-keyword" heuristic would have missed it. Tightened to read the YAML `description` field for "superseded / redirect / renamed / moved to / see also" instead. Description-based detection is more reliable because redirects almost always self-declare in the description regardless of body length.
+3. **Catch one false positive.** [DONE 2026-05-19] The skill's original glob pattern (`d:/koodaamista/*/.claude/skills/*/SKILL.md` passed as `pattern:` only) returns zero results on Windows — the `Glob` tool requires the path as a separate `path:` parameter. Without correction, the registry would report "no skills found anywhere." Procedure rewritten in step 1 with the working invocation + a Bash fallback.
+4. **Catch one false negative.** [DONE 2026-05-19] A recursive `**/.claude/skills/*/SKILL.md` glob surfaces many duplicate matches inside `.claude/worktrees/agent-*/` — those are runtime sandbox copies of real skills, not separate skills. The flat single-`*` glob naturally excludes them, so the documented procedure is tight; this was confirmed by comparing flat vs recursive results.
+5. **Reconcile with the site copy.** [DONE 2026-05-19] Four spots in this repo previously said "~2.76M tokens" referencing Spacepotatis's older catalog count. With Spacepotatis now at ~3.13M (3 audit/meta skills got their own receipt rows since the last copy update), all four are updated in this PR: en.ts:110 (Velocity link label), en.ts:253 (AI-workflows lesson), en.ts:282 (Featured page lesson), commands.ts:54 (terminal `whoami` output). en.ts:253 also drops "audited quarterly" (missed by PR #102's sweep — only one audit doc exists in Spacepotatis still) and the unverifiable "caught two real ones in the last audit" (April 2026 audit findings are footnoted in `docs/SKILLS.md` but not in a dated audit doc).
 6. **Run quarterly.** The reason to run this _again_ is to catch drift since the last run. Use `/schedule` (cron-style routine) for a real cadence, or a calendar reminder. Do NOT use a `Stop` hook — that fires on every session end and would re-run the registry constantly.
 
 ## Open questions / future work
@@ -88,7 +88,8 @@ Before this skill is "shipped" (which here means "trusted to inform site copy"):
 
 - [x] Skill drafted and committed
 - [x] Verdict doc drafted (this file)
-- [ ] First dry-run completed
-- [ ] False-positive caught and addressed
-- [ ] False-negative search completed
-- [ ] Frontmatter schema decision made (pending)
+- [x] First dry-run completed (2026-05-19)
+- [x] False-positive caught and addressed (Glob-pattern absolute-path issue + redirect-heuristic too tight)
+- [x] False-negative search completed (recursive vs flat glob — flat is correct)
+- [x] Site-copy reconciled with reality (~2.76M → ~3.13M across 4 spots)
+- [ ] Frontmatter schema decision made (pending — AudiobookMaker still has 10 skills without receipts)

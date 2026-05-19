@@ -107,7 +107,7 @@ export const en: Translations = {
     body: 'Spacepotatis went from empty repo to live browser game in 12 days: 387 commits, ~1170 tests, full Next.js + Phaser 3 + Three.js stack — backed by audited Claude Code skills as production artifacts. Six of the seven portfolio repos started in the last six weeks. AI-native isn’t rhetoric — it’s the math.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-      label: 'How 2.76M tokens was estimated',
+      label: 'How 3.13M tokens was estimated',
     },
     stats: [
       { num: '12', label: 'days from empty repo to live Spacepotatis' },
@@ -250,7 +250,7 @@ export const en: Translations = {
     },
     'ai-workflows': {
       title: 'AI-native workflows',
-      body: 'Agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills check into the repo as production artifacts — each one teaches the agent a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so it goes straight to the work instead of grepping around at $X/token. Pair-programming with parallel subagents on independent slices, then synthesizing the results.\n\nThe skills are version-controlled, audited quarterly (drift between a skill and the code it references is a real category of bug — caught two real ones in the last audit), and treated as production artifacts. Estimated saving: ~2.76M tokens/year on Spacepotatis alone. Shipping faster without lowering the bar.',
+      body: 'Agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills check into the repo as production artifacts — each one teaches the agent a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so it goes straight to the work instead of grepping around at $X/token. Pair-programming with parallel subagents on independent slices, then synthesizing the results.\n\nThe skills are version-controlled, audited (drift between a skill and the code it references is a real category of bug — drift gets caught and corrected), and treated as production artifacts. Estimated saving: ~3.13M tokens/year on Spacepotatis alone. Shipping faster without lowering the bar.',
       tags: [
         'Agentic dev',
         'Custom skills',
@@ -279,7 +279,7 @@ export const en: Translations = {
         },
         {
           title: 'AI workflow as checked-in code',
-          body: 'Spacepotatis ships a catalog of Claude Code skills inside the repo — code-reviewed and audited. ~2.76M tokens saved in their first year.',
+          body: 'Spacepotatis ships a catalog of Claude Code skills inside the repo — code-reviewed and audited. ~3.13M tokens saved in their first year.',
           link: {
             href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
             label: 'Methodology',
