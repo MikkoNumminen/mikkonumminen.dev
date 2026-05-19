@@ -8,10 +8,10 @@
 
 | Repo              | Total skills | Redirects | With receipts | Estimated tokens saved/year |
 | ----------------- | -----------: | --------: | ------------: | --------------------------: |
-| mikkonumminen.dev |            2 |         0 |             2 | ~325K (estimate, see notes) |
+| mikkonumminen.dev |            2 |         0 |             2 | ~888K (estimate, see notes) |
 | Spacepotatis      |           14 |         1 |            13 |                      ~3.13M |
 | AudiobookMaker    |           10 |         0 |             0 |                           — |
-| **Total**         |       **26** |     **1** |        **15** |                  **~3.45M** |
+| **Total**         |       **26** |     **1** |        **15** |                  **~4.02M** |
 
 Receipts column counts skills with token-savings estimates traceable to a `docs/SKILLS.md` or `.claude/agent-verdicts/*.md` file.
 
@@ -21,10 +21,10 @@ Receipts column counts skills with token-savings estimates traceable to a `docs/
 
 | Skill          | Description                                                                                                                                                                                                           |                                                      Tokens / use |    Uses / year | Total | Receipt                                                                                                                                       |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------: | -------------: | ----: | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| sync-readmes   | Audit project data against sibling repos' READMEs and open a PR with drift corrections. Runs parallel Sonnet diff agents (one per sibling repo), synthesizes drift, applies en+fi+sv corrections…                     |                    ~140K Sonnet in + ~7K out + ~10K main, per run | ~quarterly (4) | ~260K | [README-SYNC-AGENT.md](README-SYNC-AGENT.md) (local-only)                                                                                     |
-| skill-registry | Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry — per-repo tables of skill name, description, and (where receipts exist) token-savings estimates. | ~65K (30K read frontmatter + 30K read receipts + 5K write report) | ~quarterly (4) |  ~65K | [SKILL-REGISTRY-AGENT.md](SKILL-REGISTRY-AGENT.md) (tracked); methodology in [SKILL.md§Token expectations](../skills/skill-registry/SKILL.md) |
+| sync-readmes   | Audit project data against sibling repos' READMEs and open a PR with drift corrections. Runs parallel Sonnet diff agents (one per sibling repo), synthesizes drift, applies en+fi+sv corrections…                     |                     ~157K (~140K Sonnet in + ~7K out + ~10K main) | ~quarterly (4) | ~628K | [README-SYNC-AGENT.md](README-SYNC-AGENT.md) (local-only)                                                                                     |
+| skill-registry | Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry — per-repo tables of skill name, description, and (where receipts exist) token-savings estimates. | ~65K (30K read frontmatter + 30K read receipts + 5K write report) | ~quarterly (4) | ~260K | [SKILL-REGISTRY-AGENT.md](SKILL-REGISTRY-AGENT.md) (tracked); methodology in [SKILL.md§Token expectations](../skills/skill-registry/SKILL.md) |
 
-Notes: both receipts are per-run, not per-year. The annual totals assume ~quarterly cadence (4 runs/year), matching the verdict doc's recommended `/schedule`. `sync-readmes` total includes both Sonnet sub-agent cost (~140K input) and main-context absorption (~10K) — Sonnet cost is materially cheaper per token, so the dollar-weighted total is closer to the lower bound.
+Notes: both receipts are per-run, not per-year. The annual totals assume ~quarterly cadence (4 runs/year), matching the verdict doc's recommended `/schedule` — `Total = Tokens/use × Uses/year`, raw tokens not weighted. For `sync-readmes` the ~140K of Sonnet input is materially cheaper per dollar than the main-context tokens, so the dollar-equivalent cost is lower than the raw token total suggests; the table column reports raw tokens to match Spacepotatis's `docs/SKILLS.md` convention.
 
 ### Spacepotatis
 
@@ -72,7 +72,7 @@ Notes: both receipts are per-run, not per-year. The annual totals assume ~quarte
 - **All Spacepotatis token-savings figures are author-estimated** — see [docs/SKILLS.md](https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md) in Spacepotatis for the methodology section, which explicitly labels the numbers educated guesses with 3× error bars.
 - **mikkonumminen.dev receipts are per-run, not per-year.** The annual totals assume ~quarterly cadence for both `sync-readmes` and `skill-registry`. Without a recorded invocation history, the annual figure is the noisiest data point in this whole report.
 - **Drift caught in this run:** none beyond what PR #108 already addressed. Spacepotatis's `docs/SKILLS.md` total of ~3.13M matches the site copy that was just updated; the 13-catalog + 1-redirect split is consistent with the site framing of "a catalog of … skills."
-- **Aggregate total of ~3.45M tokens/year** is the sum of Spacepotatis's ~3.13M + this repo's ~325K. AudiobookMaker contributes zero to the verifiable total because nothing's been written up yet — its 10 skills represent the biggest opportunity to raise the portfolio-wide receipt coverage from 60% to 100%.
+- **Aggregate total of ~4.02M tokens/year** is the sum of Spacepotatis's ~3.13M + this repo's ~888K. AudiobookMaker contributes zero to the verifiable total because nothing's been written up yet — its 10 skills represent the biggest opportunity to raise the portfolio-wide receipt coverage from 60% to 100%.
 
 ## Procedural notes from this run
 
@@ -82,4 +82,4 @@ Notes: both receipts are per-run, not per-year. The annual totals assume ~quarte
 
 ---
 
-_Run completed 2026-05-19. Output is local (gitignored under `.claude/agent-verdicts/SKILL-REGISTRY-*` pattern)._
+_Run completed 2026-05-19. Output is tracked under the `.claude/agent-verdicts/SKILL-REGISTRY-*.md` gitignore exception so other Claude sessions can read this inventory without re-scanning._

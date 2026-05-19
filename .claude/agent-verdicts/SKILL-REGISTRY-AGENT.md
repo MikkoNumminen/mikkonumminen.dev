@@ -85,6 +85,7 @@ Before this skill is "shipped" (which here means "trusted to inform site copy"):
 - **Real-token sampling.** A separate skill could parse Claude Code transcript JSONL (under `C:\Users\vandr\.claude\projects\<dir>/`) and produce _measured_ tokens-per-invocation per skill. That would replace the editorial estimates with receipts. Significantly more work; out of scope here.
 - **Site surfacing.** Should the registry's aggregate row land in the portfolio site as a stat tile (alongside "387 commits" etc.)? Only if the numbers are honest enough — and they aren't yet. Revisit after schema adoption.
 - **Should HRManager and Platform have skills?** They currently don't. The registry will note them as "no .claude/skills/". Not a defect; just visible now.
+- **`Glob` pattern-args portability.** The first end-to-end run (2026-05-19) found that `Glob` with `path: d:/koodaamista` + relative pattern still returns no results in this Windows session, even though PR #108 was supposed to fix it. The Bash `ls` fallback in step 1 works reliably and the run completes correctly — but the SKILL.md still leads with the `Glob` invocation as the primary instruction. Either flip the primary/fallback ordering (lead with `Bash ls`, mention `Glob` as the optional cross-platform variant), or investigate why the `Glob` tool's path-handling differs by session. Tracked here so future sessions don't re-discover the same quirk.
 
 ## Status
 
