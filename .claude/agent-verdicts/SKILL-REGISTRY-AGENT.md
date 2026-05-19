@@ -9,7 +9,7 @@ This is the companion to `skill-registry`. The skill itself is a procedure ("how
 
 ## What the skill is for
 
-Produce, in one invocation, a single markdown document that names every Claude Code skill in the portfolio: which repo it lives in, what it does, and — where a per-repo receipt exists — how many tokens it's estimated to save per year. Output is a dated report under `.claude/agent-verdicts/`, never committed automatically.
+Produce, in one invocation, a single markdown document that names every Claude Code skill in the portfolio: which repo it lives in, what it does, and — where a per-repo receipt exists — how many tokens it's estimated to save per year. Output is a dated report under `.claude/agent-verdicts/`. The `SKILL-REGISTRY-*` filename pattern is re-ignored by `.gitignore`, so the output stays local even though the parent directory is tracked.
 
 The audience is **Mikko**, not a recruiter. The site copy talks about "audited Claude Code skills" in the abstract; this skill is what makes that claim defensible against drift on his own machine. If a recruiter ever does click through, the per-repo receipts they land on (e.g. Spacepotatis's `docs/SKILLS.md`) are the linkable surface — this registry is the index that points at them.
 
@@ -17,7 +17,7 @@ The audience is **Mikko**, not a recruiter. The site copy talks about "audited C
 
 - **Not a token meter.** The numbers it surfaces are author estimates, copied from `docs/SKILLS.md`-style receipts. They are _not_ sampled from real sessions. The Spacepotatis methodology doc states this explicitly ("educated guesses, 3× error bars").
 - **Not a code auditor.** It does not read skill _bodies_ for correctness. It reads frontmatter and copies receipt numbers; the registry trusts each per-repo audit to do its own quality check.
-- **Not a deployment surface.** The output is local to `.claude/agent-verdicts/` (gitignored). Surfacing it on the site or in CI is a separate decision.
+- **Not a deployment surface.** The output is local — the dated `SKILL-REGISTRY-*.md` filename is re-ignored by `.gitignore` so the report doesn't accidentally land in a PR. Surfacing it on the site or in CI is a separate decision.
 
 ## Design choices
 
@@ -49,7 +49,7 @@ It's a distribution repo, not a consumption repo. The same audit skill exists in
 
 Two reasons. First, the report is point-in-time; persisting it in git creates expectation of update cadence that the skill doesn't currently fulfill (no cron, no GH Actions trigger). Second, dated output filenames are easier to reason about as a local quarterly artefact than as an ever-bumping committed file.
 
-The SKILL.md itself and this verdict doc _are_ tracked (via the gitignore exceptions for `.claude/skills/` and `.claude/agent-verdicts/`) so the design is reviewable. The runtime _output_ is not.
+This is enforced by `.gitignore`: `.claude/agent-verdicts/*` re-ignores everything in the directory, then a `!`-bang opts THIS verdict file in by exact path. The SKILL.md is also tracked (via the broader `!.claude/skills/`). The runtime _output_ (matching `SKILL-REGISTRY-2026-*.md`) is never tracked. Adding a future verdict that should ship with its skill is one more bang line in `.gitignore`.
 
 ## What's verifiable vs editorial
 
@@ -70,11 +70,12 @@ The registry is honest about which numbers are which by tagging the receipt colu
 
 Before this skill is "shipped" (which here means "trusted to inform site copy"):
 
-1. **Dry-run on the current portfolio.** Invoke the skill, read the output report, count by hand: are the 24 skills it should find all present? Are the 1-2 known redirects flagged? Are the receipts that exist (Spacepotatis `docs/SKILLS.md`, this repo's `README-SYNC-AGENT.md`) extracted correctly?
-2. **Catch one false positive.** Look for at least one row in the output where the skill is wrong — wrong description, wrong category, missing receipt. Fix the heuristic in `SKILL.md` and re-run.
-3. **Catch one false negative.** Search the working tree for any `.md` file under `.claude/` containing skill-shaped content (frontmatter with `name:` and `description:`) that the registry missed. If none, the glob is tight enough.
-4. **Reconcile with the site copy.** Compare the aggregate count + receipt count to the current `en.ts` claims. The recent PR #102 softened the copy to "a catalog of …"; check that this is still a defensible reading once the registry reports an actual number.
-5. **Run quarterly.** The reason to run this _again_ is to catch drift since the last run. Add a `Stop` hook or a calendar reminder; the skill itself does not schedule re-runs.
+1. **Dry-run on the current portfolio.** Invoke the skill, read the output report, count by hand: expected ~25 skills (1 in mikkonumminen.dev + 14 in Spacepotatis + 10 in AudiobookMaker, with `new-weapon` flagged as a redirect so 24 catalog + 1 redirect). Are the receipts that exist (Spacepotatis `docs/SKILLS.md`, this repo's `README-SYNC-AGENT.md`) extracted correctly?
+2. **Verify the redirect heuristic.** Open `D:/koodaamista/Spacepotatis/.claude/skills/new-weapon/SKILL.md` by hand and confirm the file matches the "short body + redirect-keyword" pattern. If it doesn't (e.g. the file is long, or uses a phrasing the heuristic doesn't match), tighten the heuristic in `SKILL.md` step 2 before trusting the redirect column.
+3. **Catch one false positive.** Look for at least one row in the output where the registry is wrong — wrong description, wrong category, missing receipt. Fix the heuristic in `SKILL.md` and re-run.
+4. **Catch one false negative.** Search the working tree for any `.md` file under `.claude/` containing skill-shaped content (frontmatter with `name:` and `description:`) that the registry missed. If none, the glob is tight enough.
+5. **Reconcile with the site copy.** Compare the aggregate count + receipt count to the current `en.ts` claims. The recent PR #102 softened the copy to "a catalog of …"; check that this is still a defensible reading once the registry reports an actual number.
+6. **Run quarterly.** The reason to run this _again_ is to catch drift since the last run. Use `/schedule` (cron-style routine) for a real cadence, or a calendar reminder. Do NOT use a `Stop` hook — that fires on every session end and would re-run the registry constantly.
 
 ## Open questions / future work
 

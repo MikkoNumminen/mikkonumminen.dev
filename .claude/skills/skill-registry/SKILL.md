@@ -35,7 +35,7 @@ End-to-end with no user pauses. The report is editorial-grade until a frontmatte
 
 **Repos excluded:**
 
-- `claude-audit-skill/` — meta-repo distributing a skill, not a repo _using_ skills. The `skill/` directory there is the publishable version; skip to avoid double-counting against the same audit skill that lives inside `Spacepotatis/` and `AudiobookMaker/`.
+- `claude-audit-skill/` — meta-repo distributing a skill, not a repo _using_ skills. Its skill lives at `skill/` (no `.claude/skills/` directory), so the glob below naturally won't match it; this entry is documented as a guard in case that repo ever adopts the standard layout.
 
 **Files read:**
 
@@ -72,7 +72,9 @@ If no receipt is found for a skill, mark the row as `—` (em-dash) for the toke
 
 ### 4. Emit the report
 
-Write `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.md` (use today's UTC date in ISO format). Schema below. Print the absolute path of the written file to the user.
+Write `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.md` using the user's local date (match `date +%Y-%m-%d` from their shell). Schema below. Print the absolute path of the written file to the user.
+
+The dated filename matches the `SKILL-REGISTRY-*` pattern that `.gitignore` re-ignores, so the report stays local even though the parent directory is tracked.
 
 ### 5. Done
 
@@ -131,7 +133,7 @@ If the portfolio grows past ~50 skills, consider extracting the file-read step t
 - **Repo deleted or renamed:** Glob returns no match for that path; skip silently. Report excludes the missing repo.
 - **Malformed frontmatter** (no `name` or `description`): use the parent directory name as the skill name, mark description as `(missing frontmatter)`, log in the "Notes & gaps" section.
 - **Token-savings doc points to a skill not in `.claude/skills/`** (drift between receipts and reality): list the orphan in the "Notes & gaps" section.
-- **`.claude/` is gitignored on every repo:** that's expected for most paths. The report runs against the local working tree, not git history. The output report's value is point-in-time.
+- **`.claude/` is gitignored on most repos / most paths:** that's expected. The report runs against the local working tree, not git history. Even in this repo (which tracks `.claude/skills/` and the verdict file specifically), the dated output report is re-ignored — it's point-in-time data, not a checked-in artifact.
 
 ## Limitations (editorial-grade, not audit-grade)
 
