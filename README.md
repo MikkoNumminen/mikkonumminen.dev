@@ -86,13 +86,36 @@ scripts/          Build helpers (build-og.mjs)
 
 ## AI tooling
 
-Custom Claude Code skills live in `.claude/skills/` — version-controlled, reviewed when added, audited per run. Each skill spawns N parallel Sonnet sub-agents that return structured reports; an Opus synthesizer applies the agreed-on rules and opens a PR. The orchestrator never merges — human review is the gate.
+Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/) — version-controlled, reviewed when added, audited per run. Each skill spawns N parallel Sonnet sub-agents that return structured reports; an Opus synthesizer applies the agreed-on rules and opens a PR. The orchestrator never merges — human review is the gate.
+
+### Skills shipped in this repo
 
 - **`/sync-readmes`** — audits this site's project data (`src/data/projects.ts` + en/fi/sv `projectsData`) against the canonical READMEs of all 6 sibling repos in parallel. Opens a PR with drift corrections — factual fixes mirrored to all three locales, tech-list additions in `projects.ts`.
   - **Token economics per run:** ~140K Sonnet input across 6 parallel sub-agents, ~10K kept on the orchestrator's main context (vs ~31K if read inline), ~45s parallel wall-clock, ~$0.80 in API spend.
   - **Results to date** (2 runs): 15 factually wrong copy fixes across three locales (test counts, engine counts, normalization-pass counts), 14 missing tech tags across 5 projects, 4 cross-project link gaps caught.
+- **`/skill-registry`** — walks every sibling repo under `D:/koodaamista`, finds each `.claude/skills/*/SKILL.md`, and emits a consolidated JSON registry (name, description, redirect flag, token-savings receipt where one exists). One Sonnet sub-agent per repo, in parallel; main thread aggregates and writes [`.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json`](.claude/agent-verdicts/). The JSON is the source of truth for "what skills the portfolio operates today" — other Claude sessions read it without re-running the scan.
+  - **Token economics per run:** ~80K Sonnet input across 3 parallel sub-agents, ~5K main-thread aggregation, ~30s parallel wall-clock.
 
-The token-savings story is honest: dollar savings vs an inline read are modest. The real win is keeping the orchestrator's context budget free for the actual edit work without triggering compaction — and surfacing factual drift that nobody hand-grep-audits across 6 sibling repos.
+### Portfolio at a glance
+
+Most skills don't live here — they live in the sibling repos this site links to. The registry above keeps a current inventory across all of them. Numbers below are from the [2026-05-19 snapshot](.claude/agent-verdicts/SKILL-REGISTRY-2026-05-19.json):
+
+| Repo                                                              | Skills | With token receipts | Est. annual tokens saved |
+| ----------------------------------------------------------------- | -----: | ------------------: | -----------------------: |
+| [Spacepotatis](https://github.com/MikkoNumminen/Spacepotatis)     |     14 |                  13 |               ~3,134,000 |
+| [AudiobookMaker](https://github.com/MikkoNumminen/AudiobookMaker) |     10 |                   0 |                        — |
+| mikkonumminen.dev (this repo)                                     |      2 |                   2 |                 ~888,000 |
+| **Total**                                                         | **26** |              **15** |           **~4,022,000** |
+
+One of the 26 (`new-weapon` in Spacepotatis) is a redirect stub superseded by `/equipment`; the table counts it under "Skills" but excludes it from the receipts column.
+
+### Validation — what these numbers are and aren't
+
+Editorial-grade, not audit-grade. The token-savings figures are author-estimated educated guesses produced when each skill was authored, not measurements from instrumented runs. Aggregating them across repos doesn't make them more verifiable — it makes them visible. The registry exists so portfolio claims are falsifiable against the file system rather than vibes-based:
+
+- **What's verifiable today:** every entry in the registry maps to an on-disk `SKILL.md` whose frontmatter `name` and `description` are quoted verbatim; redirect stubs are flagged from description heuristics; receipt paths point to a real source file (`docs/SKILLS.md` for Spacepotatis, `.claude/agent-verdicts/*-AGENT.md` for this repo, the SKILL body for `/skill-registry`).
+- **What's editorial:** `tokens_per_use` and `uses_per_year`. Until a frontmatter schema with `last_audited` lands across all 26 skills, the totals are a surface-area map, not a measured saving. See [Limitations in `skill-registry/SKILL.md`](.claude/skills/skill-registry/SKILL.md#limitations-editorial-grade-not-audit-grade).
+- **What "savings" means here:** mostly _context-budget savings_, not dollar savings. The real win is keeping the orchestrator's Opus context free for synthesis work without triggering compaction — and surfacing drift across 6 sibling repos that nobody hand-grep-audits. Dollar savings vs an inline read are modest.
 
 ## Observability
 
