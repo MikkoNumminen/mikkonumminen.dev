@@ -11,7 +11,7 @@ This is intentionally not a typical web app. It's a visual showcase, with each p
 - **`/`** — Immersive scroll experience. 3D name in WebGL, particle field, GSAP scroll triggers, parallax sections, animated nav cards.
 - **`/projects`** — Interactive solar system. Each project orbits a central sun. Hover a planet for the elevator pitch, click to zoom in.
 - **`/experience`** — Parallax mountain landscape. A goat climbs as you scroll. The sky shifts from pre-dawn to bright day across the climb. Timeline markers fade in along the way.
-- **`/contact`** — Terminal / CRT aesthetic. Real command parser, command history, tab completion, scan lines, blinking cursor, copy-to-clipboard. Try `help`.
+- **`/contact`** — Terminal / CRT aesthetic. Real command parser, command history, tab completion, scan lines, blinking cursor, copy-to-clipboard. Try `help` for the command list — `skills` and `download --skills` surface the live cross-repo skill registry.
 
 Page-to-page navigation triggers a canvas particle dissolve coloured to the destination page's theme.
 
@@ -50,11 +50,15 @@ npm run typecheck     # astro check
 npm run format        # prettier --write across src/
 npm run format:check  # prettier --check (CI-friendly)
 npm run build:og      # rasterize OG cards + manifest icons from the source SVGs
+npm run sync:skills-registry  # copy latest dated SKILL-REGISTRY-*.json → public/data/
+npm run build:skills-pdf      # regenerate public/skills-registry.pdf via local Chrome
 npm test              # run the Vitest suite (i18n + project data)
 npm run test:watch    # Vitest in watch mode for TDD
 ```
 
 `build:og` reads `public/og-*.svg` and `public/favicon.svg` and writes the PNGs referenced by `<head>` meta and `public/manifest.webmanifest`. Run it whenever any of those source SVGs change.
+
+`prebuild` runs `sync:skills-registry && build:skills-pdf` automatically on every `npm run build`. The sync script picks the latest dated `SKILL-REGISTRY-*.json` under `.claude/agent-verdicts/` and copies it into `public/data/`, then the PDF generator renders it via the local Chrome's `--print-to-pdf` flag (skipped silently in CI environments — the committed PDF is the canonical artifact for hosted builds). Rationale in [`docs/decisions/0005-skill-registry-pdf-surface.md`](docs/decisions/0005-skill-registry-pdf-surface.md).
 
 ## Project structure
 
@@ -73,7 +77,15 @@ src/
   i18n/           Locale dictionaries and locale-aware path helpers
   styles/         global.css (Tailwind v4 + CSS vars) and per-component CSS
 public/           Static assets — favicon, manifest, OG images, fonts, robots, icons
-scripts/          Build helpers (build-og.mjs)
+  data/           Build-synced registry JSON consumed by the terminal `skills` command
+scripts/
+  build-og.mjs              OG image + manifest icon rasterizer
+  sync-skill-registry.mjs   Copy latest dated SKILL-REGISTRY-*.json into public/data/
+  build-skills-pdf.mjs      Bespoke HTML-from-JSON renderer; calls scripts/lib/chrome-pdf.mjs
+  build-pdf.mjs             Generic HTML → PDF CLI (used by the md-to-pdf skill)
+  lib/
+    chrome-pdf.mjs          Local Chrome --print-to-pdf wrapper; size-asserts the output
+    escape.mjs              Shared HTML escaper + http(s) URL allowlist
 ```
 
 ## Performance & accessibility
@@ -93,8 +105,10 @@ Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/) — versi
 - **`/sync-readmes`** — audits this site's project data (`src/data/projects.ts` + en/fi/sv `projectsData`) against the canonical READMEs of all 6 sibling repos in parallel. Opens a PR with drift corrections — factual fixes mirrored to all three locales, tech-list additions in `projects.ts`.
   - **Token economics per run:** ~140K Sonnet input across 6 parallel sub-agents, ~10K kept on the orchestrator's main context (vs ~31K if read inline), ~45s parallel wall-clock, ~$0.80 in API spend.
   - **Results to date** (2 runs): 15 factually wrong copy fixes across three locales (test counts, engine counts, normalization-pass counts), 14 missing tech tags across 5 projects, 4 cross-project link gaps caught.
-- **`/skill-registry`** — walks every sibling repo under `D:/koodaamista`, finds each `.claude/skills/*/SKILL.md`, and emits a consolidated JSON registry (name, description, redirect flag, token-savings receipt where one exists). One Sonnet sub-agent per repo, in parallel; main thread aggregates and writes [`.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json`](.claude/agent-verdicts/). The JSON is the source of truth for "what skills the portfolio operates today" — other Claude sessions read it without re-running the scan.
+- **`/skill-registry`** — walks every sibling repo under `D:/koodaamista`, finds each `.claude/skills/*/SKILL.md`, and emits a consolidated JSON registry (name, description, redirect flag, token-savings receipt where one exists). One Sonnet sub-agent per repo, in parallel; main thread aggregates and writes [`.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json`](.claude/agent-verdicts/). The JSON is the source of truth for "what skills the portfolio operates today" — other Claude sessions read it without re-running the scan. A `prebuild` hook auto-syncs the latest dated JSON into `public/data/` so the contact-page terminal's `skills` and `download --skills` commands always serve the freshest committed registry.
   - **Token economics per run:** ~80K Sonnet input across 3 parallel sub-agents, ~5K main-thread aggregation, ~30s parallel wall-clock.
+- **`/md-to-pdf`** — renders any HTML document to a styled PDF using the developer's locally-installed Chrome via `--print-to-pdf`. Zero npm install — no puppeteer or Chromium download (~150MB avoided). Page setup (orientation, size, margins) lives in the HTML's `@page` CSS, so the caller controls layout fully. The skill assembles the HTML in-context (markdown → HTML conversion + per-document CSS) and invokes [`scripts/build-pdf.mjs`](scripts/build-pdf.mjs); a content-aware wrapper at [`scripts/build-skills-pdf.mjs`](scripts/build-skills-pdf.mjs) powers the `download --skills` registry PDF. Rationale in [`docs/decisions/0005-skill-registry-pdf-surface.md`](docs/decisions/0005-skill-registry-pdf-surface.md).
+  - **Token economics per use:** ~10K Read of the source + ~10-15K HTML composition + ~1K Bash + ~1K verify ≈ ~25K end to end, ~15-20s wall-clock including Chrome render.
 
 ### Portfolio at a glance
 
@@ -107,10 +121,11 @@ Most skills don't live here — they live in the sibling repos this site links t
 | mikkonumminen.dev (this repo)                                     |      2 |                   2 |                        — |
 | **Total**                                                         | **26** |              **15** |           **~3,134,300** |
 
-Two quirks worth flagging:
+Three quirks worth flagging:
 
 - One of the 26 (`new-weapon` in Spacepotatis) is a redirect stub superseded by `/equipment` — counted under "Skills" but excluded from receipts.
 - mikkonumminen.dev's two skills have receipts (`tokens_per_use` is recorded) but no stated cadence. The registry strict-leaves `uses_per_year` `null` when the source doesn't claim one, so neither skill contributes to the annual total. That's why "With token receipts" totals 15 but the dollar-equivalent column doesn't move when this repo's skills are added.
+- Numbers reflect the 2026-05-19 registry run; the `/md-to-pdf` skill shipped after that, so the next registry refresh will bump this repo to 3 skills (27 total).
 
 ### Validation — what these numbers are and aren't
 
