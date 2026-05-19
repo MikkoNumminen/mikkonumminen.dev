@@ -1,33 +1,69 @@
 {
-  "generated_at": "2026-05-19T01:30:00Z",
+  "generated_at": "2026-05-19T01:50:00Z",
   "repos": [
     {
-      "name": "mikkonumminen.dev",
-      "github_url": "https://github.com/MikkoNumminen/mikkonumminen.dev",
+      "name": "AudiobookMaker",
+      "github_url": "https://github.com/MikkoNumminen/AudiobookMaker",
       "skills": [
         {
-          "name": "sync-readmes",
-          "description": "Audit project data against sibling repos' READMEs and open a PR with drift corrections. Runs parallel Sonnet diff agents (one per sibling repo), synthesizes drift, applies en+fi+sv corrections plus tech-list updates, and lands a PR for review on GitHub.",
+          "name": "ai-codegen-smell-audit",
+          "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" — every finding must be a specific testable pattern with a concrete example, not a vibe.",
           "redirect": false,
-          "receipt": {
-            "path": ".claude/agent-verdicts/README-SYNC-AGENT.md",
-            "source": "agent-verdicts/README-SYNC-AGENT.md",
-            "tokens_per_use": 141000,
-            "uses_per_year": 4,
-            "annual_total": 564000
-          }
+          "receipt": null
         },
         {
-          "name": "skill-registry",
-          "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
+          "name": "audit",
+          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews — see the \"When NOT to invoke\" section below.",
           "redirect": false,
-          "receipt": {
-            "path": ".claude/skills/skill-registry/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 80000,
-            "uses_per_year": 4,
-            "annual_total": 320000
-          }
+          "receipt": null
+        },
+        {
+          "name": "ci-failure-triage",
+          "description": "When CI fails on a release tag or PR, walk the failure modes in the right order against a recipe library built from the project's fix(ci) commit history. Use whenever the user says \"CI is red\", \"the build failed\", \"tag failed CI\", \"release-build broke\", or any time gh run list shows a recent failure on master or a release tag.",
+          "redirect": false,
+          "receipt": null
+        },
+        {
+          "name": "copyright-scan",
+          "description": "Scan a git diff (staged by default, or a named revision range / file set) for accidental third-party copyright leaks before they land on origin. Use this skill whenever the user says \"scan the diff\", \"copyright check\", \"scan for leaks\", \"is this safe to push\", \"check this before I commit\", \"did I leak anything?\", or whenever you are about to create a commit or push in this repo. CLAUDE.md marks copyright leakage as a P0 — this skill turns the manual scan ritual into one pass. Produces a structured pass/fail report with file:line citations and, on fail, the exact remediation path (edit vs. un-stage vs. P0 scrub-from-origin).",
+          "redirect": false,
+          "receipt": null
+        },
+        {
+          "name": "pronunciation-corpus-add",
+          "description": "Append a Finnish pronunciation failure (a word the Chatterbox Grandmom voice mispronounces) to the project's pronunciation corpus at docs/pronunciation_corpus_fi.md. Use this whenever the user or a tester (Turo is the canonical one) reports that Grandmom said a Finnish word wrong — e.g. \"Grandmom pronounces X as Y\", \"add this to the corpus\", \"log this pronunciation bug\", \"the TTS messed up <word>\". Also use when the user pastes a transcript of what was heard vs. what was written. This corpus is the evidence base for targeted Pass I / lexicon fixes; entries must be structured so patterns across reports are visible at a glance.",
+          "redirect": false,
+          "receipt": null
+        },
+        {
+          "name": "release-bundle-audit",
+          "description": "Audit the AudiobookMaker PyInstaller release bundle for unused dependencies, dead-code data files, and accidental ML-stack pollution; then propose spec-only fixes on a `chore/release-bundle-size` branch. Use whenever the user says \"the installer is huge\", \"why is the bundle so big\", \"shake out unused deps before release\", \"shrink the .exe\", \"audit the .spec\", or asks why a frozen build ships some specific package. Encodes the empirical finding that ~28% of the v3.11.x bundle was dead-code data files (ffplay.exe, AVIF support, Arabic phonemizer, ONNX training tools) plus a defense-in-depth exclude set that prevents future regressions when a contributor accidentally pip-installs torch on the build machine.",
+          "redirect": false,
+          "receipt": null
+        },
+        {
+          "name": "release-cut",
+          "description": "Cut a new AudiobookMaker release (bump APP_VERSION, tag vX.Y.Z, push, verify CI lands SHA-256 in release notes AND sidecar). Use this skill whenever the user says \"cut a release\", \"bump the version\", \"ship X.Y.Z\", \"make a release\", \"release X.Y.Z\", or asks to tag a new version. Auto-update is existential for this project — a release that ships without a valid SHA-256 locks every existing user out of one-click updates. This skill encodes every moving part so that can never happen again.",
+          "redirect": false,
+          "receipt": null
+        },
+        {
+          "name": "voice-pack-finnish",
+          "description": "Build a Finnish voice pack from a source audio file end-to-end — chunked analyze with ECAPA diarization, transcript validation per speaker, branching to LoRA training (long sources) or few-shot ref-clip packaging (short sources), and ear-check by synth. Use whenever the user says \"copy the voices\", \"extract voices from this clip\", \"make a voice pack from this audio\", \"I have a short Finnish clip\", or hands you a Finnish podcast / interview / audiobook to mimic. Encodes the empirically-validated Finnish pipeline. CRITICAL — Finnish source only (ASR + finetune model are Finnish-specific); for English / other languages this skill does not apply. Never assume single-speaker, never trust pyannote labels without validation, never install copyright-derived packs to ~/.audiobookmaker.",
+          "redirect": false,
+          "receipt": null
+        },
+        {
+          "name": "work-session",
+          "description": "Start, pause, or finish a TODO.md work session as one of the 4 permanent Claude sessions in AudiobookMaker. Use this whenever the user says \"claim task X\", \"take task Y\", \"start working on Z\", \"pick something\", \"I'm done\", \"finish up\", \"pause\", \"I'm blocked\", or \"go idle\". Also use before touching any code on a fresh session to make sure the status board and in-progress list are honest. Parallel Claudes collide without this discipline; the shared TODO.md protocol is the only way four sessions stay coherent.",
+          "redirect": false,
+          "receipt": null
+        },
+        {
+          "name": "worktree-launch",
+          "description": "Start a new parallel Claude session safely. Pick a free session slot (Claude 1/2/3/4), create the worktree under .claude/worktrees/<branch>, claim a task in TODO.md, verify isolation actually held after the agent runs. Use whenever the user says \"start a new session\", \"spawn another Claude\", \"open a worktree\", or \"let me run two of you in parallel\".",
+          "redirect": false,
+          "receipt": null
         }
       ]
     },
@@ -92,7 +128,7 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 4300,
             "uses_per_year": 56,
-            "annual_total": 240000
+            "annual_total": 240800
           }
         },
         {
@@ -104,7 +140,7 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 5500,
             "uses_per_year": 25,
-            "annual_total": 138000
+            "annual_total": 137500
           }
         },
         {
@@ -200,68 +236,32 @@
       ]
     },
     {
-      "name": "AudiobookMaker",
-      "github_url": "https://github.com/MikkoNumminen/AudiobookMaker",
+      "name": "mikkonumminen.dev",
+      "github_url": "https://github.com/MikkoNumminen/mikkonumminen.dev",
       "skills": [
         {
-          "name": "ai-codegen-smell-audit",
-          "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" — every finding must be a specific testable pattern with a concrete example, not a vibe.",
+          "name": "skill-registry",
+          "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
           "redirect": false,
-          "receipt": null
+          "receipt": {
+            "path": ".claude/skills/skill-registry/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 95000,
+            "uses_per_year": null,
+            "annual_total": null
+          }
         },
         {
-          "name": "audit",
-          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews — see the \"When NOT to invoke\" section below.",
+          "name": "sync-readmes",
+          "description": "Audit project data against sibling repos' READMEs and open a PR with drift corrections. Runs parallel Sonnet diff agents (one per sibling repo), synthesizes drift, applies en+fi+sv corrections plus tech-list updates, and lands a PR for review on GitHub.",
           "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "ci-failure-triage",
-          "description": "When CI fails on a release tag or PR, walk the failure modes in the right order against a recipe library built from the project's fix(ci) commit history. Use whenever the user says \"CI is red\", \"the build failed\", \"tag failed CI\", \"release-build broke\", or any time gh run list shows a recent failure on master or a release tag.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "copyright-scan",
-          "description": "Scan a git diff (staged by default, or a named revision range / file set) for accidental third-party copyright leaks before they land on origin. Use this skill whenever the user says \"scan the diff\", \"copyright check\", \"scan for leaks\", \"is this safe to push\", \"check this before I commit\", \"did I leak anything?\", or whenever you are about to create a commit or push in this repo. CLAUDE.md marks copyright leakage as a P0 — this skill turns the manual scan ritual into one pass. Produces a structured pass/fail report with file:line citations and, on fail, the exact remediation path (edit vs. un-stage vs. P0 scrub-from-origin).",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "pronunciation-corpus-add",
-          "description": "Append a Finnish pronunciation failure (a word the Chatterbox Grandmom voice mispronounces) to the project's pronunciation corpus at docs/pronunciation_corpus_fi.md. Use this whenever the user or a tester (Turo is the canonical one) reports that Grandmom said a Finnish word wrong — e.g. \"Grandmom pronounces X as Y\", \"add this to the corpus\", \"log this pronunciation bug\", \"the TTS messed up <word>\". Also use when the user pastes a transcript of what was heard vs. what was written. This corpus is the evidence base for targeted Pass I / lexicon fixes; entries must be structured so patterns across reports are visible at a glance.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "release-bundle-audit",
-          "description": "Audit the AudiobookMaker PyInstaller release bundle for unused dependencies, dead-code data files, and accidental ML-stack pollution; then propose spec-only fixes on a `chore/release-bundle-size` branch. Use whenever the user says \"the installer is huge\", \"why is the bundle so big\", \"shake out unused deps before release\", \"shrink the .exe\", \"audit the .spec\", or asks why a frozen build ships some specific package. Encodes the empirical finding that ~28% of the v3.11.x bundle was dead-code data files (ffplay.exe, AVIF support, Arabic phonemizer, ONNX training tools) plus a defense-in-depth exclude set that prevents future regressions when a contributor accidentally pip-installs torch on the build machine.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "release-cut",
-          "description": "Cut a new AudiobookMaker release (bump APP_VERSION, tag vX.Y.Z, push, verify CI lands SHA-256 in release notes AND sidecar). Use this skill whenever the user says \"cut a release\", \"bump the version\", \"ship X.Y.Z\", \"make a release\", \"release X.Y.Z\", or asks to tag a new version. Auto-update is existential for this project — a release that ships without a valid SHA-256 locks every existing user out of one-click updates. This skill encodes every moving part so that can never happen again.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "voice-pack-finnish",
-          "description": "Build a Finnish voice pack from a source audio file end-to-end — chunked analyze with ECAPA diarization, transcript validation per speaker, branching to LoRA training (long sources) or few-shot ref-clip packaging (short sources), and ear-check by synth. Use whenever the user says \"copy the voices\", \"extract voices from this clip\", \"make a voice pack from this audio\", \"I have a short Finnish clip\", or hands you a Finnish podcast / interview / audiobook to mimic. Encodes the empirically-validated Finnish pipeline. CRITICAL — Finnish source only (ASR + finetune model are Finnish-specific); for English / other languages this skill does not apply. Never assume single-speaker, never trust pyannote labels without validation, never install copyright-derived packs to ~/.audiobookmaker.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "work-session",
-          "description": "Start, pause, or finish a TODO.md work session as one of the 4 permanent Claude sessions in AudiobookMaker. Use this whenever the user says \"claim task X\", \"take task Y\", \"start working on Z\", \"pick something\", \"I'm done\", \"finish up\", \"pause\", \"I'm blocked\", or \"go idle\". Also use before touching any code on a fresh session to make sure the status board and in-progress list are honest. Parallel Claudes collide without this discipline; the shared TODO.md protocol is the only way four sessions stay coherent.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "worktree-launch",
-          "description": "Start a new parallel Claude session safely. Pick a free session slot (Claude 1/2/3/4), create the worktree under .claude/worktrees/<branch>, claim a task in TODO.md, verify isolation actually held after the agent runs. Use whenever the user says \"start a new session\", \"spawn another Claude\", \"open a worktree\", or \"let me run two of you in parallel\".",
-          "redirect": false,
-          "receipt": null
+          "receipt": {
+            "path": ".claude/agent-verdicts/README-SYNC-AGENT.md",
+            "source": "agent-verdicts/README-SYNC-AGENT.md",
+            "tokens_per_use": 141080,
+            "uses_per_year": null,
+            "annual_total": null
+          }
         }
       ]
     }
@@ -270,6 +270,6 @@
     "skills": 26,
     "redirects": 1,
     "with_receipts": 15,
-    "annual_tokens_saved": 4018000
+    "annual_tokens_saved": 3134300
   }
 }

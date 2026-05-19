@@ -102,12 +102,15 @@ Most skills don't live here — they live in the sibling repos this site links t
 
 | Repo                                                              | Skills | With token receipts | Est. annual tokens saved |
 | ----------------------------------------------------------------- | -----: | ------------------: | -----------------------: |
-| [Spacepotatis](https://github.com/MikkoNumminen/Spacepotatis)     |     14 |                  13 |               ~3,134,000 |
 | [AudiobookMaker](https://github.com/MikkoNumminen/AudiobookMaker) |     10 |                   0 |                        — |
-| mikkonumminen.dev (this repo)                                     |      2 |                   2 |                 ~884,000 |
-| **Total**                                                         | **26** |              **15** |           **~4,018,000** |
+| [Spacepotatis](https://github.com/MikkoNumminen/Spacepotatis)     |     14 |                  13 |               ~3,134,300 |
+| mikkonumminen.dev (this repo)                                     |      2 |                   2 |                        — |
+| **Total**                                                         | **26** |              **15** |           **~3,134,300** |
 
-One of the 26 (`new-weapon` in Spacepotatis) is a redirect stub superseded by `/equipment`; the table counts it under "Skills" but excludes it from the receipts column.
+Two quirks worth flagging:
+
+- One of the 26 (`new-weapon` in Spacepotatis) is a redirect stub superseded by `/equipment` — counted under "Skills" but excluded from receipts.
+- mikkonumminen.dev's two skills have receipts (`tokens_per_use` is recorded) but no stated cadence. The registry strict-leaves `uses_per_year` `null` when the source doesn't claim one, so neither skill contributes to the annual total. That's why "With token receipts" totals 15 but the dollar-equivalent column doesn't move when this repo's skills are added.
 
 ### Validation — what these numbers are and aren't
 
