@@ -76,13 +76,13 @@ If no receipt is found for a skill, mark the row as `—` (em-dash) for the toke
 
 Write `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.md` using the user's local date (match `date +%Y-%m-%d` from their shell). Schema below. Print the absolute path of the written file to the user.
 
-The dated filename matches the `SKILL-REGISTRY-*` pattern that `.gitignore` re-ignores, so the report stays local even though the parent directory is tracked.
+The `SKILL-REGISTRY-*.md` filename pattern is tracked by `.gitignore`, so the report enters git when committed. This is intentional — checking in the report lets other Claude instances (other sessions, other machines) read the current portfolio inventory without re-running the scan. Dated filenames preserve history so quarter-over-quarter drift is visible by `git log`.
 
 ### 5. Done
 
 Report the file path and a one-line summary: `Wrote SKILL-REGISTRY-{date}.md — N repos, M skills (R redirects), T total catalog skills with receipts, U without.`
 
-Do not commit. Do not open a PR. Do not mutate any other file. The user validates by reading the report and deciding whether to act on it.
+If the report introduces new findings or supersedes a prior dated report, commit and push it as a fresh registry snapshot — the report is the canonical "what skills the portfolio operates today" document. Do not mutate any other file as part of the run. The user reviews the report contents and decides whether to act on its findings (e.g. update site copy, backfill receipts).
 
 ## Output schema
 

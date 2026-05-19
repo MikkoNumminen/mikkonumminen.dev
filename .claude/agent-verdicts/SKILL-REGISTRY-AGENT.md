@@ -9,15 +9,15 @@ This is the companion to `skill-registry`. The skill itself is a procedure ("how
 
 ## What the skill is for
 
-Produce, in one invocation, a single markdown document that names every Claude Code skill in the portfolio: which repo it lives in, what it does, and — where a per-repo receipt exists — how many tokens it's estimated to save per year. Output is a dated report under `.claude/agent-verdicts/`. The `SKILL-REGISTRY-*` filename pattern is re-ignored by `.gitignore`, so the output stays local even though the parent directory is tracked.
+Produce, in one invocation, a single markdown document that names every Claude Code skill in the portfolio: which repo it lives in, what it does, and — where a per-repo receipt exists — how many tokens it's estimated to save per year. Output is a dated report under `.claude/agent-verdicts/`, tracked via the `SKILL-REGISTRY-*.md` gitignore exception so other Claude instances (other sessions, other machines) can read the current inventory without re-running the scan.
 
-The audience is **Mikko**, not a recruiter. The site copy talks about "audited Claude Code skills" in the abstract; this skill is what makes that claim defensible against drift on his own machine. If a recruiter ever does click through, the per-repo receipts they land on (e.g. Spacepotatis's `docs/SKILLS.md`) are the linkable surface — this registry is the index that points at them.
+The primary audience is **Mikko**, but the secondary audience is **other Claude sessions** — when a future session asks "what skills do we have?" or "what's the current AI-tooling surface across the portfolio?", the committed report is the answer of record. If a recruiter clicks through, the per-repo receipts they land on (e.g. Spacepotatis's `docs/SKILLS.md`) are the linkable surface; this registry is the index that points at them.
 
 ## What it is NOT for
 
 - **Not a token meter.** The numbers it surfaces are author estimates, copied from `docs/SKILLS.md`-style receipts. They are _not_ sampled from real sessions. The Spacepotatis methodology doc states this explicitly ("educated guesses, 3× error bars").
 - **Not a code auditor.** It does not read skill _bodies_ for correctness. It reads frontmatter and copies receipt numbers; the registry trusts each per-repo audit to do its own quality check.
-- **Not a deployment surface.** The output is local — the dated `SKILL-REGISTRY-*.md` filename is re-ignored by `.gitignore` so the report doesn't accidentally land in a PR. Surfacing it on the site or in CI is a separate decision.
+- **Not a site-surfacing tool.** The committed report lives in `.claude/agent-verdicts/` for Claude consumption, not on the portfolio's public surfaces. Whether the aggregate row should land on the site as a stat tile (alongside "387 commits") is a separate decision — the verdict's "Open questions" section still flags it as pending honest enough numbers.
 
 ## Design choices
 
@@ -31,9 +31,11 @@ Considered but rejected: `scripts/scan-skills.mjs`. The skill approach wins beca
 
 Considered but rejected: store the registry generator in `claude-audit-skill/` and distribute it. The registry is portfolio-specific (knows the directory layout, the receipt-doc conventions, which repos to exclude). Generalising it would require frontmatter schema adoption first — premature.
 
-### Why output goes to `agent-verdicts/`, not stdout
+### Why output goes to `agent-verdicts/` and is checked in
 
-Matches the existing pattern (`README-SYNC-AGENT.md`). The user can re-read the last run without re-invoking the skill. Dated filenames preserve history without git tracking, so quarter-over-quarter drift is visible by `ls`-ing the directory.
+Matches the existing pattern (`README-SYNC-AGENT.md` lives alongside as a sibling local-only verdict). But the registry report is _committed_ — other Claude sessions on other machines need to read it to know what the portfolio offers, and `git log` becomes the audit trail of quarter-over-quarter drift.
+
+The tracking is narrowly scoped: only files matching `SKILL-REGISTRY-*.md` are tracked. Other future verdict docs stay local unless they explicitly opt in (one bang line in `.gitignore`). `README-SYNC-AGENT.md` is unaffected — it remains gitignored.
 
 ### Why receipts can come from three places (docs/SKILLS.md, agent-verdicts/\*.md, SKILL.md body)
 
@@ -45,11 +47,11 @@ The cost: the parser is loose. A skill whose token estimate lives in three diffe
 
 It's a distribution repo, not a consumption repo. The same audit skill exists inside Spacepotatis and AudiobookMaker as `audit/` and `ai-codegen-smell-audit/`. Including the publishable copy in the count would double-bill the same recipe.
 
-### Why no commit of the output report
+### Why commit the output report
 
-Two reasons. First, the report is point-in-time; persisting it in git creates expectation of update cadence that the skill doesn't currently fulfill (no cron, no GH Actions trigger). Second, dated output filenames are easier to reason about as a local quarterly artefact than as an ever-bumping committed file.
+Two reasons. First, other Claude instances on other machines need the report to answer "what skills do we have?" without re-running the scan — without the commit, every session that wanted the answer would have to enumerate all 26 SKILL.md files itself. Second, dated filenames become a `git log` of quarterly drift: "did the catalog grow this quarter, did any skill's token-savings receipt change, did a redirect appear" — all visible from the commit history.
 
-This is enforced by `.gitignore`: `.claude/agent-verdicts/*` re-ignores everything in the directory, then a `!`-bang opts THIS verdict file in by exact path. The SKILL.md is also tracked (via the broader `!.claude/skills/`). The runtime _output_ (matching `SKILL-REGISTRY-2026-*.md`) is never tracked. Adding a future verdict that should ship with its skill is one more bang line in `.gitignore`.
+This is enforced by `.gitignore`: `.claude/agent-verdicts/*` re-ignores everything in the directory, then a single `!`-bang opts in everything matching `SKILL-REGISTRY-*.md`. That covers both this verdict doc and every dated report (`SKILL-REGISTRY-2026-05-19.md`, `SKILL-REGISTRY-2026-08-19.md`, …). The SKILL.md itself is also tracked via the broader `!.claude/skills/`. Other verdict docs (e.g. `README-SYNC-AGENT.md`) stay local unless they explicitly opt in — one more bang line each.
 
 ## What's verifiable vs editorial
 
