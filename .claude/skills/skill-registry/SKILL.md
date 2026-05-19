@@ -71,9 +71,10 @@ For each path, do all of:
 1. Read the first 30 lines and extract YAML frontmatter `name` and `description`.
 2. Classify as a redirect stub if `description` contains "superseded", "redirect", "renamed", "moved to", or "see also" (case-insensitive). Redirect stubs have `receipt: null`.
 3. For non-redirect skills, locate a token-savings receipt by checking these sources in order:
-   a. `D:/koodaamista/{REPO}/docs/SKILLS.md` — markdown table with rows like `| /<skill> | ~X K | Y | ~Z K |`. Label `source: "docs/SKILLS.md"`.
+   a. `D:/koodaamista/{REPO}/docs/SKILLS.md` — markdown table with rows like `| /<skill> | ~X K | Y | ~Z K |`. Label `source: "docs/SKILLS.md"`. Use `https://github.com/MikkoNumminen/{REPO}/blob/master/docs/SKILLS.md` for `path`.
    b. `D:/koodaamista/{REPO}/.claude/agent-verdicts/<NAME>-AGENT.md` — `## Token expectations` or `## Token economics` section per skill. Label `source: "agent-verdicts/<NAME>-AGENT.md"`.
-   c. The SKILL.md body itself — `## Token expectations` section. Label `source: "skill-body"` and use the SKILL.md's own path (e.g. `.claude/skills/<NAME>/SKILL.md`) as `path`.
+   c. `D:/koodaamista/{REPO}/README.md` — look for a heading containing "Skill catalog" (or similar phrasing like "Skills inventory") with a per-skill table that has at least a "saves/inv" or "tokens/use"-equivalent column. AudiobookMaker uses this pattern. Use `https://github.com/MikkoNumminen/{REPO}/blob/master/README.md` for `path`. Label `source: "readme.md"`. **Extraction conventions:** ranges (e.g. `~5-6k`) → midpoint integer; qualitative entries (`load-bearing`, `negligible`) → `null`; numeric N-day usage counts (e.g. `22 commits` in a "90-day usage" column) → multiply by `365/N` (typically ×4 for 90-day evidence) and round to integer; explicit zeros (`0 invocations`, `corpus empty`) → `0`; qualitative usage (`actively used`) and outstanding-count phrasing (`63 active worktrees`) → `null`. This is **unit conversion from stated evidence**, not imputation.
+   d. The SKILL.md body itself — `## Token expectations` section. Label `source: "skill-body"` and use the SKILL.md's own path (e.g. `.claude/skills/<NAME>/SKILL.md`) as `path`.
    Use the first source that names the skill. If none, `receipt: null`.
 
 Return EXACTLY this JSON (no preamble, no markdown):
@@ -87,7 +88,7 @@ Return EXACTLY this JSON (no preamble, no markdown):
     "redirect": true | false,
     "receipt": null | {
       "path": "<URL or relative path>",
-      "source": "docs/SKILLS.md" | "agent-verdicts/<NAME>-AGENT.md" | "skill-body",
+      "source": "docs/SKILLS.md" | "agent-verdicts/<NAME>-AGENT.md" | "readme.md" | "skill-body",
       "tokens_per_use": <int or null>,
       "uses_per_year": <int or null>,
       "annual_total": <int or null>
@@ -95,7 +96,7 @@ Return EXACTLY this JSON (no preamble, no markdown):
   }, ...]
 }
 
-Conventions: integers (no commas, no "K" suffix — `13500` not `"13.5K"`); `annual_total = tokens_per_use × uses_per_year` when both known; redirect skills get `receipt: null`; **no HTML entities — bare `<` and `>` are valid in JSON strings** (write `<word>` not `&lt;word&gt;`); leave fields `null` when the source doesn't state them (do NOT impute cadence or extrapolate from absence).
+Conventions: integers (no commas, no "K" suffix — `13500` not `"13.5K"`); `annual_total = tokens_per_use × uses_per_year` when both known; redirect skills get `receipt: null`; **no HTML entities — bare `<` and `>` are valid in JSON strings** (write `<word>` not `&lt;word&gt;`); leave fields `null` when the source doesn't state them or only states qualitative descriptors (do NOT impute cadence from absence — but DO unit-convert stated numeric evidence, e.g. a stated 90-day count multiplied by 4 ≈ annual, per source (c)'s extraction rules).
 ```
 
 ### 3. Wait for completion + aggregate (main thread)
@@ -113,6 +114,8 @@ When all agents have returned, parse each per-repo JSON and assemble the final d
   - `annual_tokens_saved`: sum of `receipt.annual_total` where non-null.
 
 Validate that `totals.annual_tokens_saved` equals the sum of all `receipt.annual_total` values before writing. If a sub-agent returned a malformed entry (missing required field, inconsistent total), flag the entry in a one-line note when reporting the path back to the user.
+
+**Post-process: strip HTML entities.** Sonnet sub-agents have repeatedly returned descriptions with `&lt;` / `&gt;` / `&amp;` despite explicit "no HTML entities" instructions in the agent prompt. The convention text alone is insufficient. As defense-in-depth, before writing the aggregated JSON, replace `&lt;` → `<`, `&gt;` → `>`, `&amp;` → `&` across every `description` field. This is mechanical and safe — JSON strings never legitimately contain HTML entities.
 
 ### 4. Emit the report
 
@@ -149,7 +152,7 @@ If the report introduces new findings or supersedes a prior dated report, commit
       redirect: boolean,          // true if description matches the redirect heuristic
       receipt: null | {
         path: string,             // file path or URL (only http(s) is clickable)
-        source: string,           // "docs/SKILLS.md" | "agent-verdicts/X.md" | "skill-body"
+        source: string,           // "docs/SKILLS.md" | "agent-verdicts/X.md" | "readme.md" | "skill-body"
         tokens_per_use: number | null,
         uses_per_year: number | null,
         annual_total: number | null
