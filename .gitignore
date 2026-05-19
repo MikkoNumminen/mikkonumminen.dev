@@ -47,6 +47,10 @@ NOTES.md
 # reasoning. Anything cited as a `receipt.path` in the skill-registry JSON
 # MUST be opted in below so the link resolves on GitHub:
 #  - `SKILL-REGISTRY-*` — registry docs (verdict + dated JSON + LATEST.json)
+#  - `SKILL-USAGE-*` — transcript-measured usage (dated JSON + LATEST.json);
+#    consumed by /skill-registry's transcript-measurement overlay so the
+#    measurement file has to travel with the repo, not just live on one
+#    developer's machine
 #  - `README-SYNC-AGENT.md` — token-economics receipt for /sync-readmes
 # Other skills that should ship their docs add a
 # `!.claude/agent-verdicts/<FILE>` line of their own.
@@ -57,6 +61,7 @@ NOTES.md
 !.claude/agent-verdicts/
 .claude/agent-verdicts/*
 !.claude/agent-verdicts/SKILL-REGISTRY-*
+!.claude/agent-verdicts/SKILL-USAGE-*
 !.claude/agent-verdicts/README-SYNC-AGENT.md
 .cursor/
 .aider*
