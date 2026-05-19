@@ -38,9 +38,23 @@ TODO.md
 NOTES.md
 .notes/
 
-# AI tooling
+# AI tooling — local by default; opt in specific shareable artifacts below.
+#
+# `.claude/skills/` is broadly tracked (production-skill convention from
+# PR #104). New skills land in git unless explicitly re-ignored.
+#
+# `.claude/agent-verdicts/` is per-file because most entries are local-only
+# reasoning (e.g. README-SYNC-AGENT.md) and the runtime outputs of skills
+# that write into this directory should stay ignored. Add a new
+# `!.claude/agent-verdicts/<FILE>.md` line for each verdict doc that
+# should ship with its skill.
+#
+# Everything else (settings, worktrees, transcripts) stays local.
 .claude/*
 !.claude/skills/
+!.claude/agent-verdicts/
+.claude/agent-verdicts/*
+!.claude/agent-verdicts/SKILL-REGISTRY-AGENT.md
 .cursor/
 .aider*
 .continue/
