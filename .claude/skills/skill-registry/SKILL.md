@@ -119,14 +119,18 @@ Validate that `totals.annual_tokens_saved` equals the sum of all `receipt.annual
 
 **Post-process: overlay transcript measurements.** Check for `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` (the [skill-usage](https://github.com/MikkoNumminen/claude-skills/blob/main/skills/skill-usage/SKILL.md) skill's output — measured invocation counts and token totals from real Claude Code session transcripts). If the file exists, parse it. For each entry in its `skills[]`:
 
-1. Search every `repos[].skills[]` in this run for an entry whose `name` matches the usage entry's `name` (exact match — no aliasing).
-2. If found, **replace** that entry's `receipt` with a measurement-sourced one:
+1. Search every `repos[].skills[]` in this run for entries whose `name` matches the usage entry's `name` (exact match — no aliasing).
+2. For each match found, **replace** that entry's `receipt` with a measurement-sourced one:
    - `path: ".claude/agent-verdicts/SKILL-USAGE-LATEST.json"`
    - `source: "transcript-measurement"`
    - `tokens_per_use: <usage.tokens_per_use_avg>`
    - `uses_per_year: <usage.uses_per_year>`
    - `annual_total: <usage.annual_total>`
-3. If no matching registry row is found (e.g. usage entry for a built-in `review`, a deprecated skill, or a personal `mikko-*` alias not yet ported to a consumer repo), skip silently. The registry only enumerates skills present as `.claude/skills/<name>/SKILL.md` files; non-catalog usage stays visible in the `SKILL-USAGE-*.json` itself.
+   - `measurement_window_days: <usage_file.window_days>` (optional field, surfaced so a consumer can render "measured (90d window)")
+3. If multiple registry rows match (same skill name installed in two consumer repos), every match gets the same overlay. The measurement is the actual transcript signal — it attributes to a name, not a path — so all copies of that named skill share the same measured cost. If you want per-copy attribution you'd need a richer attribution key from the harness; out of scope here.
+4. If no matching registry row is found (e.g. usage entry for a built-in `review`, a deprecated skill, or a personal `mikko-*` alias not yet ported to a consumer repo), skip silently. The registry only enumerates skills present as `.claude/skills/<name>/SKILL.md` files; non-catalog usage stays visible in the `SKILL-USAGE-*.json` itself.
+
+**If `SKILL-USAGE-LATEST.json` is malformed** (JSON parse failure, missing `skills[]`, entries missing required `name` / `tokens_per_use_avg`), skip the overlay entirely and log a one-line warning in the run summary (e.g. `usage overlay skipped: SKILL-USAGE-LATEST.json malformed at line N`). The registry falls back to the editorial estimates from sources 2-5 rather than failing the run — partial measurement is worse than no measurement when correctness can't be guaranteed.
 
 This overlay runs **after** the sub-agent editorial lookup so measured values supersede editorial estimates. The displaced editorial receipt stays on disk in its source file (`docs/SKILLS.md`, `agent-verdicts/X-AGENT.md`, etc.); only the registry-row choice changes. The receipt-source priority is therefore:
 
@@ -177,7 +181,8 @@ If the report introduces new findings or supersedes a prior dated report, commit
         source: string,           // "transcript-measurement" | "docs/SKILLS.md" | "agent-verdicts/X.md" | "readme.md" | "skill-body"
         tokens_per_use: number | null,
         uses_per_year: number | null,
-        annual_total: number | null
+        annual_total: number | null,
+        measurement_window_days?: number  // set only when source == "transcript-measurement"; e.g. 90
       },
       last_audited?: string       // ISO date, optional — populated only if a per-skill audit timestamp exists
     }]
