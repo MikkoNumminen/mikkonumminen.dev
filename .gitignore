@@ -45,18 +45,18 @@ NOTES.md
 #
 # `.claude/agent-verdicts/` is per-file because most entries are local-only
 # reasoning (e.g. README-SYNC-AGENT.md). The skill-registry's verdict doc
-# AND its dated registry reports are both tracked under the
-# `SKILL-REGISTRY-*.md` pattern so other Claude instances can read the
-# current portfolio inventory without re-running the scan. Other skills
-# that should ship their docs add a `!.claude/agent-verdicts/<FILE>.md`
-# line of their own.
+# AND its dated registry reports (JSON for data + an optional MD writeup)
+# are both tracked under the `SKILL-REGISTRY-*` pattern so other Claude
+# instances can read the current portfolio inventory without re-running
+# the scan. Other skills that should ship their docs add a
+# `!.claude/agent-verdicts/<FILE>` line of their own.
 #
 # Everything else (settings, worktrees, transcripts) stays local.
 .claude/*
 !.claude/skills/
 !.claude/agent-verdicts/
 .claude/agent-verdicts/*
-!.claude/agent-verdicts/SKILL-REGISTRY-*.md
+!.claude/agent-verdicts/SKILL-REGISTRY-*
 .cursor/
 .aider*
 .continue/

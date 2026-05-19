@@ -74,50 +74,56 @@ If no receipt is found for a skill, mark the row as `—` (em-dash) for the toke
 
 ### 4. Emit the report
 
-Write `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.md` using the user's local date (match `date +%Y-%m-%d` from their shell). Schema below. Print the absolute path of the written file to the user.
+Write `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` using the user's local date (match `date +%Y-%m-%d` from their shell). Schema below — output is **structured JSON, not markdown**, so other Claude sessions can parse it reliably and consumers can check `receipt === null` instead of regex-scraping em-dashes. Print the absolute path of the written file to the user.
 
-The `SKILL-REGISTRY-*.md` filename pattern is tracked by `.gitignore`, so the report enters git when committed. This is intentional — checking in the report lets other Claude instances (other sessions, other machines) read the current portfolio inventory without re-running the scan. Dated filenames preserve history so quarter-over-quarter drift is visible by `git log`.
+The `SKILL-REGISTRY-*` filename pattern (no extension) is tracked by `.gitignore`, so both `.json` reports and the companion `.md` verdict doc enter git when committed. Checking in the report lets other Claude instances (other sessions, other machines) read the current portfolio inventory without re-running the scan. Dated filenames preserve history so quarter-over-quarter drift is visible by `git log`.
 
 ### 5. Done
 
-Report the file path and a one-line summary: `Wrote SKILL-REGISTRY-{date}.md — N repos, M skills (R redirects), T total catalog skills with receipts, U without.`
+Report the file path and a one-line summary: `Wrote SKILL-REGISTRY-{date}.json — N repos, M skills (R redirects), T total catalog skills with receipts, U without.`
 
-If the report introduces new findings or supersedes a prior dated report, commit and push it as a fresh registry snapshot — the report is the canonical "what skills the portfolio operates today" document. Do not mutate any other file as part of the run. The user reviews the report contents and decides whether to act on its findings (e.g. update site copy, backfill receipts).
+If the report introduces new findings or supersedes a prior dated report, commit and push it as a fresh registry snapshot — the JSON is the canonical "what skills the portfolio operates today" document. Do not mutate any other file as part of the run. The user reviews the report contents and decides whether to act on its findings (e.g. update site copy, backfill receipts).
 
 ## Output schema
 
-```markdown
-# Skill registry — {YYYY-MM-DD}
-
-**Scope:** every `.claude/skills/*/SKILL.md` under `D:/koodaamista/*`, excluding `claude-audit-skill/`.
-
-## Aggregate
-
-| Repo              | Total skills | Redirects | With receipts | Estimated tokens saved/year |
-| ----------------- | -----------: | --------: | ------------: | --------------------------: |
-| mikkonumminen.dev |            N |         0 |             M |                           T |
-| Spacepotatis      |            N |         1 |             M |                           T |
-| AudiobookMaker    |            N |         0 |             M |                           T |
-| **Total**         |        **N** |     **R** |         **M** |                       **T** |
-
-Receipts column counts skills with token-savings estimates traceable to a docs/SKILLS.md or agent-verdicts/\*.md file.
-
-## Per-repo
-
-### mikkonumminen.dev
-
-| Skill        | Description           | Tokens / use | Uses / year | Total | Receipt                                     |
-| ------------ | --------------------- | -----------: | ----------: | ----: | ------------------------------------------- |
-| sync-readmes | Audit project data... |            — |           — |     — | [agent-verdicts/README-SYNC-AGENT.md](path) |
-
-(One section per repo. `—` means no receipt; the skill is real but the token-savings estimate hasn't been written up.)
-
-## Notes & gaps
-
-- Skills without receipts: N (across all repos). These exist but have no token-savings estimate in any companion doc. Backfilling them requires either (a) adding `tokens_per_use` / `uses_per_year` to each SKILL.md's frontmatter, or (b) writing a sibling docs/SKILLS.md for each repo.
-- Redirect stubs counted separately so the "total catalog" number isn't inflated. Example: Spacepotatis's `new-weapon` is a redirect to `equipment`.
-- All token-savings figures are author-estimated — see [docs/SKILLS.md](https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md) in Spacepotatis for the methodology and explicit 3× error bar.
+```ts
+{
+  generated_at: string,           // ISO 8601 UTC timestamp
+  repos: [{
+    name: string,                 // directory name (e.g. "Spacepotatis")
+    github_url?: string,          // optional; rendered as a link if https://
+    skills: [{
+      name: string,               // from YAML frontmatter `name:`
+      description: string,        // from YAML frontmatter `description:` (full, not truncated)
+      redirect: boolean,          // true if description matches the redirect heuristic
+      receipt: null | {
+        path: string,             // file path or URL (only http(s) is clickable)
+        source: string,           // "docs/SKILLS.md" | "agent-verdicts/X.md" | "frontmatter"
+        tokens_per_use: number | null,
+        uses_per_year: number | null,
+        annual_total: number | null
+      },
+      last_audited?: string       // ISO date, optional — populated only if a per-skill audit timestamp exists
+    }]
+  }],
+  totals: {
+    skills: number,               // sum of skills[] across all repos, INCLUDING redirects
+    redirects: number,            // sum of skills where redirect === true
+    with_receipts: number,        // sum of skills where receipt !== null
+    annual_tokens_saved: number   // sum of receipt.annual_total where present
+  }
+}
 ```
+
+**Conventions:**
+
+- `generated_at` is ISO 8601 with `Z` suffix for UTC.
+- Numbers are integers (not strings, not formatted with commas).
+- `annual_total` should equal `tokens_per_use × uses_per_year` whenever both are present; if only the annual figure is known directly (e.g. extracted from a docs/SKILLS.md "Total" column), per-use and per-year can stay `null`.
+- `path` for Spacepotatis-style receipts is the GitHub URL to `docs/SKILLS.md`; for local-only verdicts it is the relative path (e.g. `.claude/agent-verdicts/README-SYNC-AGENT.md`).
+- `redirect: true` rows have `receipt: null` and are excluded from `with_receipts` and `annual_tokens_saved` totals.
+
+A human-readable view can be rendered from this JSON by any consumer (Claude session, dashboard, script). The JSON is the source of truth; renderings are derived.
 
 ## Token expectations
 

@@ -9,7 +9,7 @@ This is the companion to `skill-registry`. The skill itself is a procedure ("how
 
 ## What the skill is for
 
-Produce, in one invocation, a single markdown document that names every Claude Code skill in the portfolio: which repo it lives in, what it does, and — where a per-repo receipt exists — how many tokens it's estimated to save per year. Output is a dated report under `.claude/agent-verdicts/`, tracked via the `SKILL-REGISTRY-*.md` gitignore exception so other Claude instances (other sessions, other machines) can read the current inventory without re-running the scan.
+Produce, in one invocation, a single structured JSON document that names every Claude Code skill in the portfolio: which repo it lives in, what it does, and — where a per-repo receipt exists — how many tokens it's estimated to save per year. Output is a dated report under `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json`, tracked via the `SKILL-REGISTRY-*` gitignore exception so other Claude instances (other sessions, other machines) can parse the current inventory without re-running the scan. The schema is defined in [the SKILL.md](../skills/skill-registry/SKILL.md#output-schema).
 
 The primary audience is **Mikko**, but the secondary audience is **other Claude sessions** — when a future session asks "what skills do we have?" or "what's the current AI-tooling surface across the portfolio?", the committed report is the answer of record. If a recruiter clicks through, the per-repo receipts they land on (e.g. Spacepotatis's `docs/SKILLS.md`) are the linkable surface; this registry is the index that points at them.
 
