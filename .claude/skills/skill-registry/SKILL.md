@@ -116,9 +116,16 @@ Validate that `totals.annual_tokens_saved` equals the sum of all `receipt.annual
 
 ### 4. Emit the report
 
-Write `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` using the user's local date (match `date +%Y-%m-%d` from their shell). Schema below — output is **structured JSON, not markdown**, so other Claude sessions can parse it reliably and consumers can check `receipt === null` instead of regex-scraping em-dashes. Print the absolute path of the written file to the user.
+Write **two** files:
 
-The `SKILL-REGISTRY-*` filename pattern (no extension) is tracked by `.gitignore`, so both `.json` reports and the companion `.md` verdict doc enter git when committed. Checking in the report lets other Claude instances (other sessions, other machines) read the current portfolio inventory without re-running the scan. Dated filenames preserve history so quarter-over-quarter drift is visible by `git log`.
+1. `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` — dated snapshot (use the user's local date, match `date +%Y-%m-%d`). Preserves history; `git log` shows quarter-over-quarter drift.
+2. `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` — byte-identical copy of the dated file. README.md and other consumers link this filename so they don't go stale when the next run lands.
+
+Schema below — output is **structured JSON, not markdown**, so other Claude sessions can parse it reliably and consumers can check `receipt === null` instead of regex-scraping em-dashes. Print both absolute paths to the user.
+
+The `SKILL-REGISTRY-*` filename pattern (no extension) is tracked by `.gitignore`, so the dated `.json` reports, the `LATEST.json` pointer, and the companion `.md` verdict doc all enter git when committed. Checking in the report lets other Claude instances (other sessions, other machines) read the current portfolio inventory without re-running the scan.
+
+**Receipt fidelity reminder:** when a sub-agent reports a `tokens_per_use` figure, cross-check it against the explicit numbers in the receipt source (`docs/SKILLS.md` table cell, or the `## Token expectations` / `## Token economics` section in the verdict doc / SKILL body). If the sub-agent's number doesn't appear verbatim in that source, prefer the source. The whole point of the receipt is that the public claim is anchored to a real file.
 
 ### 5. Done
 

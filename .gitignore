@@ -44,11 +44,11 @@ NOTES.md
 # PR #104). New skills land in git unless explicitly re-ignored.
 #
 # `.claude/agent-verdicts/` is per-file because most entries are local-only
-# reasoning (e.g. README-SYNC-AGENT.md). The skill-registry's verdict doc
-# AND its dated registry reports (JSON for data + an optional MD writeup)
-# are both tracked under the `SKILL-REGISTRY-*` pattern so other Claude
-# instances can read the current portfolio inventory without re-running
-# the scan. Other skills that should ship their docs add a
+# reasoning. Anything cited as a `receipt.path` in the skill-registry JSON
+# MUST be opted in below so the link resolves on GitHub:
+#  - `SKILL-REGISTRY-*` — registry docs (verdict + dated JSON + LATEST.json)
+#  - `README-SYNC-AGENT.md` — token-economics receipt for /sync-readmes
+# Other skills that should ship their docs add a
 # `!.claude/agent-verdicts/<FILE>` line of their own.
 #
 # Everything else (settings, worktrees, transcripts) stays local.
@@ -57,6 +57,7 @@ NOTES.md
 !.claude/agent-verdicts/
 .claude/agent-verdicts/*
 !.claude/agent-verdicts/SKILL-REGISTRY-*
+!.claude/agent-verdicts/README-SYNC-AGENT.md
 .cursor/
 .aider*
 .continue/
