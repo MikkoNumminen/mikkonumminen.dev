@@ -98,14 +98,14 @@ Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/) — versi
 
 ### Portfolio at a glance
 
-Most skills don't live here — they live in the sibling repos this site links to. The registry above keeps a current inventory across all of them. Numbers below are from the [2026-05-19 snapshot](.claude/agent-verdicts/SKILL-REGISTRY-2026-05-19.json):
+Most skills don't live here — they live in the sibling repos this site links to. The registry keeps a current inventory across all of them. Numbers below are from the [current registry snapshot](.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json) (dated snapshots preserved in [`.claude/agent-verdicts/`](.claude/agent-verdicts/)):
 
 | Repo                                                              | Skills | With token receipts | Est. annual tokens saved |
 | ----------------------------------------------------------------- | -----: | ------------------: | -----------------------: |
 | [Spacepotatis](https://github.com/MikkoNumminen/Spacepotatis)     |     14 |                  13 |               ~3,134,000 |
 | [AudiobookMaker](https://github.com/MikkoNumminen/AudiobookMaker) |     10 |                   0 |                        — |
-| mikkonumminen.dev (this repo)                                     |      2 |                   2 |                 ~888,000 |
-| **Total**                                                         | **26** |              **15** |           **~4,022,000** |
+| mikkonumminen.dev (this repo)                                     |      2 |                   2 |                 ~884,000 |
+| **Total**                                                         | **26** |              **15** |           **~4,018,000** |
 
 One of the 26 (`new-weapon` in Spacepotatis) is a redirect stub superseded by `/equipment`; the table counts it under "Skills" but excludes it from the receipts column.
 
