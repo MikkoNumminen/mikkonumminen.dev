@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-20T04:34:04.530Z",
+  "generated_at": "2026-05-20T22:35:38.962Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -10,22 +10,11 @@
           "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" — every finding must be a specific testable pattern with a concrete example, not a vibe.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 199437,
-            "uses_per_year": 4,
-            "annual_total": 797748,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 199437,
-            "last_invoked": "2026-05-17T03:24:06.864Z",
-            "prior_estimate": {
-              "tokens_per_use": 5500,
-              "uses_per_year": 8,
-              "annual_total": 44000,
-              "source": "readme.md",
-              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
+            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
+            "source": "readme.md",
+            "tokens_per_use": 5500,
+            "uses_per_year": null,
+            "annual_total": null
           }
         },
         {
@@ -33,22 +22,11 @@
           "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews — see the \"When NOT to invoke\" section below.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 434907,
-            "uses_per_year": 4,
-            "annual_total": 1739628,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 434907,
-            "last_invoked": "2026-05-19T15:20:19.354Z",
-            "prior_estimate": {
-              "tokens_per_use": 3500,
-              "uses_per_year": 8,
-              "annual_total": 28000,
-              "source": "readme.md",
-              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
+            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
+            "source": "readme.md",
+            "tokens_per_use": 3500,
+            "uses_per_year": 12,
+            "annual_total": 42000
           }
         },
         {
@@ -68,22 +46,11 @@
           "description": "Scan a git diff (staged by default, or a named revision range / file set) for accidental third-party copyright leaks before they land on origin. Use this skill whenever the user says \"scan the diff\", \"copyright check\", \"scan for leaks\", \"is this safe to push\", \"check this before I commit\", \"did I leak anything?\", or whenever you are about to create a commit or push in this repo. CLAUDE.md marks copyright leakage as a P0 — this skill turns the manual scan ritual into one pass. Produces a structured pass/fail report with file:line citations and, on fail, the exact remediation path (edit vs. un-stage vs. P0 scrub-from-origin).",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 13881,
-            "uses_per_year": 4,
-            "annual_total": 55524,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 13881,
-            "last_invoked": "2026-05-12T03:01:51.715Z",
-            "prior_estimate": {
-              "tokens_per_use": 3000,
-              "uses_per_year": 0,
-              "annual_total": 0,
-              "source": "readme.md",
-              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
+            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
+            "source": "readme.md",
+            "tokens_per_use": 3000,
+            "uses_per_year": 0,
+            "annual_total": 0
           }
         },
         {
@@ -93,7 +60,7 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 0,
+            "tokens_per_use": null,
             "uses_per_year": null,
             "annual_total": null
           }
@@ -105,9 +72,9 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 3500,
+            "tokens_per_use": 3000,
             "uses_per_year": 4,
-            "annual_total": 14000
+            "annual_total": 12000
           }
         },
         {
@@ -115,22 +82,11 @@
           "description": "Cut a new AudiobookMaker release (bump APP_VERSION, tag vX.Y.Z, push, verify CI lands SHA-256 in release notes AND sidecar). Use this skill whenever the user says \"cut a release\", \"bump the version\", \"ship X.Y.Z\", \"make a release\", \"release X.Y.Z\", or asks to tag a new version. Auto-update is existential for this project — a release that ships without a valid SHA-256 locks every existing user out of one-click updates. This skill encodes every moving part so that can never happen again.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 188263,
-            "uses_per_year": 4,
-            "annual_total": 753052,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 188263,
-            "last_invoked": "2026-05-12T02:05:50.511Z",
-            "prior_estimate": {
-              "tokens_per_use": null,
-              "uses_per_year": 80,
-              "annual_total": null,
-              "source": "readme.md",
-              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
+            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
+            "source": "readme.md",
+            "tokens_per_use": null,
+            "uses_per_year": 80,
+            "annual_total": null
           }
         },
         {
@@ -141,8 +97,8 @@
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
             "tokens_per_use": 6500,
-            "uses_per_year": 248,
-            "annual_total": 1612000
+            "uses_per_year": null,
+            "annual_total": null
           }
         },
         {
@@ -188,18 +144,6 @@
           }
         },
         {
-          "name": "audit",
-          "description": "Orchestrates the multi-phase modular-architecture audit + refactor. Phase 0 sets up agents; Phase 1 inventories every file; Phase 2 proposes module boundaries; Phase 3 mechanically extracts modules one at a time (parallelizable across worktrees); Phase 4 writes AI-first documentation; Phase 5 verifies. Each phase produces a written artifact under docs/audit/ and STOPS at a gate for user approval. Never auto-advances.",
-          "redirect": false,
-          "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 5000,
-            "uses_per_year": 5,
-            "annual_total": 25000
-          }
-        },
-        {
           "name": "balance-review",
           "description": "Diff uncommitted changes to game data (weapons, enemies, waves, missions, perks, augments, loot pools, solar systems) and report DPS, TTK, energy-cost-per-DPS, augment-folded effective DPS, loot-pool roster shifts, and drop-rate deltas vs HEAD.",
           "redirect": false,
@@ -216,22 +160,11 @@
           "description": "Pre-commit content invariants check — orphan refs (enemy / weapon / sprite / pod / loot-pool / mission system / story trigger), missing sprite generators, perk drop-weight sanity, mission prereq DAG, story integrity (voice + music files, trigger refs), storyTriggers helper coverage.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 53168,
-            "uses_per_year": 4,
-            "annual_total": 212672,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 53168,
-            "last_invoked": "2026-05-03T14:50:45.688Z",
-            "prior_estimate": {
-              "tokens_per_use": 15000,
-              "uses_per_year": 50,
-              "annual_total": 750000,
-              "source": "docs/SKILLS.md",
-              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
+            "source": "docs/SKILLS.md",
+            "tokens_per_use": 15000,
+            "uses_per_year": 50,
+            "annual_total": 750000
           }
         },
         {
@@ -239,22 +172,23 @@
           "description": "Create, modify, or remove a weapon or piece of equipment (augment / reactor / shield / armor) — including visual changes to how it appears in combat or in the loadout UI. Covers stats, sprites, prices, and the full CRUD lifecycle for the entire ship-loadout content surface.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 401321,
-            "uses_per_year": 8,
-            "annual_total": 3210568,
-            "measurement_window_days": 90,
-            "invocations_in_window": 2,
-            "total_tokens_in_window": 802642,
-            "last_invoked": "2026-05-03T23:18:22.958Z",
-            "prior_estimate": {
-              "tokens_per_use": 4300,
-              "uses_per_year": 56,
-              "annual_total": 240800,
-              "source": "docs/SKILLS.md",
-              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
+            "source": "docs/SKILLS.md",
+            "tokens_per_use": 4300,
+            "uses_per_year": 56,
+            "annual_total": 240000
+          }
+        },
+        {
+          "name": "modular-architecture-audit",
+          "description": "Orchestrates the multi-phase modular-architecture audit + refactor. Phase 0 sets up agents; Phase 1 inventories every file; Phase 2 proposes module boundaries; Phase 3 mechanically extracts modules one at a time (parallelizable across worktrees); Phase 4 writes AI-first documentation; Phase 5 verifies. Each phase produces a written artifact under docs/audit/ and STOPS at a gate for user approval. Never auto-advances.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
+            "source": "docs/SKILLS.md",
+            "tokens_per_use": 5000,
+            "uses_per_year": 5,
+            "annual_total": 25000
           }
         },
         {
@@ -266,7 +200,7 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 5500,
             "uses_per_year": 25,
-            "annual_total": 137500
+            "annual_total": 138000
           }
         },
         {
@@ -322,22 +256,11 @@
           "description": "Add, modify, or remove story content — cinematic popups, voiceovers, music beds, body text, written synopses, and auto-trigger wiring. Covers the full CRUD lifecycle for the Story log.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 55548,
-            "uses_per_year": 4,
-            "annual_total": 222192,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 55548,
-            "last_invoked": "2026-04-30T01:46:25.129Z",
-            "prior_estimate": {
-              "tokens_per_use": 5400,
-              "uses_per_year": 40,
-              "annual_total": 216000,
-              "source": "docs/SKILLS.md",
-              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
+            "source": "docs/SKILLS.md",
+            "tokens_per_use": 5400,
+            "uses_per_year": 40,
+            "annual_total": 216000
           }
         },
         {
@@ -348,25 +271,14 @@
         },
         {
           "name": "save-roundtrip-audit",
-          "description": "Pre-commit save-pipeline invariants check — walks every StateSnapshot field through the 8 layers of the save round-trip (snapshot interface → toSnapshot → POST schema → POST handler → DB column → migration → GET handler → RemoteSaveSchema → sync.loadSave → hydrate) and flags any layer that silently drops the field. Read-only.",
+          "description": "Pre-commit save-pipeline invariants check — walks every StateSnapshot field through the 8 layers of the save round-trip (snapshot interface -> toSnapshot -> POST schema -> POST handler -> DB column -> migration -> GET handler -> RemoteSaveSchema -> sync.loadSave -> hydrate) and flags any layer that silently drops the field. Read-only.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 18587,
-            "uses_per_year": 4,
-            "annual_total": 74348,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 18587,
-            "last_invoked": "2026-05-03T14:44:59.162Z",
-            "prior_estimate": {
-              "tokens_per_use": 12000,
-              "uses_per_year": 20,
-              "annual_total": 240000,
-              "source": "docs/SKILLS.md",
-              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
+            "source": "docs/SKILLS.md",
+            "tokens_per_use": 12000,
+            "uses_per_year": 20,
+            "annual_total": 240000
           }
         },
         {
@@ -388,26 +300,39 @@
       "github_url": "https://github.com/MikkoNumminen/mikkonumminen.dev",
       "skills": [
         {
+          "name": "md-to-pdf",
+          "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's `--print-to-pdf` flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master/README.md",
+            "source": "readme.md",
+            "tokens_per_use": 25000,
+            "uses_per_year": null,
+            "annual_total": null
+          }
+        },
+        {
+          "name": "skill-pdf",
+          "description": "One-command refresh of the skills-registry PDF. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce a deploy-ready `public/skills-registry.pdf`: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/`, (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says \"refresh the skills PDF\", \"rebuild the skill-registry PDF\", \"regenerate the skills-registry document\", \"publish the skills PDF\", or `/skill-pdf`. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.",
+          "redirect": false,
+          "receipt": {
+            "path": ".claude/skills/skill-pdf/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 82000,
+            "uses_per_year": 8,
+            "annual_total": 656000
+          }
+        },
+        {
           "name": "skill-registry",
           "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 82778,
-            "uses_per_year": 4,
-            "annual_total": 331112,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 82778,
-            "last_invoked": "2026-05-19T01:54:26.339Z",
-            "prior_estimate": {
-              "tokens_per_use": 95000,
-              "uses_per_year": null,
-              "annual_total": null,
-              "source": "skill-body",
-              "path": ".claude/skills/skill-registry/SKILL.md"
-            }
+            "path": "https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master/README.md",
+            "source": "readme.md",
+            "tokens_per_use": 85000,
+            "uses_per_year": null,
+            "annual_total": null
           }
         },
         {
@@ -415,22 +340,11 @@
           "description": "Audit project data against sibling repos' READMEs and open a PR with drift corrections. Runs parallel Sonnet diff agents (one per sibling repo), synthesizes drift, applies en+fi+sv corrections plus tech-list updates, and lands a PR for review on GitHub.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 118653,
-            "uses_per_year": 4,
-            "annual_total": 474612,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 118653,
-            "last_invoked": "2026-05-18T23:37:46.034Z",
-            "prior_estimate": {
-              "tokens_per_use": 141080,
-              "uses_per_year": null,
-              "annual_total": null,
-              "source": "agent-verdicts/README-SYNC-AGENT.md",
-              "path": ".claude/agent-verdicts/README-SYNC-AGENT.md"
-            }
+            "path": ".claude/agent-verdicts/README-SYNC-AGENT.md",
+            "source": "agent-verdicts/README-SYNC-AGENT.md",
+            "tokens_per_use": 141080,
+            "uses_per_year": null,
+            "annual_total": null
           }
         }
       ]
@@ -519,10 +433,10 @@
     }
   ],
   "totals": {
-    "skills": 35,
+    "skills": 37,
     "redirects": 1,
-    "with_receipts": 27,
-    "annual_tokens_saved": 11359968
+    "with_receipts": 29,
+    "annual_tokens_saved": 4019012
   },
   "built_in_references": [
     {
