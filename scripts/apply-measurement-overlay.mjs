@@ -129,6 +129,28 @@ reg.totals = {
   with_receipts: withReceipts,
   annual_tokens_saved: totalAnnual,
 };
+
+// Built-in reference: surface /review's measured cost separately. It's a
+// Claude Code built-in, not a custom skill, so it doesn't belong in any
+// repo's per-skill table — but its scale (≈7× the entire custom-skill
+// portfolio in this window) is the most useful comparison point on the
+// page. The PDF generator renders a small callout if this field is set.
+const reviewMeasurement = usage.skills.find((s) => s.name === 'review');
+if (reviewMeasurement) {
+  reg.built_in_reference = {
+    name: 'review',
+    label: '/review',
+    description: 'Claude Code built-in PR code review',
+    measurement_window_days: usage.window_days,
+    invocations_in_window: reviewMeasurement.invocations,
+    total_tokens_in_window: reviewMeasurement.total_tokens_in_window,
+    tokens_per_use_avg: reviewMeasurement.tokens_per_use_avg,
+    annual_total: reviewMeasurement.annual_total,
+    uses_per_year: reviewMeasurement.uses_per_year,
+    last_invoked: reviewMeasurement.last_invoked,
+  };
+}
+
 reg.generated_at = new Date().toISOString();
 
 fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');

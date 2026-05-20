@@ -78,6 +78,26 @@ function buildHtml(data) {
 
   const totalObs = aggregate.reduce((a, x) => a + x.obs, 0);
 
+  // Built-in reference callout — anchors the custom-skill numbers against
+  // the cost of one of Claude Code's built-in slash commands. /review is
+  // measured but not in any repo's registry, so the overlay stashes its
+  // summary at data.built_in_reference.
+  let builtinCallout = '';
+  const br = data.built_in_reference;
+  if (br && br.total_tokens_in_window != null) {
+    const ratio = totalObs > 0 ? br.total_tokens_in_window / totalObs : null;
+    const ratioStr =
+      ratio != null
+        ? ratio >= 10
+          ? `${Math.round(ratio)}×`
+          : `${ratio.toFixed(1)}×`
+        : null;
+    const comparison = ratioStr
+      ? ` — <strong>${ratioStr}</strong> the entire custom-skill portfolio (~${fmt(totalObs)} observed)`
+      : '';
+    builtinCallout = `<div class="builtin-ref"><strong>${esc(br.label)}</strong> <em>(${esc(br.description)})</em>: ~${fmt(br.total_tokens_in_window)} tokens observed in ${br.measurement_window_days}d across ${br.invocations_in_window} invocations${comparison}. Projected ~${fmt(br.annual_total)}/yr.</div>`;
+  }
+
   const aggregateRows = aggregate
     .map(
       (a) =>
@@ -226,6 +246,9 @@ function buildHtml(data) {
   .cmp-close { color: #2e7d32; font-weight: 600; }
   .cmp-off { color: #c2410c; font-weight: 600; }
   footer { color: #888; font-size: 8pt; margin-top: 18pt; }
+  /* Built-in /review callout: framed reference number above the Aggregate. */
+  .builtin-ref { border-left: 3px solid #c2410c; background: #fff7ed; padding: 6pt 10pt; margin: 8pt 0 14pt; font-size: 9pt; color: #1a1a1a; }
+  .builtin-ref strong { color: #c2410c; }
 </style>
 </head>
 <body>
@@ -233,6 +256,7 @@ function buildHtml(data) {
 <p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows tagged <span class="tag-measured">measured</span> show real token consumption from Claude Code transcripts (90-day window), with the annual figure projected linearly. Rows tagged <span class="tag-estimated">estimated</span> are author guesses parsed from each repo&rsquo;s docs/README. On measured rows, a third line compares the observed average to the author&rsquo;s prior estimate, e.g. <code>est. 4K &middot; 93&times; under</code>.</p>
 
 <h2>Aggregate</h2>
+${builtinCallout}
 <table class="aggregate">
   <thead><tr><th>Repo</th><th>Skills</th><th>Redirects</th><th>With receipts</th><th>Observed (90d)</th><th>Tokens / yr (proj.)</th></tr></thead>
   <tbody>
