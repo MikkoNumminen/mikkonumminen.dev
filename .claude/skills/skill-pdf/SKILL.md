@@ -6,7 +6,7 @@ barney: One command to refresh the skills-registry PDF after you've run /mikko-s
 
 # skill-pdf
 
-The thin orchestrator that wraps the four-step PDF chain into one slash command. Assumes `/mikko-skill-usage` has already written a fresh `SKILL-USAGE-LATEST.json` — this skill takes it from there.
+The thin orchestrator that wraps the five-step PDF chain (one pre-flight + four sequenced actions) into one slash command. Assumes `/mikko-skill-usage` has already written a fresh `SKILL-USAGE-LATEST.json` — this skill takes it from there.
 
 ## When to invoke
 
@@ -144,7 +144,7 @@ Done. Review the PDF and commit when ready.
 - **Does not gather token usage.** That's `/mikko-skill-usage`, run separately. This skill assumes it's already been run.
 - **Does not commit or push.** The user reviews the PDF visually and commits when ready.
 - **Does not modify `scripts/build-skills-pdf.mjs` or the overlay script.** Those are the source of truth for their respective steps; this skill only invokes them.
-- **Does not skip steps.** All four steps run on every invocation. If you only want the overlay refresh (no registry re-walk), run `node scripts/apply-measurement-overlay.mjs` directly — it's cheap.
+- **Does not skip steps.** All five steps run on every invocation. If you only want the overlay refresh (no registry re-walk), run `node scripts/apply-measurement-overlay.mjs` directly — it's cheap.
 - **Does not run on CI / Vercel.** Step 5 (`npm run build:skills-pdf`) already short-circuits there per `build-skills-pdf.mjs`'s CI/VERCEL env-var guard; the committed PDF stays canonical on hosted builds.
 
 ## Failure modes
