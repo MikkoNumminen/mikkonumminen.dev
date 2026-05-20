@@ -98,6 +98,7 @@ function buildHtml(data) {
             const lastInv = s.receipt.last_invoked;
             let agoStr = '';
             if (lastInv) {
+              // Negative if clock skew puts last_invoked in the future; renders as e.g. "-1d ago".
               const days = Math.floor((Date.now() - new Date(lastInv)) / 86400000);
               agoStr =
                 days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
@@ -161,14 +162,15 @@ function buildHtml(data) {
      the reader can tell measured rows from author-estimated ones at a glance. */
   tr.measured td:first-child { border-left: 3px solid #2e7d32; }
   tr.measured td:last-child a, tr.measured td:last-child { color: #2e7d32; font-weight: 600; }
-  .window { color: #777; font-weight: 400; font-size: 7.5pt; }
   .subtle { color: #777; font-weight: 400; font-size: 7.5pt; }
+  .tag-measured { color: #2e7d32; font-weight: 600; }
+  .tag-estimated { color: #666; font-weight: 600; }
   footer { color: #888; font-size: 8pt; margin-top: 18pt; }
 </style>
 </head>
 <body>
 <h1>Skill registry — ${esc(generated)}</h1>
-<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows tagged <span style="color:#2e7d32;font-weight:600">measured</span> show real token consumption from Claude Code transcripts (90-day window), with the annual figure projected linearly. Rows tagged <span style="color:#666;font-weight:600">estimated</span> are author guesses parsed from each repo&rsquo;s docs/README.</p>
+<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows tagged <span class="tag-measured">measured</span> show real token consumption from Claude Code transcripts (90-day window), with the annual figure projected linearly. Rows tagged <span class="tag-estimated">estimated</span> are author guesses parsed from each repo&rsquo;s docs/README.</p>
 
 <h2>Aggregate</h2>
 <table class="aggregate">
