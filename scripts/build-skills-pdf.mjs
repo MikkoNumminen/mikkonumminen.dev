@@ -54,11 +54,14 @@ function fmtComparison(observed, estimated) {
   return { text: `est. ${fmt(estimated)} · ${r}× over`, klass };
 }
 
-function daysAgo(iso) {
+function lastUsedDate(iso) {
+  // Return an absolute YYYY-MM-DD string anchored to the measurement
+  // timestamp itself — NOT a relative "Nd ago" label. A relative label would
+  // be wrong the moment someone reads this PDF on a day other than its
+  // generation day: "today" on the doc would read as "today" in the
+  // reader's frame, when it actually means "the day the scanner ran".
   if (!iso) return '';
-  // Negative if clock skew puts the timestamp in the future; renders as e.g. "-1d ago".
-  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
-  return days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
+  return iso.slice(0, 10);
 }
 
 function renderBuiltInsSection(refs) {
@@ -76,8 +79,9 @@ function renderBuiltInsSection(refs) {
         br.total_tokens_in_window != null && br.annual_total != null
           ? `observed ${fmt(br.total_tokens_in_window)}<br><span class="subtle">proj. ~${fmt(br.annual_total)}/yr</span>`
           : '—';
-      const ago = daysAgo(br.last_invoked);
-      const receipt = 'measured' + (ago ? `<br><span class="subtle">${esc(ago)}</span>` : '');
+      const lastUsed = lastUsedDate(br.last_invoked);
+      const receipt =
+        'measured' + (lastUsed ? `<br><span class="subtle">last ${esc(lastUsed)}</span>` : '');
       return `<tr class="measured"><td><strong>${esc(br.label)}</strong></td><td class="desc">${esc(br.description)}</td><td>${tpu}</td><td>${upy}</td><td>${tot}</td><td>${receipt}</td></tr>`;
     })
     .join('\n');
@@ -193,7 +197,8 @@ function buildHtml(data) {
           // --- Receipt / badge column ---
           let badgeContent;
           if (isMeasured) {
-            const agoStr = daysAgo(s.receipt.last_invoked);
+            const lastUsed = lastUsedDate(s.receipt.last_invoked);
+            const agoStr = lastUsed ? `last ${lastUsed}` : '';
             badgeContent =
               'measured' + (agoStr ? `<br><span class="subtle">${esc(agoStr)}</span>` : '');
           } else {
