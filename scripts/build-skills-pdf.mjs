@@ -52,8 +52,16 @@ function buildHtml(data) {
     .map((r) => {
       const rows = r.skills
         .map((s) => {
-          const tpu = s.receipt?.tokens_per_use ? fmt(s.receipt.tokens_per_use) : '—';
           const isMeasured = s.receipt?.source === 'transcript-measurement';
+
+          // --- Tokens / use column ---
+          let tpu;
+          if (s.receipt?.tokens_per_use) {
+            const label = isMeasured ? '(observed)' : '(est.)';
+            tpu = `${fmt(s.receipt.tokens_per_use)}<br><span class="subtle">${label}</span>`;
+          } else {
+            tpu = '—';
+          }
 
           // --- Uses column ---
           let upy;
