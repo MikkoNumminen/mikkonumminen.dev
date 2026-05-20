@@ -77,6 +77,7 @@ for (const m of usage.skills) {
     annual_total: m.annual_total,
     measurement_window_days: usage.window_days,
     invocations_in_window: m.invocations,
+    total_tokens_in_window: m.total_tokens_in_window,
     last_invoked: m.last_invoked,
   };
   overlaid++;
