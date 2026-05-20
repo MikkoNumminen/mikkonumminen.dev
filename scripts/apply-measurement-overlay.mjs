@@ -130,26 +130,37 @@ reg.totals = {
   annual_tokens_saved: totalAnnual,
 };
 
-// Built-in reference: surface /review's measured cost separately. It's a
-// Claude Code built-in, not a custom skill, so it doesn't belong in any
-// repo's per-skill table — but its scale (≈7× the entire custom-skill
-// portfolio in this window) is the most useful comparison point on the
-// page. The PDF generator renders a small callout if this field is set.
-const reviewMeasurement = usage.skills.find((s) => s.name === 'review');
-if (reviewMeasurement) {
-  reg.built_in_reference = {
-    name: 'review',
-    label: '/review',
-    description: 'Claude Code built-in PR code review',
+// Built-in references: surface Claude Code's built-in slash commands as a
+// reference point above the custom-skill tables. /review alone consumed
+// ~7× the entire custom-skill portfolio in the current window, which is
+// the most useful comparison number on the page. Add new built-ins here
+// when Anthropic ships another one worth tracking.
+const BUILTINS_TO_TRACK = {
+  review: { label: '/review', description: 'Claude Code built-in PR code review' },
+};
+
+const builtInReferences = [];
+for (const [skillName, meta] of Object.entries(BUILTINS_TO_TRACK)) {
+  const m = usage.skills.find((s) => s.name === skillName);
+  if (!m) continue;
+  builtInReferences.push({
+    name: skillName,
+    label: meta.label,
+    description: meta.description,
     measurement_window_days: usage.window_days,
-    invocations_in_window: reviewMeasurement.invocations,
-    total_tokens_in_window: reviewMeasurement.total_tokens_in_window,
-    tokens_per_use_avg: reviewMeasurement.tokens_per_use_avg,
-    annual_total: reviewMeasurement.annual_total,
-    uses_per_year: reviewMeasurement.uses_per_year,
-    last_invoked: reviewMeasurement.last_invoked,
-  };
+    invocations_in_window: m.invocations,
+    total_tokens_in_window: m.total_tokens_in_window,
+    tokens_per_use_avg: m.tokens_per_use_avg,
+    annual_total: m.annual_total,
+    uses_per_year: m.uses_per_year,
+    last_invoked: m.last_invoked,
+  });
 }
+if (builtInReferences.length > 0) {
+  reg.built_in_references = builtInReferences;
+}
+// Drop the predecessor singular key if a prior overlay run wrote it.
+delete reg.built_in_reference;
 
 reg.generated_at = new Date().toISOString();
 

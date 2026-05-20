@@ -78,25 +78,28 @@ function buildHtml(data) {
 
   const totalObs = aggregate.reduce((a, x) => a + x.obs, 0);
 
-  // Built-in reference callout — anchors the custom-skill numbers against
-  // the cost of one of Claude Code's built-in slash commands. /review is
-  // measured but not in any repo's registry, so the overlay stashes its
-  // summary at data.built_in_reference.
-  let builtinCallout = '';
-  const br = data.built_in_reference;
-  if (br && br.total_tokens_in_window != null) {
-    const ratio = totalObs > 0 ? br.total_tokens_in_window / totalObs : null;
-    const ratioStr =
-      ratio != null
-        ? ratio >= 10
-          ? `${Math.round(ratio)}×`
-          : `${ratio.toFixed(1)}×`
-        : null;
-    const comparison = ratioStr
-      ? ` — <strong>${ratioStr}</strong> the entire custom-skill portfolio (~${fmt(totalObs)} observed)`
-      : '';
-    builtinCallout = `<div class="builtin-ref"><strong>${esc(br.label)}</strong> <em>(${esc(br.description)})</em>: ~${fmt(br.total_tokens_in_window)} tokens observed in ${br.measurement_window_days}d across ${br.invocations_in_window} invocations${comparison}. Projected ~${fmt(br.annual_total)}/yr.</div>`;
-  }
+  // Built-in reference callouts — anchor the custom-skill numbers against
+  // the cost of Claude Code's built-in slash commands. Built-ins are
+  // measured by the usage scanner but not in any repo's registry, so the
+  // overlay stashes their summaries at data.built_in_references (one entry
+  // per tracked built-in).
+  const refs = data.built_in_references ?? [];
+  const builtinCallout = refs
+    .map((br) => {
+      if (!br || br.total_tokens_in_window == null) return '';
+      const ratio = totalObs > 0 ? br.total_tokens_in_window / totalObs : null;
+      const ratioStr =
+        ratio != null
+          ? ratio >= 10
+            ? `${Math.round(ratio)}×`
+            : `${ratio.toFixed(1)}×`
+          : null;
+      const comparison = ratioStr
+        ? ` — <strong>${ratioStr}</strong> the entire custom-skill portfolio (~${fmt(totalObs)} observed)`
+        : '';
+      return `<div class="builtin-ref"><strong>${esc(br.label)}</strong> <em>(${esc(br.description)})</em>: ~${fmt(br.total_tokens_in_window)} tokens observed in ${br.measurement_window_days}d across ${br.invocations_in_window} invocations${comparison}. Projected ~${fmt(br.annual_total)}/yr.</div>`;
+    })
+    .join('\n');
 
   const aggregateRows = aggregate
     .map(
