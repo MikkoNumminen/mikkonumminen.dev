@@ -1,6 +1,6 @@
 ---
 name: skill-pdf
-description: One-command refresh of the skills-registry PDF. Wraps the four-step chain that takes a recent token-measurement snapshot and produces a deploy-ready `public/skills-registry.pdf`: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (3) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says "refresh the skills PDF", "rebuild the skill-registry PDF", "regenerate the skills-registry document", "publish the skills PDF", or `/skill-pdf`. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately. Does NOT commit or push.
+description: One-command refresh of the skills-registry PDF. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce a deploy-ready `public/skills-registry.pdf`: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/`, (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says "refresh the skills PDF", "rebuild the skill-registry PDF", "regenerate the skills-registry document", "publish the skills PDF", or `/skill-pdf`. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.
 barney: One command to refresh the skills-registry PDF after you've run /mikko-skill-usage. Re-walks the inventory, merges measurements, builds the PDF — you commit when it looks right.
 ---
 
@@ -22,31 +22,36 @@ The thin orchestrator that wraps the four-step PDF chain into one slash command.
 - **Before running `/mikko-skill-usage`.** This skill consumes the JSON that `/mikko-skill-usage` produces; if the file is missing the chain bails with a clear message.
 - **In CI / on Vercel.** `scripts/build-skills-pdf.mjs` already short-circuits in those environments — the committed PDF stays canonical on hosted builds. Run this locally only.
 - **For generic markdown-to-PDF.** That's `/md-to-pdf`.
-- **As a substitute for the skill-registry skill itself.** This skill *invokes* `/skill-registry` as step 1; it does not replace it. If you want only the inventory refresh without the PDF, run `/skill-registry` directly.
+- **As a substitute for the skill-registry skill itself.** This skill *invokes* `/skill-registry` as step 2 of the chain; it does not replace it. If you want only the inventory refresh without the PDF, run `/skill-registry` directly.
 
 ## What this skill does
 
-Four steps, executed in order, with the chain bailing on the first non-zero exit:
+One pre-flight check + four sequenced actions, with the chain bailing on the first non-zero exit. Numbered 1–5 throughout the skill so description, table, and procedure section all agree:
 
 | Step | Action | Reads | Writes |
 | --- | --- | --- | --- |
 | 1 | Pre-flight | `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` | (nothing — verifies the file exists and is fresh enough) |
 | 2 | `/skill-registry` | `D:/koodaamista/*/.claude/skills/*/SKILL.md` (every sibling repo) | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `SKILL-REGISTRY-LATEST.json` |
-| 3 | `node scripts/apply-measurement-overlay.mjs` | `SKILL-USAGE-LATEST.json` + `public/data/skills-registry.json` (synced from `SKILL-REGISTRY-LATEST.json` via the prebuild hook) | `public/data/skills-registry.json` (in-place — measurements merged, canonical duplicates dropped) |
-| 4 | `npm run build:skills-pdf` | `public/data/skills-registry.json` | `public/skills-registry.pdf` |
+| 3 | `npm run sync:skills-registry` | `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` | `public/data/skills-registry.json` (in-place copy of the latest dated JSON) |
+| 4 | `node scripts/apply-measurement-overlay.mjs` | `SKILL-USAGE-LATEST.json` + `public/data/skills-registry.json` | `public/data/skills-registry.json` (in-place — measurements merged, canonical duplicates dropped) |
+| 5 | `npm run build:skills-pdf` | `public/data/skills-registry.json` | `public/skills-registry.pdf` |
 
-End-to-end on a small portfolio: ~30–60s wall-clock, dominated by step 2's parallel sub-agents and step 4's Chrome render.
+End-to-end on a small portfolio: ~30–60s wall-clock, dominated by step 2's parallel sub-agents and step 5's Chrome render.
 
 ## Procedure
 
 ### 1. Pre-flight
 
+**Working directory prerequisite.** This skill assumes the user is running Claude Code from inside `mikkonumminen.dev/`. `/mikko-skill-usage` writes its output to `<cwd>/.claude/agent-verdicts/SKILL-USAGE-LATEST.json` — if the user ran it in a different repo (e.g. `claude-skills/`), the JSON is in the wrong place and this chain will bail. If pre-flight can't find the file at the expected path, tell the user to either: (a) re-run `/mikko-skill-usage` from inside `mikkonumminen.dev/`, or (b) manually copy the JSON from wherever it landed into `mikkonumminen.dev/.claude/agent-verdicts/`.
+
 `Read` the first line of `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` to confirm it exists. If missing, bail with:
 
 ```
-error: no SKILL-USAGE-LATEST.json found.
-       Run /mikko-skill-usage first to gather token measurements,
-       then re-run /skill-pdf.
+error: no SKILL-USAGE-LATEST.json found at .claude/agent-verdicts/.
+       Run /mikko-skill-usage from inside mikkonumminen.dev/ first to
+       gather token measurements, then re-run /skill-pdf.
+       (If you ran /mikko-skill-usage in a different repo, the JSON
+       landed there — either re-run it here or copy the file across.)
 ```
 
 If the file's `generated_at` timestamp is older than 14 days, warn but proceed:
@@ -63,15 +68,15 @@ warning: SKILL-USAGE-LATEST.json is N days old. The PDF will reflect
 
 Invoke the existing `/skill-registry` skill. It walks every sibling repo under `D:/koodaamista/*/.claude/skills/*/SKILL.md`, reads frontmatter, locates receipts, and writes the dated + LATEST registry JSONs to `.claude/agent-verdicts/`.
 
-The prebuild hook (see `package.json`'s `prebuild` script) auto-syncs `SKILL-REGISTRY-LATEST.json` to `public/data/skills-registry.json` on every `npm run build`. This skill does NOT run `npm run build` until step 4, so we run the sync explicitly before step 3:
+### 3. Sync the inventory into `public/data/`
 
 ```bash
 npm run sync:skills-registry
 ```
 
-(That npm script wraps `node scripts/sync-skill-registry.mjs` and copies the latest dated JSON into `public/data/`; the overlay step in step 3 then operates on the up-to-date file.)
+That npm script wraps `node scripts/sync-skill-registry.mjs` and copies the latest dated JSON from `.claude/agent-verdicts/` into `public/data/skills-registry.json`. The prebuild hook (`npm run prebuild`) does this automatically on every `npm run build`, but this skill runs it explicitly so the overlay in step 4 operates on the up-to-date file (we don't call `npm run build` end-to-end here — see step 5's note).
 
-### 3. Apply the measurement overlay
+### 4. Apply the measurement overlay
 
 ```bash
 node scripts/apply-measurement-overlay.mjs
@@ -87,7 +92,7 @@ This script:
 
 Capture the script's stdout — the last line summarises (e.g. `Overlaid 12 rows (+1 accumulation onto existing rows). Dropped 4 canonical-to-library duplicate(s). New annual total: 17,546,624`).
 
-### 4. Build the PDF
+### 5. Build the PDF
 
 ```bash
 npm run build:skills-pdf
@@ -101,7 +106,9 @@ This runs `scripts/build-skills-pdf.mjs`. It:
 
 CI / Vercel detection: the script short-circuits if it sees the CI / VERCEL env vars or if Chrome isn't on PATH. Locally, on a dev machine with Chrome installed, it runs.
 
-### 5. Report + stop
+Note: we call `build:skills-pdf` directly rather than `npm run build` so we don't run the full Astro site build for a PDF-only refresh. The prebuild hook would also run the sync step (already done in step 3), so going through `build` would duplicate work without changing the output.
+
+### 6. Report + stop
 
 Print a four-line summary:
 
@@ -109,7 +116,7 @@ Print a four-line summary:
 skill-pdf — refreshed:
   inventory:   .claude/agent-verdicts/SKILL-REGISTRY-{date}.json
   data:        public/data/skills-registry.json
-  pdf:         public/skills-registry.pdf  (NN KB, regenerated)
+  pdf:         public/skills-registry.pdf  (regenerated)
 
 Open public/skills-registry.pdf to review. Commit when ready:
   git add public/data/skills-registry.json public/skills-registry.pdf .claude/agent-verdicts/SKILL-REGISTRY-*
@@ -120,13 +127,14 @@ Open public/skills-registry.pdf to review. Commit when ready:
 
 ## Output format
 
-See step 5 above. Each step also prints its own status line as it runs:
+See step 6 above for the final summary. Each step also prints its own status line as it runs:
 
 ```
-[1/4] pre-flight... ok (SKILL-USAGE-LATEST.json generated 2 days ago)
-[2/4] /skill-registry... 26 skills across 3 repos, 0 redirects
-[3/4] apply-measurement-overlay... 12 rows overlaid, 4 duplicates dropped
-[4/4] build:skills-pdf... public/skills-registry.pdf (147 KB)
+[1/5] pre-flight... ok (SKILL-USAGE-LATEST.json generated 2 days ago)
+[2/5] /skill-registry... 26 skills across 3 repos, 0 redirects
+[3/5] sync:skills-registry... public/data/skills-registry.json updated
+[4/5] apply-measurement-overlay... 12 rows overlaid, 4 duplicates dropped
+[5/5] build:skills-pdf... public/skills-registry.pdf regenerated
 
 Done. Review the PDF and commit when ready.
 ```
@@ -137,23 +145,24 @@ Done. Review the PDF and commit when ready.
 - **Does not commit or push.** The user reviews the PDF visually and commits when ready.
 - **Does not modify `scripts/build-skills-pdf.mjs` or the overlay script.** Those are the source of truth for their respective steps; this skill only invokes them.
 - **Does not skip steps.** All four steps run on every invocation. If you only want the overlay refresh (no registry re-walk), run `node scripts/apply-measurement-overlay.mjs` directly — it's cheap.
-- **Does not run on CI / Vercel.** Step 4 already short-circuits there; the committed PDF stays canonical on hosted builds.
+- **Does not run on CI / Vercel.** Step 5 (`npm run build:skills-pdf`) already short-circuits there per `build-skills-pdf.mjs`'s CI/VERCEL env-var guard; the committed PDF stays canonical on hosted builds.
 
 ## Failure modes
 
 - **`SKILL-USAGE-LATEST.json` missing.** Step 1 bails with a clear "run /mikko-skill-usage first" message. Exit cleanly.
 - **`/skill-registry` returns a malformed inventory.** The overlay script will surface schema mismatches (`SKIP <name> — repo not in registry`, etc.) — surface those to the user; do not silently swallow.
-- **Chrome not on PATH (step 4).** `build-skills-pdf.mjs` already prints "no Chrome / Chromium on PATH — leaving existing PDF in place" and exits 0. The skill reports the existing PDF was kept rather than failing the run.
+- **Chrome not on PATH (step 5).** `build-skills-pdf.mjs` already prints "no Chrome / Chromium on PATH — leaving existing PDF in place" and exits 0. The skill reports the existing PDF was kept rather than failing the run.
 - **PDF render succeeds but visual layout is wrong.** This skill cannot detect that. The Step 5 hint to "open the PDF to review" is the human gate.
 
 ## Token expectations
 
-Most of the work is in step 2 (`/skill-registry`, ~80K tokens for the parallel sub-agents) and step 4 (Chrome render, no model tokens — pure I/O + chromium). Steps 1, 3, 5 are negligible.
+Most model tokens go to step 2 (`/skill-registry` parallel sub-agents). Most wall-clock time goes to step 2 (sub-agents in parallel) plus step 5 (Chrome render). Steps 1, 3, 4 cost negligible tokens; step 3 is a synchronous file copy.
 
-- Pre-flight: ~1K (one Read, one check)
-- /skill-registry sub-agents: ~80K total (sum across the parallel Sonnet agents per its own `## Token expectations` section)
-- Overlay script: 0 model tokens (pure Node script)
-- PDF build: 0 model tokens (pure Node + Chrome)
+- Step 1 (pre-flight): ~1K (one Read, one check)
+- Step 2 (`/skill-registry` sub-agents): ~80K total (sum across the parallel Sonnet agents per its own `## Token expectations` section)
+- Step 3 (sync script): 0 model tokens (file copy)
+- Step 4 (overlay script): 0 model tokens (pure Node)
+- Step 5 (PDF build): 0 model tokens (pure Node + Chrome render)
 - Final summary: ~1K
 
 Total: ~80–85K tokens per invocation, dominated by `/skill-registry`. Wall-clock ~30–60s (parallel agents + render).
