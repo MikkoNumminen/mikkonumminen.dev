@@ -7,6 +7,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Must match the default prefix `install-mikko.sh` applies when copying
+// library skills into ~/.claude/skills/. If someone runs the installer
+// with `--prefix bobs-` (or similar), update this constant to match — the
+// usage scanner records the installed name, not the canonical library name.
 const INSTALL_PREFIX = 'mikko-';
 const LIBRARY_REPO = 'claude-skills';
 
