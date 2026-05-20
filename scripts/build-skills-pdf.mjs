@@ -252,7 +252,7 @@ ${builtInsSection}
 
 ${repoSections}
 
-<footer>Generated ${esc(fmtGeneratedAt(data.generated_at))}. Measured window: ${sumMeasuredInv} invocations across ${refs.length ? 'custom + built-in' : 'custom'} rows · ${fmt(sumMeasuredTokensWindow)} tokens in 90d.</footer>
+<footer>Generated ${esc(fmtGeneratedAt(data.generated_at))}. Measured window: ${sumMeasuredInv} invocations across custom rows · ${fmt(sumMeasuredTokensWindow)} tokens in 90d. Built-in reference rows are excluded.</footer>
 </body>
 </html>`;
 }
