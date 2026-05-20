@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-20T22:35:38.962Z",
+  "generated_at": "2026-05-20T23:20:35.862Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -13,8 +13,8 @@
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
             "tokens_per_use": 5500,
-            "uses_per_year": null,
-            "annual_total": null
+            "uses_per_year": 8,
+            "annual_total": 44000
           }
         },
         {
@@ -61,7 +61,7 @@
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
             "tokens_per_use": null,
-            "uses_per_year": null,
+            "uses_per_year": 0,
             "annual_total": null
           }
         },
@@ -97,8 +97,8 @@
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
             "tokens_per_use": 6500,
-            "uses_per_year": null,
-            "annual_total": null
+            "uses_per_year": 248,
+            "annual_total": 1612000
           }
         },
         {
@@ -121,8 +121,8 @@
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
             "tokens_per_use": 800,
-            "uses_per_year": null,
-            "annual_total": null
+            "uses_per_year": 252,
+            "annual_total": 201600
           }
         }
       ]
@@ -200,7 +200,7 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 5500,
             "uses_per_year": 25,
-            "annual_total": 138000
+            "annual_total": 137500
           }
         },
         {
@@ -296,6 +296,120 @@
       ]
     },
     {
+      "name": "claude-skills",
+      "github_url": "https://github.com/MikkoNumminen/claude-skills",
+      "skills": [
+        {
+          "name": "ai-codegen-smell-audit",
+          "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/ai-codegen-smell-audit/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 75000,
+            "uses_per_year": 25,
+            "annual_total": 1875000
+          }
+        },
+        {
+          "name": "audit",
+          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/audit/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 425000,
+            "uses_per_year": 16,
+            "annual_total": 6800000
+          }
+        },
+        {
+          "name": "mikko-audit-suite",
+          "description": "Run every `mikko-*` audit skill that's relevant to the current codebase, in a sensible order, and produce one index document linking to each audit's report. Detects the codebase shape (language, framework, security surface), maps to the suggested audit list, confirms once with the human, then runs each audit sequentially. Expensive — total tokens are the sum of every dispatched audit (typically ~100-500K).",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/mikko-audit-suite/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 300000,
+            "uses_per_year": 18,
+            "annual_total": 5400000
+          }
+        },
+        {
+          "name": "mikko-help",
+          "description": "List every installed `mikko-*` skill with its description (or with its `barney:` field when `--barney` is passed). The fast answer to \"I know I have a skill for this but can't remember which one\". Pass `--detect` for codebase-aware audit recommendations. Pass `--barney` for plain-English short descriptions. No sub-agents, no network, no measurements — just a table.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/mikko-help/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 6500,
+            "uses_per_year": 50,
+            "annual_total": 325000
+          }
+        },
+        {
+          "name": "mikko-install",
+          "description": "Install, update, list, or uninstall `mikko-*` skills from the cloned `claude-skills` source repo into the user-wide skill directory (`~/.claude/skills/mikko-*`). Wraps the existing `install-mikko.sh` and `install.sh` scripts so the install loop is reachable from inside any Claude Code session via a slash command. Does NOT clone the repo. Does NOT touch skills outside the `mikko-*` prefix.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/mikko-install/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 4000,
+            "uses_per_year": 5,
+            "annual_total": 20000
+          }
+        },
+        {
+          "name": "react-anti-patterns-audit",
+          "description": "Read-only audit for six concrete React anti-patterns that recur in component code (key=index in lists, useEffect for derived state, dep-array lies, state mutation instead of replace, missing effect cleanup, multiple sources of truth). Each check has a concrete smell example and a concrete legitimate counter-example. Runs a pre-flight check first — aborts cleanly if the codebase isn't React.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/react-anti-patterns-audit/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 22500,
+            "uses_per_year": 30,
+            "annual_total": 675000
+          }
+        },
+        {
+          "name": "readme-drift-sync",
+          "description": "Detect drift between what the repo actually contains and what `README.md` claims, then rewrite ONLY the drifted sections in the README's existing voice. Five drift axes (file structure, dependencies, skills, features, status). Voice-preserving. Write-with-approval: emits a working-tree edit to `README.md` plus a drift report and a voice-profile cache, then STOPS. Does NOT commit, does NOT push.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/readme-drift-sync/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 40000,
+            "uses_per_year": 15,
+            "annual_total": 600000
+          }
+        },
+        {
+          "name": "security-audit",
+          "description": "Orchestrates the multi-phase security audit + remediation. Phase 0 sets up agents; Phase 1 maps the full attack surface (entry points, auth, authz, input, secrets, data exposure, deps, transport, client, ops); Phase 2 turns findings into a prioritized remediation plan; Phase 3 fixes one finding at a time with regression tests; Phase 4 writes AI-first security documentation; Phase 5 verifies. Each phase produces an artifact under docs/security/ and STOPS at a gate for user approval. Never auto-advances.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/security-audit/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 750000,
+            "uses_per_year": 6,
+            "annual_total": 4500000
+          }
+        },
+        {
+          "name": "skill-usage",
+          "description": "Measure actual Claude Code skill usage from local transcript JSONL files. Walks `~/.claude/projects/*/*.jsonl` (and their `subagents/*.jsonl` sidechain files), filters assistant messages by the harness-emitted `attributionSkill` field, groups invocations by `(sessionId, skill)`, sums tokens deduped by `requestId`. Emits a dated `SKILL-USAGE-{YYYY-MM-DD}.json` with per-skill measured invocation counts and token totals.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/skill-usage/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 4000,
+            "uses_per_year": 12,
+            "annual_total": 48000
+          }
+        }
+      ]
+    },
+    {
       "name": "mikkonumminen.dev",
       "github_url": "https://github.com/MikkoNumminen/mikkonumminen.dev",
       "skills": [
@@ -304,11 +418,11 @@
           "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's `--print-to-pdf` flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master/README.md",
-            "source": "readme.md",
+            "path": ".claude/skills/md-to-pdf/SKILL.md",
+            "source": "skill-body",
             "tokens_per_use": 25000,
-            "uses_per_year": null,
-            "annual_total": null
+            "uses_per_year": 10,
+            "annual_total": 250000
           }
         },
         {
@@ -318,9 +432,9 @@
           "receipt": {
             "path": ".claude/skills/skill-pdf/SKILL.md",
             "source": "skill-body",
-            "tokens_per_use": 82000,
-            "uses_per_year": 8,
-            "annual_total": 656000
+            "tokens_per_use": 82500,
+            "uses_per_year": null,
+            "annual_total": null
           }
         },
         {
@@ -328,11 +442,11 @@
           "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 85000,
-            "uses_per_year": null,
-            "annual_total": null
+            "path": ".claude/skills/skill-registry/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 95000,
+            "uses_per_year": 12,
+            "annual_total": 1140000
           }
         },
         {
@@ -343,90 +457,8 @@
             "path": ".claude/agent-verdicts/README-SYNC-AGENT.md",
             "source": "agent-verdicts/README-SYNC-AGENT.md",
             "tokens_per_use": 141080,
-            "uses_per_year": null,
-            "annual_total": null
-          }
-        }
-      ]
-    },
-    {
-      "name": "claude-skills",
-      "github_url": "https://github.com/MikkoNumminen/claude-skills",
-      "skills": [
-        {
-          "name": "ai-codegen-smell-audit",
-          "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" — every finding must be a specific testable pattern with a concrete example, not a vibe.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "audit",
-          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews — see the \"When NOT to invoke\" section below.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "mikko-audit-suite",
-          "description": "Run every `mikko-*` audit skill that's relevant to the current codebase, in a sensible order, and produce one index document linking to each audit's report. Detects the codebase shape (language, framework, security surface), maps to the suggested audit list (same logic as `/mikko-help --detect`), confirms once with the human, then runs each audit sequentially. Use whenever the user says \"run all audits\", \"full audit\", \"audit everything\", \"what's wrong with this codebase\", or before a major release. Expensive — total tokens are the sum of every dispatched audit (typically ~100-500K). The orchestrator itself is cheap; the dispatched audits are what cost.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "mikko-help",
-          "description": "List every installed `mikko-*` skill with its description (or with its `barney:` field when `--barney` is passed). The fast answer to \"I know I have a skill for this but can't remember which one\" / \"what mikko skills do I have\" / \"list my skills\" / \"remind me what's installed.\" Pass `--detect` for codebase-aware audit recommendations (\"which audit should I run on this repo\" / \"what's relevant for this codebase\"). Pass `--barney` for plain-English short descriptions (\"give me the friendly version\" / \"plain-English list\"). `--detect` and `--barney` combine independently. No sub-agents, no network, no measurements — just a table. Full mode docs live in the body's \"Flags\" section.",
-          "redirect": false,
-          "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 16651,
-            "uses_per_year": 4,
-            "annual_total": 66604,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 16651,
-            "last_invoked": "2026-05-20T00:42:15.473Z",
-            "prior_estimate": null
-          }
-        },
-        {
-          "name": "mikko-install",
-          "description": "Install, update, list, or uninstall `mikko-*` skills from the cloned `claude-skills` source repo into the user-wide skill directory (`~/.claude/skills/mikko-*`). Wraps the existing `install-mikko.sh` and `install.sh` scripts so the install loop is reachable from inside any Claude Code session via a slash command — no need to leave the conversation, find the repo, and run bash by hand. Use whenever the user says \"install the mikko skills\", \"install everything\", \"add mikko-readme-drift-sync\", \"update my mikko skills\", \"what's new since last install\", or \"uninstall mikko-foo\". Locates the source repo via the current working directory, parent directories, or known sibling locations (configurable). Does NOT clone the repo (the user clones it once, by hand). Does NOT touch skills outside the `mikko-*` prefix.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "react-anti-patterns-audit",
-          "description": "Read-only audit for six concrete React anti-patterns that recur in component code (key=index in lists, useEffect for derived state, dep-array lies, state mutation instead of replace, missing effect cleanup, multiple sources of truth). Each check has a concrete smell example and a concrete legitimate counter-example so the auditor can tell signal from noise. **Runs a pre-flight check first** — if the target codebase isn't a React project, the skill aborts cleanly with a suggestion to use a different skill. Use whenever the user says \"audit my React code\", \"review this for React anti-patterns\", \"check my hooks\", \"find re-render issues\", or before merging a substantial component PR. NOT a witch hunt for \"non-idiomatic React\" — every finding must be a specific testable pattern with a concrete example.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "readme-drift-sync",
-          "description": "Detect drift between what the repo actually contains and what `README.md` claims, then rewrite ONLY the drifted sections in the README's existing voice. Five drift axes (file structure, dependencies, skills, features, status). Voice-preserving — the skill extracts a voice profile from the existing README first and any rewrite must read as if the original author wrote it. **Write-with-approval**: emits a working-tree edit to `README.md` plus a drift report and a voice-profile cache, then STOPS. Does NOT commit, does NOT push, does NOT regenerate the README from scratch. Use whenever the user says \"sync the README\", \"update the README\", \"check README drift\", \"has the README fallen out of date\", or after a release-cut before the next push. NOT for initial README creation, full rewrites, CONTRIBUTING/CHANGELOG edits, or general code edits where the README isn't in scope.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "security-audit",
-          "description": "Orchestrates the multi-phase security audit + remediation. Phase 0 sets up agents; Phase 1 maps the full attack surface (entry points, auth, authz, input, secrets, data exposure, deps, transport, client, ops); Phase 2 turns findings into a prioritized remediation plan; Phase 3 fixes one finding at a time with regression tests (crit/high sequential, low/med parallelizable in worktrees); Phase 4 writes AI-first security documentation (SECURITY.md, threat model, invariants, code-level markers, lint rules); Phase 5 verifies. Each phase produces an artifact under docs/security/ and STOPS at a gate for user approval. Never auto-advances. Critical findings surface immediately.",
-          "redirect": false,
-          "receipt": null
-        },
-        {
-          "name": "skill-usage",
-          "description": "Measure actual Claude Code skill usage from local transcript JSONL files. Walks `~/.claude/projects/*/*.jsonl` (and their `subagents/*.jsonl` sidechain files), filters assistant messages by the harness-emitted `attributionSkill` field, groups invocations by `(sessionId, skill)`, sums tokens deduped by `requestId`. Emits a dated `SKILL-USAGE-{YYYY-MM-DD}.json` with per-skill measured invocation counts and token totals. Designed to replace the editorial estimates in skill catalogs (`docs/SKILLS.md`, registry verdicts) with real receipts.",
-          "redirect": false,
-          "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 5102,
-            "uses_per_year": 4,
-            "annual_total": 20408,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 5102,
-            "last_invoked": "2026-05-20T00:56:33.279Z",
-            "prior_estimate": null
+            "uses_per_year": 30,
+            "annual_total": 4232400
           }
         }
       ]
@@ -435,21 +467,7 @@
   "totals": {
     "skills": 37,
     "redirects": 1,
-    "with_receipts": 29,
-    "annual_tokens_saved": 4019012
-  },
-  "built_in_references": [
-    {
-      "name": "review",
-      "label": "/review",
-      "description": "Claude Code built-in PR code review",
-      "measurement_window_days": 90,
-      "invocations_in_window": 12,
-      "total_tokens_in_window": 13661361,
-      "tokens_per_use_avg": 1138447,
-      "annual_total": 55783903,
-      "uses_per_year": 49,
-      "last_invoked": "2026-05-20T00:56:15.870Z"
-    }
-  ]
+    "with_receipts": 36,
+    "annual_tokens_saved": 30998500
+  }
 }
