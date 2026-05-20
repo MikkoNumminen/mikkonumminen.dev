@@ -31,17 +31,27 @@ function fmtGeneratedAt(iso) {
   return `${datePart} at ${hhmm} UTC`;
 }
 
+// Policy bands for the estimate-vs-observed comparison.
+//   |ratio - 1| ≤ CLOSE_BAND  → "close"   (estimate was within ±10% of reality)
+//   ratio ≥ OFF_THRESHOLD     → highlight (estimate off by ≥5× in either direction)
+const CLOSE_BAND = 0.1;
+const OFF_THRESHOLD = 5;
+
 function fmtComparison(observed, estimated) {
   if (!estimated || estimated <= 0 || !observed || observed <= 0) return null;
   const ratio = observed / estimated;
-  if (ratio >= 0.9 && ratio <= 1.1) return `est. ${fmt(estimated)} · close`;
-  if (ratio > 1.1) {
+  if (ratio >= 1 - CLOSE_BAND && ratio <= 1 + CLOSE_BAND) {
+    return { text: `est. ${fmt(estimated)} · close`, klass: 'cmp-close' };
+  }
+  if (ratio > 1) {
     const r = ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1);
-    return `est. ${fmt(estimated)} · ${r}× under`;
+    const klass = ratio >= OFF_THRESHOLD ? 'cmp-off' : '';
+    return { text: `est. ${fmt(estimated)} · ${r}× under`, klass };
   }
   const inv = 1 / ratio;
   const r = inv >= 10 ? Math.round(inv) : inv.toFixed(1);
-  return `est. ${fmt(estimated)} · ${r}× over`;
+  const klass = inv >= OFF_THRESHOLD ? 'cmp-off' : '';
+  return { text: `est. ${fmt(estimated)} · ${r}× over`, klass };
 }
 
 function buildHtml(data) {
@@ -91,7 +101,10 @@ function buildHtml(data) {
                 s.receipt.tokens_per_use,
                 s.receipt.prior_estimate?.tokens_per_use,
               );
-              if (cmp) extra = `<br><span class="subtle">${cmp}</span>`;
+              if (cmp) {
+                const cls = cmp.klass ? `subtle ${cmp.klass}` : 'subtle';
+                extra = `<br><span class="${cls}">${cmp.text}</span>`;
+              }
             }
             tpu = `${fmt(s.receipt.tokens_per_use)}<br><span class="subtle">${label}</span>${extra}`;
           } else {
@@ -208,6 +221,10 @@ function buildHtml(data) {
   .subtle { color: #777; font-weight: 400; font-size: 7.5pt; }
   .tag-measured { color: #2e7d32; font-weight: 600; }
   .tag-estimated { color: #666; font-weight: 600; }
+  /* Estimate-vs-observed comparison line: green when the author guess landed
+     within ±10% of reality, orange when off by ≥5× in either direction. */
+  .cmp-close { color: #2e7d32; font-weight: 600; }
+  .cmp-off { color: #c2410c; font-weight: 600; }
   footer { color: #888; font-size: 8pt; margin-top: 18pt; }
 </style>
 </head>
