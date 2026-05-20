@@ -46,11 +46,56 @@ const SESSION_TO_REPO = {
 const SKIP = new Set(['review', 'update-config', 'pre-push-scan',
   'commit-then-scan', 'mikko-skills']);
 
+// Per-(consumer-repo, skill-name) pairs where the consumer-repo copy is
+// effectively the same skill as the claude-skills library copy. Listed
+// explicitly per-repo because the same skill NAME can mean different things
+// in different repos (e.g. Spacepotatis's `audit` is a modular-refactor
+// orchestrator, NOT a duplicate of the library's robustness audit — so it's
+// intentionally NOT in this map).
+//
+// For each (repo, skill) pair listed here:
+//   - Non-prefixed measurements (e.g. `attributionSkill: "audit"` from an
+//     AudiobookMaker session) attribute to the LIBRARY copy, not the
+//     consumer copy's session-derived row.
+//   - Prefixed measurements (`mikko-audit`) already route to the library via
+//     the INSTALL_PREFIX branch.
+//   - When both a prefixed and a non-prefixed measurement land on the same
+//     library row in the same overlay run, they accumulate (sum invocations
+//     and tokens, recompute averages) rather than overwriting each other.
+//   - After the overlay loop, the consumer-repo skills list is filtered to
+//     drop these names — so the rendered PDF shows one row per canonical
+//     skill instead of duplicating the library row in every consumer table.
+//
+// Add a (repo, name) pair here once the library copy genuinely supersedes
+// the consumer copy. Remove a pair when the consumer copy diverges enough to
+// be a genuinely different skill — at which point you should also rename
+// one of them to avoid the registry collision.
+const CANONICAL_DUPLICATES = {
+  AudiobookMaker: new Set(['audit', 'ai-codegen-smell-audit']),
+  Spacepotatis: new Set(['ai-codegen-smell-audit', 'security-audit']),
+  // 'audit' intentionally absent from Spacepotatis — different skill
+  // (modular-refactor orchestrator), renamed to `/modular-architecture-audit`
+  // in Spacepotatis PR #235.
+};
+
+function isCanonicalDuplicate(repo, skillName) {
+  return CANONICAL_DUPLICATES[repo]?.has(skillName) ?? false;
+}
+
 const reg = JSON.parse(fs.readFileSync(REG, 'utf8'));
 const usage = JSON.parse(fs.readFileSync(USAGE, 'utf8'));
 
-let overlaid = 0;
+let overlaid = 0;       // distinct (repo, skill) rows that received a fresh write this run
+let accumulated = 0;    // additional measurements layered onto a row that was already written
 const report = [];
+
+// Track which (repo, skill) receipts have already been written THIS run, so a
+// second measurement targeting the same row accumulates rather than
+// overwrites. Keyed by `${repo.name}::${skill.name}`. Only populated for
+// transcript-measurement receipts written by this script — receipts from
+// prior runs are still treated as "fresh" (we replace them with the current
+// run's combined total, which is the desired behavior).
+const writtenThisRun = new Set();
 
 for (const m of usage.skills) {
   if (SKIP.has(m.name)) continue;
@@ -74,6 +119,28 @@ for (const m of usage.skills) {
       if (found) {
         r = libRepo;
         s = found;
+      }
+    }
+  }
+
+  if (!r) {
+    // Canonical-to-library route: when a non-prefixed measurement comes from
+    // a session in a consumer repo where THAT repo's copy of the skill is a
+    // listed library duplicate, attribute it to the LIBRARY row instead of
+    // the consumer's. This is what makes the PDF show one row per canonical
+    // skill. Critically, this only triggers when the (repo, name) pair is
+    // explicitly in CANONICAL_DUPLICATES — name-only matching would have
+    // misattributed Spacepotatis's `audit` (a different skill) to the
+    // library audit.
+    const sessionRepo = SESSION_TO_REPO[m.sample_session_ids?.[0]];
+    if (sessionRepo && isCanonicalDuplicate(sessionRepo, m.name)) {
+      const libRepo = reg.repos.find((x) => x.name === LIBRARY_REPO);
+      if (libRepo) {
+        const found = libRepo.skills.find((x) => x.name === m.name);
+        if (found) {
+          r = libRepo;
+          s = found;
+        }
       }
     }
   }
@@ -122,20 +189,77 @@ for (const m of usage.skills) {
     priorEstimate = existing.prior_estimate ?? null;
   }
 
-  s.receipt = {
-    path: '.claude/agent-verdicts/SKILL-USAGE-LATEST.json',
-    source: 'transcript-measurement',
-    tokens_per_use: m.tokens_per_use_avg,
-    uses_per_year: m.uses_per_year,
-    annual_total: m.annual_total,
-    measurement_window_days: usage.window_days,
-    invocations_in_window: m.invocations,
-    total_tokens_in_window: m.total_tokens_in_window,
-    last_invoked: m.last_invoked,
-    prior_estimate: priorEstimate,
-  };
-  overlaid++;
-  report.push(`OVERLAY ${r.name}.${m.name}: ${oldAnnual} → ${m.annual_total}`);
+  const rowKey = `${r.name}::${s.name}`;
+  if (writtenThisRun.has(rowKey)) {
+    // Accumulate: a prior measurement in this run already wrote this row
+    // (e.g. both `audit` and `mikko-audit` landing on claude-skills.audit
+    // because CANONICAL_DUPLICATES routed them to the same target). Sum
+    // invocations + tokens, recompute the per-use average weighted by
+    // invocations, and sum projections forward.
+    const prev = s.receipt;
+    const prevInv = prev.invocations_in_window ?? 0;
+    const prevTok = prev.total_tokens_in_window ?? 0;
+    const newInv = prevInv + m.invocations;
+    const newTok = prevTok + (m.total_tokens_in_window ?? 0);
+    const newAvg = newInv > 0 ? Math.round(newTok / newInv) : 0;
+    const newUpy = (prev.uses_per_year ?? 0) + (m.uses_per_year ?? 0);
+    const newAnnual = (prev.annual_total ?? 0) + (m.annual_total ?? 0);
+    // Keep the latest last_invoked timestamp across the two measurements.
+    const newLast = [prev.last_invoked, m.last_invoked].filter(Boolean).sort().pop();
+    // prior_estimate carries forward from the row's first write of this run
+    // — that's `prev.prior_estimate`, which captured the author estimate
+    // before any transcript-measurement overlay. Same value as the local
+    // `priorEstimate` computed above (both derived from `s.receipt`), so we
+    // pick one explicitly without the `??` fallback.
+    s.receipt = {
+      path: prev.path,
+      source: 'transcript-measurement',
+      tokens_per_use: newAvg,
+      uses_per_year: newUpy,
+      annual_total: newAnnual,
+      measurement_window_days: usage.window_days,
+      invocations_in_window: newInv,
+      total_tokens_in_window: newTok,
+      last_invoked: newLast,
+      prior_estimate: prev.prior_estimate,
+    };
+    accumulated++;
+    report.push(`ACCUMULATE ${r.name}.${s.name}: +${m.name} (${newInv} inv, ${newTok} tokens)`);
+  } else {
+    s.receipt = {
+      path: '.claude/agent-verdicts/SKILL-USAGE-LATEST.json',
+      source: 'transcript-measurement',
+      tokens_per_use: m.tokens_per_use_avg,
+      uses_per_year: m.uses_per_year,
+      annual_total: m.annual_total,
+      measurement_window_days: usage.window_days,
+      invocations_in_window: m.invocations,
+      total_tokens_in_window: m.total_tokens_in_window,
+      last_invoked: m.last_invoked,
+      prior_estimate: priorEstimate,
+    };
+    overlaid++;
+    report.push(`OVERLAY ${r.name}.${s.name} (via ${m.name}): ${oldAnnual} → ${m.annual_total}`);
+    writtenThisRun.add(rowKey);
+  }
+}
+
+// Filter out canonical-to-library duplicates from CONSUMER repos. The library
+// row now carries the combined measurements (from both prefixed and
+// non-prefixed invocations); keeping the consumer-repo rows would render
+// double lines in the PDF for the same canonical skill. Per-(repo, name)
+// precision so a same-named-but-different skill (e.g. Spacepotatis's
+// `audit`) doesn't get filtered out.
+let droppedDuplicates = 0;
+for (const r of reg.repos) {
+  if (r.name === LIBRARY_REPO) continue;
+  const before = r.skills.length;
+  r.skills = r.skills.filter((s) => !isCanonicalDuplicate(r.name, s.name));
+  const dropped = before - r.skills.length;
+  if (dropped > 0) {
+    droppedDuplicates += dropped;
+    report.push(`DEDUPE ${r.name}: dropped ${dropped} library-canonical duplicate skill(s)`);
+  }
 }
 
 // Recompute totals.
@@ -200,4 +324,5 @@ reg.generated_at = new Date().toISOString();
 fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');
 
 console.log(report.join('\n'));
-console.log(`\nOverlaid ${overlaid} skills. New annual total: ${totalAnnual.toLocaleString()}`);
+const accumulatedSuffix = accumulated > 0 ? ` (+${accumulated} accumulation${accumulated === 1 ? '' : 's'} onto existing rows)` : '';
+console.log(`\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s). New annual total: ${totalAnnual.toLocaleString()}`);
