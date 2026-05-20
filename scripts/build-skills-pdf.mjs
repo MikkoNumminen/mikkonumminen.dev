@@ -22,6 +22,15 @@ const fmt = (n) =>
       ? `${(n / 1_000).toFixed(0)}K`
       : String(n);
 
+function fmtGeneratedAt(iso) {
+  // Stable UTC formatting — no locale dependency.
+  // Input: "2026-05-20T14:37:00.000Z"  Output: "2026-05-20 at 14:37 UTC"
+  const s = iso.replace('Z', '');
+  const [datePart, timePart] = s.split('T');
+  const hhmm = timePart ? timePart.slice(0, 5) : '??:??';
+  return `${datePart} at ${hhmm} UTC`;
+}
+
 function buildHtml(data) {
   const generated = data.generated_at.slice(0, 10);
   const aggregate = data.repos.map((r) => {
@@ -44,27 +53,69 @@ function buildHtml(data) {
       const rows = r.skills
         .map((s) => {
           const tpu = s.receipt?.tokens_per_use ? fmt(s.receipt.tokens_per_use) : '—';
-          // For transcript-measured rows, append the measurement window so the
-          // reader can see whether "4 / yr" is a 90-day extrapolation or a
-          // 365-day count.
-          const upyVal = s.receipt?.uses_per_year;
-          const upy =
-            upyVal != null
-              ? s.receipt?.measurement_window_days
-                ? `${upyVal} <span class="window">(${s.receipt.measurement_window_days}d)</span>`
-                : String(upyVal)
-              : '—';
-          const tot = s.receipt?.annual_total ? `~${fmt(s.receipt.annual_total)}` : '—';
           const isMeasured = s.receipt?.source === 'transcript-measurement';
+
+          // --- Uses column ---
+          let upy;
+          if (isMeasured) {
+            const inv = s.receipt.invocations_in_window ?? '?';
+            const win = s.receipt.measurement_window_days ?? '?';
+            const proj = s.receipt.uses_per_year != null ? s.receipt.uses_per_year : '?';
+            upy =
+              `${inv} in ${win}d` +
+              `<br><span class="subtle">→ ~${proj}/yr proj.</span>`;
+          } else {
+            const upyVal = s.receipt?.uses_per_year;
+            upy =
+              upyVal != null
+                ? `${upyVal} / yr<br><span class="subtle">(est.)</span>`
+                : '—';
+          }
+
+          // --- Total column ---
+          let tot;
+          if (isMeasured) {
+            const twRaw =
+              s.receipt.total_tokens_in_window ??
+              (s.receipt.tokens_per_use != null && s.receipt.invocations_in_window != null
+                ? s.receipt.tokens_per_use * s.receipt.invocations_in_window
+                : null);
+            const twStr = twRaw != null ? fmt(twRaw) : '?';
+            const annStr =
+              s.receipt.annual_total != null ? fmt(s.receipt.annual_total) : '?';
+            tot =
+              `observed ${twStr}` +
+              `<br><span class="subtle">proj. ~${annStr}/yr</span>`;
+          } else {
+            tot = s.receipt?.annual_total
+              ? `~${fmt(s.receipt.annual_total)}<br><span class="subtle">(est.)</span>`
+              : '—';
+          }
+
+          // --- Receipt / badge column ---
+          let badgeContent;
+          if (isMeasured) {
+            const lastInv = s.receipt.last_invoked;
+            let agoStr = '';
+            if (lastInv) {
+              const days = Math.floor((Date.now() - new Date(lastInv)) / 86400000);
+              agoStr =
+                days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
+            }
+            badgeContent =
+              'measured' + (agoStr ? `<br><span class="subtle">${esc(agoStr)}</span>` : '');
+          } else {
+            badgeContent = 'estimated';
+          }
           // Local-path receipts (e.g. `.claude/agent-verdicts/X.md`) don't
-          // resolve from inside a PDF viewer, so render them as plain
-          // source-label text. Only http(s) URLs become clickable.
-          const receiptLabel = isMeasured ? 'measured' : s.receipt?.source;
+          // resolve from inside a PDF viewer, so render them as plain badge
+          // text. Only http(s) URLs become clickable.
           const receipt = s.receipt
             ? isSafeHref(s.receipt.path)
-              ? `<a href="${esc(s.receipt.path)}">${esc(receiptLabel)}</a>`
-              : esc(receiptLabel)
+              ? `<a href="${esc(s.receipt.path)}">${badgeContent}</a>`
+              : badgeContent
             : '—';
+
           const name = `<strong>${esc(s.name)}</strong>${s.redirect ? ' <em>(redirect)</em>' : ''}`;
           const rowClass = isMeasured ? ' class="measured"' : '';
           return `<tr${rowClass}><td>${name}</td><td class="desc">${esc(s.description)}</td><td>${tpu}</td><td>${upy}</td><td>${tot}</td><td>${receipt}</td></tr>`;
@@ -76,7 +127,7 @@ function buildHtml(data) {
           : '';
       return `<h2>${esc(r.name)}${url}</h2>
 <table class="per-repo">
-  <thead><tr><th>Skill</th><th>Description</th><th>Tokens / use</th><th>Uses / year</th><th>Total</th><th>Receipt</th></tr></thead>
+  <thead><tr><th>Skill</th><th>Description</th><th>Tokens / use</th><th>Uses</th><th>Total</th><th>Receipt</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>`;
     })
@@ -111,12 +162,13 @@ function buildHtml(data) {
   tr.measured td:first-child { border-left: 3px solid #2e7d32; }
   tr.measured td:last-child a, tr.measured td:last-child { color: #2e7d32; font-weight: 600; }
   .window { color: #777; font-weight: 400; font-size: 7.5pt; }
+  .subtle { color: #777; font-weight: 400; font-size: 7.5pt; }
   footer { color: #888; font-size: 8pt; margin-top: 18pt; }
 </style>
 </head>
 <body>
 <h1>Skill registry — ${esc(generated)}</h1>
-<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows marked <span style="color:#2e7d32;font-weight:600">measured</span> are derived from real Claude Code transcripts (<code>attributionSkill</code>); other rows are author-estimated. Trace each row to its receipt.</p>
+<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows tagged <span style="color:#2e7d32;font-weight:600">measured</span> show real token consumption from Claude Code transcripts (90-day window), with the annual figure projected linearly. Rows tagged <span style="color:#666;font-weight:600">estimated</span> are author guesses parsed from each repo&rsquo;s docs/README.</p>
 
 <h2>Aggregate</h2>
 <table class="aggregate">
@@ -129,7 +181,7 @@ function buildHtml(data) {
 
 ${repoSections}
 
-<footer>Generated ${esc(data.generated_at)}.</footer>
+<footer>Generated ${esc(fmtGeneratedAt(data.generated_at))}.</footer>
 </body>
 </html>`;
 }

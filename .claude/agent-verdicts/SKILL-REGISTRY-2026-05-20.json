@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-20T02:42:45.239Z",
+  "generated_at": "2026-05-20T03:26:25.367Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -17,6 +17,7 @@
             "annual_total": 797748,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 199437,
             "last_invoked": "2026-05-17T03:24:06.864Z"
           }
         },
@@ -32,6 +33,7 @@
             "annual_total": 1739628,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 434907,
             "last_invoked": "2026-05-19T15:20:19.354Z"
           }
         },
@@ -59,6 +61,7 @@
             "annual_total": 55524,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 13881,
             "last_invoked": "2026-05-12T03:01:51.715Z"
           }
         },
@@ -98,6 +101,7 @@
             "annual_total": 753052,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 188263,
             "last_invoked": "2026-05-12T02:05:50.511Z"
           }
         },
@@ -191,6 +195,7 @@
             "annual_total": 212672,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 53168,
             "last_invoked": "2026-05-03T14:50:45.688Z"
           }
         },
@@ -206,6 +211,7 @@
             "annual_total": 3210568,
             "measurement_window_days": 90,
             "invocations_in_window": 2,
+            "total_tokens_in_window": 802642,
             "last_invoked": "2026-05-03T23:18:22.958Z"
           }
         },
@@ -281,6 +287,7 @@
             "annual_total": 222192,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 55548,
             "last_invoked": "2026-04-30T01:46:25.129Z"
           }
         },
@@ -302,6 +309,7 @@
             "annual_total": 74348,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 18587,
             "last_invoked": "2026-05-03T14:44:59.162Z"
           }
         },
@@ -335,6 +343,7 @@
             "annual_total": 331112,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 82778,
             "last_invoked": "2026-05-19T01:54:26.339Z"
           }
         },
@@ -350,6 +359,7 @@
             "annual_total": 474612,
             "measurement_window_days": 90,
             "invocations_in_window": 1,
+            "total_tokens_in_window": 118653,
             "last_invoked": "2026-05-18T23:37:46.034Z"
           }
         }
