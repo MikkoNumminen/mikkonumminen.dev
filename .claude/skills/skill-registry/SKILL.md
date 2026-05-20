@@ -19,9 +19,9 @@ NOT for: editing skills, validating skill correctness, measuring actual run-time
 
 ## What this skill does
 
-1. **Main thread** enumerates `D:/koodaamista/*/.claude/skills/*/SKILL.md` and groups paths by repo.
+1. **Main thread** enumerates `D:/koodaamista/*/.claude/skills/*/SKILL.md` plus `D:/koodaamista/claude-skills/skills/*/SKILL.md` (library layout — no `.claude/` prefix) and groups paths by repo.
 2. **Dispatches one Sonnet sub-agent per repo in parallel** (all in a single message) — each agent reads the YAML frontmatter (`name`, `description`) of every SKILL.md in its repo, classifies redirects from the description, locates a token-savings receipt from `docs/SKILLS.md` / `agent-verdicts/*-AGENT.md` / the SKILL.md body, and returns a structured per-repo JSON blob.
-3. **Main thread aggregates** the per-repo blobs into the final document, computes `totals`, validates the arithmetic.
+3. **Main thread aggregates** the per-repo blobs into the final document, computes `totals`, validates the arithmetic. Editorial-only — no transcript-measurement overlay happens in this skill (that's a separate step in the `/skill-pdf` chain).
 4. Writes `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` and prints the path.
 5. If the report introduces new findings or supersedes a prior dated report, commits and pushes it as a fresh registry snapshot — the JSON is the canonical "what skills the portfolio operates today" document, and other Claude sessions read it without re-running.
 
@@ -29,15 +29,19 @@ End-to-end with no user pauses. The numbers are editorial-grade until a frontmat
 
 ## Scope
 
-**Repos scanned:** every direct subdirectory of `D:/koodaamista/` that contains a `.claude/skills/` directory.
+**Repos scanned:**
+
+- Every direct subdirectory of `D:/koodaamista/` that contains a `.claude/skills/` directory (the standard consumer-repo layout).
+- The `claude-skills/` library at `D:/koodaamista/claude-skills/` — uses `skills/<name>/SKILL.md` (no `.claude/` prefix). Treated as a 4th virtual repo entry in the output so newly authored library skills appear in the registry automatically.
 
 **Repos excluded:**
 
-- `claude-audit-skill/` — meta-repo distributing a skill, not a repo _using_ skills. Its skill lives at `skill/` (no `.claude/skills/` directory), so the glob below naturally won't match it; this entry is documented as a guard in case that repo ever adopts the standard layout.
+- Meta-repos that distribute a single skill under a `skill/` (singular) directory rather than the `skills/` or `.claude/skills/` layout — the globs below naturally won't match them. The newer `skills/` (plural) layout IS scanned (see the `claude-skills` library above).
 
 **Files read:**
 
-- `D:/koodaamista/*/.claude/skills/*/SKILL.md` — every skill file under every sibling
+- `D:/koodaamista/*/.claude/skills/*/SKILL.md` — every skill file under every sibling consumer repo
+- `D:/koodaamista/claude-skills/skills/*/SKILL.md` — every skill file in the library (no `.claude/` prefix)
 - `D:/koodaamista/*/docs/SKILLS.md` — Spacepotatis's methodology doc (and any repo that adopts the same pattern)
 - `D:/koodaamista/*/.claude/agent-verdicts/*.md` — per-skill verdict docs (mikkonumminen.dev pattern); look for "Token expectations" sections
 
@@ -45,17 +49,24 @@ End-to-end with no user pauses. The numbers are editorial-grade until a frontmat
 
 ## Procedure
 
-The expensive part (reading 26 SKILL.md files + 3 receipt sources) is parallelised across one Sonnet sub-agent per repo. Main thread handles enumeration and final aggregation.
+The expensive part (reading ~37 SKILL.md files + per-repo receipt sources) is parallelised across one Sonnet sub-agent per repo. Main thread handles enumeration and final aggregation.
 
 ### 1. Enumerate repos (main thread)
 
-`ls d:/koodaamista/*/.claude/skills/*/SKILL.md` via Bash. (Equivalent `Glob` invocations have proven unreliable in some Windows sessions — see [SKILL-REGISTRY-AGENT.md "Open questions"](../../agent-verdicts/SKILL-REGISTRY-AGENT.md); the `ls` fallback always works.)
+Run both via Bash and concatenate the output:
 
-Group the resulting paths by repo name (the segment after `koodaamista/`). Drop the `claude-audit-skill` repo if present.
+- `ls d:/koodaamista/*/.claude/skills/*/SKILL.md` — standard consumer-repo layout.
+- `ls d:/koodaamista/claude-skills/skills/*/SKILL.md` — library layout (no `.claude/` prefix).
+
+(Equivalent `Glob` invocations have proven unreliable in some Windows sessions — see [SKILL-REGISTRY-AGENT.md "Open questions"](../../agent-verdicts/SKILL-REGISTRY-AGENT.md); the `ls` fallback always works.)
+
+Group the resulting paths by repo name (the segment after `koodaamista/`). The `claude-skills` repo's paths group under `claude-skills` and feed step 2's dispatch as a 4th sub-agent. Drop any meta-repo entries whose layout uses a singular `skill/` directory.
 
 ### 2. Dispatch one Sonnet agent per repo (parallel, in a single message)
 
 Spawn **N parallel** `Agent` tool calls — one per repo with skills, **all in the same message** so they run concurrently. Use `subagent_type: "general-purpose"`, `model: "sonnet"`, `run_in_background: true`. Each agent does the read-heavy work for its repo and returns a structured JSON blob; the main thread does NOT read SKILL.md frontmatter itself.
+
+**Note on the `claude-skills` library agent:** it follows the same prompt shape as the consumer-repo agents, but the library has no `docs/SKILLS.md` and no `agent-verdicts/`. Its receipts come from each SKILL.md body's own `## Token expectations` section — label `source: "skill-body"` and use `skills/<NAME>/SKILL.md` as `path` (library layout, no `.claude/` prefix). Sources 3a / 3b / 3c in the template below won't match for library skills; that's expected — fall through to 3d.
 
 **Agent prompt template** — substitute `{REPO}` and `{PATHS}` per dispatch:
 
@@ -106,7 +117,7 @@ Each agent posts a `task-notification` when done; the harness re-invokes the mai
 When all agents have returned, parse each per-repo JSON and assemble the final document:
 
 - `generated_at`: current UTC ISO 8601 timestamp.
-- `repos`: array of agent outputs, **ASCII-sorted by repo name** (uppercase letters before lowercase). Current portfolio orders as `AudiobookMaker, Spacepotatis, mikkonumminen.dev`.
+- `repos`: array of agent outputs, **ASCII-sorted by repo name** (uppercase letters before lowercase). Current portfolio orders as `AudiobookMaker, Spacepotatis, claude-skills, mikkonumminen.dev`.
 - `totals`: computed from `repos`:
   - `skills`: sum of `repos[].skills.length`.
   - `redirects`: count where `redirect === true`.
@@ -117,31 +128,7 @@ Validate that `totals.annual_tokens_saved` equals the sum of all `receipt.annual
 
 **Post-process: strip HTML entities.** Sonnet sub-agents have repeatedly returned descriptions with `&lt;` / `&gt;` / `&amp;` despite explicit "no HTML entities" instructions in the agent prompt. The convention text alone is insufficient. As defense-in-depth, before writing the aggregated JSON, replace `&lt;` → `<`, `&gt;` → `>`, `&amp;` → `&` across every `description` field. This is mechanical and safe — JSON strings never legitimately contain HTML entities.
 
-**Post-process: overlay transcript measurements.** Check for `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` (the [skill-usage](https://github.com/MikkoNumminen/claude-skills/blob/main/skills/skill-usage/SKILL.md) skill's output — measured invocation counts and token totals from real Claude Code session transcripts). If the file exists, parse it. For each entry in its `skills[]`:
-
-1. Search every `repos[].skills[]` in this run for entries whose `name` matches the usage entry's `name` (exact match — no aliasing).
-2. For each match found, **replace** that entry's `receipt` with a measurement-sourced one:
-   - `path: ".claude/agent-verdicts/SKILL-USAGE-LATEST.json"`
-   - `source: "transcript-measurement"`
-   - `tokens_per_use: <usage.tokens_per_use_avg>`
-   - `uses_per_year: <usage.uses_per_year>`
-   - `annual_total: <usage.annual_total>`
-   - `measurement_window_days: <usage_file.window_days>` (optional field, surfaced so a consumer can render "measured (90d window)")
-3. If multiple registry rows match (same skill name installed in two consumer repos), every match gets the same overlay. The measurement is the actual transcript signal — it attributes to a name, not a path — so all copies of that named skill share the same measured cost. If you want per-copy attribution you'd need a richer attribution key from the harness; out of scope here.
-4. If no matching registry row is found (e.g. usage entry for a built-in `review`, a deprecated skill, or a personal `mikko-*` alias not yet ported to a consumer repo), skip silently. The registry only enumerates skills present as `.claude/skills/<name>/SKILL.md` files; non-catalog usage stays visible in the `SKILL-USAGE-*.json` itself.
-
-**If `SKILL-USAGE-LATEST.json` is malformed** (JSON parse failure, missing `skills[]`, entries missing required `name` / `tokens_per_use_avg`), skip the overlay entirely and log a one-line warning in the run summary (e.g. `usage overlay skipped: SKILL-USAGE-LATEST.json malformed at line N`). The registry falls back to the editorial estimates from sources 2-5 rather than failing the run — partial measurement is worse than no measurement when correctness can't be guaranteed.
-
-This overlay runs **after** the sub-agent editorial lookup so measured values supersede editorial estimates. The displaced editorial receipt stays on disk in its source file (`docs/SKILLS.md`, `agent-verdicts/X-AGENT.md`, etc.); only the registry-row choice changes. The receipt-source priority is therefore:
-
-| Priority | Source                          | Set by                                                                |
-| -------: | ------------------------------- | --------------------------------------------------------------------- |
-|        1 | `transcript-measurement`        | Main-thread overlay using `SKILL-USAGE-LATEST.json`                   |
-|        2 | `docs/SKILLS.md`                | Sub-agent step 3a                                                     |
-|        3 | `agent-verdicts/<NAME>-AGENT.md` | Sub-agent step 3b                                                    |
-|        4 | `readme.md`                     | Sub-agent step 3c                                                     |
-|        5 | `skill-body`                    | Sub-agent step 3d                                                     |
-|        — | `null`                          | None of the above matched                                             |
+**Transcript-measurement overlay:** this step is intentionally NOT done here. The `/skill-pdf` chain runs `scripts/apply-measurement-overlay.mjs` as a separate step after `/skill-registry` writes the inventory — that script handles the measurement overlay with proper `prior_estimate` snapshotting, `mikko-` prefix routing, and library-canonical accumulation. `/skill-registry` produces editorial-only receipts; measurements land later in the chain.
 
 ### 4. Emit the report
 
@@ -201,24 +188,24 @@ If the report introduces new findings or supersedes a prior dated report, commit
 - `generated_at` is ISO 8601 with `Z` suffix for UTC.
 - Numbers are integers (not strings, not formatted with commas).
 - `annual_total` should equal `tokens_per_use × uses_per_year` whenever both are present; if only the annual figure is known directly (e.g. extracted from a docs/SKILLS.md "Total" column), per-use and per-year can stay `null`.
-- `path` for Spacepotatis-style receipts is the GitHub URL to `docs/SKILLS.md`; for local-only verdicts it is the relative path (e.g. `.claude/agent-verdicts/README-SYNC-AGENT.md`); for `transcript-measurement` it is `.claude/agent-verdicts/SKILL-USAGE-LATEST.json`.
+- `path` for Spacepotatis-style receipts is the GitHub URL to `docs/SKILLS.md`; for local-only verdicts it is the relative path (e.g. `.claude/agent-verdicts/README-SYNC-AGENT.md`).
 - `redirect: true` rows have `receipt: null` and are excluded from `with_receipts` and `annual_tokens_saved` totals.
-- When a `transcript-measurement` receipt replaces an editorial one, the disclaimer notes in skill source files (`pending the in-flight skill-usage measurement tool`) become accurate — the measurement landed; the estimate is superseded. The disclaimer text in the source file can be removed at next edit but the registry row no longer references the editorial source.
+- `transcript-measurement` is a valid `source` value in downstream artifacts (the registry JSON as published in `public/data/skills-registry.json`), but `/skill-registry` itself never writes it — `scripts/apply-measurement-overlay.mjs` adds those receipts in a later step of the `/skill-pdf` chain, preserving the editorial figure as a `prior_estimate` snapshot. The schema lists `transcript-measurement` so consumers know what to expect after the overlay runs.
 
 A human-readable view can be rendered from this JSON by any consumer (Claude session, dashboard, script). The JSON is the source of truth; renderings are derived.
 
 ## Token expectations
 
-For a portfolio of ~25 skill files across 3 repos (current scale, 2026-05), running with one Sonnet sub-agent per repo:
+For a portfolio of ~37 skill files across 4 repos (current scale, 2026-05; consumer repos plus the `claude-skills` library), running with one Sonnet sub-agent per repo:
 
-- Sub-agent input (parallel, across 3 agents): ~80K total — each agent reads its repo's SKILL.md files (~30 lines each) plus the per-repo receipt doc (`docs/SKILLS.md` or `agent-verdicts/<NAME>.md`)
-- Sub-agent output: ~10K total — each returns a structured JSON blob for its repo
-- Main-context absorption: ~5K — read N small JSON blobs + write the aggregate report
+- Sub-agent input (parallel, across 4 agents): ~110K total — each agent reads its repo's SKILL.md files (~30 lines each) plus the per-repo receipt doc (`docs/SKILLS.md` or `agent-verdicts/<NAME>.md`); the library agent reads only SKILL.md bodies
+- Sub-agent output: ~14K total — each returns a structured JSON blob for its repo
+- Main-context absorption: ~6K — read N small JSON blobs + write the aggregate report
 - Wall-clock: ~30s parallel agents + ~5s main-thread aggregation
-- Sonnet pricing is materially cheaper per token than Opus, so the dollar-equivalent cost is well under the raw 80K input figure
-- ~12 uses/year — monthly during active skill-development phases, quarterly otherwise; run total ~12 × 95K ≈ 1.14M tokens/year. Author estimate pending the in-flight skill-usage measurement tool.
+- Sonnet pricing is materially cheaper per token than Opus, so the dollar-equivalent cost is well under the raw 110K input figure
+- ~12 uses/year — monthly during active skill-development phases, quarterly otherwise; run total ~12 × 130K ≈ 1.56M tokens/year. Author estimate pending the in-flight skill-usage measurement tool.
 
-Compare to a serial main-thread version of the same work (~60K input read directly into Opus context): the parallel version is roughly the same total token cost, but ~3-5× faster in wall-clock and keeps the main context free for synthesis. Worth it for a quarterly run; mandatory if the portfolio grows past ~50 skills.
+Compare to a serial main-thread version of the same work (~80K input read directly into Opus context): the parallel version is roughly the same total token cost, but ~3-5× faster in wall-clock and keeps the main context free for synthesis. Worth it for a quarterly run; mandatory if the portfolio grows past ~50 skills.
 
 ## Failure modes
 
@@ -234,7 +221,7 @@ This skill produces an **inventory**, not a verified audit. The token-savings nu
 To upgrade this skill from inventory to audit:
 
 1. Adopt a frontmatter schema across all SKILL.md files: `tokens_per_use`, `uses_per_year`, `last_audited` (ISO date).
-2. Backfill the schema across every existing skill file (~25 files as of 2026-05).
+2. Backfill the schema across every existing skill file (~37 files across 4 repos as of 2026-05).
 3. Run a quarterly audit that re-estimates token usage by sampling actual sessions.
 
 Until those happen, the registry is a useful drift-detector and surface-area map — and an honest receipt that the catalog _exists_ — but the totals are not load-bearing.
