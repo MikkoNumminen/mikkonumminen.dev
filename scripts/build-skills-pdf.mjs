@@ -193,14 +193,7 @@ function buildHtml(data) {
           // --- Receipt / badge column ---
           let badgeContent;
           if (isMeasured) {
-            const lastInv = s.receipt.last_invoked;
-            let agoStr = '';
-            if (lastInv) {
-              // Negative if clock skew puts last_invoked in the future; renders as e.g. "-1d ago".
-              const days = Math.floor((Date.now() - new Date(lastInv)) / 86400000);
-              agoStr =
-                days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
-            }
+            const agoStr = daysAgo(s.receipt.last_invoked);
             badgeContent =
               'measured' + (agoStr ? `<br><span class="subtle">${esc(agoStr)}</span>` : '');
           } else {
