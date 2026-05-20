@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-20T03:26:25.367Z",
+  "generated_at": "2026-05-20T03:50:37.944Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -18,7 +18,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 199437,
-            "last_invoked": "2026-05-17T03:24:06.864Z"
+            "last_invoked": "2026-05-17T03:24:06.864Z",
+            "prior_estimate": {
+              "tokens_per_use": 5500,
+              "uses_per_year": 8,
+              "annual_total": 44000,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            }
           }
         },
         {
@@ -34,7 +41,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 434907,
-            "last_invoked": "2026-05-19T15:20:19.354Z"
+            "last_invoked": "2026-05-19T15:20:19.354Z",
+            "prior_estimate": {
+              "tokens_per_use": 3500,
+              "uses_per_year": 8,
+              "annual_total": 28000,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            }
           }
         },
         {
@@ -62,7 +76,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 13881,
-            "last_invoked": "2026-05-12T03:01:51.715Z"
+            "last_invoked": "2026-05-12T03:01:51.715Z",
+            "prior_estimate": {
+              "tokens_per_use": 3000,
+              "uses_per_year": 0,
+              "annual_total": 0,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            }
           }
         },
         {
@@ -102,7 +123,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 188263,
-            "last_invoked": "2026-05-12T02:05:50.511Z"
+            "last_invoked": "2026-05-12T02:05:50.511Z",
+            "prior_estimate": {
+              "tokens_per_use": null,
+              "uses_per_year": 80,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            }
           }
         },
         {
@@ -196,7 +224,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 53168,
-            "last_invoked": "2026-05-03T14:50:45.688Z"
+            "last_invoked": "2026-05-03T14:50:45.688Z",
+            "prior_estimate": {
+              "tokens_per_use": 15000,
+              "uses_per_year": 50,
+              "annual_total": 750000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            }
           }
         },
         {
@@ -212,7 +247,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 2,
             "total_tokens_in_window": 802642,
-            "last_invoked": "2026-05-03T23:18:22.958Z"
+            "last_invoked": "2026-05-03T23:18:22.958Z",
+            "prior_estimate": {
+              "tokens_per_use": 4300,
+              "uses_per_year": 56,
+              "annual_total": 240800,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            }
           }
         },
         {
@@ -288,7 +330,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 55548,
-            "last_invoked": "2026-04-30T01:46:25.129Z"
+            "last_invoked": "2026-04-30T01:46:25.129Z",
+            "prior_estimate": {
+              "tokens_per_use": 5400,
+              "uses_per_year": 40,
+              "annual_total": 216000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            }
           }
         },
         {
@@ -310,7 +359,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 18587,
-            "last_invoked": "2026-05-03T14:44:59.162Z"
+            "last_invoked": "2026-05-03T14:44:59.162Z",
+            "prior_estimate": {
+              "tokens_per_use": 12000,
+              "uses_per_year": 20,
+              "annual_total": 240000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            }
           }
         },
         {
@@ -344,7 +400,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 82778,
-            "last_invoked": "2026-05-19T01:54:26.339Z"
+            "last_invoked": "2026-05-19T01:54:26.339Z",
+            "prior_estimate": {
+              "tokens_per_use": 95000,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "skill-body",
+              "path": ".claude/skills/skill-registry/SKILL.md"
+            }
           }
         },
         {
@@ -360,7 +423,14 @@
             "measurement_window_days": 90,
             "invocations_in_window": 1,
             "total_tokens_in_window": 118653,
-            "last_invoked": "2026-05-18T23:37:46.034Z"
+            "last_invoked": "2026-05-18T23:37:46.034Z",
+            "prior_estimate": {
+              "tokens_per_use": 141080,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "agent-verdicts/README-SYNC-AGENT.md",
+              "path": ".claude/agent-verdicts/README-SYNC-AGENT.md"
+            }
           }
         }
       ]

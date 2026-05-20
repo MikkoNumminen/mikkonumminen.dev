@@ -31,6 +31,19 @@ function fmtGeneratedAt(iso) {
   return `${datePart} at ${hhmm} UTC`;
 }
 
+function fmtComparison(observed, estimated) {
+  if (!estimated || estimated <= 0 || !observed || observed <= 0) return null;
+  const ratio = observed / estimated;
+  if (ratio >= 0.9 && ratio <= 1.1) return `est. ${fmt(estimated)} · close`;
+  if (ratio > 1.1) {
+    const r = ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1);
+    return `est. ${fmt(estimated)} · ${r}× under`;
+  }
+  const inv = 1 / ratio;
+  const r = inv >= 10 ? Math.round(inv) : inv.toFixed(1);
+  return `est. ${fmt(estimated)} · ${r}× over`;
+}
+
 function buildHtml(data) {
   const generated = data.generated_at.slice(0, 10);
   const aggregate = data.repos.map((r) => {
@@ -38,13 +51,27 @@ function buildHtml(data) {
     const reds = r.skills.filter((s) => s.redirect).length;
     const wr = r.skills.filter((s) => s.receipt && s.receipt.annual_total != null).length;
     const ann = r.skills.reduce((a, s) => a + (s.receipt?.annual_total ?? 0), 0);
-    return { name: r.name, total, reds, wr, ann };
+    // Empirical total: sum of in-window observed tokens across measured rows
+    // only. Estimated rows contribute nothing here — this column answers
+    // "what did we actually spend?" not "what would a year look like?"
+    const obs = r.skills.reduce((a, s) => {
+      if (s.receipt?.source !== 'transcript-measurement') return a;
+      const win =
+        s.receipt.total_tokens_in_window ??
+        (s.receipt.tokens_per_use != null && s.receipt.invocations_in_window != null
+          ? s.receipt.tokens_per_use * s.receipt.invocations_in_window
+          : 0);
+      return a + (win ?? 0);
+    }, 0);
+    return { name: r.name, total, reds, wr, obs, ann };
   });
+
+  const totalObs = aggregate.reduce((a, x) => a + x.obs, 0);
 
   const aggregateRows = aggregate
     .map(
       (a) =>
-        `<tr><td>${esc(a.name)}</td><td>${a.total}</td><td>${a.reds}</td><td>${a.wr}</td><td>${a.ann ? `~${fmt(a.ann)}` : '—'}</td></tr>`,
+        `<tr><td>${esc(a.name)}</td><td>${a.total}</td><td>${a.reds}</td><td>${a.wr}</td><td>${a.obs ? `~${fmt(a.obs)}` : '—'}</td><td>${a.ann ? `~${fmt(a.ann)}` : '—'}</td></tr>`,
     )
     .join('\n');
 
@@ -58,7 +85,15 @@ function buildHtml(data) {
           let tpu;
           if (s.receipt?.tokens_per_use) {
             const label = isMeasured ? '(observed)' : '(est.)';
-            tpu = `${fmt(s.receipt.tokens_per_use)}<br><span class="subtle">${label}</span>`;
+            let extra = '';
+            if (isMeasured) {
+              const cmp = fmtComparison(
+                s.receipt.tokens_per_use,
+                s.receipt.prior_estimate?.tokens_per_use,
+              );
+              if (cmp) extra = `<br><span class="subtle">${cmp}</span>`;
+            }
+            tpu = `${fmt(s.receipt.tokens_per_use)}<br><span class="subtle">${label}</span>${extra}`;
           } else {
             tpu = '—';
           }
@@ -178,14 +213,14 @@ function buildHtml(data) {
 </head>
 <body>
 <h1>Skill registry — ${esc(generated)}</h1>
-<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows tagged <span class="tag-measured">measured</span> show real token consumption from Claude Code transcripts (90-day window), with the annual figure projected linearly. Rows tagged <span class="tag-estimated">estimated</span> are author guesses parsed from each repo&rsquo;s docs/README.</p>
+<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows tagged <span class="tag-measured">measured</span> show real token consumption from Claude Code transcripts (90-day window), with the annual figure projected linearly. Rows tagged <span class="tag-estimated">estimated</span> are author guesses parsed from each repo&rsquo;s docs/README. On measured rows, a third line compares the observed average to the author&rsquo;s prior estimate, e.g. <code>est. 4K &middot; 93&times; under</code>.</p>
 
 <h2>Aggregate</h2>
 <table class="aggregate">
-  <thead><tr><th>Repo</th><th>Skills</th><th>Redirects</th><th>With receipts</th><th>Tokens / yr</th></tr></thead>
+  <thead><tr><th>Repo</th><th>Skills</th><th>Redirects</th><th>With receipts</th><th>Observed (90d)</th><th>Tokens / yr (proj.)</th></tr></thead>
   <tbody>
     ${aggregateRows}
-    <tr class="totals-row"><td>Total</td><td>${data.totals.skills}</td><td>${data.totals.redirects}</td><td>${data.totals.with_receipts}</td><td>~${fmt(data.totals.annual_tokens_saved)}</td></tr>
+    <tr class="totals-row"><td>Total</td><td>${data.totals.skills}</td><td>${data.totals.redirects}</td><td>${data.totals.with_receipts}</td><td>${totalObs ? `~${fmt(totalObs)}` : '—'}</td><td>~${fmt(data.totals.annual_tokens_saved)}</td></tr>
   </tbody>
 </table>
 
