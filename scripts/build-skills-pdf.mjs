@@ -104,14 +104,19 @@ function renderBuiltInsSection(refs) {
 
 function buildHtml(data) {
   const generated = data.generated_at.slice(0, 10);
+  // Single pass per repo: every row contributes to totalAnnualTokens (the
+  // mixed measured+editorial figure); measured rows additionally contribute
+  // to the measured-only counters so the aggregate can show how much of
+  // each repo's annual figure is measurement-backed vs author guess.
+  let sumMeasuredInv = 0;
+  let sumMeasuredAnnualRuns = 0;
+  let sumMeasuredTokensWindow = 0;
+  let sumMeasuredAnnualTokens = 0;
+  let sumAnnualTokens = 0;
   const aggregate = data.repos.map((r) => {
-    const skills = r.skills.length;
-    // Measured invocations + projected annual times-run (sum of uses_per_year
-    // across measured rows). Estimated rows are excluded — the column is
-    // "what did we actually run", not "what does the author guess".
     let measuredInv = 0;
     let measuredAnnualRuns = 0;
-    let measuredTokensWindow = 0;
+    let measuredAnnualTokens = 0;
     let totalAnnualTokens = 0;
     for (const s of r.skills) {
       const rec = s.receipt;
@@ -120,37 +125,48 @@ function buildHtml(data) {
       if (rec.source !== 'transcript-measurement') continue;
       measuredInv += rec.invocations_in_window ?? 0;
       measuredAnnualRuns += rec.uses_per_year ?? 0;
-      const w =
+      measuredAnnualTokens += rec.annual_total ?? 0;
+      sumMeasuredTokensWindow +=
         rec.total_tokens_in_window ??
         (rec.tokens_per_use != null && rec.invocations_in_window != null
           ? rec.tokens_per_use * rec.invocations_in_window
           : 0);
-      measuredTokensWindow += w ?? 0;
     }
+    sumMeasuredInv += measuredInv;
+    sumMeasuredAnnualRuns += measuredAnnualRuns;
+    sumMeasuredAnnualTokens += measuredAnnualTokens;
+    sumAnnualTokens += totalAnnualTokens;
     return {
       name: r.name,
-      skills,
+      skills: r.skills.length,
       measuredInv,
       measuredAnnualRuns,
-      measuredTokensWindow,
+      measuredAnnualTokens,
       totalAnnualTokens,
     };
   });
 
-  const sumMeasuredInv = aggregate.reduce((a, x) => a + x.measuredInv, 0);
-  const sumMeasuredAnnualRuns = aggregate.reduce((a, x) => a + x.measuredAnnualRuns, 0);
-  const sumMeasuredTokensWindow = aggregate.reduce((a, x) => a + x.measuredTokensWindow, 0);
-  const sumAnnualTokens = aggregate.reduce((a, x) => a + x.totalAnnualTokens, 0);
-
   const refs = data.built_in_references ?? [];
   const builtInsSection = refs.length === 0 ? '' : renderBuiltInsSection(refs);
 
+  // Annual tokens cell: top line is the all-rows total (mixed measured +
+  // editorial), bottom line surfaces the measured-only fraction so the
+  // reader can tell at a glance whether the headline number is mostly
+  // grounded in transcripts or mostly author estimate.
   const aggregateRows = aggregate
     .map((a) => {
       const runs = a.measuredInv
         ? `${a.measuredInv} in 90d<br><span class="subtle">→ ~${a.measuredAnnualRuns}/yr</span>`
         : '—';
-      const tokens = a.totalAnnualTokens ? `~${fmt(a.totalAnnualTokens)}` : '—';
+      let tokens = '—';
+      if (a.totalAnnualTokens) {
+        tokens = `~${fmt(a.totalAnnualTokens)}`;
+        if (a.measuredAnnualTokens) {
+          tokens += `<br><span class="subtle">~${fmt(a.measuredAnnualTokens)} measured</span>`;
+        } else {
+          tokens += `<br><span class="subtle">all est.</span>`;
+        }
+      }
       return `<tr><td>${esc(a.name)}</td><td>${a.skills}</td><td>${runs}</td><td>${tokens}</td></tr>`;
     })
     .join('\n');
@@ -186,6 +202,9 @@ function buildHtml(data) {
 
   const totalRunsCell = sumMeasuredInv
     ? `${sumMeasuredInv} in 90d<br><span class="subtle">→ ~${sumMeasuredAnnualRuns}/yr</span>`
+    : '—';
+  const totalTokensCell = sumAnnualTokens
+    ? `~${fmt(sumAnnualTokens)}<br><span class="subtle">~${fmt(sumMeasuredAnnualTokens)} measured</span>`
     : '—';
 
   return `<!doctype html>
@@ -227,7 +246,7 @@ ${builtInsSection}
   <thead><tr><th>Repo</th><th>Skills</th><th>Times run (measured)</th><th>Tokens used / yr</th></tr></thead>
   <tbody>
     ${aggregateRows}
-    <tr class="totals-row"><td>Total</td><td>${data.totals.skills}</td><td>${totalRunsCell}</td><td>~${fmt(sumAnnualTokens)}</td></tr>
+    <tr class="totals-row"><td>Total</td><td>${data.totals.skills}</td><td>${totalRunsCell}</td><td>${totalTokensCell}</td></tr>
   </tbody>
 </table>
 
@@ -244,6 +263,11 @@ function main() {
     console.error('Run the skill-registry skill and copy its JSON output here first.');
     process.exit(1);
   }
+  // CI / Vercel may have Chrome on the build image, but a transient
+  // hosted-build render would drift from the committed PDF the next time a
+  // human refreshes locally. Always defer to the committed artifact on
+  // hosted builds so the public-facing PDF only changes when a real refresh
+  // lands in a commit.
   if (process.env.CI || process.env.VERCEL) {
     console.log(
       'build-skills-pdf: CI environment detected — skipping regeneration, committed PDF is canonical.',
