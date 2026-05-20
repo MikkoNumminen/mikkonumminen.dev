@@ -69,6 +69,26 @@ for (const m of usage.skills) {
   // silently clobbered. Also: this loop picks the first sample sessionId; if
   // a skill ever has invocations in two repos within the same window, only
   // the first repo's row is overlaid — detect and warn.
+
+  // Snapshot the prior estimate so the PDF can show observed vs. estimated.
+  // On first overlay, the existing receipt is an author estimate -> snapshot it.
+  // On re-runs against an already-overlaid registry, preserve the snapshot
+  // that was already captured (don't let the measured receipt become its
+  // own "estimate").
+  const existing = s.receipt;
+  let priorEstimate = null;
+  if (existing && existing.source !== 'transcript-measurement') {
+    priorEstimate = {
+      tokens_per_use: existing.tokens_per_use,
+      uses_per_year: existing.uses_per_year,
+      annual_total: existing.annual_total,
+      source: existing.source,
+      path: existing.path,
+    };
+  } else if (existing && existing.source === 'transcript-measurement') {
+    priorEstimate = existing.prior_estimate ?? null;
+  }
+
   s.receipt = {
     path: '.claude/agent-verdicts/SKILL-USAGE-LATEST.json',
     source: 'transcript-measurement',
@@ -79,6 +99,7 @@ for (const m of usage.skills) {
     invocations_in_window: m.invocations,
     total_tokens_in_window: m.total_tokens_in_window,
     last_invoked: m.last_invoked,
+    prior_estimate: priorEstimate,
   };
   overlaid++;
   report.push(`OVERLAY ${repo}.${m.name}: ${oldAnnual} → ${m.annual_total}`);
@@ -108,6 +129,39 @@ reg.totals = {
   with_receipts: withReceipts,
   annual_tokens_saved: totalAnnual,
 };
+
+// Built-in references: surface Claude Code's built-in slash commands as a
+// reference point above the custom-skill tables. /review alone consumed
+// ~7× the entire custom-skill portfolio in the current window, which is
+// the most useful comparison number on the page. Add new built-ins here
+// when Anthropic ships another one worth tracking.
+const BUILTINS_TO_TRACK = {
+  review: { label: '/review', description: 'Claude Code built-in PR code review' },
+};
+
+const builtInReferences = [];
+for (const [skillName, meta] of Object.entries(BUILTINS_TO_TRACK)) {
+  const m = usage.skills.find((s) => s.name === skillName);
+  if (!m) continue;
+  builtInReferences.push({
+    name: skillName,
+    label: meta.label,
+    description: meta.description,
+    measurement_window_days: usage.window_days,
+    invocations_in_window: m.invocations,
+    total_tokens_in_window: m.total_tokens_in_window,
+    tokens_per_use_avg: m.tokens_per_use_avg,
+    annual_total: m.annual_total,
+    uses_per_year: m.uses_per_year,
+    last_invoked: m.last_invoked,
+  });
+}
+if (builtInReferences.length > 0) {
+  reg.built_in_references = builtInReferences;
+}
+// Drop the predecessor singular key if a prior overlay run wrote it.
+delete reg.built_in_reference;
+
 reg.generated_at = new Date().toISOString();
 
 fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');
