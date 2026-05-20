@@ -170,6 +170,7 @@ reg.totals = {
 // when Anthropic ships another one worth tracking.
 const BUILTINS_TO_TRACK = {
   review: { label: '/review', description: 'Claude Code built-in PR code review' },
+  goal: { label: '/goal', description: 'Claude Code built-in session-goal hook' },
 };
 
 const builtInReferences = [];
