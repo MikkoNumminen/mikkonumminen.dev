@@ -54,6 +54,41 @@ function fmtComparison(observed, estimated) {
   return { text: `est. ${fmt(estimated)} · ${r}× over`, klass };
 }
 
+function daysAgo(iso) {
+  if (!iso) return '';
+  // Negative if clock skew puts the timestamp in the future; renders as e.g. "-1d ago".
+  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+  return days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
+}
+
+function renderBuiltInsSection(refs) {
+  const rows = refs
+    .map((br) => {
+      const tpu =
+        br.tokens_per_use_avg != null
+          ? `${fmt(br.tokens_per_use_avg)}<br><span class="subtle">(observed)</span>`
+          : '—';
+      const inv = br.invocations_in_window ?? '?';
+      const win = br.measurement_window_days ?? '?';
+      const proj = br.uses_per_year ?? '?';
+      const upy = `${inv} in ${win}d<br><span class="subtle">→ ~${proj}/yr proj.</span>`;
+      const tot =
+        br.total_tokens_in_window != null && br.annual_total != null
+          ? `observed ${fmt(br.total_tokens_in_window)}<br><span class="subtle">proj. ~${fmt(br.annual_total)}/yr</span>`
+          : '—';
+      const ago = daysAgo(br.last_invoked);
+      const receipt = 'measured' + (ago ? `<br><span class="subtle">${esc(ago)}</span>` : '');
+      return `<tr class="measured"><td><strong>${esc(br.label)}</strong></td><td class="desc">${esc(br.description)}</td><td>${tpu}</td><td>${upy}</td><td>${tot}</td><td>${receipt}</td></tr>`;
+    })
+    .join('\n');
+  return `<h2>Reference: Claude Code built-ins</h2>
+<p class="meta">These are Claude Code's own built-in slash commands &mdash; <strong>not part of this portfolio</strong>. Shown here purely so the custom-skill numbers below have a familiar scale to compare against. <strong>Excluded from every total on the page.</strong></p>
+<table class="per-repo">
+  <thead><tr><th>Skill</th><th>Description</th><th>Tokens / use</th><th>Uses</th><th>Total</th><th>Receipt</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>`;
+}
+
 function buildHtml(data) {
   const generated = data.generated_at.slice(0, 10);
   const aggregate = data.repos.map((r) => {
@@ -78,28 +113,12 @@ function buildHtml(data) {
 
   const totalObs = aggregate.reduce((a, x) => a + x.obs, 0);
 
-  // Built-in reference callouts — anchor the custom-skill numbers against
-  // the cost of Claude Code's built-in slash commands. Built-ins are
-  // measured by the usage scanner but not in any repo's registry, so the
-  // overlay stashes their summaries at data.built_in_references (one entry
-  // per tracked built-in).
+  // Built-in reference section — rendered as a small table at the top of
+  // the document. These are Claude Code's own slash commands (not custom
+  // skills), shown only for scale. Their numbers DO NOT contribute to the
+  // Aggregate or per-repo totals.
   const refs = data.built_in_references ?? [];
-  const builtinCallout = refs
-    .map((br) => {
-      if (!br || br.total_tokens_in_window == null) return '';
-      const ratio = totalObs > 0 ? br.total_tokens_in_window / totalObs : null;
-      const ratioStr =
-        ratio != null
-          ? ratio >= 10
-            ? `${Math.round(ratio)}×`
-            : `${ratio.toFixed(1)}×`
-          : null;
-      const comparison = ratioStr
-        ? ` — <strong>${ratioStr}</strong> the entire custom-skill portfolio (~${fmt(totalObs)} observed)`
-        : '';
-      return `<div class="builtin-ref"><strong>${esc(br.label)}</strong> <em>(${esc(br.description)})</em>: ~${fmt(br.total_tokens_in_window)} tokens observed in ${br.measurement_window_days}d across ${br.invocations_in_window} invocations${comparison}. Projected ~${fmt(br.annual_total)}/yr.</div>`;
-    })
-    .join('\n');
+  const builtInsSection = refs.length === 0 ? '' : renderBuiltInsSection(refs);
 
   const aggregateRows = aggregate
     .map(
@@ -174,14 +193,7 @@ function buildHtml(data) {
           // --- Receipt / badge column ---
           let badgeContent;
           if (isMeasured) {
-            const lastInv = s.receipt.last_invoked;
-            let agoStr = '';
-            if (lastInv) {
-              // Negative if clock skew puts last_invoked in the future; renders as e.g. "-1d ago".
-              const days = Math.floor((Date.now() - new Date(lastInv)) / 86400000);
-              agoStr =
-                days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
-            }
+            const agoStr = daysAgo(s.receipt.last_invoked);
             badgeContent =
               'measured' + (agoStr ? `<br><span class="subtle">${esc(agoStr)}</span>` : '');
           } else {
@@ -249,17 +261,15 @@ function buildHtml(data) {
   .cmp-close { color: #2e7d32; font-weight: 600; }
   .cmp-off { color: #c2410c; font-weight: 600; }
   footer { color: #888; font-size: 8pt; margin-top: 18pt; }
-  /* Built-in /review callout: framed reference number above the Aggregate. */
-  .builtin-ref { border-left: 3px solid #c2410c; background: #fff7ed; padding: 6pt 10pt; margin: 8pt 0 14pt; font-size: 9pt; color: #1a1a1a; }
-  .builtin-ref strong { color: #c2410c; }
 </style>
 </head>
 <body>
 <h1>Skill registry — ${esc(generated)}</h1>
 <p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows tagged <span class="tag-measured">measured</span> show real token consumption from Claude Code transcripts (90-day window), with the annual figure projected linearly. Rows tagged <span class="tag-estimated">estimated</span> are author guesses parsed from each repo&rsquo;s docs/README. On measured rows, a third line compares the observed average to the author&rsquo;s prior estimate, e.g. <code>est. 4K &middot; 93&times; under</code>.</p>
 
+${builtInsSection}
+
 <h2>Aggregate</h2>
-${builtinCallout}
 <table class="aggregate">
   <thead><tr><th>Repo</th><th>Skills</th><th>Redirects</th><th>With receipts</th><th>Observed (90d)</th><th>Tokens / yr (proj.)</th></tr></thead>
   <tbody>
