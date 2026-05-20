@@ -7,6 +7,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const INSTALL_PREFIX = 'mikko-';
+const LIBRARY_REPO = 'claude-skills';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REG = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const USAGE = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-USAGE-LATEST.json');
@@ -31,13 +34,13 @@ const SESSION_TO_REPO = {
   'ac357e75-ba76-4889-af17-2d9295c3b5df': 'Spacepotatis',
   'c168355a-2563-4dbf-89bc-f36cc21f96aa': 'mikkonumminen.dev',
   '397c4ce8-dcec-4a2e-a4ce-c46cc23397ec': 'mikkonumminen.dev',
-  'de3894ce-bc85-4172-b059-a8a4077c594c': 'mikkonumminen.dev',
+  'de3894ce-bc85-4172-b059-a8a4077c594c': 'claude-skills',
 };
 
 // Skills that exist in the registry but should NOT be overlaid (built-in,
 // meta, or out-of-scope skills).
-const SKIP = new Set(['review', 'mikko-help', 'update-config', 'pre-push-scan',
-  'mikko-skill-usage', 'commit-then-scan', 'mikko-skills']);
+const SKIP = new Set(['review', 'update-config', 'pre-push-scan',
+  'commit-then-scan', 'mikko-skills']);
 
 const reg = JSON.parse(fs.readFileSync(REG, 'utf8'));
 const usage = JSON.parse(fs.readFileSync(USAGE, 'utf8'));
@@ -47,21 +50,47 @@ const report = [];
 
 for (const m of usage.skills) {
   if (SKIP.has(m.name)) continue;
-  // Use the first sample sessionId to pick the repo.
-  const repo = SESSION_TO_REPO[m.sample_session_ids?.[0]];
-  if (!repo) {
-    report.push(`SKIP ${m.name} — unknown session ${m.sample_session_ids?.[0]}`);
-    continue;
+
+  // Library-skill route: when the measured name starts with the install
+  // prefix, route to the claude-skills library before falling back to the
+  // session→repo lookup. Library skills run in any directory (they live in
+  // ~/.claude/skills/mikko-*), so the session-based heuristic mis-attributes
+  // them to whichever consumer repo they ran in.
+  let r = null;
+  let s = null;
+  if (m.name.startsWith(INSTALL_PREFIX)) {
+    const libRepo = reg.repos.find((x) => x.name === LIBRARY_REPO);
+    if (libRepo) {
+      // Try the prefixed name (for skills already named `mikko-*` in the
+      // library, e.g. `mikko-help`), then the stripped name (for skills
+      // installed as `mikko-<canonical>`, e.g. `mikko-audit` → `audit`).
+      const stripped = m.name.slice(INSTALL_PREFIX.length);
+      const candidates = [m.name, stripped];
+      const found = libRepo.skills.find((x) => candidates.includes(x.name));
+      if (found) {
+        r = libRepo;
+        s = found;
+      }
+    }
   }
-  const r = reg.repos.find((x) => x.name === repo);
-  if (!r) {
-    report.push(`SKIP ${m.name} — repo ${repo} not in registry`);
-    continue;
-  }
-  const s = r.skills.find((x) => x.name === m.name);
-  if (!s) {
-    report.push(`SKIP ${m.name} — not declared in ${repo}`);
-    continue;
+
+  if (!r || !s) {
+    // Use the first sample sessionId to pick the repo.
+    const repo = SESSION_TO_REPO[m.sample_session_ids?.[0]];
+    if (!repo) {
+      report.push(`SKIP ${m.name} — unknown session ${m.sample_session_ids?.[0]}`);
+      continue;
+    }
+    r = reg.repos.find((x) => x.name === repo);
+    if (!r) {
+      report.push(`SKIP ${m.name} — repo ${repo} not in registry`);
+      continue;
+    }
+    s = r.skills.find((x) => x.name === m.name);
+    if (!s) {
+      report.push(`SKIP ${m.name} — not declared in ${repo}`);
+      continue;
+    }
   }
   const oldAnnual = s.receipt?.annual_total ?? 0;
   // TODO (PR #122 review followup): when re-running against an already-
@@ -102,7 +131,7 @@ for (const m of usage.skills) {
     prior_estimate: priorEstimate,
   };
   overlaid++;
-  report.push(`OVERLAY ${repo}.${m.name}: ${oldAnnual} → ${m.annual_total}`);
+  report.push(`OVERLAY ${r.name}.${m.name}: ${oldAnnual} → ${m.annual_total}`);
 }
 
 // Recompute totals.
