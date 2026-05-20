@@ -85,7 +85,8 @@ function isCanonicalDuplicate(repo, skillName) {
 const reg = JSON.parse(fs.readFileSync(REG, 'utf8'));
 const usage = JSON.parse(fs.readFileSync(USAGE, 'utf8'));
 
-let overlaid = 0;
+let overlaid = 0;       // distinct (repo, skill) rows that received a fresh write this run
+let accumulated = 0;    // additional measurements layered onto a row that was already written
 const report = [];
 
 // Track which (repo, skill) receipts have already been written THIS run, so a
@@ -192,9 +193,9 @@ for (const m of usage.skills) {
   if (writtenThisRun.has(rowKey)) {
     // Accumulate: a prior measurement in this run already wrote this row
     // (e.g. both `audit` and `mikko-audit` landing on claude-skills.audit
-    // because CANONICAL_TO_LIBRARY routed them to the same target). Sum
+    // because CANONICAL_DUPLICATES routed them to the same target). Sum
     // invocations + tokens, recompute the per-use average weighted by
-    // invocations, and OR the projection forward.
+    // invocations, and sum projections forward.
     const prev = s.receipt;
     const prevInv = prev.invocations_in_window ?? 0;
     const prevTok = prev.total_tokens_in_window ?? 0;
@@ -205,6 +206,11 @@ for (const m of usage.skills) {
     const newAnnual = (prev.annual_total ?? 0) + (m.annual_total ?? 0);
     // Keep the latest last_invoked timestamp across the two measurements.
     const newLast = [prev.last_invoked, m.last_invoked].filter(Boolean).sort().pop();
+    // prior_estimate carries forward from the row's first write of this run
+    // — that's `prev.prior_estimate`, which captured the author estimate
+    // before any transcript-measurement overlay. Same value as the local
+    // `priorEstimate` computed above (both derived from `s.receipt`), so we
+    // pick one explicitly without the `??` fallback.
     s.receipt = {
       path: prev.path,
       source: 'transcript-measurement',
@@ -215,9 +221,9 @@ for (const m of usage.skills) {
       invocations_in_window: newInv,
       total_tokens_in_window: newTok,
       last_invoked: newLast,
-      prior_estimate: prev.prior_estimate ?? priorEstimate,
+      prior_estimate: prev.prior_estimate,
     };
-    overlaid++;
+    accumulated++;
     report.push(`ACCUMULATE ${r.name}.${s.name}: +${m.name} (${newInv} inv, ${newTok} tokens)`);
   } else {
     s.receipt = {
@@ -318,4 +324,5 @@ reg.generated_at = new Date().toISOString();
 fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');
 
 console.log(report.join('\n'));
-console.log(`\nOverlaid ${overlaid} skills. Dropped ${droppedDuplicates} canonical-to-library duplicate(s). New annual total: ${totalAnnual.toLocaleString()}`);
+const accumulatedSuffix = accumulated > 0 ? ` (+${accumulated} accumulation${accumulated === 1 ? '' : 's'} onto existing rows)` : '';
+console.log(`\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s). New annual total: ${totalAnnual.toLocaleString()}`);
