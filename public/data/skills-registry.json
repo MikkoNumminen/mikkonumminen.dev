@@ -1,56 +1,10 @@
 {
-  "generated_at": "2026-05-20T04:34:04.530Z",
+  "generated_at": "2026-05-20T22:36:20.393Z",
   "repos": [
     {
       "name": "AudiobookMaker",
       "github_url": "https://github.com/MikkoNumminen/AudiobookMaker",
       "skills": [
-        {
-          "name": "ai-codegen-smell-audit",
-          "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" — every finding must be a specific testable pattern with a concrete example, not a vibe.",
-          "redirect": false,
-          "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 199437,
-            "uses_per_year": 4,
-            "annual_total": 797748,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 199437,
-            "last_invoked": "2026-05-17T03:24:06.864Z",
-            "prior_estimate": {
-              "tokens_per_use": 5500,
-              "uses_per_year": 8,
-              "annual_total": 44000,
-              "source": "readme.md",
-              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
-          }
-        },
-        {
-          "name": "audit",
-          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews — see the \"When NOT to invoke\" section below.",
-          "redirect": false,
-          "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 434907,
-            "uses_per_year": 4,
-            "annual_total": 1739628,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 434907,
-            "last_invoked": "2026-05-19T15:20:19.354Z",
-            "prior_estimate": {
-              "tokens_per_use": 3500,
-              "uses_per_year": 8,
-              "annual_total": 28000,
-              "source": "readme.md",
-              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
-          }
-        },
         {
           "name": "ci-failure-triage",
           "description": "When CI fails on a release tag or PR, walk the failure modes in the right order against a recipe library built from the project's fix(ci) commit history. Use whenever the user says \"CI is red\", \"the build failed\", \"tag failed CI\", \"release-build broke\", or any time gh run list shows a recent failure on master or a release tag.",
@@ -93,7 +47,7 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 0,
+            "tokens_per_use": null,
             "uses_per_year": null,
             "annual_total": null
           }
@@ -105,9 +59,9 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 3500,
+            "tokens_per_use": 3000,
             "uses_per_year": 4,
-            "annual_total": 14000
+            "annual_total": 12000
           }
         },
         {
@@ -141,8 +95,8 @@
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
             "tokens_per_use": 6500,
-            "uses_per_year": 248,
-            "annual_total": 1612000
+            "uses_per_year": null,
+            "annual_total": null
           }
         },
         {
@@ -175,30 +129,6 @@
       "name": "Spacepotatis",
       "github_url": "https://github.com/MikkoNumminen/Spacepotatis",
       "skills": [
-        {
-          "name": "ai-codegen-smell-audit",
-          "description": "Read-only audit for 10 concrete failure modes that recur in AI-generated code (defensive checks on non-nullable types, paraphrase comments, single-use helpers, generic names in domain code, swallowed errors, mirror tests, phantom TODOs, duplicated helpers, over-typed primitives, intra-file style drift). Produces a markdown report under docs/audits/. Does not modify code. Designed for PR review and on-demand scans, not for use during initial generation.",
-          "redirect": false,
-          "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 10000,
-            "uses_per_year": 30,
-            "annual_total": 300000
-          }
-        },
-        {
-          "name": "audit",
-          "description": "Orchestrates the multi-phase modular-architecture audit + refactor. Phase 0 sets up agents; Phase 1 inventories every file; Phase 2 proposes module boundaries; Phase 3 mechanically extracts modules one at a time (parallelizable across worktrees); Phase 4 writes AI-first documentation; Phase 5 verifies. Each phase produces a written artifact under docs/audit/ and STOPS at a gate for user approval. Never auto-advances.",
-          "redirect": false,
-          "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 5000,
-            "uses_per_year": 5,
-            "annual_total": 25000
-          }
-        },
         {
           "name": "balance-review",
           "description": "Diff uncommitted changes to game data (weapons, enemies, waves, missions, perks, augments, loot pools, solar systems) and report DPS, TTK, energy-cost-per-DPS, augment-folded effective DPS, loot-pool roster shifts, and drop-rate deltas vs HEAD.",
@@ -251,10 +181,22 @@
             "prior_estimate": {
               "tokens_per_use": 4300,
               "uses_per_year": 56,
-              "annual_total": 240800,
+              "annual_total": 240000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             }
+          }
+        },
+        {
+          "name": "modular-architecture-audit",
+          "description": "Orchestrates the multi-phase modular-architecture audit + refactor. Phase 0 sets up agents; Phase 1 inventories every file; Phase 2 proposes module boundaries; Phase 3 mechanically extracts modules one at a time (parallelizable across worktrees); Phase 4 writes AI-first documentation; Phase 5 verifies. Each phase produces a written artifact under docs/audit/ and STOPS at a gate for user approval. Never auto-advances.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
+            "source": "docs/SKILLS.md",
+            "tokens_per_use": 5000,
+            "uses_per_year": 5,
+            "annual_total": 25000
           }
         },
         {
@@ -266,7 +208,7 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 5500,
             "uses_per_year": 25,
-            "annual_total": 137500
+            "annual_total": 138000
           }
         },
         {
@@ -348,7 +290,7 @@
         },
         {
           "name": "save-roundtrip-audit",
-          "description": "Pre-commit save-pipeline invariants check — walks every StateSnapshot field through the 8 layers of the save round-trip (snapshot interface → toSnapshot → POST schema → POST handler → DB column → migration → GET handler → RemoteSaveSchema → sync.loadSave → hydrate) and flags any layer that silently drops the field. Read-only.",
+          "description": "Pre-commit save-pipeline invariants check — walks every StateSnapshot field through the 8 layers of the save round-trip (snapshot interface -> toSnapshot -> POST schema -> POST handler -> DB column -> migration -> GET handler -> RemoteSaveSchema -> sync.loadSave -> hydrate) and flags any layer that silently drops the field. Read-only.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -368,18 +310,6 @@
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             }
           }
-        },
-        {
-          "name": "security-audit",
-          "description": "Orchestrates the multi-phase security audit + remediation. Phase 0 sets up agents; Phase 1 maps the full attack surface (entry points, auth, authz, input, secrets, data exposure, deps, transport, client, ops); Phase 2 turns findings into a prioritized remediation plan; Phase 3 fixes one finding at a time with regression tests (crit/high sequential, low/med parallelizable in worktrees); Phase 4 writes AI-first security documentation (SECURITY.md, threat model, invariants, code-level markers, lint rules); Phase 5 verifies. Each phase produces an artifact under docs/security/ and STOPS at a gate for user approval. Never auto-advances. Critical findings surface immediately.",
-          "redirect": false,
-          "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 5000,
-            "uses_per_year": 10,
-            "annual_total": 50000
-          }
         }
       ]
     },
@@ -387,6 +317,30 @@
       "name": "mikkonumminen.dev",
       "github_url": "https://github.com/MikkoNumminen/mikkonumminen.dev",
       "skills": [
+        {
+          "name": "md-to-pdf",
+          "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's `--print-to-pdf` flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
+          "redirect": false,
+          "receipt": {
+            "path": "https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master/README.md",
+            "source": "readme.md",
+            "tokens_per_use": 25000,
+            "uses_per_year": null,
+            "annual_total": null
+          }
+        },
+        {
+          "name": "skill-pdf",
+          "description": "One-command refresh of the skills-registry PDF. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce a deploy-ready `public/skills-registry.pdf`: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/`, (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says \"refresh the skills PDF\", \"rebuild the skill-registry PDF\", \"regenerate the skills-registry document\", \"publish the skills PDF\", or `/skill-pdf`. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.",
+          "redirect": false,
+          "receipt": {
+            "path": ".claude/skills/skill-pdf/SKILL.md",
+            "source": "skill-body",
+            "tokens_per_use": 82000,
+            "uses_per_year": 8,
+            "annual_total": 656000
+          }
+        },
         {
           "name": "skill-registry",
           "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
@@ -402,11 +356,11 @@
             "total_tokens_in_window": 82778,
             "last_invoked": "2026-05-19T01:54:26.339Z",
             "prior_estimate": {
-              "tokens_per_use": 95000,
+              "tokens_per_use": 85000,
               "uses_per_year": null,
               "annual_total": null,
-              "source": "skill-body",
-              "path": ".claude/skills/skill-registry/SKILL.md"
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master/README.md"
             }
           }
         },
@@ -443,13 +397,35 @@
           "name": "ai-codegen-smell-audit",
           "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" — every finding must be a specific testable pattern with a concrete example, not a vibe.",
           "redirect": false,
-          "receipt": null
+          "receipt": {
+            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
+            "source": "transcript-measurement",
+            "tokens_per_use": 199437,
+            "uses_per_year": 4,
+            "annual_total": 797748,
+            "measurement_window_days": 90,
+            "invocations_in_window": 1,
+            "total_tokens_in_window": 199437,
+            "last_invoked": "2026-05-17T03:24:06.864Z",
+            "prior_estimate": null
+          }
         },
         {
           "name": "audit",
           "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews — see the \"When NOT to invoke\" section below.",
           "redirect": false,
-          "receipt": null
+          "receipt": {
+            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
+            "source": "transcript-measurement",
+            "tokens_per_use": 552694,
+            "uses_per_year": 8,
+            "annual_total": 4421552,
+            "measurement_window_days": 90,
+            "invocations_in_window": 2,
+            "total_tokens_in_window": 1105388,
+            "last_invoked": "2026-05-20T05:06:26.454Z",
+            "prior_estimate": null
+          }
         },
         {
           "name": "mikko-audit-suite",
@@ -464,13 +440,13 @@
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
-            "tokens_per_use": 16651,
-            "uses_per_year": 4,
-            "annual_total": 66604,
+            "tokens_per_use": 643859,
+            "uses_per_year": 8,
+            "annual_total": 5150872,
             "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 16651,
-            "last_invoked": "2026-05-20T00:42:15.473Z",
+            "invocations_in_window": 2,
+            "total_tokens_in_window": 1287718,
+            "last_invoked": "2026-05-20T22:26:16.795Z",
             "prior_estimate": null
           }
         },
@@ -505,13 +481,13 @@
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
-            "tokens_per_use": 5102,
-            "uses_per_year": 4,
-            "annual_total": 20408,
+            "tokens_per_use": 13259,
+            "uses_per_year": 8,
+            "annual_total": 106072,
             "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 5102,
-            "last_invoked": "2026-05-20T00:56:33.279Z",
+            "invocations_in_window": 2,
+            "total_tokens_in_window": 26518,
+            "last_invoked": "2026-05-20T22:26:56.382Z",
             "prior_estimate": null
           }
         }
@@ -519,10 +495,10 @@
     }
   ],
   "totals": {
-    "skills": 35,
+    "skills": 33,
     "redirects": 1,
     "with_receipts": 27,
-    "annual_tokens_saved": 11359968
+    "annual_tokens_saved": 17904324
   },
   "built_in_references": [
     {
@@ -530,12 +506,12 @@
       "label": "/review",
       "description": "Claude Code built-in PR code review",
       "measurement_window_days": 90,
-      "invocations_in_window": 12,
-      "total_tokens_in_window": 13661361,
-      "tokens_per_use_avg": 1138447,
-      "annual_total": 55783903,
-      "uses_per_year": 49,
-      "last_invoked": "2026-05-20T00:56:15.870Z"
+      "invocations_in_window": 13,
+      "total_tokens_in_window": 14261912,
+      "tokens_per_use_avg": 1097070,
+      "annual_total": 58144710,
+      "uses_per_year": 53,
+      "last_invoked": "2026-05-20T22:20:08.798Z"
     }
   ]
 }
