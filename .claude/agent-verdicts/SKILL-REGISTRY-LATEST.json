@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-20T22:35:38.962Z",
+  "generated_at": "2026-05-20T23:05:35.477Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -60,9 +60,9 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": null,
-            "uses_per_year": null,
-            "annual_total": null
+            "tokens_per_use": 1500,
+            "uses_per_year": 0,
+            "annual_total": 0
           }
         },
         {
@@ -176,7 +176,7 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 4300,
             "uses_per_year": 56,
-            "annual_total": 240000
+            "annual_total": 240800
           }
         },
         {
@@ -200,7 +200,7 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 5500,
             "uses_per_year": 25,
-            "annual_total": 138000
+            "annual_total": 137500
           }
         },
         {
@@ -307,8 +307,8 @@
             "path": "https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master/README.md",
             "source": "readme.md",
             "tokens_per_use": 25000,
-            "uses_per_year": null,
-            "annual_total": null
+            "uses_per_year": 10,
+            "annual_total": 250000
           }
         },
         {
@@ -318,9 +318,9 @@
           "receipt": {
             "path": ".claude/skills/skill-pdf/SKILL.md",
             "source": "skill-body",
-            "tokens_per_use": 82000,
-            "uses_per_year": 8,
-            "annual_total": 656000
+            "tokens_per_use": 81000,
+            "uses_per_year": null,
+            "annual_total": null
           }
         },
         {
@@ -340,9 +340,9 @@
           "description": "Audit project data against sibling repos' READMEs and open a PR with drift corrections. Runs parallel Sonnet diff agents (one per sibling repo), synthesizes drift, applies en+fi+sv corrections plus tech-list updates, and lands a PR for review on GitHub.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/agent-verdicts/README-SYNC-AGENT.md",
-            "source": "agent-verdicts/README-SYNC-AGENT.md",
-            "tokens_per_use": 141080,
+            "path": "https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master/README.md",
+            "source": "readme.md",
+            "tokens_per_use": 150000,
             "uses_per_year": null,
             "annual_total": null
           }
@@ -375,18 +375,7 @@
           "name": "mikko-help",
           "description": "List every installed `mikko-*` skill with its description (or with its `barney:` field when `--barney` is passed). The fast answer to \"I know I have a skill for this but can't remember which one\" / \"what mikko skills do I have\" / \"list my skills\" / \"remind me what's installed.\" Pass `--detect` for codebase-aware audit recommendations (\"which audit should I run on this repo\" / \"what's relevant for this codebase\"). Pass `--barney` for plain-English short descriptions (\"give me the friendly version\" / \"plain-English list\"). `--detect` and `--barney` combine independently. No sub-agents, no network, no measurements — just a table. Full mode docs live in the body's \"Flags\" section.",
           "redirect": false,
-          "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 16651,
-            "uses_per_year": 4,
-            "annual_total": 66604,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 16651,
-            "last_invoked": "2026-05-20T00:42:15.473Z",
-            "prior_estimate": null
-          }
+          "receipt": null
         },
         {
           "name": "mikko-install",
@@ -416,18 +405,7 @@
           "name": "skill-usage",
           "description": "Measure actual Claude Code skill usage from local transcript JSONL files. Walks `~/.claude/projects/*/*.jsonl` (and their `subagents/*.jsonl` sidechain files), filters assistant messages by the harness-emitted `attributionSkill` field, groups invocations by `(sessionId, skill)`, sums tokens deduped by `requestId`. Emits a dated `SKILL-USAGE-{YYYY-MM-DD}.json` with per-skill measured invocation counts and token totals. Designed to replace the editorial estimates in skill catalogs (`docs/SKILLS.md`, registry verdicts) with real receipts.",
           "redirect": false,
-          "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 5102,
-            "uses_per_year": 4,
-            "annual_total": 20408,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 5102,
-            "last_invoked": "2026-05-20T00:56:33.279Z",
-            "prior_estimate": null
-          }
+          "receipt": null
         }
       ]
     }
@@ -435,21 +413,7 @@
   "totals": {
     "skills": 37,
     "redirects": 1,
-    "with_receipts": 29,
-    "annual_tokens_saved": 4019012
-  },
-  "built_in_references": [
-    {
-      "name": "review",
-      "label": "/review",
-      "description": "Claude Code built-in PR code review",
-      "measurement_window_days": 90,
-      "invocations_in_window": 12,
-      "total_tokens_in_window": 13661361,
-      "tokens_per_use_avg": 1138447,
-      "annual_total": 55783903,
-      "uses_per_year": 49,
-      "last_invoked": "2026-05-20T00:56:15.870Z"
-    }
-  ]
+    "with_receipts": 27,
+    "annual_tokens_saved": 3526300
+  }
 }
