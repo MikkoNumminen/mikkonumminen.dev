@@ -44,18 +44,30 @@ function buildHtml(data) {
       const rows = r.skills
         .map((s) => {
           const tpu = s.receipt?.tokens_per_use ? fmt(s.receipt.tokens_per_use) : '—';
-          const upy = s.receipt?.uses_per_year ?? '—';
+          // For transcript-measured rows, append the measurement window so the
+          // reader can see whether "4 / yr" is a 90-day extrapolation or a
+          // 365-day count.
+          const upyVal = s.receipt?.uses_per_year;
+          const upy =
+            upyVal != null
+              ? s.receipt?.measurement_window_days
+                ? `${upyVal} <span class="window">(${s.receipt.measurement_window_days}d)</span>`
+                : String(upyVal)
+              : '—';
           const tot = s.receipt?.annual_total ? `~${fmt(s.receipt.annual_total)}` : '—';
+          const isMeasured = s.receipt?.source === 'transcript-measurement';
           // Local-path receipts (e.g. `.claude/agent-verdicts/X.md`) don't
           // resolve from inside a PDF viewer, so render them as plain
           // source-label text. Only http(s) URLs become clickable.
+          const receiptLabel = isMeasured ? 'measured' : s.receipt?.source;
           const receipt = s.receipt
             ? isSafeHref(s.receipt.path)
-              ? `<a href="${esc(s.receipt.path)}">${esc(s.receipt.source)}</a>`
-              : esc(s.receipt.source)
+              ? `<a href="${esc(s.receipt.path)}">${esc(receiptLabel)}</a>`
+              : esc(receiptLabel)
             : '—';
           const name = `<strong>${esc(s.name)}</strong>${s.redirect ? ' <em>(redirect)</em>' : ''}`;
-          return `<tr><td>${name}</td><td class="desc">${esc(s.description)}</td><td>${tpu}</td><td>${upy}</td><td>${tot}</td><td>${receipt}</td></tr>`;
+          const rowClass = isMeasured ? ' class="measured"' : '';
+          return `<tr${rowClass}><td>${name}</td><td class="desc">${esc(s.description)}</td><td>${tpu}</td><td>${upy}</td><td>${tot}</td><td>${receipt}</td></tr>`;
         })
         .join('\n');
       const url =
@@ -94,12 +106,17 @@ function buildHtml(data) {
   a { color: #0a66c2; text-decoration: none; }
   hr { border: none; border-top: 1px solid #ccc; margin: 16pt 0; }
   .totals-row td { font-weight: 700; background: #f9f9f9; }
+  /* Rows with transcript-measured receipts get a subtle green left edge so
+     the reader can tell measured rows from author-estimated ones at a glance. */
+  tr.measured td:first-child { border-left: 3px solid #2e7d32; }
+  tr.measured td:last-child a, tr.measured td:last-child { color: #2e7d32; font-weight: 600; }
+  .window { color: #777; font-weight: 400; font-size: 7.5pt; }
   footer { color: #888; font-size: 8pt; margin-top: 18pt; }
 </style>
 </head>
 <body>
 <h1>Skill registry — ${esc(generated)}</h1>
-<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Token figures are author-estimated, not measured — trace each row to its receipt.</p>
+<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows marked <span style="color:#2e7d32;font-weight:600">measured</span> are derived from real Claude Code transcripts (<code>attributionSkill</code>); other rows are author-estimated. Trace each row to its receipt.</p>
 
 <h2>Aggregate</h2>
 <table class="aggregate">
