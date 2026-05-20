@@ -14,6 +14,14 @@ const USAGE = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-USAGE-LATEST.j
 // Sample-sessionId → repo lookup. Sessions live under
 // ~/.claude/projects/<dir>/<sessionId>.jsonl; each <dir> maps to one repo.
 // Verified manually for the 2026-05-20 90-day window.
+//
+// TODO (PR #122 review followup): this map rots — sessionIds from future
+// scanner runs won't be here and will silently skip with "unknown session".
+// Two fixes, in increasing cleanliness:
+//   (a) derive the mapping at runtime by checking which
+//       `~/.claude/projects/<dir>/<sessionId>.jsonl` file exists, OR
+//   (b) add a `repo` field to each row in SKILL-USAGE-LATEST.json upstream in
+//       skill-usage/scan.mjs (canonical fix — removes this map entirely).
 const SESSION_TO_REPO = {
   '3b219a03-2024-4372-b270-a13237480b7e': 'AudiobookMaker',
   '6e537f60-3404-4bc0-b9c9-fd3d1a6c340d': 'AudiobookMaker',
@@ -56,6 +64,11 @@ for (const m of usage.skills) {
     continue;
   }
   const oldAnnual = s.receipt?.annual_total ?? 0;
+  // TODO (PR #122 review followup): when re-running against an already-
+  // overlaid registry, log "REPLACING measured receipt" so hand-edits aren't
+  // silently clobbered. Also: this loop picks the first sample sessionId; if
+  // a skill ever has invocations in two repos within the same window, only
+  // the first repo's row is overlaid — detect and warn.
   s.receipt = {
     path: '.claude/agent-verdicts/SKILL-USAGE-LATEST.json',
     source: 'transcript-measurement',
@@ -75,6 +88,11 @@ let totalAnnual = 0;
 let withReceipts = 0;
 let totalSkills = 0;
 let redirects = 0;
+// TODO (PR #122 review followup): `withReceipts` here counts any receipt
+// object; the PDF aggregate column in build-skills-pdf.mjs counts only
+// receipts with annual_total != null. Pick one definition and align both
+// — recommendation is the stricter check, since "receipt with no number"
+// isn't a receipt that saves anything.
 for (const r of reg.repos) {
   for (const s of r.skills) {
     totalSkills++;
