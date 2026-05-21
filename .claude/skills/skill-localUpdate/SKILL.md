@@ -1,28 +1,41 @@
 ---
-name: skill-pdf
-description: One-command refresh of the skills-registry PDF. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce a deploy-ready `public/skills-registry.pdf`: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/`, (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says "refresh the skills PDF", "rebuild the skill-registry PDF", "regenerate the skills-registry document", "publish the skills PDF", or `/skill-pdf`. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.
-barney: One command to refresh the skills-registry PDF after you've run /mikko-skill-usage. Re-walks the inventory, merges measurements, builds the PDF — you commit when it looks right.
+name: skill-localUpdate
+description: Refresh every local artifact the site renders about your portfolio skills — the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF — in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says "refresh the local skills data", "rebuild the skill-registry PDF", "regenerate the skills data and PDF", "update the local skills numbers", "publish the skills PDF", "/skill-localUpdate", or refers to refreshing what the contact page or the downloadable PDF shows. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.
+barney: One command to refresh every local skills artifact the site reads — the /contact terminal's data, the measurement-merged inventory, and the downloadable PDF. Run after /mikko-skill-usage so fresh measurements land everywhere at once.
 ---
 
-# skill-pdf
+# skill-localUpdate
 
-The thin orchestrator that wraps the five-step PDF chain (one pre-flight + four sequenced actions) into one slash command. Assumes `/mikko-skill-usage` has already written a fresh `SKILL-USAGE-LATEST.json` — this skill takes it from there.
+The thin orchestrator that wraps the five-step refresh chain (one pre-flight + four sequenced actions) into one slash command. The same chain feeds three site surfaces from one source of truth: the contact-page terminal's `skills` command, the downloadable PDF, and the dated registry snapshot. Assumes `/mikko-skill-usage` has already written a fresh `SKILL-USAGE-LATEST.json` — this skill takes it from there.
 
 ## When to invoke
 
-- "/skill-pdf"
-- "refresh the skills PDF"
+- "/skill-localUpdate"
+- "refresh the local skills data"
 - "rebuild the skill-registry PDF"
 - "regenerate the skills-registry document"
+- "update the local skills numbers"
 - "publish the skills PDF"
-- After running `/mikko-skill-usage` and wanting to see the new numbers reflected in the deployed artifact
+- After running `/mikko-skill-usage` and wanting the new numbers reflected on the deployed surfaces (the contact-page terminal's `skills` output and the downloadable PDF)
 
 ## When NOT to invoke
 
 - **Before running `/mikko-skill-usage`.** This skill consumes the JSON that `/mikko-skill-usage` produces; if the file is missing the chain bails with a clear message.
 - **In CI / on Vercel.** `scripts/build-skills-pdf.mjs` already short-circuits in those environments — the committed PDF stays canonical on hosted builds. Run this locally only.
 - **For generic markdown-to-PDF.** That's `/md-to-pdf`.
-- **As a substitute for the skill-registry skill itself.** This skill *invokes* `/skill-registry` as step 2 of the chain; it does not replace it. If you want only the inventory refresh without the PDF, run `/skill-registry` directly.
+- **As a substitute for the skill-registry skill itself.** This skill *invokes* `/skill-registry` as step 2 of the chain; it does not replace it. If you want only the inventory refresh without the rest, run `/skill-registry` directly.
+
+## Site surfaces this chain feeds
+
+Three places on the deployed site read from the artifacts this chain produces. One invocation refreshes all of them:
+
+| Surface | Reads | When the surface updates |
+| --- | --- | --- |
+| `/contact` terminal's `skills` command | `public/data/skills-registry.json` (fetched at runtime via `src/lib/terminal/skills.ts`) | On next page load / cache expiry — no rebuild needed once the JSON is committed |
+| `download --skills` (terminal) | `public/skills-registry.pdf` | On next page load — same as above |
+| Dated registry snapshot | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `LATEST.json` | Persistent inventory history for other Claude sessions to read |
+
+That's why this skill is named `skill-localUpdate` rather than `skill-pdf` (renamed 2026-05-21): the PDF is one of three outputs, not the headline.
 
 ## What this skill does
 
@@ -32,7 +45,7 @@ One pre-flight check + four sequenced actions, with the chain bailing on the fir
 | --- | --- | --- | --- |
 | 1 | Pre-flight | `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` | (nothing — verifies the file exists and is fresh enough) |
 | 2 | `/skill-registry` | `D:/koodaamista/*/.claude/skills/*/SKILL.md` (every sibling repo) | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `SKILL-REGISTRY-LATEST.json` |
-| 3 | `npm run sync:skills-registry` | `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` | `public/data/skills-registry.json` (in-place copy of the latest dated JSON) |
+| 3 | `npm run sync:skills-registry` | `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` | `public/data/skills-registry.json` (in-place copy of the latest dated JSON — **what the /contact terminal reads**) |
 | 4 | `node scripts/apply-measurement-overlay.mjs` | `SKILL-USAGE-LATEST.json` + `public/data/skills-registry.json` | `public/data/skills-registry.json` (in-place — measurements merged, canonical duplicates dropped) |
 | 5 | `npm run build:skills-pdf` | `public/data/skills-registry.json` | `public/skills-registry.pdf` |
 
@@ -49,7 +62,7 @@ End-to-end on a small portfolio: ~30–60s wall-clock, dominated by step 2's par
 ```
 error: no SKILL-USAGE-LATEST.json found at .claude/agent-verdicts/.
        Run /mikko-skill-usage from inside mikkonumminen.dev/ first to
-       gather token measurements, then re-run /skill-pdf.
+       gather token measurements, then re-run /skill-localUpdate.
        (If you ran /mikko-skill-usage in a different repo, the JSON
        landed there — either re-run it here or copy the file across.)
 ```
@@ -57,9 +70,9 @@ error: no SKILL-USAGE-LATEST.json found at .claude/agent-verdicts/.
 If the file's `generated_at` timestamp is older than 14 days, warn but proceed:
 
 ```
-warning: SKILL-USAGE-LATEST.json is N days old. The PDF will reflect
-         a stale measurement window. Consider re-running /mikko-skill-usage
-         first for a fresh snapshot.
+warning: SKILL-USAGE-LATEST.json is N days old. The deployed surfaces will
+         reflect a stale measurement window. Consider re-running
+         /mikko-skill-usage first for a fresh snapshot.
 ```
 
 (14 days is a sensible default for a portfolio that gets light-to-moderate activity — picks up after a long break, doesn't nag on a daily refresh.)
@@ -74,7 +87,7 @@ Invoke the existing `/skill-registry` skill. It walks every sibling repo under `
 npm run sync:skills-registry
 ```
 
-That npm script wraps `node scripts/sync-skill-registry.mjs` and copies the latest dated JSON from `.claude/agent-verdicts/` into `public/data/skills-registry.json`. The prebuild hook (`npm run prebuild`) does this automatically on every `npm run build`, but this skill runs it explicitly so the overlay in step 4 operates on the up-to-date file (we don't call `npm run build` end-to-end here — see step 5's note).
+That npm script wraps `node scripts/sync-skill-registry.mjs` and copies the latest dated JSON from `.claude/agent-verdicts/` into `public/data/skills-registry.json`. This is the file the contact-page terminal's `skills` command fetches at runtime — committing it ships the new numbers to the deployed site. The prebuild hook (`npm run prebuild`) does this automatically on every `npm run build`, but this skill runs it explicitly so the overlay in step 4 operates on the up-to-date file (we don't call `npm run build` end-to-end here — see step 5's note).
 
 ### 4. Apply the measurement overlay
 
@@ -86,7 +99,7 @@ This script:
 - Reads `SKILL-USAGE-LATEST.json` (measurements) + `public/data/skills-registry.json` (inventory)
 - Overlays transcript-measured token figures onto each matching `(repo, skill)` row
 - Re-routes non-prefixed measurements (e.g. `attributionSkill: "audit"`) into their canonical library row via `CANONICAL_DUPLICATES`, accumulating when both a prefixed and non-prefixed measurement land on the same row
-- Filters consumer-repo skills lists to drop library-canonical duplicates so the PDF shows one row per canonical skill
+- Filters consumer-repo skills lists to drop library-canonical duplicates so the deployed surfaces show one row per canonical skill
 - Recomputes totals
 - Writes the merged registry back to `public/data/skills-registry.json` in-place
 
@@ -106,21 +119,21 @@ This runs `scripts/build-skills-pdf.mjs`. It:
 
 CI / Vercel detection: the script short-circuits if it sees the CI / VERCEL env vars or if Chrome isn't on PATH. Locally, on a dev machine with Chrome installed, it runs.
 
-Note: we call `build:skills-pdf` directly rather than `npm run build` so we don't run the full Astro site build for a PDF-only refresh. The prebuild hook would also run the sync step (already done in step 3), so going through `build` would duplicate work without changing the output.
+Note: we call `build:skills-pdf` directly rather than `npm run build` so we don't run the full Astro site build for a data-only refresh. The prebuild hook would also run the sync step (already done in step 3), so going through `build` would duplicate work without changing the output.
 
 ### 6. Report + stop
 
 Print a four-line summary:
 
 ```
-skill-pdf — refreshed:
+skill-localUpdate — refreshed:
   inventory:   .claude/agent-verdicts/SKILL-REGISTRY-{date}.json
-  data:        public/data/skills-registry.json
-  pdf:         public/skills-registry.pdf  (regenerated)
+  data:        public/data/skills-registry.json   ← /contact terminal reads this
+  pdf:         public/skills-registry.pdf          ← download --skills serves this
 
 Open public/skills-registry.pdf to review. Commit when ready:
   git add public/data/skills-registry.json public/skills-registry.pdf .claude/agent-verdicts/SKILL-REGISTRY-*
-  git commit -m "chore(skills): refresh skill-registry data + PDF"
+  git commit -m "chore(skills): refresh local skill artifacts"
 ```
 
 **Stop.** Do not commit. Do not push. The user reviews the PDF visually and commits when ready.
@@ -151,7 +164,7 @@ Done. Review the PDF and commit when ready.
 
 - **`SKILL-USAGE-LATEST.json` missing.** Step 1 bails with a clear "run /mikko-skill-usage first" message. Exit cleanly.
 - **`/skill-registry` returns a malformed inventory.** The overlay script will surface schema mismatches (`SKIP <name> — repo not in registry`, etc.) — surface those to the user; do not silently swallow.
-- **Chrome not on PATH (step 5).** `build-skills-pdf.mjs` already prints "no Chrome / Chromium on PATH — leaving existing PDF in place" and exits 0. The skill reports the existing PDF was kept rather than failing the run.
+- **Chrome not on PATH (step 5).** `build-skills-pdf.mjs` already prints "no Chrome / Chromium on PATH — leaving existing PDF in place" and exits 0. The skill reports the existing PDF was kept rather than failing the run. Note that steps 1-4 still landed, so the /contact terminal's data is refreshed even when the PDF isn't.
 - **PDF render succeeds but visual layout is wrong.** This skill cannot detect that. The Step 5 hint to "open the PDF to review" is the human gate.
 
 ## Token expectations
@@ -167,10 +180,10 @@ Most model tokens go to step 2 (`/skill-registry` parallel sub-agents). Most wal
 
 Total: ~80–85K tokens per invocation, dominated by `/skill-registry`. Wall-clock ~30–60s (parallel agents + render).
 
-Cadence: per portfolio refresh — when you've shipped new skills, calibrated existing ones, or just want the deployed numbers to match the current measurements. Realistically 4–12 times/year.
+Cadence: per portfolio refresh — when you've shipped new skills, calibrated existing ones, or just want the deployed surfaces (terminal + PDF) to match the current measurements. Realistically 4–12 times/year.
 
 ## Why this skill exists
 
-The four-step chain (registry → sync → overlay → PDF) used to be four separate manual commands, each easy to forget or run out of order. Empirically, the failure mode was: someone runs the overlay against a stale `skills-registry.json` (forgot to re-run `/skill-registry`), or builds the PDF against an un-overlaid JSON (forgot the overlay). Both produce a plausible-looking but wrong PDF.
+The four-step chain (registry → sync → overlay → PDF) used to be four separate manual commands, each easy to forget or run out of order. Empirically, the failure mode was: someone runs the overlay against a stale `skills-registry.json` (forgot to re-run `/skill-registry`), or builds the PDF against an un-overlaid JSON (forgot the overlay). Both produce a plausible-looking but wrong artifact — either a stale terminal table or a PDF that doesn't match what the terminal shows.
 
-This skill removes that risk by sequencing the chain. One slash command, four operations, in the right order, with a pre-flight that confirms the measurement step happened first. If you ever change the chain (add a new step, swap the overlay for something else), this is the single file to update.
+This skill removes that risk by sequencing the chain. One slash command, four operations, in the right order, with a pre-flight that confirms the measurement step happened first. The 2026-05-21 rename from `/skill-pdf` to `/skill-localUpdate` reflects that the PDF is one of three site surfaces this chain touches, not the headline output. If you ever change the chain (add a new step, swap the overlay for something else), this is the single file to update.

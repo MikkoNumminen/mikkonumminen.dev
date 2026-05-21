@@ -21,7 +21,7 @@ NOT for: editing skills, validating skill correctness, measuring actual run-time
 
 1. **Main thread** enumerates `D:/koodaamista/*/.claude/skills/*/SKILL.md` plus `D:/koodaamista/claude-skills/skills/*/SKILL.md` (library layout — no `.claude/` prefix) and groups paths by repo.
 2. **Dispatches one Sonnet sub-agent per repo in parallel** (all in a single message) — each agent reads the YAML frontmatter (`name`, `description`) of every SKILL.md in its repo, classifies redirects from the description, locates a token-savings receipt from `docs/SKILLS.md` / `agent-verdicts/*-AGENT.md` / the SKILL.md body, and returns a structured per-repo JSON blob.
-3. **Main thread aggregates** the per-repo blobs into the final document, computes `totals`, validates the arithmetic. Editorial-only — no transcript-measurement overlay happens in this skill (that's a separate step in the `/skill-pdf` chain).
+3. **Main thread aggregates** the per-repo blobs into the final document, computes `totals`, validates the arithmetic. Editorial-only — no transcript-measurement overlay happens in this skill (that's a separate step in the `/skill-localUpdate` chain).
 4. Writes `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` and prints the path.
 5. If the report introduces new findings or supersedes a prior dated report, commits and pushes it as a fresh registry snapshot — the JSON is the canonical "what skills the portfolio operates today" document, and other Claude sessions read it without re-running.
 
@@ -128,7 +128,7 @@ Validate that `totals.annual_tokens_saved` equals the sum of all `receipt.annual
 
 **Post-process: strip HTML entities.** Sonnet sub-agents have repeatedly returned descriptions with `&lt;` / `&gt;` / `&amp;` despite explicit "no HTML entities" instructions in the agent prompt. The convention text alone is insufficient. As defense-in-depth, before writing the aggregated JSON, replace `&lt;` → `<`, `&gt;` → `>`, `&amp;` → `&` across every `description` field. This is mechanical and safe — JSON strings never legitimately contain HTML entities.
 
-**Transcript-measurement overlay:** this step is intentionally NOT done here. The `/skill-pdf` chain runs `scripts/apply-measurement-overlay.mjs` as a separate step after `/skill-registry` writes the inventory — that script handles the measurement overlay with proper `prior_estimate` snapshotting, `mikko-` prefix routing, and library-canonical accumulation. `/skill-registry` produces editorial-only receipts; measurements land later in the chain.
+**Transcript-measurement overlay:** this step is intentionally NOT done here. The `/skill-localUpdate` chain runs `scripts/apply-measurement-overlay.mjs` as a separate step after `/skill-registry` writes the inventory — that script handles the measurement overlay with proper `prior_estimate` snapshotting, `mikko-` prefix routing, and library-canonical accumulation. `/skill-registry` produces editorial-only receipts; measurements land later in the chain.
 
 ### 4. Emit the report
 
@@ -190,7 +190,7 @@ If the report introduces new findings or supersedes a prior dated report, commit
 - `annual_total` should equal `tokens_per_use × uses_per_year` whenever both are present; if only the annual figure is known directly (e.g. extracted from a docs/SKILLS.md "Total" column), per-use and per-year can stay `null`.
 - `path` for Spacepotatis-style receipts is the GitHub URL to `docs/SKILLS.md`; for local-only verdicts it is the relative path (e.g. `.claude/agent-verdicts/README-SYNC-AGENT.md`).
 - `redirect: true` rows have `receipt: null` and are excluded from `with_receipts` and `annual_tokens_saved` totals.
-- `transcript-measurement` is a valid `source` value in downstream artifacts (the registry JSON as published in `public/data/skills-registry.json`), but `/skill-registry` itself never writes it — `scripts/apply-measurement-overlay.mjs` adds those receipts in a later step of the `/skill-pdf` chain, preserving the editorial figure as a `prior_estimate` snapshot. The schema lists `transcript-measurement` so consumers know what to expect after the overlay runs.
+- `transcript-measurement` is a valid `source` value in downstream artifacts (the registry JSON as published in `public/data/skills-registry.json`), but `/skill-registry` itself never writes it — `scripts/apply-measurement-overlay.mjs` adds those receipts in a later step of the `/skill-localUpdate` chain, preserving the editorial figure as a `prior_estimate` snapshot. The schema lists `transcript-measurement` so consumers know what to expect after the overlay runs.
 
 A human-readable view can be rendered from this JSON by any consumer (Claude session, dashboard, script). The JSON is the source of truth; renderings are derived.
 

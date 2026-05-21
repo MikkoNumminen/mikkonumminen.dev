@@ -46,6 +46,18 @@ const SESSION_TO_REPO = {
 const SKIP = new Set(['review', 'update-config', 'pre-push-scan',
   'commit-then-scan', 'mikko-skills']);
 
+// Skills renamed after measurements were recorded. Old-name measurements in
+// SKILL-USAGE-LATEST.json need to attribute to the renamed registry row;
+// without this map they fall through unmatched and the historical signal
+// disappears from rendered totals. Keyed by old name → new name. The alias
+// applies before either the INSTALL_PREFIX or session-to-repo routing
+// branches, so all downstream matching sees the canonical (current) name.
+// Retire entries here once the corresponding old-name measurements have
+// rolled out of the window (~90 days post-rename).
+const RENAMED_SKILLS = {
+  'skill-pdf': 'skill-localUpdate', // renamed 2026-05-21 (PR #141)
+};
+
 // Per-(consumer-repo, skill-name) pairs where the consumer-repo copy is
 // effectively the same skill as the claude-skills library copy. Listed
 // explicitly per-repo because the same skill NAME can mean different things
@@ -99,6 +111,14 @@ const writtenThisRun = new Set();
 
 for (const m of usage.skills) {
   if (SKIP.has(m.name)) continue;
+
+  // Apply rename aliases before any routing branch so historical measurements
+  // tagged with the pre-rename name attribute to the renamed registry row.
+  // Mutating m.name in-place is fine — usage.skills is a parsed JSON array,
+  // not shared state, and downstream branches all consult m.name.
+  if (RENAMED_SKILLS[m.name]) {
+    m.name = RENAMED_SKILLS[m.name];
+  }
 
   // Library-skill route: when the measured name starts with the install
   // prefix, route to the claude-skills library before falling back to the
