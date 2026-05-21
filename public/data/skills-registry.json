@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-21T02:09:36.194Z",
+  "generated_at": "2026-05-21T22:40:47.096Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -12,9 +12,9 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 1900,
+            "tokens_per_use": 1000,
             "uses_per_year": 89,
-            "annual_total": 169100
+            "annual_total": 89000
           }
         },
         {
@@ -32,7 +32,7 @@
             "total_tokens_in_window": 13881,
             "last_invoked": "2026-05-12T03:01:51.715Z",
             "prior_estimate": {
-              "tokens_per_use": 3100,
+              "tokens_per_use": 3000,
               "uses_per_year": 0,
               "annual_total": 0,
               "source": "readme.md",
@@ -47,7 +47,7 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 1800,
+            "tokens_per_use": null,
             "uses_per_year": null,
             "annual_total": null
           }
@@ -59,9 +59,9 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 3800,
+            "tokens_per_use": 3000,
             "uses_per_year": 4,
-            "annual_total": 15200
+            "annual_total": 12000
           }
         },
         {
@@ -79,9 +79,9 @@
             "total_tokens_in_window": 188263,
             "last_invoked": "2026-05-12T02:05:50.511Z",
             "prior_estimate": {
-              "tokens_per_use": 1700,
+              "tokens_per_use": null,
               "uses_per_year": 81,
-              "annual_total": 137700,
+              "annual_total": null,
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
             }
@@ -94,7 +94,7 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 6200,
+            "tokens_per_use": 6500,
             "uses_per_year": null,
             "annual_total": null
           }
@@ -106,7 +106,7 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 1700,
+            "tokens_per_use": 2000,
             "uses_per_year": null,
             "annual_total": null
           }
@@ -118,7 +118,7 @@
           "receipt": {
             "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
             "source": "readme.md",
-            "tokens_per_use": 1300,
+            "tokens_per_use": 800,
             "uses_per_year": null,
             "annual_total": null
           }
@@ -181,7 +181,7 @@
             "prior_estimate": {
               "tokens_per_use": 4300,
               "uses_per_year": 56,
-              "annual_total": 240800,
+              "annual_total": 240000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             }
@@ -208,7 +208,7 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 5500,
             "uses_per_year": 25,
-            "annual_total": 137500
+            "annual_total": 138000
           }
         },
         {
@@ -390,9 +390,9 @@
             "total_tokens_in_window": 1287718,
             "last_invoked": "2026-05-20T22:26:16.795Z",
             "prior_estimate": {
-              "tokens_per_use": 7000,
+              "tokens_per_use": 6500,
               "uses_per_year": 50,
-              "annual_total": 350000,
+              "annual_total": 325000,
               "source": "skill-body",
               "path": "skills/mikko-help/SKILL.md"
             }
@@ -403,11 +403,22 @@
           "description": "Install, update, list, or uninstall `mikko-*` skills from the cloned `claude-skills` source repo into the user-wide skill directory (`~/.claude/skills/mikko-*`). Wraps the existing `install-mikko.sh` and `install.sh` scripts so the install loop is reachable from inside any Claude Code session via a slash command — no need to leave the conversation, find the repo, and run bash by hand. Use whenever the user says \"install the mikko skills\", \"install everything\", \"add mikko-readme-drift-sync\", \"update my mikko skills\", \"what's new since last install\", or \"uninstall mikko-foo\". Locates the source repo via the current working directory, parent directories, or known sibling locations (configurable). Does NOT clone the repo (the user clones it once, by hand). Does NOT touch skills outside the `mikko-*` prefix.",
           "redirect": false,
           "receipt": {
-            "path": "skills/mikko-install/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 4000,
-            "uses_per_year": null,
-            "annual_total": null
+            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
+            "source": "transcript-measurement",
+            "tokens_per_use": 35302,
+            "uses_per_year": 4,
+            "annual_total": 141208,
+            "measurement_window_days": 90,
+            "invocations_in_window": 1,
+            "total_tokens_in_window": 35302,
+            "last_invoked": "2026-05-21T22:17:13.398Z",
+            "prior_estimate": {
+              "tokens_per_use": 4000,
+              "uses_per_year": 5,
+              "annual_total": 20000,
+              "source": "skill-body",
+              "path": "skills/mikko-install/SKILL.md"
+            }
           }
         },
         {
@@ -441,9 +452,32 @@
           "receipt": {
             "path": "skills/security-audit/SKILL.md",
             "source": "skill-body",
-            "tokens_per_use": null,
-            "uses_per_year": null,
-            "annual_total": null
+            "tokens_per_use": 750000,
+            "uses_per_year": 4,
+            "annual_total": 3000000
+          }
+        },
+        {
+          "name": "session-cost",
+          "description": "Measure the token cost of a single Claude Code session — main thread plus every sub-agent it dispatched. Companion to `/mikko-skill-usage`, which slices the portfolio BY SKILL across all sessions; this one slices a single session BY WHO-SPENT-IT (main thread vs each sub-agent). Use when you want to know \"what did this conversation cost so far?\", \"how much did running that complex feature take?\", or \"which of my sub-agents was the most expensive?\". Reads the same `~/.claude/projects/<dir>/<session>.jsonl` transcripts and `<session>/subagents/agent-*.jsonl` sidechain files that `mikko-skill-usage` reads.",
+          "redirect": false,
+          "receipt": {
+            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
+            "source": "transcript-measurement",
+            "tokens_per_use": 409232,
+            "uses_per_year": 4,
+            "annual_total": 1636928,
+            "measurement_window_days": 90,
+            "invocations_in_window": 1,
+            "total_tokens_in_window": 409232,
+            "last_invoked": "2026-05-21T22:18:57.013Z",
+            "prior_estimate": {
+              "tokens_per_use": 0,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "skill-body",
+              "path": "skills/session-cost/SKILL.md"
+            }
           }
         },
         {
@@ -453,13 +487,13 @@
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
-            "tokens_per_use": 24316,
+            "tokens_per_use": 24876,
             "uses_per_year": 12,
-            "annual_total": 291792,
+            "annual_total": 298512,
             "measurement_window_days": 90,
             "invocations_in_window": 3,
-            "total_tokens_in_window": 72949,
-            "last_invoked": "2026-05-21T00:38:02.026Z",
+            "total_tokens_in_window": 74628,
+            "last_invoked": "2026-05-21T00:38:21.138Z",
             "prior_estimate": {
               "tokens_per_use": 4000,
               "uses_per_year": 12,
@@ -477,7 +511,7 @@
       "skills": [
         {
           "name": "md-to-pdf",
-          "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's --print-to-pdf flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
+          "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's `--print-to-pdf` flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
           "redirect": false,
           "receipt": {
             "path": ".claude/skills/md-to-pdf/SKILL.md",
@@ -489,12 +523,12 @@
         },
         {
           "name": "skill-localUpdate",
-          "description": "Refresh every local artifact the site renders about your portfolio skills — the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF — in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Renamed from `/skill-pdf` since the PDF is one of three site surfaces this chain updates, not the headline.",
+          "description": "Refresh every local artifact the site renders about your portfolio skills — the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF — in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says \"refresh the local skills data\", \"rebuild the skill-registry PDF\", \"regenerate the skills data and PDF\", \"update the local skills numbers\", \"publish the skills PDF\", \"/skill-localUpdate\", or refers to refreshing what the contact page or the downloadable PDF shows. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.",
           "redirect": false,
           "receipt": {
             "path": ".claude/skills/skill-localUpdate/SKILL.md",
             "source": "skill-body",
-            "tokens_per_use": 82500,
+            "tokens_per_use": null,
             "uses_per_year": null,
             "annual_total": null
           }
@@ -540,8 +574,8 @@
               "tokens_per_use": 141000,
               "uses_per_year": 30,
               "annual_total": 4230000,
-              "source": "agent-verdicts/README-SYNC-AGENT.md",
-              "path": ".claude/agent-verdicts/README-SYNC-AGENT.md"
+              "source": "skill-body",
+              "path": ".claude/skills/sync-readmes/SKILL.md"
             }
           }
         }
@@ -549,10 +583,10 @@
     }
   ],
   "totals": {
-    "skills": 33,
+    "skills": 34,
     "redirects": 1,
-    "with_receipts": 32,
-    "annual_tokens_saved": 20482860
+    "with_receipts": 33,
+    "annual_tokens_saved": 25184916
   },
   "built_in_references": [
     {
@@ -561,11 +595,11 @@
       "description": "Claude Code built-in PR code review",
       "measurement_window_days": 90,
       "invocations_in_window": 14,
-      "total_tokens_in_window": 14350835,
-      "tokens_per_use_avg": 1025060,
-      "annual_total": 58428420,
+      "total_tokens_in_window": 14700869,
+      "tokens_per_use_avg": 1050062,
+      "annual_total": 59853534,
       "uses_per_year": 57,
-      "last_invoked": "2026-05-21T00:31:34.026Z"
+      "last_invoked": "2026-05-21T22:26:59.270Z"
     }
   ]
 }
