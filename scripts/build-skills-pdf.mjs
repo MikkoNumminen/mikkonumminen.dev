@@ -58,6 +58,17 @@ function renderTimesRun(receipt) {
   return upy != null ? `${upy} / yr<br><span class="subtle">(est.)</span>` : '—';
 }
 
+// Aggregate "Tokens used / yr" subline. Describes what fraction of a headline
+// total is measurement-backed: empty when the headline itself is '—', the
+// literal strings 'all measured' or 'all est.' at the extremes, otherwise the
+// measured share spelled out.
+function tokensSubline(measured, total) {
+  if (!total) return '';
+  if (!measured) return `<br><span class="subtle">all est.</span>`;
+  if (measured >= total) return `<br><span class="subtle">all measured</span>`;
+  return `<br><span class="subtle">~${fmt(measured)} measured</span>`;
+}
+
 // Tokens-used cell. Single number; annual projection on measured rows.
 function renderTokensUsed(receipt) {
   if (!receipt) return '—';
@@ -113,7 +124,8 @@ function buildHtml(data) {
   let sumMeasuredTokensWindow = 0;
   let sumMeasuredAnnualTokens = 0;
   let sumAnnualTokens = 0;
-  const aggregate = data.repos.map((r) => {
+  const aggregate = [];
+  for (const r of data.repos) {
     let measuredInv = 0;
     let measuredAnnualRuns = 0;
     let measuredAnnualTokens = 0;
@@ -136,15 +148,15 @@ function buildHtml(data) {
     sumMeasuredAnnualRuns += measuredAnnualRuns;
     sumMeasuredAnnualTokens += measuredAnnualTokens;
     sumAnnualTokens += totalAnnualTokens;
-    return {
+    aggregate.push({
       name: r.name,
       skills: r.skills.length,
       measuredInv,
       measuredAnnualRuns,
       measuredAnnualTokens,
       totalAnnualTokens,
-    };
-  });
+    });
+  }
 
   const refs = data.built_in_references ?? [];
   const builtInsSection = refs.length === 0 ? '' : renderBuiltInsSection(refs);
@@ -158,15 +170,9 @@ function buildHtml(data) {
       const runs = a.measuredInv
         ? `${a.measuredInv} in 90d<br><span class="subtle">→ ~${a.measuredAnnualRuns}/yr</span>`
         : '—';
-      let tokens = '—';
-      if (a.totalAnnualTokens) {
-        tokens = `~${fmt(a.totalAnnualTokens)}`;
-        if (a.measuredAnnualTokens) {
-          tokens += `<br><span class="subtle">~${fmt(a.measuredAnnualTokens)} measured</span>`;
-        } else {
-          tokens += `<br><span class="subtle">all est.</span>`;
-        }
-      }
+      const tokens = a.totalAnnualTokens
+        ? `~${fmt(a.totalAnnualTokens)}${tokensSubline(a.measuredAnnualTokens, a.totalAnnualTokens)}`
+        : '—';
       return `<tr><td>${esc(a.name)}</td><td>${a.skills}</td><td>${runs}</td><td>${tokens}</td></tr>`;
     })
     .join('\n');
@@ -204,7 +210,7 @@ function buildHtml(data) {
     ? `${sumMeasuredInv} in 90d<br><span class="subtle">→ ~${sumMeasuredAnnualRuns}/yr</span>`
     : '—';
   const totalTokensCell = sumAnnualTokens
-    ? `~${fmt(sumAnnualTokens)}<br><span class="subtle">~${fmt(sumMeasuredAnnualTokens)} measured</span>`
+    ? `~${fmt(sumAnnualTokens)}${tokensSubline(sumMeasuredAnnualTokens, sumAnnualTokens)}`
     : '—';
 
   return `<!doctype html>
