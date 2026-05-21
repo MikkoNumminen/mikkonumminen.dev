@@ -371,7 +371,7 @@ export const en: Translations = {
     cmdLinksDesc: 'show online profiles',
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
-    cmdDownloadDesc: 'download a file',
+    cmdDownloadDesc: 'CV résumé or skills-registry PDF',
     cmdDownloadUsage: 'download [--cv|--skills]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
