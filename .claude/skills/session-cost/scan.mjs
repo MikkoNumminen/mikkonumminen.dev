@@ -27,13 +27,8 @@ const SESSION = args['session'] ?? findLatestSession(PROJECT_DIR);
 const FORMAT = args['format'] ?? 'summary';
 
 if (!PROJECT_DIR) {
-  const tried = process
-    .cwd()
-    .replace(/[\\/]/g, '-')
-    .replace(/:/g, '-')
-    .toLowerCase();
   console.error('error: no project directory matched the current cwd.');
-  console.error('       tried: ' + path.join(PROJECTS_DIR, tried));
+  console.error('       tried: ' + path.join(PROJECTS_DIR, encodeCwd(process.cwd())));
   console.error('       pass --project-dir <path> explicitly to override.');
   process.exit(1);
 }
@@ -146,11 +141,18 @@ function readMeta(jsonlPath) {
   }
 }
 
+// The harness encodes <cwd> by replacing path separators and ':' with '-'.
+// Single source of truth for the encoding so the resolver and the error
+// message can't drift if the harness ever changes how it spells project
+// directories.
+function encodeCwd(cwd) {
+  return cwd.replace(/[\\/]/g, '-').replace(/:/g, '-').toLowerCase();
+}
+
 function resolveProjectDir(cwd, projectsRoot) {
-  // The harness encodes <cwd> by replacing path separators and ':' with '-'.
-  // We try the encoded form first, then fall back to scanning for any dir
+  // Try the encoded form first, then fall back to scanning for any dir
   // that contains a session whose entries report the same cwd.
-  const encoded = cwd.replace(/[\\/]/g, '-').replace(/:/g, '-').toLowerCase();
+  const encoded = encodeCwd(cwd);
   const direct = path.join(projectsRoot, encoded);
   if (fs.existsSync(direct)) return direct;
   // Try a relaxed prefix match in case the harness encoding differs in
