@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-21T00:15:49.861Z",
+  "generated_at": "2026-05-21T00:40:25.380Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -453,13 +453,13 @@
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
-            "tokens_per_use": 22452,
+            "tokens_per_use": 24316,
             "uses_per_year": 12,
-            "annual_total": 269424,
+            "annual_total": 291792,
             "measurement_window_days": 90,
             "invocations_in_window": 3,
-            "total_tokens_in_window": 67355,
-            "last_invoked": "2026-05-20T23:40:13.818Z",
+            "total_tokens_in_window": 72949,
+            "last_invoked": "2026-05-21T00:38:02.026Z",
             "prior_estimate": {
               "tokens_per_use": 4000,
               "uses_per_year": 12,
@@ -506,13 +506,13 @@
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
-            "tokens_per_use": 164341,
-            "uses_per_year": 8,
-            "annual_total": 1314728,
+            "tokens_per_use": 147594,
+            "uses_per_year": 12,
+            "annual_total": 1771128,
             "measurement_window_days": 90,
-            "invocations_in_window": 2,
-            "total_tokens_in_window": 328681,
-            "last_invoked": "2026-05-20T23:02:17.441Z",
+            "invocations_in_window": 3,
+            "total_tokens_in_window": 442782,
+            "last_invoked": "2026-05-20T23:44:30.790Z",
             "prior_estimate": {
               "tokens_per_use": 130000,
               "uses_per_year": 12,
@@ -552,7 +552,7 @@
     "skills": 33,
     "redirects": 1,
     "with_receipts": 32,
-    "annual_tokens_saved": 20004092
+    "annual_tokens_saved": 20482860
   },
   "built_in_references": [
     {
@@ -560,12 +560,12 @@
       "label": "/review",
       "description": "Claude Code built-in PR code review",
       "measurement_window_days": 90,
-      "invocations_in_window": 13,
-      "total_tokens_in_window": 14300785,
-      "tokens_per_use_avg": 1100060,
-      "annual_total": 58303180,
-      "uses_per_year": 53,
-      "last_invoked": "2026-05-20T23:36:08.322Z"
+      "invocations_in_window": 14,
+      "total_tokens_in_window": 14350835,
+      "tokens_per_use_avg": 1025060,
+      "annual_total": 58428420,
+      "uses_per_year": 57,
+      "last_invoked": "2026-05-21T00:31:34.026Z"
     }
   ]
 }
