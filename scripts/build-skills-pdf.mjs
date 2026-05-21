@@ -23,35 +23,10 @@ const fmt = (n) =>
       : String(n);
 
 function fmtGeneratedAt(iso) {
-  // Stable UTC formatting — no locale dependency.
-  // Input: "2026-05-20T14:37:00.000Z"  Output: "2026-05-20 at 14:37 UTC"
   const s = iso.replace('Z', '');
   const [datePart, timePart] = s.split('T');
   const hhmm = timePart ? timePart.slice(0, 5) : '??:??';
   return `${datePart} at ${hhmm} UTC`;
-}
-
-// Policy bands for the estimate-vs-observed comparison.
-//   |ratio - 1| ≤ CLOSE_BAND  → "close"   (estimate was within ±10% of reality)
-//   ratio ≥ OFF_THRESHOLD     → highlight (estimate off by ≥5× in either direction)
-const CLOSE_BAND = 0.1;
-const OFF_THRESHOLD = 5;
-
-function fmtComparison(observed, estimated) {
-  if (!estimated || estimated <= 0 || !observed || observed <= 0) return null;
-  const ratio = observed / estimated;
-  if (ratio >= 1 - CLOSE_BAND && ratio <= 1 + CLOSE_BAND) {
-    return { text: `est. ${fmt(estimated)} · close`, klass: 'cmp-close' };
-  }
-  if (ratio > 1) {
-    const r = ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1);
-    const klass = ratio >= OFF_THRESHOLD ? 'cmp-off' : '';
-    return { text: `est. ${fmt(estimated)} · ${r}× under`, klass };
-  }
-  const inv = 1 / ratio;
-  const r = inv >= 10 ? Math.round(inv) : inv.toFixed(1);
-  const klass = inv >= OFF_THRESHOLD ? 'cmp-off' : '';
-  return { text: `est. ${fmt(estimated)} · ${r}× over`, klass };
 }
 
 function lastUsedDate(iso) {
@@ -64,71 +39,146 @@ function lastUsedDate(iso) {
   return iso.slice(0, 10);
 }
 
+// Cost-per-use cell. Two lines: number + small "(measured)" or "(est.)" tag.
+function renderCostPerUse(receipt) {
+  if (!receipt?.tokens_per_use) return '—';
+  const measured = receipt.source === 'transcript-measurement';
+  const tag = measured ? '(measured)' : '(est.)';
+  return `${fmt(receipt.tokens_per_use)}<br><span class="subtle">${tag}</span>`;
+}
+
+// Times-run cell.
+//   Measured rows show "<inv> in <win>d" with a second line projecting to a yearly rate.
+//   Estimated rows show "<n>/yr (est.)".
+function renderTimesRun(receipt) {
+  if (!receipt) return '—';
+  if (receipt.source === 'transcript-measurement') {
+    const inv = receipt.invocations_in_window ?? '?';
+    const win = receipt.measurement_window_days ?? '?';
+    const proj = receipt.uses_per_year != null ? receipt.uses_per_year : '?';
+    return `${inv} in ${win}d<br><span class="subtle">→ ~${proj}/yr</span>`;
+  }
+  const upy = receipt.uses_per_year;
+  return upy != null ? `${upy} / yr<br><span class="subtle">(est.)</span>` : '—';
+}
+
+// Aggregate "Tokens used / yr" subline. Describes what fraction of a headline
+// total is measurement-backed: empty when the headline itself is '—', the
+// literal strings 'all measured' or 'all est.' at the extremes, otherwise the
+// measured share spelled out.
+function tokensSubline(measured, total) {
+  if (!total) return '';
+  if (!measured) return `<br><span class="subtle">all est.</span>`;
+  if (measured >= total) return `<br><span class="subtle">all measured</span>`;
+  return `<br><span class="subtle">~${fmt(measured)} measured</span>`;
+}
+
+// Tokens-used cell. Single number; annual projection on measured rows.
+function renderTokensUsed(receipt) {
+  if (!receipt) return '—';
+  if (receipt.source === 'transcript-measurement') {
+    const wRaw =
+      receipt.total_tokens_in_window ??
+      (receipt.tokens_per_use != null && receipt.invocations_in_window != null
+        ? receipt.tokens_per_use * receipt.invocations_in_window
+        : null);
+    const w = wRaw != null ? fmt(wRaw) : '?';
+    const ann = receipt.annual_total != null ? fmt(receipt.annual_total) : '?';
+    return `${w} in window<br><span class="subtle">~${ann}/yr proj.</span>`;
+  }
+  return receipt.annual_total
+    ? `~${fmt(receipt.annual_total)}<br><span class="subtle">/yr (est.)</span>`
+    : '—';
+}
+
 function renderBuiltInsSection(refs) {
   const rows = refs
     .map((br) => {
-      const tpu =
-        br.tokens_per_use_avg != null
-          ? `${fmt(br.tokens_per_use_avg)}<br><span class="subtle">(observed)</span>`
-          : '—';
-      const inv = br.invocations_in_window ?? '?';
-      const win = br.measurement_window_days ?? '?';
-      const proj = br.uses_per_year ?? '?';
-      const upy = `${inv} in ${win}d<br><span class="subtle">→ ~${proj}/yr proj.</span>`;
-      const tot =
-        br.total_tokens_in_window != null && br.annual_total != null
-          ? `observed ${fmt(br.total_tokens_in_window)}<br><span class="subtle">proj. ~${fmt(br.annual_total)}/yr</span>`
-          : '—';
+      const receipt = {
+        source: 'transcript-measurement',
+        tokens_per_use: br.tokens_per_use_avg,
+        uses_per_year: br.uses_per_year,
+        annual_total: br.annual_total,
+        invocations_in_window: br.invocations_in_window,
+        total_tokens_in_window: br.total_tokens_in_window,
+        measurement_window_days: br.measurement_window_days,
+        last_invoked: br.last_invoked,
+      };
       const lastUsed = lastUsedDate(br.last_invoked);
-      const receipt =
-        'measured' + (lastUsed ? `<br><span class="subtle">last ${esc(lastUsed)}</span>` : '');
-      return `<tr class="measured"><td><strong>${esc(br.label)}</strong></td><td class="desc">${esc(br.description)}</td><td>${tpu}</td><td>${upy}</td><td>${tot}</td><td>${receipt}</td></tr>`;
+      const stamp = lastUsed ? `<br><span class="subtle">last ${esc(lastUsed)}</span>` : '';
+      return `<tr class="measured"><td><strong>${esc(br.label)}</strong>${stamp}</td><td class="desc">${esc(br.description)}</td><td>${renderCostPerUse(receipt)}</td><td>${renderTimesRun(receipt)}</td><td>${renderTokensUsed(receipt)}</td></tr>`;
     })
     .join('\n');
   return `<h2>Reference: Claude Code built-ins</h2>
-<p class="meta">These are Claude Code's own built-in slash commands &mdash; <strong>not part of this portfolio</strong>. Shown here purely so the custom-skill numbers below have a familiar scale to compare against. <strong>Excluded from every total on the page.</strong></p>
+<p class="meta">Claude Code's own slash commands &mdash; <strong>not part of this portfolio</strong>, shown for scale. <strong>Excluded from every total below.</strong></p>
 <table class="per-repo">
-  <thead><tr><th>Skill</th><th>Description</th><th>Tokens / use</th><th>Uses</th><th>Total</th><th>Receipt</th></tr></thead>
+  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>`;
 }
 
 function buildHtml(data) {
   const generated = data.generated_at.slice(0, 10);
-  const aggregate = data.repos.map((r) => {
-    const total = r.skills.length;
-    const reds = r.skills.filter((s) => s.redirect).length;
-    const wr = r.skills.filter((s) => s.receipt && s.receipt.annual_total != null).length;
-    const ann = r.skills.reduce((a, s) => a + (s.receipt?.annual_total ?? 0), 0);
-    // Empirical total: sum of in-window observed tokens across measured rows
-    // only. Estimated rows contribute nothing here — this column answers
-    // "what did we actually spend?" not "what would a year look like?"
-    const obs = r.skills.reduce((a, s) => {
-      if (s.receipt?.source !== 'transcript-measurement') return a;
-      const win =
-        s.receipt.total_tokens_in_window ??
-        (s.receipt.tokens_per_use != null && s.receipt.invocations_in_window != null
-          ? s.receipt.tokens_per_use * s.receipt.invocations_in_window
+  // Single pass per repo: every row contributes to totalAnnualTokens (the
+  // mixed measured+editorial figure); measured rows additionally contribute
+  // to the measured-only counters so the aggregate can show how much of
+  // each repo's annual figure is measurement-backed vs author guess.
+  let sumMeasuredInv = 0;
+  let sumMeasuredAnnualRuns = 0;
+  let sumMeasuredTokensWindow = 0;
+  let sumMeasuredAnnualTokens = 0;
+  let sumAnnualTokens = 0;
+  const aggregate = [];
+  for (const r of data.repos) {
+    let measuredInv = 0;
+    let measuredAnnualRuns = 0;
+    let measuredAnnualTokens = 0;
+    let totalAnnualTokens = 0;
+    for (const s of r.skills) {
+      const rec = s.receipt;
+      if (!rec) continue;
+      totalAnnualTokens += rec.annual_total ?? 0;
+      if (rec.source !== 'transcript-measurement') continue;
+      measuredInv += rec.invocations_in_window ?? 0;
+      measuredAnnualRuns += rec.uses_per_year ?? 0;
+      measuredAnnualTokens += rec.annual_total ?? 0;
+      sumMeasuredTokensWindow +=
+        rec.total_tokens_in_window ??
+        (rec.tokens_per_use != null && rec.invocations_in_window != null
+          ? rec.tokens_per_use * rec.invocations_in_window
           : 0);
-      return a + (win ?? 0);
-    }, 0);
-    return { name: r.name, total, reds, wr, obs, ann };
-  });
+    }
+    sumMeasuredInv += measuredInv;
+    sumMeasuredAnnualRuns += measuredAnnualRuns;
+    sumMeasuredAnnualTokens += measuredAnnualTokens;
+    sumAnnualTokens += totalAnnualTokens;
+    aggregate.push({
+      name: r.name,
+      skills: r.skills.length,
+      measuredInv,
+      measuredAnnualRuns,
+      measuredAnnualTokens,
+      totalAnnualTokens,
+    });
+  }
 
-  const totalObs = aggregate.reduce((a, x) => a + x.obs, 0);
-
-  // Built-in reference section — rendered as a small table at the top of
-  // the document. These are Claude Code's own slash commands (not custom
-  // skills), shown only for scale. Their numbers DO NOT contribute to the
-  // Aggregate or per-repo totals.
   const refs = data.built_in_references ?? [];
   const builtInsSection = refs.length === 0 ? '' : renderBuiltInsSection(refs);
 
+  // Annual tokens cell: top line is the all-rows total (mixed measured +
+  // editorial), bottom line surfaces the measured-only fraction so the
+  // reader can tell at a glance whether the headline number is mostly
+  // grounded in transcripts or mostly author estimate.
   const aggregateRows = aggregate
-    .map(
-      (a) =>
-        `<tr><td>${esc(a.name)}</td><td>${a.total}</td><td>${a.reds}</td><td>${a.wr}</td><td>${a.obs ? `~${fmt(a.obs)}` : '—'}</td><td>${a.ann ? `~${fmt(a.ann)}` : '—'}</td></tr>`,
-    )
+    .map((a) => {
+      const runs = a.measuredInv
+        ? `${a.measuredInv} in 90d<br><span class="subtle">→ ~${a.measuredAnnualRuns}/yr</span>`
+        : '—';
+      const tokens = a.totalAnnualTokens
+        ? `~${fmt(a.totalAnnualTokens)}${tokensSubline(a.measuredAnnualTokens, a.totalAnnualTokens)}`
+        : '—';
+      return `<tr><td>${esc(a.name)}</td><td>${a.skills}</td><td>${runs}</td><td>${tokens}</td></tr>`;
+    })
     .join('\n');
 
   const repoSections = data.repos
@@ -136,86 +186,17 @@ function buildHtml(data) {
       const rows = r.skills
         .map((s) => {
           const isMeasured = s.receipt?.source === 'transcript-measurement';
-
-          // --- Tokens / use column ---
-          let tpu;
-          if (s.receipt?.tokens_per_use) {
-            const label = isMeasured ? '(observed)' : '(est.)';
-            let extra = '';
-            if (isMeasured) {
-              const cmp = fmtComparison(
-                s.receipt.tokens_per_use,
-                s.receipt.prior_estimate?.tokens_per_use,
-              );
-              if (cmp) {
-                const cls = cmp.klass ? `subtle ${cmp.klass}` : 'subtle';
-                extra = `<br><span class="${cls}">${cmp.text}</span>`;
-              }
-            }
-            tpu = `${fmt(s.receipt.tokens_per_use)}<br><span class="subtle">${label}</span>${extra}`;
-          } else {
-            tpu = '—';
-          }
-
-          // --- Uses column ---
-          let upy;
-          if (isMeasured) {
-            const inv = s.receipt.invocations_in_window ?? '?';
-            const win = s.receipt.measurement_window_days ?? '?';
-            const proj = s.receipt.uses_per_year != null ? s.receipt.uses_per_year : '?';
-            upy =
-              `${inv} in ${win}d` +
-              `<br><span class="subtle">→ ~${proj}/yr proj.</span>`;
-          } else {
-            const upyVal = s.receipt?.uses_per_year;
-            upy =
-              upyVal != null
-                ? `${upyVal} / yr<br><span class="subtle">(est.)</span>`
-                : '—';
-          }
-
-          // --- Total column ---
-          let tot;
-          if (isMeasured) {
-            const twRaw =
-              s.receipt.total_tokens_in_window ??
-              (s.receipt.tokens_per_use != null && s.receipt.invocations_in_window != null
-                ? s.receipt.tokens_per_use * s.receipt.invocations_in_window
-                : null);
-            const twStr = twRaw != null ? fmt(twRaw) : '?';
-            const annStr =
-              s.receipt.annual_total != null ? fmt(s.receipt.annual_total) : '?';
-            tot =
-              `observed ${twStr}` +
-              `<br><span class="subtle">proj. ~${annStr}/yr</span>`;
-          } else {
-            tot = s.receipt?.annual_total
-              ? `~${fmt(s.receipt.annual_total)}<br><span class="subtle">(est.)</span>`
-              : '—';
-          }
-
-          // --- Receipt / badge column ---
-          let badgeContent;
-          if (isMeasured) {
-            const lastUsed = lastUsedDate(s.receipt.last_invoked);
-            const agoStr = lastUsed ? `last ${lastUsed}` : '';
-            badgeContent =
-              'measured' + (agoStr ? `<br><span class="subtle">${esc(agoStr)}</span>` : '');
-          } else {
-            badgeContent = 'estimated';
-          }
-          // Local-path receipts (e.g. `.claude/agent-verdicts/X.md`) don't
-          // resolve from inside a PDF viewer, so render them as plain badge
-          // text. Only http(s) URLs become clickable.
-          const receipt = s.receipt
-            ? isSafeHref(s.receipt.path)
-              ? `<a href="${esc(s.receipt.path)}">${badgeContent}</a>`
-              : badgeContent
-            : '—';
-
-          const name = `<strong>${esc(s.name)}</strong>${s.redirect ? ' <em>(redirect)</em>' : ''}`;
           const rowClass = isMeasured ? ' class="measured"' : '';
-          return `<tr${rowClass}><td>${name}</td><td class="desc">${esc(s.description)}</td><td>${tpu}</td><td>${upy}</td><td>${tot}</td><td>${receipt}</td></tr>`;
+          const name = `<strong>${esc(s.name)}</strong>${s.redirect ? ' <em>(redirect)</em>' : ''}`;
+          const lastUsed = isMeasured ? lastUsedDate(s.receipt.last_invoked) : '';
+          const stamp = lastUsed
+            ? `<br><span class="subtle">last ${esc(lastUsed)}</span>`
+            : '';
+          const linkedName =
+            s.receipt && isSafeHref(s.receipt.path)
+              ? `<a href="${esc(s.receipt.path)}">${name}</a>${stamp}`
+              : `${name}${stamp}`;
+          return `<tr${rowClass}><td>${linkedName}</td><td class="desc">${esc(s.description)}</td><td>${renderCostPerUse(s.receipt)}</td><td>${renderTimesRun(s.receipt)}</td><td>${renderTokensUsed(s.receipt)}</td></tr>`;
         })
         .join('\n');
       const url =
@@ -224,11 +205,18 @@ function buildHtml(data) {
           : '';
       return `<h2>${esc(r.name)}${url}</h2>
 <table class="per-repo">
-  <thead><tr><th>Skill</th><th>Description</th><th>Tokens / use</th><th>Uses</th><th>Total</th><th>Receipt</th></tr></thead>
+  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>`;
     })
     .join('\n');
+
+  const totalRunsCell = sumMeasuredInv
+    ? `${sumMeasuredInv} in 90d<br><span class="subtle">→ ~${sumMeasuredAnnualRuns}/yr</span>`
+    : '—';
+  const totalTokensCell = sumAnnualTokens
+    ? `~${fmt(sumAnnualTokens)}${tokensSubline(sumMeasuredAnnualTokens, sumAnnualTokens)}`
+    : '—';
 
   return `<!doctype html>
 <html lang="en">
@@ -246,46 +234,36 @@ function buildHtml(data) {
   tr { page-break-inside: avoid; }
   th, td { border: 1px solid #ddd; padding: 3pt 5pt; text-align: left; vertical-align: top; }
   th { background: #f4f4f4; font-weight: 600; }
-  /* Aggregate table: every column past col 1 is numeric. Per-repo tables:
-     cols 1-2 (Skill, Description) stay left, numerics start at col 3. */
   table.aggregate td:nth-child(n+2) { text-align: right; white-space: nowrap; }
   table.per-repo td:nth-child(n+3) { text-align: right; white-space: nowrap; }
-  td.desc { text-align: left; white-space: normal; max-width: 380pt; }
+  td.desc { text-align: left; white-space: normal; max-width: 420pt; }
   a { color: #0a66c2; text-decoration: none; }
-  hr { border: none; border-top: 1px solid #ccc; margin: 16pt 0; }
   .totals-row td { font-weight: 700; background: #f9f9f9; }
-  /* Rows with transcript-measured receipts get a subtle green left edge so
-     the reader can tell measured rows from author-estimated ones at a glance. */
   tr.measured td:first-child { border-left: 3px solid #2e7d32; }
-  tr.measured td:last-child a, tr.measured td:last-child { color: #2e7d32; font-weight: 600; }
   .subtle { color: #777; font-weight: 400; font-size: 7.5pt; }
   .tag-measured { color: #2e7d32; font-weight: 600; }
   .tag-estimated { color: #666; font-weight: 600; }
-  /* Estimate-vs-observed comparison line: green when the author guess landed
-     within ±10% of reality, orange when off by ≥5× in either direction. */
-  .cmp-close { color: #2e7d32; font-weight: 600; }
-  .cmp-off { color: #c2410c; font-weight: 600; }
   footer { color: #888; font-size: 8pt; margin-top: 18pt; }
 </style>
 </head>
 <body>
 <h1>Skill registry — ${esc(generated)}</h1>
-<p class="meta">Scope: every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows tagged <span class="tag-measured">measured</span> show real token consumption from Claude Code transcripts (90-day window), with the annual figure projected linearly. Rows tagged <span class="tag-estimated">estimated</span> are author guesses parsed from each repo&rsquo;s docs/README. On measured rows, a third line compares the observed average to the author&rsquo;s prior estimate, e.g. <code>est. 4K &middot; 93&times; under</code>.</p>
+<p class="meta">Every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows with a green left edge are <span class="tag-measured">measured</span> from real Claude Code transcripts (90-day window); the rest are <span class="tag-estimated">estimated</span> by the skill author.</p>
 
 ${builtInsSection}
 
 <h2>Aggregate</h2>
 <table class="aggregate">
-  <thead><tr><th>Repo</th><th>Skills</th><th>Redirects</th><th>With receipts</th><th>Observed (90d)</th><th>Tokens / yr (proj.)</th></tr></thead>
+  <thead><tr><th>Repo</th><th>Skills</th><th>Times run (measured)</th><th>Tokens used / yr</th></tr></thead>
   <tbody>
     ${aggregateRows}
-    <tr class="totals-row"><td>Total</td><td>${data.totals.skills}</td><td>${data.totals.redirects}</td><td>${data.totals.with_receipts}</td><td>${totalObs ? `~${fmt(totalObs)}` : '—'}</td><td>~${fmt(data.totals.annual_tokens_saved)}</td></tr>
+    <tr class="totals-row"><td>Total</td><td>${data.totals.skills}</td><td>${totalRunsCell}</td><td>${totalTokensCell}</td></tr>
   </tbody>
 </table>
 
 ${repoSections}
 
-<footer>Generated ${esc(fmtGeneratedAt(data.generated_at))}.</footer>
+<footer>Generated ${esc(fmtGeneratedAt(data.generated_at))}. Measured window: ${sumMeasuredInv} invocations across custom rows · ${fmt(sumMeasuredTokensWindow)} tokens in 90d. Built-in reference rows are excluded.</footer>
 </body>
 </html>`;
 }
@@ -296,20 +274,17 @@ function main() {
     console.error('Run the skill-registry skill and copy its JSON output here first.');
     process.exit(1);
   }
-  // CI / hosted-build environments (Vercel, GitHub Actions, etc.) should NOT
-  // regenerate the PDF — even if their build image happens to include Chrome,
-  // we don't want a transient deploy-time render to diverge from the
-  // committed artifact. Force the committed PDF to be the source of truth on
-  // every hosted build by short-circuiting here when standard CI env vars
-  // are present.
+  // CI / Vercel may have Chrome on the build image, but a transient
+  // hosted-build render would drift from the committed PDF the next time a
+  // human refreshes locally. Always defer to the committed artifact on
+  // hosted builds so the public-facing PDF only changes when a real refresh
+  // lands in a commit.
   if (process.env.CI || process.env.VERCEL) {
     console.log(
       'build-skills-pdf: CI environment detected — skipping regeneration, committed PDF is canonical.',
     );
     process.exit(0);
   }
-  // Local dev with no Chrome (unusual but possible) — same fallback: leave
-  // the committed PDF in place and continue.
   if (!locateChrome()) {
     console.log(
       'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
