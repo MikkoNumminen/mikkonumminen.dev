@@ -488,11 +488,11 @@
           }
         },
         {
-          "name": "skill-pdf",
-          "description": "One-command refresh of the skills-registry PDF. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce a deploy-ready `public/skills-registry.pdf`: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/`, (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says \"refresh the skills PDF\", \"rebuild the skill-registry PDF\", \"regenerate the skills-registry document\", \"publish the skills PDF\", or `/skill-pdf`. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.",
+          "name": "skill-localUpdate",
+          "description": "Refresh every local artifact the site renders about your portfolio skills — the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF — in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Renamed from `/skill-pdf` since the PDF is one of three site surfaces this chain updates, not the headline.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/skills/skill-pdf/SKILL.md",
+            "path": ".claude/skills/skill-localUpdate/SKILL.md",
             "source": "skill-body",
             "tokens_per_use": 82500,
             "uses_per_year": null,
