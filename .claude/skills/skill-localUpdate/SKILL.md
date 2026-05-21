@@ -35,7 +35,7 @@ Three places on the deployed site read from the artifacts this chain produces. O
 | `download --skills` (terminal) | `public/skills-registry.pdf` | On next page load — same as above |
 | Dated registry snapshot | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `LATEST.json` | Persistent inventory history for other Claude sessions to read |
 
-That's why this skill is named `skill-localUpdate` rather than `skill-pdf`: the PDF is one of three outputs, not the headline.
+That's why this skill is named `skill-localUpdate` rather than `skill-pdf` (renamed 2026-05-21): the PDF is one of three outputs, not the headline.
 
 ## What this skill does
 
@@ -186,4 +186,4 @@ Cadence: per portfolio refresh — when you've shipped new skills, calibrated ex
 
 The four-step chain (registry → sync → overlay → PDF) used to be four separate manual commands, each easy to forget or run out of order. Empirically, the failure mode was: someone runs the overlay against a stale `skills-registry.json` (forgot to re-run `/skill-registry`), or builds the PDF against an un-overlaid JSON (forgot the overlay). Both produce a plausible-looking but wrong artifact — either a stale terminal table or a PDF that doesn't match what the terminal shows.
 
-This skill removes that risk by sequencing the chain. One slash command, four operations, in the right order, with a pre-flight that confirms the measurement step happened first. The rename from `/skill-pdf` to `/skill-localUpdate` reflects that the PDF is one of three site surfaces this chain touches, not the headline output. If you ever change the chain (add a new step, swap the overlay for something else), this is the single file to update.
+This skill removes that risk by sequencing the chain. One slash command, four operations, in the right order, with a pre-flight that confirms the measurement step happened first. The 2026-05-21 rename from `/skill-pdf` to `/skill-localUpdate` reflects that the PDF is one of three site surfaces this chain touches, not the headline output. If you ever change the chain (add a new step, swap the overlay for something else), this is the single file to update.
