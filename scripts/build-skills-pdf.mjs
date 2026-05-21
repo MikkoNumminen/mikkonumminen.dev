@@ -132,11 +132,15 @@ function tokensSavedAnnual(receipt) {
   return perUse * uses;
 }
 
-// Tokens-saved cell. Annualized savings vs the modeled "without skill" baseline.
+// Tokens-saved cell. Annualized savings vs the modeled "without skill"
+// baseline. Renders as a bare number — the column header carries "/ yr
+// (est.)" so per-row repetition would be redundant. Matches how the
+// aggregate column renders the same data, so the per-skill and aggregate
+// tables format the savings figure identically.
 function renderTokensSaved(receipt) {
   const annual = tokensSavedAnnual(receipt);
   if (!annual) return '—';
-  return `~${fmt(annual)}<br><span class="subtle">/yr (est.)</span>`;
+  return `~${fmt(annual)}`;
 }
 
 // Tokens-used cell. Single number; annual projection on measured rows.
@@ -178,7 +182,7 @@ function renderBuiltInsSection(refs) {
   return `<h2>Reference: Claude Code built-ins</h2>
 <p class="meta">Claude Code's own slash commands &mdash; <strong>not part of this portfolio</strong>, shown for scale. <strong>Excluded from every total below.</strong> No savings claim — built-ins are baseline tooling, not a compression-over-baseline.</p>
 <table class="per-repo">
-  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th><th>Tokens saved (est.)</th></tr></thead>
+  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th><th>Tokens saved / yr (est.)</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>`;
 }
@@ -277,7 +281,7 @@ function buildHtml(data) {
           : '';
       return `<h2>${esc(r.name)}${url}</h2>
 <table class="per-repo">
-  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th><th>Tokens saved (est.)</th></tr></thead>
+  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th><th>Tokens saved / yr (est.)</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>`;
     })
