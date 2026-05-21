@@ -27,9 +27,14 @@ const SESSION = args['session'] ?? findLatestSession(PROJECT_DIR);
 const FORMAT = args['format'] ?? 'summary';
 
 if (!PROJECT_DIR) {
+  const tried = process
+    .cwd()
+    .replace(/[\\/]/g, '-')
+    .replace(/:/g, '-')
+    .toLowerCase();
   console.error('error: no project directory matched the current cwd.');
-  console.error('       expected ' + PROJECTS_DIR + '/<cwd-encoded>/');
-  console.error('       pass --project-dir explicitly to override.');
+  console.error('       tried: ' + path.join(PROJECTS_DIR, tried));
+  console.error('       pass --project-dir <path> explicitly to override.');
   process.exit(1);
 }
 if (!SESSION) {
@@ -47,14 +52,14 @@ const subFiles = fs.existsSync(subDir)
   : [];
 
 const seen = new Set();
-const main = readFile(mainFile, false);
+const main = readFile(mainFile);
 const subAgents = subFiles
   .map((p) => {
     const meta = readMeta(p);
-    const stats = readFile(p, true);
+    const stats = readFile(p);
     return {
       agentId: path.basename(p).replace(/^agent-/, '').replace(/\.jsonl$/, ''),
-      description: meta?.description ?? meta?.subagentDescription ?? null,
+      description: meta?.description ?? null,
       ...stats,
     };
   })
@@ -88,7 +93,7 @@ if (FORMAT === 'json') {
   printSummary(report);
 }
 
-function readFile(filePath, isSub) {
+function readFile(filePath) {
   if (!fs.existsSync(filePath)) {
     return { in: 0, out: 0, cacheCreate: 0, cacheRead: 0, msgs: 0, total: 0, skipped: 0 };
   }
