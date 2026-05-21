@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-05-21T00:38:07.561Z",
+  "generated_at": "2026-05-21T22:34:49.032Z",
   "window_days": 90,
   "projects_scanned": 7,
-  "sessions_scanned": 752,
-  "attributed_assistant_messages": 2741,
+  "sessions_scanned": 684,
+  "attributed_assistant_messages": 2789,
   "skills": [
     {
       "name": "review",
       "invocations": 14,
-      "tokens_per_use_avg": 1025060,
+      "tokens_per_use_avg": 1050062,
       "uses_per_year": 57,
-      "total_tokens_in_window": 14350835,
-      "annual_total": 58428420,
+      "total_tokens_in_window": 14700869,
+      "annual_total": 59853534,
       "sample_session_ids": [
         "3b219a03-2024-4372-b270-a13237480b7e",
         "4a938199-6bea-4ec0-b86f-901ab6faa515",
@@ -19,7 +19,7 @@
         "89216c3d-52b2-4763-a770-fd7502176a12",
         "de3894ce-bc85-4172-b059-a8a4077c594c"
       ],
-      "last_invoked": "2026-05-21T00:31:34.026Z"
+      "last_invoked": "2026-05-21T22:26:59.270Z"
     },
     {
       "name": "mikko-help",
@@ -86,6 +86,18 @@
       "last_invoked": "2026-05-19T15:20:19.354Z"
     },
     {
+      "name": "mikko-session-cost",
+      "invocations": 1,
+      "tokens_per_use_avg": 409232,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 409232,
+      "annual_total": 1636928,
+      "sample_session_ids": [
+        "47fcb7d8-762b-45af-ae2a-b9e4af3c295b"
+      ],
+      "last_invoked": "2026-05-21T22:18:57.013Z"
+    },
+    {
       "name": "ai-codegen-smell-audit",
       "invocations": 1,
       "tokens_per_use_avg": 199437,
@@ -124,16 +136,16 @@
     {
       "name": "mikko-skill-usage",
       "invocations": 3,
-      "tokens_per_use_avg": 24316,
+      "tokens_per_use_avg": 24876,
       "uses_per_year": 12,
-      "total_tokens_in_window": 72949,
-      "annual_total": 291792,
+      "total_tokens_in_window": 74628,
+      "annual_total": 298512,
       "sample_session_ids": [
         "de3894ce-bc85-4172-b059-a8a4077c594c",
         "47fcb7d8-762b-45af-ae2a-b9e4af3c295b",
         "c4067329-a392-4890-8eb3-d1941325463b"
       ],
-      "last_invoked": "2026-05-21T00:38:02.026Z"
+      "last_invoked": "2026-05-21T00:38:21.138Z"
     },
     {
       "name": "update-config",
@@ -172,6 +184,31 @@
       "last_invoked": "2026-05-03T14:50:45.688Z"
     },
     {
+      "name": "mikko-install",
+      "invocations": 1,
+      "tokens_per_use_avg": 35302,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 35302,
+      "annual_total": 141208,
+      "sample_session_ids": [
+        "47fcb7d8-762b-45af-ae2a-b9e4af3c295b"
+      ],
+      "last_invoked": "2026-05-21T22:17:13.398Z"
+    },
+    {
+      "name": "skill-pdf",
+      "invocations": 2,
+      "tokens_per_use_avg": 14821,
+      "uses_per_year": 8,
+      "total_tokens_in_window": 29642,
+      "annual_total": 118568,
+      "sample_session_ids": [
+        "47fcb7d8-762b-45af-ae2a-b9e4af3c295b",
+        "c4067329-a392-4890-8eb3-d1941325463b"
+      ],
+      "last_invoked": "2026-05-21T00:40:37.835Z"
+    },
+    {
       "name": "save-roundtrip-audit",
       "invocations": 1,
       "tokens_per_use_avg": 18587,
@@ -182,19 +219,6 @@
         "ac357e75-ba76-4889-af17-2d9295c3b5df"
       ],
       "last_invoked": "2026-05-03T14:44:59.162Z"
-    },
-    {
-      "name": "skill-pdf",
-      "invocations": 2,
-      "tokens_per_use_avg": 7226,
-      "uses_per_year": 8,
-      "total_tokens_in_window": 14451,
-      "annual_total": 57808,
-      "sample_session_ids": [
-        "47fcb7d8-762b-45af-ae2a-b9e4af3c295b",
-        "c4067329-a392-4890-8eb3-d1941325463b"
-      ],
-      "last_invoked": "2026-05-20T23:42:19.465Z"
     },
     {
       "name": "copyright-scan",
