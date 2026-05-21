@@ -29,10 +29,14 @@ function fmtGeneratedAt(iso) {
   return `${datePart} at ${hhmm} UTC`;
 }
 
-function daysAgo(iso) {
+function lastUsedDate(iso) {
+  // Return an absolute YYYY-MM-DD string anchored to the measurement
+  // timestamp itself — NOT a relative "Nd ago" label. A relative label would
+  // be wrong the moment someone reads this PDF on a day other than its
+  // generation day: "today" on the doc would read as "today" in the
+  // reader's frame, when it actually means "the day the scanner ran".
   if (!iso) return '';
-  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
-  return days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
+  return iso.slice(0, 10);
 }
 
 // Cost-per-use cell. Two lines: number + small "(measured)" or "(est.)" tag.
@@ -100,8 +104,8 @@ function renderBuiltInsSection(refs) {
         measurement_window_days: br.measurement_window_days,
         last_invoked: br.last_invoked,
       };
-      const ago = daysAgo(br.last_invoked);
-      const stamp = ago ? `<br><span class="subtle">${esc(ago)}</span>` : '';
+      const lastUsed = lastUsedDate(br.last_invoked);
+      const stamp = lastUsed ? `<br><span class="subtle">last ${esc(lastUsed)}</span>` : '';
       return `<tr class="measured"><td><strong>${esc(br.label)}</strong>${stamp}</td><td class="desc">${esc(br.description)}</td><td>${renderCostPerUse(receipt)}</td><td>${renderTimesRun(receipt)}</td><td>${renderTokensUsed(receipt)}</td></tr>`;
     })
     .join('\n');
@@ -184,8 +188,9 @@ function buildHtml(data) {
           const isMeasured = s.receipt?.source === 'transcript-measurement';
           const rowClass = isMeasured ? ' class="measured"' : '';
           const name = `<strong>${esc(s.name)}</strong>${s.redirect ? ' <em>(redirect)</em>' : ''}`;
-          const stamp = isMeasured
-            ? `<br><span class="subtle">${esc(daysAgo(s.receipt.last_invoked))}</span>`
+          const lastUsed = isMeasured ? lastUsedDate(s.receipt.last_invoked) : '';
+          const stamp = lastUsed
+            ? `<br><span class="subtle">last ${esc(lastUsed)}</span>`
             : '';
           const linkedName =
             s.receipt && isSafeHref(s.receipt.path)
