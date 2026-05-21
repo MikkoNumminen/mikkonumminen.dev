@@ -39,12 +39,46 @@ function lastUsedDate(iso) {
   return iso.slice(0, 10);
 }
 
-// Cost-per-use cell. Two lines: number + small "(measured)" or "(est.)" tag.
+// Policy bands for the estimate-vs-observed calibration line on measured
+// rows. Within ±10% — "close" (author guessed well). Off by ≥5× either way —
+// "off" (highlighted so calibration misses are visible at a glance).
+const CMP_CLOSE_BAND = 0.1;
+const CMP_OFF_THRESHOLD = 5;
+
+function fmtComparison(observed, estimated) {
+  if (!observed || observed <= 0 || !estimated || estimated <= 0) return null;
+  const ratio = observed / estimated;
+  if (ratio >= 1 - CMP_CLOSE_BAND && ratio <= 1 + CMP_CLOSE_BAND) {
+    return { text: `est. ${fmt(estimated)} · close`, klass: 'cmp-close' };
+  }
+  if (ratio > 1) {
+    const r = ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1);
+    const klass = ratio >= CMP_OFF_THRESHOLD ? 'cmp-off' : '';
+    return { text: `est. ${fmt(estimated)} · ${r}× under`, klass };
+  }
+  const inv = 1 / ratio;
+  const r = inv >= 10 ? Math.round(inv) : inv.toFixed(1);
+  const klass = inv >= CMP_OFF_THRESHOLD ? 'cmp-off' : '';
+  return { text: `est. ${fmt(estimated)} · ${r}× over`, klass };
+}
+
+// Cost-per-use cell. Two lines for estimated rows (number + "(est.)").
+// Three lines for measured rows when a prior_estimate exists: the measured
+// number + "(measured)" tag + a calibration line ("est. X · Nx under")
+// surfacing how far the author's pre-measurement guess was from reality.
 function renderCostPerUse(receipt) {
   if (!receipt?.tokens_per_use) return '—';
   const measured = receipt.source === 'transcript-measurement';
   const tag = measured ? '(measured)' : '(est.)';
-  return `${fmt(receipt.tokens_per_use)}<br><span class="subtle">${tag}</span>`;
+  let extra = '';
+  if (measured) {
+    const cmp = fmtComparison(receipt.tokens_per_use, receipt.prior_estimate?.tokens_per_use);
+    if (cmp) {
+      const cls = cmp.klass ? `subtle ${cmp.klass}` : 'subtle';
+      extra = `<br><span class="${cls}">${cmp.text}</span>`;
+    }
+  }
+  return `${fmt(receipt.tokens_per_use)}<br><span class="subtle">${tag}</span>${extra}`;
 }
 
 // Times-run cell.
@@ -282,12 +316,16 @@ function buildHtml(data) {
   .subtle { color: #777; font-weight: 400; font-size: 7.5pt; }
   .tag-measured { color: #2e7d32; font-weight: 600; }
   .tag-estimated { color: #666; font-weight: 600; }
+  /* Estimate-vs-observed calibration line: green when the author's pre-measurement
+     guess landed within ±10% of reality, orange when off by ≥5× in either direction. */
+  .cmp-close { color: #2e7d32; font-weight: 600; }
+  .cmp-off { color: #c2410c; font-weight: 600; }
   footer { color: #888; font-size: 8pt; margin-top: 18pt; }
 </style>
 </head>
 <body>
 <h1>Skill registry — ${esc(generated)}</h1>
-<p class="meta">Every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows with a green left edge are <span class="tag-measured">measured</span> from real Claude Code transcripts (90-day window); the rest are <span class="tag-estimated">estimated</span> by the skill author. <strong>Tokens saved</strong> models the without-skill alternative: an unstructured chat would scout files, form plans, and decide path before producing the same artifact, costing roughly 3&times; the focused skill run; savings &asymp; 2&times; cost per use &times; annual uses. Override per skill via <code>tokens_saved_per_use</code> on the receipt when the heuristic is wrong.</p>
+<p class="meta">Every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows with a green left edge are <span class="tag-measured">measured</span> from real Claude Code transcripts (90-day window); the rest are <span class="tag-estimated">estimated</span> by the skill author. On measured rows, the <strong>Cost / use</strong> cell carries a calibration line comparing the observed average to the author's pre-measurement guess, e.g. <code>est. 4K &middot; 93&times; under</code> &mdash; green when the estimate landed within &plusmn;10%, orange when off by &ge;5&times;. <strong>Tokens saved</strong> models the without-skill alternative: an unstructured chat would scout files, form plans, and decide path before producing the same artifact, costing roughly 3&times; the focused skill run; savings &asymp; 2&times; cost per use &times; annual uses. Override per skill via <code>tokens_saved_per_use</code> on the receipt when the heuristic is wrong.</p>
 
 ${builtInsSection}
 
