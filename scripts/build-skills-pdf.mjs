@@ -73,6 +73,38 @@ function tokensSubline(measured, total) {
   return `<br><span class="subtle">~${fmt(measured)} measured</span>`;
 }
 
+// Without-skill baseline as a multiple of the skill's per-use cost. The model:
+// an unstructured chat would scout files, form plans, and decide path before
+// producing the same artifact a focused skill run does — so the "without the
+// skill" alternative costs noticeably more than the skill itself. Default
+// assumes the alternative is ~3× the skill cost (i.e. savings = 2× cost).
+// Override per skill by setting `tokens_saved_per_use` directly on a receipt
+// when the heuristic is wrong (e.g. a redirect skill has no replacement work
+// to compare against).
+const DEFAULT_BASELINE_MULTIPLIER = 3;
+
+function tokensSavedPerUse(receipt) {
+  if (!receipt) return 0;
+  if (typeof receipt.tokens_saved_per_use === 'number') return receipt.tokens_saved_per_use;
+  if (typeof receipt.tokens_per_use !== 'number') return 0;
+  return Math.round(receipt.tokens_per_use * (DEFAULT_BASELINE_MULTIPLIER - 1));
+}
+
+function tokensSavedAnnual(receipt) {
+  const perUse = tokensSavedPerUse(receipt);
+  if (!perUse) return 0;
+  const uses = receipt.uses_per_year;
+  if (typeof uses !== 'number' || uses <= 0) return 0;
+  return perUse * uses;
+}
+
+// Tokens-saved cell. Annualized savings vs the modeled "without skill" baseline.
+function renderTokensSaved(receipt) {
+  const annual = tokensSavedAnnual(receipt);
+  if (!annual) return '—';
+  return `~${fmt(annual)}<br><span class="subtle">/yr (est.)</span>`;
+}
+
 // Tokens-used cell. Single number; annual projection on measured rows.
 function renderTokensUsed(receipt) {
   if (!receipt) return '—';
@@ -106,13 +138,13 @@ function renderBuiltInsSection(refs) {
       };
       const lastUsed = lastUsedDate(br.last_invoked);
       const stamp = lastUsed ? `<br><span class="subtle">last ${esc(lastUsed)}</span>` : '';
-      return `<tr class="measured"><td><strong>${esc(br.label)}</strong>${stamp}</td><td class="desc">${esc(br.description)}</td><td>${renderCostPerUse(receipt)}</td><td>${renderTimesRun(receipt)}</td><td>${renderTokensUsed(receipt)}</td></tr>`;
+      return `<tr class="measured"><td><strong>${esc(br.label)}</strong>${stamp}</td><td class="desc">${esc(br.description)}</td><td>${renderCostPerUse(receipt)}</td><td>${renderTimesRun(receipt)}</td><td>${renderTokensUsed(receipt)}</td><td>—</td></tr>`;
     })
     .join('\n');
   return `<h2>Reference: Claude Code built-ins</h2>
-<p class="meta">Claude Code's own slash commands &mdash; <strong>not part of this portfolio</strong>, shown for scale. <strong>Excluded from every total below.</strong></p>
+<p class="meta">Claude Code's own slash commands &mdash; <strong>not part of this portfolio</strong>, shown for scale. <strong>Excluded from every total below.</strong> No savings claim — built-ins are baseline tooling, not a compression-over-baseline.</p>
 <table class="per-repo">
-  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th></tr></thead>
+  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th><th>Tokens saved (est.)</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>`;
 }
@@ -128,16 +160,19 @@ function buildHtml(data) {
   let sumMeasuredTokensWindow = 0;
   let sumMeasuredAnnualTokens = 0;
   let sumAnnualTokens = 0;
+  let sumAnnualSaved = 0;
   const aggregate = [];
   for (const r of data.repos) {
     let measuredInv = 0;
     let measuredAnnualRuns = 0;
     let measuredAnnualTokens = 0;
     let totalAnnualTokens = 0;
+    let annualSaved = 0;
     for (const s of r.skills) {
       const rec = s.receipt;
       if (!rec) continue;
       totalAnnualTokens += rec.annual_total ?? 0;
+      annualSaved += tokensSavedAnnual(rec);
       if (rec.source !== 'transcript-measurement') continue;
       measuredInv += rec.invocations_in_window ?? 0;
       measuredAnnualRuns += rec.uses_per_year ?? 0;
@@ -152,6 +187,7 @@ function buildHtml(data) {
     sumMeasuredAnnualRuns += measuredAnnualRuns;
     sumMeasuredAnnualTokens += measuredAnnualTokens;
     sumAnnualTokens += totalAnnualTokens;
+    sumAnnualSaved += annualSaved;
     aggregate.push({
       name: r.name,
       skills: r.skills.length,
@@ -159,6 +195,7 @@ function buildHtml(data) {
       measuredAnnualRuns,
       measuredAnnualTokens,
       totalAnnualTokens,
+      annualSaved,
     });
   }
 
@@ -177,7 +214,8 @@ function buildHtml(data) {
       const tokens = a.totalAnnualTokens
         ? `~${fmt(a.totalAnnualTokens)}${tokensSubline(a.measuredAnnualTokens, a.totalAnnualTokens)}`
         : '—';
-      return `<tr><td>${esc(a.name)}</td><td>${a.skills}</td><td>${runs}</td><td>${tokens}</td></tr>`;
+      const saved = a.annualSaved ? `~${fmt(a.annualSaved)}` : '—';
+      return `<tr><td>${esc(a.name)}</td><td>${a.skills}</td><td>${runs}</td><td>${tokens}</td><td>${saved}</td></tr>`;
     })
     .join('\n');
 
@@ -196,7 +234,7 @@ function buildHtml(data) {
             s.receipt && isSafeHref(s.receipt.path)
               ? `<a href="${esc(s.receipt.path)}">${name}</a>${stamp}`
               : `${name}${stamp}`;
-          return `<tr${rowClass}><td>${linkedName}</td><td class="desc">${esc(s.description)}</td><td>${renderCostPerUse(s.receipt)}</td><td>${renderTimesRun(s.receipt)}</td><td>${renderTokensUsed(s.receipt)}</td></tr>`;
+          return `<tr${rowClass}><td>${linkedName}</td><td class="desc">${esc(s.description)}</td><td>${renderCostPerUse(s.receipt)}</td><td>${renderTimesRun(s.receipt)}</td><td>${renderTokensUsed(s.receipt)}</td><td>${renderTokensSaved(s.receipt)}</td></tr>`;
         })
         .join('\n');
       const url =
@@ -205,7 +243,7 @@ function buildHtml(data) {
           : '';
       return `<h2>${esc(r.name)}${url}</h2>
 <table class="per-repo">
-  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th></tr></thead>
+  <thead><tr><th>Skill</th><th>Description</th><th>Cost / use</th><th>Times run</th><th>Tokens used</th><th>Tokens saved (est.)</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>`;
     })
@@ -217,6 +255,7 @@ function buildHtml(data) {
   const totalTokensCell = sumAnnualTokens
     ? `~${fmt(sumAnnualTokens)}${tokensSubline(sumMeasuredAnnualTokens, sumAnnualTokens)}`
     : '—';
+  const totalSavedCell = sumAnnualSaved ? `~${fmt(sumAnnualSaved)}` : '—';
 
   return `<!doctype html>
 <html lang="en">
@@ -248,16 +287,16 @@ function buildHtml(data) {
 </head>
 <body>
 <h1>Skill registry — ${esc(generated)}</h1>
-<p class="meta">Every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows with a green left edge are <span class="tag-measured">measured</span> from real Claude Code transcripts (90-day window); the rest are <span class="tag-estimated">estimated</span> by the skill author.</p>
+<p class="meta">Every <code>.claude/skills/*/SKILL.md</code> across the portfolio. Rows with a green left edge are <span class="tag-measured">measured</span> from real Claude Code transcripts (90-day window); the rest are <span class="tag-estimated">estimated</span> by the skill author. <strong>Tokens saved</strong> models the without-skill alternative: an unstructured chat would scout files, form plans, and decide path before producing the same artifact, costing roughly 3&times; the focused skill run; savings &asymp; 2&times; cost per use &times; annual uses. Override per skill via <code>tokens_saved_per_use</code> on the receipt when the heuristic is wrong.</p>
 
 ${builtInsSection}
 
 <h2>Aggregate</h2>
 <table class="aggregate">
-  <thead><tr><th>Repo</th><th>Skills</th><th>Times run (measured)</th><th>Tokens used / yr</th></tr></thead>
+  <thead><tr><th>Repo</th><th>Skills</th><th>Times run (measured)</th><th>Tokens used / yr</th><th>Tokens saved / yr (est.)</th></tr></thead>
   <tbody>
     ${aggregateRows}
-    <tr class="totals-row"><td>Total</td><td>${data.totals.skills}</td><td>${totalRunsCell}</td><td>${totalTokensCell}</td></tr>
+    <tr class="totals-row"><td>Total</td><td>${data.totals.skills}</td><td>${totalRunsCell}</td><td>${totalTokensCell}</td><td>${totalSavedCell}</td></tr>
   </tbody>
 </table>
 
