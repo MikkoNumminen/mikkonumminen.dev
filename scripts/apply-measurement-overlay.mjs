@@ -18,6 +18,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REG = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const USAGE = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-USAGE-LATEST.json');
 const CALIBRATION = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-LATEST.json');
+const CALIB_BUILTINS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-LATEST.json');
 
 // Sample-sessionId → repo lookup. Sessions live under
 // ~/.claude/projects/<dir>/<sessionId>.jsonl; each <dir> maps to one repo.
@@ -411,11 +412,19 @@ const BUILTINS_TO_TRACK = {
   review: { label: '/review', description: 'Claude Code built-in PR code review' },
 };
 
+// Optional A/B-calibration overlay for built-ins. When SKILL-CALIBRATION-
+// BUILTINS-LATEST.json exists, attach arm A/B token counts and the measured
+// per-use saving to the matching reference entry. Absent file = no-op.
+let calibBuiltins = null;
+if (fs.existsSync(CALIB_BUILTINS)) {
+  calibBuiltins = JSON.parse(fs.readFileSync(CALIB_BUILTINS, 'utf8'));
+}
+
 const builtInReferences = [];
 for (const [skillName, meta] of Object.entries(BUILTINS_TO_TRACK)) {
   const m = usage.skills.find((s) => s.name === skillName);
   if (!m) continue;
-  builtInReferences.push({
+  const entry = {
     name: skillName,
     label: meta.label,
     description: meta.description,
@@ -426,7 +435,17 @@ for (const [skillName, meta] of Object.entries(BUILTINS_TO_TRACK)) {
     annual_total: m.annual_total,
     uses_per_year: m.uses_per_year,
     last_invoked: m.last_invoked,
-  });
+  };
+  const calib = calibBuiltins?.builtins?.find((b) => b.name === skillName);
+  if (calib) {
+    entry.tokens_saved_per_use = calib.saved;
+    entry.tokens_saved_source = 'calibration';
+    entry.calibration_arm_A = calib.arm_A_tokens;
+    entry.calibration_arm_B = calib.arm_B_tokens;
+    entry.calibration_pct_saved = calib.pct_saved;
+    entry.calibration_generated_at = calibBuiltins.generated_at;
+  }
+  builtInReferences.push(entry);
 }
 if (builtInReferences.length > 0) {
   reg.built_in_references = builtInReferences;
