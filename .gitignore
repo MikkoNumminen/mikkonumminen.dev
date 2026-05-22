@@ -62,6 +62,7 @@ NOTES.md
 .claude/agent-verdicts/*
 !.claude/agent-verdicts/SKILL-REGISTRY-*
 !.claude/agent-verdicts/SKILL-USAGE-*
+!.claude/agent-verdicts/SKILL-CALIBRATION-*
 !.claude/agent-verdicts/README-SYNC-AGENT.md
 .cursor/
 .aider*

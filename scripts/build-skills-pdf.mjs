@@ -321,12 +321,28 @@ function renderSkillRow(repoName, s) {
     }
   }
 
-  // Saved
+  // Saved.
+  //   - source = 'calibration' → real measurement from an A/B run, prefix with
+  //     a leading sign so negatives are visible. Use `saved-measured` styling.
+  //   - everything else → modeled via the 3× heuristic. Tag accordingly.
   let savedCell = '<td class="saved">—</td>';
   const annualSaved = tokensSavedAnnual(rec);
   if (annualSaved) {
-    const tag = measured ? 'modeled' : 'modeled (from est.)';
-    savedCell = `<td class="saved"><span class="saved-num">~${fmt(annualSaved)}/yr</span><span class="saved-tag">${esc(tag)}</span></td>`;
+    const isCalibrated = rec?.tokens_saved_source === 'calibration';
+    const negative = annualSaved < 0;
+    let tag;
+    if (isCalibrated) {
+      tag = negative ? 'measured · costs more' : 'measured';
+    } else {
+      tag = measured ? 'modeled' : 'modeled (from est.)';
+    }
+    const cellClasses = ['saved'];
+    if (isCalibrated) cellClasses.push('saved-calibrated');
+    if (negative) cellClasses.push('saved-negative');
+    const display = negative
+      ? `−${fmt(Math.abs(annualSaved))}/yr`
+      : `~${fmt(annualSaved)}/yr`;
+    savedCell = `<td class="${cellClasses.join(' ')}"><span class="saved-num">${display}</span><span class="saved-tag">${esc(tag)}</span></td>`;
   }
 
   const skillCell = `<td class="skill"><span class="name">${linkedName}</span><span class="tagline">${tagline}</span></td>`;
@@ -391,10 +407,10 @@ function renderMethodPage() {
   <p>Make the asymmetry visible: every measured estimate I had has turned out to be wrong, usually low by 5× to 100×. Apply the same skepticism to the rows that have not been measured yet. If anything, the un-measured estimates are likely to be <em>more</em> wrong, because the ones I measured first were the ones I felt most confident about.</p>
 
   <h2>How “tokens saved” is computed</h2>
-  <p>The savings number is a model, not a measurement. Here is the model in one line:</p>
-  <p><strong>Saved = (cost of doing it the unstructured way − cost of doing it with the skill) × annual uses.</strong> I model the unstructured way as ~3× a focused skill run, because an unstructured chat would scout the files, talk through a plan, pick an approach, and only then write the same code. So saved ≈ 2× cost-per-use × annual uses.</p>
-  <p>The 3× number comes from a handful of side-by-side runs I did on my own machine. It is not a benchmark. It is not a guarantee. It is the number I'm using until I have more measured baselines, and it is the single load-bearing assumption in every "Saved / yr" cell in this document. Per-skill overrides exist (<code>tokens_saved_per_use</code> on a receipt) for cases where the heuristic is obviously wrong — a redirect skill, for example, has no replacement work to compare against. Few skills currently override it.</p>
-  <p>Cost appears on both sides of that subtraction, so the savings figure is more sensitive to bad guesses than the cost figure is. An estimated row with a 100× under-guess on cost-per-use produces a 100× under-guess on savings, too. The italicised numbers in the “Saved / yr” column are exactly those rows: a model stacked on top of a guess. Treat them as a lower bound at best.</p>
+  <p>The savings column carries two kinds of numbers, marked in the rows.</p>
+  <p><strong>Bold green numbers tagged <em>measured</em> are real A/B measurements.</strong> A Sonnet sub-agent solves a representative task in two arms — once cold (no skill awareness) and once following the skill's <code>SKILL.md</code> exactly — both in fresh sandboxed worktrees, both with token usage read from the harness's per-sub-agent <code>usage.total_tokens</code>. The saved number is arm-A tokens minus arm-B tokens for that one run. Orange numbers labelled <em>measured · costs more</em> are skills where the A/B test showed the skill arm spent more than the unstructured arm — those are real findings, not anomalies; the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The most recent calibration is captured in <code>.claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json</code> with each row's arm-A / arm-B numbers preserved.</p>
+  <p><strong>Italic gray numbers tagged <em>modeled</em> are a 3× heuristic.</strong> When no calibration data exists for a row, the renderer assumes the unstructured alternative would cost ~3× a focused skill run, so saved ≈ 2× cost-per-use × annual uses. The 3× is a handful-of-side-by-side-runs guess from the author, not a benchmark — the May-2026 Spacepotatis calibration showed it's overstated by roughly 3× at the portfolio level (measured ~22% rate vs the heuristic's ~67%). Rows still showing modeled numbers are skills that haven't been A/B-tested yet; treat their savings as a possibly-too-optimistic lower bound.</p>
+  <p>Cost appears on both sides of the underlying subtraction, so the savings figure is more sensitive to bad cost estimates than the cost figure is. An italic-modeled row stacked on top of an italic-estimated cost is a model on top of a guess — least trustworthy column on the page. A bold-measured row on top of a measured cost is the most trustworthy. The visual treatment matches that hierarchy.</p>
 
   <h2>What this document does NOT claim</h2>
   <ul>
@@ -534,7 +550,7 @@ ${calibrationPage}
 
 <section class="page-break repo-page">
   <h1>Per-repo skill tables</h1>
-  <p class="lede">One row per skill. Measured rows have a green wash; estimated rows are white. <strong>Saved / yr</strong> is a model — italic numbers mean it's modeled on top of an estimate, upright numbers mean it's modeled on top of a measurement. The model itself is described on the method page.</p>
+  <p class="lede">One row per skill. Measured rows have a green wash; estimated rows are white. <strong>Saved / yr</strong> carries two kinds of numbers: <span class="saved-num" style="font-weight:700;color:var(--calib-ok)">bold green tagged <em>measured</em></span> means a real A/B run (arm A vs arm B) gave us the savings figure; italic gray tagged <em>modeled</em> means we're still using the 3× heuristic. Orange numbers are real measurements showing the skill cost MORE per use than the unstructured baseline. The method page describes both.</p>
   ${repoSections}
 </section>
 

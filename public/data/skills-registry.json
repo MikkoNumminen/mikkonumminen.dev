@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-21T22:40:47.096Z",
+  "generated_at": "2026-05-22T15:18:12.758Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -138,7 +138,11 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 13500,
             "uses_per_year": 50,
-            "annual_total": 675000
+            "annual_total": 675000,
+            "tokens_saved_per_use": 13119,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 46279,
+            "calibration_arm_B": 33160
           }
         },
         {
@@ -161,7 +165,11 @@
               "annual_total": 750000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            },
+            "tokens_saved_per_use": 22309,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 99335,
+            "calibration_arm_B": 77026
           }
         },
         {
@@ -184,7 +192,12 @@
               "annual_total": 240000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            },
+            "tokens_saved_per_use": -4677,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 89006,
+            "calibration_arm_B": 93683,
+            "calibration_notes": "skill enforces full CRUD lifecycle — encodes rigor, not scout-savings"
           }
         },
         {
@@ -196,7 +209,11 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 5000,
             "uses_per_year": 5,
-            "annual_total": 25000
+            "annual_total": 25000,
+            "tokens_saved_per_use": 46414,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 175187,
+            "calibration_arm_B": 128773
           }
         },
         {
@@ -208,7 +225,11 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 5500,
             "uses_per_year": 25,
-            "annual_total": 138000
+            "annual_total": 138000,
+            "tokens_saved_per_use": 6956,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 75309,
+            "calibration_arm_B": 68353
           }
         },
         {
@@ -220,7 +241,11 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 7000,
             "uses_per_year": 15,
-            "annual_total": 105000
+            "annual_total": 105000,
+            "tokens_saved_per_use": 4036,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 24685,
+            "calibration_arm_B": 20649
           }
         },
         {
@@ -232,7 +257,12 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 8000,
             "uses_per_year": 30,
-            "annual_total": 240000
+            "annual_total": 240000,
+            "tokens_saved_per_use": 28950,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 78730,
+            "calibration_arm_B": 49780,
+            "calibration_notes": "arm-B blocked by classifier partway through; partial run"
           }
         },
         {
@@ -244,7 +274,11 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 9000,
             "uses_per_year": 10,
-            "annual_total": 90000
+            "annual_total": 90000,
+            "tokens_saved_per_use": 26594,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 82299,
+            "calibration_arm_B": 55705
           }
         },
         {
@@ -256,7 +290,11 @@
             "source": "docs/SKILLS.md",
             "tokens_per_use": 13000,
             "uses_per_year": 5,
-            "annual_total": 65000
+            "annual_total": 65000,
+            "tokens_saved_per_use": 5716,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 65319,
+            "calibration_arm_B": 59603
           }
         },
         {
@@ -279,7 +317,11 @@
               "annual_total": 216000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            },
+            "tokens_saved_per_use": 13722,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 47182,
+            "calibration_arm_B": 33460
           }
         },
         {
@@ -308,7 +350,11 @@
               "annual_total": 240000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            },
+            "tokens_saved_per_use": 7206,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 70080,
+            "calibration_arm_B": 62874
           }
         }
       ]
@@ -337,7 +383,12 @@
               "annual_total": 1875000,
               "source": "skill-body",
               "path": "skills/ai-codegen-smell-audit/SKILL.md"
-            }
+            },
+            "tokens_saved_per_use": 76229,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 157348,
+            "calibration_arm_B": 81119,
+            "calibration_notes": "arm-B found 1 nit vs arm-A's 11 — savings partly reflect stricter discrimination"
           }
         },
         {
@@ -454,7 +505,12 @@
             "source": "skill-body",
             "tokens_per_use": 750000,
             "uses_per_year": 4,
-            "annual_total": 3000000
+            "annual_total": 3000000,
+            "tokens_saved_per_use": -4326,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 107885,
+            "calibration_arm_B": 112211,
+            "calibration_notes": "skill encodes rigor (full attack-surface walk) — costs more per use, value is in completeness"
           }
         },
         {
