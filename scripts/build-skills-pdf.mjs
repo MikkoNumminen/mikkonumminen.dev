@@ -195,14 +195,21 @@ function renderSummaryTable(perRepo) {
       const saved = r.annualSaved ? `~${fmt(r.annualSaved)}` : '—';
       const savedCls =
         r.annualSavedMeasuredShare < 0.5 ? ' class="saved-est"' : '';
-      return `<tr><td>${esc(r.name)}</td><td class="num">${skills}</td><td class="num">${measured}</td><td class="num">${tokens}</td><td class="num"${savedCls}>${saved}</td></tr>`;
+      // Subline: how much of the saved figure is A/B-measured (calibration)
+      // vs modeled (3× heuristic). Only show when calibration data exists on
+      // at least one row in this repo — otherwise the subline is noise.
+      let savedSubline = '';
+      if (r.calibratedCount > 0) {
+        savedSubline = `<br><span class="subtle">${r.calibratedCount} of ${r.totalSkills} measured · ~${fmt(r.annualSavedCalibrated)}/yr from A/B</span>`;
+      }
+      return `<tr><td>${esc(r.name)}</td><td class="num">${skills}</td><td class="num">${measured}</td><td class="num">${tokens}</td><td class="num"${savedCls}>${saved}${savedSubline}</td></tr>`;
     })
     .join('\n');
   return `<table class="aggregate">
   <thead><tr><th scope="col">Repo</th><th scope="col" class="num">Skills</th><th scope="col" class="num">Measured</th><th scope="col" class="num">Tokens used (90d)</th><th scope="col" class="num">Saved / yr*</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>
-<p class="note">* Saved is a model, not a measurement — see the method page. Italicised values are majority-estimate; upright values are majority-measured.</p>`;
+<p class="note">* Saved is mixed — A/B-measured where the “measured” subline appears, modeled (3× heuristic) for the rest. Italicised values are majority-estimate on the cost side; upright values are majority-measured on the cost side. See the method page for both models.</p>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -408,7 +415,7 @@ function renderMethodPage() {
 
   <h2>How “tokens saved” is computed</h2>
   <p>The savings column carries two kinds of numbers, marked in the rows.</p>
-  <p><strong>Bold green numbers tagged <em>measured</em> are real A/B measurements.</strong> A Sonnet sub-agent solves a representative task in two arms — once cold (no skill awareness) and once following the skill's <code>SKILL.md</code> exactly — both in fresh sandboxed worktrees, both with token usage read from the harness's per-sub-agent <code>usage.total_tokens</code>. The saved number is arm-A tokens minus arm-B tokens for that one run. Orange numbers labelled <em>measured · costs more</em> are skills where the A/B test showed the skill arm spent more than the unstructured arm — those are real findings, not anomalies; the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The most recent calibration is captured in <code>.claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json</code> with each row's arm-A / arm-B numbers preserved.</p>
+  <p><strong>Bold green numbers tagged <em>measured</em> are real A/B measurements.</strong> A Sonnet sub-agent solves a representative task in two arms — once cold (no skill awareness) and once following the skill's <code>SKILL.md</code> exactly — both in fresh sandboxed worktrees, both with token usage read from the harness's per-sub-agent <code>usage.total_tokens</code>. The saved number is arm-A tokens minus arm-B tokens for that one run. Orange numbers labelled <em>measured · costs more</em> are skills where the A/B test showed the skill arm spent more than the unstructured arm — those are real findings, not anomalies; the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for downstream consumers to read.</p>
   <p><strong>Italic gray numbers tagged <em>modeled</em> are a 3× heuristic.</strong> When no calibration data exists for a row, the renderer assumes the unstructured alternative would cost ~3× a focused skill run, so saved ≈ 2× cost-per-use × annual uses. The 3× is a handful-of-side-by-side-runs guess from the author, not a benchmark — the May-2026 Spacepotatis calibration showed it's overstated by roughly 3× at the portfolio level (measured ~22% rate vs the heuristic's ~67%). Rows still showing modeled numbers are skills that haven't been A/B-tested yet; treat their savings as a possibly-too-optimistic lower bound.</p>
   <p>Cost appears on both sides of the underlying subtraction, so the savings figure is more sensitive to bad cost estimates than the cost figure is. An italic-modeled row stacked on top of an italic-estimated cost is a model on top of a guess — least trustworthy column on the page. A bold-measured row on top of a measured cost is the most trustworthy. The visual treatment matches that hierarchy.</p>
 
@@ -445,14 +452,20 @@ function buildAggregates(data) {
 
   for (const r of data.repos) {
     let measuredCount = 0;
+    let calibratedCount = 0;
     let measuredTokensWindow = 0;
     let annualSaved = 0;
     let annualSavedMeasured = 0;
+    let annualSavedCalibrated = 0;
     for (const s of r.skills) {
       const rec = s.receipt;
       if (!rec) continue;
       const saved = tokensSavedAnnual(rec);
       annualSaved += saved;
+      if (rec.tokens_saved_source === 'calibration') {
+        calibratedCount += 1;
+        annualSavedCalibrated += saved;
+      }
       if (isMeasured(rec)) {
         measuredCount += 1;
         const w =
@@ -485,8 +498,10 @@ function buildAggregates(data) {
       name: r.name,
       totalSkills: r.skills.length,
       measuredCount,
+      calibratedCount,
       measuredTokensWindow,
       annualSaved,
+      annualSavedCalibrated,
       annualSavedMeasuredShare:
         annualSaved > 0 ? annualSavedMeasured / annualSaved : 0,
     });
