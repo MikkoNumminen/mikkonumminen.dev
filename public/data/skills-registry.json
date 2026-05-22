@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-22T16:40:33.780Z",
+  "generated_at": "2026-05-22T22:06:04.330Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -134,11 +134,23 @@
           "description": "Diff uncommitted changes to game data (weapons, enemies, waves, missions, perks, augments, loot pools, solar systems) and report DPS, TTK, energy-cost-per-DPS, augment-folded effective DPS, loot-pool roster shifts, and drop-rate deltas vs HEAD.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 13500,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 33160,
             "uses_per_year": 50,
-            "annual_total": 675000
+            "annual_total": 1658000,
+            "tokens_saved_per_use": 13119,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 46279,
+            "calibration_arm_B": 33160,
+            "prior_estimate": {
+              "tokens_per_use": 13500,
+              "uses_per_year": 50,
+              "annual_total": 675000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            },
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
@@ -161,7 +173,11 @@
               "annual_total": 750000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            },
+            "tokens_saved_per_use": 22309,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 99335,
+            "calibration_arm_B": 77026
           }
         },
         {
@@ -184,7 +200,12 @@
               "annual_total": 240800,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            },
+            "tokens_saved_per_use": -4677,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 89006,
+            "calibration_arm_B": 93683,
+            "calibration_notes": "skill enforces full CRUD lifecycle — encodes rigor, not scout-savings"
           }
         },
         {
@@ -192,11 +213,23 @@
           "description": "Orchestrates the multi-phase modular-architecture audit + refactor. Phase 0 sets up agents; Phase 1 inventories every file; Phase 2 proposes module boundaries; Phase 3 mechanically extracts modules one at a time (parallelizable across worktrees); Phase 4 writes AI-first documentation; Phase 5 verifies. Each phase produces a written artifact under docs/audit/ and STOPS at a gate for user approval. Never auto-advances.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 5000,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 128773,
             "uses_per_year": 5,
-            "annual_total": 25000
+            "annual_total": 643865,
+            "tokens_saved_per_use": 46414,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 175187,
+            "calibration_arm_B": 128773,
+            "prior_estimate": {
+              "tokens_per_use": 5000,
+              "uses_per_year": 5,
+              "annual_total": 25000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            },
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
@@ -204,11 +237,23 @@
           "description": "Scaffold a new enemy — enemies.json entry, BootScene placeholder sprite generator, optional test wave, and integrity test verification.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 5500,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 68353,
             "uses_per_year": 25,
-            "annual_total": 137500
+            "annual_total": 1708825,
+            "tokens_saved_per_use": 6956,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 75309,
+            "calibration_arm_B": 68353,
+            "prior_estimate": {
+              "tokens_per_use": 5500,
+              "uses_per_year": 25,
+              "annual_total": 137500,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            },
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
@@ -216,11 +261,23 @@
           "description": "Add a Postgres schema migration end-to-end — dated SQL file in db/migrations/, Database interface update in src/lib/db.ts, prod application via scripts/migrate.mjs, schema verification via scripts/check-schema.mjs, and the PR-body checkbox that gates merge. Enforces CLAUDE.md §7a HARD RULE so the next save POST doesn't 500.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 7000,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 20649,
             "uses_per_year": 15,
-            "annual_total": 105000
+            "annual_total": 309735,
+            "tokens_saved_per_use": 4036,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 24685,
+            "calibration_arm_B": 20649,
+            "prior_estimate": {
+              "tokens_per_use": 7000,
+              "uses_per_year": 15,
+              "annual_total": 105000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            },
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
@@ -228,11 +285,24 @@
           "description": "Scaffold a new combat mission across missions.json, waves.json, the galaxy planet binding, and a smoke test — in one shot.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 8000,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 49780,
             "uses_per_year": 30,
-            "annual_total": 240000
+            "annual_total": 1493400,
+            "tokens_saved_per_use": 28950,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 78730,
+            "calibration_arm_B": 49780,
+            "calibration_notes": "arm-B blocked by classifier partway through; partial run",
+            "prior_estimate": {
+              "tokens_per_use": 8000,
+              "uses_per_year": 30,
+              "annual_total": 240000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            },
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
@@ -240,11 +310,23 @@
           "description": "Scaffold a new mission-only perk — perks.ts entry, BootScene icon generator, HUD chip wiring, and (for actives) a switch case in PerkController.apply / triggerActive.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 9000,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 55705,
             "uses_per_year": 10,
-            "annual_total": 90000
+            "annual_total": 557050,
+            "tokens_saved_per_use": 26594,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 82299,
+            "calibration_arm_B": 55705,
+            "prior_estimate": {
+              "tokens_per_use": 9000,
+              "uses_per_year": 10,
+              "annual_total": 90000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            },
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
@@ -252,11 +334,23 @@
           "description": "Add a new solar system to the galaxy — solarSystems.json entry (incl. galaxy bed), SolarSystemId union extension, optional unlock gating, REQUIRED on-system-enter cinematic (voice + music) AND dedicated galaxy-view music bed, and mission-binding TODO list.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md",
-            "source": "docs/SKILLS.md",
-            "tokens_per_use": 13000,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 59603,
             "uses_per_year": 5,
-            "annual_total": 65000
+            "annual_total": 298015,
+            "tokens_saved_per_use": 5716,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 65319,
+            "calibration_arm_B": 59603,
+            "prior_estimate": {
+              "tokens_per_use": 13000,
+              "uses_per_year": 5,
+              "annual_total": 65000,
+              "source": "docs/SKILLS.md",
+              "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
+            },
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
@@ -279,7 +373,11 @@
               "annual_total": 216000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            },
+            "tokens_saved_per_use": 13722,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 47182,
+            "calibration_arm_B": 33460
           }
         },
         {
@@ -308,7 +406,11 @@
               "annual_total": 240000,
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
-            }
+            },
+            "tokens_saved_per_use": 7206,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 70080,
+            "calibration_arm_B": 62874
           }
         }
       ]
@@ -337,7 +439,12 @@
               "annual_total": 1875000,
               "source": "skill-body",
               "path": "skills/ai-codegen-smell-audit/SKILL.md"
-            }
+            },
+            "tokens_saved_per_use": 76229,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 157348,
+            "calibration_arm_B": 81119,
+            "calibration_notes": "arm-B found 1 nit vs arm-A's 11 — savings partly reflect stricter discrimination"
           }
         },
         {
@@ -403,11 +510,22 @@
           "description": "Install, update, list, or uninstall `mikko-*` skills from the cloned `claude-skills` source repo into the user-wide skill directory (`~/.claude/skills/mikko-*`). Wraps the existing `install-mikko.sh` and `install.sh` scripts so the install loop is reachable from inside any Claude Code session via a slash command — no need to leave the conversation, find the repo, and run bash by hand. Use whenever the user says \"install the mikko skills\", \"install everything\", \"add mikko-readme-drift-sync\", \"update my mikko skills\", \"what's new since last install\", or \"uninstall mikko-foo\". Locates the source repo via the current working directory, parent directories, or known sibling locations (configurable). Does NOT clone the repo (the user clones it once, by hand). Does NOT touch skills outside the `mikko-*` prefix.",
           "redirect": false,
           "receipt": {
-            "path": "skills/mikko-install/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 4000,
-            "uses_per_year": null,
-            "annual_total": null
+            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
+            "source": "transcript-measurement",
+            "tokens_per_use": 35302,
+            "uses_per_year": 4,
+            "annual_total": 141208,
+            "measurement_window_days": 90,
+            "invocations_in_window": 1,
+            "total_tokens_in_window": 35302,
+            "last_invoked": "2026-05-21T22:17:13.398Z",
+            "prior_estimate": {
+              "tokens_per_use": 4000,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "skill-body",
+              "path": "skills/mikko-install/SKILL.md"
+            }
           }
         },
         {
@@ -439,11 +557,17 @@
           "description": "Orchestrates the multi-phase security audit + remediation. Phase 0 sets up agents; Phase 1 maps the full attack surface (entry points, auth, authz, input, secrets, data exposure, deps, transport, client, ops); Phase 2 turns findings into a prioritized remediation plan; Phase 3 fixes one finding at a time with regression tests (crit/high sequential, low/med parallelizable in worktrees); Phase 4 writes AI-first security documentation (SECURITY.md, threat model, invariants, code-level markers, lint rules); Phase 5 verifies. Each phase produces an artifact under docs/security/ and STOPS at a gate for user approval. Never auto-advances. Critical findings surface immediately.",
           "redirect": false,
           "receipt": {
-            "path": "skills/security-audit/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": null,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 112211,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": -4326,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 107885,
+            "calibration_arm_B": 112211,
+            "calibration_notes": "skill encodes rigor (full attack-surface walk) — costs more per use, value is in completeness",
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
@@ -453,13 +577,13 @@
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
-            "tokens_per_use": 24316,
+            "tokens_per_use": 24876,
             "uses_per_year": 12,
-            "annual_total": 291792,
+            "annual_total": 298512,
             "measurement_window_days": 90,
             "invocations_in_window": 3,
-            "total_tokens_in_window": 72949,
-            "last_invoked": "2026-05-21T00:38:02.026Z",
+            "total_tokens_in_window": 74628,
+            "last_invoked": "2026-05-21T00:38:21.138Z",
             "prior_estimate": {
               "tokens_per_use": 4000,
               "uses_per_year": 12,
@@ -552,7 +676,7 @@
     "skills": 33,
     "redirects": 1,
     "with_receipts": 32,
-    "annual_tokens_saved": 20482860
+    "annual_tokens_saved": 25962178
   },
   "built_in_references": [
     {
@@ -561,11 +685,11 @@
       "description": "Claude Code built-in PR code review",
       "measurement_window_days": 90,
       "invocations_in_window": 14,
-      "total_tokens_in_window": 14350835,
-      "tokens_per_use_avg": 1025060,
-      "annual_total": 58428420,
+      "total_tokens_in_window": 14700869,
+      "tokens_per_use_avg": 1050062,
+      "annual_total": 59853534,
       "uses_per_year": 57,
-      "last_invoked": "2026-05-21T00:31:34.026Z",
+      "last_invoked": "2026-05-21T22:26:59.270Z",
       "tokens_saved_per_use": 45738,
       "tokens_saved_source": "calibration",
       "calibration_arm_A": 72170,
