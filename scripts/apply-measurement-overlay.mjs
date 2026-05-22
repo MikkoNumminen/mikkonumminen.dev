@@ -321,10 +321,54 @@ if (fs.existsSync(CALIBRATION)) {
       s.receipt.calibration_arm_A = entry.arm_A_tokens;
       s.receipt.calibration_arm_B = entry.arm_B_tokens;
       if (entry.notes) s.receipt.calibration_notes = entry.notes;
+
+      // The calibration's arm-B IS a measured cost-per-use: real tokens
+      // billed through the harness when a sub-agent followed the skill
+      // procedure end-to-end on a representative task. For rows that don't
+      // already have transcript-measurement cost data, this is the best
+      // cost number we have — better than the editorial guess. Promote it
+      // so the cost column reflects real measurement instead of a stale
+      // estimate, and so the chip flips from ESTIMATE to MEASURED.
+      //
+      // For rows that DO have transcript data, the transcript measurement
+      // wins (it's "what happened in production"; arm-B is what happens
+      // under controlled A/B conditions). Arm-B stays on the receipt
+      // either way so consumers that want it can read it explicitly.
+      const hadTranscript = s.receipt.source === 'transcript-measurement';
+      if (!hadTranscript) {
+        // Preserve the editorial estimate as prior_estimate so the
+        // calibration column on the per-repo table can show "how wrong my
+        // guess was" — same shape transcript-measured rows already use.
+        if (
+          !s.receipt.prior_estimate &&
+          typeof s.receipt.tokens_per_use === 'number'
+        ) {
+          s.receipt.prior_estimate = {
+            tokens_per_use: s.receipt.tokens_per_use,
+            uses_per_year: s.receipt.uses_per_year ?? null,
+            annual_total: s.receipt.annual_total ?? null,
+            source: s.receipt.source ?? null,
+            path: s.receipt.path ?? null,
+          };
+        }
+
+        s.receipt.tokens_per_use = entry.arm_B_tokens;
+        s.receipt.annual_total = s.receipt.uses_per_year
+          ? entry.arm_B_tokens * s.receipt.uses_per_year
+          : null;
+        s.receipt.source = 'calibration';
+        s.receipt.path =
+          '.claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json';
+        if (calibration.generated_at) {
+          s.receipt.last_invoked = calibration.generated_at;
+        }
+      }
+
       calibratedRows += 1;
       report.push(
         `CALIBRATE ${r.name}.${s.name}: saved/use = ${entry.saved.toLocaleString()} ` +
-          `(arm A ${entry.arm_A_tokens.toLocaleString()} vs B ${entry.arm_B_tokens.toLocaleString()})`,
+          `(arm A ${entry.arm_A_tokens.toLocaleString()} vs B ${entry.arm_B_tokens.toLocaleString()}); ` +
+          `cost: ${hadTranscript ? 'kept transcript' : 'promoted to arm-B'}`,
       );
     }
   }

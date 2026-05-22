@@ -143,8 +143,27 @@ function fmtMultiplier(m) {
 //  Row classification
 // ---------------------------------------------------------------------------
 
+// "Measured" means the cost-per-use is backed by a real run, regardless of
+// which kind of run. Two sources qualify:
+//   - 'transcript-measurement': real Claude Code session transcripts
+//     scanned by mikko-skill-usage. "What happened in production."
+//   - 'calibration': A/B calibration arm-B sub-agent ran the skill on a
+//     representative task. "What happens under controlled conditions."
+// Both are real tokens billed through the harness. The chip says MEASURED
+// for either; the per-cell unit text distinguishes the source when useful.
 function isMeasured(receipt) {
+  return (
+    receipt?.source === 'transcript-measurement' ||
+    receipt?.source === 'calibration'
+  );
+}
+
+function isTranscriptMeasured(receipt) {
   return receipt?.source === 'transcript-measurement';
+}
+
+function isCalibrationMeasured(receipt) {
+  return receipt?.source === 'calibration';
 }
 
 // ---------------------------------------------------------------------------
@@ -348,14 +367,18 @@ function renderSkillRow(repoName, s) {
   // Cost / use
   let costCell = '<td class="cost">—</td>';
   if (rec?.tokens_per_use != null) {
-    const unit = measured ? 'tokens / use (measured)' : 'tokens / use (est.)';
+    const unit = isCalibrationMeasured(rec)
+      ? 'tokens / use (A/B-measured)'
+      : isTranscriptMeasured(rec)
+        ? 'tokens / use (measured)'
+        : 'tokens / use (est.)';
     costCell = `<td class="cost"><span class="big">${fmt(rec.tokens_per_use)}</span><span class="unit">${esc(unit)}</span></td>`;
   }
 
   // Runs
   let runsCell = '<td class="runs">—</td>';
   if (rec) {
-    if (measured) {
+    if (isTranscriptMeasured(rec)) {
       const inv = rec.invocations_in_window ?? '?';
       const win = rec.measurement_window_days ?? '?';
       const proj = rec.uses_per_year ?? '?';
@@ -424,13 +447,15 @@ function renderRepoSection(repo) {
       : '';
   const stats = `${repo.skills.length} skills · ${measuredCount} measured`;
   const statsCell = url ? `${stats} · ${url}` : stats;
+  // The repo banner + column header are BOTH inside <thead> so the entire
+  // header block repeats on every page when the table spills across page
+  // breaks. Without this, page 2 of a long repo's table showed columns
+  // with no repo identification — user reported as "fucked up" big time.
   return `<section>
-  <div class="repo-heading">
-    <span class="repo-name">${esc(repo.name)}</span>
-    <span class="repo-stats">${statsCell}</span>
-  </div>
   <table class="skills">
-    <thead><tr>
+    <thead>
+      <tr class="repo-heading-row"><th colspan="6" class="repo-heading-cell"><span class="repo-name">${esc(repo.name)}</span><span class="repo-stats">${statsCell}</span></th></tr>
+      <tr>
       <th scope="col">Skill</th>
       <th scope="col">Status</th>
       <th scope="col" class="num">Cost / use</th>
@@ -475,6 +500,9 @@ function renderMethodPage() {
   <p><strong>Bold green numbers tagged <em>measured</em> are real A/B measurements.</strong> A Sonnet sub-agent solves a representative task in two arms — once cold (no skill awareness) and once following the skill's <code>SKILL.md</code> exactly — both in fresh sandboxed worktrees, both with token usage read from the harness's per-sub-agent <code>usage.total_tokens</code>. The saved number is arm-A tokens minus arm-B tokens for that one run. Orange numbers labelled <em>measured · costs more</em> are skills where the A/B test showed the skill arm spent more than the unstructured arm — those are real findings, not anomalies; the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for downstream consumers to read.</p>
   <p><strong>Italic gray numbers tagged <em>modeled</em> are a 3× heuristic.</strong> When no calibration data exists for a row, the renderer assumes the unstructured alternative would cost ~3× a focused skill run, so saved ≈ 2× cost-per-use × annual uses. The 3× is a handful-of-side-by-side-runs guess from the author, not a benchmark — the May-2026 Spacepotatis calibration showed it's overstated by roughly 3× at the portfolio level (measured ~22% rate vs the heuristic's ~67%). Rows still showing modeled numbers are skills that haven't been A/B-tested yet; treat their savings as a possibly-too-optimistic lower bound.</p>
   <p>Cost appears on both sides of the underlying subtraction, so the savings figure is more sensitive to bad cost estimates than the cost figure is. An italic-modeled row stacked on top of an italic-estimated cost is a model on top of a guess — least trustworthy column on the page. A bold-measured row on top of a measured cost is the most trustworthy. The visual treatment matches that hierarchy.</p>
+
+  <h3>One caveat on A/B-measured cost rows</h3>
+  <p>When the cost-per-use comes from a calibration arm-B (because the skill wasn't transcript-measured), the row reads <em>tokens / use (A/B-measured)</em> — that part is real. But the <strong>annual_total</strong> on those rows is computed as <em>arm-B-tokens × editorial uses_per_year</em>, mixing a real per-use measurement with an editorial cadence guess. The Runs cell still says <code>(est.)</code> on those rows so you can spot the mix; the annual number itself doesn't carry a visual tag. Treat A/B-cost annuals as "real per-use, guessed cadence" — the per-use is the calibrated number, the multiplier is still a model.</p>
 
   <h2>What this document does NOT claim</h2>
   <ul>
