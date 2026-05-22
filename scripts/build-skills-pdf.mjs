@@ -151,33 +151,52 @@ function isMeasured(receipt) {
 //  Hero block (page 1)
 // ---------------------------------------------------------------------------
 
-function renderHero(customMeasured90d, reviewBuiltin) {
+function renderHero(agg, calibratedCount, totalSkillsWithReceipts) {
+  const measured = agg.portfolioSavedCalibrated || 0;
+  const modeled = agg.portfolioSavedModeled || 0;
+  const total = measured + modeled;
+  // Bars share a max scale so the reader can SEE that measured is ~10% of
+  // modeled, not infer it from numbers. Cap by the larger of the two so a
+  // tiny measured share doesn't disappear entirely.
+  const cap = Math.max(measured, modeled, 1);
+  const measuredPct = Math.round((measured / cap) * 100);
+  const modeledPct = Math.round((modeled / cap) * 100);
+  const sharePct = total > 0 ? Math.round((measured / total) * 100) : 0;
+  const coverage = totalSkillsWithReceipts > 0
+    ? `${calibratedCount} of ${totalSkillsWithReceipts} skills A/B-tested so far`
+    : 'no skills A/B-tested yet';
+  return `<section class="hero avoid-break">
+  <h2>Projected annual savings — measured vs modeled</h2>
+  <div class="hero-row">
+    <span class="number">${fmt(measured)} <span class="pct">${sharePct}% of total · real A/B receipts</span></span>
+    <span class="label">Measured savings <span class="sublabel">(A/B-tested skills only — ${coverage})</span></span>
+    <span class="bar cust" style="width: ${Math.max(measuredPct, 1)}%"></span>
+  </div>
+  <div class="hero-row">
+    <span class="number">${fmt(modeled)} <span class="pct">3× cost heuristic, no A/B yet</span></span>
+    <span class="label">Modeled savings <span class="sublabel">(skills still without measured savings data)</span></span>
+    <span class="bar ref" style="width: ${Math.max(modeledPct, 1)}%"></span>
+  </div>
+  <p class="hero-caption">This document is a register of skills that have measured data behind them, not a usage receipt. The measured bar above is the only number on this page derived from real A/B runs — the modeled bar is what the 3× heuristic claims is being saved on the rows that haven't been calibrated yet. Same bar scale, no zoom trickery.</p>
+</section>`;
+}
+
+// Cost-and-comparison block: secondary to the savings hero. Shows what
+// /review (Claude Code's own slash command) cost vs the entire custom-skill
+// portfolio cost in the measurement window. Useful as a SCALE anchor for
+// readers who want to know whether the portfolio's TOTAL footprint is
+// trivially small or non-trivial — without making "tokens used" the
+// headline number of the document.
+function renderContextBox(customMeasured90d, reviewBuiltin) {
   const refTokens = reviewBuiltin?.total_tokens_in_window ?? 0;
   const refInvocations = reviewBuiltin?.invocations_in_window ?? 0;
-  const cap = Math.max(customMeasured90d, refTokens) || 1;
-  const custPct = Math.round((customMeasured90d / cap) * 100);
-  const refPct = Math.round((refTokens / cap) * 100);
+  if (refTokens <= 0 && customMeasured90d <= 0) return '';
   const ratioPct =
     refTokens > 0 ? Math.round((customMeasured90d / refTokens) * 100) : 0;
-  const ratioFragment = refTokens > 0 ? ` <span class="pct">~${ratioPct}% of /review</span>` : '';
-  const ratioText =
-    refTokens > 0
-      ? `My entire custom portfolio cost about ${ratioPct}% of what /review alone cost in the same window.`
-      : '';
-  return `<section class="hero avoid-break">
-  <h2>Measured token cost — last 90 days</h2>
-  <div class="hero-row">
-    <span class="number">${fmt(customMeasured90d)}${ratioFragment}</span>
-    <span class="label">All custom skills <span class="sublabel">(measured across this portfolio)</span></span>
-    <span class="bar cust" style="width: ${Math.max(custPct, 1)}%"></span>
-  </div>
-  <div class="hero-row">
-    <span class="number">${fmt(refTokens)} <span class="pct">${refInvocations} runs</span></span>
-    <span class="label">/review built-in <span class="sublabel">(Claude Code's own slash command, shown for scale)</span></span>
-    <span class="bar ref" style="width: ${Math.max(refPct, 1)}%"></span>
-  </div>
-  <p class="hero-caption">${esc(ratioText)} /review is excluded from every total below. Same bar scale — no zoom trickery.</p>
-</section>`;
+  const reviewLine = refTokens > 0
+    ? `<span class="pct">/review (built-in) ate ${fmt(refTokens)} across ${refInvocations} runs — ~${ratioPct}× the portfolio's own footprint, shown for scale.</span>`
+    : '';
+  return `<p class="hero-caption" style="margin-top:8pt"><strong>Context:</strong> the entire custom-skill portfolio used ${fmt(customMeasured90d)} tokens in the last 90 days (sum of transcript-measured rows). ${reviewLine}</p>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -449,6 +468,10 @@ function buildAggregates(data) {
   let customMeasured90d = 0;
   let portfolioSavedTotal = 0;
   let portfolioSavedMeasured = 0;
+  let portfolioSavedCalibrated = 0;   // savings from rows with A/B-measured
+                                       // saved-per-use (calibration overlay)
+  let portfolioSavedModeled = 0;       // savings from rows still using the
+                                       // 3× heuristic on cost-per-use
 
   for (const r of data.repos) {
     let measuredCount = 0;
@@ -465,6 +488,9 @@ function buildAggregates(data) {
       if (rec.tokens_saved_source === 'calibration') {
         calibratedCount += 1;
         annualSavedCalibrated += saved;
+        portfolioSavedCalibrated += saved;
+      } else if (saved !== 0) {
+        portfolioSavedModeled += saved;
       }
       if (isMeasured(rec)) {
         measuredCount += 1;
@@ -513,6 +539,8 @@ function buildAggregates(data) {
     customMeasured90d,
     portfolioSavedTotal,
     portfolioSavedMeasured,
+    portfolioSavedCalibrated,
+    portfolioSavedModeled,
   };
 }
 
@@ -535,7 +563,16 @@ function buildHtml(data, css) {
       : 0;
 
   const repoSections = data.repos.map(renderRepoSection).join('\n');
-  const hero = renderHero(agg.customMeasured90d, reviewBuiltin, generated);
+  const calibratedCount = agg.perRepo.reduce(
+    (n, r) => n + (r.calibratedCount || 0),
+    0,
+  );
+  const totalSkillsWithReceipts = data.repos.reduce(
+    (n, r) => n + r.skills.filter((s) => s.receipt).length,
+    0,
+  );
+  const hero = renderHero(agg, calibratedCount, totalSkillsWithReceipts);
+  const contextBox = renderContextBox(agg.customMeasured90d, reviewBuiltin);
   const summary = renderSummaryTable(agg.perRepo);
   const calibrationPage = renderCalibrationPage(agg.calibrationRows);
   const methodPage = renderMethodPage();
@@ -551,12 +588,14 @@ function buildHtml(data, css) {
 
 <header>
   <h1>Skill registry — ${esc(generated)}</h1>
-  <p class="lede">A list of every custom skill I've written for Claude Code (Anthropic's coding assistant CLI), with measured token usage where I have receipts and labeled estimates where I do not. A "skill" here is a reusable slash command — a named recipe Claude Code runs when I type <code>/audit</code> or similar. ${data.repos.length} repos, ${data.totals.skills} skills, ${agg.calibrationRows.length} of them with both a guess and a measurement so far.</p>
+  <p class="lede">A register of every custom skill I've written for Claude Code (Anthropic's coding assistant CLI), and whether it has measured data behind its claims yet. A "skill" here is a reusable slash command — a named recipe Claude Code runs when I type <code>/audit</code> or similar. ${data.repos.length} repos, ${data.totals.skills} skills, ${calibratedCount} of them A/B-tested for token savings so far.</p>
 </header>
 
 ${hero}
 
-<p class="lede">Most rows here are guesses. I wrote a skill, imagined someone using it 30 times a year, wrote that down. The rows tagged <span class="chip chip-measured">measured</span> are the ones where I went back to my Claude Code transcripts and counted — those are facts. The rest are tagged <span class="chip chip-estimate">estimate</span> and are guesses by the person who built the skill (that's me). In every measured case so far, my original guess was off — usually by 5× to 100×. The interesting part isn't that I was wrong. The interesting part is that you can see exactly how wrong, on page 2.</p>
+${contextBox}
+
+<p class="lede">This document carries two kinds of "measured" data, and they're different. <strong>Cost-per-use measurement</strong> (the green chip on a row) comes from real Claude Code transcripts — I went back through my own sessions and counted what each skill actually spent when I invoked it. <strong>Savings-per-use measurement</strong> (the bold green / orange number in the Saved column) comes from A/B tests — same task solved with and without the skill, in fresh sandboxed worktrees, both arms billed honestly. Rows tagged <span class="chip chip-estimate">estimate</span> have neither yet. Every measured estimate I had has turned out to be off, usually by 5× to 100×. The interesting part isn't that I was wrong. The interesting part is that you can see exactly how wrong, on page 2.</p>
 
 <h2>Per-repo summary</h2>
 ${summary}
