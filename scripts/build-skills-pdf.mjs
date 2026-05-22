@@ -162,10 +162,6 @@ function isTranscriptMeasured(receipt) {
   return receipt?.source === 'transcript-measurement';
 }
 
-function isCalibrationMeasured(receipt) {
-  return receipt?.source === 'calibration';
-}
-
 // ---------------------------------------------------------------------------
 //  Hero block (page 1)
 // ---------------------------------------------------------------------------
@@ -205,23 +201,6 @@ function renderHero(agg, calibratedCount, transcriptMeasuredCount, totalSkillsWi
   </div>
   <p class="hero-caption">A register of every custom skill across the portfolio, with the per-use cost and per-use savings each skill has — measured where I have receipts, labeled as estimate where I do not. No annual projections in this document; every number is per single invocation of the skill.</p>
 </section>`;
-}
-
-// Cost-and-comparison block: secondary to the savings hero. Shows what
-// /review (Claude Code's own slash command) cost vs the entire custom-skill
-// portfolio cost in the measurement window. Useful as a SCALE anchor for
-// readers who want to know whether the portfolio's TOTAL footprint is
-// trivially small or non-trivial — without making "tokens used" the
-// headline number of the document.
-function renderContextBox(customMeasured90d, reviewBuiltin) {
-  const refTokens = reviewBuiltin?.total_tokens_in_window ?? 0;
-  if (refTokens <= 0 && customMeasured90d <= 0) return '';
-  const ratioPct =
-    refTokens > 0 ? Math.round((customMeasured90d / refTokens) * 100) : 0;
-  const reviewLine = refTokens > 0
-    ? `<span class="pct">/review (built-in) ate ${fmt(refTokens)} in the same window — ~${ratioPct}× the portfolio's own footprint, shown for scale. See the built-ins table below for the row.</span>`
-    : '';
-  return `<p class="hero-caption" style="margin-top:8pt"><strong>Context:</strong> the entire custom-skill portfolio used ${fmt(customMeasured90d)} tokens in the last 90 days (sum of transcript-measured rows). ${reviewLine}</p>`;
 }
 
 // Reference: Claude Code built-ins. /review and any other tracked built-in
@@ -589,9 +568,6 @@ function buildAggregates(data) {
 function buildHtml(data, css) {
   const generated = data.generated_at.slice(0, 10);
   const agg = buildAggregates(data);
-  const reviewBuiltin = (data.built_in_references ?? []).find(
-    (b) => b.name === 'review',
-  );
 
   const measuredShare =
     agg.portfolioSavedTotal > 0
