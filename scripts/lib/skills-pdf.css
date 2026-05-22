@@ -349,43 +349,59 @@ th {
   border-top: 2px solid var(--ink-soft);
 }
 
-/* ----- per-repo section heading band -------------------------------- */
+/* ----- per-repo section heading band --------------------------------
+ *
+ * The banner lives inside the table's <thead> as a first row, spanning all
+ * columns. This is on purpose: `thead { display: table-header-group }`
+ * makes the entire thead repeat on every page when the table spans page
+ * breaks. With the banner standalone above the table (as it was before),
+ * page 2 of a long table showed columns with no repo identification.
+ *
+ * The visual treatment matches the prior standalone banner — same green
+ * fill, white reversed type, baseline-aligned name + stats — so the page-1
+ * appearance is unchanged. Subsequent pages get the same banner repeated.
+ * --------------------------------------------------------------------- */
 
-.repo-heading {
-  margin: 26pt 0 4pt;
-  padding: 6pt 10pt;
+table.skills thead tr.repo-heading-row th.repo-heading-cell {
   background: var(--repo-band);
   color: #ffffff;
-  border-radius: 2pt;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  page-break-after: avoid;
-  break-after: avoid;
+  padding: 8pt 12pt;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 9pt;
+  font-weight: 400;
+  border-top: none;
+  border-bottom: 2pt solid var(--repo-band);
+  /* Sit visually above the column-header row that follows. */
 }
 
-.repo-heading .repo-name {
+table.skills .repo-name {
   font-size: 13pt;
   font-weight: 700;
   letter-spacing: 0.01em;
+  margin-right: 12pt;
 }
 
-.repo-heading .repo-stats {
+table.skills .repo-stats {
   font-size: 9pt;
   font-weight: 400;
   opacity: 0.9;
   font-variant-numeric: tabular-nums;
 }
 
-.repo-heading .repo-stats a {
+table.skills .repo-stats a {
   color: #ffffff;
   border-bottom-color: rgba(255, 255, 255, 0.45);
 }
 
-/* The first repo heading on the per-repo page doesn't need a giant top
-   margin — the `<h1>Per-repo skill tables</h1>` already sits above it. */
-.repo-page .repo-heading:first-of-type {
-  margin-top: 12pt;
+/* Air above each repo banner so the eye picks out the section break. */
+table.skills {
+  margin-top: 22pt;
+}
+
+.repo-page table.skills:first-of-type {
+  margin-top: 8pt;
 }
 
 /* ----- per-repo skill table ----------------------------------------- */

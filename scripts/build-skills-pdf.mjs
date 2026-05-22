@@ -143,8 +143,27 @@ function fmtMultiplier(m) {
 //  Row classification
 // ---------------------------------------------------------------------------
 
+// "Measured" means the cost-per-use is backed by a real run, regardless of
+// which kind of run. Two sources qualify:
+//   - 'transcript-measurement': real Claude Code session transcripts
+//     scanned by mikko-skill-usage. "What happened in production."
+//   - 'calibration': A/B calibration arm-B sub-agent ran the skill on a
+//     representative task. "What happens under controlled conditions."
+// Both are real tokens billed through the harness. The chip says MEASURED
+// for either; the per-cell unit text distinguishes the source when useful.
 function isMeasured(receipt) {
+  return (
+    receipt?.source === 'transcript-measurement' ||
+    receipt?.source === 'calibration'
+  );
+}
+
+function isTranscriptMeasured(receipt) {
   return receipt?.source === 'transcript-measurement';
+}
+
+function isCalibrationMeasured(receipt) {
+  return receipt?.source === 'calibration';
 }
 
 // ---------------------------------------------------------------------------
@@ -348,14 +367,18 @@ function renderSkillRow(repoName, s) {
   // Cost / use
   let costCell = '<td class="cost">—</td>';
   if (rec?.tokens_per_use != null) {
-    const unit = measured ? 'tokens / use (measured)' : 'tokens / use (est.)';
+    const unit = isCalibrationMeasured(rec)
+      ? 'tokens / use (A/B-measured)'
+      : isTranscriptMeasured(rec)
+        ? 'tokens / use (measured)'
+        : 'tokens / use (est.)';
     costCell = `<td class="cost"><span class="big">${fmt(rec.tokens_per_use)}</span><span class="unit">${esc(unit)}</span></td>`;
   }
 
   // Runs
   let runsCell = '<td class="runs">—</td>';
   if (rec) {
-    if (measured) {
+    if (isTranscriptMeasured(rec)) {
       const inv = rec.invocations_in_window ?? '?';
       const win = rec.measurement_window_days ?? '?';
       const proj = rec.uses_per_year ?? '?';
@@ -424,13 +447,15 @@ function renderRepoSection(repo) {
       : '';
   const stats = `${repo.skills.length} skills · ${measuredCount} measured`;
   const statsCell = url ? `${stats} · ${url}` : stats;
+  // The repo banner + column header are BOTH inside <thead> so the entire
+  // header block repeats on every page when the table spills across page
+  // breaks. Without this, page 2 of a long repo's table showed columns
+  // with no repo identification — user reported as "fucked up" big time.
   return `<section>
-  <div class="repo-heading">
-    <span class="repo-name">${esc(repo.name)}</span>
-    <span class="repo-stats">${statsCell}</span>
-  </div>
   <table class="skills">
-    <thead><tr>
+    <thead>
+      <tr class="repo-heading-row"><th colspan="6" class="repo-heading-cell"><span class="repo-name">${esc(repo.name)}</span><span class="repo-stats">${statsCell}</span></th></tr>
+      <tr>
       <th scope="col">Skill</th>
       <th scope="col">Status</th>
       <th scope="col" class="num">Cost / use</th>
