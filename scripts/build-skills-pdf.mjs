@@ -203,6 +203,14 @@ function renderHero(agg, calibratedCount, transcriptMeasuredCount, totalSkillsWi
 </section>`;
 }
 
+// Design note: there is deliberately no secondary "Context: portfolio used X
+// tokens in 90 days, /review ate Y in the same window" paragraph beneath the
+// hero. A prior version of the renderer carried one (renderContextBox); it
+// was removed because it brought "tokens used" back as a headline-adjacent
+// number, against the document's per-use-only framing. The /review row
+// still appears as its own line in the Claude Code built-ins reference
+// table below — that's the scale anchor, not the deleted paragraph.
+
 // Reference: Claude Code built-ins. /review and any other tracked built-in
 // shows up here as its own discrete row, separate from the custom-skill
 // portfolio. The built-in costs are measurement-backed (same accounting
