@@ -400,6 +400,12 @@ table.skills {
   margin-top: 22pt;
 }
 
+/* Replaces the previous `.repo-page .repo-heading:first-of-type` rule.
+   The heading used to be a standalone div above the table; now it's the
+   first row of the table's thead, so the rule targets the table itself
+   instead of a child element. Same intent — tighten the top margin on the
+   first table directly under the `<h1>Per-repo skill tables</h1>` so the
+   heading and the first banner don't both compete for the eye. */
 .repo-page table.skills:first-of-type {
   margin-top: 8pt;
 }

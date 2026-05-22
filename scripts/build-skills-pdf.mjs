@@ -501,6 +501,9 @@ function renderMethodPage() {
   <p><strong>Italic gray numbers tagged <em>modeled</em> are a 3× heuristic.</strong> When no calibration data exists for a row, the renderer assumes the unstructured alternative would cost ~3× a focused skill run, so saved ≈ 2× cost-per-use × annual uses. The 3× is a handful-of-side-by-side-runs guess from the author, not a benchmark — the May-2026 Spacepotatis calibration showed it's overstated by roughly 3× at the portfolio level (measured ~22% rate vs the heuristic's ~67%). Rows still showing modeled numbers are skills that haven't been A/B-tested yet; treat their savings as a possibly-too-optimistic lower bound.</p>
   <p>Cost appears on both sides of the underlying subtraction, so the savings figure is more sensitive to bad cost estimates than the cost figure is. An italic-modeled row stacked on top of an italic-estimated cost is a model on top of a guess — least trustworthy column on the page. A bold-measured row on top of a measured cost is the most trustworthy. The visual treatment matches that hierarchy.</p>
 
+  <h3>One caveat on A/B-measured cost rows</h3>
+  <p>When the cost-per-use comes from a calibration arm-B (because the skill wasn't transcript-measured), the row reads <em>tokens / use (A/B-measured)</em> — that part is real. But the <strong>annual_total</strong> on those rows is computed as <em>arm-B-tokens × editorial uses_per_year</em>, mixing a real per-use measurement with an editorial cadence guess. The Runs cell still says <code>(est.)</code> on those rows so you can spot the mix; the annual number itself doesn't carry a visual tag. Treat A/B-cost annuals as "real per-use, guessed cadence" — the per-use is the calibrated number, the multiplier is still a model.</p>
+
   <h2>What this document does NOT claim</h2>
   <ul>
     <li>No production cost numbers. This is development-time tooling on my own machine.</li>
