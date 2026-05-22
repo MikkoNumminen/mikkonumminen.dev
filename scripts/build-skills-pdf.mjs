@@ -189,14 +189,52 @@ function renderHero(agg, calibratedCount, totalSkillsWithReceipts) {
 // headline number of the document.
 function renderContextBox(customMeasured90d, reviewBuiltin) {
   const refTokens = reviewBuiltin?.total_tokens_in_window ?? 0;
-  const refInvocations = reviewBuiltin?.invocations_in_window ?? 0;
   if (refTokens <= 0 && customMeasured90d <= 0) return '';
   const ratioPct =
     refTokens > 0 ? Math.round((customMeasured90d / refTokens) * 100) : 0;
   const reviewLine = refTokens > 0
-    ? `<span class="pct">/review (built-in) ate ${fmt(refTokens)} across ${refInvocations} runs — ~${ratioPct}× the portfolio's own footprint, shown for scale.</span>`
+    ? `<span class="pct">/review (built-in) ate ${fmt(refTokens)} in the same window — ~${ratioPct}× the portfolio's own footprint, shown for scale. See the built-ins table below for the row.</span>`
     : '';
   return `<p class="hero-caption" style="margin-top:8pt"><strong>Context:</strong> the entire custom-skill portfolio used ${fmt(customMeasured90d)} tokens in the last 90 days (sum of transcript-measured rows). ${reviewLine}</p>`;
+}
+
+// Reference: Claude Code built-ins. /review and any other tracked built-in
+// shows up here as its own discrete row, separate from the custom-skill
+// portfolio. The built-in costs are measurement-backed (same accounting
+// convention as the per-repo measured rows), but no SKILL.md exists for
+// these, so they have no procedure to A/B-test against (yet — the slot is
+// here for a future calibration target). Excluded from the savings hero
+// because they're not a savings claim, they're a scale anchor.
+function renderBuiltInsSection(refs) {
+  if (!refs || refs.length === 0) return '';
+  const rows = refs
+    .map((br) => {
+      const lastSeen = br.last_invoked
+        ? `<span class="last-seen">last ${esc(lastUsedDate(br.last_invoked))}</span>`
+        : '';
+      const tagline = esc(br.description);
+      const cost = `<td class="cost"><span class="big">${fmt(br.tokens_per_use_avg)}</span><span class="unit">tokens / use (measured)</span></td>`;
+      const runs = `<td class="runs"><span class="runs-primary">${br.invocations_in_window} in ${br.measurement_window_days}d</span><span class="runs-proj">~${br.uses_per_year}/yr projected</span></td>`;
+      const calib = `<td class="calib"><span class="calib-none">not A/B-tested</span></td>`;
+      const saved = `<td class="saved">—</td>`;
+      const status = `<span class="chip chip-measured">measured</span>${lastSeen}`;
+      const skill = `<td class="skill"><span class="name">${esc(br.label)}</span><span class="tagline">${tagline}</span></td>`;
+      return `<tr class="measured">${skill}<td class="status">${status}</td>${cost}${runs}${calib}${saved}</tr>`;
+    })
+    .join('\n');
+  return `<h2>Claude Code built-ins (reference)</h2>
+  <p class="note">Built-in slash commands. Cost is measured the same way as the custom-skill rows. No SKILL.md exists for these, so they have no procedure to A/B-test against — the calibration column reads "not A/B-tested" and the savings column reads "—" rather than zero. Excluded from every total in the document. Shown so the reader has a scale anchor when reading the custom-skill numbers.</p>
+  <table class="skills">
+    <thead><tr>
+      <th scope="col">Skill</th>
+      <th scope="col">Status</th>
+      <th scope="col" class="num">Cost / use</th>
+      <th scope="col" class="num">Runs</th>
+      <th scope="col" class="num">Calibration</th>
+      <th scope="col" class="num">Saved / yr</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -599,6 +637,8 @@ ${contextBox}
 
 <h2>Per-repo summary</h2>
 ${summary}
+
+${renderBuiltInsSection(data.built_in_references ?? [])}
 
 ${calibrationPage}
 
