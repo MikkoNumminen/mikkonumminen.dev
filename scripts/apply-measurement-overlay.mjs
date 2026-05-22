@@ -18,7 +18,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REG = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const USAGE = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-USAGE-LATEST.json');
 const CALIBRATION = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-LATEST.json');
-const CALIB_BUILTINS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-LATEST.json');
+const CALIBRATION_BUILTINS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-LATEST.json');
 
 // Sample-sessionId → repo lookup. Sessions live under
 // ~/.claude/projects/<dir>/<sessionId>.jsonl; each <dir> maps to one repo.
@@ -441,8 +441,8 @@ const BUILTINS_TO_TRACK = {
 // BUILTINS-LATEST.json exists, attach arm A/B token counts and the measured
 // per-use saving to the matching reference entry. Absent file = no-op.
 let calibBuiltins = null;
-if (fs.existsSync(CALIB_BUILTINS)) {
-  calibBuiltins = JSON.parse(fs.readFileSync(CALIB_BUILTINS, 'utf8'));
+if (fs.existsSync(CALIBRATION_BUILTINS)) {
+  calibBuiltins = JSON.parse(fs.readFileSync(CALIBRATION_BUILTINS, 'utf8'));
 }
 
 const builtInReferences = [];
@@ -469,6 +469,11 @@ for (const [skillName, meta] of Object.entries(BUILTINS_TO_TRACK)) {
     entry.calibration_arm_B = calib.arm_B_tokens;
     entry.calibration_pct_saved = calib.pct_saved;
     entry.calibration_generated_at = calibBuiltins.generated_at;
+    // Per-entry audit doc path so the renderer can cite the methodology
+    // without hardcoding a filename that rots when a re-calibration ships.
+    if (typeof calib.audit_doc_path === 'string') {
+      entry.audit_doc_path = calib.audit_doc_path;
+    }
   }
   builtInReferences.push(entry);
 }

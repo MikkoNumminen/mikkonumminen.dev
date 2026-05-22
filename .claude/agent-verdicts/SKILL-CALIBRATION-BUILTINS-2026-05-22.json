@@ -19,6 +19,7 @@
       "arm_B_tool_uses": 3,
       "saved": 45738,
       "pct_saved": 63,
+      "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md",
       "notes": "Arm A scouted the codebase heavily (33 tool uses — reading scripts/, src/, docs/) before writing the review. Arm B followed the built-in's prescribed gh CLI recipe (gh pr view → gh pr diff → analyze) and produced the review in 3 tool uses. Both reviews land in the same quality band; arm A is more verbose with more nuanced low-severity findings, arm B is tighter and adheres to the prescribed section structure. The 63% saving comes almost entirely from arm A's exploratory scouting that the procedure short-circuits."
     }
   ],
