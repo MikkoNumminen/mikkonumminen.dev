@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-05-22T00:00:00Z",
+  "target_repo": "Spacepotatis",
+  "base_commit": "94655a9",
+  "methodology": "A/B test. Arm A: Sonnet sub-agent solves the task cold, no SKILL.md access. Arm B: Sonnet sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Both arms in fresh worktrees from Spacepotatis master at 94655a9. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. N=1 per skill.",
+  "skills": [
+    {"name": "ai-codegen-smell-audit",     "arm_A_tokens": 157348, "arm_B_tokens":  81119, "saved":  76229, "pct_saved": 48, "notes": "arm-B found 1 nit vs arm-A's 11 — savings partly reflect stricter discrimination"},
+    {"name": "balance-review",             "arm_A_tokens":  46279, "arm_B_tokens":  33160, "saved":  13119, "pct_saved": 28},
+    {"name": "content-audit",              "arm_A_tokens":  99335, "arm_B_tokens":  77026, "saved":  22309, "pct_saved": 22},
+    {"name": "equipment",                  "arm_A_tokens":  89006, "arm_B_tokens":  93683, "saved":  -4677, "pct_saved": -5, "notes": "skill enforces full CRUD lifecycle — encodes rigor, not scout-savings"},
+    {"name": "modular-architecture-audit", "arm_A_tokens": 175187, "arm_B_tokens": 128773, "saved":  46414, "pct_saved": 26},
+    {"name": "new-enemy",                  "arm_A_tokens":  75309, "arm_B_tokens":  68353, "saved":   6956, "pct_saved":  9},
+    {"name": "new-migration",              "arm_A_tokens":  24685, "arm_B_tokens":  20649, "saved":   4036, "pct_saved": 16},
+    {"name": "new-mission",                "arm_A_tokens":  78730, "arm_B_tokens":  49780, "saved":  28950, "pct_saved": 37, "notes": "arm-B blocked by classifier partway through; partial run"},
+    {"name": "new-perk",                   "arm_A_tokens":  82299, "arm_B_tokens":  55705, "saved":  26594, "pct_saved": 32},
+    {"name": "new-solar-system",           "arm_A_tokens":  65319, "arm_B_tokens":  59603, "saved":   5716, "pct_saved":  9},
+    {"name": "new-story",                  "arm_A_tokens":  47182, "arm_B_tokens":  33460, "saved":  13722, "pct_saved": 29},
+    {"name": "save-roundtrip-audit",       "arm_A_tokens":  70080, "arm_B_tokens":  62874, "saved":   7206, "pct_saved": 10},
+    {"name": "security-audit",             "arm_A_tokens": 107885, "arm_B_tokens": 112211, "saved":  -4326, "pct_saved": -4, "notes": "skill encodes rigor (full attack-surface walk) — costs more per use, value is in completeness"}
+  ],
+  "aggregate": {
+    "arm_A_total": 1118644,
+    "arm_B_total":  876396,
+    "saved_total":  242248,
+    "pct_saved": 22,
+    "skills_measured": 13,
+    "skills_saving": 11,
+    "skills_costing": 2
+  }
+}

@@ -525,6 +525,35 @@ table.skills td.saved .saved-tag {
   color: var(--ink-mute);
 }
 
+/* Calibrated rows (real A/B measurement on the savings number, not just the
+   cost number). The number jumps to the calibration green so the reader can
+   tell a measured-saved row from a modeled-saved row at arm's length, even
+   when the underlying row is also measured for cost. */
+table.skills td.saved.saved-calibrated .saved-num {
+  font-size: 10pt;
+  font-weight: 700;
+  font-style: normal;
+  color: var(--calib-ok);
+}
+
+/* Negative savings: the skill cost MORE than the unstructured baseline in
+   the A/B test. These are real findings, not anomalies — they need to stand
+   out from "saved zero" and from positive savings. */
+table.skills td.saved.saved-negative .saved-num {
+  color: var(--calib-off);
+  font-style: normal;
+}
+
+table.skills td.saved.saved-calibrated .saved-tag {
+  color: var(--calib-ok);
+  font-weight: 600;
+}
+
+table.skills td.saved.saved-negative .saved-tag {
+  color: var(--calib-off);
+  font-weight: 600;
+}
+
 /* ----- aggregate (page 1) ------------------------------------------- */
 
 table.aggregate th,

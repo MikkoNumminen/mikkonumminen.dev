@@ -17,6 +17,7 @@ const LIBRARY_REPO = 'claude-skills';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REG = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const USAGE = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-USAGE-LATEST.json');
+const CALIBRATION = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-LATEST.json');
 
 // Sample-sessionId → repo lookup. Sessions live under
 // ~/.claude/projects/<dir>/<sessionId>.jsonl; each <dir> maps to one repo.
@@ -282,6 +283,56 @@ for (const r of reg.repos) {
   }
 }
 
+// Calibration overlay: apply measured tokens-saved-per-use overrides on top
+// of any rows whose names match a SKILL-CALIBRATION-LATEST.json entry.
+//
+// The measurement overlay (above) sets cost-per-use from real transcripts.
+// The calibration overlay sets SAVED-per-use from real A/B tests against an
+// unstructured baseline. They're orthogonal: one says "what does this skill
+// cost when invoked", the other says "what would the same task cost without
+// the skill". The build-skills-pdf renderer uses tokens_saved_per_use
+// directly when present; falls back to a 3× heuristic on cost when absent.
+//
+// Skills not present in the calibration JSON keep the 3× modeled savings —
+// so the PDF can show measured savings on calibrated rows and modeled
+// savings on uncalibrated ones, with the renderer marking which is which.
+//
+// Calibration runs AFTER dedupe so canonical-duplicate consumer rows have
+// already been dropped — calibration writes attach to the library row when
+// applicable, the only one left after dedupe.
+let calibratedRows = 0;
+let calibrationMisses = [];
+if (fs.existsSync(CALIBRATION)) {
+  const calibration = JSON.parse(fs.readFileSync(CALIBRATION, 'utf8'));
+  for (const entry of calibration.skills ?? []) {
+    const matches = [];
+    for (const r of reg.repos) {
+      for (const s of r.skills) {
+        if (s.name === entry.name && s.receipt) matches.push({ r, s });
+      }
+    }
+    if (matches.length === 0) {
+      calibrationMisses.push(entry.name);
+      continue;
+    }
+    for (const { r, s } of matches) {
+      s.receipt.tokens_saved_per_use = entry.saved;
+      s.receipt.tokens_saved_source = 'calibration';
+      s.receipt.calibration_arm_A = entry.arm_A_tokens;
+      s.receipt.calibration_arm_B = entry.arm_B_tokens;
+      if (entry.notes) s.receipt.calibration_notes = entry.notes;
+      calibratedRows += 1;
+      report.push(
+        `CALIBRATE ${r.name}.${s.name}: saved/use = ${entry.saved.toLocaleString()} ` +
+          `(arm A ${entry.arm_A_tokens.toLocaleString()} vs B ${entry.arm_B_tokens.toLocaleString()})`,
+      );
+    }
+  }
+  for (const name of calibrationMisses) {
+    report.push(`SKIP calibration for ${name} — no matching registry row`);
+  }
+}
+
 // Recompute totals.
 let totalAnnual = 0;
 let withReceipts = 0;
@@ -345,4 +396,5 @@ fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');
 
 console.log(report.join('\n'));
 const accumulatedSuffix = accumulated > 0 ? ` (+${accumulated} accumulation${accumulated === 1 ? '' : 's'} onto existing rows)` : '';
-console.log(`\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s). New annual total: ${totalAnnual.toLocaleString()}`);
+const calibSuffix = calibratedRows > 0 ? ` Calibrated ${calibratedRows} row(s).` : '';
+console.log(`\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s).${calibSuffix} New annual total: ${totalAnnual.toLocaleString()}`);
