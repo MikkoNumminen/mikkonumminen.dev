@@ -214,16 +214,16 @@ function renderHero(agg, calibratedCount, transcriptMeasuredCount, totalSkillsWi
 // Reference: Claude Code built-ins. /review and any other tracked built-in
 // shows up here as its own discrete row, separate from the custom-skill
 // portfolio. The built-in costs are measurement-backed (same accounting
-// convention as the per-repo measured rows), but no SKILL.md exists for
-// these, so they have no procedure to A/B-test against (yet — the slot is
-// here for a future calibration target). Excluded from the savings hero
-// because they're not a savings claim, they're a scale anchor.
+// convention as the per-repo measured rows). Save / use can also be
+// measured by treating the built-in's prompt as an "arm B" recipe in the
+// same A/B methodology used on custom skills — see
+// docs/audits/builtin-review-calibration-2026-05-22.md. Excluded from the
+// savings hero because they're not a savings claim, they're a scale anchor.
 function renderBuiltInsSection(refs) {
   if (!refs || refs.length === 0) return '';
   // Same 6-column shape as the per-repo tables so the row scans the same
-  // way. Built-ins have a measured cost but no SKILL.md to A/B-test
-  // against, so the save columns are "—" — not a savings claim, just a
-  // scale anchor for the reader.
+  // way. Built-ins where the prompt has been A/B-calibrated populate the
+  // measured-save cell; un-calibrated built-ins keep "—" there.
   const rows = refs
     .map((br) => {
       const lastSeen = br.last_invoked
@@ -234,11 +234,21 @@ function renderBuiltInsSection(refs) {
       const status = `<td class="status"><span class="chip chip-measured">measured</span>${lastSeen}</td>`;
       const measuredCost = `<td class="num-cell num-cell-measured-cost"><span class="num-cell-big">${fmt(br.tokens_per_use_avg)}</span><span class="num-cell-unit">tokens / use</span></td>`;
       const dash = `<td class="num-cell">—</td>`;
-      return `<tr class="measured">${skill}${status}${measuredCost}${dash}${dash}${dash}</tr>`;
+      const measuredSave =
+        typeof br.tokens_saved_per_use === 'number'
+          ? `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`
+          : dash;
+      return `<tr class="measured">${skill}${status}${measuredCost}${measuredSave}${dash}${dash}</tr>`;
     })
     .join('\n');
+  const anyCalibrated = refs.some(
+    (br) => typeof br.tokens_saved_per_use === 'number',
+  );
+  const noteText = anyCalibrated
+    ? `Built-in slash commands. Per-use cost is measured the same way as the custom-skill rows. Save / use can be measured by treating the built-in's prompt as an arm-B recipe in the same A/B methodology — see <code>docs/audits/builtin-review-calibration-2026-05-22.md</code> for the <code>/review</code> calibration. Shown as a scale anchor for the reader.`
+    : `Built-in slash commands. Per-use cost is measured the same way as the custom-skill rows. No <code>SKILL.md</code> exists for these, so there's no procedure to A/B-test against — the save columns read "—" rather than zero. Shown as a scale anchor for the reader.`;
   return `<div class="repo-heading"><span class="repo-name">Claude Code built-ins</span><span class="repo-stats">reference — not part of the portfolio</span></div>
-  <p class="note">Built-in slash commands. Per-use cost is measured the same way as the custom-skill rows. No <code>SKILL.md</code> exists for these, so there's no procedure to A/B-test against — the save columns read "—" rather than zero. Shown as a scale anchor for the reader.</p>
+  <p class="note">${noteText}</p>
   <table class="skills">
     <thead>
       <tr>
