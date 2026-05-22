@@ -170,33 +170,40 @@ function isCalibrationMeasured(receipt) {
 //  Hero block (page 1)
 // ---------------------------------------------------------------------------
 
-function renderHero(agg, calibratedCount, totalSkillsWithReceipts) {
-  const measured = agg.portfolioSavedCalibrated || 0;
-  const modeled = agg.portfolioSavedModeled || 0;
-  const total = measured + modeled;
-  // Bars share a max scale so the reader can SEE that measured is ~10% of
-  // modeled, not infer it from numbers. Cap by the larger of the two so a
-  // tiny measured share doesn't disappear entirely.
-  const cap = Math.max(measured, modeled, 1);
-  const measuredPct = Math.round((measured / cap) * 100);
-  const modeledPct = Math.round((modeled / cap) * 100);
-  const sharePct = total > 0 ? Math.round((measured / total) * 100) : 0;
-  const coverage = totalSkillsWithReceipts > 0
-    ? `${calibratedCount} of ${totalSkillsWithReceipts} skills A/B-tested so far`
-    : 'no skills A/B-tested yet';
+function renderHero(agg, calibratedCount, transcriptMeasuredCount, totalSkillsWithReceipts) {
+  // Per-use only. Annual / year projections are deliberately absent — this
+  // document is a register of skills with measured data, not a usage
+  // forecast. The hero counts skills by what's been measured per use:
+  //
+  //   - costMeasured = skills with cost-per-use from a real run
+  //                    (transcript-measurement OR calibration arm-B).
+  //   - saveMeasured = skills with a real A/B save-per-use (calibration).
+  //   - estOnly      = skills with neither — only editorial guesses.
+  //
+  // The bars share an integer scale so the eye sees "X of N" directly.
+  const costMeasured = transcriptMeasuredCount + calibratedCount;
+  const saveMeasured = calibratedCount;
+  const estOnly = totalSkillsWithReceipts - costMeasured;
+  const cap = totalSkillsWithReceipts || 1;
+  const pct = (n) => Math.round((n / cap) * 100);
   return `<section class="hero avoid-break">
-  <h2>Projected annual savings — measured vs modeled</h2>
+  <h2>Skills with measured per-use data</h2>
   <div class="hero-row">
-    <span class="number">${fmt(measured)} <span class="pct">${sharePct}% of total · real A/B receipts</span></span>
-    <span class="label">Measured savings <span class="sublabel">(A/B-tested skills only — ${coverage})</span></span>
-    <span class="bar cust" style="width: ${Math.max(measuredPct, 1)}%"></span>
+    <span class="number">${costMeasured} <span class="pct">of ${totalSkillsWithReceipts} skills with cost data</span></span>
+    <span class="label">Measured cost / use <span class="sublabel">(real run — transcripts or A/B arm-B)</span></span>
+    <span class="bar cust" style="width: ${Math.max(pct(costMeasured), 1)}%"></span>
   </div>
   <div class="hero-row">
-    <span class="number">${fmt(modeled)} <span class="pct">3× cost heuristic, no A/B yet</span></span>
-    <span class="label">Modeled savings <span class="sublabel">(skills still without measured savings data)</span></span>
-    <span class="bar ref" style="width: ${Math.max(modeledPct, 1)}%"></span>
+    <span class="number">${saveMeasured} <span class="pct">of ${totalSkillsWithReceipts} skills with save data</span></span>
+    <span class="label">Measured save / use <span class="sublabel">(real A/B test — arm A minus arm B)</span></span>
+    <span class="bar cust" style="width: ${Math.max(pct(saveMeasured), 1)}%"></span>
   </div>
-  <p class="hero-caption">This document is a register of skills that have measured data behind them, not a usage receipt. The measured bar above is the only number on this page derived from real A/B runs — the modeled bar is what the 3× heuristic claims is being saved on the rows that haven't been calibrated yet. Same bar scale, no zoom trickery.</p>
+  <div class="hero-row">
+    <span class="number">${estOnly} <span class="pct">of ${totalSkillsWithReceipts} estimate-only</span></span>
+    <span class="label">No measured data <span class="sublabel">(author guesses, still candidates for the next /mikko-skill-calibration run)</span></span>
+    <span class="bar ref" style="width: ${Math.max(pct(estOnly), 1)}%"></span>
+  </div>
+  <p class="hero-caption">A register of every custom skill across the portfolio, with the per-use cost and per-use savings each skill has — measured where I have receipts, labeled as estimate where I do not. No annual projections in this document; every number is per single invocation of the skill.</p>
 </section>`;
 }
 
@@ -226,32 +233,36 @@ function renderContextBox(customMeasured90d, reviewBuiltin) {
 // because they're not a savings claim, they're a scale anchor.
 function renderBuiltInsSection(refs) {
   if (!refs || refs.length === 0) return '';
+  // Same 6-column shape as the per-repo tables so the row scans the same
+  // way. Built-ins have a measured cost but no SKILL.md to A/B-test
+  // against, so the save columns are "—" — not a savings claim, just a
+  // scale anchor for the reader.
   const rows = refs
     .map((br) => {
       const lastSeen = br.last_invoked
         ? `<span class="last-seen">last ${esc(lastUsedDate(br.last_invoked))}</span>`
         : '';
       const tagline = esc(br.description);
-      const cost = `<td class="cost"><span class="big">${fmt(br.tokens_per_use_avg)}</span><span class="unit">tokens / use (measured)</span></td>`;
-      const runs = `<td class="runs"><span class="runs-primary">${br.invocations_in_window} in ${br.measurement_window_days}d</span><span class="runs-proj">~${br.uses_per_year}/yr projected</span></td>`;
-      const calib = `<td class="calib"><span class="calib-none">not A/B-tested</span></td>`;
-      const saved = `<td class="saved">—</td>`;
-      const status = `<span class="chip chip-measured">measured</span>${lastSeen}`;
       const skill = `<td class="skill"><span class="name">${esc(br.label)}</span><span class="tagline">${tagline}</span></td>`;
-      return `<tr class="measured">${skill}<td class="status">${status}</td>${cost}${runs}${calib}${saved}</tr>`;
+      const status = `<td class="status"><span class="chip chip-measured">measured</span>${lastSeen}</td>`;
+      const measuredCost = `<td class="num-cell num-cell-measured-cost"><span class="num-cell-big">${fmt(br.tokens_per_use_avg)}</span><span class="num-cell-unit">tokens / use</span></td>`;
+      const dash = `<td class="num-cell">—</td>`;
+      return `<tr class="measured">${skill}${status}${measuredCost}${dash}${dash}${dash}</tr>`;
     })
     .join('\n');
-  return `<h2>Claude Code built-ins (reference)</h2>
-  <p class="note">Built-in slash commands. Cost is measured the same way as the custom-skill rows. No SKILL.md exists for these, so they have no procedure to A/B-test against — the calibration column reads "not A/B-tested" and the savings column reads "—" rather than zero. Excluded from every total in the document. Shown so the reader has a scale anchor when reading the custom-skill numbers.</p>
+  return `<div class="repo-heading"><span class="repo-name">Claude Code built-ins</span><span class="repo-stats">reference — not part of the portfolio</span></div>
+  <p class="note">Built-in slash commands. Per-use cost is measured the same way as the custom-skill rows. No <code>SKILL.md</code> exists for these, so there's no procedure to A/B-test against — the save columns read "—" rather than zero. Shown as a scale anchor for the reader.</p>
   <table class="skills">
-    <thead><tr>
-      <th scope="col">Skill</th>
-      <th scope="col">Status</th>
-      <th scope="col" class="num">Cost / use</th>
-      <th scope="col" class="num">Runs</th>
-      <th scope="col" class="num">Calibration</th>
-      <th scope="col" class="num">Saved / yr</th>
-    </tr></thead>
+    <thead>
+      <tr>
+        <th scope="col">Skill</th>
+        <th scope="col">Status</th>
+        <th scope="col" class="num">Cost / use<br><span class="th-sub">measured</span></th>
+        <th scope="col" class="num">Save / use<br><span class="th-sub">measured</span></th>
+        <th scope="col" class="num">Cost / use<br><span class="th-sub">estimated</span></th>
+        <th scope="col" class="num">Save / use<br><span class="th-sub">estimated</span></th>
+      </tr>
+    </thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -261,31 +272,23 @@ function renderBuiltInsSection(refs) {
 // ---------------------------------------------------------------------------
 
 function renderSummaryTable(perRepo) {
+  // Per-use only. Columns count skills by measurement coverage; no annual
+  // figures (no Tokens-used-90d, no Saved-per-year). The reader who wants
+  // a per-skill number opens the per-repo tables.
   const rows = perRepo
     .map((r) => {
       const skills = r.totalSkills;
-      const measured = r.measuredCount;
-      const tokens = r.measuredTokensWindow
-        ? fmt(r.measuredTokensWindow)
-        : '—';
-      const saved = r.annualSaved ? `~${fmt(r.annualSaved)}` : '—';
-      const savedCls =
-        r.annualSavedMeasuredShare < 0.5 ? ' class="saved-est"' : '';
-      // Subline: how much of the saved figure is A/B-measured (calibration)
-      // vs modeled (3× heuristic). Only show when calibration data exists on
-      // at least one row in this repo — otherwise the subline is noise.
-      let savedSubline = '';
-      if (r.calibratedCount > 0) {
-        savedSubline = `<br><span class="subtle">${r.calibratedCount} of ${r.totalSkills} measured · ~${fmt(r.annualSavedCalibrated)}/yr from A/B</span>`;
-      }
-      return `<tr><td>${esc(r.name)}</td><td class="num">${skills}</td><td class="num">${measured}</td><td class="num">${tokens}</td><td class="num"${savedCls}>${saved}${savedSubline}</td></tr>`;
+      const costMeasured = r.measuredCount;
+      const saveMeasured = r.calibratedCount;
+      const estOnly = skills - costMeasured;
+      return `<tr><td>${esc(r.name)}</td><td class="num">${skills}</td><td class="num">${costMeasured}</td><td class="num">${saveMeasured}</td><td class="num">${estOnly}</td></tr>`;
     })
     .join('\n');
   return `<table class="aggregate">
-  <thead><tr><th scope="col">Repo</th><th scope="col" class="num">Skills</th><th scope="col" class="num">Measured</th><th scope="col" class="num">Tokens used (90d)</th><th scope="col" class="num">Saved / yr*</th></tr></thead>
+  <thead><tr><th scope="col">Repo</th><th scope="col" class="num">Skills</th><th scope="col" class="num">Cost / use measured</th><th scope="col" class="num">Save / use measured</th><th scope="col" class="num">Estimate-only</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>
-<p class="note">* Saved is mixed — A/B-measured where the “measured” subline appears, modeled (3× heuristic) for the rest. Italicised values are majority-estimate on the cost side; upright values are majority-measured on the cost side. See the method page for both models.</p>`;
+<p class="note">All measurement counts are per single invocation of the skill. Cost-measured rows have a real run behind their per-use cost (a transcript-attributed session, or an A/B calibration arm-B). Save-measured rows have a real A/B test behind their per-use savings (calibration). Estimate-only rows have neither yet.</p>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -364,78 +367,48 @@ function renderSkillRow(repoName, s) {
     ? `<span class="last-seen">last ${esc(lastUsedDate(rec.last_invoked))}</span>`
     : '';
 
-  // Cost / use
-  let costCell = '<td class="cost">—</td>';
-  if (rec?.tokens_per_use != null) {
-    const unit = isCalibrationMeasured(rec)
-      ? 'tokens / use (A/B-measured)'
-      : isTranscriptMeasured(rec)
-        ? 'tokens / use (measured)'
-        : 'tokens / use (est.)';
-    costCell = `<td class="cost"><span class="big">${fmt(rec.tokens_per_use)}</span><span class="unit">${esc(unit)}</span></td>`;
-  }
+  // Four per-use data columns, in pairs. Annual / runs / calibration-delta
+  // columns are deliberately gone — this document only shows per-use data.
+  //
+  //   Measured cost/use      tokens_per_use when source is transcript OR
+  //                          calibration (both are real runs); — otherwise.
+  //   Measured save/use      tokens_saved_per_use when tokens_saved_source
+  //                          is 'calibration'; — otherwise. Negatives mean
+  //                          the skill cost MORE in the A/B than baseline.
+  //   Estimated cost/use     The editorial cost guess. Pulled from
+  //                          prior_estimate (preserved when calibration
+  //                          promoted arm-B into the measured cost) or from
+  //                          the raw receipt when there's no measurement at
+  //                          all on the row.
+  //   Estimated save/use     The 3× heuristic applied to the estimated
+  //                          cost: saved ≈ 2× cost. Author guess, always.
+  const measuredCost = isMeasured(rec) ? rec.tokens_per_use : null;
+  const measuredSave =
+    rec?.tokens_saved_source === 'calibration'
+      ? rec.tokens_saved_per_use
+      : null;
+  const estimatedCost = rec?.prior_estimate?.tokens_per_use
+    ?? (isMeasured(rec) ? null : rec?.tokens_per_use);
+  const estimatedSave =
+    typeof estimatedCost === 'number'
+      ? Math.round(estimatedCost * (DEFAULT_BASELINE_MULTIPLIER - 1))
+      : null;
 
-  // Runs
-  let runsCell = '<td class="runs">—</td>';
-  if (rec) {
-    if (isTranscriptMeasured(rec)) {
-      const inv = rec.invocations_in_window ?? '?';
-      const win = rec.measurement_window_days ?? '?';
-      const proj = rec.uses_per_year ?? '?';
-      runsCell = `<td class="runs"><span class="runs-primary">${inv} in ${win}d</span><span class="runs-proj">~${proj}/yr projected</span></td>`;
-    } else if (rec.uses_per_year != null) {
-      runsCell = `<td class="runs"><span class="runs-primary">${rec.uses_per_year} / yr</span><span class="runs-proj">(est.)</span></td>`;
-    }
-  }
-
-  // Calibration
-  let calibCell = '<td class="calib"><span class="calib-none">n/a</span></td>';
-  if (measured) {
-    const delta = calibrationDelta(
-      rec.tokens_per_use,
-      rec.prior_estimate?.tokens_per_use,
-    );
-    if (delta) {
-      const cls2 = delta.klass ? `calib-delta ${delta.klass}` : 'calib-delta';
-      const guess = fmt(rec.prior_estimate.tokens_per_use);
-      const dirLabel =
-        delta.direction === 'close' ? 'within ±10%' : delta.direction;
-      calibCell = `<td class="calib"><span class="${cls2}">${fmtMultiplier(delta.multiplier)} ${esc(dirLabel)}</span><span class="calib-detail">guess was ${guess}/use</span></td>`;
-    } else if (rec.prior_estimate) {
-      calibCell = `<td class="calib"><span class="calib-none">no prior number</span></td>`;
-    } else {
-      calibCell = `<td class="calib"><span class="calib-none">no prior guess</span></td>`;
-    }
-  }
-
-  // Saved.
-  //   - source = 'calibration' → real measurement from an A/B run, prefix with
-  //     a leading sign so negatives are visible. Use `saved-measured` styling.
-  //   - everything else → modeled via the 3× heuristic. Tag accordingly.
-  let savedCell = '<td class="saved">—</td>';
-  const annualSaved = tokensSavedAnnual(rec);
-  if (annualSaved) {
-    const isCalibrated = rec?.tokens_saved_source === 'calibration';
-    const negative = annualSaved < 0;
-    let tag;
-    if (isCalibrated) {
-      tag = negative ? 'measured · costs more' : 'measured';
-    } else {
-      tag = measured ? 'modeled' : 'modeled (from est.)';
-    }
-    const cellClasses = ['saved'];
-    if (isCalibrated) cellClasses.push('saved-calibrated');
-    if (negative) cellClasses.push('saved-negative');
+  function num(value, kind) {
+    if (value == null) return `<td class="num-cell">—</td>`;
+    const negative = value < 0;
+    const cellClasses = ['num-cell', `num-cell-${kind}`];
+    if (kind === 'measured-save' && negative) cellClasses.push('cell-negative');
     const display = negative
-      ? `−${fmt(Math.abs(annualSaved))}/yr`
-      : `~${fmt(annualSaved)}/yr`;
-    savedCell = `<td class="${cellClasses.join(' ')}"><span class="saved-num">${display}</span><span class="saved-tag">${esc(tag)}</span></td>`;
+      ? `−${fmt(Math.abs(value))}`
+      : fmt(value);
+    return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span></td>`;
   }
 
   const skillCell = `<td class="skill"><span class="name">${linkedName}</span><span class="tagline">${tagline}</span></td>`;
   const statusCell = `<td class="status">${chip}${lastSeen}</td>`;
 
-  return `<tr class="${cls}">${skillCell}${statusCell}${costCell}${runsCell}${calibCell}${savedCell}</tr>`;
+  return `<tr class="${cls}">${skillCell}${statusCell}${num(measuredCost, 'measured-cost')}${num(measuredSave, 'measured-save')}${num(estimatedCost, 'est-cost')}${num(estimatedSave, 'est-save')}</tr>`;
 }
 
 function renderRepoSection(repo) {
@@ -447,22 +420,25 @@ function renderRepoSection(repo) {
       : '';
   const stats = `${repo.skills.length} skills · ${measuredCount} measured`;
   const statsCell = url ? `${stats} · ${url}` : stats;
-  // The repo banner + column header are BOTH inside <thead> so the entire
-  // header block repeats on every page when the table spills across page
-  // breaks. Without this, page 2 of a long repo's table showed columns
-  // with no repo identification — user reported as "fucked up" big time.
+  // Banner is a standalone div ABOVE the table — only renders once at the
+  // top of each repo's section, never repeated when the table spans page
+  // breaks. The column header row IS in <thead>, but CSS overrides its
+  // default `display: table-header-group` to `table-row-group` so Chrome
+  // does NOT repeat it on subsequent pages either. Both heading + columns
+  // are one-shot — no duplicated banner-in-the-middle-of-rows confusion.
   return `<section>
+  <div class="repo-heading"><span class="repo-name">${esc(repo.name)}</span><span class="repo-stats">${statsCell}</span></div>
   <table class="skills">
     <thead>
-      <tr class="repo-heading-row"><th colspan="6" class="repo-heading-cell"><span class="repo-name">${esc(repo.name)}</span><span class="repo-stats">${statsCell}</span></th></tr>
       <tr>
-      <th scope="col">Skill</th>
-      <th scope="col">Status</th>
-      <th scope="col" class="num">Cost / use</th>
-      <th scope="col" class="num">Runs</th>
-      <th scope="col" class="num">Calibration</th>
-      <th scope="col" class="num">Saved / yr</th>
-    </tr></thead>
+        <th scope="col">Skill</th>
+        <th scope="col">Status</th>
+        <th scope="col" class="num">Cost / use<br><span class="th-sub">measured</span></th>
+        <th scope="col" class="num">Save / use<br><span class="th-sub">measured</span></th>
+        <th scope="col" class="num">Cost / use<br><span class="th-sub">estimated</span></th>
+        <th scope="col" class="num">Save / use<br><span class="th-sub">estimated</span></th>
+      </tr>
+    </thead>
     <tbody>${rows}</tbody>
   </table>
 </section>`;
@@ -481,28 +457,24 @@ function renderMethodPage() {
   <h1>Method, in plain language</h1>
   <p class="subhead">How the numbers in this document are produced, what they mean, and where I am still guessing.</p>
 
-  <h2>How “measured” rows are produced</h2>
-  <p>Every time I run a Claude Code session (one conversation in the CLI from start to exit), the harness — the runtime that drives the CLI between me and the model — writes a transcript to <code>~/.claude/projects/&lt;dir&gt;/&lt;sessionId&gt;.jsonl</code>. The file is JSON Lines: one JSON object per line, one line per message. Each assistant message in those files carries an <code>attributionSkill</code> field when a skill is active. That field is the trail.</p>
-  <p>A separate skill called <code>skill-usage</code> walks every transcript file, filters to assistant messages with an <code>attributionSkill</code>, groups by (sessionId, skillName), sums the input + output + cache-creation tokens, and dedupes by <code>requestId</code> so retried API calls do not double-count. The output is a dated <code>SKILL-USAGE-{YYYY-MM-DD}.json</code> under <code>.claude/agent-verdicts/</code>. That JSON is what the renderer reads to populate every “measured” row in this document.</p>
-  <p><strong>Window:</strong> the last 90 days from the moment <code>skill-usage</code> ran. Sessions older than 90 days are ignored even if they're still on disk. The boundary is inclusive at the start (a session exactly 90 days old, to the second, is counted) and exclusive at the end (the very moment the scanner runs is the cutoff). Running the scanner an hour later can therefore drop a session that just crossed the boundary — that's a real if rare flake, and re-running the chain re-derives the right answer.</p>
-  <p><strong>Annual projection:</strong> dumb linear math. If a skill ran twice in 90 days, the annual figure says about 8. That is on purpose. I would rather show the projection method honestly than dress up a single data point as a trend. When a row says <em>“1 in 90d → ~4/yr projected”</em> you should read that as <em>“barely a data point — trust the cost-per-use, ignore the annual.”</em></p>
-  <p><strong>Cache accounting:</strong> the per-invocation total sums <code>input_tokens</code>, <code>output_tokens</code>, and <code>cache_creation_input_tokens</code>. It does <em>not</em> sum <code>cache_read_input_tokens</code> — those are cache hits paid for upstream and roughly 10× cheaper. Counting them would double-bill a single skill's multi-turn run. If you care specifically about cache efficiency, that's a different report.</p>
-  <p><strong>What is not counted:</strong> any skill that did not run in the 90-day window has no measured row, even if I use it often outside that window. Sub-agent token costs (work the parent skill delegates to a parallel Claude Code agent, written to its own transcript file under a <code>subagents/</code> sibling directory) are included where the harness logs them — each sub-agent transcript inherits the parent session's <code>attributionSkill</code>. If a skill spawns work the harness does not tag, those tokens are invisible to this measurement.</p>
-  <p><strong>Renamed skills:</strong> there's a small in-source rename map (<code>RENAMED_SKILLS</code> in <code>apply-measurement-overlay.mjs</code>) that retargets historical old-name measurements onto the renamed registry row. Without this, a rename would silently delete ~90 days of measured signal from the rendered totals. Entries get retired once the window rolls past the rename date.</p>
+  <h2>Per single use — the only unit on this page</h2>
+  <p>Every number in the document is per one invocation of the skill. There are no annual figures, no monthly figures, no "tokens per year" anywhere. The original document had those; they were models stacked on guesses about how often a skill gets used. This version drops them. If you want to know what a skill costs you over a year, multiply the per-use number by however many times you'll actually run it — the model wasn't going to be more honest than that anyway.</p>
 
-  <h2>How “estimated” rows are produced</h2>
-  <p class="pull warn">I made up the number. I imagined someone — usually me — running the skill some number of times a year and costing some number of tokens per use, and I wrote down what felt right. There is no math behind these. They are guesses by the person who built the skill, written down before any measurement existed.</p>
-  <p>The estimates are still in the document because the alternative is showing only a third of the portfolio. The rows that have never been invoked in the 90-day window still represent real tools that take real tokens when used. Pretending they don't exist would make the picture cleaner and less true.</p>
-  <p>Make the asymmetry visible: every measured estimate I had has turned out to be wrong, usually low by 5× to 100×. Apply the same skepticism to the rows that have not been measured yet. If anything, the un-measured estimates are likely to be <em>more</em> wrong, because the ones I measured first were the ones I felt most confident about.</p>
+  <h2>How “measured cost / use” is produced</h2>
+  <p>Two sources, both real. <strong>Transcript measurement</strong>: every Claude Code session writes a JSON-Lines transcript to <code>~/.claude/projects/&lt;dir&gt;/&lt;sessionId&gt;.jsonl</code>, with each assistant message carrying an <code>attributionSkill</code> field when a skill is active. The <code>skill-usage</code> skill walks those files, groups by skill, sums <code>input_tokens + output_tokens + cache_creation_input_tokens</code> (cache reads excluded — those are paid upstream), dedupes by <code>requestId</code>, and reports per-use averages across whatever invocations landed in the 90-day window. That's "what happened in production."</p>
+  <p><strong>A/B calibration arm-B</strong>: when a skill hasn't been invoked in production (no transcript data), an A/B run still spends real tokens — a Sonnet sub-agent followed the <code>SKILL.md</code> end-to-end on a representative task, with usage billed through the harness. Arm-B IS a real cost-per-use measurement, just from a controlled run instead of in-the-wild use. Rows in this state show the cost with a "tokens / use (A/B-measured)" sub-label. Rows with both transcript and A/B data prefer the transcript number — it's what happened, not what's reproducible.</p>
 
-  <h2>How “tokens saved” is computed</h2>
-  <p>The savings column carries two kinds of numbers, marked in the rows.</p>
-  <p><strong>Bold green numbers tagged <em>measured</em> are real A/B measurements.</strong> A Sonnet sub-agent solves a representative task in two arms — once cold (no skill awareness) and once following the skill's <code>SKILL.md</code> exactly — both in fresh sandboxed worktrees, both with token usage read from the harness's per-sub-agent <code>usage.total_tokens</code>. The saved number is arm-A tokens minus arm-B tokens for that one run. Orange numbers labelled <em>measured · costs more</em> are skills where the A/B test showed the skill arm spent more than the unstructured arm — those are real findings, not anomalies; the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for downstream consumers to read.</p>
-  <p><strong>Italic gray numbers tagged <em>modeled</em> are a 3× heuristic.</strong> When no calibration data exists for a row, the renderer assumes the unstructured alternative would cost ~3× a focused skill run, so saved ≈ 2× cost-per-use × annual uses. The 3× is a handful-of-side-by-side-runs guess from the author, not a benchmark — the May-2026 Spacepotatis calibration showed it's overstated by roughly 3× at the portfolio level (measured ~22% rate vs the heuristic's ~67%). Rows still showing modeled numbers are skills that haven't been A/B-tested yet; treat their savings as a possibly-too-optimistic lower bound.</p>
-  <p>Cost appears on both sides of the underlying subtraction, so the savings figure is more sensitive to bad cost estimates than the cost figure is. An italic-modeled row stacked on top of an italic-estimated cost is a model on top of a guess — least trustworthy column on the page. A bold-measured row on top of a measured cost is the most trustworthy. The visual treatment matches that hierarchy.</p>
+  <h2>How “measured save / use” is produced</h2>
+  <p>One source: a calibration A/B test. Two Sonnet sub-agents solve the same task in fresh sandboxed worktrees — arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save / use is arm-A tokens minus arm-B tokens for that one run. <strong>N = 1 per skill, single data point</strong>. A re-run would produce different absolute numbers for both arms; trust direction and rough magnitude, not two-significant-digit precision.</p>
+  <p>Some skills show negative save / use in orange. Those are real findings: the skill arm spent MORE tokens than the unstructured arm, because the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The skill's value is completeness, not token compression. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for any downstream consumer that wants to see both sides.</p>
 
-  <h3>One caveat on A/B-measured cost rows</h3>
-  <p>When the cost-per-use comes from a calibration arm-B (because the skill wasn't transcript-measured), the row reads <em>tokens / use (A/B-measured)</em> — that part is real. But the <strong>annual_total</strong> on those rows is computed as <em>arm-B-tokens × editorial uses_per_year</em>, mixing a real per-use measurement with an editorial cadence guess. The Runs cell still says <code>(est.)</code> on those rows so you can spot the mix; the annual number itself doesn't carry a visual tag. Treat A/B-cost annuals as "real per-use, guessed cadence" — the per-use is the calibrated number, the multiplier is still a model.</p>
+  <h2>How “estimated cost / use” is produced</h2>
+  <p class="pull warn">I made up the number. I imagined what running the skill should cost in tokens and wrote that down. There's no math behind these. They are guesses by the person who built the skill, written down before any measurement existed.</p>
+  <p>The estimates stay in the document so the picture covers every skill, not just the ones I've measured. Every measured estimate I had has turned out to be off, usually low by 5× to 100× — apply the same skepticism to the rows that haven't been measured yet. If anything, the un-measured estimates are likely to be <em>more</em> wrong: I measured the ones I felt most confident about first.</p>
+
+  <h2>How “estimated save / use” is produced</h2>
+  <p>3× heuristic on the estimated cost: <em>saved ≈ 2× cost</em>. The model says "doing this without the skill would cost about 3× what the skill costs," so the saved-per-use is 2× the cost-per-use. The 3× is a handful-of-side-by-side-runs guess; the May-2026 Spacepotatis calibration showed it's overstated by roughly 3× at the portfolio level (measured savings averaged ~22% of arm-A cost, vs the heuristic's ~67%). Treat estimated savings as a possibly-too-optimistic upper bound.</p>
+  <p>Cost is on both sides of the underlying subtraction, so the estimated save figure is more sensitive to bad cost estimates than the estimated cost is. An italic estimated-save stacked on top of an italic estimated-cost is a model on top of a guess — least trustworthy cell on the page. A green measured-save on top of a green measured-cost is the most trustworthy. The visual treatment matches that hierarchy.</p>
 
   <h2>What this document does NOT claim</h2>
   <ul>
@@ -633,12 +605,23 @@ function buildHtml(data, css) {
     (n, r) => n + (r.calibratedCount || 0),
     0,
   );
+  // Transcript-measured = isMeasured BUT not calibration-source. Used to
+  // split the hero's "cost measured" count between sources.
+  const transcriptMeasuredCount = data.repos.reduce(
+    (n, r) =>
+      n + r.skills.filter((s) => isTranscriptMeasured(s.receipt)).length,
+    0,
+  );
   const totalSkillsWithReceipts = data.repos.reduce(
     (n, r) => n + r.skills.filter((s) => s.receipt).length,
     0,
   );
-  const hero = renderHero(agg, calibratedCount, totalSkillsWithReceipts);
-  const contextBox = renderContextBox(agg.customMeasured90d, reviewBuiltin);
+  const hero = renderHero(
+    agg,
+    calibratedCount,
+    transcriptMeasuredCount,
+    totalSkillsWithReceipts,
+  );
   const summary = renderSummaryTable(agg.perRepo);
   const calibrationPage = renderCalibrationPage(agg.calibrationRows);
   const methodPage = renderMethodPage();
@@ -659,9 +642,7 @@ function buildHtml(data, css) {
 
 ${hero}
 
-${contextBox}
-
-<p class="lede">This document carries two kinds of "measured" data, and they're different. <strong>Cost-per-use measurement</strong> (the green chip on a row) comes from real Claude Code transcripts — I went back through my own sessions and counted what each skill actually spent when I invoked it. <strong>Savings-per-use measurement</strong> (the bold green / orange number in the Saved column) comes from A/B tests — same task solved with and without the skill, in fresh sandboxed worktrees, both arms billed honestly. Rows tagged <span class="chip chip-estimate">estimate</span> have neither yet. Every measured estimate I had has turned out to be off, usually by 5× to 100×. The interesting part isn't that I was wrong. The interesting part is that you can see exactly how wrong, on page 2.</p>
+<p class="lede">Per-skill, four numbers per row: <strong>measured cost / use</strong> (real tokens billed when a skill ran), <strong>measured save / use</strong> (A/B test: arm A minus arm B), <strong>estimated cost / use</strong> (the author's pre-measurement guess), and <strong>estimated save / use</strong> (the 3× heuristic applied to the estimated cost). Green = measured. Italic gray = estimated. Orange measured-save means the skill cost MORE in the A/B than the unstructured baseline — real findings, not bugs. Cost-or-save dashes (<em>—</em>) mean no data exists for that cell yet.</p>
 
 <h2>Per-repo summary</h2>
 ${summary}
@@ -672,7 +653,7 @@ ${calibrationPage}
 
 <section class="page-break repo-page">
   <h1>Per-repo skill tables</h1>
-  <p class="lede">One row per skill. Measured rows have a green wash; estimated rows are white. <strong>Saved / yr</strong> carries two kinds of numbers: <span class="saved-num" style="font-weight:700;color:var(--calib-ok)">bold green tagged <em>measured</em></span> means a real A/B run (arm A vs arm B) gave us the savings figure; italic gray tagged <em>modeled</em> means we're still using the 3× heuristic. Orange numbers are real measurements showing the skill cost MORE per use than the unstructured baseline. The method page describes both.</p>
+  <p class="lede">One row per skill. Measured rows have a green wash; estimated rows are white. Four data columns per row, in pairs: <strong>Cost / use</strong> measured + estimated, then <strong>Save / use</strong> measured + estimated. Green numbers come from real runs (transcript or A/B). Italic gray numbers are author estimates. Orange numbers are real A/B measurements showing the skill cost MORE per use than the unstructured baseline. Dashes mean no data exists for that cell yet. Every figure is per single invocation — no annual projections anywhere in this document.</p>
   ${repoSections}
 </section>
 

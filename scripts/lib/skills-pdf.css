@@ -351,63 +351,119 @@ th {
 
 /* ----- per-repo section heading band --------------------------------
  *
- * The banner lives inside the table's <thead> as a first row, spanning all
- * columns. This is on purpose: `thead { display: table-header-group }`
- * makes the entire thead repeat on every page when the table spans page
- * breaks. With the banner standalone above the table (as it was before),
- * page 2 of a long table showed columns with no repo identification.
+ * Banner is a STANDALONE div above the table — renders once at the top of
+ * each repo's section, never repeated when the table spans page breaks.
+ * The column-header <thead> below also has its repeat behavior turned
+ * OFF (`display: table-row-group`), so neither the banner nor the column
+ * header is duplicated mid-data. User reported repeated banners on page-2
+ * as "fucked up big time" — this is the explicit fix.
  *
- * The visual treatment matches the prior standalone banner — same green
- * fill, white reversed type, baseline-aligned name + stats — so the page-1
- * appearance is unchanged. Subsequent pages get the same banner repeated.
+ * Trade-off: if a repo's table is long enough to spill across a page
+ * break, the second page shows columns without labels. The data is still
+ * in the right column (no shift), just unlabeled. With per-use-only data
+ * the rows are short enough that single-page-per-repo is the norm.
  * --------------------------------------------------------------------- */
 
-table.skills thead tr.repo-heading-row th.repo-heading-cell {
+.repo-heading {
+  margin: 26pt 0 0;
+  padding: 8pt 12pt;
   background: var(--repo-band);
   color: #ffffff;
-  padding: 8pt 12pt;
-  text-align: left;
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: 9pt;
-  font-weight: 400;
-  border-top: none;
-  border-bottom: 2pt solid var(--repo-band);
-  /* Sit visually above the column-header row that follows. */
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  page-break-after: avoid;
+  break-after: avoid;
 }
 
-table.skills .repo-name {
+.repo-heading .repo-name {
   font-size: 13pt;
   font-weight: 700;
   letter-spacing: 0.01em;
-  margin-right: 12pt;
 }
 
-table.skills .repo-stats {
+.repo-heading .repo-stats {
   font-size: 9pt;
   font-weight: 400;
   opacity: 0.9;
   font-variant-numeric: tabular-nums;
 }
 
-table.skills .repo-stats a {
+.repo-heading .repo-stats a {
   color: #ffffff;
   border-bottom-color: rgba(255, 255, 255, 0.45);
 }
 
-/* Air above each repo banner so the eye picks out the section break. */
-table.skills {
-  margin-top: 22pt;
+/* First repo banner under the per-repo-page heading: tighten the top
+   margin so the page heading and the first banner don't both compete
+   for the eye. */
+.repo-page .repo-heading:first-of-type {
+  margin-top: 12pt;
 }
 
-/* Replaces the previous `.repo-page .repo-heading:first-of-type` rule.
-   The heading used to be a standalone div above the table; now it's the
-   first row of the table's thead, so the rule targets the table itself
-   instead of a child element. Same intent — tighten the top margin on the
-   first table directly under the `<h1>Per-repo skill tables</h1>` so the
-   heading and the first banner don't both compete for the eye. */
-.repo-page table.skills:first-of-type {
-  margin-top: 8pt;
+/* Prevent Chrome from repeating the column-header row on subsequent
+   pages when a table spans a page break. The default thead behaviour is
+   table-header-group, which auto-repeats. Per user request, the column
+   header appears ONCE per repo, at the top of its data, not mid-table. */
+table.skills thead {
+  display: table-row-group;
+}
+
+/* Column headers carry an explicit "measured / estimated" subline so the
+   per-use cost and per-use save columns can each name which side of the
+   measurement they describe. Subline is visually quieter than the main
+   column name. */
+table.skills th .th-sub {
+  display: block;
+  margin-top: 1pt;
+  font-size: 7pt;
+  font-weight: 500;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink-mute);
+}
+
+/* Per-use number cells. Four flavours: measured-cost, measured-save,
+   est-cost, est-save. Visual weights mirror the cost-/-save split — both
+   "measured" flavours render in the calibration green; both "estimated"
+   flavours render italic gray. Negative measured-save (skill cost MORE
+   in A/B than the unstructured baseline) flips to calibration orange. */
+table.skills td.num-cell {
+  text-align: right;
+  white-space: nowrap;
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+}
+
+table.skills td.num-cell .num-cell-big {
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+table.skills td.num-cell .num-cell-unit {
+  display: block;
+  margin-top: 1pt;
+  font-size: 7.5pt;
+  color: var(--ink-mute);
+  font-weight: 400;
+}
+
+table.skills td.num-cell-measured-cost .num-cell-big,
+table.skills td.num-cell-measured-save .num-cell-big {
+  color: var(--calib-ok);
+}
+
+table.skills td.num-cell-est-cost .num-cell-big,
+table.skills td.num-cell-est-save .num-cell-big {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink-mute);
+}
+
+table.skills td.num-cell.cell-negative .num-cell-big {
+  color: var(--calib-off);
 }
 
 /* ----- per-repo skill table ----------------------------------------- */
