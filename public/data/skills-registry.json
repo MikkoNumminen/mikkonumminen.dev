@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-23T01:33:45.364Z",
+  "generated_at": "2026-05-23T02:32:56.015Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -10,16 +10,28 @@
           "description": "When CI fails on a release tag or PR, walk the failure modes in the right order against a recipe library built from the project's fix(ci) commit history. Use whenever the user says \"CI is red\", \"the build failed\", \"tag failed CI\", \"release-build broke\", or any time gh run list shows a recent failure on master or a release tag.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 1900,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 25327,
             "uses_per_year": 89,
-            "annual_total": 169100
+            "annual_total": 2254103,
+            "tokens_saved_per_use": 19017,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 44344,
+            "calibration_arm_B": 25327,
+            "prior_estimate": {
+              "tokens_per_use": 1900,
+              "uses_per_year": 89,
+              "annual_total": 169100,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
           "name": "copyright-scan",
-          "description": "Scan a git diff (staged by default, or a named revision range / file set) for accidental third-party copyright leaks before they land on origin. Use this skill whenever the user says \"scan the diff\", \"copyright check\", \"scan for leaks\", \"is this safe to push\", \"check this before I commit\", \"did I leak anything?\", or whenever you are about to create a commit or push in this repo. CLAUDE.md marks copyright leakage as a P0 â€” this skill turns the manual scan ritual into one pass. Produces a structured pass/fail report with file:line citations and, on fail, the exact remediation path (edit vs. un-stage vs. P0 scrub-from-origin).",
+          "description": "Scan a git diff (staged by default, or a named revision range / file set) for accidental third-party copyright leaks before they land on origin. Use this skill whenever the user says \"scan the diff\", \"copyright check\", \"scan for leaks\", \"is this safe to push\", \"check this before I commit\", \"did I leak anything?\", or whenever you are about to create a commit or push in this repo. CLAUDE.md marks copyright leakage as a P0 — this skill turns the manual scan ritual into one pass. Produces a structured pass/fail report with file:line citations and, on fail, the exact remediation path (edit vs. un-stage vs. P0 scrub-from-origin).",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -37,19 +49,35 @@
               "annual_total": 0,
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
+            },
+            "tokens_saved_per_use": 32311,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 65462,
+            "calibration_arm_B": 33151
           }
         },
         {
           "name": "pronunciation-corpus-add",
-          "description": "Append a Finnish pronunciation failure (a word the Chatterbox Grandmom voice mispronounces) to the project's pronunciation corpus at docs/pronunciation_corpus_fi.md. Use this whenever the user or a tester (Turo is the canonical one) reports that Grandmom said a Finnish word wrong â€” e.g. \"Grandmom pronounces X as Y\", \"add this to the corpus\", \"log this pronunciation bug\", \"the TTS messed up <word>\". Also use when the user pastes a transcript of what was heard vs. what was written. This corpus is the evidence base for targeted Pass I / lexicon fixes; entries must be structured so patterns across reports are visible at a glance.",
+          "description": "Append a Finnish pronunciation failure (a word the Chatterbox Grandmom voice mispronounces) to the project's pronunciation corpus at docs/pronunciation_corpus_fi.md. Use this whenever the user or a tester (Turo is the canonical one) reports that Grandmom said a Finnish word wrong — e.g. \"Grandmom pronounces X as Y\", \"add this to the corpus\", \"log this pronunciation bug\", \"the TTS messed up <word>\". Also use when the user pastes a transcript of what was heard vs. what was written. This corpus is the evidence base for targeted Pass I / lexicon fixes; entries must be structured so patterns across reports are visible at a glance.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 1800,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 17120,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": 2339,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 19459,
+            "calibration_arm_B": 17120,
+            "prior_estimate": {
+              "tokens_per_use": 1800,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -57,16 +85,29 @@
           "description": "Audit the AudiobookMaker PyInstaller release bundle for unused dependencies, dead-code data files, and accidental ML-stack pollution; then propose spec-only fixes on a `chore/release-bundle-size` branch. Use whenever the user says \"the installer is huge\", \"why is the bundle so big\", \"shake out unused deps before release\", \"shrink the .exe\", \"audit the .spec\", or asks why a frozen build ships some specific package. Encodes the empirical finding that ~28% of the v3.11.x bundle was dead-code data files (ffplay.exe, AVIF support, Arabic phonemizer, ONNX training tools) plus a defense-in-depth exclude set that prevents future regressions when a contributor accidentally pip-installs torch on the build machine.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 3800,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 86790,
             "uses_per_year": 4,
-            "annual_total": 15200
+            "annual_total": 347160,
+            "tokens_saved_per_use": -9145,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 77645,
+            "calibration_arm_B": 86790,
+            "calibration_notes": "skill encodes thoroughness (multi-phase audit walk) — arm B explored deeper, used 121 tool uses vs arm A's 56. Costs more per use, value is in audit completeness, not token compression.",
+            "prior_estimate": {
+              "tokens_per_use": 3800,
+              "uses_per_year": 4,
+              "annual_total": 15200,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
           "name": "release-cut",
-          "description": "Cut a new AudiobookMaker release (bump APP_VERSION, tag vX.Y.Z, push, verify CI lands SHA-256 in release notes AND sidecar). Use this skill whenever the user says \"cut a release\", \"bump the version\", \"ship X.Y.Z\", \"make a release\", \"release X.Y.Z\", or asks to tag a new version. Auto-update is existential for this project â€” a release that ships without a valid SHA-256 locks every existing user out of one-click updates. This skill encodes every moving part so that can never happen again.",
+          "description": "Cut a new AudiobookMaker release (bump APP_VERSION, tag vX.Y.Z, push, verify CI lands SHA-256 in release notes AND sidecar). Use this skill whenever the user says \"cut a release\", \"bump the version\", \"ship X.Y.Z\", \"make a release\", \"release X.Y.Z\", or asks to tag a new version. Auto-update is existential for this project — a release that ships without a valid SHA-256 locks every existing user out of one-click updates. This skill encodes every moving part so that can never happen again.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -84,19 +125,35 @@
               "annual_total": 137700,
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
+            },
+            "tokens_saved_per_use": 5937,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 35107,
+            "calibration_arm_B": 29170
           }
         },
         {
           "name": "voice-pack-finnish",
-          "description": "Build a Finnish voice pack from a source audio file end-to-end â€” chunked analyze with ECAPA diarization, transcript validation per speaker, branching to LoRA training (long sources) or few-shot ref-clip packaging (short sources), and ear-check by synth. Use whenever the user says \"copy the voices\", \"extract voices from this clip\", \"make a voice pack from this audio\", \"I have a short Finnish clip\", or hands you a Finnish podcast / interview / audiobook to mimic. Encodes the empirically-validated Finnish pipeline. CRITICAL â€” Finnish source only (ASR + finetune model are Finnish-specific); for English / other languages this skill does not apply. Never assume single-speaker, never trust pyannote labels without validation, never install copyright-derived packs to ~/.audiobookmaker.",
+          "description": "Build a Finnish voice pack from a source audio file end-to-end — chunked analyze with ECAPA diarization, transcript validation per speaker, branching to LoRA training (long sources) or few-shot ref-clip packaging (short sources), and ear-check by synth. Use whenever the user says \"copy the voices\", \"extract voices from this clip\", \"make a voice pack from this audio\", \"I have a short Finnish clip\", or hands you a Finnish podcast / interview / audiobook to mimic. Encodes the empirically-validated Finnish pipeline. CRITICAL — Finnish source only (ASR + finetune model are Finnish-specific); for English / other languages this skill does not apply. Never assume single-speaker, never trust pyannote labels without validation, never install copyright-derived packs to ~/.audiobookmaker.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 6200,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 26591,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": 29340,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 55931,
+            "calibration_arm_B": 26591,
+            "prior_estimate": {
+              "tokens_per_use": 6200,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -104,11 +161,24 @@
           "description": "Start, pause, or finish a TODO.md work session as one of the 4 permanent Claude sessions in AudiobookMaker. Use this whenever the user says \"claim task X\", \"take task Y\", \"start working on Z\", \"pick something\", \"I'm done\", \"finish up\", \"pause\", \"I'm blocked\", or \"go idle\". Also use before touching any code on a fresh session to make sure the status board and in-progress list are honest. Parallel Claudes collide without this discipline; the shared TODO.md protocol is the only way four sessions stay coherent.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 1700,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 23070,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": -2091,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 20979,
+            "calibration_arm_B": 23070,
+            "calibration_notes": "skill encodes status-board protocol rigor (3-part TODO.md edit, isolation discipline) — costs slightly more per use, value is multi-Claude coherence, not token compression.",
+            "prior_estimate": {
+              "tokens_per_use": 1700,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -116,11 +186,24 @@
           "description": "Start a new parallel Claude session safely. Pick a free session slot (Claude 1/2/3/4), create the worktree under .claude/worktrees/<branch>, claim a task in TODO.md, verify isolation actually held after the agent runs. Use whenever the user says \"start a new session\", \"spawn another Claude\", \"open a worktree\", or \"let me run two of you in parallel\".",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 1300,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 23126,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": 126,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 23252,
+            "calibration_arm_B": 23126,
+            "calibration_notes": "N=1 noise — no meaningful save or cost difference on this task. Skill's value is correctness (avoiding worktree collisions), not token compression.",
+            "prior_estimate": {
+              "tokens_per_use": 1300,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         }
       ]
@@ -155,7 +238,7 @@
         },
         {
           "name": "content-audit",
-          "description": "Pre-commit content invariants check â€” orphan refs (enemy / weapon / sprite / pod / loot-pool / mission system / story trigger), missing sprite generators, perk drop-weight sanity, mission prereq DAG, story integrity (voice + music files, trigger refs), storyTriggers helper coverage.",
+          "description": "Pre-commit content invariants check — orphan refs (enemy / weapon / sprite / pod / loot-pool / mission system / story trigger), missing sprite generators, perk drop-weight sanity, mission prereq DAG, story integrity (voice + music files, trigger refs), storyTriggers helper coverage.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -182,7 +265,7 @@
         },
         {
           "name": "equipment",
-          "description": "Create, modify, or remove a weapon or piece of equipment (augment / reactor / shield / armor) â€” including visual changes to how it appears in combat or in the loadout UI. Covers stats, sprites, prices, and the full CRUD lifecycle for the entire ship-loadout content surface.",
+          "description": "Create, modify, or remove a weapon or piece of equipment (augment / reactor / shield / armor) — including visual changes to how it appears in combat or in the loadout UI. Covers stats, sprites, prices, and the full CRUD lifecycle for the entire ship-loadout content surface.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -234,7 +317,7 @@
         },
         {
           "name": "new-enemy",
-          "description": "Scaffold a new enemy â€” enemies.json entry, BootScene placeholder sprite generator, optional test wave, and integrity test verification.",
+          "description": "Scaffold a new enemy — enemies.json entry, BootScene placeholder sprite generator, optional test wave, and integrity test verification.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -258,7 +341,7 @@
         },
         {
           "name": "new-migration",
-          "description": "Add a Postgres schema migration end-to-end â€” dated SQL file in db/migrations/, Database interface update in src/lib/db.ts, prod application via scripts/migrate.mjs, schema verification via scripts/check-schema.mjs, and the PR-body checkbox that gates merge. Enforces CLAUDE.md Â§7a HARD RULE so the next save POST doesn't 500.",
+          "description": "Add a Postgres schema migration end-to-end — dated SQL file in db/migrations/, Database interface update in src/lib/db.ts, prod application via scripts/migrate.mjs, schema verification via scripts/check-schema.mjs, and the PR-body checkbox that gates merge. Enforces CLAUDE.md §7a HARD RULE so the next save POST doesn't 500.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -282,7 +365,7 @@
         },
         {
           "name": "new-mission",
-          "description": "Scaffold a new combat mission across missions.json, waves.json, the galaxy planet binding, and a smoke test â€” in one shot.",
+          "description": "Scaffold a new combat mission across missions.json, waves.json, the galaxy planet binding, and a smoke test — in one shot.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -307,7 +390,7 @@
         },
         {
           "name": "new-perk",
-          "description": "Scaffold a new mission-only perk â€” perks.ts entry, BootScene icon generator, HUD chip wiring, and (for actives) a switch case in PerkController.apply / triggerActive.",
+          "description": "Scaffold a new mission-only perk — perks.ts entry, BootScene icon generator, HUD chip wiring, and (for actives) a switch case in PerkController.apply / triggerActive.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -331,7 +414,7 @@
         },
         {
           "name": "new-solar-system",
-          "description": "Add a new solar system to the galaxy â€” solarSystems.json entry (incl. galaxy bed), SolarSystemId union extension, optional unlock gating, REQUIRED on-system-enter cinematic (voice + music) AND dedicated galaxy-view music bed, and mission-binding TODO list.",
+          "description": "Add a new solar system to the galaxy — solarSystems.json entry (incl. galaxy bed), SolarSystemId union extension, optional unlock gating, REQUIRED on-system-enter cinematic (voice + music) AND dedicated galaxy-view music bed, and mission-binding TODO list.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -355,7 +438,7 @@
         },
         {
           "name": "new-story",
-          "description": "Add, modify, or remove story content â€” cinematic popups, voiceovers, music beds, body text, written synopses, and auto-trigger wiring. Covers the full CRUD lifecycle for the Story log.",
+          "description": "Add, modify, or remove story content — cinematic popups, voiceovers, music beds, body text, written synopses, and auto-trigger wiring. Covers the full CRUD lifecycle for the Story log.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -388,7 +471,7 @@
         },
         {
           "name": "save-roundtrip-audit",
-          "description": "Pre-commit save-pipeline invariants check â€” walks every StateSnapshot field through the 8 layers of the save round-trip (snapshot interface â†’ toSnapshot â†’ POST schema â†’ POST handler â†’ DB column â†’ migration â†’ GET handler â†’ RemoteSaveSchema â†’ sync.loadSave â†’ hydrate) and flags any layer that silently drops the field. Read-only.",
+          "description": "Pre-commit save-pipeline invariants check — walks every StateSnapshot field through the 8 layers of the save round-trip (snapshot interface → toSnapshot → POST schema → POST handler → DB column → migration → GET handler → RemoteSaveSchema → sync.loadSave → hydrate) and flags any layer that silently drops the field. Read-only.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -421,7 +504,7 @@
       "skills": [
         {
           "name": "ai-codegen-smell-audit",
-          "description": "Read-only audit for specific failure modes that recur in LLM-generated code â€” defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" â€” every finding must be a specific testable pattern with a concrete example, not a vibe.",
+          "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" — every finding must be a specific testable pattern with a concrete example, not a vibe.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -449,7 +532,7 @@
         },
         {
           "name": "audit",
-          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes â€” resource lifecycle, data integrity, concurrency, error paths, external boundaries â€” each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews â€” see the \"When NOT to invoke\" section below.",
+          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews — see the \"When NOT to invoke\" section below.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -472,7 +555,7 @@
         },
         {
           "name": "mikko-audit-suite",
-          "description": "Run every `mikko-*` audit skill that's relevant to the current codebase, in a sensible order, and produce one index document linking to each audit's report. Detects the codebase shape (language, framework, security surface), maps to the suggested audit list (same logic as `/mikko-help --detect`), confirms once with the human, then runs each audit sequentially. Use whenever the user says \"run all audits\", \"full audit\", \"audit everything\", \"what's wrong with this codebase\", or before a major release. Expensive â€” total tokens are the sum of every dispatched audit (typically ~100-500K). The orchestrator itself is cheap; the dispatched audits are what cost.",
+          "description": "Run every `mikko-*` audit skill that's relevant to the current codebase, in a sensible order, and produce one index document linking to each audit's report. Detects the codebase shape (language, framework, security surface), maps to the suggested audit list (same logic as `/mikko-help --detect`), confirms once with the human, then runs each audit sequentially. Use whenever the user says \"run all audits\", \"full audit\", \"audit everything\", \"what's wrong with this codebase\", or before a major release. Expensive — total tokens are the sum of every dispatched audit (typically ~100-500K). The orchestrator itself is cheap; the dispatched audits are what cost.",
           "redirect": false,
           "receipt": {
             "path": "skills/mikko-audit-suite/SKILL.md",
@@ -484,7 +567,7 @@
         },
         {
           "name": "mikko-help",
-          "description": "List every installed `mikko-*` skill with its description (or with its `barney:` field when `--barney` is passed). The fast answer to \"I know I have a skill for this but can't remember which one\" / \"what mikko skills do I have\" / \"list my skills\" / \"remind me what's installed.\" Pass `--detect` for codebase-aware audit recommendations (\"which audit should I run on this repo\" / \"what's relevant for this codebase\"). Pass `--barney` for plain-English short descriptions (\"give me the friendly version\" / \"plain-English list\"). `--detect` and `--barney` combine independently. No sub-agents, no network, no measurements â€” just a table. Full mode docs live in the body's \"Flags\" section.",
+          "description": "List every installed `mikko-*` skill with its description (or with its `barney:` field when `--barney` is passed). The fast answer to \"I know I have a skill for this but can't remember which one\" / \"what mikko skills do I have\" / \"list my skills\" / \"remind me what's installed.\" Pass `--detect` for codebase-aware audit recommendations (\"which audit should I run on this repo\" / \"what's relevant for this codebase\"). Pass `--barney` for plain-English short descriptions (\"give me the friendly version\" / \"plain-English list\"). `--detect` and `--barney` combine independently. No sub-agents, no network, no measurements — just a table. Full mode docs live in the body's \"Flags\" section.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -507,7 +590,7 @@
         },
         {
           "name": "mikko-install",
-          "description": "Install, update, list, or uninstall `mikko-*` skills from the cloned `claude-skills` source repo into the user-wide skill directory (`~/.claude/skills/mikko-*`). Wraps the existing `install-mikko.sh` and `install.sh` scripts so the install loop is reachable from inside any Claude Code session via a slash command â€” no need to leave the conversation, find the repo, and run bash by hand. Use whenever the user says \"install the mikko skills\", \"install everything\", \"add mikko-readme-drift-sync\", \"update my mikko skills\", \"what's new since last install\", or \"uninstall mikko-foo\". Locates the source repo via the current working directory, parent directories, or known sibling locations (configurable). Does NOT clone the repo (the user clones it once, by hand). Does NOT touch skills outside the `mikko-*` prefix.",
+          "description": "Install, update, list, or uninstall `mikko-*` skills from the cloned `claude-skills` source repo into the user-wide skill directory (`~/.claude/skills/mikko-*`). Wraps the existing `install-mikko.sh` and `install.sh` scripts so the install loop is reachable from inside any Claude Code session via a slash command — no need to leave the conversation, find the repo, and run bash by hand. Use whenever the user says \"install the mikko skills\", \"install everything\", \"add mikko-readme-drift-sync\", \"update my mikko skills\", \"what's new since last install\", or \"uninstall mikko-foo\". Locates the source repo via the current working directory, parent directories, or known sibling locations (configurable). Does NOT clone the repo (the user clones it once, by hand). Does NOT touch skills outside the `mikko-*` prefix.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -530,7 +613,7 @@
         },
         {
           "name": "react-anti-patterns-audit",
-          "description": "Read-only audit for six concrete React anti-patterns that recur in component code (key=index in lists, useEffect for derived state, dep-array lies, state mutation instead of replace, missing effect cleanup, multiple sources of truth). Each check has a concrete smell example and a concrete legitimate counter-example so the auditor can tell signal from noise. **Runs a pre-flight check first** â€” if the target codebase isn't a React project, the skill aborts cleanly with a suggestion to use a different skill. Use whenever the user says \"audit my React code\", \"review this for React anti-patterns\", \"check my hooks\", \"find re-render issues\", or before merging a substantial component PR. NOT a witch hunt for \"non-idiomatic React\" â€” every finding must be a specific testable pattern with a concrete example.",
+          "description": "Read-only audit for six concrete React anti-patterns that recur in component code (key=index in lists, useEffect for derived state, dep-array lies, state mutation instead of replace, missing effect cleanup, multiple sources of truth). Each check has a concrete smell example and a concrete legitimate counter-example so the auditor can tell signal from noise. **Runs a pre-flight check first** — if the target codebase isn't a React project, the skill aborts cleanly with a suggestion to use a different skill. Use whenever the user says \"audit my React code\", \"review this for React anti-patterns\", \"check my hooks\", \"find re-render issues\", or before merging a substantial component PR. NOT a witch hunt for \"non-idiomatic React\" — every finding must be a specific testable pattern with a concrete example.",
           "redirect": false,
           "receipt": {
             "path": "skills/react-anti-patterns-audit/SKILL.md",
@@ -542,7 +625,7 @@
         },
         {
           "name": "readme-drift-sync",
-          "description": "Detect drift between what the repo actually contains and what `README.md` claims, then rewrite ONLY the drifted sections in the README's existing voice. Five drift axes (file structure, dependencies, skills, features, status). Voice-preserving â€” the skill extracts a voice profile from the existing README first and any rewrite must read as if the original author wrote it. **Write-with-approval**: emits a working-tree edit to `README.md` plus a drift report and a voice-profile cache, then STOPS. Does NOT commit, does NOT push, does NOT regenerate the README from scratch. Use whenever the user says \"sync the README\", \"update the README\", \"check README drift\", \"has the README fallen out of date\", or after a release-cut before the next push. NOT for initial README creation, full rewrites, CONTRIBUTING/CHANGELOG edits, or general code edits where the README isn't in scope.",
+          "description": "Detect drift between what the repo actually contains and what `README.md` claims, then rewrite ONLY the drifted sections in the README's existing voice. Five drift axes (file structure, dependencies, skills, features, status). Voice-preserving — the skill extracts a voice profile from the existing README first and any rewrite must read as if the original author wrote it. **Write-with-approval**: emits a working-tree edit to `README.md` plus a drift report and a voice-profile cache, then STOPS. Does NOT commit, does NOT push, does NOT regenerate the README from scratch. Use whenever the user says \"sync the README\", \"update the README\", \"check README drift\", \"has the README fallen out of date\", or after a release-cut before the next push. NOT for initial README creation, full rewrites, CONTRIBUTING/CHANGELOG edits, or general code edits where the README isn't in scope.",
           "redirect": false,
           "receipt": {
             "path": "skills/readme-drift-sync/SKILL.md",
@@ -568,41 +651,6 @@
             "calibration_arm_B": 112211,
             "calibration_notes": "skill encodes rigor (full attack-surface walk) — costs more per use, value is in completeness",
             "last_invoked": "2026-05-22T00:00:00Z"
-          }
-        },
-        {
-          "name": "session-cost",
-          "description": "Measure the token cost of a single Claude Code session — main thread plus every sub-agent it dispatched. Companion to /mikko-skill-usage, which slices the portfolio BY SKILL across all sessions; this one slices a single session BY WHO-SPENT-IT (main thread vs each sub-agent). Use when you want to know what a conversation cost so far, how much running a complex feature took, or which sub-agent was the most expensive.",
-          "redirect": false,
-          "receipt": {
-            "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
-            "source": "transcript-measurement",
-            "tokens_per_use": 409232,
-            "uses_per_year": 4,
-            "annual_total": 1636928,
-            "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 409232,
-            "last_invoked": "2026-05-21T22:18:57.013Z",
-            "prior_estimate": {
-              "tokens_per_use": 8000,
-              "uses_per_year": 12,
-              "annual_total": 96000,
-              "source": "skill-body",
-              "path": "skills/session-cost/SKILL.md"
-            }
-          }
-        },
-        {
-          "name": "skill-calibration",
-          "description": "A/B-test a Claude Code skill against an unstructured baseline to measure actual token savings. Runs one Sonnet sub-agent per arm per skill — arm A solves the task cold without reading SKILL.md, arm B reads SKILL.md and follows the procedure exactly. Both arms operate in fresh sandboxed worktrees. Token usage comes from the harness’s per-sub-agent usage.total_tokens. Replaces the editorial saved guesses in skills-registry PDFs with real numbers.",
-          "redirect": false,
-          "receipt": {
-            "path": "skills/skill-calibration/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 140000,
-            "uses_per_year": 4,
-            "annual_total": 560000
           }
         },
         {
@@ -636,7 +684,7 @@
       "skills": [
         {
           "name": "md-to-pdf",
-          "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's --print-to-pdf flag. Zero npm install â€” no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown â†’ HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
+          "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's --print-to-pdf flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
           "redirect": false,
           "receipt": {
             "path": ".claude/skills/md-to-pdf/SKILL.md",
@@ -648,7 +696,7 @@
         },
         {
           "name": "skill-localUpdate",
-          "description": "Refresh every local artifact the site renders about your portfolio skills â€” the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF â€” in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Renamed from `/skill-pdf` since the PDF is one of three site surfaces this chain updates, not the headline.",
+          "description": "Refresh every local artifact the site renders about your portfolio skills — the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF — in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Renamed from `/skill-pdf` since the PDF is one of three site surfaces this chain updates, not the headline.",
           "redirect": false,
           "receipt": {
             "path": ".claude/skills/skill-localUpdate/SKILL.md",
@@ -660,7 +708,7 @@
         },
         {
           "name": "skill-registry",
-          "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document â€” per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
+          "description": "Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -708,10 +756,10 @@
     }
   ],
   "totals": {
-    "skills": 35,
+    "skills": 33,
     "redirects": 1,
-    "with_receipts": 34,
-    "annual_tokens_saved": 28159106
+    "with_receipts": 32,
+    "annual_tokens_saved": 28379141
   },
   "built_in_references": [
     {
