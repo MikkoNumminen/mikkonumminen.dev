@@ -216,9 +216,9 @@ function renderHero(agg, calibratedCount, transcriptMeasuredCount, totalSkillsWi
 // portfolio. The built-in costs are measurement-backed (same accounting
 // convention as the per-repo measured rows). Save / use can also be
 // measured by treating the built-in's prompt as an "arm B" recipe in the
-// same A/B methodology used on custom skills — see
-// docs/audits/builtin-review-calibration-2026-05-22.md. Excluded from the
-// savings hero because they're not a savings claim, they're a scale anchor.
+// same A/B methodology used on custom skills (see whichever calibration
+// audit the data points at). Excluded from the savings hero because the
+// built-ins are not part of the custom portfolio.
 function renderBuiltInsSection(refs) {
   if (!refs || refs.length === 0) return '';
   // Same 6-column shape as the per-repo tables so the row scans the same
@@ -244,8 +244,27 @@ function renderBuiltInsSection(refs) {
   const anyCalibrated = refs.some(
     (br) => typeof br.tokens_saved_per_use === 'number',
   );
+  // Audit-doc paths are sourced from the calibration JSON (per-entry
+  // `audit_doc_path` field) so a future calibration that ships a different
+  // audit file doesn't need a renderer edit. De-duplicated because two
+  // built-ins calibrated in the same run share one audit document.
+  const auditPaths = anyCalibrated
+    ? [
+        ...new Set(
+          refs
+            .map((br) => br.audit_doc_path)
+            .filter((p) => typeof p === 'string' && p.length > 0),
+        ),
+      ]
+    : [];
+  const auditFragment =
+    auditPaths.length > 0
+      ? ` Methodology and raw arm-A / arm-B numbers: ${auditPaths
+          .map((p) => `<code>${esc(p)}</code>`)
+          .join(', ')}.`
+      : '';
   const noteText = anyCalibrated
-    ? `Built-in slash commands. Per-use cost is measured the same way as the custom-skill rows. Save / use can be measured by treating the built-in's prompt as an arm-B recipe in the same A/B methodology — see <code>docs/audits/builtin-review-calibration-2026-05-22.md</code> for the <code>/review</code> calibration. Shown as a scale anchor for the reader.`
+    ? `Built-in slash commands. Per-use cost is measured from real session transcripts the same way as the custom-skill rows. Per-use save is measured by treating the built-in's prompt as an arm-B recipe in the same A/B methodology used on custom skills — both columns are real measurements, not heuristics.${auditFragment}`
     : `Built-in slash commands. Per-use cost is measured the same way as the custom-skill rows. No <code>SKILL.md</code> exists for these, so there's no procedure to A/B-test against — the save columns read "—" rather than zero. Shown as a scale anchor for the reader.`;
   return `<div class="repo-heading"><span class="repo-name">Claude Code built-ins</span><span class="repo-stats">reference — not part of the portfolio</span></div>
   <p class="note">${noteText}</p>

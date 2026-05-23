@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-22T22:42:06.041Z",
+  "generated_at": "2026-05-23T00:23:15.205Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -695,7 +695,8 @@
       "calibration_arm_A": 72170,
       "calibration_arm_B": 26432,
       "calibration_pct_saved": 63,
-      "calibration_generated_at": "2026-05-22T00:00:00Z"
+      "calibration_generated_at": "2026-05-22T00:00:00Z",
+      "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md"
     }
   ]
 }
