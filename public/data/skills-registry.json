@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-23T04:11:15.224Z",
+  "generated_at": "2026-05-23T04:30:13.618Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -791,11 +791,24 @@
           "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's --print-to-pdf flag. Zero npm install â€” no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown â†’ HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/skills/md-to-pdf/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 25000,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 20579,
             "uses_per_year": 10,
-            "annual_total": 250000
+            "annual_total": 205790,
+            "tokens_saved_per_use": 14549,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 35128,
+            "calibration_arm_B": 20579,
+            "calibration_notes": "arm A explored multiple rendering approaches (puppeteer, weasyprint, etc.); arm B followed SKILL.md straight to system Chrome's --print-to-pdf. Tool-selection focus wins big.",
+            "prior_estimate": {
+              "tokens_per_use": 25000,
+              "uses_per_year": 10,
+              "annual_total": 250000,
+              "source": "skill-body",
+              "path": ".claude/skills/md-to-pdf/SKILL.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -803,11 +816,24 @@
           "description": "Refresh every local artifact the site renders about your portfolio skills â€” the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF â€” in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Renamed from `/skill-pdf` since the PDF is one of three site surfaces this chain updates, not the headline.",
           "redirect": false,
           "receipt": {
-            "path": ".claude/skills/skill-localUpdate/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 82500,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 21120,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": 22669,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 43789,
+            "calibration_arm_B": 21120,
+            "calibration_notes": "biggest save. Arm A scouted scripts/ to figure out the pipeline; arm B read the SKILL.md six-phase recipe directly. Pipeline-discovery is exactly what the recipe collapses.",
+            "prior_estimate": {
+              "tokens_per_use": 82500,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "skill-body",
+              "path": ".claude/skills/skill-localUpdate/SKILL.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -830,7 +856,12 @@
               "annual_total": 1560000,
               "source": "skill-body",
               "path": ".claude/skills/skill-registry/SKILL.md"
-            }
+            },
+            "tokens_saved_per_use": -6101,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 16250,
+            "calibration_arm_B": 22351,
+            "calibration_notes": "arm A wrote a sparse scan plan in 2 tool uses; arm B's full procedure includes schema extraction, library directory handling, and more rigor. Cost-more reflects spec depth, not waste."
           }
         },
         {
@@ -853,7 +884,12 @@
               "annual_total": 4230000,
               "source": "agent-verdicts/README-SYNC-AGENT.md",
               "path": ".claude/agent-verdicts/README-SYNC-AGENT.md"
-            }
+            },
+            "tokens_saved_per_use": -3645,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 32885,
+            "calibration_arm_B": 36530,
+            "calibration_notes": "arm A used 48 tool uses on a deep scout of the repo to detect drifts; arm B followed the structured drift-axes procedure with fewer reads but more procedure overhead. Near-tie; both produced defensible drift reports."
           }
         }
       ]
@@ -863,7 +899,7 @@
     "skills": 35,
     "redirects": 1,
     "with_receipts": 34,
-    "annual_tokens_saved": 30884444
+    "annual_tokens_saved": 30840234
   },
   "built_in_references": [
     {

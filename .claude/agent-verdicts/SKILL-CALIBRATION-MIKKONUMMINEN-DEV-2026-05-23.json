@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-05-23T00:00:00Z",
+  "target_repo": "mikkonumminen.dev",
+  "base_commit": "ba121d3161384b6d80e11a51c941eaa4714eb7b3",
+  "methodology": "A/B test of every non-redirect skill native to mikkonumminen.dev. Arm A: Sonnet sub-agent solves the task cold, no SKILL.md access, explicit instruction not to read .claude/skills/ or CLAUDE.md. Arm B: Sonnet sub-agent reads d:/koodaamista/mikkonumminen.dev/.claude/skills/<name>/SKILL.md and follows it. Both arms produced a planning artifact (skills here are meta — execute would have side effects on registry/PDF/READMEs). Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. N=1 per skill.",
+  "task_briefs": {
+    "md-to-pdf": "Plan rendering docs/audits/builtin-review-calibration-2026-05-22.md to PDF on Windows. Tools, HTML/CSS, page setup, output size. Plan only.",
+    "skill-localUpdate": "Plan a local refresh pass of skills-registry.json + skills-registry.pdf for d:/koodaamista/mikkonumminen.dev. Plan only.",
+    "skill-registry": "Plan a scan of all repos in d:/koodaamista/*/ for SKILL.md files + registry JSON build. Plan only.",
+    "sync-readmes": "Plan a README sync pass for d:/koodaamista/mikkonumminen.dev/README.md. Detect drifts + propose rewrites. Plan only."
+  },
+  "skills": [
+    {"name": "md-to-pdf",         "arm_A_tokens": 35128, "arm_B_tokens": 20579, "saved":  14549, "pct_saved":  41, "notes": "arm A explored multiple rendering approaches (puppeteer, weasyprint, etc.); arm B followed SKILL.md straight to system Chrome's --print-to-pdf. Tool-selection focus wins big."},
+    {"name": "skill-localUpdate", "arm_A_tokens": 43789, "arm_B_tokens": 21120, "saved":  22669, "pct_saved":  52, "notes": "biggest save. Arm A scouted scripts/ to figure out the pipeline; arm B read the SKILL.md six-phase recipe directly. Pipeline-discovery is exactly what the recipe collapses."},
+    {"name": "skill-registry",    "arm_A_tokens": 16250, "arm_B_tokens": 22351, "saved":  -6101, "pct_saved": -38, "notes": "arm A wrote a sparse scan plan in 2 tool uses; arm B's full procedure includes schema extraction, library directory handling, and more rigor. Cost-more reflects spec depth, not waste."},
+    {"name": "sync-readmes",      "arm_A_tokens": 32885, "arm_B_tokens": 36530, "saved":  -3645, "pct_saved": -11, "notes": "arm A used 48 tool uses on a deep scout of the repo to detect drifts; arm B followed the structured drift-axes procedure with fewer reads but more procedure overhead. Near-tie; both produced defensible drift reports."}
+  ],
+  "aggregate": {
+    "arm_A_total": 128052,
+    "arm_B_total": 100580,
+    "saved_total":  27472,
+    "pct_saved": 21,
+    "skills_measured": 4,
+    "skills_saving": 2,
+    "skills_costing": 2
+  },
+  "cross_portfolio_observation": "Aggregate +21% saved lands between AudiobookMaker (+23%) and Spacepotatis (+22%), and well above claude-skills (-10%). The mixed shape (2 save big, 2 cost slightly more) reflects that mikkonumminen.dev's 4 skills span both pattern families: skill-localUpdate and md-to-pdf are pipeline-orchestration skills (recipe collapses tool-selection), skill-registry and sync-readmes are meta skills (recipe encodes thoroughness). Same skill-shape rule observed across all four portfolios: scaffolding / tool-selection saves big, meta / library / procedure-rigor skills break even or cost more."
+}
