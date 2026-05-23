@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-23T03:13:59.751Z",
+  "generated_at": "2026-05-23T04:11:15.224Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -550,7 +550,11 @@
               "annual_total": 6800000,
               "source": "skill-body",
               "path": "skills/audit/SKILL.md"
-            }
+            },
+            "tokens_saved_per_use": 2724,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 117161,
+            "calibration_arm_B": 114437
           }
         },
         {
@@ -558,11 +562,17 @@
           "description": "Run every `mikko-*` audit skill that's relevant to the current codebase, in a sensible order, and produce one index document linking to each audit's report. Detects the codebase shape (language, framework, security surface), maps to the suggested audit list (same logic as `/mikko-help --detect`), confirms once with the human, then runs each audit sequentially. Use whenever the user says \"run all audits\", \"full audit\", \"audit everything\", \"what's wrong with this codebase\", or before a major release. Expensive â€” total tokens are the sum of every dispatched audit (typically ~100-500K). The orchestrator itself is cheap; the dispatched audits are what cost.",
           "redirect": false,
           "receipt": {
-            "path": "skills/mikko-audit-suite/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": null,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 24350,
             "uses_per_year": 18,
-            "annual_total": null
+            "annual_total": 438300,
+            "tokens_saved_per_use": -4282,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 20068,
+            "calibration_arm_B": 24350,
+            "calibration_notes": "skill encodes detection-then-plan rigor — arm A's freestyle was tighter on this specific task; recipe overhead exceeded the focus benefit at this scale.",
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -585,7 +595,12 @@
               "annual_total": 350000,
               "source": "skill-body",
               "path": "skills/mikko-help/SKILL.md"
-            }
+            },
+            "tokens_saved_per_use": -5329,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 24092,
+            "calibration_arm_B": 29421,
+            "calibration_notes": "skill encodes a source-repo cross-check on top of the install scan — extra work for completeness, costs more than just listing installed skills."
           }
         },
         {
@@ -608,7 +623,12 @@
               "annual_total": null,
               "source": "skill-body",
               "path": "skills/mikko-install/SKILL.md"
-            }
+            },
+            "tokens_saved_per_use": -5894,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 16930,
+            "calibration_arm_B": 22824,
+            "calibration_notes": "skill encodes the full install protocol (modes, prefixing, source-repo validation) — costs more than a plain cp pass; value is in correctness, not token compression."
           }
         },
         {
@@ -616,11 +636,24 @@
           "description": "Read-only audit for six concrete React anti-patterns that recur in component code (key=index in lists, useEffect for derived state, dep-array lies, state mutation instead of replace, missing effect cleanup, multiple sources of truth). Each check has a concrete smell example and a concrete legitimate counter-example so the auditor can tell signal from noise. **Runs a pre-flight check first** â€” if the target codebase isn't a React project, the skill aborts cleanly with a suggestion to use a different skill. Use whenever the user says \"audit my React code\", \"review this for React anti-patterns\", \"check my hooks\", \"find re-render issues\", or before merging a substantial component PR. NOT a witch hunt for \"non-idiomatic React\" â€” every finding must be a specific testable pattern with a concrete example.",
           "redirect": false,
           "receipt": {
-            "path": "skills/react-anti-patterns-audit/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 22500,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 21900,
             "uses_per_year": 30,
-            "annual_total": 675000
+            "annual_total": 657000,
+            "tokens_saved_per_use": -5378,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 16522,
+            "calibration_arm_B": 21900,
+            "calibration_notes": "target had no React; both arms correctly returned no findings. Arm B's structured pre-flight + abort cost more than arm A's quick check. N=1 on a negative-result target; positive-result repos would likely differ.",
+            "prior_estimate": {
+              "tokens_per_use": 22500,
+              "uses_per_year": 30,
+              "annual_total": 675000,
+              "source": "skill-body",
+              "path": "skills/react-anti-patterns-audit/SKILL.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -628,11 +661,24 @@
           "description": "Detect drift between what the repo actually contains and what `README.md` claims, then rewrite ONLY the drifted sections in the README's existing voice. Five drift axes (file structure, dependencies, skills, features, status). Voice-preserving â€” the skill extracts a voice profile from the existing README first and any rewrite must read as if the original author wrote it. **Write-with-approval**: emits a working-tree edit to `README.md` plus a drift report and a voice-profile cache, then STOPS. Does NOT commit, does NOT push, does NOT regenerate the README from scratch. Use whenever the user says \"sync the README\", \"update the README\", \"check README drift\", \"has the README fallen out of date\", or after a release-cut before the next push. NOT for initial README creation, full rewrites, CONTRIBUTING/CHANGELOG edits, or general code edits where the README isn't in scope.",
           "redirect": false,
           "receipt": {
-            "path": "skills/readme-drift-sync/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 40000,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 62609,
             "uses_per_year": 15,
-            "annual_total": 600000
+            "annual_total": 939135,
+            "tokens_saved_per_use": -33026,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 29583,
+            "calibration_arm_B": 62609,
+            "calibration_notes": "biggest cost-more in this calibration. Skill encodes a thorough multi-axis drift detection + rewrite-in-voice procedure. Arm A scouted faster and produced 8 findings with file:line; arm B used 63 tool uses against arm A's 37 doing the structured walk. Skill's value is rewrite quality, not detection speed.",
+            "prior_estimate": {
+              "tokens_per_use": 40000,
+              "uses_per_year": 15,
+              "annual_total": 600000,
+              "source": "skill-body",
+              "path": "skills/readme-drift-sync/SKILL.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -673,7 +719,12 @@
               "annual_total": 96000,
               "source": "skill-body",
               "path": "skills/session-cost/SKILL.md"
-            }
+            },
+            "tokens_saved_per_use": 5064,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 35880,
+            "calibration_arm_B": 30816,
+            "calibration_notes": "arm B ran the prescribed scan.mjs directly; arm A wrote a JSONL walker from scratch. Modest save from delegating to the existing tool."
           }
         },
         {
@@ -681,11 +732,24 @@
           "description": "A/B-test a Claude Code skill against an unstructured baseline to measure actual token savings. Runs one Sonnet sub-agent per arm per skill — arm A solves the task cold without reading SKILL.md, arm B reads SKILL.md and follows the procedure exactly. Both arms operate in fresh sandboxed worktrees. Token usage comes from the harness’s per-sub-agent usage.total_tokens. Replaces the editorial saved guesses in skills-registry PDFs with real numbers.",
           "redirect": false,
           "receipt": {
-            "path": "skills/skill-calibration/SKILL.md",
-            "source": "skill-body",
-            "tokens_per_use": 140000,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 27235,
             "uses_per_year": 4,
-            "annual_total": 560000
+            "annual_total": 108940,
+            "tokens_saved_per_use": -11553,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 15682,
+            "calibration_arm_B": 27235,
+            "calibration_notes": "SKILL.md is detailed (modes, flags, worktree management, output schema); arm A wrote a sparse plan that wouldn't have actually worked. Cost-more reflects spec depth, not waste.",
+            "prior_estimate": {
+              "tokens_per_use": 140000,
+              "uses_per_year": 4,
+              "annual_total": 560000,
+              "source": "skill-body",
+              "path": "skills/skill-calibration/SKILL.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -708,7 +772,12 @@
               "annual_total": 48000,
               "source": "skill-body",
               "path": "skills/skill-usage/SKILL.md"
-            }
+            },
+            "tokens_saved_per_use": 26050,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 48949,
+            "calibration_arm_B": 22899,
+            "calibration_notes": "biggest save in this calibration. Recipe says 'run scan.mjs'; arm A wrote a from-scratch JSONL walker including dedup logic. Big save from delegating to the existing tool."
           }
         }
       ]
@@ -794,7 +863,7 @@
     "skills": 35,
     "redirects": 1,
     "with_receipts": 34,
-    "annual_tokens_saved": 30576069
+    "annual_tokens_saved": 30884444
   },
   "built_in_references": [
     {
