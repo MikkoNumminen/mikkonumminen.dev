@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-23T01:33:45.364Z",
+  "generated_at": "2026-05-23T03:13:59.751Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -10,11 +10,23 @@
           "description": "When CI fails on a release tag or PR, walk the failure modes in the right order against a recipe library built from the project's fix(ci) commit history. Use whenever the user says \"CI is red\", \"the build failed\", \"tag failed CI\", \"release-build broke\", or any time gh run list shows a recent failure on master or a release tag.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 1900,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 25327,
             "uses_per_year": 89,
-            "annual_total": 169100
+            "annual_total": 2254103,
+            "tokens_saved_per_use": 19017,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 44344,
+            "calibration_arm_B": 25327,
+            "prior_estimate": {
+              "tokens_per_use": 1900,
+              "uses_per_year": 89,
+              "annual_total": 169100,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -37,7 +49,11 @@
               "annual_total": 0,
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
+            },
+            "tokens_saved_per_use": 32311,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 65462,
+            "calibration_arm_B": 33151
           }
         },
         {
@@ -45,11 +61,23 @@
           "description": "Append a Finnish pronunciation failure (a word the Chatterbox Grandmom voice mispronounces) to the project's pronunciation corpus at docs/pronunciation_corpus_fi.md. Use this whenever the user or a tester (Turo is the canonical one) reports that Grandmom said a Finnish word wrong â€” e.g. \"Grandmom pronounces X as Y\", \"add this to the corpus\", \"log this pronunciation bug\", \"the TTS messed up <word>\". Also use when the user pastes a transcript of what was heard vs. what was written. This corpus is the evidence base for targeted Pass I / lexicon fixes; entries must be structured so patterns across reports are visible at a glance.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 1800,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 17120,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": 2339,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 19459,
+            "calibration_arm_B": 17120,
+            "prior_estimate": {
+              "tokens_per_use": 1800,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -57,11 +85,24 @@
           "description": "Audit the AudiobookMaker PyInstaller release bundle for unused dependencies, dead-code data files, and accidental ML-stack pollution; then propose spec-only fixes on a `chore/release-bundle-size` branch. Use whenever the user says \"the installer is huge\", \"why is the bundle so big\", \"shake out unused deps before release\", \"shrink the .exe\", \"audit the .spec\", or asks why a frozen build ships some specific package. Encodes the empirical finding that ~28% of the v3.11.x bundle was dead-code data files (ffplay.exe, AVIF support, Arabic phonemizer, ONNX training tools) plus a defense-in-depth exclude set that prevents future regressions when a contributor accidentally pip-installs torch on the build machine.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 3800,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 86790,
             "uses_per_year": 4,
-            "annual_total": 15200
+            "annual_total": 347160,
+            "tokens_saved_per_use": -9145,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 77645,
+            "calibration_arm_B": 86790,
+            "calibration_notes": "skill encodes thoroughness (multi-phase audit walk) — arm B explored deeper, used 121 tool uses vs arm A's 56. Costs more per use, value is in audit completeness, not token compression.",
+            "prior_estimate": {
+              "tokens_per_use": 3800,
+              "uses_per_year": 4,
+              "annual_total": 15200,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -84,7 +125,11 @@
               "annual_total": 137700,
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
-            }
+            },
+            "tokens_saved_per_use": 5937,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 35107,
+            "calibration_arm_B": 29170
           }
         },
         {
@@ -92,11 +137,23 @@
           "description": "Build a Finnish voice pack from a source audio file end-to-end â€” chunked analyze with ECAPA diarization, transcript validation per speaker, branching to LoRA training (long sources) or few-shot ref-clip packaging (short sources), and ear-check by synth. Use whenever the user says \"copy the voices\", \"extract voices from this clip\", \"make a voice pack from this audio\", \"I have a short Finnish clip\", or hands you a Finnish podcast / interview / audiobook to mimic. Encodes the empirically-validated Finnish pipeline. CRITICAL â€” Finnish source only (ASR + finetune model are Finnish-specific); for English / other languages this skill does not apply. Never assume single-speaker, never trust pyannote labels without validation, never install copyright-derived packs to ~/.audiobookmaker.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 6200,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 26591,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": 29340,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 55931,
+            "calibration_arm_B": 26591,
+            "prior_estimate": {
+              "tokens_per_use": 6200,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -104,11 +161,24 @@
           "description": "Start, pause, or finish a TODO.md work session as one of the 4 permanent Claude sessions in AudiobookMaker. Use this whenever the user says \"claim task X\", \"take task Y\", \"start working on Z\", \"pick something\", \"I'm done\", \"finish up\", \"pause\", \"I'm blocked\", or \"go idle\". Also use before touching any code on a fresh session to make sure the status board and in-progress list are honest. Parallel Claudes collide without this discipline; the shared TODO.md protocol is the only way four sessions stay coherent.",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 1700,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 23070,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": -2091,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 20979,
+            "calibration_arm_B": 23070,
+            "calibration_notes": "skill encodes status-board protocol rigor (3-part TODO.md edit, isolation discipline) — costs slightly more per use, value is multi-Claude coherence, not token compression.",
+            "prior_estimate": {
+              "tokens_per_use": 1700,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         },
         {
@@ -116,11 +186,24 @@
           "description": "Start a new parallel Claude session safely. Pick a free session slot (Claude 1/2/3/4), create the worktree under .claude/worktrees/<branch>, claim a task in TODO.md, verify isolation actually held after the agent runs. Use whenever the user says \"start a new session\", \"spawn another Claude\", \"open a worktree\", or \"let me run two of you in parallel\".",
           "redirect": false,
           "receipt": {
-            "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md",
-            "source": "readme.md",
-            "tokens_per_use": 1300,
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
+            "source": "calibration",
+            "tokens_per_use": 23126,
             "uses_per_year": null,
-            "annual_total": null
+            "annual_total": null,
+            "tokens_saved_per_use": 126,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 23252,
+            "calibration_arm_B": 23126,
+            "calibration_notes": "N=1 noise — no meaningful save or cost difference on this task. Skill's value is correctness (avoiding worktree collisions), not token compression.",
+            "prior_estimate": {
+              "tokens_per_use": 1300,
+              "uses_per_year": null,
+              "annual_total": null,
+              "source": "readme.md",
+              "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
+            },
+            "last_invoked": "2026-05-23T00:00:00Z"
           }
         }
       ]
@@ -711,7 +794,7 @@
     "skills": 35,
     "redirects": 1,
     "with_receipts": 34,
-    "annual_tokens_saved": 28159106
+    "annual_tokens_saved": 30576069
   },
   "built_in_references": [
     {

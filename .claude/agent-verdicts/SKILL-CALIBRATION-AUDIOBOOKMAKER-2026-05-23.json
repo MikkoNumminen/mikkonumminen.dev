@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-05-23T00:00:00Z",
+  "target_repo": "AudiobookMaker",
+  "base_commit": "22d9947ca5a274214a9adb28258b2826dfeb81ab",
+  "methodology": "A/B test of every non-redirect skill native to AudiobookMaker (ai-codegen-smell-audit and audit excluded — they are claude-skills library duplicates routed elsewhere). Arm A: Sonnet sub-agent solves the task cold, no SKILL.md access, explicit instruction not to read .claude/skills/ or CLAUDE.md. Arm B: Sonnet sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Both arms produced a real artifact (markdown plan or proposed change), no side-effect commands executed. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded as cache hits paid upstream. N=1 per skill.",
+  "task_briefs": {
+    "ci-failure-triage": "Triage hypothetical CI failure: pytest collection error importing AudiobookSession from src.audiobook.session. Produce a fix plan.",
+    "copyright-scan": "Scan AudiobookMaker src/ for accidental third-party copyright leaks. Pass/fail verdict + file:line findings.",
+    "pronunciation-corpus-add": "Add Finnish pronunciation failure ('tervetuloa' as 'ter-ve-too-loa') to docs/pronunciation_corpus_fi.md. Output proposed entry only, no actual write.",
+    "release-bundle-audit": "Audit PyInstaller bundle spec for unused deps + dead-code data files. Propose spec-only fixes.",
+    "release-cut": "Walk through cutting release v3.99.0 — produce plan document, no actual tag or push.",
+    "voice-pack-finnish": "Plan Finnish voice pack pipeline for hypothetical 90s clip with 2 speakers (1F, 1M). Plan only, no audio processing.",
+    "work-session": "As Claude 3, pick a free task from TODO.md and produce the proposed TODO.md edit. No actual file modification.",
+    "worktree-launch": "Plan launching a parallel session in worktree .claude/worktrees/chore-test-calibration-stub. Plan only, no worktree creation."
+  },
+  "skills": [
+    {"name": "ci-failure-triage",        "arm_A_tokens": 44344, "arm_B_tokens": 25327, "saved":  19017, "pct_saved":  43},
+    {"name": "copyright-scan",           "arm_A_tokens": 65462, "arm_B_tokens": 33151, "saved":  32311, "pct_saved":  49},
+    {"name": "pronunciation-corpus-add", "arm_A_tokens": 19459, "arm_B_tokens": 17120, "saved":   2339, "pct_saved":  12},
+    {"name": "release-bundle-audit",     "arm_A_tokens": 77645, "arm_B_tokens": 86790, "saved":  -9145, "pct_saved": -12, "notes": "skill encodes thoroughness (multi-phase audit walk) — arm B explored deeper, used 121 tool uses vs arm A's 56. Costs more per use, value is in audit completeness, not token compression."},
+    {"name": "release-cut",              "arm_A_tokens": 35107, "arm_B_tokens": 29170, "saved":   5937, "pct_saved":  17},
+    {"name": "voice-pack-finnish",       "arm_A_tokens": 55931, "arm_B_tokens": 26591, "saved":  29340, "pct_saved":  52},
+    {"name": "work-session",             "arm_A_tokens": 20979, "arm_B_tokens": 23070, "saved":  -2091, "pct_saved": -10, "notes": "skill encodes status-board protocol rigor (3-part TODO.md edit, isolation discipline) — costs slightly more per use, value is multi-Claude coherence, not token compression."},
+    {"name": "worktree-launch",          "arm_A_tokens": 23252, "arm_B_tokens": 23126, "saved":    126, "pct_saved":   1, "notes": "N=1 noise — no meaningful save or cost difference on this task. Skill's value is correctness (avoiding worktree collisions), not token compression."}
+  ],
+  "aggregate": {
+    "arm_A_total": 342179,
+    "arm_B_total": 264345,
+    "saved_total":  77834,
+    "pct_saved": 23,
+    "skills_measured": 8,
+    "skills_saving": 6,
+    "skills_costing": 2
+  },
+  "cross_portfolio_observation": "Aggregate 23% save rate matches Spacepotatis's 22% almost exactly. Two skills cost MORE (release-bundle-audit -12%, work-session -10%) — both encode rigor or protocol discipline rather than scout-savings, same pattern as Spacepotatis's security-audit / equipment. The skills that save the most (copyright-scan 49%, voice-pack-finnish 52%, ci-failure-triage 43%) are the ones where the recipe collapses an open-ended investigation into a directed walk."
+}

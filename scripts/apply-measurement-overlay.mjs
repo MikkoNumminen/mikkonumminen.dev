@@ -19,6 +19,7 @@ const REG = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const USAGE = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-USAGE-LATEST.json');
 const CALIBRATION = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-LATEST.json');
 const CALIBRATION_BUILTINS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-LATEST.json');
+const CALIBRATION_AUDIOBOOKMAKER = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json');
 
 // Sample-sessionId → repo lookup. Sessions live under
 // ~/.claude/projects/<dir>/<sessionId>.jsonl; each <dir> maps to one repo.
@@ -318,10 +319,16 @@ for (const r of reg.repos) {
 // Calibration runs AFTER dedupe so canonical-duplicate consumer rows have
 // already been dropped — calibration writes attach to the library row when
 // applicable, the only one left after dedupe.
-let calibratedRows = 0;
-let calibrationMisses = [];
-if (fs.existsSync(CALIBRATION)) {
-  const calibration = JSON.parse(fs.readFileSync(CALIBRATION, 'utf8'));
+// Factored-out so the same logic can apply against any per-repo calibration
+// file (currently SKILL-CALIBRATION-LATEST.json for Spacepotatis +
+// SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json for AudiobookMaker). All
+// calibration sources share the schema: {generated_at, skills: [{name,
+// arm_A_tokens, arm_B_tokens, saved, pct_saved, notes?}], ...}.
+function applyCalibrationFile(file, receiptPath) {
+  if (!fs.existsSync(file)) return { calibrated: 0, misses: [] };
+  const calibration = JSON.parse(fs.readFileSync(file, 'utf8'));
+  let calibrated = 0;
+  const misses = [];
   for (const entry of calibration.skills ?? []) {
     const matches = [];
     for (const r of reg.repos) {
@@ -330,7 +337,7 @@ if (fs.existsSync(CALIBRATION)) {
       }
     }
     if (matches.length === 0) {
-      calibrationMisses.push(entry.name);
+      misses.push(entry.name);
       continue;
     }
     for (const { r, s } of matches) {
@@ -383,14 +390,13 @@ if (fs.existsSync(CALIBRATION)) {
           ? entry.arm_B_tokens * s.receipt.uses_per_year
           : null;
         s.receipt.source = 'calibration';
-        s.receipt.path =
-          '.claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json';
+        s.receipt.path = receiptPath;
         if (calibration.generated_at) {
           s.receipt.last_invoked = calibration.generated_at;
         }
       }
 
-      calibratedRows += 1;
+      calibrated += 1;
       report.push(
         `CALIBRATE ${r.name}.${s.name}: saved/use = ${entry.saved.toLocaleString()} ` +
           `(arm A ${entry.arm_A_tokens.toLocaleString()} vs B ${entry.arm_B_tokens.toLocaleString()}); ` +
@@ -398,10 +404,21 @@ if (fs.existsSync(CALIBRATION)) {
       );
     }
   }
-  for (const name of calibrationMisses) {
+  for (const name of misses) {
     report.push(`SKIP calibration for ${name} — no matching registry row`);
   }
+  return { calibrated, misses };
 }
+
+const spacepotatisCal = applyCalibrationFile(
+  CALIBRATION,
+  '.claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json',
+);
+const audiobookmakerCal = applyCalibrationFile(
+  CALIBRATION_AUDIOBOOKMAKER,
+  '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json',
+);
+const calibratedRows = spacepotatisCal.calibrated + audiobookmakerCal.calibrated;
 
 // Recompute totals.
 let totalAnnual = 0;
