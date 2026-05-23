@@ -21,6 +21,7 @@ const CALIBRATION = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRAT
 const CALIBRATION_BUILTINS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-LATEST.json');
 const CALIBRATION_AUDIOBOOKMAKER = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json');
 const CALIBRATION_CLAUDESKILLS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json');
+const CALIBRATION_MN_DEV = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json');
 
 // Sample-sessionId → repo lookup. Sessions live under
 // ~/.claude/projects/<dir>/<sessionId>.jsonl; each <dir> maps to one repo.
@@ -423,10 +424,15 @@ const claudeskillsCal = applyCalibrationFile(
   CALIBRATION_CLAUDESKILLS,
   '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json',
 );
+const mnDevCal = applyCalibrationFile(
+  CALIBRATION_MN_DEV,
+  '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json',
+);
 const calibratedRows =
   spacepotatisCal.calibrated +
   audiobookmakerCal.calibrated +
-  claudeskillsCal.calibrated;
+  claudeskillsCal.calibrated +
+  mnDevCal.calibrated;
 
 // Recompute totals.
 let totalAnnual = 0;
