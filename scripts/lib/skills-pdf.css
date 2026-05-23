@@ -253,6 +253,17 @@ p {
   background: var(--bar-ref);
 }
 
+/* Per-portfolio save-rate bars: green for positive (skill saves tokens),
+   red for negative (skill costs more — encodes rigor, not compression).
+   Same red as the negative-save num-cell treatment on the per-repo tables. */
+.hero-row .bar.pos {
+  background: var(--bar-cust);
+}
+
+.hero-row .bar.neg {
+  background: var(--calib-off);
+}
+
 .hero-caption {
   margin: 12pt 0 0;
   color: var(--ink-soft);

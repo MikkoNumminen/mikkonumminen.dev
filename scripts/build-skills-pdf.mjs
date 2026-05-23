@@ -158,48 +158,60 @@ function isMeasured(receipt) {
   );
 }
 
-function isTranscriptMeasured(receipt) {
-  return receipt?.source === 'transcript-measurement';
-}
-
 // ---------------------------------------------------------------------------
 //  Hero block (page 1)
 // ---------------------------------------------------------------------------
 
-function renderHero(agg, calibratedCount, transcriptMeasuredCount, totalSkillsWithReceipts) {
-  // Per-use only. Annual / year projections are deliberately absent — this
-  // document is a register of skills with measured data, not a usage
-  // forecast. The hero counts skills by what's been measured per use:
+function renderHero(perRepo, totalSkillsWithReceipts, totalCalibrated) {
+  // Per-portfolio A/B-measured save rates. The hero used to track
+  // measurement coverage (cost-measured / save-measured / estimate-only),
+  // but with all 34 portfolio rows now calibrated the coverage bars all hit
+  // 34/34 — uninteresting. The interesting story now is the data itself:
+  // which portfolios save tokens via their skills, and which spend more
+  // because their skills encode rigor rather than scout-savings.
   //
-  //   - costMeasured = skills with cost-per-use from a real run
-  //                    (transcript-measurement OR calibration arm-B).
-  //   - saveMeasured = skills with a real A/B save-per-use (calibration).
-  //   - estOnly      = skills with neither — only editorial guesses.
-  //
-  // The bars share an integer scale so the eye sees "X of N" directly.
-  const costMeasured = transcriptMeasuredCount + calibratedCount;
-  const saveMeasured = calibratedCount;
-  const estOnly = totalSkillsWithReceipts - costMeasured;
-  const cap = totalSkillsWithReceipts || 1;
-  const pct = (n) => Math.round((n / cap) * 100);
+  // Each bar shows one portfolio's aggregate save rate, computed by summing
+  // calibration_arm_A and calibration_arm_B across that portfolio's
+  // calibrated rows. Bars use absolute pct for width (so a +52% and a -52%
+  // both consume half the page) with class .pos / .neg coloring direction.
+  // Only repos with calibration data render a bar.
+  const reposWithCalib = perRepo.filter((r) => r.calibArmATotal > 0);
+  if (reposWithCalib.length === 0) {
+    return '';
+  }
+  reposWithCalib.sort((a, b) => b.calibPctSaved - a.calibPctSaved);
+  const maxAbsPct = Math.max(
+    ...reposWithCalib.map((r) => Math.abs(r.calibPctSaved)),
+    1,
+  );
+  const bars = reposWithCalib
+    .map((r) => {
+      const sign = r.calibPctSaved >= 0 ? '+' : '−';
+      const klass = r.calibPctSaved >= 0 ? 'pos' : 'neg';
+      const pct = Math.abs(r.calibPctSaved);
+      const barWidth = Math.max(Math.round((pct / maxAbsPct) * 100), 1);
+      const savedFmt =
+        r.calibSavedTotal >= 0
+          ? `+${fmt(r.calibSavedTotal)}`
+          : `−${fmt(Math.abs(r.calibSavedTotal))}`;
+      return `<div class="hero-row">
+    <span class="number">${sign}${pct}% <span class="pct">${savedFmt} tokens across ${r.calibratedCount} skill${r.calibratedCount === 1 ? '' : 's'}</span></span>
+    <span class="label">${esc(r.name)} <span class="sublabel">(arm A ${fmt(r.calibArmATotal)} → arm B ${fmt(r.calibArmBTotal)})</span></span>
+    <span class="bar ${klass}" style="width: ${barWidth}%"></span>
+  </div>`;
+    })
+    .join('\n  ');
+  const aggArmA = reposWithCalib.reduce((n, r) => n + r.calibArmATotal, 0);
+  const aggArmB = reposWithCalib.reduce((n, r) => n + r.calibArmBTotal, 0);
+  const aggSaved = aggArmA - aggArmB;
+  const aggPct = aggArmA > 0 ? Math.round((aggSaved / aggArmA) * 100) : 0;
+  const aggSignedPct = aggPct >= 0 ? `+${aggPct}` : `−${Math.abs(aggPct)}`;
+  const aggSignedSaved =
+    aggSaved >= 0 ? `+${fmt(aggSaved)}` : `−${fmt(Math.abs(aggSaved))}`;
   return `<section class="hero avoid-break">
-  <h2>Skills with measured per-use data</h2>
-  <div class="hero-row">
-    <span class="number">${costMeasured} <span class="pct">of ${totalSkillsWithReceipts} skills with cost data</span></span>
-    <span class="label">Measured cost / use <span class="sublabel">(real run — transcripts or A/B arm-B)</span></span>
-    <span class="bar cust" style="width: ${Math.max(pct(costMeasured), 1)}%"></span>
-  </div>
-  <div class="hero-row">
-    <span class="number">${saveMeasured} <span class="pct">of ${totalSkillsWithReceipts} skills with save data</span></span>
-    <span class="label">Measured save / use <span class="sublabel">(real A/B test — arm A minus arm B)</span></span>
-    <span class="bar cust" style="width: ${Math.max(pct(saveMeasured), 1)}%"></span>
-  </div>
-  <div class="hero-row">
-    <span class="number">${estOnly} <span class="pct">of ${totalSkillsWithReceipts} estimate-only</span></span>
-    <span class="label">No measured data <span class="sublabel">(author guesses, still candidates for the next /mikko-skill-calibration run)</span></span>
-    <span class="bar ref" style="width: ${Math.max(pct(estOnly), 1)}%"></span>
-  </div>
-  <p class="hero-caption">A register of every custom skill across the portfolio, with the per-use cost and per-use savings each skill has — measured where I have receipts, labeled as estimate where I do not. No annual projections in this document; every number is per single invocation of the skill.</p>
+  <h2>A/B-measured save rates by portfolio</h2>
+  ${bars}
+  <p class="hero-caption"><strong>Aggregate: ${aggSignedPct}% (${aggSignedSaved} tokens across ${totalCalibrated} skills).</strong> Save rate = (arm A − arm B) / arm A, summed per portfolio. Negative means the skill costs MORE per use than going cold — those skills encode rigor (audit thoroughness, protocol discipline, spec depth), not scout-savings. The 3× heuristic baseline assumed everything would save ~67%; measurement says the truth varies from +52% to −112% depending on what the skill encodes.</p>
 </section>`;
 }
 
@@ -542,6 +554,13 @@ function buildAggregates(data) {
     let annualSaved = 0;
     let annualSavedMeasured = 0;
     let annualSavedCalibrated = 0;
+    // Per-portfolio A/B aggregate — sum arm-A and arm-B token counts across
+    // every calibrated row in this repo. The hero uses these to render
+    // per-portfolio save-rate bars (saved = sum_armA - sum_armB; pct = saved
+    // / sum_armA). Independent of annual projections because A/B tokens are
+    // per-use measurements.
+    let calibArmATotal = 0;
+    let calibArmBTotal = 0;
     for (const s of r.skills) {
       const rec = s.receipt;
       if (!rec) continue;
@@ -551,6 +570,12 @@ function buildAggregates(data) {
         calibratedCount += 1;
         annualSavedCalibrated += saved;
         portfolioSavedCalibrated += saved;
+        if (typeof rec.calibration_arm_A === 'number') {
+          calibArmATotal += rec.calibration_arm_A;
+        }
+        if (typeof rec.calibration_arm_B === 'number') {
+          calibArmBTotal += rec.calibration_arm_B;
+        }
       } else if (saved !== 0) {
         portfolioSavedModeled += saved;
       }
@@ -582,6 +607,11 @@ function buildAggregates(data) {
       }
       portfolioSavedTotal += saved;
     }
+    const calibSavedTotal = calibArmATotal - calibArmBTotal;
+    const calibPctSaved =
+      calibArmATotal > 0
+        ? Math.round((calibSavedTotal / calibArmATotal) * 100)
+        : 0;
     perRepo.push({
       name: r.name,
       totalSkills: r.skills.length,
@@ -592,6 +622,10 @@ function buildAggregates(data) {
       annualSavedCalibrated,
       annualSavedMeasuredShare:
         annualSaved > 0 ? annualSavedMeasured / annualSaved : 0,
+      calibArmATotal,
+      calibArmBTotal,
+      calibSavedTotal,
+      calibPctSaved,
     });
   }
 
@@ -626,23 +660,11 @@ function buildHtml(data, css) {
     (n, r) => n + (r.calibratedCount || 0),
     0,
   );
-  // Transcript-measured = isMeasured BUT not calibration-source. Used to
-  // split the hero's "cost measured" count between sources.
-  const transcriptMeasuredCount = data.repos.reduce(
-    (n, r) =>
-      n + r.skills.filter((s) => isTranscriptMeasured(s.receipt)).length,
-    0,
-  );
   const totalSkillsWithReceipts = data.repos.reduce(
     (n, r) => n + r.skills.filter((s) => s.receipt).length,
     0,
   );
-  const hero = renderHero(
-    agg,
-    calibratedCount,
-    transcriptMeasuredCount,
-    totalSkillsWithReceipts,
-  );
+  const hero = renderHero(agg.perRepo, totalSkillsWithReceipts, calibratedCount);
   const summary = renderSummaryTable(agg.perRepo);
   const calibrationPage = renderCalibrationPage(agg.calibrationRows);
   const methodPage = renderMethodPage();
