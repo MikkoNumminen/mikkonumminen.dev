@@ -238,7 +238,15 @@ function renderBuiltInsSection(refs) {
         typeof br.tokens_saved_per_use === 'number'
           ? `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`
           : dash;
-      return `<tr class="measured">${skill}${status}${measuredCost}${measuredSave}${dash}${dash}</tr>`;
+      // estimated-cost has no source for built-ins (no SKILL.md author).
+      // estimated-save uses the project-wide 3× baseline heuristic so the row
+      // shows the heuristic prediction the document is calibrating against —
+      // e.g. /review's measured 46K vs heuristic 2.1M (46× overestimate).
+      const estSave =
+        typeof br.tokens_per_use_avg === 'number'
+          ? `<td class="num-cell num-cell-est-save"><span class="num-cell-big">${fmt(Math.round(br.tokens_per_use_avg * 2))}</span><span class="num-cell-unit">tokens / use (3× heuristic)</span></td>`
+          : dash;
+      return `<tr class="measured">${skill}${status}${measuredCost}${measuredSave}${dash}${estSave}</tr>`;
     })
     .join('\n');
   const anyCalibrated = refs.some(
@@ -264,7 +272,7 @@ function renderBuiltInsSection(refs) {
           .join(', ')}.`
       : '';
   const noteText = anyCalibrated
-    ? `Built-in slash commands. Per-use cost is measured from real session transcripts the same way as the custom-skill rows. Per-use save is measured by treating the built-in's prompt as an arm-B recipe in the same A/B methodology used on custom skills — both columns are real measurements, not heuristics.${auditFragment}`
+    ? `Built-in slash commands. Per-use cost is measured from real session transcripts the same way as the custom-skill rows. Per-use save is measured by treating the built-in's prompt as an arm-B recipe in the same A/B methodology used on custom skills — both measured columns are real numbers, not heuristics. The estimated-cost cell stays "—" because built-ins have no SKILL.md author who wrote a guess; the estimated-save cell shows the project-wide 3× baseline heuristic prediction (2× measured cost) so the row carries the same heuristic-vs-measured contrast the custom-skill rows show.${auditFragment}`
     : `Built-in slash commands. Per-use cost is measured the same way as the custom-skill rows. No <code>SKILL.md</code> exists for these, so there's no procedure to A/B-test against — the save columns read "—" rather than zero. Shown as a scale anchor for the reader.`;
   return `<div class="repo-heading"><span class="repo-name">Claude Code built-ins</span><span class="repo-stats">reference — not part of the portfolio</span></div>
   <p class="note">${noteText}</p>
