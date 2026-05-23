@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-22T22:18:50.772Z",
+  "generated_at": "2026-05-23T00:23:15.205Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -567,14 +567,7 @@
             "calibration_arm_A": 107885,
             "calibration_arm_B": 112211,
             "calibration_notes": "skill encodes rigor (full attack-surface walk) — costs more per use, value is in completeness",
-            "last_invoked": "2026-05-22T00:00:00Z",
-            "prior_estimate": {
-              "tokens_per_use": 112211,
-              "uses_per_year": null,
-              "annual_total": null,
-              "source": "calibration",
-              "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json"
-            }
+            "last_invoked": "2026-05-22T00:00:00Z"
           }
         },
         {
