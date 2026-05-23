@@ -193,22 +193,39 @@ for (const m of usage.skills) {
   // the first repo's row is overlaid — detect and warn.
 
   // Snapshot the prior estimate so the PDF can show observed vs. estimated.
-  // On first overlay, the existing receipt is an author estimate -> snapshot it.
-  // On re-runs against an already-overlaid registry, preserve the snapshot
-  // that was already captured (don't let the measured receipt become its
-  // own "estimate").
+  //
+  // Three cases:
+  //   - First overlay on an editorial receipt — capture the editorial
+  //     values as priorEstimate so the calibration page can show "how
+  //     wrong my guess was."
+  //   - Re-run on a row that's already source=transcript-measurement —
+  //     preserve the priorEstimate that the first run captured. Don't
+  //     let the measured receipt become its own "estimate."
+  //   - Re-run on a row whose current source is `calibration` (because
+  //     the calibration overlay step ran earlier in this same script) —
+  //     preserve the priorEstimate that the calibration step captured.
+  //     Capturing the calibration receipt as its own prior would produce
+  //     a self-referential prior_estimate (e.g. security-audit's
+  //     tokens_per_use === arm_B showing up as both observed and
+  //     estimated), which is meaningless and was the regression flagged
+  //     in PR #153 review.
   const existing = s.receipt;
   let priorEstimate = null;
-  if (existing && existing.source !== 'transcript-measurement') {
-    priorEstimate = {
-      tokens_per_use: existing.tokens_per_use,
-      uses_per_year: existing.uses_per_year,
-      annual_total: existing.annual_total,
-      source: existing.source,
-      path: existing.path,
-    };
-  } else if (existing && existing.source === 'transcript-measurement') {
-    priorEstimate = existing.prior_estimate ?? null;
+  if (existing) {
+    if (
+      existing.source === 'transcript-measurement' ||
+      existing.source === 'calibration'
+    ) {
+      priorEstimate = existing.prior_estimate ?? null;
+    } else {
+      priorEstimate = {
+        tokens_per_use: existing.tokens_per_use,
+        uses_per_year: existing.uses_per_year,
+        annual_total: existing.annual_total,
+        source: existing.source,
+        path: existing.path,
+      };
+    }
   }
 
   const rowKey = `${r.name}::${s.name}`;
@@ -340,9 +357,17 @@ if (fs.existsSync(CALIBRATION)) {
         // Preserve the editorial estimate as prior_estimate so the
         // calibration column on the per-repo table can show "how wrong my
         // guess was" — same shape transcript-measured rows already use.
+        //
+        // Skip the capture when the row is ALREADY source='calibration' —
+        // re-running the overlay against an already-calibrated registry
+        // would otherwise snapshot the calibration receipt as its own
+        // prior_estimate (self-referential: tokens_per_use === arm_B
+        // appearing as both observed and "estimated"). PR #153 review
+        // surfaced this on security-audit's row.
         if (
           !s.receipt.prior_estimate &&
-          typeof s.receipt.tokens_per_use === 'number'
+          typeof s.receipt.tokens_per_use === 'number' &&
+          s.receipt.source !== 'calibration'
         ) {
           s.receipt.prior_estimate = {
             tokens_per_use: s.receipt.tokens_per_use,
