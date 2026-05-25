@@ -1,0 +1,30 @@
+{
+  "generated_at": null,
+  "model": "haiku",
+  "target_repo": "claude-skills",
+  "base_commit": null,
+  "methodology": "PLACEHOLDER. Awaiting Haiku calibration run. When populated, methodology will mirror the Sonnet/Opus runs: arm A = Haiku sub-agent solves the task cold, no SKILL.md access; arm B = Haiku sub-agent reads d:/koodaamista/claude-skills/skills/<name>/SKILL.md and follows it. Both arms produce a real artifact. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "task_briefs": {
+    "audit": "Multi-phase robustness audit of mikkonumminen.dev/src/. Produce findings with severity tags.",
+    "mikko-audit-suite": "Plan which mikko-* audits to run on mikkonumminen.dev and in what order. Index document only.",
+    "mikko-help": "List installed mikko-* skills at ~/.claude/skills/ with descriptions. Markdown summary.",
+    "mikko-install": "Plan installing all mikko-* skills from claude-skills/skills/ to ~/.claude/skills/. Plan only, no actual copies.",
+    "react-anti-patterns-audit": "Audit mikkonumminen.dev/src/ for React anti-patterns (key=index, useEffect derived state, etc.).",
+    "readme-drift-sync": "Detect drift between mikkonumminen.dev/README.md and the repo's actual state. Report only, no rewrites.",
+    "session-cost": "Compute the token cost of session 47fcb7d8-762b-45af-ae2a-b9e4af3c295b. Main thread + sub-agents breakdown.",
+    "skill-calibration": "Plan an A/B calibration for a hypothetical /example-skill in AudiobookMaker. Plan only, no actual dispatch.",
+    "skill-usage": "Scan local Claude Code JSONLs and produce a per-skill usage summary for the last 90 days."
+  },
+  "skills": [
+    {"name": "audit",                     "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "mikko-audit-suite",         "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "mikko-help",                "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "mikko-install",             "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "react-anti-patterns-audit", "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "readme-drift-sync",         "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "session-cost",              "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "skill-calibration",         "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "skill-usage",               "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null}
+  ],
+  "aggregate": null
+}

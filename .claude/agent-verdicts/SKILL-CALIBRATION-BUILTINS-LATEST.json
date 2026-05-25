@@ -1,5 +1,6 @@
 {
   "generated_at": "2026-05-22T00:00:00Z",
+  "model": "sonnet",
   "scope": "Claude Code built-in slash commands",
   "target_repo": "MikkoNumminen/mikkonumminen.dev",
   "base_commit": "1b2fa55295f89f28e486e8a1fcb48e58c6a63b64",

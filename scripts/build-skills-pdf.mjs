@@ -481,6 +481,166 @@ function renderRepoSection(repo) {
 }
 
 // ---------------------------------------------------------------------------
+//  Multi-model calibration comparison page
+// ---------------------------------------------------------------------------
+
+// Walk every calibrated row + built-in reference and emit a side-by-side
+// comparison of arm A / arm B / saved / %saved across the three measured
+// models. Each row gets a Sonnet baseline (always present — primary
+// calibration), plus an Opus column when alt_model_measurements.opus exists,
+// plus a Haiku column ditto. Haiku placeholders (entries in the alt-model
+// JSON with null tokens) deliberately don't add anything here — they live
+// in the source JSON to make "Haiku not yet measured" explicit when the
+// reader reads the files directly, but the rendered comparison table only
+// shows rows we have data for.
+//
+// The 3-model picture exists so the reader can answer "would this skill
+// still save tokens if I ran on Opus instead of Sonnet?" — measured, not
+// guessed. Sample size is small (6 skills as of the multi-model PR) so we
+// label the page accordingly.
+const MODEL_ORDER = ['sonnet', 'opus', 'haiku'];
+
+function renderModelComparisonPage(data) {
+  // Collect every row that has at least one alt-model measurement. Skip rows
+  // where the only data we have is the primary Sonnet — those are already
+  // visible in the per-repo tables. The point of this page is the comparison.
+  const rows = [];
+
+  for (const r of data.repos) {
+    for (const s of r.skills) {
+      const alt = s.receipt?.alt_model_measurements;
+      if (!alt) continue;
+      const measured = {};
+      // Sonnet primary — pulled from the receipt's calibration fields.
+      if (
+        s.receipt.tokens_saved_source === 'calibration' &&
+        typeof s.receipt.calibration_arm_A === 'number' &&
+        typeof s.receipt.calibration_arm_B === 'number'
+      ) {
+        measured.sonnet = {
+          arm_A: s.receipt.calibration_arm_A,
+          arm_B: s.receipt.calibration_arm_B,
+          saved: s.receipt.tokens_saved_per_use,
+          pct_saved: s.receipt.calibration_arm_A > 0
+            ? Math.round(
+                (s.receipt.tokens_saved_per_use /
+                  s.receipt.calibration_arm_A) *
+                  100,
+              )
+            : 0,
+        };
+      }
+      for (const [m, v] of Object.entries(alt)) {
+        if (v.arm_A_tokens == null || v.arm_B_tokens == null) continue;
+        measured[m] = {
+          arm_A: v.arm_A_tokens,
+          arm_B: v.arm_B_tokens,
+          saved: v.saved,
+          pct_saved: v.pct_saved,
+        };
+      }
+      if (Object.keys(measured).length < 2) continue;
+      rows.push({ repo: r.name, name: s.name, measured });
+    }
+  }
+
+  for (const br of data.built_in_references ?? []) {
+    if (!br.alt_model_measurements) continue;
+    const measured = {};
+    if (
+      typeof br.calibration_arm_A === 'number' &&
+      typeof br.calibration_arm_B === 'number'
+    ) {
+      measured.sonnet = {
+        arm_A: br.calibration_arm_A,
+        arm_B: br.calibration_arm_B,
+        saved: br.tokens_saved_per_use,
+        pct_saved: br.calibration_pct_saved,
+      };
+    }
+    for (const [m, v] of Object.entries(br.alt_model_measurements)) {
+      if (v.arm_A_tokens == null || v.arm_B_tokens == null) continue;
+      measured[m] = {
+        arm_A: v.arm_A_tokens,
+        arm_B: v.arm_B_tokens,
+        saved: v.saved,
+        pct_saved: v.pct_saved,
+      };
+    }
+    if (Object.keys(measured).length < 2) continue;
+    rows.push({ repo: 'Claude Code built-in', name: br.label ?? br.name, measured });
+  }
+
+  if (rows.length === 0) return '';
+
+  // Order rows by maximum |pct_saved diff| across models — most dramatic
+  // model-sensitivity first. A skill where Sonnet saves 63% and Opus saves
+  // 39% (24-point delta) is more interesting than one where both save 51%.
+  rows.sort((a, b) => {
+    const spread = (row) => {
+      const pcts = Object.values(row.measured).map((v) => v.pct_saved);
+      return Math.max(...pcts) - Math.min(...pcts);
+    };
+    return spread(b) - spread(a);
+  });
+
+  const modelHeaderCells = MODEL_ORDER.map((m) => {
+    const cap = m.charAt(0).toUpperCase() + m.slice(1);
+    return `<th scope="col" class="num model-col model-${m}">${cap}</th>`;
+  }).join('');
+
+  const renderCell = (m, data) => {
+    if (!data) {
+      return `<td class="num model-col model-${m} model-empty">—</td>`;
+    }
+    const negative = data.pct_saved < 0;
+    const cls = ['num', 'model-col', `model-${m}`];
+    if (negative) cls.push('cell-negative');
+    const sign = negative ? '−' : '+';
+    const savePct = `${sign}${Math.abs(data.pct_saved)}%`;
+    const saveAbs = data.saved < 0
+      ? `−${fmt(Math.abs(data.saved))}`
+      : fmt(data.saved);
+    return `<td class="${cls.join(' ')}">
+      <span class="model-cell-pct">${savePct}</span>
+      <span class="model-cell-detail">arm A ${fmt(data.arm_A)} → B ${fmt(data.arm_B)}</span>
+      <span class="model-cell-detail">${saveAbs} saved/use</span>
+    </td>`;
+  };
+
+  const tableRows = rows
+    .map((row) => {
+      const repoTag = `<span class="repo-tag">${esc(row.repo)}</span>`;
+      const cells = MODEL_ORDER.map((m) => renderCell(m, row.measured[m])).join('');
+      return `<tr>
+        <td>${repoTag}<strong>${esc(row.name)}</strong></td>
+        ${cells}
+      </tr>`;
+    })
+    .join('\n');
+
+  // Footnote: list which models are still placeholder so the reader knows
+  // empty Haiku columns mean "not measured yet," not "no data possible."
+  const placeholderModels = ['haiku']
+    .filter((m) => rows.every((row) => !row.measured[m]))
+    .map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+  const placeholderNote =
+    placeholderModels.length > 0
+      ? ` <em>${placeholderModels.join(' / ')} columns are placeholders — the calibration sub-agents have not been dispatched on those models yet.</em>`
+      : '';
+
+  return `<section class="page-break model-comparison">
+  <h2>Multi-model calibration — does the save rate hold across models?</h2>
+  <p class="calib-intro">Same A/B methodology as the per-repo Sonnet calibrations, repeated with sub-agents dispatched as Opus and (later) Haiku. Each skill below was measured at least twice — once per model. The save rate is what changes: Opus is more efficient cold, so the recipe's value compresses; Sonnet rewards scaffolding skills more. Sorted by spread across models — biggest model-sensitivity first.${placeholderNote}</p>
+  <table class="model-grid">
+    <thead><tr><th scope="col">Skill</th>${modelHeaderCells}</tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  <p class="note">Each cell shows the A/B save rate (% of arm A tokens), the raw arm-A → arm-B tokens, and the absolute saved-per-use. Orange = the skill cost MORE on this model than the unstructured baseline. Sample size N=1 per (skill, model) pair — trust direction and magnitude, not two-significant-digit precision. The cross-portfolio observation is that recipe value shrinks as model capability rises: skills that save 50%+ on Sonnet typically settle at 20-40% on Opus because the cold arm gets cheaper, not because the recipe arm gets more expensive.</p>
+</section>`;
+}
+
+// ---------------------------------------------------------------------------
 //  Method page (last)
 // ---------------------------------------------------------------------------
 
@@ -667,6 +827,7 @@ function buildHtml(data, css) {
   const hero = renderHero(agg.perRepo, totalSkillsWithReceipts, calibratedCount);
   const summary = renderSummaryTable(agg.perRepo);
   const calibrationPage = renderCalibrationPage(agg.calibrationRows);
+  const modelComparisonPage = renderModelComparisonPage(data);
   const methodPage = renderMethodPage();
 
   return `<!doctype html>
@@ -693,6 +854,8 @@ ${summary}
 ${renderBuiltInsSection(data.built_in_references ?? [])}
 
 ${calibrationPage}
+
+${modelComparisonPage}
 
 <section class="page-break repo-page">
   <h1>Per-repo skill tables</h1>

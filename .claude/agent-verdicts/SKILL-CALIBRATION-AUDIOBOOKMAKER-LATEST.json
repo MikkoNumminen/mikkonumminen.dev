@@ -1,5 +1,6 @@
 {
   "generated_at": "2026-05-23T00:00:00Z",
+  "model": "sonnet",
   "target_repo": "AudiobookMaker",
   "base_commit": "22d9947ca5a274214a9adb28258b2826dfeb81ab",
   "methodology": "A/B test of every non-redirect skill native to AudiobookMaker (ai-codegen-smell-audit and audit excluded — they are claude-skills library duplicates routed elsewhere). Arm A: Sonnet sub-agent solves the task cold, no SKILL.md access, explicit instruction not to read .claude/skills/ or CLAUDE.md. Arm B: Sonnet sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Both arms produced a real artifact (markdown plan or proposed change), no side-effect commands executed. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded as cache hits paid upstream. N=1 per skill.",

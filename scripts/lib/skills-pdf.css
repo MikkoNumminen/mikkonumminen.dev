@@ -695,6 +695,73 @@ table.calibration .repo-tag {
   margin-bottom: 1pt;
 }
 
+/* ----- multi-model comparison page ---------------------------------- */
+
+table.model-grid {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8pt;
+}
+
+table.model-grid th,
+table.model-grid td {
+  padding: 5pt 6pt;
+  border-bottom: 1pt solid var(--rule-soft);
+  vertical-align: top;
+  font-size: 9.5pt;
+  text-align: left;
+}
+
+table.model-grid th.num,
+table.model-grid td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+table.model-grid th {
+  font-size: 8.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  border-bottom: 1pt solid var(--rule);
+}
+
+table.model-grid td.model-col {
+  font-variant-numeric: tabular-nums;
+}
+
+table.model-grid .model-cell-pct {
+  display: block;
+  font-weight: 700;
+  font-size: 12pt;
+  color: var(--calib-ok);
+}
+
+table.model-grid .model-col.cell-negative .model-cell-pct {
+  color: var(--calib-off);
+}
+
+table.model-grid .model-cell-detail {
+  display: block;
+  font-size: 8pt;
+  color: var(--ink-mute);
+  margin-top: 1pt;
+}
+
+table.model-grid .model-empty {
+  color: var(--ink-mute);
+  font-style: italic;
+}
+
+table.model-grid .repo-tag {
+  font-size: 7.5pt;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 1pt;
+}
+
 /* ----- method page (last page) -------------------------------------- */
 
 .method {

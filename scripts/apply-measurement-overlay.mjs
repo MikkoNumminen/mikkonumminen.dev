@@ -23,6 +23,23 @@ const CALIBRATION_AUDIOBOOKMAKER = path.join(ROOT, '.claude', 'agent-verdicts', 
 const CALIBRATION_CLAUDESKILLS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json');
 const CALIBRATION_MN_DEV = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json');
 
+// Multi-model calibration files (Opus + Haiku). Each mirrors the corresponding
+// Sonnet file's schema with a top-level `model` field. Sonnet remains the
+// primary measurement that drives tokens_per_use and tokens_saved_per_use on
+// the receipt; alt-model measurements attach to s.receipt.alt_model_measurements
+// as a record keyed by model name, so the PDF can render side-by-side.
+// Haiku files are placeholders today (skills array with null tokens) — they
+// exist so the rendering pipeline can show a "pending" column without
+// schema gymnastics.
+const ALT_MODEL_CALIBRATION_FILES = [
+  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json'),               receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json'),             receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json'),       receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json'),         receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json'),    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json'),         receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json' },
+];
+
 // Sample-sessionId → repo lookup. Sessions live under
 // ~/.claude/projects/<dir>/<sessionId>.jsonl; each <dir> maps to one repo.
 // Verified manually for the 2026-05-20 90-day window.
@@ -412,6 +429,57 @@ function applyCalibrationFile(file, receiptPath) {
   return { calibrated, misses };
 }
 
+// Alt-model overlay: attach Opus/Haiku per-skill arm A/B numbers to the same
+// receipt as a side channel (s.receipt.alt_model_measurements[model] = {...}).
+// The primary cost/savings columns continue to come from the Sonnet
+// calibration. Null tokens (placeholder Haiku files) are skipped so the
+// receipt only carries real measurements.
+function applyAltModelCalibration(file, model, receiptPath) {
+  if (!fs.existsSync(file)) return { written: 0, skipped: 0 };
+  const payload = JSON.parse(fs.readFileSync(file, 'utf8'));
+  // builtins live in `builtins:`; per-repo skill files use `skills:`. Both
+  // share the same per-entry shape. The cross-portfolio OPUS-SAMPLE file
+  // uses `skills:` and tags each entry with `kind` + `repo`, so the matcher
+  // below can disambiguate same-named skills across repos.
+  const entries = payload.skills ?? payload.builtins ?? [];
+  let written = 0;
+  let skipped = 0;
+  for (const entry of entries) {
+    if (entry.kind === 'builtin') continue; // handled in the builtins block below
+    if (entry.arm_A_tokens == null || entry.arm_B_tokens == null) {
+      skipped += 1;
+      continue;
+    }
+    const matches = [];
+    for (const r of reg.repos) {
+      // When the entry names its repo, only match within that repo. Same-
+      // named skills (e.g. `audit` in Spacepotatis vs claude-skills) are
+      // not duplicates here — different skills with the same name. The
+      // CANONICAL_DUPLICATES filter has already collapsed the actual
+      // library-vs-consumer dupes by this point.
+      if (entry.repo && r.name !== entry.repo) continue;
+      for (const s of r.skills) {
+        if (s.name === entry.name && s.receipt) matches.push({ r, s });
+      }
+    }
+    if (matches.length === 0) continue;
+    for (const { r, s } of matches) {
+      s.receipt.alt_model_measurements ??= {};
+      s.receipt.alt_model_measurements[model] = {
+        arm_A_tokens: entry.arm_A_tokens,
+        arm_B_tokens: entry.arm_B_tokens,
+        saved: entry.saved,
+        pct_saved: entry.pct_saved,
+        source: receiptPath,
+        notes: entry.notes ?? null,
+      };
+      written += 1;
+      report.push(`ALT-MODEL ${r.name}.${s.name} (${model}): arm A ${entry.arm_A_tokens} / arm B ${entry.arm_B_tokens} (saved ${entry.saved}, ${entry.pct_saved}%)`);
+    }
+  }
+  return { written, skipped };
+}
+
 const spacepotatisCal = applyCalibrationFile(
   CALIBRATION,
   '.claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json',
@@ -433,6 +501,17 @@ const calibratedRows =
   audiobookmakerCal.calibrated +
   claudeskillsCal.calibrated +
   mnDevCal.calibrated;
+
+// Alt-model overlays (Opus + Haiku). Attach side-channel measurements after
+// the primary Sonnet calibration is in place — so the receipt already exists
+// and we just hang an extra `alt_model_measurements` field off it.
+let altModelWritten = 0;
+let altModelSkipped = 0;
+for (const { file, model, receipt } of ALT_MODEL_CALIBRATION_FILES) {
+  const { written, skipped } = applyAltModelCalibration(file, model, receipt);
+  altModelWritten += written;
+  altModelSkipped += skipped;
+}
 
 // Recompute totals.
 let totalAnnual = 0;
@@ -500,11 +579,36 @@ for (const [skillName, meta] of Object.entries(BUILTINS_TO_TRACK)) {
     entry.calibration_arm_B = calib.arm_B_tokens;
     entry.calibration_pct_saved = calib.pct_saved;
     entry.calibration_generated_at = calibBuiltins.generated_at;
+    entry.calibration_model = calibBuiltins.model ?? 'sonnet';
     // Per-entry audit doc path so the renderer can cite the methodology
     // without hardcoding a filename that rots when a re-calibration ships.
     if (typeof calib.audit_doc_path === 'string') {
       entry.audit_doc_path = calib.audit_doc_path;
     }
+  }
+  // Attach alt-model measurements to the built-in entry too. Built-ins live
+  // outside reg.repos so applyAltModelCalibration's matcher misses them —
+  // wire each alt-model file by skim-reading and merging here. Look in both
+  // `builtins:` (per-portfolio files) and `skills:` with kind=='builtin'
+  // (cross-portfolio OPUS-SAMPLE file).
+  for (const { file, model, receipt } of ALT_MODEL_CALIBRATION_FILES) {
+    if (!fs.existsSync(file)) continue;
+    const altPayload = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const candidates = [
+      ...(altPayload.builtins ?? []),
+      ...(altPayload.skills ?? []).filter((s) => s.kind === 'builtin'),
+    ];
+    const altEntry = candidates.find((b) => b.name === skillName);
+    if (!altEntry || altEntry.arm_A_tokens == null || altEntry.arm_B_tokens == null) continue;
+    entry.alt_model_measurements ??= {};
+    entry.alt_model_measurements[model] = {
+      arm_A_tokens: altEntry.arm_A_tokens,
+      arm_B_tokens: altEntry.arm_B_tokens,
+      saved: altEntry.saved,
+      pct_saved: altEntry.pct_saved,
+      source: receipt,
+      notes: altEntry.notes ?? null,
+    };
   }
   builtInReferences.push(entry);
 }
@@ -521,4 +625,5 @@ fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');
 console.log(report.join('\n'));
 const accumulatedSuffix = accumulated > 0 ? ` (+${accumulated} accumulation${accumulated === 1 ? '' : 's'} onto existing rows)` : '';
 const calibSuffix = calibratedRows > 0 ? ` Calibrated ${calibratedRows} row(s).` : '';
-console.log(`\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s).${calibSuffix} New annual total: ${totalAnnual.toLocaleString()}`);
+const altSuffix = altModelWritten > 0 ? ` Alt-model measurements attached to ${altModelWritten} row(s) (skipped ${altModelSkipped} placeholder/null).` : '';
+console.log(`\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s).${calibSuffix}${altSuffix} New annual total: ${totalAnnual.toLocaleString()}`);

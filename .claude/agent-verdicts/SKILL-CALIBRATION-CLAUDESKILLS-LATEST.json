@@ -1,5 +1,6 @@
 {
   "generated_at": "2026-05-23T00:00:00Z",
+  "model": "sonnet",
   "target_repo": "claude-skills",
   "base_commit": "57cfc16e5ed615655fb3e5c4120d0a7077fc43b3",
   "methodology": "A/B test of every claude-skills library skill not already calibrated via the Spacepotatis run (ai-codegen-smell-audit and security-audit excluded — already in SKILL-CALIBRATION-LATEST.json). Arm A: Sonnet sub-agent solves the task cold, no SKILL.md access, explicit instruction not to read .claude/skills/ or CLAUDE.md. Arm B: Sonnet sub-agent reads d:/koodaamista/claude-skills/skills/<name>/SKILL.md and follows it. Both arms produced a real artifact (markdown plan, audit report, or proposed change), no side-effect commands executed. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. N=1 per skill.",

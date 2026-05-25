@@ -1,0 +1,19 @@
+{
+  "generated_at": null,
+  "model": "haiku",
+  "target_repo": "Spacepotatis",
+  "base_commit": null,
+  "methodology": "PLACEHOLDER. Awaiting Haiku calibration run. When populated, methodology will mirror the Sonnet runs: arm A = Haiku sub-agent solves the task cold, no SKILL.md access; arm B = Haiku sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "skills": [
+    {"name": "ai-codegen-smell-audit",     "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "balance-review",             "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "content-audit",              "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "equipment",                  "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "modular-architecture-audit", "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "new-enemy",                  "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "new-migration",              "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "new-mission",                "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "new-perk",                   "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null}
+  ],
+  "aggregate": null
+}
