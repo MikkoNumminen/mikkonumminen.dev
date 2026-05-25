@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-05-26T00:00:00Z",
+  "model": "opus",
+  "target_repo": "mikkonumminen.dev",
+  "scope": "Full-portfolio Opus calibration of every mikkonumminen.dev skill not already covered by SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json (which holds skill-localUpdate).",
+  "methodology": "Same A/B methodology as the Sonnet runs. Arm A: Opus sub-agent solves the task cold, no SKILL.md access. Arm B: Opus sub-agent reads d:/koodaamista/mikkonumminen.dev/.claude/skills/<name>/SKILL.md and follows it. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "task_briefs": {
+    "md-to-pdf": "Plan rendering docs/audits/builtin-review-calibration-2026-05-22.md to PDF on Windows. Tools, HTML/CSS, page setup, output size. Plan only.",
+    "skill-registry": "Plan a scan of all repos in d:/koodaamista/*/ for SKILL.md files + registry JSON build. Plan only.",
+    "sync-readmes": "Plan a README sync pass for d:/koodaamista/mikkonumminen.dev/README.md. Detect drifts + propose rewrites. Plan only."
+  },
+  "skills": [
+    {"name": "md-to-pdf",      "arm_A_tokens": 35727, "arm_B_tokens": 27998, "saved":  7729, "pct_saved":  22, "notes": "Save rate dropped from 41% (Sonnet) to 22% (Opus). Opus arm A already knew about Chrome --print-to-pdf cold; the recipe's tool-selection guidance compresses less."},
+    {"name": "skill-registry", "arm_A_tokens": 24126, "arm_B_tokens": 33480, "saved": -9354, "pct_saved": -39, "notes": "Cost-more (-39%) almost identical to Sonnet's -38%. Skill's value is spec depth + thoroughness, not token compression — model-invariant pattern."},
+    {"name": "sync-readmes",   "arm_A_tokens": null,  "arm_B_tokens": 47885, "saved": null,  "pct_saved": null, "notes": "Arm A hit session limit during 2026-05-25 Opus dispatch; pending re-dispatch."}
+  ],
+  "aggregate_clean": {
+    "skills_measured": 2,
+    "arm_A_total": 59853,
+    "arm_B_total": 61478,
+    "saved_total":  -1625,
+    "pct_saved":  -3,
+    "sonnet_comparison_total": {"arm_A": 51378, "arm_B": 42930, "saved": 8448, "pct_saved": 16}
+  },
+  "caveats": [
+    "N=1 per skill per arm.",
+    "Aggregate excludes sync-readmes (arm A failure pending re-dispatch).",
+    "Tiny N (2 paired skills); the Sonnet → Opus shift from +16% to -3% is driven mostly by md-to-pdf's save shrinking (41%→22%)."
+  ]
+}
