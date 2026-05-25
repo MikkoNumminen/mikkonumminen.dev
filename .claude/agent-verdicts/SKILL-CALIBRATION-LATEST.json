@@ -1,5 +1,6 @@
 {
   "generated_at": "2026-05-22T00:00:00Z",
+  "model": "sonnet",
   "target_repo": "Spacepotatis",
   "base_commit": "94655a9",
   "methodology": "A/B test. Arm A: Sonnet sub-agent solves the task cold, no SKILL.md access. Arm B: Sonnet sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Both arms in fresh worktrees from Spacepotatis master at 94655a9. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. N=1 per skill.",

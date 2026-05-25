@@ -1,0 +1,28 @@
+{
+  "generated_at": null,
+  "model": "haiku",
+  "target_repo": "AudiobookMaker",
+  "base_commit": null,
+  "methodology": "PLACEHOLDER. Awaiting Haiku calibration run. When populated, methodology will mirror the Sonnet/Opus runs: arm A = Haiku sub-agent solves the task cold, no SKILL.md access; arm B = Haiku sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Both arms produce a real artifact. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "task_briefs": {
+    "ci-failure-triage": "Triage hypothetical CI failure: pytest collection error importing AudiobookSession from src.audiobook.session. Produce a fix plan.",
+    "copyright-scan": "Scan AudiobookMaker src/ for accidental third-party copyright leaks. Pass/fail verdict + file:line findings.",
+    "pronunciation-corpus-add": "Add Finnish pronunciation failure ('tervetuloa' as 'ter-ve-too-loa') to docs/pronunciation_corpus_fi.md. Output proposed entry only, no actual write.",
+    "release-bundle-audit": "Audit PyInstaller bundle spec for unused deps + dead-code data files. Propose spec-only fixes.",
+    "release-cut": "Walk through cutting release v3.99.0 — produce plan document, no actual tag or push.",
+    "voice-pack-finnish": "Plan Finnish voice pack pipeline for hypothetical 90s clip with 2 speakers (1F, 1M). Plan only, no audio processing.",
+    "work-session": "As Claude 3, pick a free task from TODO.md and produce the proposed TODO.md edit. No actual file modification.",
+    "worktree-launch": "Plan launching a parallel session in worktree .claude/worktrees/chore-test-calibration-stub. Plan only, no worktree creation."
+  },
+  "skills": [
+    {"name": "ci-failure-triage",        "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "copyright-scan",           "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "pronunciation-corpus-add", "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "release-bundle-audit",     "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "release-cut",              "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "voice-pack-finnish",       "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "work-session",             "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "worktree-launch",          "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null}
+  ],
+  "aggregate": null
+}

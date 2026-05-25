@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-23T04:30:13.618Z",
+  "generated_at": "2026-05-25T21:47:20.203Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -53,7 +53,17 @@
             "tokens_saved_per_use": 32311,
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 65462,
-            "calibration_arm_B": 33151
+            "calibration_arm_B": 33151,
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 47540,
+                "arm_B_tokens": 39795,
+                "saved": 7745,
+                "pct_saved": 16,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
+                "notes": "Save rate collapsed from 49% to 16%. Opus arm A used 33 tool uses (vs Sonnet's unknown count, but produced 0 findings + 5 informational notes — close to arm B's 0 findings). Opus arm A is much better at directed scanning cold — the recipe's value (which checks the skill enforces) compresses less because Opus already knows to check them. Investigation-collapse skills lose the most value going Sonnet → Opus."
+              }
+            }
           }
         },
         {
@@ -554,7 +564,17 @@
             "tokens_saved_per_use": 2724,
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 117161,
-            "calibration_arm_B": 114437
+            "calibration_arm_B": 114437,
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 213696,
+                "arm_B_tokens": 209021,
+                "saved": 4675,
+                "pct_saved": 2,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
+                "notes": "Both arms roughly DOUBLED on Opus (Sonnet: 117K/114K → Opus: 214K/209K). Save rate identical at 2% on both models — the audit's value is completeness/coverage and Opus does not compress that work. Notable: both arms now hit 200K+ on Opus, the most expensive skill in this sample. Arm B was blocked from spawning parallel sub-agents (no Agent tool in this sandbox), executed all 5 audit scopes sequentially in main thread."
+              }
+            }
           }
         },
         {
@@ -678,7 +698,17 @@
               "source": "skill-body",
               "path": "skills/readme-drift-sync/SKILL.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 53725,
+                "arm_B_tokens": 55728,
+                "saved": -2003,
+                "pct_saved": -4,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
+                "notes": "Cost-more shrank dramatically from -112% to -4% on Opus — almost break-even. Sonnet arm A wrote a tight 8-finding report fast (29K); Opus arm A explored more deeply (49 tool uses, 53K, 29 findings). Opus arm B's procedure stayed at ~55K. So the gap closes from arm A getting MORE expensive on Opus rather than arm B getting cheaper — Opus does deeper exploration cold, which the structured procedure no longer dominates. Implication: meta/library skills that previously looked cost-negative on Sonnet may break even or save on Opus."
+              }
+            }
           }
         },
         {
@@ -777,7 +807,17 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 48949,
             "calibration_arm_B": 22899,
-            "calibration_notes": "biggest save in this calibration. Recipe says 'run scan.mjs'; arm A wrote a from-scratch JSONL walker including dedup logic. Big save from delegating to the existing tool."
+            "calibration_notes": "biggest save in this calibration. Recipe says 'run scan.mjs'; arm A wrote a from-scratch JSONL walker including dedup logic. Big save from delegating to the existing tool.",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 32085,
+                "arm_B_tokens": 36624,
+                "saved": -4539,
+                "pct_saved": -14,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
+                "notes": "FLIPPED from +53% save (Sonnet) to -14% cost-more (Opus). Sonnet arm A re-implemented the JSONL walker from scratch (49K); Opus arm A wrote a tighter Python helper directly + found the data faster (32K). Meanwhile Opus arm B was blocked by classifier from running scan.mjs and ended up using a stale snapshot (36K). Delegation-to-tool skills that worked well on Sonnet may not save on Opus when Opus is already efficient at the underlying task. Sample size N=1 — re-run on a different task to confirm direction."
+              }
+            }
           }
         }
       ]
@@ -833,7 +873,17 @@
               "source": "skill-body",
               "path": ".claude/skills/skill-localUpdate/SKILL.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 58776,
+                "arm_B_tokens": 29044,
+                "saved": 29732,
+                "pct_saved": 51,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
+                "notes": "Both arms cost ~35-37% MORE on Opus than Sonnet but save rate stays 51% vs 52% — strikingly consistent. The recipe's value (collapsing pipeline-discovery into a six-step walk) survives the model upgrade. If your skill is a clean recipe with a directed walk, Opus does not erode its value."
+              }
+            }
           }
         },
         {
@@ -919,7 +969,18 @@
       "calibration_arm_B": 26432,
       "calibration_pct_saved": 63,
       "calibration_generated_at": "2026-05-22T00:00:00Z",
-      "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md"
+      "calibration_model": "sonnet",
+      "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md",
+      "alt_model_measurements": {
+        "opus": {
+          "arm_A_tokens": 58609,
+          "arm_B_tokens": 35489,
+          "saved": 23120,
+          "pct_saved": 39,
+          "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
+          "notes": "Save rate dropped from 63% (Sonnet) to 39% (Opus). Opus arm A used 12 tool uses vs Sonnet's 33 — Opus is much more efficient at the cold scout. Opus arm B used 3 tool uses (same as Sonnet's 3); the prescribed gh-CLI recipe doesn't compress further. So the gap closes mostly from arm A getting cheaper, not arm B getting more expensive. Same pattern expected on any high-save scaffolding skill: Opus shrinks the cold-vs-recipe gap."
+        }
+      }
     }
   ]
 }

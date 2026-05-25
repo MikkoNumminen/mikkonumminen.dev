@@ -1,0 +1,30 @@
+{
+  "generated_at": null,
+  "model": "haiku",
+  "scope": "Claude Code built-in slash commands",
+  "target_repo": "MikkoNumminen/mikkonumminen.dev",
+  "base_commit": null,
+  "methodology": "PLACEHOLDER. Awaiting Haiku calibration run. When populated, methodology will mirror the Sonnet/Opus runs: arm A solves the task cold (no slash-command prompt access), arm B is dispatched with the /review built-in prompt verbatim. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "task": {
+    "type": "Review a real PR end-to-end",
+    "pr_url": "https://github.com/MikkoNumminen/mikkonumminen.dev/pull/149",
+    "pr_summary": "fix(skills): promote calibration arm-B into cost column + repeat repo banner across page breaks. 5 files, +225/-67."
+  },
+  "builtins": [
+    {
+      "name": "review",
+      "label": "/review",
+      "arm_A_tokens": null,
+      "arm_A_tool_uses": null,
+      "arm_B_tokens": null,
+      "arm_B_tool_uses": null,
+      "saved": null,
+      "pct_saved": null,
+      "notes": "PLACEHOLDER — Haiku may not handle the gh-CLI multi-step recipe reliably. Expect either similar pct_saved to Sonnet (recipe collapses exploration regardless of model) OR a hard failure if Haiku gets stuck in tool-use loops on complex PRs."
+    }
+  ],
+  "aggregate": null,
+  "caveats": [
+    "N=0 — no measurements yet. This file exists as a placeholder so the rendering pipeline can show a 'pending' column for Haiku."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "generated_at": null,
+  "model": "haiku",
+  "target_repo": "mikkonumminen.dev",
+  "base_commit": null,
+  "methodology": "PLACEHOLDER. Awaiting Haiku calibration run. When populated, methodology will mirror the Sonnet/Opus runs: arm A = Haiku sub-agent solves the task cold, no SKILL.md access; arm B = Haiku sub-agent reads d:/koodaamista/mikkonumminen.dev/.claude/skills/<name>/SKILL.md and follows it. Both arms produce a planning artifact. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "task_briefs": {
+    "md-to-pdf": "Plan rendering docs/audits/builtin-review-calibration-2026-05-22.md to PDF on Windows. Tools, HTML/CSS, page setup, output size. Plan only.",
+    "skill-localUpdate": "Plan a local refresh pass of skills-registry.json + skills-registry.pdf for d:/koodaamista/mikkonumminen.dev. Plan only.",
+    "skill-registry": "Plan a scan of all repos in d:/koodaamista/*/ for SKILL.md files + registry JSON build. Plan only.",
+    "sync-readmes": "Plan a README sync pass for d:/koodaamista/mikkonumminen.dev/README.md. Detect drifts + propose rewrites. Plan only."
+  },
+  "skills": [
+    {"name": "md-to-pdf",         "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "skill-localUpdate", "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "skill-registry",    "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "sync-readmes",      "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null}
+  ],
+  "aggregate": null
+}

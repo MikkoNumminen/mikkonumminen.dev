@@ -1,5 +1,6 @@
 {
   "generated_at": "2026-05-23T00:00:00Z",
+  "model": "sonnet",
   "target_repo": "mikkonumminen.dev",
   "base_commit": "ba121d3161384b6d80e11a51c941eaa4714eb7b3",
   "methodology": "A/B test of every non-redirect skill native to mikkonumminen.dev. Arm A: Sonnet sub-agent solves the task cold, no SKILL.md access, explicit instruction not to read .claude/skills/ or CLAUDE.md. Arm B: Sonnet sub-agent reads d:/koodaamista/mikkonumminen.dev/.claude/skills/<name>/SKILL.md and follows it. Both arms produced a planning artifact (skills here are meta — execute would have side effects on registry/PDF/READMEs). Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. N=1 per skill.",
