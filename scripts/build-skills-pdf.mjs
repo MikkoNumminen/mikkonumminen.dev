@@ -537,6 +537,8 @@ function renderModelComparisonPage(data) {
           arm_B: v.arm_B_tokens,
           saved: v.saved,
           pct_saved: v.pct_saved,
+          procedure_deviation: v.procedure_deviation === true,
+          procedure_deviation_note: v.procedure_deviation_note ?? null,
         };
       }
       if (Object.keys(measured).length < 2) continue;
@@ -565,6 +567,8 @@ function renderModelComparisonPage(data) {
         arm_B: v.arm_B_tokens,
         saved: v.saved,
         pct_saved: v.pct_saved,
+        procedure_deviation: v.procedure_deviation === true,
+        procedure_deviation_note: v.procedure_deviation_note ?? null,
       };
     }
     if (Object.keys(measured).length < 2) continue;
@@ -589,21 +593,41 @@ function renderModelComparisonPage(data) {
     return `<th scope="col" class="num model-col model-${m}">${cap}</th>`;
   }).join('');
 
-  const renderCell = (m, data) => {
-    if (!data) {
+  // Collect deviation cells so the page footer can list which (skill, model)
+  // pairs deviated from the SKILL.md procedure. Surfaces compromised
+  // measurements without burying the per-cell numbers — a dagger marker next
+  // to the pct, plus an enumerated footnote at the bottom of the page.
+  const deviations = [];
+  for (const row of rows) {
+    for (const m of MODEL_ORDER) {
+      const cell = row.measured[m];
+      if (cell?.procedure_deviation) {
+        deviations.push({
+          row,
+          model: m,
+          note: cell.procedure_deviation_note,
+        });
+      }
+    }
+  }
+
+  const renderCell = (m, cellData) => {
+    if (!cellData) {
       return `<td class="num model-col model-${m} model-empty">—</td>`;
     }
-    const negative = data.pct_saved < 0;
+    const negative = cellData.pct_saved < 0;
     const cls = ['num', 'model-col', `model-${m}`];
     if (negative) cls.push('cell-negative');
+    if (cellData.procedure_deviation) cls.push('cell-deviation');
     const sign = negative ? '−' : '+';
-    const savePct = `${sign}${Math.abs(data.pct_saved)}%`;
-    const saveAbs = data.saved < 0
-      ? `−${fmt(Math.abs(data.saved))}`
-      : fmt(data.saved);
+    const dagger = cellData.procedure_deviation ? '<sup class="deviation-marker">†</sup>' : '';
+    const savePct = `${sign}${Math.abs(cellData.pct_saved)}%${dagger}`;
+    const saveAbs = cellData.saved < 0
+      ? `−${fmt(Math.abs(cellData.saved))}`
+      : fmt(cellData.saved);
     return `<td class="${cls.join(' ')}">
       <span class="model-cell-pct">${savePct}</span>
-      <span class="model-cell-detail">arm A ${fmt(data.arm_A)} → B ${fmt(data.arm_B)}</span>
+      <span class="model-cell-detail">arm A ${fmt(cellData.arm_A)} → B ${fmt(cellData.arm_B)}</span>
       <span class="model-cell-detail">${saveAbs} saved/use</span>
     </td>`;
   };
@@ -621,12 +645,30 @@ function renderModelComparisonPage(data) {
 
   // Footnote: list which models are still placeholder so the reader knows
   // empty Haiku columns mean "not measured yet," not "no data possible."
-  const placeholderModels = ['haiku']
+  // Derived from the data rather than hardcoded so a future model that's
+  // still pending shows up automatically.
+  const placeholderModels = MODEL_ORDER
     .filter((m) => rows.every((row) => !row.measured[m]))
     .map((m) => m.charAt(0).toUpperCase() + m.slice(1));
   const placeholderNote =
     placeholderModels.length > 0
       ? ` <em>${placeholderModels.join(' / ')} columns are placeholders — the calibration sub-agents have not been dispatched on those models yet.</em>`
+      : '';
+
+  // Procedure-deviation footnote block. Each enumerated entry has the model,
+  // the (repo, skill), and the deviation note verbatim from the source JSON.
+  // Without this block the dagger marker is meaningless.
+  const deviationBlock =
+    deviations.length > 0
+      ? `<div class="deviation-footnotes">
+        <p class="note"><strong>† Procedure deviation</strong> — these ${deviations.length === 1 ? 'measurement is' : `${deviations.length} measurements are`} marked with † because the arm-B sub-agent did NOT actually execute the SKILL.md procedure (e.g. tool unavailable in the sandbox, classifier blocked a script). The cost/save number reflects whatever the sub-agent did INSTEAD, not what the skill would actually cost when run normally. Read these rows as "this measurement is compromised" — not as a finding about the skill.</p>
+        <ol class="deviation-list">${deviations
+          .map(
+            (d) =>
+              `<li><strong>${esc(d.model.charAt(0).toUpperCase() + d.model.slice(1))}</strong> · <span class="repo-tag">${esc(d.row.repo)}</span><code>${esc(d.row.name)}</code> — ${esc(d.note ?? 'No deviation note recorded.')}</li>`,
+          )
+          .join('')}</ol>
+      </div>`
       : '';
 
   return `<section class="page-break model-comparison">
@@ -636,7 +678,8 @@ function renderModelComparisonPage(data) {
     <thead><tr><th scope="col">Skill</th>${modelHeaderCells}</tr></thead>
     <tbody>${tableRows}</tbody>
   </table>
-  <p class="note">Each cell shows the A/B save rate (% of arm A tokens), the raw arm-A → arm-B tokens, and the absolute saved-per-use. Orange = the skill cost MORE on this model than the unstructured baseline. Sample size N=1 per (skill, model) pair — trust direction and magnitude, not two-significant-digit precision. The cross-portfolio observation is that recipe value shrinks as model capability rises: skills that save 50%+ on Sonnet typically settle at 20-40% on Opus because the cold arm gets cheaper, not because the recipe arm gets more expensive.</p>
+  <p class="note">Each cell shows the A/B save rate (% of arm A tokens), the raw arm-A → arm-B tokens, and the absolute saved-per-use. Orange = the skill cost MORE on this model than the unstructured baseline. Cells marked † had a procedure deviation in arm B — see the footnote block below. Sample size N=1 per (skill, model) pair — trust direction and magnitude, not two-significant-digit precision. The cross-portfolio observation is that recipe value shrinks as model capability rises: skills that save 50%+ on Sonnet typically settle at 20-40% on Opus because the cold arm gets cheaper, not because the recipe arm gets more expensive.</p>
+  ${deviationBlock}
 </section>`;
 }
 
