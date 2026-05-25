@@ -13,7 +13,11 @@
     {"name": "new-enemy",                  "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
     {"name": "new-migration",              "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
     {"name": "new-mission",                "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "new-perk",                   "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null}
+    {"name": "new-perk",                   "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "new-solar-system",           "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "new-story",                  "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "save-roundtrip-audit",       "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
+    {"name": "security-audit",             "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null}
   ],
   "aggregate": null
 }

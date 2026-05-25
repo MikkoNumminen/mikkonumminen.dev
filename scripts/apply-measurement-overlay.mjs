@@ -33,6 +33,7 @@ const CALIBRATION_MN_DEV = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-C
 // schema gymnastics.
 const ALT_MODEL_CALIBRATION_FILES = [
   { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json'),               receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json'),              receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json' },
   { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json'),             receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json' },
   { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json'),       receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json' },
   { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json'),         receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json' },
@@ -435,7 +436,7 @@ function applyCalibrationFile(file, receiptPath) {
 // calibration. Null tokens (placeholder Haiku files) are skipped so the
 // receipt only carries real measurements.
 function applyAltModelCalibration(file, model, receiptPath) {
-  if (!fs.existsSync(file)) return { written: 0, skipped: 0 };
+  if (!fs.existsSync(file)) return { written: 0, skipped: 0, missed: 0 };
   const payload = JSON.parse(fs.readFileSync(file, 'utf8'));
   // builtins live in `builtins:`; per-repo skill files use `skills:`. Both
   // share the same per-entry shape. The cross-portfolio OPUS-SAMPLE file
@@ -444,6 +445,7 @@ function applyAltModelCalibration(file, model, receiptPath) {
   const entries = payload.skills ?? payload.builtins ?? [];
   let written = 0;
   let skipped = 0;
+  let missed = 0;
   for (const entry of entries) {
     if (entry.kind === 'builtin') continue; // handled in the builtins block below
     if (entry.arm_A_tokens == null || entry.arm_B_tokens == null) {
@@ -462,7 +464,15 @@ function applyAltModelCalibration(file, model, receiptPath) {
         if (s.name === entry.name && s.receipt) matches.push({ r, s });
       }
     }
-    if (matches.length === 0) continue;
+    if (matches.length === 0) {
+      // Surface the miss so a future skill rename doesn't silently drop the
+      // multi-model measurement. Mirrors the SKIP-on-no-match pattern from
+      // applyCalibrationFile so a single grep finds both classes of misses.
+      const repoSuffix = entry.repo ? ` in ${entry.repo}` : '';
+      report.push(`SKIP alt-model ${model} for ${entry.name}${repoSuffix} — no matching registry row`);
+      missed += 1;
+      continue;
+    }
     for (const { r, s } of matches) {
       s.receipt.alt_model_measurements ??= {};
       s.receipt.alt_model_measurements[model] = {
@@ -477,7 +487,7 @@ function applyAltModelCalibration(file, model, receiptPath) {
       report.push(`ALT-MODEL ${r.name}.${s.name} (${model}): arm A ${entry.arm_A_tokens} / arm B ${entry.arm_B_tokens} (saved ${entry.saved}, ${entry.pct_saved}%)`);
     }
   }
-  return { written, skipped };
+  return { written, skipped, missed };
 }
 
 const spacepotatisCal = applyCalibrationFile(
@@ -507,10 +517,12 @@ const calibratedRows =
 // and we just hang an extra `alt_model_measurements` field off it.
 let altModelWritten = 0;
 let altModelSkipped = 0;
+let altModelMissed = 0;
 for (const { file, model, receipt } of ALT_MODEL_CALIBRATION_FILES) {
-  const { written, skipped } = applyAltModelCalibration(file, model, receipt);
+  const { written, skipped, missed } = applyAltModelCalibration(file, model, receipt);
   altModelWritten += written;
   altModelSkipped += skipped;
+  altModelMissed += missed ?? 0;
 }
 
 // Recompute totals.
@@ -625,5 +637,6 @@ fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');
 console.log(report.join('\n'));
 const accumulatedSuffix = accumulated > 0 ? ` (+${accumulated} accumulation${accumulated === 1 ? '' : 's'} onto existing rows)` : '';
 const calibSuffix = calibratedRows > 0 ? ` Calibrated ${calibratedRows} row(s).` : '';
-const altSuffix = altModelWritten > 0 ? ` Alt-model measurements attached to ${altModelWritten} row(s) (skipped ${altModelSkipped} placeholder/null).` : '';
+const altMissSuffix = altModelMissed > 0 ? `, ${altModelMissed} miss(es)` : '';
+const altSuffix = altModelWritten > 0 ? ` Alt-model measurements attached to ${altModelWritten} row(s) (skipped ${altModelSkipped} placeholder/null${altMissSuffix}).` : '';
 console.log(`\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s).${calibSuffix}${altSuffix} New annual total: ${totalAnnual.toLocaleString()}`);

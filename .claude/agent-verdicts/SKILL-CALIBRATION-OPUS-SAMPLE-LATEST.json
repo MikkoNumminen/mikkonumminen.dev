@@ -75,6 +75,8 @@
       "arm_B_tool_uses": 61,
       "saved": 4675,
       "pct_saved": 2,
+      "procedure_deviation": true,
+      "procedure_deviation_note": "Opus arm B was blocked from spawning parallel sub-agents (no Agent tool in this sandbox) and executed all 5 audit scopes sequentially in main thread instead of the prescribed parallel fan-out. The cost number reflects sequential execution, not what the skill would actually cost when run normally. Compare against the Haiku run (clean arm-B, 23% save) for the un-compromised picture.",
       "sonnet_comparison": {"arm_A": 117161, "arm_B": 114437, "saved": 2724, "pct_saved": 2},
       "notes": "Both arms roughly DOUBLED on Opus (Sonnet: 117K/114K → Opus: 214K/209K). Save rate identical at 2% on both models — the audit's value is completeness/coverage and Opus does not compress that work. Notable: both arms now hit 200K+ on Opus, the most expensive skill in this sample. Arm B was blocked from spawning parallel sub-agents (no Agent tool in this sandbox), executed all 5 audit scopes sequentially in main thread."
     },
@@ -88,6 +90,8 @@
       "arm_B_tool_uses": 6,
       "saved": -4539,
       "pct_saved": -14,
+      "procedure_deviation": true,
+      "procedure_deviation_note": "Opus arm B was blocked by the auto-mode classifier from running scan.mjs and ended up using a stale snapshot — did not actually execute the skill procedure. Compare against the Haiku run (clean arm-B, 57% save) for the un-compromised picture.",
       "sonnet_comparison": {"arm_A": 48949, "arm_B": 22899, "saved": 26050, "pct_saved": 53},
       "notes": "FLIPPED from +53% save (Sonnet) to -14% cost-more (Opus). Sonnet arm A re-implemented the JSONL walker from scratch (49K); Opus arm A wrote a tighter Python helper directly + found the data faster (32K). Meanwhile Opus arm B was blocked by classifier from running scan.mjs and ended up using a stale snapshot (36K). Delegation-to-tool skills that worked well on Sonnet may not save on Opus when Opus is already efficient at the underlying task. Sample size N=1 — re-run on a different task to confirm direction."
     }
@@ -103,7 +107,9 @@
     "saved_total_sonnet": 96466,
     "pct_saved_sonnet": 26,
     "skills_saving": 3,
-    "skills_costing": 3
+    "skills_costing": 3,
+    "rows_with_procedure_deviations": 2,
+    "rows_with_procedure_deviations_note": "audit and skill-usage arm-B runs deviated from the skill procedure under Opus (no Agent tool available for audit's parallel fan-out; classifier blocked scan.mjs for skill-usage). Both runs land in the aggregate but the per-skill `procedure_deviation: true` flag marks which two. Clean-only aggregate (excluding both rows): arm A 218650 / arm B 160056 / saved 58594 / pct_saved 27%. So the headline 13% saved is largely dragged down by the two compromised rows; without them, Opus saves 27% — much closer to Sonnet's 26%."
   },
   "headline_finding": "Across all 6 sampled skills, Opus saved 13% on average vs Sonnet's 26% on the same skills — the recipe-vs-cold gap roughly halved going from Sonnet to Opus. Three actionable patterns: (1) high-saving scaffolding skills compress less on Opus (review 63%→39%, copyright-scan 49%→16%), because Opus is more efficient cold; (2) clean pipeline-recipes hold their save rate (skill-localUpdate 52%→51%), because the recipe collapses pipeline-discovery work both models would otherwise repeat; (3) Opus narrows but doesn't always flip cost-more meta skills (readme-drift-sync -112%→-4%), because both arms get more thorough rather than just arm B. The absolute compute cost per skill goes UP on Opus regardless of save rate — audit doubled from 114K to 209K per arm. Implication for portfolio cost projections: if you run skills on Opus, multiply per-use cost by ~1.5-2× and shrink savings to 30-60% of the Sonnet-measured figure as a first pass.",
   "caveats": [
