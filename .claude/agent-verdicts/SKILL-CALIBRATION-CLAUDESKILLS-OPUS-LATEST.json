@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-05-26T00:00:00Z",
+  "model": "opus",
+  "target_repo": "claude-skills",
+  "scope": "Full-portfolio Opus calibration of every claude-skills library skill not already covered by SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json (which holds audit, readme-drift-sync, skill-usage).",
+  "methodology": "Same A/B methodology as the Sonnet runs. Arm A: Opus sub-agent solves the task cold, no SKILL.md access. Arm B: Opus sub-agent reads d:/koodaamista/claude-skills/skills/<name>/SKILL.md and follows it. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "task_briefs": {
+    "ai-codegen-smell-audit": "Audit Spacepotatis src/ for AI-codegen smell patterns. Findings with severity tags and file:line citations.",
+    "mikko-audit-suite": "Plan which mikko-* audits to run on mikkonumminen.dev and in what order. Index document only.",
+    "mikko-help": "List installed mikko-* skills at ~/.claude/skills/ with descriptions. Markdown summary.",
+    "mikko-install": "Plan installing all mikko-* skills from claude-skills/skills/ to ~/.claude/skills/. Plan only.",
+    "react-anti-patterns-audit": "Audit mikkonumminen.dev/src/ for React anti-patterns.",
+    "security-audit": "Security audit of Spacepotatis src/. Findings with severity tags and file:line citations.",
+    "session-cost": "Compute the token cost of session 47fcb7d8-762b-45af-ae2a-b9e4af3c295b. Main thread + sub-agents breakdown.",
+    "skill-calibration": "Plan an A/B calibration for a hypothetical /example-skill in AudiobookMaker. Plan only."
+  },
+  "skills": [
+    {"name": "ai-codegen-smell-audit",     "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,  "pct_saved": null, "notes": "Both arms hit session limit during 2026-05-25 Opus dispatch; pending re-dispatch."},
+    {"name": "mikko-audit-suite",          "arm_A_tokens": 35003, "arm_B_tokens": 33187, "saved":  1816, "pct_saved":   5},
+    {"name": "mikko-help",                 "arm_A_tokens": 33039, "arm_B_tokens": 39925, "saved": -6886, "pct_saved": -21, "notes": "Skill encodes a source-repo cross-check — extra work for completeness, costs more than just listing installed skills. Same direction as Sonnet."},
+    {"name": "mikko-install",              "arm_A_tokens": 26571, "arm_B_tokens": 27074, "saved":  -503, "pct_saved":  -2, "notes": "Near-break-even on Opus vs Sonnet's -35%. Opus narrows the cost-more dramatically — recipe's protocol overhead matters less when the cold arm already does the right thing."},
+    {"name": "react-anti-patterns-audit",  "arm_A_tokens": 23988, "arm_B_tokens": 30721, "saved": -6733, "pct_saved": -28, "notes": "Target had no React; both arms correctly returned no findings. Arm B's structured pre-flight + abort cost more than arm A's quick check. Negative-result target — positive-result repos would likely differ."},
+    {"name": "security-audit",             "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,  "pct_saved": null, "notes": "Both arms hit session limit during 2026-05-25 Opus dispatch; pending re-dispatch."},
+    {"name": "session-cost",               "arm_A_tokens": 33119, "arm_B_tokens": 31928, "saved":  1191, "pct_saved":   4, "notes": "Important methodology note: Opus arm A produced an INCORRECT answer (554M tokens) because it counted cache_read_input_tokens, which the SKILL.md explicitly excludes. Opus arm B (following the recipe) correctly excluded cache_read and reported 14.15M. The token spend is similar but the OUTPUT QUALITY differs — recipe value here is correctness, not compression. Worth flagging in the cross-portfolio analysis: 'save rate ~0' doesn't mean 'recipe adds nothing' for this skill."},
+    {"name": "skill-calibration",          "arm_A_tokens": 41775, "arm_B_tokens": 36201, "saved":  5574, "pct_saved":  13, "notes": "FLIPPED from -74% (Sonnet) to +13% (Opus). Opus arm A sketched a more rigorous plan cold (~42K) so the recipe's value is preserved; on Sonnet arm A was too sparse to be comparable."}
+  ],
+  "aggregate_clean": {
+    "skills_measured": 6,
+    "arm_A_total": 193495,
+    "arm_B_total": 199036,
+    "saved_total":  -5541,
+    "pct_saved":  -3,
+    "sonnet_comparison_total": {"arm_A": 129174, "arm_B": 156546, "saved": -27372, "pct_saved": -21}
+  },
+  "caveats": [
+    "N=1 per skill per arm.",
+    "Aggregate excludes ai-codegen-smell-audit and security-audit (both arms failed pending re-dispatch).",
+    "Opus narrows the claude-skills cost-more from -21% to -3% — same pattern as the SAMPLE's readme-drift-sync (-112%→-4%): meta/library skills look less cost-negative on Opus because the cold arm already does more thorough work."
+  ]
+}

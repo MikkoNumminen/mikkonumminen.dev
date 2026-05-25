@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-05-26T00:00:00Z",
+  "model": "opus",
+  "target_repo": "Spacepotatis",
+  "scope": "Full-portfolio Opus calibration of every Spacepotatis-native skill (ai-codegen-smell-audit and security-audit are library duplicates routed to claude-skills — see SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json for those).",
+  "methodology": "Same A/B methodology as the Sonnet runs. Arm A: Opus sub-agent solves the task cold, no SKILL.md access. Arm B: Opus sub-agent reads d:/koodaamista/Spacepotatis/.claude/skills/<name>/SKILL.md and follows it. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "dispatch_note": "Dispatched 2026-05-25 in the same Opus burst as the other portfolios. The session-token-limit reset happened mid-burst and ALL Spacepotatis arm-A's hit the wall (they were dispatched last). 7 arm-B's completed cleanly; the remaining 4 arm-B's (content-audit, modular-architecture-audit, new-story, save-roundtrip-audit) also failed. Result: zero paired (A+B) skills in this portfolio yet. Every row below is pending a full re-dispatch. The arm-B numbers we DO have are kept in the entries for reference but the overlay will skip them (null arm_A means no save% computable).",
+  "skills": [
+    {"name": "balance-review",             "arm_A_tokens": null, "arm_B_tokens": 33072, "saved": null, "pct_saved": null, "notes": "Arm A session-limit failure. Arm B clean."},
+    {"name": "content-audit",              "arm_A_tokens": null, "arm_B_tokens": null,  "saved": null, "pct_saved": null, "notes": "Both arms session-limit failure."},
+    {"name": "equipment",                  "arm_A_tokens": null, "arm_B_tokens": 33143, "saved": null, "pct_saved": null, "notes": "Arm A session-limit failure. Arm B clean."},
+    {"name": "modular-architecture-audit", "arm_A_tokens": null, "arm_B_tokens": null,  "saved": null, "pct_saved": null, "notes": "Both arms session-limit failure."},
+    {"name": "new-enemy",                  "arm_A_tokens": null, "arm_B_tokens": 27902, "saved": null, "pct_saved": null, "notes": "Arm A session-limit failure. Arm B clean."},
+    {"name": "new-migration",              "arm_A_tokens": null, "arm_B_tokens": 32453, "saved": null, "pct_saved": null, "notes": "Arm A session-limit failure. Arm B clean."},
+    {"name": "new-mission",                "arm_A_tokens": null, "arm_B_tokens": 42726, "saved": null, "pct_saved": null, "notes": "Arm A session-limit failure. Arm B clean."},
+    {"name": "new-perk",                   "arm_A_tokens": null, "arm_B_tokens": 35007, "saved": null, "pct_saved": null, "notes": "Arm A session-limit failure. Arm B clean."},
+    {"name": "new-solar-system",           "arm_A_tokens": null, "arm_B_tokens": 27874, "saved": null, "pct_saved": null, "notes": "Arm A session-limit failure. Arm B clean."},
+    {"name": "new-story",                  "arm_A_tokens": null, "arm_B_tokens": null,  "saved": null, "pct_saved": null, "notes": "Both arms session-limit failure."},
+    {"name": "save-roundtrip-audit",       "arm_A_tokens": null, "arm_B_tokens": null,  "saved": null, "pct_saved": null, "notes": "Both arms session-limit failure."}
+  ],
+  "aggregate_clean": null
+}

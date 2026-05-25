@@ -32,13 +32,17 @@ const CALIBRATION_MN_DEV = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-C
 // exist so the rendering pipeline can show a "pending" column without
 // schema gymnastics.
 const ALT_MODEL_CALIBRATION_FILES = [
-  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json'),               receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json'),              receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json'),             receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json'),       receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json'),         receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json'),    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json'),         receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json' },
+  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json'),                 receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json' },
+  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json'),         receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json' },
+  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json'),           receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json' },
+  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json'),      receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json' },
+  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json'),           receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json'),                receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json'),              receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json'),        receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json'),          receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json'),     receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json' },
+  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json'),          receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json' },
 ];
 
 // Sample-sessionId → repo lookup. Sessions live under

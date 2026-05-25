@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-05-26T00:00:00Z",
+  "model": "opus",
+  "target_repo": "AudiobookMaker",
+  "scope": "Full-portfolio Opus calibration of every skill in this repo not already covered by SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json (which holds copyright-scan).",
+  "methodology": "Same A/B methodology as the Sonnet runs. Arm A: Opus sub-agent solves the task cold, no SKILL.md access. Arm B: Opus sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. N=1 per skill per arm.",
+  "task_briefs": {
+    "ci-failure-triage": "Triage hypothetical CI failure: pytest collection error importing AudiobookSession from src.audiobook.session. Produce a fix plan.",
+    "pronunciation-corpus-add": "Add Finnish pronunciation failure ('tervetuloa' as 'ter-ve-too-loa') to docs/pronunciation_corpus_fi.md. Output proposed entry only, no actual write.",
+    "release-bundle-audit": "Audit PyInstaller bundle spec for unused deps + dead-code data files. Propose spec-only fixes.",
+    "release-cut": "Walk through cutting release v3.99.0 — produce plan document, no actual tag or push.",
+    "voice-pack-finnish": "Plan Finnish voice pack pipeline for hypothetical 90s clip with 2 speakers (1F, 1M). Plan only.",
+    "work-session": "As Claude 3, pick a free task from TODO.md and produce the proposed TODO.md edit. No actual file modification.",
+    "worktree-launch": "Plan launching a parallel session in worktree .claude/worktrees/chore-test-calibration-stub. Plan only."
+  },
+  "skills": [
+    {"name": "ci-failure-triage",        "arm_A_tokens": 30587, "arm_B_tokens": 27597, "saved":  2990, "pct_saved":  10},
+    {"name": "pronunciation-corpus-add", "arm_A_tokens": 41898, "arm_B_tokens": 25356, "saved": 16542, "pct_saved":  39},
+    {"name": "release-bundle-audit",     "arm_A_tokens": null,  "arm_B_tokens": 70045, "saved": null,  "pct_saved": null, "notes": "Arm A hit session limit during 2026-05-25 Opus dispatch; pending re-dispatch."},
+    {"name": "release-cut",              "arm_A_tokens": null,  "arm_B_tokens": 33023, "saved": null,  "pct_saved": null, "notes": "Arm A hit session limit during 2026-05-25 Opus dispatch; pending re-dispatch."},
+    {"name": "voice-pack-finnish",       "arm_A_tokens": 45342, "arm_B_tokens": 36449, "saved":  8893, "pct_saved":  20},
+    {"name": "work-session",             "arm_A_tokens": 30093, "arm_B_tokens": 33139, "saved": -3046, "pct_saved": -10, "notes": "Skill encodes status-board protocol rigor — costs slightly more on Opus, same direction as Sonnet."},
+    {"name": "worktree-launch",          "arm_A_tokens": 34440, "arm_B_tokens": 26267, "saved":  8173, "pct_saved":  24}
+  ],
+  "aggregate_clean": {
+    "skills_measured": 5,
+    "arm_A_total": 182360,
+    "arm_B_total": 148808,
+    "saved_total":  33552,
+    "pct_saved":  18,
+    "sonnet_comparison_total": {"arm_A": 163965, "arm_B": 115234, "saved": 48731, "pct_saved": 30}
+  },
+  "caveats": [
+    "N=1 per skill per arm.",
+    "Aggregate excludes release-bundle-audit and release-cut (arm A failures pending re-dispatch).",
+    "Sonnet comparison aggregate computed across the same 5 paired skills for apples-to-apples."
+  ]
+}

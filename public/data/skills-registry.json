@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-25T22:11:11.744Z",
+  "generated_at": "2026-05-25T23:26:00.244Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -26,7 +26,19 @@
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 30587,
+                "arm_B_tokens": 27597,
+                "saved": 2990,
+                "pct_saved": 10,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
+                "notes": null,
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -99,7 +111,19 @@
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 41898,
+                "arm_B_tokens": 25356,
+                "saved": 16542,
+                "pct_saved": 39,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
+                "notes": null,
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -175,7 +199,19 @@
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 45342,
+                "arm_B_tokens": 36449,
+                "saved": 8893,
+                "pct_saved": 20,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
+                "notes": null,
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -200,7 +236,19 @@
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 30093,
+                "arm_B_tokens": 33139,
+                "saved": -3046,
+                "pct_saved": -10,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
+                "notes": "Skill encodes status-board protocol rigor — costs slightly more on Opus, same direction as Sonnet.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -225,7 +273,19 @@
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 34440,
+                "arm_B_tokens": 26267,
+                "saved": 8173,
+                "pct_saved": 24,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
+                "notes": null,
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         }
       ]
@@ -616,7 +676,19 @@
             "calibration_arm_A": 20068,
             "calibration_arm_B": 24350,
             "calibration_notes": "skill encodes detection-then-plan rigor — arm A's freestyle was tighter on this specific task; recipe overhead exceeded the focus benefit at this scale.",
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 35003,
+                "arm_B_tokens": 33187,
+                "saved": 1816,
+                "pct_saved": 5,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
+                "notes": null,
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -644,7 +716,19 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 24092,
             "calibration_arm_B": 29421,
-            "calibration_notes": "skill encodes a source-repo cross-check on top of the install scan — extra work for completeness, costs more than just listing installed skills."
+            "calibration_notes": "skill encodes a source-repo cross-check on top of the install scan — extra work for completeness, costs more than just listing installed skills.",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 33039,
+                "arm_B_tokens": 39925,
+                "saved": -6886,
+                "pct_saved": -21,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
+                "notes": "Skill encodes a source-repo cross-check — extra work for completeness, costs more than just listing installed skills. Same direction as Sonnet.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -672,7 +756,19 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 16930,
             "calibration_arm_B": 22824,
-            "calibration_notes": "skill encodes the full install protocol (modes, prefixing, source-repo validation) — costs more than a plain cp pass; value is in correctness, not token compression."
+            "calibration_notes": "skill encodes the full install protocol (modes, prefixing, source-repo validation) — costs more than a plain cp pass; value is in correctness, not token compression.",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 26571,
+                "arm_B_tokens": 27074,
+                "saved": -503,
+                "pct_saved": -2,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
+                "notes": "Near-break-even on Opus vs Sonnet's -35%. Opus narrows the cost-more dramatically — recipe's protocol overhead matters less when the cold arm already does the right thing.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -697,7 +793,19 @@
               "source": "skill-body",
               "path": "skills/react-anti-patterns-audit/SKILL.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 23988,
+                "arm_B_tokens": 30721,
+                "saved": -6733,
+                "pct_saved": -28,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
+                "notes": "Target had no React; both arms correctly returned no findings. Arm B's structured pre-flight + abort cost more than arm A's quick check. Negative-result target — positive-result repos would likely differ.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -790,7 +898,19 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 35880,
             "calibration_arm_B": 30816,
-            "calibration_notes": "arm B ran the prescribed scan.mjs directly; arm A wrote a JSONL walker from scratch. Modest save from delegating to the existing tool."
+            "calibration_notes": "arm B ran the prescribed scan.mjs directly; arm A wrote a JSONL walker from scratch. Modest save from delegating to the existing tool.",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 33119,
+                "arm_B_tokens": 31928,
+                "saved": 1191,
+                "pct_saved": 4,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
+                "notes": "Important methodology note: Opus arm A produced an INCORRECT answer (554M tokens) because it counted cache_read_input_tokens, which the SKILL.md explicitly excludes. Opus arm B (following the recipe) correctly excluded cache_read and reported 14.15M. The token spend is similar but the OUTPUT QUALITY differs — recipe value here is correctness, not compression. Worth flagging in the cross-portfolio analysis: 'save rate ~0' doesn't mean 'recipe adds nothing' for this skill.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -815,7 +935,19 @@
               "source": "skill-body",
               "path": "skills/skill-calibration/SKILL.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 41775,
+                "arm_B_tokens": 36201,
+                "saved": 5574,
+                "pct_saved": 13,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
+                "notes": "FLIPPED from -74% (Sonnet) to +13% (Opus). Opus arm A sketched a more rigorous plan cold (~42K) so the recipe's value is preserved; on Sonnet arm A was too sparse to be comparable.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -896,7 +1028,19 @@
               "source": "skill-body",
               "path": ".claude/skills/md-to-pdf/SKILL.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 35727,
+                "arm_B_tokens": 27998,
+                "saved": 7729,
+                "pct_saved": 22,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json",
+                "notes": "Save rate dropped from 41% (Sonnet) to 22% (Opus). Opus arm A already knew about Chrome --print-to-pdf cold; the recipe's tool-selection guidance compresses less.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -971,7 +1115,19 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 16250,
             "calibration_arm_B": 22351,
-            "calibration_notes": "arm A wrote a sparse scan plan in 2 tool uses; arm B's full procedure includes schema extraction, library directory handling, and more rigor. Cost-more reflects spec depth, not waste."
+            "calibration_notes": "arm A wrote a sparse scan plan in 2 tool uses; arm B's full procedure includes schema extraction, library directory handling, and more rigor. Cost-more reflects spec depth, not waste.",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 24126,
+                "arm_B_tokens": 33480,
+                "saved": -9354,
+                "pct_saved": -39,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json",
+                "notes": "Cost-more (-39%) almost identical to Sonnet's -38%. Skill's value is spec depth + thoroughness, not token compression — model-invariant pattern.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
