@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-25T23:26:00.244Z",
+  "generated_at": "2026-05-25T23:49:11.715Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -148,7 +148,19 @@
               "source": "readme.md",
               "path": "https://github.com/MikkoNumminen/AudiobookMaker/blob/master/README.md"
             },
-            "last_invoked": "2026-05-23T00:00:00Z"
+            "last_invoked": "2026-05-23T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 93804,
+                "arm_B_tokens": 70045,
+                "saved": 23759,
+                "pct_saved": 25,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26 after the session-limit reset. FLIPPED from Sonnet's -12% to Opus's +25% — Opus arm A explored more (10 findings vs presumed similar Sonnet count) but arm B was tighter (70K vs Sonnet's 86K). Audit skill's value rises when the cold model spends more on the task.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -175,7 +187,19 @@
             "tokens_saved_per_use": 5937,
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 35107,
-            "calibration_arm_B": 29170
+            "calibration_arm_B": 29170,
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 67162,
+                "arm_B_tokens": 33023,
+                "saved": 34139,
+                "pct_saved": 51,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. Strong save (51%) — much more than Sonnet's 17%. The 9-phase release-cut walk compresses cleanly when Opus arm A would otherwise explore the CI workflow + version drift guards from scratch.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -342,7 +366,19 @@
             "tokens_saved_per_use": 22309,
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 99335,
-            "calibration_arm_B": 77026
+            "calibration_arm_B": 77026,
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 108025,
+                "arm_B_tokens": 101776,
+                "saved": 6249,
+                "pct_saved": 6,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched 2026-05-26 after both arms session-limit failed. Modest +6% save. Arm A found 40 distinct findings (mostly missing planet textures); arm B's pre-commit invariants procedure was tighter (0 violations because the integrity checks already exclude filesystem). Skill's value is procedure rigor — both arms heavy, save is modest.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -370,7 +406,19 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 89006,
             "calibration_arm_B": 93683,
-            "calibration_notes": "skill enforces full CRUD lifecycle — encodes rigor, not scout-savings"
+            "calibration_notes": "skill enforces full CRUD lifecycle — encodes rigor, not scout-savings",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 94518,
+                "arm_B_tokens": 33143,
+                "saved": 61375,
+                "pct_saved": 65,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. Massive 65% save on Opus — recipe collapses the cold model's exploration of the weapon-schema constraints (no `range` field, MISSION_WEAPON_REWARDS bijection) into a directed walk.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -394,7 +442,19 @@
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             },
-            "last_invoked": "2026-05-22T00:00:00Z"
+            "last_invoked": "2026-05-22T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 68961,
+                "arm_B_tokens": 83325,
+                "saved": -14364,
+                "pct_saved": -21,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched 2026-05-26 after both arms failed. Cost-more on Opus — arm B follows the skill's full resume protocol (reading the Phase 0-5 ledger + per-phase artifacts) which is heavier than arm A's freestyle 9-proposal walk. Skill's value is multi-phase orchestration, not token compression.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -418,7 +478,19 @@
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             },
-            "last_invoked": "2026-05-22T00:00:00Z"
+            "last_invoked": "2026-05-22T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 79235,
+                "arm_B_tokens": 27902,
+                "saved": 51333,
+                "pct_saved": 65,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. Strong 65% save. Arm A spent significant tokens deriving the EnemyBehavior union closure + sprite generator pattern; arm B's six-step recipe collapses this.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -442,7 +514,19 @@
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             },
-            "last_invoked": "2026-05-22T00:00:00Z"
+            "last_invoked": "2026-05-22T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 43457,
+                "arm_B_tokens": 32453,
+                "saved": 11004,
+                "pct_saved": 25,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. Save +25%.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -467,7 +551,19 @@
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             },
-            "last_invoked": "2026-05-22T00:00:00Z"
+            "last_invoked": "2026-05-22T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 79440,
+                "arm_B_tokens": 42726,
+                "saved": 36714,
+                "pct_saved": 46,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. Save +46%. Notable: arm A correctly flagged the survival-mechanic gap (the brief's '4-min survival win' doesn't match existing WaveManager semantics) — the recipe didn't shield arm B from missing the same issue, but did make arm A's discovery cheaper.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -491,7 +587,19 @@
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             },
-            "last_invoked": "2026-05-22T00:00:00Z"
+            "last_invoked": "2026-05-22T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 75140,
+                "arm_B_tokens": 35007,
+                "saved": 40133,
+                "pct_saved": 53,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. Save +53%. Arm A had to discover the PerkController switch-case pattern and shield-regen multiplier wiring cold; arm B's recipe collapses this.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -515,7 +623,19 @@
               "source": "docs/SKILLS.md",
               "path": "https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md"
             },
-            "last_invoked": "2026-05-22T00:00:00Z"
+            "last_invoked": "2026-05-22T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 97485,
+                "arm_B_tokens": 27874,
+                "saved": 69611,
+                "pct_saved": 71,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. BIGGEST save in the portfolio (+71%). Arm A traced 11 files of cascading edits cold (galaxy bed, loot pools, story triggers, audio assets); arm B's structured recipe knows the dependency graph.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -542,7 +662,19 @@
             "tokens_saved_per_use": 13722,
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 47182,
-            "calibration_arm_B": 33460
+            "calibration_arm_B": 33460,
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 76969,
+                "arm_B_tokens": 61308,
+                "saved": 15661,
+                "pct_saved": 20,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched 2026-05-26 after both arms failed. Both arms surfaced the same key boundary issue (the skill needs a new on-mission-complete trigger kind that doesn't exist yet); the recipe gave arm B a slight edge in directness.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -575,7 +707,19 @@
             "tokens_saved_per_use": 7206,
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 70080,
-            "calibration_arm_B": 62874
+            "calibration_arm_B": 62874,
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 126910,
+                "arm_B_tokens": 76624,
+                "saved": 50286,
+                "pct_saved": 40,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
+                "notes": "Re-dispatched 2026-05-26 after both arms failed. Strong +40% save. The 8-layer save round-trip walk has clear procedure value; arm A spent more tokens deriving the layer order from grep.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         }
       ]
@@ -609,7 +753,19 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 157348,
             "calibration_arm_B": 81119,
-            "calibration_notes": "arm-B found 1 nit vs arm-A's 11 — savings partly reflect stricter discrimination"
+            "calibration_notes": "arm-B found 1 nit vs arm-A's 11 — savings partly reflect stricter discrimination",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 172402,
+                "arm_B_tokens": 91681,
+                "saved": 80721,
+                "pct_saved": 47,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
+                "notes": "Re-dispatched 2026-05-26 after both arms session-limit failed. Save rate 47% on Opus vs Sonnet's 48% — strikingly consistent across models. Largest absolute save in claude-skills. Arm A explored 10 candidate findings vs arm B's 1 (the structured Opus arm A is more permissive); arm B's stricter inclusion criteria save tokens while raising precision.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -870,7 +1026,19 @@
             "calibration_arm_A": 107885,
             "calibration_arm_B": 112211,
             "calibration_notes": "skill encodes rigor (full attack-surface walk) — costs more per use, value is in completeness",
-            "last_invoked": "2026-05-22T00:00:00Z"
+            "last_invoked": "2026-05-22T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 124145,
+                "arm_B_tokens": 135980,
+                "saved": -11835,
+                "pct_saved": -10,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
+                "notes": "Re-dispatched 2026-05-26 after both arms session-limit failed. Same direction as Sonnet (-4%) but slightly more cost-more on Opus. Arm B was an Opus orchestrator collapsing the multi-phase audit; the recipe encodes thoroughness (Critical/High/Medium/Low + Info severity walk + standing-audit context) which both arms now hit, so the recipe overhead exceeds the focus benefit. Skill's value is completeness, not token compression — model-invariant pattern.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         },
         {
@@ -906,7 +1074,7 @@
                 "saved": 1191,
                 "pct_saved": 4,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
-                "notes": "Important methodology note: Opus arm A produced an INCORRECT answer (554M tokens) because it counted cache_read_input_tokens, which the SKILL.md explicitly excludes. Opus arm B (following the recipe) correctly excluded cache_read and reported 14.15M. The token spend is similar but the OUTPUT QUALITY differs — recipe value here is correctness, not compression. Worth flagging in the cross-portfolio analysis: 'save rate ~0' doesn't mean 'recipe adds nothing' for this skill.",
+                "notes": "Methodology note: Opus arm A's output included cache_read_input_tokens (returned a 554M total) — that's the BASELINE Opus behavior the skill is designed to prevent. The SKILL.md explicitly excludes cache_read because those tokens were paid upstream. Arm B followed the recipe and reported 14.15M, which is the correct number for downstream comparisons. Token SPEND on the two arms is comparable (33K vs 32K), so the +4% pct_saved understates the recipe's value here: it's a correctness win (preventing a counting error a cold model defaults into), not a compression win.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1155,7 +1323,19 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 32885,
             "calibration_arm_B": 36530,
-            "calibration_notes": "arm A used 48 tool uses on a deep scout of the repo to detect drifts; arm B followed the structured drift-axes procedure with fewer reads but more procedure overhead. Near-tie; both produced defensible drift reports."
+            "calibration_notes": "arm A used 48 tool uses on a deep scout of the repo to detect drifts; arm B followed the structured drift-axes procedure with fewer reads but more procedure overhead. Near-tie; both produced defensible drift reports.",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 57606,
+                "arm_B_tokens": 47885,
+                "saved": 9721,
+                "pct_saved": 17,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. FLIPPED from Sonnet's -11% to Opus's +17% — Opus arm A was more thorough on the cold walk (24 tool uses, 8 drifts) but arm B's prescribed drift-axes procedure compressed the work. Tracks the SAMPLE's readme-drift-sync narrowing pattern: meta/library skills look less cost-negative on Opus.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
           }
         }
       ]

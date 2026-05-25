@@ -12,19 +12,19 @@
   "skills": [
     {"name": "md-to-pdf",      "arm_A_tokens": 35727, "arm_B_tokens": 27998, "saved":  7729, "pct_saved":  22, "notes": "Save rate dropped from 41% (Sonnet) to 22% (Opus). Opus arm A already knew about Chrome --print-to-pdf cold; the recipe's tool-selection guidance compresses less."},
     {"name": "skill-registry", "arm_A_tokens": 24126, "arm_B_tokens": 33480, "saved": -9354, "pct_saved": -39, "notes": "Cost-more (-39%) almost identical to Sonnet's -38%. Skill's value is spec depth + thoroughness, not token compression — model-invariant pattern."},
-    {"name": "sync-readmes",   "arm_A_tokens": null,  "arm_B_tokens": 47885, "saved": null,  "pct_saved": null, "notes": "Arm A hit session limit during 2026-05-25 Opus dispatch; pending re-dispatch."}
+    {"name": "sync-readmes",   "arm_A_tokens": 57606, "arm_B_tokens": 47885, "saved": 9721, "pct_saved": 17, "notes": "Re-dispatched arm A on 2026-05-26. FLIPPED from Sonnet's -11% to Opus's +17% — Opus arm A was more thorough on the cold walk (24 tool uses, 8 drifts) but arm B's prescribed drift-axes procedure compressed the work. Tracks the SAMPLE's readme-drift-sync narrowing pattern: meta/library skills look less cost-negative on Opus."}
   ],
   "aggregate_clean": {
-    "skills_measured": 2,
-    "arm_A_total": 59853,
-    "arm_B_total": 61478,
-    "saved_total":  -1625,
-    "pct_saved":  -3,
-    "sonnet_comparison_total": {"arm_A": 51378, "arm_B": 42930, "saved": 8448, "pct_saved": 16}
+    "skills_measured": 3,
+    "arm_A_total": 117459,
+    "arm_B_total": 109363,
+    "saved_total":  8096,
+    "pct_saved":  7,
+    "sonnet_comparison_total": {"arm_A": 84263, "arm_B": 79460, "saved": 4803, "pct_saved": 6}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Aggregate excludes sync-readmes (arm A failure pending re-dispatch).",
-    "Tiny N (2 paired skills); the Sonnet → Opus shift from +16% to -3% is driven mostly by md-to-pdf's save shrinking (41%→22%)."
+    "Now complete — sync-readmes arm A re-dispatched 2026-05-26 after the original session-limit failure.",
+    "Opus and Sonnet within 1 point on the complete 3-skill set (7% vs 6%). The original 2-skill aggregate misleadingly showed -3% vs +16%; adding sync-readmes (which saves more on Opus) balances the picture."
   ]
 }
