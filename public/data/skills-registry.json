@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-25T22:02:30.456Z",
+  "generated_at": "2026-05-25T22:11:11.744Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -61,7 +61,9 @@
                 "saved": 7745,
                 "pct_saved": 16,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "Save rate collapsed from 49% to 16%. Opus arm A used 33 tool uses (vs Sonnet's unknown count, but produced 0 findings + 5 informational notes — close to arm B's 0 findings). Opus arm A is much better at directed scanning cold — the recipe's value (which checks the skill enforces) compresses less because Opus already knows to check them. Investigation-collapse skills lose the most value going Sonnet → Opus."
+                "notes": "Save rate collapsed from 49% to 16%. Opus arm A used 33 tool uses (vs Sonnet's unknown count, but produced 0 findings + 5 informational notes — close to arm B's 0 findings). Opus arm A is much better at directed scanning cold — the recipe's value (which checks the skill enforces) compresses less because Opus already knows to check them. Investigation-collapse skills lose the most value going Sonnet → Opus.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               },
               "haiku": {
                 "arm_A_tokens": 61226,
@@ -69,7 +71,9 @@
                 "saved": 34655,
                 "pct_saved": 57,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Haiku save rate (57%) HIGHEST of the three models — even beats Sonnet's 49%. Haiku arm A explored aggressively (61K, 26 tool uses) like Sonnet did cold; arm B followed the structured checks tightly (26K, 14 uses, also lowest arm B of the three). For investigation-collapse skills, Haiku gets the biggest recipe benefit — the smaller model would scout exhaustively cold but compresses well to a directed walk."
+                "notes": "Haiku save rate (57%) HIGHEST of the three models — even beats Sonnet's 49%. Haiku arm A explored aggressively (61K, 26 tool uses) like Sonnet did cold; arm B followed the structured checks tightly (26K, 14 uses, also lowest arm B of the three). For investigation-collapse skills, Haiku gets the biggest recipe benefit — the smaller model would scout exhaustively cold but compresses well to a directed walk.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               }
             }
           }
@@ -580,7 +584,9 @@
                 "saved": 4675,
                 "pct_saved": 2,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "Both arms roughly DOUBLED on Opus (Sonnet: 117K/114K → Opus: 214K/209K). Save rate identical at 2% on both models — the audit's value is completeness/coverage and Opus does not compress that work. Notable: both arms now hit 200K+ on Opus, the most expensive skill in this sample. Arm B was blocked from spawning parallel sub-agents (no Agent tool in this sandbox), executed all 5 audit scopes sequentially in main thread."
+                "notes": "Both arms roughly DOUBLED on Opus (Sonnet: 117K/114K → Opus: 214K/209K). Save rate identical at 2% on both models — the audit's value is completeness/coverage and Opus does not compress that work. Notable: both arms now hit 200K+ on Opus, the most expensive skill in this sample. Arm B was blocked from spawning parallel sub-agents (no Agent tool in this sandbox), executed all 5 audit scopes sequentially in main thread.",
+                "procedure_deviation": true,
+                "procedure_deviation_note": "Opus arm B was blocked from spawning parallel sub-agents (no Agent tool in this sandbox) and executed all 5 audit scopes sequentially in main thread instead of the prescribed parallel fan-out. The cost number reflects sequential execution, not what the skill would actually cost when run normally. Compare against the Haiku run (clean arm-B, 23% save) for the un-compromised picture."
               },
               "haiku": {
                 "arm_A_tokens": 92350,
@@ -588,7 +594,9 @@
                 "saved": 21409,
                 "pct_saved": 23,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Save rate 23% on Haiku vs 2% on BOTH Sonnet and Opus. Haiku is the cheapest by far per arm (92K/70K vs Sonnet's 117K/114K vs Opus's 214K/209K). The audit recipe genuinely helps the smaller model focus — arm A explored 38 tool uses unstructured vs arm B's 42 with the structured walk, but arm B was tighter. This contradicts the 'audit is rigor-bound' Sonnet/Opus finding: for Haiku, the structured walk compresses the work."
+                "notes": "Save rate 23% on Haiku vs 2% on BOTH Sonnet and Opus. Haiku is the cheapest by far per arm (92K/70K vs Sonnet's 117K/114K vs Opus's 214K/209K). The audit recipe genuinely helps the smaller model focus — arm A explored 38 tool uses unstructured vs arm B's 42 with the structured walk, but arm B was tighter. This contradicts the 'audit is rigor-bound' Sonnet/Opus finding: for Haiku, the structured walk compresses the work.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               }
             }
           }
@@ -722,7 +730,9 @@
                 "saved": -2003,
                 "pct_saved": -4,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "Cost-more shrank dramatically from -112% to -4% on Opus — almost break-even. Sonnet arm A wrote a tight 8-finding report fast (29K); Opus arm A explored more deeply (49 tool uses, 53K, 29 findings). Opus arm B's procedure stayed at ~55K. So the gap closes from arm A getting MORE expensive on Opus rather than arm B getting cheaper — Opus does deeper exploration cold, which the structured procedure no longer dominates. Implication: meta/library skills that previously looked cost-negative on Sonnet may break even or save on Opus."
+                "notes": "Cost-more shrank dramatically from -112% to -4% on Opus — almost break-even. Sonnet arm A wrote a tight 8-finding report fast (29K); Opus arm A explored more deeply (49 tool uses, 53K, 29 findings). Opus arm B's procedure stayed at ~55K. So the gap closes from arm A getting MORE expensive on Opus rather than arm B getting cheaper — Opus does deeper exploration cold, which the structured procedure no longer dominates. Implication: meta/library skills that previously looked cost-negative on Sonnet may break even or save on Opus.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               },
               "haiku": {
                 "arm_A_tokens": 41168,
@@ -730,7 +740,9 @@
                 "saved": -2505,
                 "pct_saved": -6,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Tracks Opus closely (-6% vs Opus's -4%) — both Haiku and Opus break even on this skill. Only Sonnet shows the dramatic -112% cost-more. Haiku arm A found 7 drifts (47 tool uses) vs arm B's 1 drift (30 tool uses) — arm B is more conservative under SKILL.md's calibration-immunity rules, producing fewer but stricter findings. Cost-more skills are not a Sonnet-specific pathology; they reflect skill thoroughness regardless of model."
+                "notes": "Tracks Opus closely (-6% vs Opus's -4%) — both Haiku and Opus break even on this skill. Only Sonnet shows the dramatic -112% cost-more. Haiku arm A found 7 drifts (47 tool uses) vs arm B's 1 drift (30 tool uses) — arm B is more conservative under SKILL.md's calibration-immunity rules, producing fewer but stricter findings. Cost-more skills are not a Sonnet-specific pathology; they reflect skill thoroughness regardless of model.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               }
             }
           }
@@ -839,7 +851,9 @@
                 "saved": -4539,
                 "pct_saved": -14,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "FLIPPED from +53% save (Sonnet) to -14% cost-more (Opus). Sonnet arm A re-implemented the JSONL walker from scratch (49K); Opus arm A wrote a tighter Python helper directly + found the data faster (32K). Meanwhile Opus arm B was blocked by classifier from running scan.mjs and ended up using a stale snapshot (36K). Delegation-to-tool skills that worked well on Sonnet may not save on Opus when Opus is already efficient at the underlying task. Sample size N=1 — re-run on a different task to confirm direction."
+                "notes": "FLIPPED from +53% save (Sonnet) to -14% cost-more (Opus). Sonnet arm A re-implemented the JSONL walker from scratch (49K); Opus arm A wrote a tighter Python helper directly + found the data faster (32K). Meanwhile Opus arm B was blocked by classifier from running scan.mjs and ended up using a stale snapshot (36K). Delegation-to-tool skills that worked well on Sonnet may not save on Opus when Opus is already efficient at the underlying task. Sample size N=1 — re-run on a different task to confirm direction.",
+                "procedure_deviation": true,
+                "procedure_deviation_note": "Opus arm B was blocked by the auto-mode classifier from running scan.mjs and ended up using a stale snapshot — did not actually execute the skill procedure. Compare against the Haiku run (clean arm-B, 57% save) for the un-compromised picture."
               },
               "haiku": {
                 "arm_A_tokens": 63502,
@@ -847,7 +861,9 @@
                 "saved": 36000,
                 "pct_saved": 57,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Save rate 57% on Haiku — HIGHEST of the three models, matches the Sonnet pattern (53%) and inverts Opus's -14% cost-more. Haiku arm A re-implemented a JSONL walker like Sonnet did (63K) — the smaller model lacks Opus's 'just write a Python helper' shortcut. Arm B used 4 tool uses to invoke the prescribed scan.mjs cleanly. Strong evidence that delegation-to-tool skills are most valuable for the LEAST capable model."
+                "notes": "Save rate 57% on Haiku — HIGHEST of the three models, matches the Sonnet pattern (53%) and inverts Opus's -14% cost-more. Haiku arm A re-implemented a JSONL walker like Sonnet did (63K) — the smaller model lacks Opus's 'just write a Python helper' shortcut. Arm B used 4 tool uses to invoke the prescribed scan.mjs cleanly. Strong evidence that delegation-to-tool skills are most valuable for the LEAST capable model.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               }
             }
           }
@@ -913,7 +929,9 @@
                 "saved": 29732,
                 "pct_saved": 51,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "Both arms cost ~35-37% MORE on Opus than Sonnet but save rate stays 51% vs 52% — strikingly consistent. The recipe's value (collapsing pipeline-discovery into a six-step walk) survives the model upgrade. If your skill is a clean recipe with a directed walk, Opus does not erode its value."
+                "notes": "Both arms cost ~35-37% MORE on Opus than Sonnet but save rate stays 51% vs 52% — strikingly consistent. The recipe's value (collapsing pipeline-discovery into a six-step walk) survives the model upgrade. If your skill is a clean recipe with a directed walk, Opus does not erode its value.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               },
               "haiku": {
                 "arm_A_tokens": 45945,
@@ -921,7 +939,9 @@
                 "saved": 15073,
                 "pct_saved": 33,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Save rate dropped from 52% (Sonnet) to 33% (Haiku) — the only sample skill where Haiku saves substantially less than Sonnet. Haiku arm B used 10 tool uses (vs Sonnet's 2, Opus's 2) — the smaller model needed more turns to execute the prescribed pipeline. The recipe still helps but less than for capable models, because Haiku spends more tokens per recipe step. This is the predicted Haiku failure mode showing up: smaller model can follow the recipe but pays per-turn overhead."
+                "notes": "Save rate dropped from 52% (Sonnet) to 33% (Haiku) — the only sample skill where Haiku saves substantially less than Sonnet. Haiku arm B used 10 tool uses (vs Sonnet's 2, Opus's 2) — the smaller model needed more turns to execute the prescribed pipeline. The recipe still helps but less than for capable models, because Haiku spends more tokens per recipe step. This is the predicted Haiku failure mode showing up: smaller model can follow the recipe but pays per-turn overhead.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               }
             }
           }
@@ -1018,7 +1038,9 @@
           "saved": 23120,
           "pct_saved": 39,
           "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-          "notes": "Save rate dropped from 63% (Sonnet) to 39% (Opus). Opus arm A used 12 tool uses vs Sonnet's 33 — Opus is much more efficient at the cold scout. Opus arm B used 3 tool uses (same as Sonnet's 3); the prescribed gh-CLI recipe doesn't compress further. So the gap closes mostly from arm A getting cheaper, not arm B getting more expensive. Same pattern expected on any high-save scaffolding skill: Opus shrinks the cold-vs-recipe gap."
+          "notes": "Save rate dropped from 63% (Sonnet) to 39% (Opus). Opus arm A used 12 tool uses vs Sonnet's 33 — Opus is much more efficient at the cold scout. Opus arm B used 3 tool uses (same as Sonnet's 3); the prescribed gh-CLI recipe doesn't compress further. So the gap closes mostly from arm A getting cheaper, not arm B getting more expensive. Same pattern expected on any high-save scaffolding skill: Opus shrinks the cold-vs-recipe gap.",
+          "procedure_deviation": false,
+          "procedure_deviation_note": null
         },
         "haiku": {
           "arm_A_tokens": 58379,
@@ -1026,7 +1048,9 @@
           "saved": 30090,
           "pct_saved": 52,
           "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-          "notes": "Haiku save rate (52%) lands BETWEEN Sonnet (63%) and Opus (39%). Haiku arm B is the cheapest of the three (28K vs Sonnet's 26K vs Opus's 35K) — almost matches Sonnet. Haiku arm A is similar to Opus (58K). The recipe pattern reproduces cleanly on Haiku — the prescribed gh-CLI walk doesn't trip the smaller model. Save rate scaling: it's not monotonic in model capability. Haiku ≈ Sonnet on directed walks; Opus diverges because cold-arm is cheaper for it."
+          "notes": "Haiku save rate (52%) lands BETWEEN Sonnet (63%) and Opus (39%). Haiku arm B is the cheapest of the three (28K vs Sonnet's 26K vs Opus's 35K) — almost matches Sonnet. Haiku arm A is similar to Opus (58K). The recipe pattern reproduces cleanly on Haiku — the prescribed gh-CLI walk doesn't trip the smaller model. Save rate scaling: it's not monotonic in model capability. Haiku ≈ Sonnet on directed walks; Opus diverges because cold-arm is cheaper for it.",
+          "procedure_deviation": false,
+          "procedure_deviation_note": null
         }
       }
     }

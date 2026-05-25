@@ -482,9 +482,17 @@ function applyAltModelCalibration(file, model, receiptPath) {
         pct_saved: entry.pct_saved,
         source: receiptPath,
         notes: entry.notes ?? null,
+        // procedure_deviation flags a measurement where arm-B didn't actually
+        // execute the SKILL.md procedure (e.g. classifier blocked a script,
+        // tool unavailable in sandbox). The renderer surfaces this with a
+        // dagger marker on the cell so a reader of the PDF doesn't take the
+        // compromised number at face value. Absent on clean rows.
+        procedure_deviation: entry.procedure_deviation === true,
+        procedure_deviation_note: entry.procedure_deviation_note ?? null,
       };
       written += 1;
-      report.push(`ALT-MODEL ${r.name}.${s.name} (${model}): arm A ${entry.arm_A_tokens} / arm B ${entry.arm_B_tokens} (saved ${entry.saved}, ${entry.pct_saved}%)`);
+      const deviationSuffix = entry.procedure_deviation ? ' † PROCEDURE DEVIATION' : '';
+      report.push(`ALT-MODEL ${r.name}.${s.name} (${model}): arm A ${entry.arm_A_tokens} / arm B ${entry.arm_B_tokens} (saved ${entry.saved}, ${entry.pct_saved}%)${deviationSuffix}`);
     }
   }
   return { written, skipped, missed };
@@ -522,7 +530,7 @@ for (const { file, model, receipt } of ALT_MODEL_CALIBRATION_FILES) {
   const { written, skipped, missed } = applyAltModelCalibration(file, model, receipt);
   altModelWritten += written;
   altModelSkipped += skipped;
-  altModelMissed += missed ?? 0;
+  altModelMissed += missed;
 }
 
 // Recompute totals.
@@ -620,6 +628,8 @@ for (const [skillName, meta] of Object.entries(BUILTINS_TO_TRACK)) {
       pct_saved: altEntry.pct_saved,
       source: receipt,
       notes: altEntry.notes ?? null,
+      procedure_deviation: altEntry.procedure_deviation === true,
+      procedure_deviation_note: altEntry.procedure_deviation_note ?? null,
     };
   }
   builtInReferences.push(entry);

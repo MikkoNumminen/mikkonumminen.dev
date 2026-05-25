@@ -762,6 +762,55 @@ table.model-grid .repo-tag {
   margin-bottom: 1pt;
 }
 
+table.model-grid .deviation-marker {
+  font-size: 9pt;
+  font-weight: 700;
+  color: var(--calib-off);
+  margin-left: 1pt;
+}
+
+table.model-grid td.cell-deviation .model-cell-pct {
+  text-decoration: underline dotted var(--calib-off);
+  text-underline-offset: 2pt;
+}
+
+.deviation-footnotes {
+  margin-top: 8pt;
+  padding: 6pt 8pt;
+  background: rgba(0, 0, 0, 0.025);
+  border-left: 2pt solid var(--calib-off);
+}
+
+.deviation-footnotes p.note {
+  margin-bottom: 4pt;
+}
+
+.deviation-footnotes ol.deviation-list {
+  margin: 0;
+  padding-left: 18pt;
+  font-size: 9pt;
+  color: var(--ink);
+}
+
+.deviation-footnotes ol.deviation-list li {
+  margin-bottom: 3pt;
+  line-height: 1.45;
+}
+
+.deviation-footnotes ol.deviation-list .repo-tag {
+  font-size: 7.5pt;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 4pt;
+}
+
+.deviation-footnotes ol.deviation-list code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 9pt;
+  color: var(--ink);
+}
+
 /* ----- method page (last page) -------------------------------------- */
 
 .method {
