@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-05-26T00:00:00Z",
+  "generated_at": "2026-05-26T15:00:00Z",
   "model": "opus",
   "target_repo": "mikkonumminen.dev",
   "scope": "Full-portfolio Opus calibration of every mikkonumminen.dev skill not already covered by SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json (which holds skill-localUpdate).",
-  "methodology": "Same A/B methodology as the Sonnet runs. Arm A: Opus sub-agent solves the task cold, no SKILL.md access. Arm B: Opus sub-agent reads d:/koodaamista/mikkonumminen.dev/.claude/skills/<name>/SKILL.md and follows it. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "methodology": "Same A/B methodology as the Sonnet runs. Arm A: Opus sub-agent solves the task cold, no SKILL.md access. Arm B: Opus sub-agent reads d:/koodaamista/mikkonumminen.dev/.claude/skills/<name>/SKILL.md and follows it. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. Clean re-baseline 2026-05-26 in fresh isolated worktrees with simultaneous arm A + arm B dispatch — eliminates artifact-contamination risk from the original 2026-05-25/26 re-dispatches.",
   "task_briefs": {
     "md-to-pdf": "Plan rendering docs/audits/builtin-review-calibration-2026-05-22.md to PDF on Windows. Tools, HTML/CSS, page setup, output size. Plan only.",
     "skill-registry": "Plan a scan of all repos in d:/koodaamista/*/ for SKILL.md files + registry JSON build. Plan only.",
@@ -12,19 +12,19 @@
   "skills": [
     {"name": "md-to-pdf",      "arm_A_tokens": 35727, "arm_B_tokens": 27998, "saved":  7729, "pct_saved":  22, "notes": "Save rate dropped from 41% (Sonnet) to 22% (Opus). Opus arm A already knew about Chrome --print-to-pdf cold; the recipe's tool-selection guidance compresses less."},
     {"name": "skill-registry", "arm_A_tokens": 24126, "arm_B_tokens": 33480, "saved": -9354, "pct_saved": -39, "notes": "Cost-more (-39%) almost identical to Sonnet's -38%. Skill's value is spec depth + thoroughness, not token compression — model-invariant pattern."},
-    {"name": "sync-readmes",   "arm_A_tokens": 57606, "arm_B_tokens": 47885, "saved": 9721, "pct_saved": 17, "notes": "Re-dispatched arm A on 2026-05-26. FLIPPED from Sonnet's -11% to Opus's +17% — Opus arm A was more thorough on the cold walk (24 tool uses, 8 drifts) but arm B's prescribed drift-axes procedure compressed the work. Tracks the SAMPLE's readme-drift-sync narrowing pattern: meta/library skills look less cost-negative on Opus."}
+    {"name": "sync-readmes",   "arm_A_tokens": 58286, "arm_B_tokens": 58966, "saved": -680, "pct_saved": -1, "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +17% was artifact-contamination — clean arm B grew 11K (47K→59K); recipe overhead now matches cold-walk cost."}
   ],
   "aggregate_clean": {
     "skills_measured": 3,
-    "arm_A_total": 117459,
-    "arm_B_total": 109363,
-    "saved_total":  8096,
-    "pct_saved":  7,
+    "arm_A_total": 118139,
+    "arm_B_total": 120444,
+    "saved_total":  -2305,
+    "pct_saved":  -2,
     "sonnet_comparison_total": {"arm_A": 84263, "arm_B": 79460, "saved": 4803, "pct_saved": 6}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Now complete — sync-readmes arm A re-dispatched 2026-05-26 after the original session-limit failure.",
-    "Opus and Sonnet within 1 point on the complete 3-skill set (7% vs 6%). The original 2-skill aggregate misleadingly showed -3% vs +16%; adding sync-readmes (which saves more on Opus) balances the picture."
+    "Clean re-baseline 2026-05-26: all measurements in this file replaced by fresh A/B runs. Aggregate shifted from contaminated +7% to clean -2% — artifact contamination was inflating Opus save rates, particularly for sync-readmes which flipped sign (prior +17% to clean -1%).",
+    "Opus is slightly cost-more (-2%) vs Sonnet's +6% on this 3-skill portfolio — skill-registry drives both portfolios cost-negative; md-to-pdf still saves but sync-readmes now neutralizes that."
   ]
 }
