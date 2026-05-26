@@ -19,7 +19,7 @@
   },
   "dispatch_note": "Originally dispatched 2026-05-25 — ALL Spacepotatis arm-A's hit the harness session-token wall and 4 arm-B's also failed. Re-dispatched 2026-05-26 after the limit reset using the same task_briefs above (consistency for the comparison). The arm-B values originally captured on 2026-05-25 are superseded by the 2026-05-26 re-run measurements where both succeed.",
   "skills": [
-    {"name": "balance-review",             "arm_A_tokens": null,   "arm_B_tokens": 33072, "saved": null,  "pct_saved": null, "notes": "Arm A re-dispatched 2026-05-26 but the agent found yesterday's leftover artifact at d:/tmp/calibration-opus-balance-review-armA.md (the 2026-05-25 session-limit run wrote the artifact before the harness response failed) and chose to verify-and-leave rather than redo. The 53398 verification tokens are NOT a fresh arm-A measurement — excluded from aggregate."},
+    {"name": "balance-review",             "arm_A_tokens": 46340,  "arm_B_tokens": 27749, "saved": 18591, "pct_saved":  40,  "notes": "Clean re-dispatch on 2026-05-26 after deleting the leftover artifacts from the original session-limit failure. Both arms fresh. +40% save on Opus vs Sonnet's +28% — recipe collapses arm A's exploration of the catalogue (PR #122's tier-2 weapons + AoE + slow mechanics). arm-B previous 2026-05-25 value (33072) superseded by today's 27749 for temporal consistency with arm A."},
     {"name": "content-audit",              "arm_A_tokens": 108025, "arm_B_tokens": 101776,"saved": 6249,  "pct_saved":  6,   "notes": "Re-dispatched 2026-05-26 after both arms session-limit failed. Modest +6% save. Arm A found 40 distinct findings (mostly missing planet textures); arm B's pre-commit invariants procedure was tighter (0 violations because the integrity checks already exclude filesystem). Skill's value is procedure rigor — both arms heavy, save is modest."},
     {"name": "equipment",                  "arm_A_tokens": 94518,  "arm_B_tokens": 33143, "saved": 61375, "pct_saved":  65,  "notes": "Re-dispatched arm A on 2026-05-26. Massive 65% save on Opus — recipe collapses the cold model's exploration of the weapon-schema constraints (no `range` field, MISSION_WEAPON_REWARDS bijection) into a directed walk."},
     {"name": "modular-architecture-audit", "arm_A_tokens": 68961,  "arm_B_tokens": 83325, "saved": -14364,"pct_saved": -21,  "notes": "Re-dispatched 2026-05-26 after both arms failed. Cost-more on Opus — arm B follows the skill's full resume protocol (reading the Phase 0-5 ledger + per-phase artifacts) which is heavier than arm A's freestyle 9-proposal walk. Skill's value is multi-phase orchestration, not token compression."},
@@ -32,16 +32,18 @@
     {"name": "save-roundtrip-audit",       "arm_A_tokens": 126910, "arm_B_tokens": 76624, "saved": 50286, "pct_saved":  40,  "notes": "Re-dispatched 2026-05-26 after both arms failed. Strong +40% save. The 8-layer save round-trip walk has clear procedure value; arm A spent more tokens deriving the layer order from grep."}
   ],
   "aggregate_clean": {
-    "skills_measured": 10,
-    "arm_A_total": 850140,
-    "arm_B_total": 522138,
-    "saved_total":  328002,
+    "skills_measured": 11,
+    "arm_A_total": 896480,
+    "arm_B_total": 549887,
+    "saved_total":  346593,
     "pct_saved":  39,
-    "sonnet_comparison_total": {"arm_A": 807132, "arm_B": 649906, "saved": 157226, "pct_saved": 19}
+    "sonnet_comparison_total": {"arm_A": 853411, "arm_B": 683066, "saved": 170345, "pct_saved": 20}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Aggregate excludes balance-review (arm A re-run was verify-only, not a fresh measurement).",
-    "Opus saves DOUBLE Sonnet for Spacepotatis (39% vs 19%) — the most striking model-shift in the portfolio. Driven by the scaffolding skills (new-solar-system 71%, new-enemy 65%, equipment 65%, new-perk 53%) where Opus arm A spends a lot deriving the cross-file dependency graph cold and arm B's recipes collapse this."
+    "Opus saves DOUBLE Sonnet on this portfolio (39% vs 19%) — but the aggregate is dominated by a small group of high-save scaffolding rows and shouldn't be read as 'Opus is 2x better across the board for Spacepotatis'. Per-skill picture is bimodal:",
+    "  - Scaffolding skills (new-solar-system 71%, equipment 65%, new-enemy 65%, new-perk 53%, new-mission 46%, save-roundtrip-audit 40%, new-migration 25%, new-story 20%): Opus arm A spends substantially deriving the cross-file dependency graph cold; the recipes collapse this. Most save MORE on Opus than Sonnet.",
+    "  - Audit / orchestration skills (content-audit +6% Opus vs +22% Sonnet, modular-architecture-audit -21% Opus vs +26% Sonnet): Opus saves LESS or even flips negative. The recipe's value here is rigor and completeness; Opus arm A already does more thorough exploration so the recipe-vs-cold gap narrows or inverts.",
+    "Cross-portfolio takeaway: skill SHAPE matters more than model. Scaffolding skills earn more from recipes on bigger models; audit/orchestration skills earn less. The Spacepotatis aggregate happens to skew scaffolding-heavy."
   ]
 }
