@@ -27,6 +27,15 @@ const SRC = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const OUT = path.join(ROOT, 'public', 'skills-registry.pdf');
 const CSS_FILE = path.join(ROOT, 'scripts', 'lib', 'skills-pdf.css');
 
+// Regime mismatch threshold: when transcript-measured cost is more than this
+// multiple of the A/B calibration baseline, the row prints an extra subline
+// anchoring the saved percentage to the A/B baseline so reader math works.
+// 2× catches every row where the gap is meaningful (current data: 9 rows,
+// from /review at 14.6× down to a handful at ~3×) without false-flagging
+// rows where cost and save come from the same regime (within ~1.5× tends
+// to be the same A/B run feeding both numbers).
+const REGIME_MISMATCH_THRESHOLD = 2;
+
 // ---------------------------------------------------------------------------
 //  Formatting helpers
 // ---------------------------------------------------------------------------
@@ -44,6 +53,22 @@ const fmt = (n) =>
 // show comma-separated raw integers; above we fall through to fmt.
 const fmtPrecise = (n) =>
   n < 100_000 ? n.toLocaleString('en-US') : fmt(n);
+
+// Measured-save cell with an A/B-baseline subline. Used on rows where the
+// transcript cost is large enough vs the A/B baseline that the bare percent
+// would mislead — see REGIME_MISMATCH_THRESHOLD. Recomputes pct fresh from
+// (saved / armA) so what the reader sees on the row matches what they'd
+// compute themselves; also unifies both render paths (built-in carries a
+// pre-stored `calibration_pct_saved`, per-skill receipts don't).
+function saveCellWithBaseline(value, armA) {
+  const negative = value < 0;
+  const cellClasses = ['num-cell', 'num-cell-measured-save'];
+  if (negative) cellClasses.push('cell-negative');
+  const display = negative ? `−${fmt(Math.abs(value))}` : fmt(value);
+  const pct = armA > 0 ? Math.round((value / armA) * 100) : null;
+  const pctText = pct != null ? ` · ${pct}%` : '';
+  return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmt(armA)} A/B baseline${pctText}</span></td>`;
+}
 
 function fmtGeneratedAt(iso) {
   const s = iso.replace('Z', '');
@@ -274,15 +299,19 @@ function renderBuiltInsSection(refs) {
       // cost is much larger than the A/B baseline, the bare "(63%)" reads as
       // if it applies to the visible cost — actually it's 63% of the much
       // smaller A/B baseline. Surface the baseline in a subline when the gap
-      // is real. /review hits 14.6× — far past the 2× threshold.
+      // is real. /review hits 14.6× — far past the threshold. Recompute the
+      // percentage fresh from `saved / armA` so the math the reader sees on
+      // the row exactly matches what they'd compute themselves (also
+      // unifies with the per-skill path which doesn't carry a pre-stored
+      // calibration_pct_saved field on the receipt).
       const brRegimeMismatch =
         typeof br.calibration_arm_A === 'number' &&
         typeof br.tokens_per_use_avg === 'number' &&
-        br.tokens_per_use_avg > br.calibration_arm_A * 2;
+        br.tokens_per_use_avg > br.calibration_arm_A * REGIME_MISMATCH_THRESHOLD;
       const measuredSave =
         typeof br.tokens_saved_per_use === 'number'
           ? brRegimeMismatch
-            ? `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmt(br.calibration_arm_A)} A/B baseline${typeof br.calibration_pct_saved === 'number' ? ` · ${br.calibration_pct_saved}%` : ''}</span></td>`
+            ? saveCellWithBaseline(br.tokens_saved_per_use, br.calibration_arm_A)
             : `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`
           : dash;
       // estimated-cost has no source for built-ins (no SKILL.md author).
@@ -476,31 +505,15 @@ function renderSkillRow(repoName, s) {
     return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span></td>`;
   }
 
-  // Regime mismatch: the measured cost comes from production transcripts
-  // (per-use averaged across N real invocations) but the measured save comes
-  // from a single small-PR A/B calibration. Production cost can run 5–15× the
-  // A/B baseline, so the raw % (saved / armA) reads wrong if anchored to the
-  // visible cost. When that gap is real (transcript-cost > 2× A/B baseline),
-  // surface the A/B baseline in a subline so the math is verifiable on the
-  // row itself: reader sees "46K saved · vs 72K A/B baseline · 63%" rather
-  // than "46K (63%)" with no anchor. The gap itself is a finding — see the
-  // methodology page note on calibration representativeness.
+  // Regime mismatch: see saveCellWithBaseline + REGIME_MISMATCH_THRESHOLD at
+  // the top of the file for the why. Per-skill path applies the same
+  // detection rule as the built-in path; both render the same subline.
   const regimeMismatch =
     rec?.source === 'transcript-measurement' &&
     rec?.tokens_saved_source === 'calibration' &&
     typeof rec?.calibration_arm_A === 'number' &&
     typeof rec?.tokens_per_use === 'number' &&
-    rec.tokens_per_use > rec.calibration_arm_A * 2;
-
-  function saveCellWithBaseline(value, armA) {
-    const negative = value < 0;
-    const cellClasses = ['num-cell', 'num-cell-measured-save'];
-    if (negative) cellClasses.push('cell-negative');
-    const display = negative ? `−${fmt(Math.abs(value))}` : fmt(value);
-    const pct = armA > 0 ? Math.round((value / armA) * 100) : null;
-    const pctText = pct != null ? ` · ${pct}%` : '';
-    return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmt(armA)} A/B baseline${pctText}</span></td>`;
-  }
+    rec.tokens_per_use > rec.calibration_arm_A * REGIME_MISMATCH_THRESHOLD;
 
   const measuredSaveCell = regimeMismatch
     ? saveCellWithBaseline(measuredSave, rec.calibration_arm_A)
@@ -774,7 +787,7 @@ function renderMethodPage() {
 
   <h2>Regime gap: when measured cost and measured save come from different scales</h2>
   <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>
-  <p>Concrete: built-in <code>/review</code> shows <strong>1.05M tokens / use measured cost</strong> (averaged across 14 real-PR reviews, some over 3M tokens, some under 10K) next to <strong>46K tokens / use measured save</strong> (from one A/B on a 5-file PR where the cold arm spent 72K). Doing 46K ÷ 1.05M reads as a 4% save rate; the actual A/B finding was 46K ÷ 72K = 63% on the small PR. Same trap on <code>mikko-help</code> (644K vs 29K), <code>session-cost</code> (409K vs 31K), <code>equipment</code> (401K vs 94K), <code>audit</code> (553K vs 114K), <code>release-cut</code> (188K vs 29K), <code>skill-registry</code> (148K vs 22K), and a handful of others.</p>
+  <p>Concrete: built-in <code>/review</code> shows <strong>1.05M tokens / use measured cost</strong> (averaged across 14 real-PR reviews, some over 3M tokens, some under 10K) next to <strong>46K tokens / use measured save</strong> (from one A/B on a 5-file PR where the cold arm spent 72K). Doing 46K ÷ 1.05M reads as a 4% save rate; the actual A/B finding was 46K ÷ 72K = 63% on the small PR. The same trap shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 3× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
   <p>When a row hits this regime gap (transcript cost &gt; 2× the A/B arm-A baseline) the measured-save cell prints a subline making the baseline explicit: <em>vs &lt;armA&gt; A/B baseline · &lt;pct&gt;%</em>. Math on the row now works: <code>save ÷ baseline = pct</code> instead of <code>save ÷ visible-cost = misleading</code>. This isn't a correction — both numbers were always real. It's a labelling fix so a reader doesn't combine them wrong.</p>
   <p>The gap itself is the finding: <strong>the A/B calibration task isn't representative of what production runs of these skills actually look like</strong>. The honest read is that recipe value scales with task complexity, and the A/B numbers underestimate the absolute save at production scale (the same recipe collapsing the same amount of structure, applied to a 1M-token task instead of a 70K-token task, would save proportionally more). The fix is either re-running calibrations on representative-sized targets, or treating the A/B save as a lower bound. I haven't done the former; the document treats the A/B save as what it is.</p>
 
