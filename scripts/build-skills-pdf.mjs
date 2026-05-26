@@ -244,7 +244,22 @@ function renderBuiltInsSection(refs) {
       const tagline = esc(br.description);
       const skill = `<td class="skill"><span class="name">${esc(br.label)}</span><span class="tagline">${tagline}</span></td>`;
       const status = `<td class="status"><span class="chip chip-measured">measured</span>${lastSeen}</td>`;
-      const measuredCost = `<td class="num-cell num-cell-measured-cost"><span class="num-cell-big">${fmt(br.tokens_per_use_avg)}</span><span class="num-cell-unit">tokens / use</span></td>`;
+      // Accuracy footer is shown when the per-invocation stats are present —
+      // `build-review-stats.mjs` populates them by re-scanning local JSONLs
+      // and computing min/max/σ across the N sessions. Without those the row
+      // falls back to the single "tokens / use" label (same shape as the
+      // custom-skill rows). The spread is wide enough on /review that the
+      // honesty matters: σ ≈ mean is a real signal about how much a single
+      // invocation's cost can vary.
+      const hasAccuracy =
+        typeof br.tokens_per_use_min === 'number' &&
+        typeof br.tokens_per_use_max === 'number' &&
+        typeof br.tokens_per_use_stddev === 'number' &&
+        typeof br.invocations_in_window === 'number';
+      const accuracyLine = hasAccuracy
+        ? `<span class="num-cell-sub">avg of ${br.invocations_in_window} runs · range ${fmt(br.tokens_per_use_min)}–${fmt(br.tokens_per_use_max)} · σ ${fmt(br.tokens_per_use_stddev)}</span>`
+        : '';
+      const measuredCost = `<td class="num-cell num-cell-measured-cost"><span class="num-cell-big">${fmt(br.tokens_per_use_avg)}</span><span class="num-cell-unit">tokens / use</span>${accuracyLine}</td>`;
       const dash = `<td class="num-cell">—</td>`;
       const measuredSave =
         typeof br.tokens_saved_per_use === 'number'
