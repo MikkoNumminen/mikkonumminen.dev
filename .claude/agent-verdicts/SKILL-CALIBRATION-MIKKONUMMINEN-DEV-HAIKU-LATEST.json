@@ -3,7 +3,7 @@
   "model": "haiku",
   "target_repo": "mikkonumminen.dev",
   "base_commit": null,
-  "methodology": "Haiku calibration across batches 1 + 2 on 2026-05-26. Arm A: Haiku sub-agent solves the task cold, no SKILL.md access. Arm B: Haiku sub-agent reads d:/koodaamista/mikkonumminen.dev/.claude/skills/<name>/SKILL.md and follows it. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded. skill-localUpdate covered in SAMPLE; sync-readmes arm B hit session-token wall in batch 2 (arm A captured only), pending re-dispatch after 7:20am Helsinki reset.",
+  "methodology": "Haiku calibration across batches 1 + 2 + completion on 2026-05-26. Arm A: Haiku sub-agent solves the task cold, no SKILL.md access. Arm B: Haiku sub-agent reads d:/koodaamista/mikkonumminen.dev/.claude/skills/<name>/SKILL.md and follows it. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded. skill-localUpdate covered in SAMPLE.",
   "task_briefs": {
     "md-to-pdf": "Plan rendering docs/audits/builtin-review-calibration-2026-05-22.md to PDF on Windows. Tools, HTML/CSS, page setup, output size. Plan only.",
     "skill-localUpdate": "Plan a local refresh pass of skills-registry.json + skills-registry.pdf for d:/koodaamista/mikkonumminen.dev. Plan only.",
@@ -14,19 +14,19 @@
     {"name": "md-to-pdf",         "arm_A_tokens": 59018, "arm_B_tokens": 26999, "saved": 32019, "pct_saved": 54, "notes": "Highest save in batch (+54%). Haiku arm A spent extensively (59K) deriving the markdown→PDF pipeline cold (analyzing 5 source files); arm B's recipe collapses to a directed walk."},
     {"name": "skill-localUpdate", "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,  "pct_saved": null, "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."},
     {"name": "skill-registry",    "arm_A_tokens": 20402, "arm_B_tokens": 26881, "saved": -6479, "pct_saved": -32, "notes": "Cost-more on Haiku (-32%) matches Sonnet (-38%) and Opus (-39%) — model-invariant pattern. Skill's value is spec depth, not compression."},
-    {"name": "sync-readmes",      "arm_A_tokens": 45568, "arm_B_tokens": null,  "saved": null,  "pct_saved": null, "notes": "Arm B hit harness session-token wall in batch 2 dispatch; pending re-dispatch after 7:20am Helsinki reset."}
+    {"name": "sync-readmes",      "arm_A_tokens": 45568, "arm_B_tokens": 56311, "saved": -10743, "pct_saved": -24, "notes": "Arm B re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. Cost-more -24% on Haiku vs Sonnet's -11% and Opus's +17%. Haiku arm B paid more (56K) for the structured drift-axes walk; arm A's cold scan was cheaper. Different sign from Opus because Opus's cold arm did MORE exploration cold."}
   ],
   "aggregate_clean": {
-    "skills_measured": 2,
-    "arm_A_total": 79420,
-    "arm_B_total": 53880,
-    "saved_total": 25540,
-    "pct_saved": 32,
-    "sonnet_comparison_total": {"arm_A": 51378, "arm_B": 42930, "saved": 8448, "pct_saved": 16}
+    "skills_measured": 3,
+    "arm_A_total": 124988,
+    "arm_B_total": 110191,
+    "saved_total": 14797,
+    "pct_saved": 12,
+    "sonnet_comparison_total": {"arm_A": 84263, "arm_B": 79460, "saved": 4803, "pct_saved": 6}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Tiny aggregate (2 paired); md-to-pdf's strong save (+54%) drives the +32% vs Sonnet's +16%.",
-    "sync-readmes arm B pending re-dispatch — when it lands, the aggregate will likely narrow given Sonnet -11% / Opus +17% on that skill."
+    "Now complete — all 3 native skills paired (skill-localUpdate in SAMPLE).",
+    "Haiku +12% vs Sonnet +6% on this 3-skill subset. md-to-pdf carries the aggregate (+54% save); skill-registry (-32%) and sync-readmes (-24%) both cost-more. The +12% headline is heavily dependent on md-to-pdf — without it, Haiku would be -32% on this portfolio."
   ]
 }
