@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-05-26T00:00:00Z",
+  "generated_at": "2026-05-26T15:00:00Z",
   "model": "opus",
   "target_repo": "AudiobookMaker",
   "scope": "Full-portfolio Opus calibration of every skill in this repo not already covered by SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json (which holds copyright-scan).",
-  "methodology": "Same A/B methodology as the Sonnet runs. Arm A: Opus sub-agent solves the task cold, no SKILL.md access. Arm B: Opus sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. N=1 per skill per arm.",
+  "methodology": "Same A/B methodology as the Sonnet runs. Arm A: Opus sub-agent solves the task cold, no SKILL.md access. Arm B: Opus sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Token usage from harness's per-sub-agent usage.total_tokens — input + output + cache_creation; cache_read excluded. N=1 per skill per arm. Clean re-baseline 2026-05-26 in fresh isolated worktrees with simultaneous arm A + arm B dispatch — eliminates artifact-contamination risk from the original 2026-05-25/26 re-dispatches.",
   "task_briefs": {
     "ci-failure-triage": "Triage hypothetical CI failure: pytest collection error importing AudiobookSession from src.audiobook.session. Produce a fix plan.",
     "pronunciation-corpus-add": "Add Finnish pronunciation failure ('tervetuloa' as 'ter-ve-too-loa') to docs/pronunciation_corpus_fi.md. Output proposed entry only, no actual write.",
@@ -16,24 +16,24 @@
   "skills": [
     {"name": "ci-failure-triage",        "arm_A_tokens": 30587, "arm_B_tokens": 27597, "saved":  2990, "pct_saved":  10},
     {"name": "pronunciation-corpus-add", "arm_A_tokens": 41898, "arm_B_tokens": 25356, "saved": 16542, "pct_saved":  39},
-    {"name": "release-bundle-audit",     "arm_A_tokens": 93804, "arm_B_tokens": 70045, "saved": 23759, "pct_saved":  25, "notes": "Re-dispatched arm A on 2026-05-26 after the session-limit reset. FLIPPED from Sonnet's -12% to Opus's +25% — Opus arm A explored more (10 findings vs presumed similar Sonnet count) but arm B was tighter (70K vs Sonnet's 86K). Audit skill's value rises when the cold model spends more on the task."},
-    {"name": "release-cut",              "arm_A_tokens": 67162, "arm_B_tokens": 33023, "saved": 34139, "pct_saved":  51, "notes": "Re-dispatched arm A on 2026-05-26. Strong save (51%) — much more than Sonnet's 17%. The 9-phase release-cut walk compresses cleanly when Opus arm A would otherwise explore the CI workflow + version drift guards from scratch."},
+    {"name": "release-bundle-audit",     "arm_A_tokens": 79589, "arm_B_tokens": 80135, "saved": -546, "pct_saved":  -1, "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +25% was artifact-contamination — clean arm A is 14K cheaper (94K→80K) and arm B stayed comparable; recipe overhead now matches cold-walk cost."},
+    {"name": "release-cut",              "arm_A_tokens": 65477, "arm_B_tokens": 33994, "saved": 31483, "pct_saved":  48, "notes": "Clean re-baseline 2026-05-26. Strong save (48%) — prior 51% was within noise; recipe still compresses the 9-phase release-cut walk cleanly."},
     {"name": "voice-pack-finnish",       "arm_A_tokens": 45342, "arm_B_tokens": 36449, "saved":  8893, "pct_saved":  20},
     {"name": "work-session",             "arm_A_tokens": 30093, "arm_B_tokens": 33139, "saved": -3046, "pct_saved": -10, "notes": "Skill encodes status-board protocol rigor — costs slightly more on Opus, same direction as Sonnet."},
     {"name": "worktree-launch",          "arm_A_tokens": 34440, "arm_B_tokens": 26267, "saved":  8173, "pct_saved":  24}
   ],
   "aggregate_clean": {
     "skills_measured": 7,
-    "arm_A_total": 343326,
-    "arm_B_total": 251876,
-    "saved_total":  91450,
-    "pct_saved":  27,
+    "arm_A_total": 327426,
+    "arm_B_total": 262937,
+    "saved_total":  64489,
+    "pct_saved":  20,
     "sonnet_comparison_total": {"arm_A": 276717, "arm_B": 231194, "saved": 45523, "pct_saved": 16}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Now complete — release-bundle-audit and release-cut arm A re-dispatched 2026-05-26 after the original session-limit failures.",
+    "Clean re-baseline 2026-05-26: all measurements in this file replaced by fresh A/B runs. Aggregate shifted from contaminated +27% to clean +20% — artifact contamination was inflating Opus save rates, particularly for release-bundle-audit (which flipped sign) and release-cut (which narrowed from 51% to 48%).",
     "Sonnet comparison aggregate computed across the same 7 paired skills for apples-to-apples.",
-    "Notable: Opus saves MORE than Sonnet here (27% vs 16%) — opposite of the SAMPLE pattern. The two re-dispatched skills (release-bundle-audit +25%, release-cut +51%) tipped the portfolio aggregate positive because both saved much more on Opus than Sonnet."
+    "Opus still saves more than Sonnet here (20% vs 16%) — recipe value holds on this portfolio but is less dramatic than the contaminated runs suggested."
   ]
 }
