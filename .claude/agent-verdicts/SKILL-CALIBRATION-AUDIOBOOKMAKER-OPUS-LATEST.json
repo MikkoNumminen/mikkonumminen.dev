@@ -16,23 +16,24 @@
   "skills": [
     {"name": "ci-failure-triage",        "arm_A_tokens": 30587, "arm_B_tokens": 27597, "saved":  2990, "pct_saved":  10},
     {"name": "pronunciation-corpus-add", "arm_A_tokens": 41898, "arm_B_tokens": 25356, "saved": 16542, "pct_saved":  39},
-    {"name": "release-bundle-audit",     "arm_A_tokens": null,  "arm_B_tokens": 70045, "saved": null,  "pct_saved": null, "notes": "Arm A hit session limit during 2026-05-25 Opus dispatch; pending re-dispatch."},
-    {"name": "release-cut",              "arm_A_tokens": null,  "arm_B_tokens": 33023, "saved": null,  "pct_saved": null, "notes": "Arm A hit session limit during 2026-05-25 Opus dispatch; pending re-dispatch."},
+    {"name": "release-bundle-audit",     "arm_A_tokens": 93804, "arm_B_tokens": 70045, "saved": 23759, "pct_saved":  25, "notes": "Re-dispatched arm A on 2026-05-26 after the session-limit reset. FLIPPED from Sonnet's -12% to Opus's +25% — Opus arm A explored more (10 findings vs presumed similar Sonnet count) but arm B was tighter (70K vs Sonnet's 86K). Audit skill's value rises when the cold model spends more on the task."},
+    {"name": "release-cut",              "arm_A_tokens": 67162, "arm_B_tokens": 33023, "saved": 34139, "pct_saved":  51, "notes": "Re-dispatched arm A on 2026-05-26. Strong save (51%) — much more than Sonnet's 17%. The 9-phase release-cut walk compresses cleanly when Opus arm A would otherwise explore the CI workflow + version drift guards from scratch."},
     {"name": "voice-pack-finnish",       "arm_A_tokens": 45342, "arm_B_tokens": 36449, "saved":  8893, "pct_saved":  20},
     {"name": "work-session",             "arm_A_tokens": 30093, "arm_B_tokens": 33139, "saved": -3046, "pct_saved": -10, "notes": "Skill encodes status-board protocol rigor — costs slightly more on Opus, same direction as Sonnet."},
     {"name": "worktree-launch",          "arm_A_tokens": 34440, "arm_B_tokens": 26267, "saved":  8173, "pct_saved":  24}
   ],
   "aggregate_clean": {
-    "skills_measured": 5,
-    "arm_A_total": 182360,
-    "arm_B_total": 148808,
-    "saved_total":  33552,
-    "pct_saved":  18,
-    "sonnet_comparison_total": {"arm_A": 163965, "arm_B": 115234, "saved": 48731, "pct_saved": 30}
+    "skills_measured": 7,
+    "arm_A_total": 343326,
+    "arm_B_total": 251876,
+    "saved_total":  91450,
+    "pct_saved":  27,
+    "sonnet_comparison_total": {"arm_A": 276717, "arm_B": 231194, "saved": 45523, "pct_saved": 16}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Aggregate excludes release-bundle-audit and release-cut (arm A failures pending re-dispatch).",
-    "Sonnet comparison aggregate computed across the same 5 paired skills for apples-to-apples."
+    "Now complete — release-bundle-audit and release-cut arm A re-dispatched 2026-05-26 after the original session-limit failures.",
+    "Sonnet comparison aggregate computed across the same 7 paired skills for apples-to-apples.",
+    "Notable: Opus saves MORE than Sonnet here (27% vs 16%) — opposite of the SAMPLE pattern. The two re-dispatched skills (release-bundle-audit +25%, release-cut +51%) tipped the portfolio aggregate positive because both saved much more on Opus than Sonnet."
   ]
 }
