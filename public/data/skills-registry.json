@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-26T23:10:59.552Z",
+  "generated_at": "2026-05-26T23:53:41.463Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -1599,14 +1599,14 @@
     {
       "name": "review",
       "label": "/review",
-      "description": "Claude Code built-in PR code review",
+      "description": "Claude Code built-in PR code review · session-grouped (current upstream parser)",
       "measurement_window_days": 90,
       "invocations_in_window": 14,
-      "total_tokens_in_window": 16023550,
-      "tokens_per_use_avg": 1144539,
+      "total_tokens_in_window": 16049221,
+      "tokens_per_use_avg": 1146373,
       "annual_total": 59853534,
       "uses_per_year": 57,
-      "last_invoked": "2026-05-26T23:15:15.725Z",
+      "last_invoked": "2026-05-26T23:26:55.151Z",
       "tokens_saved_per_use": 45738,
       "tokens_saved_source": "calibration",
       "calibration_arm_A": 72170,
@@ -1639,7 +1639,28 @@
       },
       "tokens_per_use_min": 4295,
       "tokens_per_use_max": 3730055,
-      "tokens_per_use_stddev": 1088635
+      "tokens_per_use_stddev": 1089549
+    },
+    {
+      "name": "review-per-invocation",
+      "label": "/review",
+      "description": "Claude Code built-in PR code review · per-invocation (corrected via parentUuid → promptId chain)",
+      "measurement_window_days": 90,
+      "invocations_in_window": 336,
+      "total_tokens_in_window": 16049221,
+      "tokens_per_use_avg": 47766,
+      "tokens_per_use_min": 1152,
+      "tokens_per_use_max": 980564,
+      "tokens_per_use_stddev": 133602,
+      "annual_total": 65105058,
+      "uses_per_year": 1363,
+      "last_invoked": "2026-05-26T23:26:55.151Z",
+      "tokens_saved_per_use": 45738,
+      "tokens_saved_source": "calibration",
+      "calibration_arm_A": 72170,
+      "calibration_arm_B": 26432,
+      "calibration_pct_saved": 63,
+      "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md"
     }
   ]
 }
