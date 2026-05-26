@@ -60,6 +60,10 @@ const fmtPrecise = (n) =>
 // (saved / armA) so what the reader sees on the row matches what they'd
 // compute themselves; also unifies both render paths (built-in carries a
 // pre-stored `calibration_pct_saved`, per-skill receipts don't).
+// `fmtPrecise` (not `fmt`) on the baseline value preserves precision at
+// the bottom end — current baselines run 16K–117K, where fmt would
+// collapse 16,225 and 19,500 to the same "16K"/"20K" reading. Matches
+// the accuracy-stats subline style on the /review row.
 function saveCellWithBaseline(value, armA) {
   const negative = value < 0;
   const cellClasses = ['num-cell', 'num-cell-measured-save'];
@@ -67,7 +71,7 @@ function saveCellWithBaseline(value, armA) {
   const display = negative ? `−${fmt(Math.abs(value))}` : fmt(value);
   const pct = armA > 0 ? Math.round((value / armA) * 100) : null;
   const pctText = pct != null ? ` · ${pct}%` : '';
-  return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmt(armA)} A/B baseline${pctText}</span></td>`;
+  return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmtPrecise(armA)} A/B baseline${pctText}</span></td>`;
 }
 
 function fmtGeneratedAt(iso) {
@@ -787,7 +791,7 @@ function renderMethodPage() {
 
   <h2>Regime gap: when measured cost and measured save come from different scales</h2>
   <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>
-  <p>Concrete: built-in <code>/review</code> shows <strong>1.05M tokens / use measured cost</strong> (averaged across 14 real-PR reviews, some over 3M tokens, some under 10K) next to <strong>46K tokens / use measured save</strong> (from one A/B on a 5-file PR where the cold arm spent 72K). Doing 46K ÷ 1.05M reads as a 4% save rate; the actual A/B finding was 46K ÷ 72K = 63% on the small PR. The same trap shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 3× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
+  <p>Concrete: built-in <code>/review</code> shows <strong>1.05M tokens / use measured cost</strong> (averaged across 14 real-PR reviews, some over 3M tokens, some under 10K) next to <strong>46K tokens / use measured save</strong> (from one A/B on a 5-file PR where the cold arm spent 72K). Doing 46K ÷ 1.05M reads as a 4% save rate; the actual A/B finding was 46K ÷ 72K = 63% on the small PR. The same trap shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
   <p>When a row hits this regime gap (transcript cost &gt; 2× the A/B arm-A baseline) the measured-save cell prints a subline making the baseline explicit: <em>vs &lt;armA&gt; A/B baseline · &lt;pct&gt;%</em>. Math on the row now works: <code>save ÷ baseline = pct</code> instead of <code>save ÷ visible-cost = misleading</code>. This isn't a correction — both numbers were always real. It's a labelling fix so a reader doesn't combine them wrong.</p>
   <p>The gap itself is the finding: <strong>the A/B calibration task isn't representative of what production runs of these skills actually look like</strong>. The honest read is that recipe value scales with task complexity, and the A/B numbers underestimate the absolute save at production scale (the same recipe collapsing the same amount of structure, applied to a 1M-token task instead of a 70K-token task, would save proportionally more). The fix is either re-running calibrations on representative-sized targets, or treating the A/B save as a lower bound. I haven't done the former; the document treats the A/B save as what it is.</p>
 
