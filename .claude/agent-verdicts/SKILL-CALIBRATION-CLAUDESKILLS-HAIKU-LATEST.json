@@ -41,6 +41,6 @@
   "caveats": [
     "N=1 per skill per arm.",
     "Now complete — all 8 library skills paired (audit/readme-drift-sync/skill-usage in SAMPLE).",
-    "Haiku -12% vs Sonnet +11% — a 23pp gap, the biggest portfolio-level model shift. Driven by: mikko-help widens (-62% Haiku vs -22% Sonnet), session-cost has a correctness-not-tokens cost (-89% Haiku because arm B walked sub-agents correctly while arm A short-counted), ai-codegen-smell-audit shrinks dramatically (+1% Haiku vs +48% Sonnet — the cold Haiku arm is already permissive enough). The library/meta skills as a category cost more on Haiku because the recipes encode rigor that Haiku pays in per-turn overhead."
+    "Haiku -12% vs Sonnet +11% — a 23pp gap. Cross-model picture: Sonnet +11%, Opus +13% (on the same 8 paired skills), Haiku -12%. Haiku is the OUTLIER, not Sonnet — the other two models track each other closely on claude-skills. Haiku's worse performance is driven by: mikko-help widens (-62% Haiku vs -22% Sonnet), session-cost has a correctness-not-tokens cost (-89% Haiku because arm B walked sub-agents correctly while arm A short-counted), ai-codegen-smell-audit shrinks dramatically (+1% Haiku vs +48% Sonnet, +47% Opus — the cold Haiku arm is already permissive enough). The library/meta skills as a category cost more on Haiku because the recipes encode rigor that Haiku pays in per-turn overhead."
   ]
 }

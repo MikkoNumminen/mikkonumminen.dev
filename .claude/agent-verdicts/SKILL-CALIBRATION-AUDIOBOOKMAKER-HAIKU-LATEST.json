@@ -35,6 +35,6 @@
   "caveats": [
     "N=1 per skill per arm.",
     "Now complete — all 7 native skills paired (copyright-scan in SAMPLE so excluded from this file's aggregate but covered in the multi-model picture).",
-    "Haiku +19% vs Sonnet +16% — close. Bimodal per-row: 4 rows save MORE on Haiku (release-bundle-audit's +20 vs -12 is the standout flip; worktree-launch, release-cut, voice-pack-finnish too), 3 save LESS or similar (ci-failure-triage 14 vs 43, pronunciation-corpus-add 7 vs 12, work-session -12 vs -10). Aggregate hides the dispersion."
+    "Haiku +19% vs Sonnet +16% — close. Bimodal per-row: 3 rows save MORE on Haiku (release-bundle-audit's +20 vs -12 is the standout flip; worktree-launch +23 vs +1; release-cut +29 vs +17), 4 save LESS or similar (ci-failure-triage 14 vs 43, pronunciation-corpus-add 7 vs 12, voice-pack-finnish 32 vs 52, work-session -12 vs -10). The aggregate +3pp gap is dominated by release-bundle-audit's 32pp flip; the rest broadly balances."
   ]
 }

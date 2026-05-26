@@ -27,6 +27,6 @@
   "caveats": [
     "N=1 per skill per arm.",
     "Now complete — all 3 native skills paired (skill-localUpdate in SAMPLE).",
-    "Haiku +12% vs Sonnet +6% on this 3-skill subset. md-to-pdf carries the aggregate (+54% save); skill-registry (-32%) and sync-readmes (-24%) both cost-more. The +12% headline is heavily dependent on md-to-pdf — without it, Haiku would be -32% on this portfolio."
+    "Haiku +12% vs Sonnet +6% on this 3-skill subset. md-to-pdf carries the aggregate (+54% save); skill-registry (-32%) and sync-readmes (-24%) both cost-more. The +12% headline is heavily dependent on md-to-pdf — excluding it leaves only the two cost-more rows (A=65970, B=83192) and the portfolio sub-aggregate flips to -26%."
   ]
 }
