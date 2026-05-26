@@ -1,9 +1,9 @@
 {
-  "generated_at": null,
+  "generated_at": "2026-05-26T00:30:00Z",
   "model": "haiku",
   "target_repo": "claude-skills",
   "base_commit": null,
-  "methodology": "PLACEHOLDER. Awaiting Haiku calibration run. When populated, methodology will mirror the Sonnet/Opus runs: arm A = Haiku sub-agent solves the task cold, no SKILL.md access; arm B = Haiku sub-agent reads d:/koodaamista/claude-skills/skills/<name>/SKILL.md and follows it. Both arms produce a real artifact. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded.",
+  "methodology": "Partial Haiku calibration (batch 1 of 2). Arm A: Haiku sub-agent solves the task cold, no SKILL.md access. Arm B: Haiku sub-agent reads d:/koodaamista/claude-skills/skills/<name>/SKILL.md and follows it. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded. audit, readme-drift-sync, skill-usage stay null here because they're in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json (overlay reads both); ai-codegen-smell-audit, security-audit, session-cost, skill-calibration pending in batch 2.",
   "task_briefs": {
     "audit": "Multi-phase robustness audit of mikkonumminen.dev/src/. Produce findings with severity tags.",
     "mikko-audit-suite": "Plan which mikko-* audits to run on mikkonumminen.dev and in what order. Index document only.",
@@ -16,15 +16,27 @@
     "skill-usage": "Scan local Claude Code JSONLs and produce a per-skill usage summary for the last 90 days."
   },
   "skills": [
-    {"name": "audit",                     "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "mikko-audit-suite",         "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "mikko-help",                "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "mikko-install",             "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "react-anti-patterns-audit", "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "readme-drift-sync",         "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "session-cost",              "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "skill-calibration",         "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null},
-    {"name": "skill-usage",               "arm_A_tokens": null, "arm_B_tokens": null, "saved": null, "pct_saved": null}
+    {"name": "audit",                     "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,    "pct_saved": null, "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."},
+    {"name": "mikko-audit-suite",         "arm_A_tokens": 37092, "arm_B_tokens": 34008, "saved": 3084,    "pct_saved":  8},
+    {"name": "mikko-help",                "arm_A_tokens": 20029, "arm_B_tokens": 32511, "saved": -12482,  "pct_saved": -62, "notes": "Significant cost-more on Haiku (-62%) vs Sonnet's -22%. The skill's recipe (read each SKILL.md's frontmatter) adds many parallel Read tool uses (16) that Haiku's smaller context window pays for more dearly than Sonnet's."},
+    {"name": "mikko-install",             "arm_A_tokens": 22980, "arm_B_tokens": 26186, "saved": -3206,   "pct_saved": -14, "notes": "Sonnet was -35%, Haiku -14% — Haiku narrows the cost-more, similar to the SAMPLE's mikko-install pattern."},
+    {"name": "react-anti-patterns-audit", "arm_A_tokens": 21004, "arm_B_tokens": 25474, "saved": -4470,   "pct_saved": -21, "notes": "Target has no React; both arms correctly bailed at pre-flight. Recipe's structured abort costs more than arm A's quick check — same pattern as Sonnet (-33%) but narrower."},
+    {"name": "readme-drift-sync",         "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,    "pct_saved": null, "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."},
+    {"name": "session-cost",              "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,    "pct_saved": null, "notes": "Pending batch 2."},
+    {"name": "skill-calibration",         "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,    "pct_saved": null, "notes": "Pending batch 2."},
+    {"name": "skill-usage",               "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,    "pct_saved": null, "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."}
   ],
-  "aggregate": null
+  "aggregate_clean": {
+    "skills_measured": 4,
+    "arm_A_total": 101105,
+    "arm_B_total": 118179,
+    "saved_total": -17074,
+    "pct_saved": -17,
+    "sonnet_comparison_total": {"arm_A": 77612, "arm_B": 98495, "saved": -20883, "pct_saved": -27}
+  },
+  "caveats": [
+    "N=1 per skill per arm.",
+    "Aggregate covers 4 of 8 library skills (audit/readme-drift-sync/skill-usage in SAMPLE; ai-codegen-smell-audit/security-audit/session-cost/skill-calibration pending batch 2).",
+    "Haiku narrows the claude-skills cost-more from -27% (Sonnet) to -17% (Haiku) — opposite of the Opus pattern where cost-more narrowed to -3%. Library/meta skills still cost more on Haiku because the recipes encode rigor that Haiku pays in per-turn overhead."
+  ]
 }
