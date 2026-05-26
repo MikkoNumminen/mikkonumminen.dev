@@ -461,6 +461,20 @@ table.skills td.num-cell .num-cell-unit {
   font-weight: 400;
 }
 
+/* Accuracy footer on rows where per-invocation stats exist (today: built-in
+   /review only, populated by `build-review-stats.mjs`). One line under the
+   unit label, smaller and dimmer so the headline number stays the focal
+   point. */
+table.skills td.num-cell .num-cell-sub {
+  display: block;
+  margin-top: 1pt;
+  font-size: 6.75pt;
+  color: var(--ink-mute);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.25;
+}
+
 table.skills td.num-cell-measured-cost .num-cell-big,
 table.skills td.num-cell-measured-save .num-cell-big {
   color: var(--calib-ok);

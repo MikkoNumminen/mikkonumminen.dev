@@ -38,6 +38,13 @@ const fmt = (n) =>
       ? `${(n / 1_000).toFixed(0)}K`
       : String(n);
 
+// Like `fmt` but preserves an order-of-magnitude signal at the low end —
+// `fmt(4295)` collapses to "4K" (same as 14K, 40K), which is misleading
+// for accuracy footers where the spread itself is the point. Below 100K we
+// show comma-separated raw integers; above we fall through to fmt.
+const fmtPrecise = (n) =>
+  n < 100_000 ? n.toLocaleString('en-US') : fmt(n);
+
 function fmtGeneratedAt(iso) {
   const s = iso.replace('Z', '');
   const [datePart, timePart] = s.split('T');
@@ -244,7 +251,22 @@ function renderBuiltInsSection(refs) {
       const tagline = esc(br.description);
       const skill = `<td class="skill"><span class="name">${esc(br.label)}</span><span class="tagline">${tagline}</span></td>`;
       const status = `<td class="status"><span class="chip chip-measured">measured</span>${lastSeen}</td>`;
-      const measuredCost = `<td class="num-cell num-cell-measured-cost"><span class="num-cell-big">${fmt(br.tokens_per_use_avg)}</span><span class="num-cell-unit">tokens / use</span></td>`;
+      // Accuracy footer is shown when the per-invocation stats are present —
+      // `build-review-stats.mjs` populates them by re-scanning local JSONLs
+      // and computing min/max/σ across the N sessions. Without those the row
+      // falls back to the single "tokens / use" label (same shape as the
+      // custom-skill rows). The spread is wide enough on /review that the
+      // honesty matters: σ ≈ mean is a real signal about how much a single
+      // invocation's cost can vary.
+      const hasAccuracy =
+        typeof br.tokens_per_use_min === 'number' &&
+        typeof br.tokens_per_use_max === 'number' &&
+        typeof br.tokens_per_use_stddev === 'number' &&
+        typeof br.invocations_in_window === 'number';
+      const accuracyLine = hasAccuracy
+        ? `<span class="num-cell-sub">avg of ${br.invocations_in_window} runs · range ${fmtPrecise(br.tokens_per_use_min)}–${fmtPrecise(br.tokens_per_use_max)} · σ ${fmtPrecise(br.tokens_per_use_stddev)}</span>`
+        : '';
+      const measuredCost = `<td class="num-cell num-cell-measured-cost"><span class="num-cell-big">${fmt(br.tokens_per_use_avg)}</span><span class="num-cell-unit">tokens / use</span>${accuracyLine}</td>`;
       const dash = `<td class="num-cell">—</td>`;
       const measuredSave =
         typeof br.tokens_saved_per_use === 'number'
