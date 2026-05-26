@@ -20,21 +20,21 @@
     {"name": "pronunciation-corpus-add", "arm_A_tokens": 23667, "arm_B_tokens": 21978, "saved": 1689,  "pct_saved": 7},
     {"name": "release-bundle-audit",     "arm_A_tokens": 51966, "arm_B_tokens": 41357, "saved": 10609, "pct_saved": 20, "notes": "Sonnet was -12% (cost-more); Haiku is +20% (saves). Recipe pays off more for the smaller model on bundle-spec audits."},
     {"name": "release-cut",              "arm_A_tokens": 54920, "arm_B_tokens": 39246, "saved": 15674, "pct_saved": 29},
-    {"name": "voice-pack-finnish",       "arm_A_tokens": null,  "arm_B_tokens": 33040, "saved": null,  "pct_saved": null, "notes": "Arm A hit harness session-token wall in batch 2 dispatch; pending re-dispatch after 7:20am Helsinki reset."},
+    {"name": "voice-pack-finnish",       "arm_A_tokens": 48315, "arm_B_tokens": 33040, "saved": 15275, "pct_saved": 32, "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +32% save on Haiku vs Sonnet's +52% — recipe value smaller for Haiku because arm A already mapped the 5-stage pipeline (voice-pack-analyze/export/train/package) cold in 13 tool uses."},
     {"name": "work-session",             "arm_A_tokens": 24418, "arm_B_tokens": 27424, "saved": -3006, "pct_saved": -12, "notes": "Cost-more on Haiku (-12%) similar to Sonnet (-10%) and Opus (-10%). Skill encodes status-board protocol rigor — cost-not-tokens pattern is model-invariant here."},
     {"name": "worktree-launch",          "arm_A_tokens": 38492, "arm_B_tokens": 29620, "saved": 8872,  "pct_saved": 23, "notes": "Sonnet was +1%, Opus +24%, Haiku +23% — recipe value grows substantially from Sonnet to bigger and smaller models alike. Both Opus and Haiku derive the worktree protocol from scratch more expensively than Sonnet does."}
   ],
   "aggregate_clean": {
-    "skills_measured": 6,
-    "arm_A_total": 237806,
-    "arm_B_total": 197899,
-    "saved_total": 39907,
-    "pct_saved": 17,
-    "sonnet_comparison_total": {"arm_A": 220786, "arm_B": 204603, "saved": 16183, "pct_saved": 7}
+    "skills_measured": 7,
+    "arm_A_total": 286121,
+    "arm_B_total": 230939,
+    "saved_total": 55182,
+    "pct_saved": 19,
+    "sonnet_comparison_total": {"arm_A": 276717, "arm_B": 231194, "saved": 45523, "pct_saved": 16}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Aggregate covers 6 of 7 native skills (copyright-scan in SAMPLE; voice-pack-finnish arm A pending re-dispatch).",
-    "Haiku +17% vs Sonnet +7% on this 6-skill subset — Haiku saves 2.4x. But the gap is heavily driven by release-bundle-audit's flip (+20% Haiku vs -12% Sonnet, a 32pp swing); other 5 rows split: 3 better on Haiku (worktree-launch +22pp, release-cut +12pp, work-session basically tied), 2 worse on Haiku (ci-failure-triage 14 vs 43 → -29pp, pronunciation-corpus-add 7 vs 12 → -5pp). Aggregate masks the bimodal shape."
+    "Now complete — all 7 native skills paired (copyright-scan in SAMPLE so excluded from this file's aggregate but covered in the multi-model picture).",
+    "Haiku +19% vs Sonnet +16% — close. Bimodal per-row: 3 rows save MORE on Haiku (release-bundle-audit's +20 vs -12 is the standout flip; worktree-launch +23 vs +1; release-cut +29 vs +17), 4 save LESS or similar (ci-failure-triage 14 vs 43, pronunciation-corpus-add 7 vs 12, voice-pack-finnish 32 vs 52, work-session -12 vs -10). The aggregate +3pp gap is dominated by release-bundle-audit's 32pp flip; the rest broadly balances."
   ]
 }

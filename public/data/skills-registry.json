@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-26T10:52:08.265Z",
+  "generated_at": "2026-05-26T12:18:44.181Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -272,6 +272,16 @@
                 "pct_saved": 20,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
                 "notes": null,
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 48315,
+                "arm_B_tokens": 33040,
+                "saved": 15275,
+                "pct_saved": 32,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json",
+                "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +32% save on Haiku vs Sonnet's +52% — recipe value smaller for Haiku because arm A already mapped the 5-stage pipeline (voice-pack-analyze/export/train/package) cold in 13 tool uses.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -694,6 +704,16 @@
                 "notes": "Re-dispatched arm A on 2026-05-26. Save +46%. Notable: arm A correctly flagged the survival-mechanic gap (the brief's '4-min survival win' doesn't match existing WaveManager semantics) — the recipe didn't shield arm B from missing the same issue, but did make arm A's discovery cheaper.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 40605,
+                "arm_B_tokens": 32833,
+                "saved": 7772,
+                "pct_saved": 19,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26 after 7:20am reset. +19% save on Haiku vs Sonnet's +37% — recipe value compresses for Haiku because its cold arm (40K) explored more efficiently than Sonnet's (79K).",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               }
             }
           }
@@ -730,6 +750,16 @@
                 "notes": "Re-dispatched arm A on 2026-05-26. Save +53%. Arm A had to discover the PerkController switch-case pattern and shield-regen multiplier wiring cold; arm B's recipe collapses this.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 54416,
+                "arm_B_tokens": 38079,
+                "saved": 16337,
+                "pct_saved": 30,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. +30% save on Haiku, between Sonnet (+32%) and Opus (+53%). Recipe consistently helps across all 3 models.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               }
             }
           }
@@ -764,6 +794,16 @@
                 "pct_saved": 71,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
                 "notes": "Re-dispatched arm A on 2026-05-26. BIGGEST save in the portfolio (+71%). Arm A traced 11 files of cascading edits cold (galaxy bed, loot pools, story triggers, audio assets); arm B's structured recipe knows the dependency graph.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 48394,
+                "arm_B_tokens": 40835,
+                "saved": 7559,
+                "pct_saved": 16,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
+                "notes": "Re-dispatched arm A on 2026-05-26. +16% save on Haiku — much smaller than Sonnet (+9% but very tight) or Opus (+71%). The Haiku cold arm (48K) explored less than Opus's (97K), so the recipe-vs-cold gap is smaller.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -803,6 +843,16 @@
                 "pct_saved": 20,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
                 "notes": "Re-dispatched 2026-05-26 after both arms failed. Both arms surfaced the same key boundary issue (the skill needs a new on-mission-complete trigger kind that doesn't exist yet); the recipe gave arm B a slight edge in directness.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 59853,
+                "arm_B_tokens": 43368,
+                "saved": 16485,
+                "pct_saved": 28,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
+                "notes": "Re-dispatched both arms on 2026-05-26. +28% save on Haiku, slightly less than Sonnet's +29% and substantially more than Opus's +20%. Recipe value is consistent across models for this skill.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -850,6 +900,16 @@
                 "notes": "Re-dispatched 2026-05-26 after both arms failed. Strong +40% save. The 8-layer save round-trip walk has clear procedure value; arm A spent more tokens deriving the layer order from grep.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 70113,
+                "arm_B_tokens": 59160,
+                "saved": 10953,
+                "pct_saved": 16,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
+                "notes": "Re-dispatched both arms on 2026-05-26. +16% save on Haiku, smaller than Sonnet's (+10%) and Opus's (+40%). Both arms are expensive on Haiku because the 8-layer round-trip walk is inherent work.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
               }
             }
           }
@@ -894,6 +954,16 @@
                 "pct_saved": 47,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
                 "notes": "Re-dispatched 2026-05-26 after both arms session-limit failed. Save rate 47% on Opus vs Sonnet's 48% — strikingly consistent across models. Largest absolute save in claude-skills. Arm A explored 10 candidate findings vs arm B's 1 (the structured Opus arm A is more permissive); arm B's stricter inclusion criteria save tokens while raising precision.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 60702,
+                "arm_B_tokens": 60206,
+                "saved": 496,
+                "pct_saved": 1,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json",
+                "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +1% save on Haiku — near-break-even. Sonnet was +48%, Opus +47%; Haiku doesn't get the same recipe benefit because the cold arm explores broadly (12 LOW findings) and arm B's stricter inclusion criteria don't compress the work as much.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1266,7 +1336,7 @@
                 "saved": -26482,
                 "pct_saved": -89,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json",
-                "notes": "CORRECTNESS-not-tokens win for the recipe. Haiku arm A measured only main thread (10.6M tokens reported, missed sub-agents); arm B followed the SKILL.md and walked sub-agent JSONLs too (20.6M tokens reported, correct). Arm B paid more TOKENS to do more thorough work — the -89% pct_saved here understates the recipe's value: it's a correctness win, not a compression win. Same pattern as the Opus session-cost (arm A counted cache_read incorrectly).",
+                "notes": "CORRECTNESS-not-tokens win for the recipe. Haiku arm A measured only main thread (10.6M tokens reported, missed sub-agents); arm B followed the SKILL.md and walked sub-agent JSONLs too (20.6M tokens reported, correct). Arm B paid more TOKENS to do more thorough work — the -89% pct_saved misrepresents the recipe's value: it's a correctness win (arm A's answer was wrong), not a compression failure. Same pattern as the Opus session-cost (arm A counted cache_read incorrectly).",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1554,6 +1624,16 @@
                 "pct_saved": 17,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json",
                 "notes": "Re-dispatched arm A on 2026-05-26. FLIPPED from Sonnet's -11% to Opus's +17% — Opus arm A was more thorough on the cold walk (24 tool uses, 8 drifts) but arm B's prescribed drift-axes procedure compressed the work. Tracks the SAMPLE's readme-drift-sync narrowing pattern: meta/library skills look less cost-negative on Opus.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 45568,
+                "arm_B_tokens": 56311,
+                "saved": -10743,
+                "pct_saved": -24,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json",
+                "notes": "Arm B re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. Cost-more -24% on Haiku vs Sonnet's -11% and Opus's +17%. Haiku arm B paid more (56K) for the structured drift-axes walk; arm A's cold scan was cheaper. Different sign from Opus because Opus's cold arm did MORE exploration cold.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
