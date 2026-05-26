@@ -15,6 +15,7 @@
     "typecheck": "astro check",
     "build:og": "node scripts/build-og.mjs",
     "build:skills-pdf": "node scripts/build-skills-pdf.mjs",
+    "build:review-stats": "node scripts/build-review-stats.mjs",
     "sync:skills-registry": "node scripts/sync-skill-registry.mjs",
     "prebuild": "npm run sync:skills-registry && npm run build:skills-pdf",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,mjs,astro,json,css}\" \"*.{ts,mjs,json}\"",

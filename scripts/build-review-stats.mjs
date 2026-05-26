@@ -15,7 +15,23 @@
 // subline beneath /review's cost cell — "avg of N runs · range LO–HI · σ S".
 // No upstream change to claude-skills required; runs entirely off local data.
 //
+// Chain order: run this AFTER `node scripts/apply-measurement-overlay.mjs`.
+// Both scripts write `tokens_per_use_avg`, `invocations_in_window`,
+// `total_tokens_in_window`, and `last_invoked` on /review's row. They
+// produce ≈the same numbers today (both scan local JSONLs via different
+// paths), but second-write-wins, so the explicit order is: overlay first
+// (handles every measured row), then this script (enriches /review with
+// per-invocation stats). Not chained into `prebuild:skills-pdf` because it
+// depends on local user data under ~/.claude/projects/ — mirrors how the
+// overlay step is also manual, not auto-built.
+//
+// CI behavior: when ~/.claude/projects/ is missing (build server, fresh
+// clone, CI runner), the script exits 0 with a no-op message and leaves
+// the committed stats untouched. That keeps CI builds deterministic
+// without forcing every developer to keep stats fresh on every commit.
+//
 // Usage: node scripts/build-review-stats.mjs [--window-days 90]
+//        npm run build:review-stats
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -107,8 +123,11 @@ function stats(values) {
   const n = values.length;
   const sum = values.reduce((a, b) => a + b, 0);
   const mean = sum / n;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  // reduce form rather than spread — Math.min(...values) and Math.max(...values)
+  // blow up around ~100K args. /review's 14 sessions wouldn't hit that, but
+  // when this generalizes to every skill, some have hundreds of invocations.
+  const min = values.reduce((a, b) => (a < b ? a : b));
+  const max = values.reduce((a, b) => (a > b ? a : b));
   // Population stddev — we have the full window, not a sample of it.
   const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
   const stddev = Math.sqrt(variance);
@@ -125,14 +144,26 @@ function stats(values) {
 const args = parseArgs(process.argv.slice(2));
 const cutoffMs = Date.now() - args.windowDays * 86_400_000;
 
+// Soft no-op when the local Claude Code transcript directory is missing — CI
+// runners and fresh clones don't have ~/.claude/projects/, and we don't want
+// to fail prebuild chains that include this script. The committed stats from
+// the last developer-machine run stay intact.
+if (!fs.existsSync(PROJECTS_DIR)) {
+  console.log(`No ~/.claude/projects/ found — skipping /${SKILL_NAME} stats refresh (existing stats preserved).`);
+  process.exit(0);
+}
+
 const files = listJsonlFiles(PROJECTS_DIR);
 const records = scanReviewRecords(files, cutoffMs);
 const { perSession, lastInvoked } = perSessionTotals(records);
 const s = stats(perSession);
 
 if (!s) {
-  console.error(`No /${SKILL_NAME} invocations found in the last ${args.windowDays} days.`);
-  process.exit(1);
+  // Same rationale as the missing-dir case: no /review invocations in window
+  // is a developer-state condition, not a build failure. Preserve committed
+  // stats and move on.
+  console.log(`No /${SKILL_NAME} invocations found in the last ${args.windowDays} days — skipping stats refresh.`);
+  process.exit(0);
 }
 
 const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
