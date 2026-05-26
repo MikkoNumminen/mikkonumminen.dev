@@ -268,9 +268,22 @@ function renderBuiltInsSection(refs) {
         : '';
       const measuredCost = `<td class="num-cell num-cell-measured-cost"><span class="num-cell-big">${fmt(br.tokens_per_use_avg)}</span><span class="num-cell-unit">tokens / use</span>${accuracyLine}</td>`;
       const dash = `<td class="num-cell">—</td>`;
+      // Regime mismatch on built-in row: cost is from production transcripts
+      // (`tokens_per_use_avg`), save is from a single small-PR A/B calibration
+      // (`tokens_saved_per_use` vs `calibration_arm_A`). When the transcript
+      // cost is much larger than the A/B baseline, the bare "(63%)" reads as
+      // if it applies to the visible cost — actually it's 63% of the much
+      // smaller A/B baseline. Surface the baseline in a subline when the gap
+      // is real. /review hits 14.6× — far past the 2× threshold.
+      const brRegimeMismatch =
+        typeof br.calibration_arm_A === 'number' &&
+        typeof br.tokens_per_use_avg === 'number' &&
+        br.tokens_per_use_avg > br.calibration_arm_A * 2;
       const measuredSave =
         typeof br.tokens_saved_per_use === 'number'
-          ? `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`
+          ? brRegimeMismatch
+            ? `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmt(br.calibration_arm_A)} A/B baseline${typeof br.calibration_pct_saved === 'number' ? ` · ${br.calibration_pct_saved}%` : ''}</span></td>`
+            : `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`
           : dash;
       // estimated-cost has no source for built-ins (no SKILL.md author).
       // estimated-save uses the project-wide 3× baseline heuristic so the row
@@ -463,10 +476,40 @@ function renderSkillRow(repoName, s) {
     return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span></td>`;
   }
 
+  // Regime mismatch: the measured cost comes from production transcripts
+  // (per-use averaged across N real invocations) but the measured save comes
+  // from a single small-PR A/B calibration. Production cost can run 5–15× the
+  // A/B baseline, so the raw % (saved / armA) reads wrong if anchored to the
+  // visible cost. When that gap is real (transcript-cost > 2× A/B baseline),
+  // surface the A/B baseline in a subline so the math is verifiable on the
+  // row itself: reader sees "46K saved · vs 72K A/B baseline · 63%" rather
+  // than "46K (63%)" with no anchor. The gap itself is a finding — see the
+  // methodology page note on calibration representativeness.
+  const regimeMismatch =
+    rec?.source === 'transcript-measurement' &&
+    rec?.tokens_saved_source === 'calibration' &&
+    typeof rec?.calibration_arm_A === 'number' &&
+    typeof rec?.tokens_per_use === 'number' &&
+    rec.tokens_per_use > rec.calibration_arm_A * 2;
+
+  function saveCellWithBaseline(value, armA) {
+    const negative = value < 0;
+    const cellClasses = ['num-cell', 'num-cell-measured-save'];
+    if (negative) cellClasses.push('cell-negative');
+    const display = negative ? `−${fmt(Math.abs(value))}` : fmt(value);
+    const pct = armA > 0 ? Math.round((value / armA) * 100) : null;
+    const pctText = pct != null ? ` · ${pct}%` : '';
+    return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmt(armA)} A/B baseline${pctText}</span></td>`;
+  }
+
+  const measuredSaveCell = regimeMismatch
+    ? saveCellWithBaseline(measuredSave, rec.calibration_arm_A)
+    : num(measuredSave, 'measured-save');
+
   const skillCell = `<td class="skill"><span class="name">${linkedName}</span><span class="tagline">${tagline}</span></td>`;
   const statusCell = `<td class="status">${chip}${lastSeen}</td>`;
 
-  return `<tr class="${cls}">${skillCell}${statusCell}${num(measuredCost, 'measured-cost')}${num(measuredSave, 'measured-save')}${num(estimatedCost, 'est-cost')}${num(estimatedSave, 'est-save')}</tr>`;
+  return `<tr class="${cls}">${skillCell}${statusCell}${num(measuredCost, 'measured-cost')}${measuredSaveCell}${num(estimatedCost, 'est-cost')}${num(estimatedSave, 'est-save')}</tr>`;
 }
 
 function renderRepoSection(repo) {
@@ -728,6 +771,12 @@ function renderMethodPage() {
   <h2>How “measured save / use” is produced</h2>
   <p>One source: a calibration A/B test. Two Sonnet sub-agents solve the same task in fresh sandboxed worktrees — arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save / use is arm-A tokens minus arm-B tokens for that one run. <strong>N = 1 per skill, single data point</strong>. A re-run would produce different absolute numbers for both arms; trust direction and rough magnitude, not two-significant-digit precision.</p>
   <p>Some skills show negative save / use in orange. Those are real findings: the skill arm spent MORE tokens than the unstructured arm, because the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The skill's value is completeness, not token compression. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for any downstream consumer that wants to see both sides.</p>
+
+  <h2>Regime gap: when measured cost and measured save come from different scales</h2>
+  <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>
+  <p>Concrete: built-in <code>/review</code> shows <strong>1.05M tokens / use measured cost</strong> (averaged across 14 real-PR reviews, some over 3M tokens, some under 10K) next to <strong>46K tokens / use measured save</strong> (from one A/B on a 5-file PR where the cold arm spent 72K). Doing 46K ÷ 1.05M reads as a 4% save rate; the actual A/B finding was 46K ÷ 72K = 63% on the small PR. Same trap on <code>mikko-help</code> (644K vs 29K), <code>session-cost</code> (409K vs 31K), <code>equipment</code> (401K vs 94K), <code>audit</code> (553K vs 114K), <code>release-cut</code> (188K vs 29K), <code>skill-registry</code> (148K vs 22K), and a handful of others.</p>
+  <p>When a row hits this regime gap (transcript cost &gt; 2× the A/B arm-A baseline) the measured-save cell prints a subline making the baseline explicit: <em>vs &lt;armA&gt; A/B baseline · &lt;pct&gt;%</em>. Math on the row now works: <code>save ÷ baseline = pct</code> instead of <code>save ÷ visible-cost = misleading</code>. This isn't a correction — both numbers were always real. It's a labelling fix so a reader doesn't combine them wrong.</p>
+  <p>The gap itself is the finding: <strong>the A/B calibration task isn't representative of what production runs of these skills actually look like</strong>. The honest read is that recipe value scales with task complexity, and the A/B numbers underestimate the absolute save at production scale (the same recipe collapsing the same amount of structure, applied to a 1M-token task instead of a 70K-token task, would save proportionally more). The fix is either re-running calibrations on representative-sized targets, or treating the A/B save as a lower bound. I haven't done the former; the document treats the A/B save as what it is.</p>
 
   <h2>How “estimated cost / use” is produced</h2>
   <p class="pull warn">I made up the number. I imagined what running the skill should cost in tokens and wrote that down. There's no math behind these. They are guesses by the person who built the skill, written down before any measurement existed.</p>

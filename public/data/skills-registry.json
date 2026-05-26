@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-26T21:31:25.626Z",
+  "generated_at": "2026-05-26T23:10:59.552Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -1602,11 +1602,11 @@
       "description": "Claude Code built-in PR code review",
       "measurement_window_days": 90,
       "invocations_in_window": 14,
-      "total_tokens_in_window": 15992602,
-      "tokens_per_use_avg": 1142329,
+      "total_tokens_in_window": 14700869,
+      "tokens_per_use_avg": 1050062,
       "annual_total": 59853534,
       "uses_per_year": 57,
-      "last_invoked": "2026-05-26T22:53:58.270Z",
+      "last_invoked": "2026-05-21T22:26:59.270Z",
       "tokens_saved_per_use": 45738,
       "tokens_saved_source": "calibration",
       "calibration_arm_A": 72170,
@@ -1636,10 +1636,7 @@
           "procedure_deviation": false,
           "procedure_deviation_note": null
         }
-      },
-      "tokens_per_use_min": 4295,
-      "tokens_per_use_max": 3730055,
-      "tokens_per_use_stddev": 1087584
+      }
     }
   ]
 }
