@@ -3,7 +3,7 @@
   "model": "haiku",
   "target_repo": "AudiobookMaker",
   "base_commit": null,
-  "methodology": "Partial Haiku calibration (batch 1 of 2). Arm A: Haiku sub-agent solves the task cold, no SKILL.md access. Arm B: Haiku sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded. copyright-scan stays null here because it's in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json (overlay reads both); voice-pack-finnish, work-session, worktree-launch pending in batch 2; ci-failure-triage arm A re-dispatched 2026-05-26 after first attempt asked for cross-repo permission instead of working.",
+  "methodology": "Haiku calibration across batches 1 + 2 on 2026-05-26. Arm A: Haiku sub-agent solves the task cold, no SKILL.md access. Arm B: Haiku sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded. copyright-scan stays null here because it's in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json (overlay reads both); voice-pack-finnish arm A hit the harness session-token wall in batch 2 (only arm B captured); ci-failure-triage arm A re-dispatched in batch 1 after first attempt asked for cross-repo permission instead of working.",
   "task_briefs": {
     "ci-failure-triage": "Triage hypothetical CI failure: pytest collection error importing AudiobookSession from src.audiobook.session. Produce a fix plan.",
     "copyright-scan": "Scan AudiobookMaker src/ for accidental third-party copyright leaks. Pass/fail verdict + file:line findings.",
@@ -20,21 +20,21 @@
     {"name": "pronunciation-corpus-add", "arm_A_tokens": 23667, "arm_B_tokens": 21978, "saved": 1689,  "pct_saved": 7},
     {"name": "release-bundle-audit",     "arm_A_tokens": 51966, "arm_B_tokens": 41357, "saved": 10609, "pct_saved": 20, "notes": "Sonnet was -12% (cost-more); Haiku is +20% (saves). Recipe pays off more for the smaller model on bundle-spec audits."},
     {"name": "release-cut",              "arm_A_tokens": 54920, "arm_B_tokens": 39246, "saved": 15674, "pct_saved": 29},
-    {"name": "voice-pack-finnish",       "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,  "pct_saved": null, "notes": "Pending batch 2."},
-    {"name": "work-session",             "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,  "pct_saved": null, "notes": "Pending batch 2."},
-    {"name": "worktree-launch",          "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,  "pct_saved": null, "notes": "Pending batch 2."}
+    {"name": "voice-pack-finnish",       "arm_A_tokens": null,  "arm_B_tokens": 33040, "saved": null,  "pct_saved": null, "notes": "Arm A hit harness session-token wall in batch 2 dispatch; pending re-dispatch after 7:20am Helsinki reset."},
+    {"name": "work-session",             "arm_A_tokens": 24418, "arm_B_tokens": 27424, "saved": -3006, "pct_saved": -12, "notes": "Cost-more on Haiku (-12%) similar to Sonnet (-10%) and Opus (-10%). Skill encodes status-board protocol rigor — cost-not-tokens pattern is model-invariant here."},
+    {"name": "worktree-launch",          "arm_A_tokens": 38492, "arm_B_tokens": 29620, "saved": 8872,  "pct_saved": 23, "notes": "Sonnet was +1%, Opus +24%, Haiku +23% — recipe value grows substantially from Sonnet to bigger and smaller models alike. Both Opus and Haiku derive the worktree protocol from scratch more expensively than Sonnet does."}
   ],
   "aggregate_clean": {
-    "skills_measured": 4,
-    "arm_A_total": 174896,
-    "arm_B_total": 140855,
-    "saved_total": 34041,
-    "pct_saved": 19,
-    "sonnet_comparison_total": {"arm_A": 176555, "arm_B": 158407, "saved": 18148, "pct_saved": 10}
+    "skills_measured": 6,
+    "arm_A_total": 237806,
+    "arm_B_total": 197899,
+    "saved_total": 39907,
+    "pct_saved": 17,
+    "sonnet_comparison_total": {"arm_A": 220786, "arm_B": 204603, "saved": 16183, "pct_saved": 7}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Aggregate excludes copyright-scan (in SAMPLE) and 3 batch-2 skills (voice-pack-finnish, work-session, worktree-launch).",
-    "Notable: Haiku +19% vs Sonnet +10% on this 4-skill subset — Haiku saves nearly 2x. release-bundle-audit flipped +20% Haiku vs -12% Sonnet; the recipe pays off more for the smaller model on audit-style skills."
+    "Aggregate covers 6 of 7 native skills (copyright-scan in SAMPLE; voice-pack-finnish arm A pending re-dispatch).",
+    "Haiku +17% vs Sonnet +7% on this 6-skill subset — Haiku saves 2.4x. But the gap is heavily driven by release-bundle-audit's flip (+20% Haiku vs -12% Sonnet, a 32pp swing); other 5 rows split: 3 better on Haiku (worktree-launch +22pp, release-cut +12pp, work-session basically tied), 2 worse on Haiku (ci-failure-triage 14 vs 43 → -29pp, pronunciation-corpus-add 7 vs 12 → -5pp). Aggregate masks the bimodal shape."
   ]
 }

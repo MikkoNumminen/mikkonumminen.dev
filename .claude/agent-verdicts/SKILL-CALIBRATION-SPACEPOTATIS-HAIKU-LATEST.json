@@ -3,13 +3,19 @@
   "model": "haiku",
   "target_repo": "Spacepotatis",
   "base_commit": null,
-  "methodology": "Partial Haiku calibration (batch 1 of 2). Arm A: Haiku sub-agent solves the task cold, no SKILL.md access. Arm B: Haiku sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded. ai-codegen-smell-audit and security-audit route to the claude-skills HAIKU file (CANONICAL_DUPLICATES). 6 native skills pending batch 2.",
+  "methodology": "Haiku calibration across batches 1 + 2 on 2026-05-26. Arm A: Haiku sub-agent solves the task cold, no SKILL.md access. Arm B: Haiku sub-agent reads .claude/skills/<name>/SKILL.md and follows it. Token usage from harness usage.total_tokens — input + output + cache_creation; cache_read excluded. ai-codegen-smell-audit and security-audit route to the claude-skills HAIKU file. Batch 2 hit the harness session-token wall mid-dispatch — only new-migration is fully paired; new-mission/new-perk/new-solar-system have arm-B captured only (arm-A's failed); new-story and save-roundtrip-audit have neither arm. All 7 missing arms pending re-dispatch after 7:20am Helsinki reset.",
   "task_briefs": {
     "balance-review": "Review uncommitted changes (git diff) to game-data files at d:/koodaamista/Spacepotatis/. Report DPS/TTK/economy implications. If no uncommitted changes exist, review the last commit's deltas instead.",
     "content-audit": "Pre-commit content invariants check at d:/koodaamista/Spacepotatis/ — orphan refs, missing sprites, broken JSON. Report all violations with file:line citations.",
     "equipment": "Plan adding a hypothetical new sniper rifle weapon called 'Catalyst' (damage 50, range 30, fire-rate 1/sec) to d:/koodaamista/Spacepotatis/. Plan only.",
     "modular-architecture-audit": "Plan a modular-architecture audit + refactor pass on d:/koodaamista/Spacepotatis/src/. Phase 0 setup, Phase 1 inventory, Phase 2 propose refactors. Plan/report only.",
-    "new-enemy": "Scaffold a hypothetical new enemy called 'Voidwarden' (heavy, slow, high HP, melee, drops rare loot) at d:/koodaamista/Spacepotatis/. Plan only."
+    "new-enemy": "Scaffold a hypothetical new enemy called 'Voidwarden' (heavy, slow, high HP, melee, drops rare loot) at d:/koodaamista/Spacepotatis/. Plan only.",
+    "new-migration": "Plan adding a Postgres schema migration add_player_stats_table (columns: player_id uuid PK, level int, xp bigint, last_seen timestamptz) to d:/koodaamista/Spacepotatis/. Plan only.",
+    "new-mission": "Scaffold a hypothetical mission defend-the-outpost at d:/koodaamista/Spacepotatis/ — defend a fixed point against 5 waves of basics, 4-min survival win. Plan only.",
+    "new-perk": "Scaffold a hypothetical passive perk shield-recharge-boost (25% faster shield regen) at d:/koodaamista/Spacepotatis/. Plan only.",
+    "new-solar-system": "Plan adding a new solar system 'Veridia' (3 planets) at d:/koodaamista/Spacepotatis/. Plan only.",
+    "new-story": "Plan adding a story popup triggered on first-mission completion at d:/koodaamista/Spacepotatis/. Plan only.",
+    "save-roundtrip-audit": "Pre-commit save-pipeline invariants check at d:/koodaamista/Spacepotatis/. Report any breaks with file:line citations."
   },
   "skills": [
     {"name": "ai-codegen-smell-audit",     "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Routes to claude-skills HAIKU file (CANONICAL_DUPLICATES). Pending batch 2."},
@@ -18,25 +24,26 @@
     {"name": "equipment",                  "arm_A_tokens": 43659, "arm_B_tokens": 44796, "saved": -1137,  "pct_saved": -3,   "notes": "FLIPPED from Sonnet's -5% (cost-more) to Haiku's -3% (near-break-even) — both negative. Opus showed +65% save here; Haiku doesn't get that benefit because the cold arm is already directed."},
     {"name": "modular-architecture-audit", "arm_A_tokens": 46100, "arm_B_tokens": 32887, "saved": 13213,  "pct_saved": 29,   "notes": "Strong +29% save on Haiku vs Sonnet's +26% — recipe holds across models, and arm B follows the documented resume-from-Phase-3 protocol."},
     {"name": "new-enemy",                  "arm_A_tokens": 61598, "arm_B_tokens": 26694, "saved": 34904,  "pct_saved": 57,   "notes": "BIGGEST save in batch (+57%). Sonnet was +9%, Opus was +65% — Haiku tracks Opus closely, both far above Sonnet. Recipe collapses Haiku's exhaustive cold exploration of the EnemyBehavior union + sprite-generator pattern."},
-    {"name": "new-migration",              "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Pending batch 2."},
-    {"name": "new-mission",                "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Pending batch 2."},
-    {"name": "new-perk",                   "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Pending batch 2."},
-    {"name": "new-solar-system",           "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Pending batch 2."},
-    {"name": "new-story",                  "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Pending batch 2."},
-    {"name": "save-roundtrip-audit",       "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Pending batch 2."},
+    {"name": "new-migration",              "arm_A_tokens": 33150, "arm_B_tokens": 44072, "saved": -10922, "pct_saved": -33,  "notes": "FLIPPED from Sonnet's +16% (saves) to Haiku's -33% (cost-more) — Haiku arm B did a more thorough 13-tool-use walk (44K) than its cold arm A (33K). Same pattern as session-cost: recipe correctness costs more on Haiku per-turn overhead."},
+    {"name": "new-mission",                "arm_A_tokens": null,  "arm_B_tokens": 32833, "saved": null,   "pct_saved": null, "notes": "Arm A hit harness session-token wall in batch 2; pending re-dispatch after 7:20am Helsinki reset."},
+    {"name": "new-perk",                   "arm_A_tokens": null,  "arm_B_tokens": 38079, "saved": null,   "pct_saved": null, "notes": "Arm A hit harness session-token wall in batch 2; pending re-dispatch after 7:20am Helsinki reset."},
+    {"name": "new-solar-system",           "arm_A_tokens": null,  "arm_B_tokens": 40835, "saved": null,   "pct_saved": null, "notes": "Arm A hit harness session-token wall in batch 2; pending re-dispatch after 7:20am Helsinki reset."},
+    {"name": "new-story",                  "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Both arms hit harness session-token wall in batch 2; pending re-dispatch after 7:20am Helsinki reset."},
+    {"name": "save-roundtrip-audit",       "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Both arms hit harness session-token wall in batch 2; pending re-dispatch after 7:20am Helsinki reset."},
     {"name": "security-audit",             "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,   "pct_saved": null, "notes": "Routes to claude-skills HAIKU file (CANONICAL_DUPLICATES). Pending batch 2."}
   ],
   "aggregate_clean": {
-    "skills_measured": 5,
-    "arm_A_total": 250221,
-    "arm_B_total": 202068,
-    "saved_total": 48153,
-    "pct_saved": 19,
-    "sonnet_comparison_total": {"arm_A": 485116, "arm_B": 400995, "saved": 84121, "pct_saved": 17}
+    "skills_measured": 6,
+    "arm_A_total": 283371,
+    "arm_B_total": 246140,
+    "saved_total": 37231,
+    "pct_saved": 13,
+    "sonnet_comparison_total": {"arm_A": 509801, "arm_B": 421644, "saved": 88157, "pct_saved": 17}
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Aggregate covers 5 of 11 native Spacepotatis skills (6 pending batch 2; ai-codegen-smell-audit/security-audit route to claude-skills).",
-    "Haiku +19% vs Sonnet +17% on this 5-skill subset — basically equal. Driven by new-enemy (+57%) and modular-architecture-audit (+29%) saves balancing the near-break-even on content-audit/equipment."
+    "Aggregate covers 6 of 11 native Spacepotatis skills (5 pending re-dispatch after 7:20am Helsinki reset; ai-codegen-smell-audit/security-audit route to claude-skills).",
+    "Haiku 13% vs Sonnet 17% on this 6-skill subset — close. Within batch 1 alone Haiku was +19% vs Sonnet +17%; adding new-migration's -33% (vs Sonnet's +16%) pulled the Haiku aggregate down. The new-migration row is another correctness-not-tokens case: Haiku arm B walked the migration files more thoroughly (44K vs Sonnet's 21K) and paid the per-turn overhead.",
+    "Per-row composition remains bimodal: high-save (new-enemy +57, modular-architecture-audit +29) vs cost-more (new-migration -33, equipment -3, content-audit -2). The 5 missing skills (new-mission/new-perk/new-solar-system arm-As; new-story/save-roundtrip-audit both arms) will resolve the picture once re-dispatched."
   ]
 }
