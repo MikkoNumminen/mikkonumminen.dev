@@ -41,9 +41,9 @@
   },
   "caveats": [
     "N=1 per skill per arm.",
-    "Opus saves DOUBLE Sonnet on this portfolio (39% vs 19%) — but the aggregate is dominated by a small group of high-save scaffolding rows and shouldn't be read as 'Opus is 2x better across the board for Spacepotatis'. Per-skill picture is bimodal:",
-    "  - Scaffolding skills (new-solar-system 71%, equipment 65%, new-enemy 65%, new-perk 53%, new-mission 46%, save-roundtrip-audit 40%, new-migration 25%, new-story 20%): Opus arm A spends substantially deriving the cross-file dependency graph cold; the recipes collapse this. Most save MORE on Opus than Sonnet.",
+    "Opus nearly doubles Sonnet on this portfolio (39% vs 20%) — but the aggregate is dominated by a small group of high-save scaffolding rows and shouldn't be read as 'Opus is 2x better across the board for Spacepotatis'. Per-skill picture is bimodal:",
+    "  - Scaffolding / cross-file-cascade skills (new-solar-system 71%, equipment 65%, new-enemy 65%, new-perk 53%, new-mission 46%, save-roundtrip-audit 40%, balance-review 40%, new-migration 25%, new-story 20%): Opus arm A spends substantially deriving the cross-file dependency graph or recent-change surface cold; the recipes collapse this. Most save MORE on Opus than Sonnet. balance-review is audit-shaped by name but groups here by behavior — its recipe collapses arm A's catalogue exploration the same way the new-* recipes collapse dependency-graph discovery.",
     "  - Audit / orchestration skills (content-audit +6% Opus vs +22% Sonnet, modular-architecture-audit -21% Opus vs +26% Sonnet): Opus saves LESS or even flips negative. The recipe's value here is rigor and completeness; Opus arm A already does more thorough exploration so the recipe-vs-cold gap narrows or inverts.",
-    "Cross-portfolio takeaway: skill SHAPE matters more than model. Scaffolding skills earn more from recipes on bigger models; audit/orchestration skills earn less. The Spacepotatis aggregate happens to skew scaffolding-heavy."
+    "Cross-portfolio takeaway: skill SHAPE matters more than model. Scaffolding / cross-file-cascade skills earn more from recipes on bigger models; audit/orchestration skills earn less. The Spacepotatis aggregate happens to skew scaffolding-heavy."
   ]
 }
