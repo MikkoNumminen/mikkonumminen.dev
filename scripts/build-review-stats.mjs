@@ -130,6 +130,10 @@ function scanAllFiles(files, cutoffMs) {
   const bySkill = new Map(); // skill -> records[]
   const byUuidPerFile = []; // per-file { byUuid, records } for chain walking
   const lastInvokedBySkill = new Map(); // skill -> latest ISO ts seen
+  // skill -> { model: tokensSeen } so we can pick the dominant production
+  // model per skill. The PDF tags each transcript-measured cost with the
+  // model its production sessions ran on; this map is the source of that tag.
+  const modelTokensBySkill = new Map();
 
   for (const f of files) {
     let content;
@@ -163,12 +167,47 @@ function scanAllFiles(files, cutoffMs) {
       if (obj.timestamp && obj.timestamp > prevLast) {
         lastInvokedBySkill.set(skill, obj.timestamp);
       }
+      // Track which model spent tokens on this skill so we can attribute the
+      // production cost. Bucket by the model family root (opus / sonnet /
+      // haiku) rather than the full versioned ID — the registry tag is about
+      // capability tier, not point version, and rolling versions would churn
+      // the JSON every release without telling the reader anything.
+      const rawModel = obj.message?.model;
+      if (rawModel && typeof rawModel === 'string') {
+        const family = rawModel.toLowerCase().includes('opus')
+          ? 'opus'
+          : rawModel.toLowerCase().includes('sonnet')
+            ? 'sonnet'
+            : rawModel.toLowerCase().includes('haiku')
+              ? 'haiku'
+              : rawModel;
+        const cost = tokenCost(obj.message.usage);
+        const m = modelTokensBySkill.get(skill) ?? new Map();
+        m.set(family, (m.get(family) ?? 0) + cost);
+        modelTokensBySkill.set(skill, m);
+      }
     }
 
     if (fileRecords.length === 0) continue;
     byUuidPerFile.push({ byUuid, records: fileRecords });
   }
-  return { bySkill, byUuidPerFile, lastInvokedBySkill };
+  return { bySkill, byUuidPerFile, lastInvokedBySkill, modelTokensBySkill };
+}
+
+// Pick the dominant production model for a skill — the family that spent the
+// most tokens. Returns null if no model info was captured (very old
+// transcripts predate the `message.model` field).
+function dominantModel(modelTokens) {
+  if (!modelTokens || modelTokens.size === 0) return null;
+  let best = null;
+  let bestTokens = -1;
+  for (const [model, tokens] of modelTokens) {
+    if (tokens > bestTokens) {
+      best = model;
+      bestTokens = tokens;
+    }
+  }
+  return best;
 }
 
 // Resolve each skill-attributed assistant message to its originating
@@ -229,7 +268,10 @@ if (!fs.existsSync(PROJECTS_DIR)) {
 }
 
 const files = listJsonlFiles(PROJECTS_DIR);
-const { bySkill, byUuidPerFile, lastInvokedBySkill } = scanAllFiles(files, cutoffMs);
+const { bySkill, byUuidPerFile, lastInvokedBySkill, modelTokensBySkill } = scanAllFiles(
+  files,
+  cutoffMs,
+);
 
 const reviewRecords = bySkill.get(REVIEW_SKILL) ?? [];
 if (reviewRecords.length === 0) {
@@ -444,6 +486,13 @@ reviewRow.tokens_per_use_stddev = perInvocation.stddev;
 reviewRow.annual_total = annualTotal;
 reviewRow.uses_per_year = usesPerYear;
 if (lastInvoked) reviewRow.last_invoked = lastInvoked;
+// Production-cost model attribution. The /review save cell carries an
+// A/B-measured number (always Sonnet for the primary calibration); the cost
+// cell is the dominant model that actually ran /review in production over
+// the 90-day window. Today: Opus 4.7. Stored explicitly so the renderer can
+// label every row with the cost-side model and not depend on a default.
+const reviewCostModel = dominantModel(modelTokensBySkill.get(REVIEW_SKILL));
+if (reviewCostModel) reviewRow.cost_model = reviewCostModel;
 
 // A/B save: bucket-aligned with the cost headline. The cost headline is the
 // MEDIAN production /review run; the typical run lives in whichever bucket
@@ -531,12 +580,16 @@ for (const repo of registry.repos ?? []) {
     if (!rec || rec.source !== 'transcript-measurement') continue;
     // Find the best matching scanned skill — try canonical then prefixed.
     let matched = null;
+    let matchedCandidate = null;
     for (const candidate of candidateAttributionNames(repo.name, skill.name)) {
       const s = statsForSkill(candidate);
       if (s && s.n >= 2) {
         // Pick the candidate with the most invocations — handles the case
         // where transcripts also exist for a now-renamed skill.
-        if (!matched || s.n > matched.n) matched = s;
+        if (!matched || s.n > matched.n) {
+          matched = s;
+          matchedCandidate = candidate;
+        }
       }
     }
     if (!matched) continue;
@@ -545,6 +598,11 @@ for (const repo of registry.repos ?? []) {
     rec.tokens_per_use_min = matched.min;
     rec.tokens_per_use_max = matched.max;
     rec.tokens_per_use_stddev = matched.stddev;
+    // Tag the production-cost model the same way as /review's row. Picks the
+    // family that spent the most tokens on this skill — that's "the model
+    // /audit ran on", at the granularity the registry cares about.
+    const cm = dominantModel(modelTokensBySkill.get(matchedCandidate));
+    if (cm) rec.cost_model = cm;
     // Recompute the volume fields off the per-invocation walk so the receipt
     // is internally consistent: invocations_in_window now counts distinct
     // skill invocations (not the upstream parser's session approximation),

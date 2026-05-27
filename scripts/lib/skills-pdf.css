@@ -6,57 +6,16 @@
  * can open the generated HTML in a browser and see the same layout the PDF
  * shows.
  *
- * =====================================================================
- *  DESIGN TOKENS
- * =====================================================================
- *
- *  Color palette  (print-safe — every measured/estimated distinction
- *                  survives a grayscale print because it ALSO uses weight
- *                  + iconography. Never rely on color alone.)
- *
- *  --ink          #1a1a1a   primary text
- *  --ink-soft     #4a4a4a   secondary text (taglines, sublines)
- *  --ink-mute     #888888   tertiary text (timestamps, "modeled" tag)
- *  --paper        #ffffff   page background
- *  --measured-bg  #c9e4ce   green wash for measured rows (deeper than v1 so
- *                            the row tint survives arm's-length scanning;
- *                            ~13% luminance gap vs paper, vs v1's ~6%)
- *  --measured-ink #1f6f3a   measured chip + accent
- *  --estimate-bg  #fbfbfb   neutral wash for estimated rows (very subtle)
- *  --estimate-ink #6b6b6b   estimated chip + accent
- *  --repo-band    #1f6f3a   per-repo heading band (heavier visual break
- *                            between AudiobookMaker / Spacepotatis / etc.
- *                            than a 1px rule could carry)
- *  --calib-ok     #1f6f3a   calibration within +/- 10 percent (rare)
- *  --calib-off    #b13a18   calibration off by >= 5x (the interesting case)
- *  --bar-cust     #1f6f3a   measured-cost bar fill, page 1
- *  --bar-ref      #4a4a4a   /review reference bar fill, page 1
- *  --rule         #d0d0d0   table rules, dividers
- *  --shade        #f4f4f4   table header background, aggregate totals row
- *
- *  Type scale     (single A4 landscape page, 9.5pt body; the eye can pick
- *                  out four levels of hierarchy at this resolution before
- *                  the smaller sizes start to merge)
- *
- *  --t-display    22pt   hero number on page 1
- *  --t-h1         18pt   page titles
- *  --t-h2         13pt   section headings
- *  --t-h3         11pt   sub-section headings
- *  --t-body       9.5pt  primary body / table primary cell
- *  --t-small      8.5pt  secondary cell, taglines
- *  --t-tiny       7.5pt  metadata, footer
- *
- *  Spacing scale  (4pt base unit; everything that ever needs to align
- *                  vertically should be on a 4pt multiple)
- *
- *  --s-1          2pt
- *  --s-2          4pt    (the base)
- *  --s-3          8pt
- *  --s-4          12pt
- *  --s-5          18pt
- *  --s-6          24pt
- *
- * ===================================================================== */
+ * Document sections (mirrors the renderer's composition order):
+ *   - hero / page 1 (compressed header + portfolio bars + stance)
+ *   - howtoread box + cross-model callout
+ *   - spine table (one row per skill, grouped by repo)
+ *   - calibration-chart (SVG dot-strip)
+ *   - findings-page (seven prose paragraphs)
+ *   - appendix (slim methodology)
+ */
+
+/* ----- design tokens ------------------------------------------------- */
 
 :root {
   --ink: #1a1a1a;
@@ -73,7 +32,9 @@
   --bar-cust: #1f6f3a;
   --bar-ref: #4a4a4a;
   --rule: #d0d0d0;
+  --rule-soft: #e6e6e6;
   --shade: #f4f4f4;
+  --callout-bg: #f1f6f3;
 }
 
 /* ----- page setup ---------------------------------------------------- */
@@ -84,8 +45,6 @@
 }
 
 @page :first {
-  /* page 1 carries the hero block — give it a little more top air so the
-     hero bars do not crowd the title. */
   margin-top: 18mm;
 }
 
@@ -126,15 +85,16 @@ h1 {
 h2 {
   font-size: 13pt;
   font-weight: 700;
-  margin: 18pt 0 4pt;
+  margin: 14pt 0 4pt;
   padding-bottom: 2pt;
   border-bottom: 1px solid var(--rule);
 }
 
 h3 {
-  font-size: 11pt;
-  font-weight: 600;
-  margin: 12pt 0 4pt;
+  font-size: 10.5pt;
+  font-weight: 700;
+  margin: 10pt 0 3pt;
+  color: var(--ink);
 }
 
 p {
@@ -147,42 +107,37 @@ p {
   margin-top: 0;
 }
 
-.lede {
+.lede-short {
   font-size: 10pt;
   color: var(--ink);
-  max-width: 165mm;
-  margin: 8pt 0;
+  max-width: 175mm;
+  margin: 6pt 0;
   line-height: 1.5;
 }
 
-.subtle {
-  color: var(--ink-mute);
-  font-size: 7.5pt;
-  font-weight: 400;
-}
-
-.note {
-  color: var(--ink-soft);
-  font-size: 8.5pt;
+.stance {
+  font-size: 9.5pt;
+  color: var(--ink);
   font-style: italic;
+  max-width: 175mm;
+  margin: 8pt 0 6pt;
+  padding-left: 8pt;
+  border-left: 2pt solid var(--ink-mute);
 }
 
-/* ----- hero (page 1) -------------------------------------------------
- *
- * Two-line layout per bar, on purpose:
- *   line 1: the number — 22pt display, dominates the page (--t-display).
- *   line 2: the bar + label — supporting evidence, smaller.
- *
- * v1 of the renderer rendered the number at 12pt next to the bar; the
- * arm's-length validator failed it. A senior reader scanning the page
- * needs ONE visible number to anchor everything else, and 22pt is the
- * smallest size that survives blurred-vision scanning at A4 landscape
- * reading distance.
- * --------------------------------------------------------------------- */
+.caption {
+  font-size: 8.5pt;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin-top: 4pt;
+  max-width: 175mm;
+}
+
+/* ----- hero (page 1) ------------------------------------------------- */
 
 .hero {
-  margin: 12pt 0 4pt;
-  padding: 12pt 14pt 14pt;
+  margin: 10pt 0 4pt;
+  padding: 10pt 14pt 12pt;
   border: 1pt solid var(--rule);
   border-radius: 3pt;
   background: var(--shade);
@@ -204,14 +159,14 @@ p {
 }
 
 .hero-row + .hero-row {
-  margin-top: 10pt;
+  margin-top: 8pt;
   padding-top: 8pt;
   border-top: 1px solid var(--rule);
 }
 
 .hero-row .number {
   display: block;
-  font-size: 22pt;
+  font-size: 20pt;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.015em;
@@ -219,7 +174,7 @@ p {
 }
 
 .hero-row .number .pct {
-  font-size: 11pt;
+  font-size: 10.5pt;
   font-weight: 400;
   color: var(--ink-soft);
   margin-left: 6pt;
@@ -242,21 +197,10 @@ p {
 
 .hero-row .bar {
   display: block;
-  height: 10pt;
+  height: 9pt;
   margin-top: 2pt;
 }
 
-.hero-row .bar.cust {
-  background: var(--bar-cust);
-}
-
-.hero-row .bar.ref {
-  background: var(--bar-ref);
-}
-
-/* Per-portfolio save-rate bars: green for positive (skill saves tokens),
-   red for negative (skill costs more — encodes rigor, not compression).
-   Same red as the negative-save num-cell treatment on the per-repo tables. */
 .hero-row .bar.pos {
   background: var(--bar-cust);
 }
@@ -266,48 +210,79 @@ p {
 }
 
 .hero-caption {
-  margin: 12pt 0 0;
+  margin: 10pt 0 0;
   color: var(--ink-soft);
   font-size: 9pt;
-  max-width: 165mm;
+  max-width: 175mm;
 }
 
-/* ----- save / use standing legend (next to every table that carries the
- *       column — not buried on the method page). Slightly heavier border
- *       + tinted background so it visually reads as "important sidebar,"
- *       not just another lede paragraph. ---------------------------- */
+/* ----- "How to read this" box --------------------------------------- */
 
-.save-use-legend {
-  display: block;
-  margin: 6pt 0 8pt;
-  padding: 6pt 10pt;
+.howtoread {
+  margin: 10pt 0;
+  padding: 8pt 14pt 6pt;
   border: 1pt solid var(--rule);
   border-left: 3pt solid var(--measured-ink);
   border-radius: 2pt;
   background: var(--shade);
-  font-size: 8.5pt;
-  line-height: 1.5;
-  color: var(--ink);
-  max-width: 165mm;
+  max-width: 215mm;
   break-inside: avoid;
 }
 
-.save-use-legend strong {
+.howtoread h3 {
+  margin: 0 0 4pt;
+  font-size: 9.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.howtoread ul {
+  margin: 0;
+  padding-left: 16pt;
+  font-size: 8.75pt;
+  line-height: 1.5;
+}
+
+.howtoread li {
+  margin-bottom: 2pt;
+}
+
+.howtoread strong {
   font-weight: 600;
 }
 
-/* ----- chips (measured / estimate badges) ---------------------------- */
+/* ----- cross-model insight callout ---------------------------------- */
+
+.callout {
+  margin: 8pt 0;
+  padding: 6pt 12pt;
+  border-left: 3pt solid var(--measured-ink);
+  background: var(--callout-bg);
+  font-size: 9pt;
+  line-height: 1.5;
+  max-width: 215mm;
+  break-inside: avoid;
+}
+
+.callout p {
+  margin: 0;
+}
+
+/* ----- chips (status badges) ---------------------------------------- */
 
 .chip {
   display: inline-block;
-  padding: 1pt 6pt 1pt 4pt;
+  padding: 0 5pt 0 3pt;
   border-radius: 2pt;
-  font-size: 8pt;
+  font-size: 7pt;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
   vertical-align: middle;
+  line-height: 1.6;
 }
 
 .chip-measured {
@@ -316,7 +291,7 @@ p {
 }
 
 .chip-measured::before {
-  content: '\2713 '; /* check */
+  content: '\2713 ';
   font-weight: 700;
 }
 
@@ -327,7 +302,7 @@ p {
 }
 
 .chip-estimate::before {
-  content: '\25CB '; /* open circle */
+  content: '\25CB ';
   font-weight: 700;
   margin-right: 1pt;
 }
@@ -338,557 +313,360 @@ p {
   border: 1pt dashed var(--ink-mute);
 }
 
-/* ----- tables (shared) ----------------------------------------------- */
+/* ----- spine table -------------------------------------------------- */
 
-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 6pt 0 12pt;
-  font-size: 9pt;
-  page-break-inside: auto;
-}
-
-thead {
-  display: table-header-group; /* repeat on every printed page */
-}
-
-tr {
-  page-break-inside: avoid;
-}
-
-th,
-td {
-  border-bottom: 1px solid var(--rule);
-  padding: 4pt 6pt;
-  text-align: left;
-  vertical-align: top;
-}
-
-th {
-  background: var(--shade);
-  font-weight: 700;
-  font-size: 8.5pt;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  white-space: nowrap;
-}
-
-.num {
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.totals-row td {
-  font-weight: 700;
-  background: var(--shade);
-  border-top: 2px solid var(--ink-soft);
-}
-
-/* ----- per-repo section heading band --------------------------------
- *
- * Banner is a STANDALONE div above the table — renders once at the top of
- * each repo's section, never repeated when the table spans page breaks.
- * The column-header <thead> below also has its repeat behavior turned
- * OFF (`display: table-row-group`), so neither the banner nor the column
- * header is duplicated mid-data. User reported repeated banners on page-2
- * as "fucked up big time" — this is the explicit fix.
- *
- * Trade-off: if a repo's table is long enough to spill across a page
- * break, the second page shows columns without labels. The data is still
- * in the right column (no shift), just unlabeled. With per-use-only data
- * the rows are short enough that single-page-per-repo is the norm.
- * --------------------------------------------------------------------- */
-
-.repo-heading {
-  margin: 26pt 0 0;
-  padding: 8pt 12pt;
-  background: var(--repo-band);
-  color: #ffffff;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  page-break-after: avoid;
-  break-after: avoid;
-}
-
-.repo-heading .repo-name {
-  font-size: 13pt;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
-
-.repo-heading .repo-stats {
-  font-size: 9pt;
-  font-weight: 400;
-  opacity: 0.9;
-  font-variant-numeric: tabular-nums;
-}
-
-.repo-heading .repo-stats a {
-  color: #ffffff;
-  border-bottom-color: rgba(255, 255, 255, 0.45);
-}
-
-/* First repo banner under the per-repo-page heading: tighten the top
-   margin so the page heading and the first banner don't both compete
-   for the eye. */
-.repo-page .repo-heading:first-of-type {
+.spine-section {
   margin-top: 12pt;
 }
 
-/* Prevent Chrome from repeating the column-header row on subsequent
-   pages when a table spans a page break. The default thead behaviour is
-   table-header-group, which auto-repeats. Per user request, the column
-   header appears ONCE per repo, at the top of its data, not mid-table. */
-table.skills thead {
-  display: table-row-group;
+table.spine {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 6pt 0 8pt;
+  font-size: 8.5pt;
+  page-break-inside: auto;
+  table-layout: fixed;
 }
 
-/* Column headers carry an explicit "measured / estimated" subline so the
-   per-use cost and per-use save columns can each name which side of the
-   measurement they describe. Subline is visually quieter than the main
-   column name. */
-table.skills th .th-sub {
-  display: block;
-  margin-top: 1pt;
-  font-size: 7pt;
-  font-weight: 500;
-  font-style: italic;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--ink-mute);
+table.spine thead {
+  display: table-header-group;
 }
 
-/* Per-use number cells. Four flavours: measured-cost, measured-save,
-   est-cost, est-save. Visual weights mirror the cost-/-save split — both
-   "measured" flavours render in the calibration green; both "estimated"
-   flavours render italic gray. Negative measured-save (skill cost MORE
-   in A/B than the unstructured baseline) flips to calibration orange. */
-table.skills td.num-cell {
-  text-align: right;
+table.spine th {
+  background: var(--shade);
+  font-weight: 700;
+  font-size: 7.5pt;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 4pt 5pt;
+  text-align: left;
+  border-bottom: 1pt solid var(--rule);
   white-space: nowrap;
+}
+
+table.spine th.num {
+  text-align: right;
+}
+
+table.spine td {
+  padding: 5pt 5pt;
+  border-bottom: 1pt solid var(--rule-soft);
   vertical-align: top;
   font-variant-numeric: tabular-nums;
 }
 
-table.skills td.num-cell .num-cell-big {
-  font-size: 11pt;
-  font-weight: 700;
-  color: var(--ink);
+table.spine tr {
+  page-break-inside: avoid;
 }
 
-table.skills td.num-cell .num-cell-unit {
-  display: block;
-  margin-top: 1pt;
-  font-size: 7.5pt;
+/* Column widths: skill takes the lion's share, status is tight, the four
+   numeric columns are evenly distributed but the three model save columns
+   share the right half. */
+table.spine th:nth-child(1),
+table.spine td:nth-child(1) {
+  width: 25%;
+}
+table.spine th:nth-child(2),
+table.spine td:nth-child(2) {
+  width: 8%;
+}
+table.spine th:nth-child(3),
+table.spine td:nth-child(3) {
+  width: 13%;
+  text-align: right;
+}
+table.spine th:nth-child(4),
+table.spine td:nth-child(4) {
+  width: 10%;
+  text-align: right;
+}
+table.spine th:nth-child(5),
+table.spine td:nth-child(5),
+table.spine th:nth-child(6),
+table.spine td:nth-child(6),
+table.spine th:nth-child(7),
+table.spine td:nth-child(7) {
+  width: 14.66%;
+  text-align: right;
+}
+
+/* Row backgrounds. Measured rows wear the same calibration-green wash they
+   did in the prior per-repo table — preserves the at-a-glance "this row has
+   real data behind it" signal across the restructure. */
+table.spine tr.measured {
+  background: var(--measured-bg);
+}
+
+table.spine tr.estimate {
+  background: var(--paper);
+}
+
+table.spine tr.redirect td {
   color: var(--ink-mute);
+  font-style: italic;
+}
+
+/* Group-heading rows are full-width banners between sections of the
+   table. They render as a colored band so the visual hierarchy "repo →
+   skills" survives even when the table spans several pages. */
+table.spine tr.group-heading td {
+  background: var(--repo-band);
+  color: #ffffff;
+  padding: 6pt 8pt;
+  font-size: 10pt;
+  letter-spacing: 0.01em;
+  border-bottom: none;
+}
+
+table.spine tr.group-heading a {
+  color: #ffffff;
+  border-bottom-color: rgba(255, 255, 255, 0.45);
+  font-size: 8.5pt;
   font-weight: 400;
 }
 
-/* Accuracy footer on rows where per-invocation stats exist (today: built-in
-   /review only, populated by `build-review-stats.mjs`). One line under the
-   unit label, smaller and dimmer so the headline number stays the focal
-   point. */
-table.skills td.num-cell .num-cell-sub {
+/* Built-in (reference) banner uses a quieter color so it visually reads
+   as adjacent-to-portfolio, not part of it. */
+table.spine tr.group-builtin td {
+  background: var(--ink-soft);
+}
+
+/* Skill column — name + tagline + optional builtin tag. */
+table.spine td.skill-cell .name {
+  font-weight: 700;
+  font-size: 9pt;
+  color: var(--ink);
+}
+
+table.spine td.skill-cell .builtin-tag {
+  display: inline-block;
+  margin-left: 4pt;
+  padding: 0 4pt;
+  font-size: 6.75pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--ink-soft);
+  color: #ffffff;
+  border-radius: 2pt;
+  vertical-align: middle;
+}
+
+table.spine td.skill-cell .tagline {
+  display: block;
+  margin-top: 1pt;
+  color: var(--ink-soft);
+  font-size: 7.5pt;
+  line-height: 1.3;
+}
+
+/* Status column */
+table.spine td.status-cell .last-seen {
+  display: block;
+  margin-top: 2pt;
+  font-size: 6.75pt;
+  color: var(--ink-mute);
+}
+
+/* Cost column — headline number, unit label, model+N meta */
+table.spine td.cost-cell {
+  text-align: right;
+}
+
+table.spine td.cost-cell .num {
+  display: block;
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--calib-ok);
+}
+
+table.spine td.cost-cell .unit {
+  display: block;
+  margin-top: 0;
+  font-size: 6.75pt;
+  color: var(--ink-mute);
+}
+
+table.spine td.cost-cell .meta {
   display: block;
   margin-top: 1pt;
   font-size: 6.75pt;
   color: var(--ink-mute);
-  font-weight: 400;
   font-style: italic;
-  line-height: 1.25;
+  line-height: 1.3;
 }
 
-table.skills td.num-cell-measured-cost .num-cell-big,
-table.skills td.num-cell-measured-save .num-cell-big {
-  color: var(--calib-ok);
+/* Estimated cost column — italic gray to match the measured/estimate
+   visual hierarchy used elsewhere. */
+table.spine td.est-cost-cell {
+  text-align: right;
 }
 
-table.skills td.num-cell-est-cost .num-cell-big,
-table.skills td.num-cell-est-save .num-cell-big {
+table.spine td.est-cost-cell .num {
+  display: block;
+  font-size: 9.5pt;
   font-weight: 500;
   font-style: italic;
   color: var(--ink-mute);
 }
 
-table.skills td.num-cell.cell-negative .num-cell-big {
-  color: var(--calib-off);
-}
-
-/* ----- per-repo skill table ----------------------------------------- */
-
-table.skills tbody tr.measured {
-  background: var(--measured-bg);
-}
-
-table.skills tbody tr.estimate {
-  background: var(--paper);
-}
-
-table.skills tbody tr.redirect td {
+table.spine td.est-cost-cell .unit {
+  display: block;
+  margin-top: 0;
+  font-size: 6.75pt;
   color: var(--ink-mute);
   font-style: italic;
 }
 
-table.skills td.skill {
-  width: 32%;
-}
-
-table.skills td.skill .name {
-  font-weight: 700;
-  font-size: 9.5pt;
-}
-
-table.skills td.skill .tagline {
-  display: block;
-  margin-top: 1pt;
-  color: var(--ink-soft);
-  font-size: 8.5pt;
-  line-height: 1.35;
-}
-
-table.skills td.status {
-  width: 13%;
-}
-
-table.skills td.status .last-seen {
-  display: block;
-  margin-top: 2pt;
-  font-size: 7.5pt;
-  color: var(--ink-mute);
-}
-
-table.skills td.cost {
-  width: 13%;
-}
-
-table.skills td.cost .big {
-  font-size: 11pt;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-}
-
-table.skills td.cost .unit {
-  display: block;
-  margin-top: 1pt;
-  font-size: 7.5pt;
-  color: var(--ink-mute);
-  font-weight: 400;
-}
-
-table.skills td.runs {
-  width: 13%;
-}
-
-table.skills td.runs .runs-primary {
-  font-size: 9.5pt;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-table.skills td.runs .runs-proj {
-  display: block;
-  margin-top: 1pt;
-  font-size: 7.5pt;
-  color: var(--ink-mute);
-}
-
-table.skills td.calib {
-  width: 16%;
-}
-
-table.skills td.calib .calib-delta {
-  font-weight: 700;
-  font-size: 11pt;
-  font-variant-numeric: tabular-nums;
-}
-
-table.skills td.calib .calib-delta.off {
-  color: var(--calib-off);
-}
-
-table.skills td.calib .calib-delta.ok {
-  color: var(--calib-ok);
-}
-
-table.skills td.calib .calib-detail {
-  display: block;
-  margin-top: 1pt;
-  font-size: 7.5pt;
-  color: var(--ink-mute);
-  font-variant-numeric: tabular-nums;
-}
-
-table.skills td.calib .calib-none {
-  font-size: 8pt;
-  color: var(--ink-mute);
-  font-style: italic;
-}
-
-table.skills td.saved {
-  width: 13%;
-}
-
-table.skills tr.measured td.saved .saved-num {
-  font-size: 9.5pt;
-  font-weight: 600;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
-table.skills tr.estimate td.saved .saved-num {
-  font-size: 9pt;
-  font-weight: 400;
-  font-style: italic;
-  color: var(--ink-mute);
-  font-variant-numeric: tabular-nums;
-}
-
-table.skills td.saved .saved-tag {
-  display: block;
-  margin-top: 1pt;
-  font-size: 7.5pt;
-  color: var(--ink-mute);
-}
-
-/* Calibrated rows (real A/B measurement on the savings number, not just the
-   cost number). The number jumps to the calibration green so the reader can
-   tell a measured-saved row from a modeled-saved row at arm's length, even
-   when the underlying row is also measured for cost. */
-table.skills td.saved.saved-calibrated .saved-num {
-  font-size: 10pt;
-  font-weight: 700;
-  font-style: normal;
-  color: var(--calib-ok);
-}
-
-/* Negative savings: the skill cost MORE than the unstructured baseline in
-   the A/B test. These are real findings, not anomalies — they need to stand
-   out from "saved zero" and from positive savings. */
-table.skills td.saved.saved-negative .saved-num {
-  color: var(--calib-off);
-  font-style: normal;
-}
-
-table.skills td.saved.saved-calibrated .saved-tag {
-  color: var(--calib-ok);
-  font-weight: 600;
-}
-
-table.skills td.saved.saved-negative .saved-tag {
-  color: var(--calib-off);
-  font-weight: 600;
-}
-
-/* ----- aggregate (page 1) ------------------------------------------- */
-
-table.aggregate th,
-table.aggregate td {
-  padding: 4pt 8pt;
-}
-
-table.aggregate .saved-est {
-  color: var(--ink-mute);
-  font-style: italic;
-}
-
-/* ----- calibration page --------------------------------------------- */
-
-.calib-intro {
-  max-width: 175mm;
-  font-size: 10pt;
-  color: var(--ink);
-  line-height: 1.5;
-  margin-bottom: 8pt;
-}
-
-table.calibration .delta {
-  font-weight: 700;
-  font-size: 12pt;
-  font-variant-numeric: tabular-nums;
-}
-
-table.calibration .delta.off {
-  color: var(--calib-off);
-}
-
-table.calibration .delta.ok {
-  color: var(--calib-ok);
-}
-
-table.calibration .delta-dir {
-  font-size: 8.5pt;
-  font-weight: 600;
-  color: var(--ink-soft);
-  margin-left: 2pt;
-}
-
-table.calibration .repo-tag {
-  font-size: 7.5pt;
-  color: var(--ink-mute);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  display: block;
-  margin-bottom: 1pt;
-}
-
-/* ----- multi-model comparison page ---------------------------------- */
-
-table.model-grid {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 8pt;
-}
-
-table.model-grid th,
-table.model-grid td {
-  padding: 5pt 6pt;
-  border-bottom: 1pt solid var(--rule-soft);
-  vertical-align: top;
-  font-size: 9.5pt;
-  text-align: left;
-}
-
-table.model-grid th.num,
-table.model-grid td.num {
+/* Per-model save column — % big, absolute small underneath. */
+table.spine td.save-cell {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
-table.model-grid th {
-  font-size: 8.5pt;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ink-soft);
-  border-bottom: 1pt solid var(--rule);
-}
-
-table.model-grid td.model-col {
-  font-variant-numeric: tabular-nums;
-}
-
-table.model-grid .model-cell-pct {
+table.spine td.save-cell .pct {
   display: block;
+  font-size: 11pt;
   font-weight: 700;
-  font-size: 12pt;
   color: var(--calib-ok);
 }
 
-table.model-grid .model-col.cell-negative .model-cell-pct {
+table.spine td.save-cell .abs {
+  display: block;
+  margin-top: 1pt;
+  font-size: 7pt;
+  color: var(--ink-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+table.spine td.save-cell.cell-negative .pct {
   color: var(--calib-off);
 }
 
-table.model-grid .model-cell-detail {
-  display: block;
-  font-size: 8pt;
-  color: var(--ink-mute);
-  margin-top: 1pt;
+table.spine td.save-cell.cell-deviation .pct {
+  text-decoration: underline dotted var(--calib-off);
+  text-underline-offset: 2pt;
 }
 
-table.model-grid .model-empty {
+table.spine td.empty {
   color: var(--ink-mute);
-  font-style: italic;
-}
-
-table.model-grid .repo-tag {
-  font-size: 7.5pt;
-  color: var(--ink-mute);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  display: block;
-  margin-bottom: 1pt;
-}
-
-table.model-grid .deviation-marker {
+  text-align: right;
   font-size: 9pt;
+}
+
+.deviation-marker {
+  font-size: 7.5pt;
   font-weight: 700;
   color: var(--calib-off);
   margin-left: 1pt;
 }
 
-table.model-grid td.cell-deviation .model-cell-pct {
-  text-decoration: underline dotted var(--calib-off);
-  text-underline-offset: 2pt;
-}
+/* ----- calibration chart (SVG) -------------------------------------- */
 
-.deviation-footnotes {
-  margin-top: 8pt;
-  padding: 6pt 8pt;
-  background: rgba(0, 0, 0, 0.025);
-  border-left: 2pt solid var(--calib-off);
-}
-
-.deviation-footnotes p.note {
-  margin-bottom: 4pt;
-}
-
-.deviation-footnotes ol.deviation-list {
-  margin: 0;
-  padding-left: 18pt;
-  font-size: 9pt;
-  color: var(--ink);
-}
-
-.deviation-footnotes ol.deviation-list li {
-  margin-bottom: 3pt;
-  line-height: 1.45;
-}
-
-.deviation-footnotes ol.deviation-list .repo-tag {
-  font-size: 7.5pt;
-  color: var(--ink-mute);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-right: 4pt;
-}
-
-.deviation-footnotes ol.deviation-list code {
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 9pt;
-  color: var(--ink);
-}
-
-/* ----- method page (last page) -------------------------------------- */
-
-.method {
-  max-width: 175mm;
-}
-
-.method h2 {
+.calibration-chart-section {
   margin-top: 14pt;
 }
 
-.method p {
+.calibration-chart-section p {
+  max-width: 215mm;
   font-size: 10pt;
+  line-height: 1.55;
+}
+
+svg.calibration-chart {
+  display: block;
+  width: 100%;
+  max-width: 240mm;
+  height: auto;
+  margin: 10pt 0 6pt;
+}
+
+/* ----- findings page ----------------------------------------------- */
+
+.findings-page {
+  max-width: 215mm;
+}
+
+.findings-page h1 {
+  margin-bottom: 8pt;
+}
+
+.finding {
+  margin: 10pt 0;
+  page-break-inside: avoid;
+}
+
+.finding h3 {
+  margin: 0 0 3pt;
+  font-size: 10.5pt;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.finding p {
+  margin: 0;
+  font-size: 9.5pt;
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 200mm;
+}
+
+/* "What this document does NOT claim" — visually distinct from the
+   findings (italic, lower-key) so it reads as the honesty bookend. */
+.does-not-claim {
+  margin-top: 14pt;
+  padding: 8pt 12pt;
+  background: var(--shade);
+  border-left: 2pt solid var(--ink-mute);
+  font-style: italic;
+}
+
+.does-not-claim h2 {
+  margin: 0 0 4pt;
+  border: none;
+  padding: 0;
+  font-size: 10.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  font-style: normal;
+}
+
+.does-not-claim ul {
+  margin: 0;
+  padding-left: 16pt;
+  font-size: 9pt;
+  line-height: 1.5;
+}
+
+.does-not-claim li {
+  margin-bottom: 2pt;
+}
+
+/* ----- appendix ---------------------------------------------------- */
+
+.appendix {
+  max-width: 215mm;
+}
+
+.appendix h2 {
+  margin-top: 12pt;
+  font-size: 11pt;
+}
+
+.appendix p,
+.appendix li {
+  font-size: 9.5pt;
   line-height: 1.55;
   color: var(--ink);
   margin-bottom: 6pt;
 }
 
-.method li {
-  font-size: 10pt;
-  line-height: 1.55;
-  margin-bottom: 3pt;
+.appendix ol {
+  padding-left: 18pt;
 }
 
-.method .pull {
-  border-left: 3pt solid var(--measured-ink);
-  padding: 4pt 0 4pt 10pt;
-  margin: 6pt 0;
-  background: var(--measured-bg);
-  font-size: 10pt;
-  line-height: 1.5;
-}
-
-.method .pull.warn {
-  border-left-color: var(--calib-off);
-  background: #fbeeea;
-}
-
-/* ----- page-break controls ------------------------------------------ */
+/* ----- page-break controls ---------------------------------------- */
 
 .page-break {
   break-before: page;
@@ -900,59 +678,35 @@ table.model-grid td.cell-deviation .model-cell-pct {
   page-break-inside: avoid;
 }
 
+/* ----- footer ----------------------------------------------------- */
+
 footer {
   margin-top: 18pt;
   padding-top: 6pt;
   border-top: 1px solid var(--rule);
+  font-size: 8pt;
   color: var(--ink-mute);
-  font-size: 7.5pt;
+  text-align: center;
 }
 
-/* ----- @media print --------------------------------------------------
- * Print-specific tweaks. Chrome's --print-to-pdf treats the document
- * as a print medium, so anything inside @media print also applies in
- * the PDF output. Anything outside this block applies equally to the
- * browser preview and the PDF — keep it that way so the HTML stays a
- * useful preview surface.
- * --------------------------------------------------------------------- */
+/* ----- print refinements ------------------------------------------ */
 
 @media print {
-  /* Force backgrounds to print. Without this Chrome strips coloured row
-     backgrounds and ALL of our measured-vs-estimated row tinting
-     disappears in the PDF. */
-  * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* Repeat table headers across page breaks. Set on the shared selector
-     above already via `display: table-header-group`, but spelled out
-     here for the print medium so a future browser-only restyle does not
-     accidentally drop it. */
   thead {
     display: table-header-group;
   }
   tfoot {
     display: table-footer-group;
   }
-
-  /* Avoid orphaning a single skill row at the bottom of a page. */
-  table.skills tr {
+  table.spine tr {
     page-break-inside: avoid;
   }
-
-  /* Method page: never split a sub-section across a page break if it
-     fits on one page. */
-  .method h2,
-  .method h3 {
+  .finding {
+    page-break-inside: avoid;
+  }
+  .appendix h2,
+  .appendix h3 {
     break-after: avoid;
     page-break-after: avoid;
-  }
-
-  /* Hide elements only useful in browser preview (currently none, but
-     reserved so we don't have to revisit the build script if we add
-     one). */
-  .browser-only {
-    display: none;
   }
 }
