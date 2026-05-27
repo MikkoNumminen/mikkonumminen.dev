@@ -303,6 +303,17 @@ export const en: Translations = {
         },
       ],
     },
+    'skill-receipts': {
+      title: 'Measured the AI workflow',
+      body: "After a year of claiming the workflow paid off, I ran the A/B. Every custom Claude Code skill measured against itself going cold — same task, sub-agent on, sub-agent off — across Sonnet, Opus, and Haiku. 34 skills, 33 calibrated. Aggregate save: +17%, ~327K tokens across the portfolio.\n\nThe published registry includes the skills that cost MORE than going cold. Those aren't failures — they encode rigor the cold arm skipped (audit thoroughness, protocol discipline, spec depth). The value is completeness, not compression. The PDF is downloadable from the contact terminal; every number is traceable to a real transcript.",
+      tags: [
+        'A/B calibrated',
+        '34 skills',
+        'Published PDF',
+        'Honest accounting',
+        'Sonnet · Opus · Haiku',
+      ],
+    },
     now: {
       title: 'Looking up',
       body: 'Available now. Open to ambitious full-stack roles where craft and velocity both matter. Seven solo-shipped projects this year — proof of both.',

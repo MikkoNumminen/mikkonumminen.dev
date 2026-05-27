@@ -51,6 +51,9 @@ export const timeline: TimelineEntry[] = [
   // (Platform consumes HRM as a submodule), so they read better as one
   // beat on the timeline than as two adjacent ones.
   { id: '2026-build', altitude: 0.86, year: '2026', kind: 'project' },
+  // Calibration follow-up to ai-workflows: the published A/B-measurement
+  // proof of the saving claim made two cards upstream.
+  { id: 'skill-receipts', altitude: 0.92, year: '2026', kind: 'craft' },
   { id: 'now', altitude: 0.97, year: NOW_YEAR_SENTINEL, kind: 'now' },
 ];
 
