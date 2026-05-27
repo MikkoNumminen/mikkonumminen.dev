@@ -75,11 +75,21 @@ code {
 
 /* ----- typography ---------------------------------------------------- */
 
+/* Headings get break-after: avoid universally so a heading never lands
+ * orphaned at the bottom of a page with its content flowing to the next.
+ * Combined with the per-unit break-inside rules below (.finding, .howtoread,
+ * .does-not-claim, table.spine tr, .avoid-break) this lets the renderer
+ * pack content tightly without forcing every section onto a fresh page.
+ * Deliberate page breaks (.page-break) still apply at major section
+ * boundaries (calibration chart, findings, appendix). */
+
 h1 {
   font-size: 18pt;
   font-weight: 700;
   margin: 0 0 4pt;
   letter-spacing: -0.01em;
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 h2 {
@@ -88,6 +98,8 @@ h2 {
   margin: 14pt 0 4pt;
   padding-bottom: 2pt;
   border-bottom: 1px solid var(--rule);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 h3 {
@@ -95,6 +107,8 @@ h3 {
   font-weight: 700;
   margin: 10pt 0 3pt;
   color: var(--ink);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 p {

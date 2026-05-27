@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-27T04:01:50.634Z",
+  "generated_at": "2026-05-27T04:26:45.426Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -99,7 +99,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "cost_model": "opus"
           }
         },
         {
@@ -238,11 +239,11 @@
                 "procedure_deviation_note": null
               }
             },
+            "cost_model": "opus",
             "tokens_per_use_mean": 31377,
             "tokens_per_use_min": 18416,
             "tokens_per_use_max": 48979,
-            "tokens_per_use_stddev": 9595,
-            "cost_model": "opus"
+            "tokens_per_use_stddev": 9595
           }
         },
         {
@@ -488,7 +489,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "cost_model": "opus"
           }
         },
         {
@@ -540,11 +542,11 @@
                 "procedure_deviation_note": null
               }
             },
+            "cost_model": "opus",
             "tokens_per_use_mean": 267547,
             "tokens_per_use_min": 26556,
             "tokens_per_use_max": 618724,
-            "tokens_per_use_stddev": 253997,
-            "cost_model": "opus"
+            "tokens_per_use_stddev": 253997
           }
         },
         {
@@ -877,7 +879,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "cost_model": "opus"
           }
         },
         {
@@ -933,7 +936,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "cost_model": "opus"
           }
         }
       ]
@@ -991,11 +995,11 @@
                 "procedure_deviation_note": null
               }
             },
+            "cost_model": "haiku",
             "tokens_per_use_mean": 45444,
             "tokens_per_use_min": 2407,
             "tokens_per_use_max": 164666,
-            "tokens_per_use_stddev": 68864,
-            "cost_model": "haiku"
+            "tokens_per_use_stddev": 68864
           }
         },
         {
@@ -1046,11 +1050,11 @@
                 "procedure_deviation_note": null
               }
             },
+            "cost_model": "opus",
             "tokens_per_use_mean": 152947,
             "tokens_per_use_min": 4051,
             "tokens_per_use_max": 670481,
-            "tokens_per_use_stddev": 239193,
-            "cost_model": "opus"
+            "tokens_per_use_stddev": 239193
           }
         },
         {
@@ -1143,11 +1147,11 @@
                 "procedure_deviation_note": null
               }
             },
+            "cost_model": "opus",
             "tokens_per_use_mean": 143080,
             "tokens_per_use_min": 8271,
             "tokens_per_use_max": 527804,
-            "tokens_per_use_stddev": 184632,
-            "cost_model": "opus"
+            "tokens_per_use_stddev": 184632
           }
         },
         {
@@ -1199,11 +1203,11 @@
                 "procedure_deviation_note": null
               }
             },
+            "cost_model": "opus",
             "tokens_per_use_mean": 15824,
             "tokens_per_use_min": 12169,
             "tokens_per_use_max": 22821,
-            "tokens_per_use_stddev": 4950,
-            "cost_model": "opus"
+            "tokens_per_use_stddev": 4950
           }
         },
         {
@@ -1398,7 +1402,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "cost_model": "opus"
           }
         },
         {
@@ -1450,11 +1455,11 @@
                 "procedure_deviation_note": null
               }
             },
+            "cost_model": "opus",
             "tokens_per_use_mean": 14926,
             "tokens_per_use_min": 5781,
             "tokens_per_use_max": 38730,
-            "tokens_per_use_stddev": 12067,
-            "cost_model": "opus"
+            "tokens_per_use_stddev": 12067
           }
         }
       ]
@@ -1601,11 +1606,11 @@
                 "procedure_deviation_note": null
               }
             },
+            "cost_model": "sonnet",
             "tokens_per_use_mean": 110696,
             "tokens_per_use_min": 82778,
             "tokens_per_use_max": 127556,
-            "tokens_per_use_stddev": 16836,
-            "cost_model": "sonnet"
+            "tokens_per_use_stddev": 16836
           }
         },
         {
@@ -1656,7 +1661,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "cost_model": "opus"
           }
         }
       ]
@@ -1674,12 +1680,12 @@
       "label": "/review",
       "description": "Claude Code built-in PR code review",
       "measurement_window_days": 90,
-      "invocations_in_window": 338,
-      "total_tokens_in_window": 16325066,
-      "tokens_per_use_avg": 10456,
-      "annual_total": 66217929,
-      "uses_per_year": 1371,
-      "last_invoked": "2026-05-27T03:58:17.860Z",
+      "invocations_in_window": 339,
+      "total_tokens_in_window": 16355628,
+      "tokens_per_use_avg": 10487,
+      "annual_total": 66339625,
+      "uses_per_year": 1375,
+      "last_invoked": "2026-05-27T04:06:52.064Z",
       "tokens_saved_per_use": 21875,
       "tokens_saved_source": "calibration",
       "calibration_arm_A": 50194,
@@ -1710,10 +1716,10 @@
           "procedure_deviation_note": null
         }
       },
-      "tokens_per_use_mean": 48299,
+      "tokens_per_use_mean": 48247,
       "tokens_per_use_min": 1152,
       "tokens_per_use_max": 980564,
-      "tokens_per_use_stddev": 133938,
+      "tokens_per_use_stddev": 133744,
       "cost_model": "opus",
       "calibration_arm_A_source": "small-bucket-median",
       "calibration_headline_bucket": "small",
