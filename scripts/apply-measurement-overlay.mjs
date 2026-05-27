@@ -17,11 +17,36 @@ const LIBRARY_REPO = 'claude-skills';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REG = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const USAGE = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-USAGE-LATEST.json');
-const CALIBRATION = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-LATEST.json');
-const CALIBRATION_BUILTINS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-LATEST.json');
-const CALIBRATION_AUDIOBOOKMAKER = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json');
-const CALIBRATION_CLAUDESKILLS = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json');
-const CALIBRATION_MN_DEV = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json');
+const CALIBRATION = path.join(
+  ROOT,
+  '.claude',
+  'agent-verdicts',
+  'SKILL-CALIBRATION-LATEST.json',
+);
+const CALIBRATION_BUILTINS = path.join(
+  ROOT,
+  '.claude',
+  'agent-verdicts',
+  'SKILL-CALIBRATION-BUILTINS-LATEST.json',
+);
+const CALIBRATION_AUDIOBOOKMAKER = path.join(
+  ROOT,
+  '.claude',
+  'agent-verdicts',
+  'SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json',
+);
+const CALIBRATION_CLAUDESKILLS = path.join(
+  ROOT,
+  '.claude',
+  'agent-verdicts',
+  'SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json',
+);
+const CALIBRATION_MN_DEV = path.join(
+  ROOT,
+  '.claude',
+  'agent-verdicts',
+  'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json',
+);
 
 // Multi-model calibration files (Opus + Haiku). Each mirrors the corresponding
 // Sonnet file's schema with a top-level `model` field. Sonnet remains the
@@ -32,17 +57,118 @@ const CALIBRATION_MN_DEV = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-C
 // exist so the rendering pipeline can show a "pending" column without
 // schema gymnastics.
 const ALT_MODEL_CALIBRATION_FILES = [
-  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json'),                 receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json' },
-  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json'),         receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json' },
-  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json'),           receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json' },
-  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json'),      receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json' },
-  { model: 'opus',  file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json'),           receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json'),                receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json'),              receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json'),        receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json'),          receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json'),     receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json' },
-  { model: 'haiku', file: path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json'),          receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json' },
+  {
+    model: 'opus',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json',
+  },
+  {
+    model: 'opus',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json',
+  },
+  {
+    model: 'opus',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json',
+  },
+  {
+    model: 'opus',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json',
+    ),
+    receipt:
+      '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json',
+  },
+  {
+    model: 'opus',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json',
+  },
+  {
+    model: 'haiku',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json',
+  },
+  {
+    model: 'haiku',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-BUILTINS-HAIKU-LATEST.json',
+  },
+  {
+    model: 'haiku',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json',
+  },
+  {
+    model: 'haiku',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json',
+  },
+  {
+    model: 'haiku',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json',
+    ),
+    receipt:
+      '.claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json',
+  },
+  {
+    model: 'haiku',
+    file: path.join(
+      ROOT,
+      '.claude',
+      'agent-verdicts',
+      'SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json',
+    ),
+    receipt: '.claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json',
+  },
 ];
 
 // Sample-sessionId → repo lookup. Sessions live under
@@ -70,8 +196,13 @@ const SESSION_TO_REPO = {
 
 // Skills that exist in the registry but should NOT be overlaid (built-in,
 // meta, or out-of-scope skills).
-const SKIP = new Set(['review', 'update-config', 'pre-push-scan',
-  'commit-then-scan', 'mikko-skills']);
+const SKIP = new Set([
+  'review',
+  'update-config',
+  'pre-push-scan',
+  'commit-then-scan',
+  'mikko-skills',
+]);
 
 // Skills renamed after measurements were recorded. Old-name measurements in
 // SKILL-USAGE-LATEST.json need to attribute to the renamed registry row;
@@ -124,8 +255,8 @@ function isCanonicalDuplicate(repo, skillName) {
 const reg = JSON.parse(fs.readFileSync(REG, 'utf8'));
 const usage = JSON.parse(fs.readFileSync(USAGE, 'utf8'));
 
-let overlaid = 0;       // distinct (repo, skill) rows that received a fresh write this run
-let accumulated = 0;    // additional measurements layered onto a row that was already written
+let overlaid = 0; // distinct (repo, skill) rows that received a fresh write this run
+let accumulated = 0; // additional measurements layered onto a row that was already written
 const report = [];
 
 // Track which (repo, skill) receipts have already been written THIS run, so a
@@ -288,7 +419,9 @@ for (const m of usage.skills) {
       prior_estimate: prev.prior_estimate,
     };
     accumulated++;
-    report.push(`ACCUMULATE ${r.name}.${s.name}: +${m.name} (${newInv} inv, ${newTok} tokens)`);
+    report.push(
+      `ACCUMULATE ${r.name}.${s.name}: +${m.name} (${newInv} inv, ${newTok} tokens)`,
+    );
   } else {
     s.receipt = {
       path: '.claude/agent-verdicts/SKILL-USAGE-LATEST.json',
@@ -303,7 +436,9 @@ for (const m of usage.skills) {
       prior_estimate: priorEstimate,
     };
     overlaid++;
-    report.push(`OVERLAY ${r.name}.${s.name} (via ${m.name}): ${oldAnnual} → ${m.annual_total}`);
+    report.push(
+      `OVERLAY ${r.name}.${s.name} (via ${m.name}): ${oldAnnual} → ${m.annual_total}`,
+    );
     writtenThisRun.add(rowKey);
   }
 }
@@ -322,7 +457,9 @@ for (const r of reg.repos) {
   const dropped = before - r.skills.length;
   if (dropped > 0) {
     droppedDuplicates += dropped;
-    report.push(`DEDUPE ${r.name}: dropped ${dropped} library-canonical duplicate skill(s)`);
+    report.push(
+      `DEDUPE ${r.name}: dropped ${dropped} library-canonical duplicate skill(s)`,
+    );
   }
 }
 
@@ -369,6 +506,13 @@ function applyCalibrationFile(file, receiptPath) {
       s.receipt.tokens_saved_source = 'calibration';
       s.receipt.calibration_arm_A = entry.arm_A_tokens;
       s.receipt.calibration_arm_B = entry.arm_B_tokens;
+      // Propagate the model the calibration was actually run on so the PDF's
+      // per-model save column (and any downstream consumer) doesn't have to
+      // assume "primary calibration is sonnet" implicitly. The non-suffixed
+      // calibration source files declare `model: sonnet`; the -OPUS- /
+      // -HAIKU- variants go through `applyAltModelCalibration` and land on
+      // `alt_model_measurements[<model>]` instead — they don't reach here.
+      s.receipt.calibration_model = calibration.model ?? 'sonnet';
       if (entry.notes) s.receipt.calibration_notes = entry.notes;
 
       // The calibration's arm-B IS a measured cost-per-use: real tokens
@@ -473,7 +617,9 @@ function applyAltModelCalibration(file, model, receiptPath) {
       // multi-model measurement. Mirrors the SKIP-on-no-match pattern from
       // applyCalibrationFile so a single grep finds both classes of misses.
       const repoSuffix = entry.repo ? ` in ${entry.repo}` : '';
-      report.push(`SKIP alt-model ${model} for ${entry.name}${repoSuffix} — no matching registry row`);
+      report.push(
+        `SKIP alt-model ${model} for ${entry.name}${repoSuffix} — no matching registry row`,
+      );
       missed += 1;
       continue;
     }
@@ -496,7 +642,9 @@ function applyAltModelCalibration(file, model, receiptPath) {
       };
       written += 1;
       const deviationSuffix = entry.procedure_deviation ? ' † PROCEDURE DEVIATION' : '';
-      report.push(`ALT-MODEL ${r.name}.${s.name} (${model}): arm A ${entry.arm_A_tokens} / arm B ${entry.arm_B_tokens} (saved ${entry.saved}, ${entry.pct_saved}%)${deviationSuffix}`);
+      report.push(
+        `ALT-MODEL ${r.name}.${s.name} (${model}): arm A ${entry.arm_A_tokens} / arm B ${entry.arm_B_tokens} (saved ${entry.saved}, ${entry.pct_saved}%)${deviationSuffix}`,
+      );
     }
   }
   return { written, skipped, missed };
@@ -623,7 +771,8 @@ for (const [skillName, meta] of Object.entries(BUILTINS_TO_TRACK)) {
       ...(altPayload.skills ?? []).filter((s) => s.kind === 'builtin'),
     ];
     const altEntry = candidates.find((b) => b.name === skillName);
-    if (!altEntry || altEntry.arm_A_tokens == null || altEntry.arm_B_tokens == null) continue;
+    if (!altEntry || altEntry.arm_A_tokens == null || altEntry.arm_B_tokens == null)
+      continue;
     entry.alt_model_measurements ??= {};
     entry.alt_model_measurements[model] = {
       arm_A_tokens: altEntry.arm_A_tokens,
@@ -649,8 +798,16 @@ reg.generated_at = new Date().toISOString();
 fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');
 
 console.log(report.join('\n'));
-const accumulatedSuffix = accumulated > 0 ? ` (+${accumulated} accumulation${accumulated === 1 ? '' : 's'} onto existing rows)` : '';
+const accumulatedSuffix =
+  accumulated > 0
+    ? ` (+${accumulated} accumulation${accumulated === 1 ? '' : 's'} onto existing rows)`
+    : '';
 const calibSuffix = calibratedRows > 0 ? ` Calibrated ${calibratedRows} row(s).` : '';
 const altMissSuffix = altModelMissed > 0 ? `, ${altModelMissed} miss(es)` : '';
-const altSuffix = altModelWritten > 0 ? ` Alt-model measurements attached to ${altModelWritten} row(s) (skipped ${altModelSkipped} placeholder/null${altMissSuffix}).` : '';
-console.log(`\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s).${calibSuffix}${altSuffix} New annual total: ${totalAnnual.toLocaleString()}`);
+const altSuffix =
+  altModelWritten > 0
+    ? ` Alt-model measurements attached to ${altModelWritten} row(s) (skipped ${altModelSkipped} placeholder/null${altMissSuffix}).`
+    : '';
+console.log(
+  `\nOverlaid ${overlaid} rows${accumulatedSuffix}. Dropped ${droppedDuplicates} canonical-to-library duplicate(s).${calibSuffix}${altSuffix} New annual total: ${totalAnnual.toLocaleString()}`,
+);
