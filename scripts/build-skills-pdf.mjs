@@ -311,28 +311,34 @@ function saveCellHtml(receipt, model) {
   let pct = null;
   let abs = null;
   let dagger = false;
-  if (model === 'sonnet') {
-    // The primary calibration (the `calibration_arm_A/B` + `tokens_saved_per_use`
-    // triple set by `apply-measurement-overlay.mjs` from the non-suffixed
-    // SKILL-CALIBRATION-*-LATEST.json files) is Sonnet — those source files
-    // declare `model: sonnet`. The overlay does not currently propagate the
-    // model tag onto the receipt, so this column reads the primary fields
-    // directly. /review's `calibration_pct_saved` is the pre-computed
-    // bucket-aligned headline; everything else gets the pct computed fresh
-    // from saved ÷ arm_A so the displayed numbers reconcile on the row.
-    if (
-      receipt.tokens_saved_source === 'calibration' &&
-      typeof receipt.tokens_saved_per_use === 'number' &&
-      typeof receipt.calibration_arm_A === 'number' &&
-      receipt.calibration_arm_A > 0
-    ) {
-      abs = receipt.tokens_saved_per_use;
-      pct =
-        typeof receipt.calibration_pct_saved === 'number'
-          ? receipt.calibration_pct_saved
-          : Math.round((abs / receipt.calibration_arm_A) * 100);
-    }
-  } else {
+  // The primary calibration's top-level fields (`calibration_arm_A/B` +
+  // `tokens_saved_per_use`) belong to whichever model the calibration was
+  // actually run on. `apply-measurement-overlay.mjs` writes that as
+  // `calibration_model`; legacy receipts that predate the propagation
+  // default to 'sonnet' (the historical convention — the non-suffixed
+  // SKILL-CALIBRATION-*-LATEST.json source files declare model: sonnet).
+  // /review's `calibration_pct_saved` is the pre-computed bucket-aligned
+  // headline; everything else recomputes pct fresh from saved ÷ arm_A so
+  // the row's displayed numbers reconcile.
+  const primaryModel = receipt.calibration_model ?? 'sonnet';
+  if (
+    model === primaryModel &&
+    receipt.tokens_saved_source === 'calibration' &&
+    typeof receipt.tokens_saved_per_use === 'number' &&
+    typeof receipt.calibration_arm_A === 'number' &&
+    receipt.calibration_arm_A > 0
+  ) {
+    abs = receipt.tokens_saved_per_use;
+    pct =
+      typeof receipt.calibration_pct_saved === 'number'
+        ? receipt.calibration_pct_saved
+        : Math.round((abs / receipt.calibration_arm_A) * 100);
+  }
+  if (pct == null) {
+    // Fall back to alt-model measurements — used for any column whose model
+    // doesn't match the primary calibration (so today: Opus + Haiku for the
+    // 33 portfolio rows; in the future, any column when calibration_model
+    // points elsewhere).
     const alt = receipt.alt_model_measurements?.[model];
     if (alt && typeof alt.pct_saved === 'number') {
       pct = alt.pct_saved;
@@ -395,13 +401,15 @@ function spineRowHtml({
 // use a few different field names (`tokens_per_use_avg` instead of
 // `tokens_per_use`) and lack the `source` tag the per-skill receipts use to
 // distinguish transcript vs A/B. Normalize once so the cell helpers can
-// treat them like any other measured receipt without a special path.
+// treat them like any other measured receipt without a special path. Only
+// tag `source` when there's an actual cost number behind it — otherwise an
+// empty-data built-in would render a misleading "measured" chip above an
+// empty cost cell.
 function normalizeBuiltinReceipt(br) {
-  return {
-    ...br,
-    source: 'transcript-measurement',
-    tokens_per_use: br.tokens_per_use ?? br.tokens_per_use_avg,
-  };
+  const cost = br.tokens_per_use ?? br.tokens_per_use_avg;
+  const normalized = { ...br, tokens_per_use: cost };
+  if (typeof cost === 'number') normalized.source = 'transcript-measurement';
+  return normalized;
 }
 
 function renderSpineTable(data) {
@@ -499,16 +507,44 @@ function renderCalibrationChart(rows) {
   const maxAbsLog = Math.max(...logRatios.map(Math.abs), Math.log10(20));
   const xOf = (logR) => margin.left + ((logR + maxAbsLog) / (2 * maxAbsLog)) * innerW;
 
-  // Simple jitter: cycle marks through N vertical rows so overlapping
-  // x-positions don't paint over each other. 7 rows fits the current ~30
-  // marks comfortably with breathing room.
+  // Lane assignment so marks close together on the x-axis don't paint over
+  // each other. Walk marks left-to-right; for each one, pick the lowest
+  // lane whose last-occupied x is far enough away. The collision distance
+  // is the dot diameter plus a small breathing margin — wider than 2r
+  // means the next dot doesn't visually touch the previous one. 7 lanes
+  // fits the current ~30 marks; the (i % ROWS) fallback keeps the chart
+  // sane if the density ever spikes past what 7 lanes can absorb.
+  //
+  // Order of operations matters: the lane assignment walks left-to-right
+  // (by x), but the renderer's `sorted`/`marks` order stays "biggest miss
+  // first" so the annotation picker (marks.slice(0, 3)) still names the
+  // three most extreme misses, not the three leftmost dots.
   const ROWS = 7;
   const rowH = innerH / ROWS;
-  const marks = sorted.map((r, i) => ({
+  const DOT_R = 5;
+  const COLLIDE = DOT_R * 2.4;
+  const marks = sorted.map((r) => ({
     ...r,
     x: xOf(Math.log10(r.delta.raw)),
-    y: margin.top + (i % ROWS) * rowH + rowH / 2,
+    lane: 0,
   }));
+  const laneLastX = new Array(ROWS).fill(-Infinity);
+  const byX = [...marks].sort((a, b) => a.x - b.x);
+  byX.forEach((m, idx) => {
+    let lane = -1;
+    for (let l = 0; l < ROWS; l++) {
+      if (m.x - laneLastX[l] >= COLLIDE) {
+        lane = l;
+        break;
+      }
+    }
+    if (lane === -1) lane = idx % ROWS;
+    m.lane = lane;
+    laneLastX[lane] = m.x;
+  });
+  marks.forEach((m) => {
+    m.y = margin.top + m.lane * rowH + rowH / 2;
+  });
 
   const colorFor = (m) =>
     m.delta.klass === 'off' ? '#b13a18' : m.delta.klass === 'ok' ? '#1f6f3a' : '#888';

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-27T03:48:27.637Z",
+  "generated_at": "2026-05-27T04:01:50.634Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -48,7 +48,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -76,6 +77,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 65462,
             "calibration_arm_B": 33151,
+            "calibration_model": "sonnet",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 45889,
@@ -136,7 +138,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -183,7 +186,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -211,6 +215,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 35107,
             "calibration_arm_B": 29170,
+            "calibration_model": "sonnet",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 65477,
@@ -283,7 +288,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -330,7 +336,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -377,7 +384,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         }
       ]
@@ -429,7 +437,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -457,6 +466,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 99335,
             "calibration_arm_B": 77026,
+            "calibration_model": "sonnet",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 79368,
@@ -506,6 +516,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 89006,
             "calibration_arm_B": 93683,
+            "calibration_model": "sonnet",
             "calibration_notes": "skill enforces full CRUD lifecycle — encodes rigor, not scout-savings",
             "alt_model_measurements": {
               "opus": {
@@ -579,7 +590,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -625,7 +637,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -671,7 +684,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -718,7 +732,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -764,7 +779,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -810,7 +826,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -838,6 +855,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 47182,
             "calibration_arm_B": 33460,
+            "calibration_model": "sonnet",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 84383,
@@ -893,6 +911,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 70080,
             "calibration_arm_B": 62874,
+            "calibration_model": "sonnet",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 91076,
@@ -948,6 +967,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 157348,
             "calibration_arm_B": 81119,
+            "calibration_model": "sonnet",
             "calibration_notes": "arm-B found 1 nit vs arm-A's 11 — savings partly reflect stricter discrimination",
             "alt_model_measurements": {
               "opus": {
@@ -1003,6 +1023,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 117161,
             "calibration_arm_B": 114437,
+            "calibration_model": "sonnet",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 215869,
@@ -1069,7 +1090,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -1097,6 +1119,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 24092,
             "calibration_arm_B": 29421,
+            "calibration_model": "sonnet",
             "calibration_notes": "skill encodes a source-repo cross-check on top of the install scan — extra work for completeness, costs more than just listing installed skills.",
             "alt_model_measurements": {
               "opus": {
@@ -1152,6 +1175,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 16930,
             "calibration_arm_B": 22824,
+            "calibration_model": "sonnet",
             "calibration_notes": "skill encodes the full install protocol (modes, prefixing, source-repo validation) — costs more than a plain cp pass; value is in correctness, not token compression.",
             "alt_model_measurements": {
               "opus": {
@@ -1226,7 +1250,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -1273,7 +1298,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -1320,7 +1346,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -1348,6 +1375,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 35880,
             "calibration_arm_B": 30816,
+            "calibration_model": "sonnet",
             "calibration_notes": "arm B ran the prescribed scan.mjs directly; arm A wrote a JSONL walker from scratch. Modest save from delegating to the existing tool.",
             "alt_model_measurements": {
               "opus": {
@@ -1398,6 +1426,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 48949,
             "calibration_arm_B": 22899,
+            "calibration_model": "sonnet",
             "calibration_notes": "biggest save in this calibration. Recipe says 'run scan.mjs'; arm A wrote a from-scratch JSONL walker including dedup logic. Big save from delegating to the existing tool.",
             "alt_model_measurements": {
               "opus": {
@@ -1478,7 +1507,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -1518,7 +1548,8 @@
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
-            }
+            },
+            "calibration_model": "sonnet"
           }
         },
         {
@@ -1546,6 +1577,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 16250,
             "calibration_arm_B": 22351,
+            "calibration_model": "sonnet",
             "calibration_notes": "arm A wrote a sparse scan plan in 2 tool uses; arm B's full procedure includes schema extraction, library directory handling, and more rigor. Cost-more reflects spec depth, not waste.",
             "alt_model_measurements": {
               "opus": {
@@ -1601,6 +1633,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 32885,
             "calibration_arm_B": 36530,
+            "calibration_model": "sonnet",
             "calibration_notes": "arm A used 48 tool uses on a deep scout of the repo to detect drifts; arm B followed the structured drift-axes procedure with fewer reads but more procedure overhead. Near-tie; both produced defensible drift reports.",
             "alt_model_measurements": {
               "opus": {
@@ -1641,12 +1674,12 @@
       "label": "/review",
       "description": "Claude Code built-in PR code review",
       "measurement_window_days": 90,
-      "invocations_in_window": 337,
-      "total_tokens_in_window": 16287612,
-      "tokens_per_use_avg": 10424,
-      "annual_total": 66068477,
-      "uses_per_year": 1367,
-      "last_invoked": "2026-05-27T02:55:35.831Z",
+      "invocations_in_window": 338,
+      "total_tokens_in_window": 16325066,
+      "tokens_per_use_avg": 10456,
+      "annual_total": 66217929,
+      "uses_per_year": 1371,
+      "last_invoked": "2026-05-27T03:58:17.860Z",
       "tokens_saved_per_use": 21875,
       "tokens_saved_source": "calibration",
       "calibration_arm_A": 50194,
@@ -1677,10 +1710,10 @@
           "procedure_deviation_note": null
         }
       },
-      "tokens_per_use_mean": 48331,
+      "tokens_per_use_mean": 48299,
       "tokens_per_use_min": 1152,
       "tokens_per_use_max": 980564,
-      "tokens_per_use_stddev": 134135,
+      "tokens_per_use_stddev": 133938,
       "cost_model": "opus",
       "calibration_arm_A_source": "small-bucket-median",
       "calibration_headline_bucket": "small",
