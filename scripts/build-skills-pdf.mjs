@@ -468,6 +468,7 @@ function renderCalibrationPage(measuredWithPriors) {
   return `<section class="page-break">
   <h2>Calibration honesty — where my guesses landed</h2>
   <p class="calib-intro">Here are the rows where I had a guess before I had data. The “How wrong” column is the measurement divided by the guess. Green means I landed within ±10%. Orange means I was off by 5× or more in either direction. ${offCount} of ${measuredWithPriors.length} rows are orange. The fix is not to write better guesses next time. The fix is to keep measuring.</p>
+  <p class="calib-intro">Where the guesses come from: each skill carries an author-written estimate in its <code>SKILL.md</code> frontmatter (or in the repo's <code>README.md</code> table for some skills). I imagined what a single use should cost in tokens and wrote that number down when first scaffolding the skill, before any real run existed. No math, no benchmark — just the number that felt right at the time. The provenance for each row (the <code>source</code> tag — either <code>skill-body</code> or <code>readme.md</code> — and the file path) lives on the row's <code>prior_estimate</code> block in <code>public/data/skills-registry.json</code>.</p>
   <table class="calibration">
     <thead><tr><th scope="col">Skill</th><th scope="col" class="num">My guess (per use)</th><th scope="col" class="num">Measured (per use)</th><th scope="col" class="num">How wrong</th></tr></thead>
     <tbody>${rows}</tbody>
