@@ -89,12 +89,13 @@
   margin-top: 18mm;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: -apple-system, system-ui, "Segoe UI", "Helvetica Neue", sans-serif;
+  font-family: -apple-system, system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
   font-size: 9.5pt;
   line-height: 1.45;
 }
@@ -106,7 +107,7 @@ a {
 }
 
 code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 8.5pt;
   background: var(--shade);
   padding: 0 3pt;
@@ -271,6 +272,30 @@ p {
   max-width: 165mm;
 }
 
+/* ----- save / use standing legend (next to every table that carries the
+ *       column — not buried on the method page). Slightly heavier border
+ *       + tinted background so it visually reads as "important sidebar,"
+ *       not just another lede paragraph. ---------------------------- */
+
+.save-use-legend {
+  display: block;
+  margin: 6pt 0 8pt;
+  padding: 6pt 10pt;
+  border: 1pt solid var(--rule);
+  border-left: 3pt solid var(--measured-ink);
+  border-radius: 2pt;
+  background: var(--shade);
+  font-size: 8.5pt;
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 165mm;
+  break-inside: avoid;
+}
+
+.save-use-legend strong {
+  font-weight: 600;
+}
+
 /* ----- chips (measured / estimate badges) ---------------------------- */
 
 .chip {
@@ -291,7 +316,7 @@ p {
 }
 
 .chip-measured::before {
-  content: "\2713 ";   /* check */
+  content: '\2713 '; /* check */
   font-weight: 700;
 }
 
@@ -302,7 +327,7 @@ p {
 }
 
 .chip-estimate::before {
-  content: "\25CB ";   /* open circle */
+  content: '\25CB '; /* open circle */
   font-weight: 700;
   margin-right: 1pt;
 }
@@ -324,14 +349,15 @@ table {
 }
 
 thead {
-  display: table-header-group;   /* repeat on every printed page */
+  display: table-header-group; /* repeat on every printed page */
 }
 
 tr {
   page-break-inside: avoid;
 }
 
-th, td {
+th,
+td {
   border-bottom: 1px solid var(--rule);
   padding: 4pt 6pt;
   text-align: left;
@@ -820,7 +846,7 @@ table.model-grid td.cell-deviation .model-cell-pct {
 }
 
 .deviation-footnotes ol.deviation-list code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 9pt;
   color: var(--ink);
 }
@@ -903,18 +929,30 @@ footer {
      above already via `display: table-header-group`, but spelled out
      here for the print medium so a future browser-only restyle does not
      accidentally drop it. */
-  thead { display: table-header-group; }
-  tfoot { display: table-footer-group; }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
 
   /* Avoid orphaning a single skill row at the bottom of a page. */
-  table.skills tr { page-break-inside: avoid; }
+  table.skills tr {
+    page-break-inside: avoid;
+  }
 
   /* Method page: never split a sub-section across a page break if it
      fits on one page. */
-  .method h2, .method h3 { break-after: avoid; page-break-after: avoid; }
+  .method h2,
+  .method h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
 
   /* Hide elements only useful in browser preview (currently none, but
      reserved so we don't have to revisit the build script if we add
      one). */
-  .browser-only { display: none; }
+  .browser-only {
+    display: none;
+  }
 }

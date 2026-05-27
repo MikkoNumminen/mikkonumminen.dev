@@ -51,8 +51,7 @@ const fmt = (n) =>
 // `fmt(4295)` collapses to "4K" (same as 14K, 40K), which is misleading
 // for accuracy footers where the spread itself is the point. Below 100K we
 // show comma-separated raw integers; above we fall through to fmt.
-const fmtPrecise = (n) =>
-  n < 100_000 ? n.toLocaleString('en-US') : fmt(n);
+const fmtPrecise = (n) => (n < 100_000 ? n.toLocaleString('en-US') : fmt(n));
 
 // Measured-save cell with an A/B-baseline subline. Used on rows where the
 // transcript cost is large enough vs the A/B baseline that the bare percent
@@ -87,7 +86,12 @@ function saveCellWithBaseline(value, armA) {
 function abSampleSubline(rec) {
   // Threshold is 2: a single A/B is just the headline number and doesn't warrant
   // a "sample" subline; from 2 onwards the spread tells a story the headline can't.
-  if (!rec || typeof rec.calibration_ab_count !== 'number' || rec.calibration_ab_count < 2) return '';
+  if (
+    !rec ||
+    typeof rec.calibration_ab_count !== 'number' ||
+    rec.calibration_ab_count < 2
+  )
+    return '';
   // Bucketed mode: emit per-bucket pct breakdown so the size→save gradient is
   // visible alongside the weighted headline.
   if (rec.calibration_ab_buckets && typeof rec.calibration_ab_buckets === 'object') {
@@ -101,12 +105,16 @@ function abSampleSubline(rec) {
     return `<span class="num-cell-sub">weighted across ${rec.calibration_ab_count} A/Bs · ${parts.join(' · ')}</span>`;
   }
   // Fallback: plain multi-A/B subline.
-  const linesRange = (typeof rec.calibration_ab_lines_min === 'number' && typeof rec.calibration_ab_lines_max === 'number')
-    ? ` · ${rec.calibration_ab_lines_min}–${rec.calibration_ab_lines_max} lines`
-    : '';
-  const pctRange = (typeof rec.calibration_save_pct_min === 'number' && typeof rec.calibration_save_pct_max === 'number')
-    ? ` · range ${rec.calibration_save_pct_min}%–${rec.calibration_save_pct_max}%`
-    : '';
+  const linesRange =
+    typeof rec.calibration_ab_lines_min === 'number' &&
+    typeof rec.calibration_ab_lines_max === 'number'
+      ? ` · ${rec.calibration_ab_lines_min}–${rec.calibration_ab_lines_max} lines`
+      : '';
+  const pctRange =
+    typeof rec.calibration_save_pct_min === 'number' &&
+    typeof rec.calibration_save_pct_max === 'number'
+      ? ` · range ${rec.calibration_save_pct_min}%–${rec.calibration_save_pct_max}%`
+      : '';
   return `<span class="num-cell-sub">avg of ${rec.calibration_ab_count} A/Bs${linesRange}${pctRange}</span>`;
 }
 
@@ -118,6 +126,19 @@ function appendAbSubline(cellHtml, rec) {
   const sub = abSampleSubline(rec);
   if (!sub) return cellHtml;
   return cellHtml.replace(/<\/td>$/, `${sub}</td>`);
+}
+
+// Compact legend for the SAVE / USE column. Lives directly next to the
+// tables that carry the column (built-ins + per-repo) rather than only on
+// the method page several pages away — readers who skip the method page
+// still need to know what they're looking at, especially the negative/orange
+// case and the "do not subtract" warning.
+function renderSaveUseLegend() {
+  return `<aside class="save-use-legend">
+  <strong>SAVE / USE</strong> — tokens saved vs running the same task without the skill, measured by A/B test (arm A cold − arm B with-skill).
+  A <strong>negative value (orange)</strong> means the skill cost more than the unstructured baseline — it encodes rigor, not token compression.
+  <strong>Cost / use</strong> is measured from production transcripts; <strong>save / use</strong> is measured by A/B calibration. They come from different runs — <strong>do not subtract one from the other</strong>.
+</aside>`;
 }
 
 function fmtGeneratedAt(iso) {
@@ -235,8 +256,7 @@ function fmtMultiplier(m) {
 // for either; the per-cell unit text distinguishes the source when useful.
 function isMeasured(receipt) {
   return (
-    receipt?.source === 'transcript-measurement' ||
-    receipt?.source === 'calibration'
+    receipt?.source === 'transcript-measurement' || receipt?.source === 'calibration'
   );
 }
 
@@ -262,10 +282,7 @@ function renderHero(perRepo, totalSkillsWithReceipts, totalCalibrated) {
     return '';
   }
   reposWithCalib.sort((a, b) => b.calibPctSaved - a.calibPctSaved);
-  const maxAbsPct = Math.max(
-    ...reposWithCalib.map((r) => Math.abs(r.calibPctSaved)),
-    1,
-  );
+  const maxAbsPct = Math.max(...reposWithCalib.map((r) => Math.abs(r.calibPctSaved)), 1);
   const bars = reposWithCalib
     .map((r) => {
       const sign = r.calibPctSaved >= 0 ? '+' : '−';
@@ -328,18 +345,23 @@ function renderBuiltInsSection(refs) {
       const status = `<td class="status"><span class="chip chip-measured">measured</span>${lastSeen}</td>`;
       // Accuracy footer is shown when the per-invocation stats are present —
       // `build-review-stats.mjs` populates them by re-scanning local JSONLs
-      // and computing min/max/σ across the N sessions. Without those the row
-      // falls back to the single "tokens / use" label (same shape as the
-      // custom-skill rows). The spread is wide enough on /review that the
-      // honesty matters: σ ≈ mean is a real signal about how much a single
-      // invocation's cost can vary.
+      // and computing median + mean + min/max/σ across the N invocations.
+      // The headline (tokens_per_use_avg) is now the MEDIAN: the cost
+      // distribution is heavily right-skewed (a few large /review calls
+      // pull the mean above what one typical use costs), so the median is
+      // the honest "what does one /review cost" figure. The mean + spread
+      // ride in the subline so the reader sees how wobbly the average is.
       const hasAccuracy =
         typeof br.tokens_per_use_min === 'number' &&
         typeof br.tokens_per_use_max === 'number' &&
         typeof br.tokens_per_use_stddev === 'number' &&
         typeof br.invocations_in_window === 'number';
+      const meanText =
+        typeof br.tokens_per_use_mean === 'number'
+          ? ` · mean ${fmtPrecise(br.tokens_per_use_mean)}`
+          : '';
       const accuracyLine = hasAccuracy
-        ? `<span class="num-cell-sub">avg of ${br.invocations_in_window} runs · range ${fmtPrecise(br.tokens_per_use_min)}–${fmtPrecise(br.tokens_per_use_max)} · σ ${fmtPrecise(br.tokens_per_use_stddev)}</span>`
+        ? `<span class="num-cell-sub">median of ${br.invocations_in_window} runs${meanText} · range ${fmtPrecise(br.tokens_per_use_min)}–${fmtPrecise(br.tokens_per_use_max)} · σ ${fmtPrecise(br.tokens_per_use_stddev)}</span>`
         : '';
       const measuredCost = `<td class="num-cell num-cell-measured-cost"><span class="num-cell-big">${fmt(br.tokens_per_use_avg)}</span><span class="num-cell-unit">tokens / use</span>${accuracyLine}</td>`;
       const dash = `<td class="num-cell">—</td>`;
@@ -364,7 +386,7 @@ function renderBuiltInsSection(refs) {
               brRegimeMismatch
                 ? saveCellWithBaseline(br.tokens_saved_per_use, br.calibration_arm_A)
                 : `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`,
-              br
+              br,
             )
           : dash;
       // estimated-cost has no source for built-ins (no SKILL.md author).
@@ -378,9 +400,7 @@ function renderBuiltInsSection(refs) {
       return `<tr class="measured">${skill}${status}${measuredCost}${measuredSave}${dash}${estSave}</tr>`;
     })
     .join('\n');
-  const anyCalibrated = refs.some(
-    (br) => typeof br.tokens_saved_per_use === 'number',
-  );
+  const anyCalibrated = refs.some((br) => typeof br.tokens_saved_per_use === 'number');
   // Audit-doc paths are sourced from the calibration JSON (per-entry
   // `audit_doc_path` field) so a future calibration that ships a different
   // audit file doesn't need a renderer edit. De-duplicated because two
@@ -478,8 +498,7 @@ function renderCalibrationPage(measuredWithPriors) {
     })
     .join('\n');
 
-  const offCount = measuredWithPriors.filter((r) => r.delta.klass === 'off')
-    .length;
+  const offCount = measuredWithPriors.filter((r) => r.delta.klass === 'off').length;
 
   return `<section class="page-break">
   <h2>Calibration honesty — where my guesses landed</h2>
@@ -499,11 +518,7 @@ function renderCalibrationPage(measuredWithPriors) {
 function renderSkillRow(repoName, s) {
   const rec = s.receipt;
   const measured = isMeasured(rec);
-  const cls = s.redirect
-    ? 'redirect'
-    : measured
-      ? 'measured'
-      : 'estimate';
+  const cls = s.redirect ? 'redirect' : measured ? 'measured' : 'estimate';
 
   const chip = s.redirect
     ? '<span class="chip chip-redirect">redirect</span>'
@@ -517,9 +532,10 @@ function renderSkillRow(repoName, s) {
       ? `<a href="${esc(rec.path)}">${esc(s.name)}</a>`
       : esc(s.name);
 
-  const lastSeen = measured && rec?.last_invoked
-    ? `<span class="last-seen">last ${esc(lastUsedDate(rec.last_invoked))}</span>`
-    : '';
+  const lastSeen =
+    measured && rec?.last_invoked
+      ? `<span class="last-seen">last ${esc(lastUsedDate(rec.last_invoked))}</span>`
+      : '';
 
   // Four per-use data columns, in pairs. Annual / runs / calibration-delta
   // columns are deliberately gone — this document only shows per-use data.
@@ -538,11 +554,9 @@ function renderSkillRow(repoName, s) {
   //                          cost: saved ≈ 2× cost. Author guess, always.
   const measuredCost = isMeasured(rec) ? rec.tokens_per_use : null;
   const measuredSave =
-    rec?.tokens_saved_source === 'calibration'
-      ? rec.tokens_saved_per_use
-      : null;
-  const estimatedCost = rec?.prior_estimate?.tokens_per_use
-    ?? (isMeasured(rec) ? null : rec?.tokens_per_use);
+    rec?.tokens_saved_source === 'calibration' ? rec.tokens_saved_per_use : null;
+  const estimatedCost =
+    rec?.prior_estimate?.tokens_per_use ?? (isMeasured(rec) ? null : rec?.tokens_per_use);
   const estimatedSave =
     typeof estimatedCost === 'number'
       ? Math.round(estimatedCost * (DEFAULT_BASELINE_MULTIPLIER - 1))
@@ -553,9 +567,7 @@ function renderSkillRow(repoName, s) {
     const negative = value < 0;
     const cellClasses = ['num-cell', `num-cell-${kind}`];
     if (kind === 'measured-save' && negative) cellClasses.push('cell-negative');
-    const display = negative
-      ? `−${fmt(Math.abs(value))}`
-      : fmt(value);
+    const display = negative ? `−${fmt(Math.abs(value))}` : fmt(value);
     return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span></td>`;
   }
 
@@ -573,10 +585,33 @@ function renderSkillRow(repoName, s) {
     ? saveCellWithBaseline(measuredSave, rec.calibration_arm_A)
     : num(measuredSave, 'measured-save');
 
+  // Median-headline subline for transcript-measured rows. `tokens_per_use`
+  // here is the median (`build-review-stats.mjs` writes the median into
+  // that field for any skill with N≥2 invocations); the mean + spread move
+  // into a sub-cell so the reader sees how much the average wobbles. Rows
+  // without the per-invocation stats (single hit, or skill never re-scanned
+  // by the script) just keep the unadorned headline — same as before. The
+  // `tokens_per_use_mean` presence is the load-bearing gate: that field is
+  // only written when the script ran on this skill and found N≥2.
+  const measuredCostCell = num(measuredCost, 'measured-cost');
+  const hasMultiRunStats =
+    typeof rec?.tokens_per_use_mean === 'number' &&
+    typeof rec?.invocations_in_window === 'number' &&
+    rec.invocations_in_window >= 2 &&
+    typeof rec?.tokens_per_use_min === 'number' &&
+    typeof rec?.tokens_per_use_max === 'number' &&
+    typeof rec?.tokens_per_use_stddev === 'number';
+  const measuredCostCellWithSpread = hasMultiRunStats
+    ? measuredCostCell.replace(
+        /<\/td>$/,
+        `<span class="num-cell-sub">median of ${rec.invocations_in_window} runs · mean ${fmtPrecise(rec.tokens_per_use_mean)} · range ${fmtPrecise(rec.tokens_per_use_min)}–${fmtPrecise(rec.tokens_per_use_max)} · σ ${fmtPrecise(rec.tokens_per_use_stddev)}</span></td>`,
+      )
+    : measuredCostCell;
+
   const skillCell = `<td class="skill"><span class="name">${linkedName}</span><span class="tagline">${tagline}</span></td>`;
   const statusCell = `<td class="status">${chip}${lastSeen}</td>`;
 
-  return `<tr class="${cls}">${skillCell}${statusCell}${num(measuredCost, 'measured-cost')}${measuredSaveCell}${num(estimatedCost, 'est-cost')}${num(estimatedSave, 'est-save')}</tr>`;
+  return `<tr class="${cls}">${skillCell}${statusCell}${measuredCostCellWithSpread}${measuredSaveCell}${num(estimatedCost, 'est-cost')}${num(estimatedSave, 'est-save')}</tr>`;
 }
 
 function renderRepoSection(repo) {
@@ -653,13 +688,12 @@ function renderModelComparisonPage(data) {
           arm_A: s.receipt.calibration_arm_A,
           arm_B: s.receipt.calibration_arm_B,
           saved: s.receipt.tokens_saved_per_use,
-          pct_saved: s.receipt.calibration_arm_A > 0
-            ? Math.round(
-                (s.receipt.tokens_saved_per_use /
-                  s.receipt.calibration_arm_A) *
-                  100,
-              )
-            : 0,
+          pct_saved:
+            s.receipt.calibration_arm_A > 0
+              ? Math.round(
+                  (s.receipt.tokens_saved_per_use / s.receipt.calibration_arm_A) * 100,
+                )
+              : 0,
         };
       }
       for (const [m, v] of Object.entries(alt)) {
@@ -752,11 +786,12 @@ function renderModelComparisonPage(data) {
     if (negative) cls.push('cell-negative');
     if (cellData.procedure_deviation) cls.push('cell-deviation');
     const sign = negative ? '−' : '+';
-    const dagger = cellData.procedure_deviation ? '<sup class="deviation-marker">†</sup>' : '';
+    const dagger = cellData.procedure_deviation
+      ? '<sup class="deviation-marker">†</sup>'
+      : '';
     const savePct = `${sign}${Math.abs(cellData.pct_saved)}%${dagger}`;
-    const saveAbs = cellData.saved < 0
-      ? `−${fmt(Math.abs(cellData.saved))}`
-      : fmt(cellData.saved);
+    const saveAbs =
+      cellData.saved < 0 ? `−${fmt(Math.abs(cellData.saved))}` : fmt(cellData.saved);
     return `<td class="${cls.join(' ')}">
       <span class="model-cell-pct">${savePct}</span>
       <span class="model-cell-detail">arm A ${fmt(cellData.arm_A)} → B ${fmt(cellData.arm_B)}</span>
@@ -779,9 +814,9 @@ function renderModelComparisonPage(data) {
   // empty Haiku columns mean "not measured yet," not "no data possible."
   // Derived from the data rather than hardcoded so a future model that's
   // still pending shows up automatically.
-  const placeholderModels = MODEL_ORDER
-    .filter((m) => rows.every((row) => !row.measured[m]))
-    .map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+  const placeholderModels = MODEL_ORDER.filter((m) =>
+    rows.every((row) => !row.measured[m]),
+  ).map((m) => m.charAt(0).toUpperCase() + m.slice(1));
   const placeholderNote =
     placeholderModels.length > 0
       ? ` <em>${placeholderModels.join(' / ')} columns are placeholders — the calibration sub-agents have not been dispatched on those models yet.</em>`
@@ -835,20 +870,22 @@ function renderMethodPage() {
   <p>Two sources, both real. <strong>Transcript measurement</strong>: every Claude Code session writes a JSON-Lines transcript to <code>~/.claude/projects/&lt;dir&gt;/&lt;sessionId&gt;.jsonl</code>, with each assistant message carrying an <code>attributionSkill</code> field when a skill is active. The <code>skill-usage</code> skill walks those files, groups by skill, sums <code>input_tokens + output_tokens + cache_creation_input_tokens</code> (cache reads excluded — those are paid upstream), dedupes by <code>requestId</code>, and reports per-use averages across whatever invocations landed in the 90-day window. That's "what happened in production."</p>
   <p><strong>A/B calibration arm-B</strong>: when a skill hasn't been invoked in production (no transcript data), an A/B run still spends real tokens — a Sonnet sub-agent followed the <code>SKILL.md</code> end-to-end on a representative task, with usage billed through the harness. Arm-B IS a real cost-per-use measurement, just from a controlled run instead of in-the-wild use. Rows in this state show the cost with a "tokens / use (A/B-measured)" sub-label. Rows with both transcript and A/B data prefer the transcript number — it's what happened, not what's reproducible.</p>
 
-  <h2>What counts as one “use” — the invocation-boundary caveat</h2>
-  <p>The upstream <code>skill-usage</code> parser groups assistant messages by <code>(skill, sessionId)</code>. Every assistant message attributed to one skill inside one Claude Code session counts as part of <em>one</em> invocation. That's accurate for total tokens spent and last-invoked timestamps — but it <em>overstates</em> tokens-per-use whenever a single session contains multiple uses of the same skill. For most skills (run two or three times across the 90-day window), this is a minor wobble. For <code>/review</code>, it's a 23× distortion: 14 sessions contained 336 distinct <code>/review</code> calls, so the parser's "avg 1.15M / use" is really "avg cost of 336 uses spread across 14 sessions, divided by 14 instead of by 336."</p>
-  <p>To make the gap visible the document shows <strong>two <code>/review</code> rows</strong>: the upper one matches the upstream parser exactly (session-grouped, 1.15M / use), the lower one walks the <code>parentUuid</code> → originating-user-message chain and uses each user message's <code>promptId</code> as the invocation ID (per-invocation, ~48K / use). The total tokens spent across the 90-day window is the same in both methods — only the decomposition into <em>per use × uses</em> differs. The per-invocation row is the right intuition for "what does one <code>/review</code> cost"; the session row is what every other skill on the page is currently using, so it's there for comparison consistency.</p>
-  <p>Other heavily-iterated skills have the same potential for over-counting, but with much smaller blast radius — most have one or two sessions in the window, so session-grouped = invocation-grouped. The fix at the parser level (walk the chain for every skill, not just <code>/review</code>) is a follow-up; today the correction lives only on <code>/review</code> because that's where it materially distorts the number.</p>
+  <h2>What counts as one “use” — the invocation-boundary correction</h2>
+  <p>The upstream <code>skill-usage</code> parser groups assistant messages by <code>(skill, sessionId)</code>. Every assistant message attributed to one skill inside one Claude Code session counts as part of <em>one</em> invocation. That's accurate for total tokens spent and last-invoked timestamps — but it <em>overstates</em> tokens-per-use whenever a single session contains multiple uses of the same skill. For <code>/review</code> that's a 23× distortion: 14 sessions contained 336 distinct <code>/review</code> calls, so the parser's session-grouped "avg 1.15M / use" was really "avg cost of 336 uses spread across 14 sessions, divided by 14 instead of by 336."</p>
+  <p>This document corrects for that. <code>build-review-stats.mjs</code> walks the <code>parentUuid</code> → originating-user-message chain on every transcript-measured row and uses each user message's <code>promptId</code> as the invocation ID. Each distinct <code>(sessionId, promptId)</code> is one use. For <code>/review</code> that drops the per-use figure from 1.15M to ~10K (median); the 90-day total spend is unchanged, only its decomposition into <em>per use × uses</em>. For other heavily-iterated skills the correction is much smaller (most have one or two sessions in the window, so session-grouped ≈ invocation-grouped), but every row with N≥2 invocations gets the same accounting so the comparison stays apples-to-apples.</p>
+
+  <h2>Median, not mean, on the cost-per-use headline</h2>
+  <p>Wherever a row's cost-per-use is the average of multiple invocations, the headline number is the <strong>median</strong> — the cost distribution is heavily right-skewed (one or two large invocations pull the mean well above what one typical use costs), so the median is the honest "what does one use of this skill cost" figure. The mean, range, and σ ride in the sub-cell as honest spread information; if the σ is comparable to the median, treat the headline as a soft anchor and look at the spread to understand the variance. Single-invocation rows (A/B-only or one transcript hit) don't have a distribution, so they keep their unadorned headline.</p>
 
   <h2>How “measured save / use” is produced</h2>
   <p>One source: a calibration A/B test. Two Sonnet sub-agents solve the same task in fresh sandboxed worktrees — arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save / use is arm-A tokens minus arm-B tokens for that one run. <strong>N = 1 per skill, single data point</strong>. A re-run would produce different absolute numbers for both arms; trust direction and rough magnitude, not two-significant-digit precision.</p>
   <p>Some skills show negative save / use in orange. Those are real findings: the skill arm spent MORE tokens than the unstructured arm, because the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The skill's value is completeness, not token compression. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for any downstream consumer that wants to see both sides.</p>
   <p><strong>Exception: <code>/review</code>.</strong> N=11 A/Bs, bucketed by PR size, weighted by production frequency. The original N=1 measurement on a 5-file PR (63% saved) was the upper end of a sharp size gradient: re-running on real production PRs of 174–3977 lines reveals the recipe saves most on small PRs and actively <em>costs more</em> on the largest ones. Bucket medians: small (0–199 lines) <strong>44%</strong>, medium (200–799) <strong>26%</strong>, large (800–2499) <strong>15%</strong>, extra-large (2500+) <strong>−10%</strong>. The headline 35% (17K saved per use) is each bucket's median weighted by its share of production /review invocations (63% small, 26% medium, 7% large, 3% extra-large). The per-bucket and per-PR data live on the row's <code>calibration_ab_buckets</code> + <code>calibration_ab_runs</code> arrays for downstream consumers. Other skills stay at N=1 until they accumulate enough production usage to warrant a multi-PR pass.</p>
-  <p><strong>Different regimes.</strong> Cost on the <code>/review</code> rows is from production transcripts (real invocations averaged over the 90-day window). Save is from A/B calibrations (synthetic cold-vs-recipe pairs on representative PRs). They measure related but distinct things: cost is what one production use spends; save is what one matched A/B pair would save. A reader must not divide save by cost to get a "%" — the % shown is anchored to the A/B baseline, not the production cost. Same caveat applies to every transcript-measured row in the document; the row-level subline ("vs &lt;armA&gt; A/B baseline · pct") makes the anchoring explicit on rows where the regime gap is large.</p>
+  <p><strong>Different regimes.</strong> Cost on the <code>/review</code> row is from production transcripts (real invocations summarised over the 90-day window). Save is from A/B calibrations (synthetic cold-vs-recipe pairs on representative PRs). They measure related but distinct things: cost is what one production use spends; save is what one matched A/B pair would save. A reader must not divide save by cost to get a "%" — the % shown is anchored to the A/B baseline, not the production cost. Same caveat applies to every transcript-measured row in the document; the row-level subline ("vs &lt;armA&gt; A/B baseline · pct") makes the anchoring explicit on rows where the regime gap is large.</p>
 
   <h2>Regime gap: when measured cost and measured save come from different scales</h2>
   <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>
-  <p>Concrete: built-in <code>/review</code>'s upper (session-grouped) row shows <strong>1.15M tokens / use measured cost</strong> next to <strong>24K tokens / use measured save</strong> (averaged across 3 A/Bs on PRs of 174–599 lines; average A/B baseline 60,794 tokens). Doing 24K ÷ 1.15M reads as a 2% save rate; the actual finding is 24K ÷ 60,794 = 39% averaged across the 3 PR sizes. The corrected <code>/review</code> row below (~48K / use) doesn't have this problem — its cost is close to the A/B baseline, so the 39% reads directly. The trap shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
+  <p>Concrete: an early version of this document showed <code>/review</code> as <strong>1.15M tokens / use measured cost</strong> next to <strong>~24K tokens / use measured save</strong>. The cost was a session-grouped artifact (14 sessions, 336 actual invocations) and the save was a single small-PR A/B (~60K baseline). Doing 24K ÷ 1.15M would read as a 2% save rate; the actual finding from the A/B was ~39%. Both numbers were real, but they sat in different regimes — the cost was production-scale, the save was calibration-scale. The current <code>/review</code> row corrects the cost via per-invocation accounting (~10K median, close to the calibration scale) so the math anchors directly. The same trap still shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
   <p>When a row hits this regime gap (transcript cost &gt; 2× the A/B arm-A baseline) the measured-save cell prints a subline making the baseline explicit: <em>vs &lt;armA&gt; A/B baseline · &lt;pct&gt;%</em>. Math on the row now works: <code>save ÷ baseline = pct</code> instead of <code>save ÷ visible-cost = misleading</code>. This isn't a correction — both numbers were always real. It's a labelling fix so a reader doesn't combine them wrong.</p>
   <p>The gap itself is the finding: <strong>the A/B calibration task isn't representative of what production runs of these skills actually look like</strong>. The honest read is that recipe value scales with task complexity, and the A/B numbers underestimate the absolute save at production scale (the same recipe collapsing the same amount of structure, applied to a 1M-token task instead of a 70K-token task, would save proportionally more). The fix is either re-running calibrations on representative-sized targets, or treating the A/B save as a lower bound. I haven't done the former; the document treats the A/B save as what it is.</p>
 
@@ -890,10 +927,10 @@ function buildAggregates(data) {
   let customMeasured90d = 0;
   let portfolioSavedTotal = 0;
   let portfolioSavedMeasured = 0;
-  let portfolioSavedCalibrated = 0;   // savings from rows with A/B-measured
-                                       // saved-per-use (calibration overlay)
-  let portfolioSavedModeled = 0;       // savings from rows still using the
-                                       // 3× heuristic on cost-per-use
+  let portfolioSavedCalibrated = 0; // savings from rows with A/B-measured
+  // saved-per-use (calibration overlay)
+  let portfolioSavedModeled = 0; // savings from rows still using the
+  // 3× heuristic on cost-per-use
 
   for (const r of data.repos) {
     let measuredCount = 0;
@@ -957,9 +994,7 @@ function buildAggregates(data) {
     }
     const calibSavedTotal = calibArmATotal - calibArmBTotal;
     const calibPctSaved =
-      calibArmATotal > 0
-        ? Math.round((calibSavedTotal / calibArmATotal) * 100)
-        : 0;
+      calibArmATotal > 0 ? Math.round((calibSavedTotal / calibArmATotal) * 100) : 0;
     perRepo.push({
       name: r.name,
       totalSkills: r.skills.length,
@@ -968,8 +1003,7 @@ function buildAggregates(data) {
       measuredTokensWindow,
       annualSaved,
       annualSavedCalibrated,
-      annualSavedMeasuredShare:
-        annualSaved > 0 ? annualSavedMeasured / annualSaved : 0,
+      annualSavedMeasuredShare: annualSaved > 0 ? annualSavedMeasured / annualSaved : 0,
       calibArmATotal,
       calibArmBTotal,
       calibSavedTotal,
@@ -998,16 +1032,11 @@ function buildHtml(data, css) {
 
   const measuredShare =
     agg.portfolioSavedTotal > 0
-      ? Math.round(
-          (agg.portfolioSavedMeasured / agg.portfolioSavedTotal) * 100,
-        )
+      ? Math.round((agg.portfolioSavedMeasured / agg.portfolioSavedTotal) * 100)
       : 0;
 
   const repoSections = data.repos.map(renderRepoSection).join('\n');
-  const calibratedCount = agg.perRepo.reduce(
-    (n, r) => n + (r.calibratedCount || 0),
-    0,
-  );
+  const calibratedCount = agg.perRepo.reduce((n, r) => n + (r.calibratedCount || 0), 0);
   const totalSkillsWithReceipts = data.repos.reduce(
     (n, r) => n + r.skills.filter((s) => s.receipt).length,
     0,
@@ -1039,6 +1068,8 @@ ${hero}
 <h2>Per-repo summary</h2>
 ${summary}
 
+${renderSaveUseLegend()}
+
 ${renderBuiltInsSection(data.built_in_references ?? [])}
 
 ${calibrationPage}
@@ -1048,6 +1079,7 @@ ${modelComparisonPage}
 <section class="page-break repo-page">
   <h1>Per-repo skill tables</h1>
   <p class="lede">One row per skill. Measured rows have a green wash; estimated rows are white. Four data columns per row, in pairs: <strong>Cost / use</strong> measured + estimated, then <strong>Save / use</strong> measured + estimated. Green numbers come from real runs (transcript or A/B). Italic gray numbers are author estimates. Orange numbers are real A/B measurements showing the skill cost MORE per use than the unstructured baseline. Dashes mean no data exists for that cell yet. Every figure is per single invocation — no annual projections anywhere in this document.</p>
+  ${renderSaveUseLegend()}
   ${repoSections}
 </section>
 
