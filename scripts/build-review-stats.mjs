@@ -309,7 +309,11 @@ const perInvocationRow = {
   tokens_per_use_stddev: perInvocation.stddev,
   annual_total: perInvocationAnnualTotal,
   uses_per_year: perInvocationUsesPerYear,
-  last_invoked: lastInvoked || sessionRow.last_invoked,
+  // `lastInvoked` is guaranteed set here — the records-length early-exit
+  // above only proceeds when we found at least one /review record, and the
+  // scanner only adds records with valid timestamps. Same value used on the
+  // session-grouped row above.
+  last_invoked: lastInvoked,
   // Carry the same A/B calibration save data — the recipe save itself doesn't
   // change with how we count uses. The regime-mismatch detection in the
   // renderer will correctly decide whether to show the baseline subline (the
