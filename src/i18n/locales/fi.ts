@@ -292,6 +292,17 @@ export const fi: Translations = {
         },
       ],
     },
+    'skill-receipts': {
+      title: 'Mittasin AI-työnkulun',
+      body: 'Vuoden ajan väitin että työnkulku kannattaa, joten ajoin A/B:n. Jokainen mukautettu Claude Code -skilli mitattuna itseään vastaan kylmänä — sama tehtävä, subagent päällä, subagent pois — Sonnetilla, Opuksella ja Haikulla. 34 skilliä, 33 kalibroitua. Mediaanisäästö: +17 % per kutsu.\n\nJulkaistuun rekisteriin kuuluvat ne skillit jotka maksoivat ENEMMÄN kuin kylmänä meneminen. Ne eivät ole epäonnistumisia — ne koodaavat tarkkuutta jonka kylmä haara ohitti (auditin perusteellisuus, protokollakuri, spec-syvyys). Arvo on täydellisyys, ei pakkaaminen. PDF on ladattavissa contact-terminaalista; jokainen luku on jäljitettävissä oikeaan transkriptiin.',
+      tags: [
+        'A/B-kalibroitu',
+        '34 skilliä',
+        'Julkaistu PDF',
+        'Rehellinen kirjanpito',
+        'Sonnet · Opus · Haiku',
+      ],
+    },
     now: {
       title: 'Katse ylöspäin',
       body: 'Saatavilla nyt. Avoin kunnianhimoisille full-stack-rooleille, joissa sekä laatu että vauhti ratkaisevat. Seitsemän tänä vuonna yksin tuotantoon vietyä projektia — todiste molemmista.',
