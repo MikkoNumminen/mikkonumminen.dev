@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-27T01:10:52.656Z",
+  "generated_at": "2026-05-27T01:21:13.483Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -1602,11 +1602,11 @@
       "description": "Claude Code built-in PR code review · session-grouped (current upstream parser)",
       "measurement_window_days": 90,
       "invocations_in_window": 14,
-      "total_tokens_in_window": 16110594,
-      "tokens_per_use_avg": 1150757,
+      "total_tokens_in_window": 16141452,
+      "tokens_per_use_avg": 1152961,
       "annual_total": 59853534,
       "uses_per_year": 57,
-      "last_invoked": "2026-05-27T00:47:41.815Z",
+      "last_invoked": "2026-05-27T01:17:37.759Z",
       "tokens_saved_per_use": 16968,
       "tokens_saved_source": "calibration",
       "calibration_arm_A": 48037,
@@ -1639,7 +1639,8 @@
       },
       "tokens_per_use_min": 4295,
       "tokens_per_use_max": 3730055,
-      "tokens_per_use_stddev": 1091895,
+      "tokens_per_use_stddev": 1093159,
+      "calibration_arm_A_source": "weighted-bucket-median",
       "calibration_ab_runs": [
         {
           "pr": 149,
@@ -1735,30 +1736,7 @@
           "pct_min": 6,
           "pct_max": 63,
           "lines_min": 86,
-          "lines_max": 292,
-          "runs": [
-            {
-              "pr": 149,
-              "lines": 292,
-              "arm_A": 72170,
-              "arm_B": 26432,
-              "bucket": "small"
-            },
-            {
-              "pr": 167,
-              "lines": 174,
-              "arm_A": 50194,
-              "arm_B": 28319,
-              "bucket": "small"
-            },
-            {
-              "pr": 75,
-              "lines": 86,
-              "arm_A": 19841,
-              "arm_B": 18556,
-              "bucket": "small"
-            }
-          ]
+          "lines_max": 292
         },
         "med": {
           "n": 3,
@@ -1770,30 +1748,7 @@
           "pct_min": 6,
           "pct_max": 46,
           "lines_min": 244,
-          "lines_max": 599,
-          "runs": [
-            {
-              "pr": 23,
-              "lines": 244,
-              "arm_A": 43317,
-              "arm_B": 31993,
-              "bucket": "med"
-            },
-            {
-              "pr": 168,
-              "lines": 599,
-              "arm_A": 60017,
-              "arm_B": 56122,
-              "bucket": "med"
-            },
-            {
-              "pr": 143,
-              "lines": 245,
-              "arm_A": 39027,
-              "arm_B": 21263,
-              "bucket": "med"
-            }
-          ]
+          "lines_max": 599
         },
         "large": {
           "n": 3,
@@ -1805,30 +1760,7 @@
           "pct_min": -29,
           "pct_max": 16,
           "lines_min": 926,
-          "lines_max": 1183,
-          "runs": [
-            {
-              "pr": 63,
-              "lines": 1066,
-              "arm_A": 38037,
-              "arm_B": 32510,
-              "bucket": "large"
-            },
-            {
-              "pr": 60,
-              "lines": 926,
-              "arm_A": 49077,
-              "arm_B": 41234,
-              "bucket": "large"
-            },
-            {
-              "pr": 90,
-              "lines": 1183,
-              "arm_A": 32951,
-              "arm_B": 42580,
-              "bucket": "large"
-            }
-          ]
+          "lines_max": 1183
         },
         "xlarge": {
           "n": 2,
@@ -1840,23 +1772,7 @@
           "pct_min": -28,
           "pct_max": 8,
           "lines_min": 3806,
-          "lines_max": 3977,
-          "runs": [
-            {
-              "pr": 91,
-              "lines": 3977,
-              "arm_A": 45400,
-              "arm_B": 41821,
-              "bucket": "xlarge"
-            },
-            {
-              "pr": 13,
-              "lines": 3806,
-              "arm_A": 88573,
-              "arm_B": 113093,
-              "bucket": "xlarge"
-            }
-          ]
+          "lines_max": 3977
         }
       },
       "calibration_ab_bucket_weights": {
@@ -1877,20 +1793,21 @@
       "label": "/review",
       "description": "Claude Code built-in PR code review · per-invocation (corrected via parentUuid → promptId chain)",
       "measurement_window_days": 90,
-      "invocations_in_window": 340,
-      "total_tokens_in_window": 16110594,
-      "tokens_per_use_avg": 47384,
+      "invocations_in_window": 341,
+      "total_tokens_in_window": 16141452,
+      "tokens_per_use_avg": 47336,
       "tokens_per_use_min": 1152,
       "tokens_per_use_max": 980564,
-      "tokens_per_use_stddev": 132866,
-      "annual_total": 65342536,
-      "uses_per_year": 1379,
-      "last_invoked": "2026-05-27T00:47:41.815Z",
+      "tokens_per_use_stddev": 132674,
+      "annual_total": 65465688,
+      "uses_per_year": 1383,
+      "last_invoked": "2026-05-27T01:17:37.759Z",
       "tokens_saved_per_use": 16968,
       "tokens_saved_source": "calibration",
       "calibration_arm_A": 48037,
       "calibration_arm_B": 31069,
       "calibration_pct_saved": 35,
+      "calibration_arm_A_source": "weighted-bucket-median",
       "calibration_ab_runs": [
         {
           "pr": 149,
@@ -1986,30 +1903,7 @@
           "pct_min": 6,
           "pct_max": 63,
           "lines_min": 86,
-          "lines_max": 292,
-          "runs": [
-            {
-              "pr": 149,
-              "lines": 292,
-              "arm_A": 72170,
-              "arm_B": 26432,
-              "bucket": "small"
-            },
-            {
-              "pr": 167,
-              "lines": 174,
-              "arm_A": 50194,
-              "arm_B": 28319,
-              "bucket": "small"
-            },
-            {
-              "pr": 75,
-              "lines": 86,
-              "arm_A": 19841,
-              "arm_B": 18556,
-              "bucket": "small"
-            }
-          ]
+          "lines_max": 292
         },
         "med": {
           "n": 3,
@@ -2021,30 +1915,7 @@
           "pct_min": 6,
           "pct_max": 46,
           "lines_min": 244,
-          "lines_max": 599,
-          "runs": [
-            {
-              "pr": 23,
-              "lines": 244,
-              "arm_A": 43317,
-              "arm_B": 31993,
-              "bucket": "med"
-            },
-            {
-              "pr": 168,
-              "lines": 599,
-              "arm_A": 60017,
-              "arm_B": 56122,
-              "bucket": "med"
-            },
-            {
-              "pr": 143,
-              "lines": 245,
-              "arm_A": 39027,
-              "arm_B": 21263,
-              "bucket": "med"
-            }
-          ]
+          "lines_max": 599
         },
         "large": {
           "n": 3,
@@ -2056,30 +1927,7 @@
           "pct_min": -29,
           "pct_max": 16,
           "lines_min": 926,
-          "lines_max": 1183,
-          "runs": [
-            {
-              "pr": 63,
-              "lines": 1066,
-              "arm_A": 38037,
-              "arm_B": 32510,
-              "bucket": "large"
-            },
-            {
-              "pr": 60,
-              "lines": 926,
-              "arm_A": 49077,
-              "arm_B": 41234,
-              "bucket": "large"
-            },
-            {
-              "pr": 90,
-              "lines": 1183,
-              "arm_A": 32951,
-              "arm_B": 42580,
-              "bucket": "large"
-            }
-          ]
+          "lines_max": 1183
         },
         "xlarge": {
           "n": 2,
@@ -2091,23 +1939,7 @@
           "pct_min": -28,
           "pct_max": 8,
           "lines_min": 3806,
-          "lines_max": 3977,
-          "runs": [
-            {
-              "pr": 91,
-              "lines": 3977,
-              "arm_A": 45400,
-              "arm_B": 41821,
-              "bucket": "xlarge"
-            },
-            {
-              "pr": 13,
-              "lines": 3806,
-              "arm_A": 88573,
-              "arm_B": 113093,
-              "bucket": "xlarge"
-            }
-          ]
+          "lines_max": 3977
         }
       },
       "calibration_ab_bucket_weights": {

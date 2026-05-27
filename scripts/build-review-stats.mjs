@@ -222,8 +222,9 @@ const perInvocation = stats(bucketTokens(records, (r) => {
 // in the 90-day window, extracting the PR number from each invocation's
 // originating user message + tool calls, looking up the PR size via gh CLI,
 // and computing the fraction in each bucket. The weights below are frozen
-// snapshots from that walk; refresh them by re-running the bucket analysis
-// in scripts/.tmp/bucket-review-invocations.py (see PR #173 description).
+// snapshots from that walk; refresh them by re-running
+// `python scripts/bucket-review-invocations.py` and updating BUCKET_WEIGHTS
+// + REVIEW_AB_RUNS below to match the new distribution.
 //
 // Each entry: arm A is a cold Sonnet sub-agent given a generic "review PR
 // #N" task; arm B is a Sonnet sub-agent given the literal /review builtin
@@ -248,9 +249,14 @@ const REVIEW_AB_RUNS = [
 
 // Production invocation weights per bucket — derived from the per-PR walk
 // over the 337 mapped /review invocations. Used for the weighted headline
-// save figure. The remainder (37% of all invocations) couldn't be mapped to
-// a PR number and is excluded from the weighting; the relative fractions
+// save figure. The remainder (~69% of all invocations) couldn't be mapped
+// to a PR number and is excluded from the weighting; the relative fractions
 // among mapped invocations stay the most defensible estimate.
+//
+// These are rounded production fractions and intentionally sum to 0.99,
+// not 1.00 (rounding loss across 4 buckets). The aggregator in
+// summarizeAbRuns renormalizes by the total active weight, so don't
+// "fix" the sum to 1.00 — it would silently shift the headline.
 const BUCKET_WEIGHTS = {
   small:  0.63,
   med:    0.26,
@@ -278,6 +284,10 @@ function summarizeBucket(runs) {
   const saved = runs.map((r) => r.arm_A - r.arm_B);
   const armA = runs.map((r) => r.arm_A);
   const pcts = runs.map((r) => Math.round(((r.arm_A - r.arm_B) / r.arm_A) * 100));
+  // The per-PR runs aren't repeated here — they live on the parent row's
+  // calibration_ab_runs array with a `bucket` field, so downstream consumers
+  // can rehydrate per-bucket runs via `runs.filter(r => r.bucket === name)`
+  // without doubling the JSON.
   return {
     n: runs.length,
     saved_median: median(saved),
@@ -289,7 +299,6 @@ function summarizeBucket(runs) {
     pct_max: pcts.reduce((a, b) => (a > b ? a : b)),
     lines_min: runs.map((r) => r.lines).reduce((a, b) => (a < b ? a : b)),
     lines_max: runs.map((r) => r.lines).reduce((a, b) => (a > b ? a : b)),
-    runs,
   };
 }
 
@@ -369,6 +378,10 @@ sessionRow.tokens_saved_per_use = ab.weighted_saved_per_use;
 sessionRow.calibration_arm_A = ab.weighted_arm_A;
 sessionRow.calibration_arm_B = ab.weighted_arm_A - ab.weighted_saved_per_use;
 sessionRow.calibration_pct_saved = ab.weighted_pct;
+// arm_A above is a synthetic weighted-bucket-median value, not any single
+// A/B run's baseline. The source tag makes that explicit for downstream
+// consumers reading the field directly.
+sessionRow.calibration_arm_A_source = 'weighted-bucket-median';
 sessionRow.calibration_ab_runs = ab.runs;
 sessionRow.calibration_ab_count = ab.n;
 sessionRow.calibration_save_pct_min = ab.overall_pct_min;
@@ -413,6 +426,7 @@ const perInvocationRow = {
   calibration_arm_A: sessionRow.calibration_arm_A,
   calibration_arm_B: sessionRow.calibration_arm_B,
   calibration_pct_saved: sessionRow.calibration_pct_saved,
+  calibration_arm_A_source: sessionRow.calibration_arm_A_source,
   calibration_ab_runs: sessionRow.calibration_ab_runs,
   calibration_ab_count: sessionRow.calibration_ab_count,
   calibration_save_pct_min: sessionRow.calibration_save_pct_min,

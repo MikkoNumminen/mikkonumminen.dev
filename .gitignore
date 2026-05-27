@@ -68,3 +68,8 @@ NOTES.md
 .aider*
 .continue/
 .windsurf/
+
+# Local-only cache for scripts/ (e.g. bucket-review-invocations.py's PR-size
+# lookups). Grows as new PRs are queried; not useful to commit because each
+# developer's local /review usage targets a different set of PRs.
+.cache/
