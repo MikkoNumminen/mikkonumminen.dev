@@ -295,7 +295,7 @@ export const sv: Translations = {
     },
     'skill-receipts': {
       title: 'Mätte AI-arbetsflödet',
-      body: 'Efter ett år av att hävda att arbetsflödet lönade sig körde jag A/B. Varje anpassad Claude Code-skill mätt mot sig själv kall — samma uppgift, delagent på, delagent av — över Sonnet, Opus och Haiku. 34 skills, 33 kalibrerade. Medianbesparing: +17 % per anrop.\n\nDet publicerade registret inkluderar skillsen som kostade MER än att gå kall. De är inte misslyckanden — de kodar in stringens som den kalla armen hoppade över (auditgrundlighet, protokolldisciplin, spec-djup). Värdet är fullständighet, inte komprimering. PDF:en går att ladda ner från contact-terminalen; varje siffra är spårbar till ett riktigt transkript.',
+      body: 'Efter ett år av att hävda att arbetsflödet lönade sig körde jag A/B. Varje anpassad Claude Code-skill mätt mot sig själv kall — samma uppgift, delagent på, delagent av — på Sonnet, Opus och Haiku. 34 skills, 33 kalibrerade. Aggregerad besparing: +17 %, ~327K token över portföljen.\n\nDet publicerade registret inkluderar skillsen som kostade MER än att gå kall. De är inte misslyckanden — de bär stringens som den kalla armen hoppade över (auditgrundlighet, protokolldisciplin, spec-djup). Värdet är fullständighet, inte komprimering. PDF:en går att ladda ner från contact-terminalen; varje siffra är spårbar till ett riktigt transkript.',
       tags: [
         'A/B-kalibrerat',
         '34 skills',
