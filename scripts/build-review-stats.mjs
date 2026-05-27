@@ -1,30 +1,28 @@
 #!/usr/bin/env node
-// Scan ~/.claude/projects/ JSONLs for /review invocations and compute
-// per-use token stats. Produces TWO sets of numbers and writes both to
-// public/data/skills-registry.json under built_in_references:
+// Scan ~/.claude/projects/ JSONLs and refresh per-invocation token stats
+// on transcript-measured rows in public/data/skills-registry.json.
 //
-//   1. SESSION-GROUPED — matches the upstream skill-usage parser, which
+// Two passes:
+//
+//   1. /review built-in — walks the parentUuid chain from every
+//      review-attributed assistant message to the originating user
+//      message and uses that message's promptId as the invocation ID.
+//      Each distinct (sessionId, promptId) is one /review call. Writes
+//      the per-invocation cost stats AND the bucketed A/B-save numbers
+//      onto `built_in_references[name === 'review']`. Replaces the
+//      upstream skill-usage parser's session-grouped figure, which
 //      collapses every /review call inside one Claude Code session into
-//      a single "invocation" (the (skill, sessionId) approximation in
-//      claude-skills/skills/skill-usage/scan.mjs). This overstates
-//      tokens-per-use whenever a session contains multiple /review runs
-//      (typical when iterating on a stack of PRs). Lives on the existing
-//      `built_in_references[name === 'review']` entry.
+//      one "invocation" and overstates tokens-per-use whenever a session
+//      contains multiple runs (336 /review calls landed in 14 sessions
+//      → upstream divides by 14, this script divides by 336).
 //
-//   2. PER-INVOCATION (CORRECTED) — walks the parentUuid chain from
-//      every review-attributed assistant message up to the originating
-//      user message and uses that message's promptId as the invocation
-//      ID. Each distinct (sessionId, promptId) is one /review call.
-//      Lives on a sibling `built_in_references[name === 'review-per-invocation']`
-//      entry so the renderer can emit a second row under the original
-//      and the reader sees both numbers explicitly.
-//
-// Why both: the document's central value is honesty. The original 1.05M
-// tokens/use for /review was misleading because it averaged across
-// sessions, not invocations; the corrected number is ~45K, but the total
-// annual cost (~60M) is unchanged because uses_per_year scales inversely
-// (57 sessions/yr → ~1,330 invocations/yr). Showing both rows makes the
-// parser limitation visible without hiding either truth.
+//   2. Other transcript-measured skills with N≥2 invocations in the
+//      window — same per-invocation accounting as pass 1 (group by
+//      (sessionId, promptId) via parentUuid chain). Writes median +
+//      mean + min/max/σ to each matching `repos[].skills[].receipt` so
+//      the renderer can headline the median instead of the upstream
+//      mean. Skills with N<2 (single transcript hit) are left alone —
+//      no distribution to medianize.
 //
 // Token-accounting and dedupe convention match upstream scan.mjs:
 // (sessionId, requestId) dedupe so the thinking + tool_use double-line
@@ -32,11 +30,10 @@
 // paid upstream.
 //
 // Chain order: run AFTER `node scripts/apply-measurement-overlay.mjs`.
-// Both scripts write tokens_per_use_avg / invocations_in_window /
-// total_tokens_in_window / last_invoked on /review's row; second-write
-// wins, so overlay first (handles every measured row), then this script
-// (corrects /review specifically). Not chained into prebuild because it
-// reads local user data under ~/.claude/projects/.
+// Overlay writes the upstream session-grouped figures; this script
+// replaces them with per-invocation accounting and a median headline
+// (second-write wins). Not chained into prebuild because it reads local
+// user data under ~/.claude/projects/.
 //
 // CI behavior: when ~/.claude/projects/ is missing (build server, fresh
 // clone, CI runner), the script exits 0 with a no-op message and leaves
@@ -54,8 +51,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
 const REGISTRY_PATH = path.join(REPO_ROOT, 'public', 'data', 'skills-registry.json');
 const PROJECTS_DIR = path.join(os.homedir(), '.claude', 'projects');
-const SKILL_NAME = 'review';
-const PER_INVOCATION_NAME = 'review-per-invocation';
+const REVIEW_SKILL = 'review';
 const DAYS_PER_YEAR = 365;
 
 function parseArgs(argv) {
@@ -90,7 +86,9 @@ function listJsonlFiles(projectsDir) {
 
 function tokenCost(usage) {
   const u = usage ?? {};
-  return (u.input_tokens ?? 0) + (u.output_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+  return (
+    (u.input_tokens ?? 0) + (u.output_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0)
+  );
 }
 
 function stats(values) {
@@ -100,50 +98,78 @@ function stats(values) {
   const mean = sum / n;
   const min = values.reduce((a, b) => (a < b ? a : b));
   const max = values.reduce((a, b) => (a > b ? a : b));
+  // Population variance, not sample — the values ARE the full 90-day window,
+  // not a sample drawn from a wider population. Matches the convention used
+  // by the upstream skill-usage parser for the same series.
   const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
   const stddev = Math.sqrt(variance);
-  return { n, total: sum, mean: Math.round(mean), min, max, stddev: Math.round(stddev) };
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(n / 2);
+  const med = n % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
+  return {
+    n,
+    total: sum,
+    mean: Math.round(mean),
+    median: med,
+    min,
+    max,
+    stddev: Math.round(stddev),
+  };
 }
 
-// Walk each JSONL once, capture all assistant messages attributed to /review
-// AND build a uuid → message map so we can chain-walk to find the originating
-// user message's promptId per invocation.
+// Walk each JSONL once, capture every assistant message attributed to ANY
+// skill AND build per-file uuid → message maps so we can chain-walk to find
+// each invocation's originating user message promptId. Returns records keyed
+// by skill name so the two passes (review-specific + generic) share one walk.
 function scanAllFiles(files, cutoffMs) {
-  const records = []; // assistant messages for /review
-  const byUuidPerFile = []; // [{ uuid: msg, ... }, ...] keeping each file's chain separate
-  let lastInvoked = '';
+  const bySkill = new Map(); // skill -> records[]
+  const byUuidPerFile = []; // per-file { byUuid, records } for chain walking
+  const lastInvokedBySkill = new Map(); // skill -> latest ISO ts seen
 
   for (const f of files) {
     let content;
-    try { content = fs.readFileSync(f, 'utf8'); } catch { continue; }
+    try {
+      content = fs.readFileSync(f, 'utf8');
+    } catch {
+      continue;
+    }
     const byUuid = new Map();
     const fileRecords = [];
 
     for (const line of content.split(/\r?\n/)) {
       if (!line.trim()) continue;
       let obj;
-      try { obj = JSON.parse(line); } catch { continue; }
+      try {
+        obj = JSON.parse(line);
+      } catch {
+        continue;
+      }
       if (obj.uuid) byUuid.set(obj.uuid, obj);
       if (obj.type !== 'assistant') continue;
-      if (obj.attributionSkill !== SKILL_NAME) continue;
+      const skill = obj.attributionSkill;
+      if (!skill) continue;
       if (!obj.message?.usage || !obj.requestId) continue;
       const t = obj.timestamp ? Date.parse(obj.timestamp) : NaN;
       if (!Number.isFinite(t) || t < cutoffMs) continue;
       fileRecords.push(obj);
-      if (obj.timestamp && obj.timestamp > lastInvoked) lastInvoked = obj.timestamp;
+      if (!bySkill.has(skill)) bySkill.set(skill, []);
+      bySkill.get(skill).push(obj);
+      const prevLast = lastInvokedBySkill.get(skill) ?? '';
+      if (obj.timestamp && obj.timestamp > prevLast) {
+        lastInvokedBySkill.set(skill, obj.timestamp);
+      }
     }
 
     if (fileRecords.length === 0) continue;
-    records.push(...fileRecords);
     byUuidPerFile.push({ byUuid, records: fileRecords });
   }
-  return { records, byUuidPerFile, lastInvoked };
+  return { bySkill, byUuidPerFile, lastInvokedBySkill };
 }
 
-// Resolve each /review assistant message to its originating user-message
-// promptId by walking parentUuid up the chain. Cap the walk at 200 hops
-// for safety on malformed transcripts; in practice the chain depth is
-// always small (a few tool-use round trips).
+// Resolve each skill-attributed assistant message to its originating
+// user-message promptId by walking parentUuid up the chain. Cap the walk
+// at 200 hops for safety on malformed transcripts; in practice the chain
+// depth is always small (a few tool-use round trips).
 function resolveInvocationIds(byUuidPerFile) {
   const out = new Map(); // (sessionId, requestId) -> invocationId
   for (const { byUuid, records } of byUuidPerFile) {
@@ -191,25 +217,31 @@ const args = parseArgs(process.argv.slice(2));
 const cutoffMs = Date.now() - args.windowDays * 86_400_000;
 
 if (!fs.existsSync(PROJECTS_DIR)) {
-  console.log(`No ~/.claude/projects/ found — skipping /${SKILL_NAME} stats refresh (existing stats preserved).`);
+  console.log(
+    `No ~/.claude/projects/ found — skipping transcript stats refresh (existing stats preserved).`,
+  );
   process.exit(0);
 }
 
 const files = listJsonlFiles(PROJECTS_DIR);
-const { records, byUuidPerFile, lastInvoked } = scanAllFiles(files, cutoffMs);
+const { bySkill, byUuidPerFile, lastInvokedBySkill } = scanAllFiles(files, cutoffMs);
 
-if (records.length === 0) {
-  console.log(`No /${SKILL_NAME} invocations found in the last ${args.windowDays} days — skipping stats refresh.`);
+const reviewRecords = bySkill.get(REVIEW_SKILL) ?? [];
+if (reviewRecords.length === 0) {
+  console.log(
+    `No /${REVIEW_SKILL} invocations found in the last ${args.windowDays} days — skipping stats refresh.`,
+  );
   process.exit(0);
 }
 
-const sessionGrouped = stats(bucketTokens(records, (r) => r.sessionId));
-
 const invocationIdByRecord = resolveInvocationIds(byUuidPerFile);
-const perInvocation = stats(bucketTokens(records, (r) => {
-  const id = invocationIdByRecord.get(`${r.sessionId}|${r.requestId}`);
-  return `${r.sessionId}|${id}`;
-}));
+const perInvocation = stats(
+  bucketTokens(reviewRecords, (r) => {
+    const id = invocationIdByRecord.get(`${r.sessionId}|${r.requestId}`);
+    return `${r.sessionId}|${id}`;
+  }),
+);
+const lastInvoked = lastInvokedBySkill.get(REVIEW_SKILL) ?? '';
 
 // A/B calibrations for /review's save rate, measured across N=11 real PRs
 // spanning the production size distribution. Each PR is bucketed by its
@@ -233,18 +265,18 @@ const REVIEW_AB_RUNS = [
   // small: 0-199 lines · 63% of production /review invocations
   { pr: 149, lines: 292, arm_A: 72170, arm_B: 26432, bucket: 'small' },
   { pr: 167, lines: 174, arm_A: 50194, arm_B: 28319, bucket: 'small' },
-  { pr: 75,  lines:  86, arm_A: 19841, arm_B: 18556, bucket: 'small' },
+  { pr: 75, lines: 86, arm_A: 19841, arm_B: 18556, bucket: 'small' },
   // med: 200-799 lines · 26% of production
-  { pr: 23,  lines: 244, arm_A: 43317, arm_B: 31993, bucket: 'med' },
+  { pr: 23, lines: 244, arm_A: 43317, arm_B: 31993, bucket: 'med' },
   { pr: 168, lines: 599, arm_A: 60017, arm_B: 56122, bucket: 'med' },
   { pr: 143, lines: 245, arm_A: 39027, arm_B: 21263, bucket: 'med' },
   // large: 800-2499 lines · 7% of production
-  { pr: 63,  lines:1066, arm_A: 38037, arm_B: 32510, bucket: 'large' },
-  { pr: 60,  lines: 926, arm_A: 49077, arm_B: 41234, bucket: 'large' },
-  { pr: 90,  lines:1183, arm_A: 32951, arm_B: 42580, bucket: 'large' },
+  { pr: 63, lines: 1066, arm_A: 38037, arm_B: 32510, bucket: 'large' },
+  { pr: 60, lines: 926, arm_A: 49077, arm_B: 41234, bucket: 'large' },
+  { pr: 90, lines: 1183, arm_A: 32951, arm_B: 42580, bucket: 'large' },
   // xlarge: 2500+ lines · 3% of production (only 2 unique PRs available)
-  { pr: 91,  lines:3977, arm_A: 45400, arm_B: 41821, bucket: 'xlarge' },
-  { pr: 13,  lines:3806, arm_A: 88573, arm_B:113093, bucket: 'xlarge' },
+  { pr: 91, lines: 3977, arm_A: 45400, arm_B: 41821, bucket: 'xlarge' },
+  { pr: 13, lines: 3806, arm_A: 88573, arm_B: 113093, bucket: 'xlarge' },
 ];
 
 // Production invocation weights per bucket — derived from the per-PR walk
@@ -258,16 +290,16 @@ const REVIEW_AB_RUNS = [
 // summarizeAbRuns renormalizes by the total active weight, so don't
 // "fix" the sum to 1.00 — it would silently shift the headline.
 const BUCKET_WEIGHTS = {
-  small:  0.63,
-  med:    0.26,
-  large:  0.07,
+  small: 0.63,
+  med: 0.26,
+  large: 0.07,
   xlarge: 0.03,
 };
 
 const BUCKET_LABEL_LINES = {
-  small:  '0–199 lines',
-  med:    '200–799 lines',
-  large:  '800–2499 lines',
+  small: '0–199 lines',
+  med: '200–799 lines',
+  large: '800–2499 lines',
   xlarge: '2500+ lines',
 };
 
@@ -328,9 +360,10 @@ function summarizeAbRuns(runs, weights) {
   // missing.
   const weightedSavedNormalized = activeWeight > 0 ? weightedSaved / activeWeight : 0;
   const weightedArmANormalized = activeWeight > 0 ? weightedArmA / activeWeight : 0;
-  const weightedPct = weightedArmANormalized > 0
-    ? Math.round((weightedSavedNormalized / weightedArmANormalized) * 100)
-    : 0;
+  const weightedPct =
+    weightedArmANormalized > 0
+      ? Math.round((weightedSavedNormalized / weightedArmANormalized) * 100)
+      : 0;
   const allPcts = runs.map((r) => Math.round(((r.arm_A - r.arm_B) / r.arm_A) * 100));
   return {
     n: runs.length,
@@ -352,127 +385,148 @@ const ab = summarizeAbRuns(REVIEW_AB_RUNS, BUCKET_WEIGHTS);
 const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 const refs = registry.built_in_references ?? [];
 
-const sessionRow = refs.find((r) => r.name === SKILL_NAME);
-if (!sessionRow) {
-  console.error(`built_in_references[${SKILL_NAME}] not found in ${REGISTRY_PATH}`);
+// Drop any prior split-row artifact ('review-per-invocation') left over from
+// the two-row design. The /review row below is now canonical and carries the
+// per-invocation accounting directly.
+const splitIdx = refs.findIndex((r) => r.name === 'review-per-invocation');
+if (splitIdx >= 0) refs.splice(splitIdx, 1);
+
+const reviewRow = refs.find((r) => r.name === REVIEW_SKILL);
+if (!reviewRow) {
+  console.error(`built_in_references[${REVIEW_SKILL}] not found in ${REGISTRY_PATH}`);
   process.exit(1);
 }
 
-// 1. Update the session-grouped row (matches what the upstream parser produces).
-sessionRow.invocations_in_window = sessionGrouped.n;
-sessionRow.total_tokens_in_window = sessionGrouped.total;
-sessionRow.tokens_per_use_avg = sessionGrouped.mean;
-sessionRow.tokens_per_use_min = sessionGrouped.min;
-sessionRow.tokens_per_use_max = sessionGrouped.max;
-sessionRow.tokens_per_use_stddev = sessionGrouped.stddev;
-if (lastInvoked) sessionRow.last_invoked = lastInvoked;
-// Make the methodology explicit in the row's description so the PDF carries it.
-sessionRow.description = 'Claude Code built-in PR code review · session-grouped (current upstream parser)';
+// Per-invocation cost stats — uses_per_year scales with the invocation count
+// (each /review call counts as one use), so annual_total is re-derived from
+// the per-use mean (annual_total is a sum, not a typical-use figure, so it
+// keeps using the mean even though the headline is the median).
+const usesPerYear = Math.round((perInvocation.n / args.windowDays) * DAYS_PER_YEAR);
+const annualTotal = perInvocation.mean * usesPerYear;
 
-// Replace the single-PR save numbers with the bucketed weighted figure.
-// Both /review rows share these — save is independent of how the cost is
-// decomposed. The per-bucket breakdown + per-PR runs are preserved on the
-// row's calibration_ab_buckets / calibration_ab_runs arrays so any
-// downstream consumer can drill into the spread.
-sessionRow.tokens_saved_per_use = ab.weighted_saved_per_use;
-sessionRow.calibration_arm_A = ab.weighted_arm_A;
-sessionRow.calibration_arm_B = ab.weighted_arm_A - ab.weighted_saved_per_use;
-sessionRow.calibration_pct_saved = ab.weighted_pct;
+reviewRow.label = '/review';
+reviewRow.description = 'Claude Code built-in PR code review';
+reviewRow.measurement_window_days = args.windowDays;
+reviewRow.invocations_in_window = perInvocation.n;
+reviewRow.total_tokens_in_window = perInvocation.total;
+// Headline: median, not mean. Right-skewed distributions (a handful of huge
+// PRs pulling the mean above what one typical /review costs) make the median
+// the honest "what does one /review cost" number; mean + range + σ stay on
+// the row for the reader who wants the spread.
+reviewRow.tokens_per_use_avg = perInvocation.median;
+reviewRow.tokens_per_use_mean = perInvocation.mean;
+reviewRow.tokens_per_use_min = perInvocation.min;
+reviewRow.tokens_per_use_max = perInvocation.max;
+reviewRow.tokens_per_use_stddev = perInvocation.stddev;
+reviewRow.annual_total = annualTotal;
+reviewRow.uses_per_year = usesPerYear;
+if (lastInvoked) reviewRow.last_invoked = lastInvoked;
+
+// A/B save: bucketed weighted figure. Per-bucket breakdown + per-PR runs
+// stay on calibration_ab_buckets / calibration_ab_runs for downstream
+// consumers that want to drill into the spread.
+reviewRow.tokens_saved_per_use = ab.weighted_saved_per_use;
+reviewRow.calibration_arm_A = ab.weighted_arm_A;
+reviewRow.calibration_arm_B = ab.weighted_arm_A - ab.weighted_saved_per_use;
+reviewRow.calibration_pct_saved = ab.weighted_pct;
 // arm_A above is a synthetic weighted-bucket-median value, not any single
 // A/B run's baseline. The source tag makes that explicit for downstream
 // consumers reading the field directly.
-sessionRow.calibration_arm_A_source = 'weighted-bucket-median';
-sessionRow.calibration_ab_runs = ab.runs;
-sessionRow.calibration_ab_count = ab.n;
-sessionRow.calibration_save_pct_min = ab.overall_pct_min;
-sessionRow.calibration_save_pct_max = ab.overall_pct_max;
-sessionRow.calibration_ab_lines_min = ab.overall_lines_min;
-sessionRow.calibration_ab_lines_max = ab.overall_lines_max;
-sessionRow.calibration_ab_buckets = ab.buckets;
-sessionRow.calibration_ab_bucket_weights = ab.bucket_weights;
-sessionRow.calibration_ab_bucket_labels = BUCKET_LABEL_LINES;
+reviewRow.calibration_arm_A_source = 'weighted-bucket-median';
+reviewRow.calibration_ab_runs = ab.runs;
+reviewRow.calibration_ab_count = ab.n;
+reviewRow.calibration_save_pct_min = ab.overall_pct_min;
+reviewRow.calibration_save_pct_max = ab.overall_pct_max;
+reviewRow.calibration_ab_lines_min = ab.overall_lines_min;
+reviewRow.calibration_ab_lines_max = ab.overall_lines_max;
+reviewRow.calibration_ab_buckets = ab.buckets;
+reviewRow.calibration_ab_bucket_weights = ab.bucket_weights;
+reviewRow.calibration_ab_bucket_labels = BUCKET_LABEL_LINES;
 
-// 2. Append (or update) the per-invocation row. uses_per_year scales with the
-// invocation count (each /review call counts as one use), so annual_total is
-// re-derived from the corrected per-use mean.
-const perInvocationUsesPerYear = Math.round((perInvocation.n / args.windowDays) * DAYS_PER_YEAR);
-const perInvocationAnnualTotal = perInvocation.mean * perInvocationUsesPerYear;
+// ---------------------------------------------------------------------------
+// Pass 2 — generic transcript-stats refresh for non-/review skills with
+// N≥2 invocations. Same per-invocation accounting as pass 1; just widens the
+// scope so the renderer can headline median instead of mean across the board.
+// Single-invocation skills (N=1) are not touched — there's no distribution.
+// ---------------------------------------------------------------------------
 
-const perInvocationRow = {
-  name: PER_INVOCATION_NAME,
-  label: '/review',
-  description: 'Claude Code built-in PR code review · per-invocation (corrected via parentUuid → promptId chain)',
-  measurement_window_days: args.windowDays,
-  invocations_in_window: perInvocation.n,
-  total_tokens_in_window: perInvocation.total,
-  tokens_per_use_avg: perInvocation.mean,
-  tokens_per_use_min: perInvocation.min,
-  tokens_per_use_max: perInvocation.max,
-  tokens_per_use_stddev: perInvocation.stddev,
-  annual_total: perInvocationAnnualTotal,
-  uses_per_year: perInvocationUsesPerYear,
-  // `lastInvoked` is guaranteed set here — the records-length early-exit
-  // above only proceeds when we found at least one /review record, and the
-  // scanner only adds records with valid timestamps. Same value used on the
-  // session-grouped row above.
-  last_invoked: lastInvoked,
-  // Carry the same A/B calibration save data — the recipe save itself doesn't
-  // change with how we count uses. The regime-mismatch detection in the
-  // renderer will correctly decide whether to show the baseline subline (the
-  // per-invocation row's cost is BELOW 2× the avg A/B baseline, so it
-  // won't trigger the subline — the math anchors directly now).
-  tokens_saved_per_use: sessionRow.tokens_saved_per_use,
-  tokens_saved_source: sessionRow.tokens_saved_source,
-  calibration_arm_A: sessionRow.calibration_arm_A,
-  calibration_arm_B: sessionRow.calibration_arm_B,
-  calibration_pct_saved: sessionRow.calibration_pct_saved,
-  calibration_arm_A_source: sessionRow.calibration_arm_A_source,
-  calibration_ab_runs: sessionRow.calibration_ab_runs,
-  calibration_ab_count: sessionRow.calibration_ab_count,
-  calibration_save_pct_min: sessionRow.calibration_save_pct_min,
-  calibration_save_pct_max: sessionRow.calibration_save_pct_max,
-  calibration_ab_lines_min: sessionRow.calibration_ab_lines_min,
-  calibration_ab_lines_max: sessionRow.calibration_ab_lines_max,
-  calibration_ab_buckets: sessionRow.calibration_ab_buckets,
-  calibration_ab_bucket_weights: sessionRow.calibration_ab_bucket_weights,
-  calibration_ab_bucket_labels: sessionRow.calibration_ab_bucket_labels,
-  audit_doc_path: sessionRow.audit_doc_path,
-};
-
-const existingPerInvocation = refs.findIndex((r) => r.name === PER_INVOCATION_NAME);
-if (existingPerInvocation >= 0) {
-  refs[existingPerInvocation] = perInvocationRow;
-} else {
-  refs.push(perInvocationRow);
+function statsForSkill(skill) {
+  const recs = bySkill.get(skill) ?? [];
+  if (recs.length === 0) return null;
+  const perInv = bucketTokens(recs, (r) => {
+    const id = invocationIdByRecord.get(`${r.sessionId}|${r.requestId}`);
+    return `${r.sessionId}|${id}`;
+  });
+  return stats(perInv);
 }
-registry.built_in_references = refs;
+
+// Match registry rows to skill-attribution names. The transcript records use
+// the installed prefix (e.g. "mikko-audit"), while the registry stores the
+// canonical name ("audit"). The upstream skill-usage parser collapses both
+// onto the registry name; mirror that here so the rebuilt receipts line up.
+function candidateAttributionNames(repoName, skillName) {
+  const out = new Set([skillName]);
+  // claude-skills library installs into ~/.claude/skills/ with the
+  // mikko- prefix; transcripts capture the prefixed name.
+  if (repoName === 'claude-skills') out.add(`mikko-${skillName}`);
+  return [...out];
+}
+
+let medianUpdated = 0;
+for (const repo of registry.repos ?? []) {
+  for (const skill of repo.skills ?? []) {
+    const rec = skill.receipt;
+    if (!rec || rec.source !== 'transcript-measurement') continue;
+    // Find the best matching scanned skill — try canonical then prefixed.
+    let matched = null;
+    for (const candidate of candidateAttributionNames(repo.name, skill.name)) {
+      const s = statsForSkill(candidate);
+      if (s && s.n >= 2) {
+        // Pick the candidate with the most invocations — handles the case
+        // where transcripts also exist for a now-renamed skill.
+        if (!matched || s.n > matched.n) matched = s;
+      }
+    }
+    if (!matched) continue;
+    rec.tokens_per_use = matched.median;
+    rec.tokens_per_use_mean = matched.mean;
+    rec.tokens_per_use_min = matched.min;
+    rec.tokens_per_use_max = matched.max;
+    rec.tokens_per_use_stddev = matched.stddev;
+    rec.invocations_per_use_count = matched.n;
+    medianUpdated++;
+  }
+}
 
 fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2) + '\n');
 
-console.log(`/${SKILL_NAME} stats (${args.windowDays}d window):`);
-console.log('');
-console.log('  SESSION-GROUPED (matches upstream parser):');
-console.log(`    N=${sessionGrouped.n} sessions`);
-console.log(`    avg ${sessionGrouped.mean.toLocaleString()} tokens / use`);
-console.log(`    range ${sessionGrouped.min.toLocaleString()} – ${sessionGrouped.max.toLocaleString()}`);
-console.log(`    stddev ${sessionGrouped.stddev.toLocaleString()}`);
-console.log('');
-console.log('  PER-INVOCATION (corrected via parentUuid chain):');
-console.log(`    N=${perInvocation.n} invocations`);
-console.log(`    avg ${perInvocation.mean.toLocaleString()} tokens / use`);
-console.log(`    range ${perInvocation.min.toLocaleString()} – ${perInvocation.max.toLocaleString()}`);
-console.log(`    stddev ${perInvocation.stddev.toLocaleString()}`);
-console.log(`    uses/yr extrapolated: ${perInvocationUsesPerYear.toLocaleString()}`);
-console.log(`    annual total: ${perInvocationAnnualTotal.toLocaleString()}`);
-console.log('');
-console.log(`Total in window (both methods should match): session=${sessionGrouped.total.toLocaleString()} per-inv=${perInvocation.total.toLocaleString()}`);
+console.log(`/${REVIEW_SKILL} per-invocation stats (${args.windowDays}d window):`);
+console.log(`  N=${perInvocation.n} invocations`);
+console.log(`  median ${perInvocation.median.toLocaleString()} tokens / use  (headline)`);
+console.log(`  mean   ${perInvocation.mean.toLocaleString()}`);
+console.log(
+  `  range  ${perInvocation.min.toLocaleString()} – ${perInvocation.max.toLocaleString()}`,
+);
+console.log(`  stddev ${perInvocation.stddev.toLocaleString()}`);
+console.log(
+  `  uses/yr extrapolated: ${usesPerYear.toLocaleString()} · annual total: ${annualTotal.toLocaleString()}`,
+);
 console.log('');
 console.log(`  A/B SAVE (N=${ab.n} runs across 4 size buckets):`);
 for (const [name, bucket] of Object.entries(ab.buckets)) {
   const w = (ab.bucket_weights[name] * 100).toFixed(0);
-  console.log(`    ${name.padEnd(7)} (${BUCKET_LABEL_LINES[name].padEnd(14)} · ${w}% of prod): N=${bucket.n} · median saved ${bucket.saved_median.toLocaleString()} (${bucket.pct_median}%) · range ${bucket.pct_min}%–${bucket.pct_max}%`);
+  console.log(
+    `    ${name.padEnd(7)} (${BUCKET_LABEL_LINES[name].padEnd(14)} · ${w}% of prod): N=${bucket.n} · median saved ${bucket.saved_median.toLocaleString()} (${bucket.pct_median}%) · range ${bucket.pct_min}%–${bucket.pct_max}%`,
+  );
 }
-console.log(`    weighted: ${ab.weighted_saved_per_use.toLocaleString()} tokens saved / use (${ab.weighted_pct}%)`);
-console.log(`    overall pct range across all ${ab.n} runs: ${ab.overall_pct_min}%–${ab.overall_pct_max}%`);
+console.log(
+  `    weighted: ${ab.weighted_saved_per_use.toLocaleString()} tokens saved / use (${ab.weighted_pct}%)`,
+);
+console.log(
+  `    overall pct range across all ${ab.n} runs: ${ab.overall_pct_min}%–${ab.overall_pct_max}%`,
+);
 console.log('');
+console.log(
+  `Generic transcript-stats pass: ${medianUpdated} non-/review receipt(s) updated with median + spread.`,
+);
 console.log(`Wrote ${REGISTRY_PATH}`);
