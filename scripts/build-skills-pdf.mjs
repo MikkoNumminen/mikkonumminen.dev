@@ -590,19 +590,21 @@ function renderSkillRow(repoName, s) {
   // that field for any skill with N≥2 invocations); the mean + spread move
   // into a sub-cell so the reader sees how much the average wobbles. Rows
   // without the per-invocation stats (single hit, or skill never re-scanned
-  // by the script) just keep the unadorned headline — same as before.
+  // by the script) just keep the unadorned headline — same as before. The
+  // `tokens_per_use_mean` presence is the load-bearing gate: that field is
+  // only written when the script ran on this skill and found N≥2.
   const measuredCostCell = num(measuredCost, 'measured-cost');
   const hasMultiRunStats =
-    typeof rec?.invocations_per_use_count === 'number' &&
-    rec.invocations_per_use_count >= 2 &&
     typeof rec?.tokens_per_use_mean === 'number' &&
+    typeof rec?.invocations_in_window === 'number' &&
+    rec.invocations_in_window >= 2 &&
     typeof rec?.tokens_per_use_min === 'number' &&
     typeof rec?.tokens_per_use_max === 'number' &&
     typeof rec?.tokens_per_use_stddev === 'number';
   const measuredCostCellWithSpread = hasMultiRunStats
     ? measuredCostCell.replace(
         /<\/td>$/,
-        `<span class="num-cell-sub">median of ${rec.invocations_per_use_count} runs · mean ${fmtPrecise(rec.tokens_per_use_mean)} · range ${fmtPrecise(rec.tokens_per_use_min)}–${fmtPrecise(rec.tokens_per_use_max)} · σ ${fmtPrecise(rec.tokens_per_use_stddev)}</span></td>`,
+        `<span class="num-cell-sub">median of ${rec.invocations_in_window} runs · mean ${fmtPrecise(rec.tokens_per_use_mean)} · range ${fmtPrecise(rec.tokens_per_use_min)}–${fmtPrecise(rec.tokens_per_use_max)} · σ ${fmtPrecise(rec.tokens_per_use_stddev)}</span></td>`,
       )
     : measuredCostCell;
 
@@ -870,7 +872,7 @@ function renderMethodPage() {
 
   <h2>What counts as one “use” — the invocation-boundary correction</h2>
   <p>The upstream <code>skill-usage</code> parser groups assistant messages by <code>(skill, sessionId)</code>. Every assistant message attributed to one skill inside one Claude Code session counts as part of <em>one</em> invocation. That's accurate for total tokens spent and last-invoked timestamps — but it <em>overstates</em> tokens-per-use whenever a single session contains multiple uses of the same skill. For <code>/review</code> that's a 23× distortion: 14 sessions contained 336 distinct <code>/review</code> calls, so the parser's session-grouped "avg 1.15M / use" was really "avg cost of 336 uses spread across 14 sessions, divided by 14 instead of by 336."</p>
-  <p>This document corrects for that. <code>build-review-stats.mjs</code> walks the <code>parentUuid</code> → originating-user-message chain on every transcript-measured row and uses each user message's <code>promptId</code> as the invocation ID. Each distinct <code>(sessionId, promptId)</code> is one use. For <code>/review</code> that drops the per-use figure from 1.15M to ~17K (median); the 90-day total spend is unchanged, only its decomposition into <em>per use × uses</em>. For other heavily-iterated skills the correction is much smaller (most have one or two sessions in the window, so session-grouped ≈ invocation-grouped), but every row with N≥2 invocations gets the same accounting so the comparison stays apples-to-apples.</p>
+  <p>This document corrects for that. <code>build-review-stats.mjs</code> walks the <code>parentUuid</code> → originating-user-message chain on every transcript-measured row and uses each user message's <code>promptId</code> as the invocation ID. Each distinct <code>(sessionId, promptId)</code> is one use. For <code>/review</code> that drops the per-use figure from 1.15M to ~10K (median); the 90-day total spend is unchanged, only its decomposition into <em>per use × uses</em>. For other heavily-iterated skills the correction is much smaller (most have one or two sessions in the window, so session-grouped ≈ invocation-grouped), but every row with N≥2 invocations gets the same accounting so the comparison stays apples-to-apples.</p>
 
   <h2>Median, not mean, on the cost-per-use headline</h2>
   <p>Wherever a row's cost-per-use is the average of multiple invocations, the headline number is the <strong>median</strong> — the cost distribution is heavily right-skewed (one or two large invocations pull the mean well above what one typical use costs), so the median is the honest "what does one use of this skill cost" figure. The mean, range, and σ ride in the sub-cell as honest spread information; if the σ is comparable to the median, treat the headline as a soft anchor and look at the spread to understand the variance. Single-invocation rows (A/B-only or one transcript hit) don't have a distribution, so they keep their unadorned headline.</p>
@@ -883,7 +885,7 @@ function renderMethodPage() {
 
   <h2>Regime gap: when measured cost and measured save come from different scales</h2>
   <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>
-  <p>Concrete: an early version of this document showed <code>/review</code> as <strong>1.15M tokens / use measured cost</strong> next to <strong>~24K tokens / use measured save</strong>. The cost was a session-grouped artifact (14 sessions, 336 actual invocations) and the save was a single small-PR A/B (~60K baseline). Doing 24K ÷ 1.15M would read as a 2% save rate; the actual finding from the A/B was ~39%. Both numbers were real, but they sat in different regimes — the cost was production-scale, the save was calibration-scale. The current <code>/review</code> row corrects the cost via per-invocation accounting (~17K median, close to the calibration scale) so the math anchors directly. The same trap still shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
+  <p>Concrete: an early version of this document showed <code>/review</code> as <strong>1.15M tokens / use measured cost</strong> next to <strong>~24K tokens / use measured save</strong>. The cost was a session-grouped artifact (14 sessions, 336 actual invocations) and the save was a single small-PR A/B (~60K baseline). Doing 24K ÷ 1.15M would read as a 2% save rate; the actual finding from the A/B was ~39%. Both numbers were real, but they sat in different regimes — the cost was production-scale, the save was calibration-scale. The current <code>/review</code> row corrects the cost via per-invocation accounting (~10K median, close to the calibration scale) so the math anchors directly. The same trap still shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
   <p>When a row hits this regime gap (transcript cost &gt; 2× the A/B arm-A baseline) the measured-save cell prints a subline making the baseline explicit: <em>vs &lt;armA&gt; A/B baseline · &lt;pct&gt;%</em>. Math on the row now works: <code>save ÷ baseline = pct</code> instead of <code>save ÷ visible-cost = misleading</code>. This isn't a correction — both numbers were always real. It's a labelling fix so a reader doesn't combine them wrong.</p>
   <p>The gap itself is the finding: <strong>the A/B calibration task isn't representative of what production runs of these skills actually look like</strong>. The honest read is that recipe value scales with task complexity, and the A/B numbers underestimate the absolute save at production scale (the same recipe collapsing the same amount of structure, applied to a 1M-token task instead of a 70K-token task, would save proportionally more). The fix is either re-running calibrations on representative-sized targets, or treating the A/B save as a lower bound. I haven't done the former; the document treats the A/B save as what it is.</p>
 

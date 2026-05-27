@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-27T02:07:51.129Z",
+  "generated_at": "2026-05-27T02:16:20.360Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -194,10 +194,10 @@
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
             "tokens_per_use": 31792,
-            "uses_per_year": 4,
-            "annual_total": 753052,
+            "uses_per_year": 24,
+            "annual_total": 753048,
             "measurement_window_days": 90,
-            "invocations_in_window": 1,
+            "invocations_in_window": 6,
             "total_tokens_in_window": 188263,
             "last_invoked": "2026-05-12T02:05:50.511Z",
             "prior_estimate": {
@@ -236,8 +236,7 @@
             "tokens_per_use_mean": 31377,
             "tokens_per_use_min": 18416,
             "tokens_per_use_max": 48979,
-            "tokens_per_use_stddev": 9595,
-            "invocations_per_use_count": 6
+            "tokens_per_use_stddev": 9595
           }
         },
         {
@@ -489,10 +488,10 @@
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
             "tokens_per_use": 157362,
-            "uses_per_year": 8,
-            "annual_total": 3210568,
+            "uses_per_year": 12,
+            "annual_total": 3210564,
             "measurement_window_days": 90,
-            "invocations_in_window": 2,
+            "invocations_in_window": 3,
             "total_tokens_in_window": 802642,
             "last_invoked": "2026-05-03T23:18:22.958Z",
             "prior_estimate": {
@@ -532,8 +531,7 @@
             "tokens_per_use_mean": 267547,
             "tokens_per_use_min": 26556,
             "tokens_per_use_max": 618724,
-            "tokens_per_use_stddev": 253997,
-            "invocations_per_use_count": 3
+            "tokens_per_use_stddev": 253997
           }
         },
         {
@@ -931,11 +929,11 @@
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
             "tokens_per_use": 7352,
-            "uses_per_year": 4,
-            "annual_total": 797748,
+            "uses_per_year": 16,
+            "annual_total": 727104,
             "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 199437,
+            "invocations_in_window": 4,
+            "total_tokens_in_window": 181777,
             "last_invoked": "2026-05-17T03:24:06.864Z",
             "prior_estimate": {
               "tokens_per_use": 75000,
@@ -974,8 +972,7 @@
             "tokens_per_use_mean": 45444,
             "tokens_per_use_min": 2407,
             "tokens_per_use_max": 164666,
-            "tokens_per_use_stddev": 68864,
-            "invocations_per_use_count": 4
+            "tokens_per_use_stddev": 68864
           }
         },
         {
@@ -986,11 +983,11 @@
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
             "tokens_per_use": 28095,
-            "uses_per_year": 8,
-            "annual_total": 4421552,
+            "uses_per_year": 24,
+            "annual_total": 3670728,
             "measurement_window_days": 90,
-            "invocations_in_window": 2,
-            "total_tokens_in_window": 1105388,
+            "invocations_in_window": 6,
+            "total_tokens_in_window": 917681,
             "last_invoked": "2026-05-20T05:06:26.454Z",
             "prior_estimate": {
               "tokens_per_use": 425000,
@@ -1028,8 +1025,7 @@
             "tokens_per_use_mean": 152947,
             "tokens_per_use_min": 4051,
             "tokens_per_use_max": 670481,
-            "tokens_per_use_stddev": 239193,
-            "invocations_per_use_count": 6
+            "tokens_per_use_stddev": 239193
           }
         },
         {
@@ -1080,10 +1076,10 @@
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
             "tokens_per_use": 16651,
-            "uses_per_year": 8,
-            "annual_total": 5150872,
+            "uses_per_year": 37,
+            "annual_total": 5293960,
             "measurement_window_days": 90,
-            "invocations_in_window": 2,
+            "invocations_in_window": 9,
             "total_tokens_in_window": 1287718,
             "last_invoked": "2026-05-20T22:26:16.795Z",
             "prior_estimate": {
@@ -1123,8 +1119,7 @@
             "tokens_per_use_mean": 143080,
             "tokens_per_use_min": 8271,
             "tokens_per_use_max": 527804,
-            "tokens_per_use_stddev": 184632,
-            "invocations_per_use_count": 9
+            "tokens_per_use_stddev": 184632
           }
         },
         {
@@ -1135,11 +1130,11 @@
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
             "tokens_per_use": 12481,
-            "uses_per_year": 4,
-            "annual_total": 141208,
+            "uses_per_year": 12,
+            "annual_total": 189888,
             "measurement_window_days": 90,
-            "invocations_in_window": 1,
-            "total_tokens_in_window": 35302,
+            "invocations_in_window": 3,
+            "total_tokens_in_window": 47471,
             "last_invoked": "2026-05-21T22:17:13.398Z",
             "prior_estimate": {
               "tokens_per_use": 4000,
@@ -1178,8 +1173,7 @@
             "tokens_per_use_mean": 15824,
             "tokens_per_use_min": 12169,
             "tokens_per_use_max": 22821,
-            "tokens_per_use_stddev": 4950,
-            "invocations_per_use_count": 3
+            "tokens_per_use_stddev": 4950
           }
         },
         {
@@ -1381,10 +1375,10 @@
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
             "tokens_per_use": 10088,
-            "uses_per_year": 12,
-            "annual_total": 298512,
+            "uses_per_year": 20,
+            "annual_total": 298520,
             "measurement_window_days": 90,
-            "invocations_in_window": 3,
+            "invocations_in_window": 5,
             "total_tokens_in_window": 74628,
             "last_invoked": "2026-05-21T00:38:21.138Z",
             "prior_estimate": {
@@ -1424,8 +1418,7 @@
             "tokens_per_use_mean": 14926,
             "tokens_per_use_min": 5781,
             "tokens_per_use_max": 38730,
-            "tokens_per_use_stddev": 12067,
-            "invocations_per_use_count": 5
+            "tokens_per_use_stddev": 12067
           }
         }
       ]
@@ -1529,10 +1522,10 @@
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
             "source": "transcript-measurement",
             "tokens_per_use": 116224,
-            "uses_per_year": 12,
-            "annual_total": 1771128,
+            "uses_per_year": 16,
+            "annual_total": 1771136,
             "measurement_window_days": 90,
-            "invocations_in_window": 3,
+            "invocations_in_window": 4,
             "total_tokens_in_window": 442782,
             "last_invoked": "2026-05-20T23:44:30.790Z",
             "prior_estimate": {
@@ -1572,8 +1565,7 @@
             "tokens_per_use_mean": 110696,
             "tokens_per_use_min": 82778,
             "tokens_per_use_max": 127556,
-            "tokens_per_use_stddev": 16836,
-            "invocations_per_use_count": 4
+            "tokens_per_use_stddev": 16836
           }
         },
         {
@@ -1641,12 +1633,12 @@
       "label": "/review",
       "description": "Claude Code built-in PR code review",
       "measurement_window_days": 90,
-      "invocations_in_window": 332,
-      "total_tokens_in_window": 16155713,
-      "tokens_per_use_avg": 10242,
-      "annual_total": 65499052,
-      "uses_per_year": 1346,
-      "last_invoked": "2026-05-27T01:25:01.237Z",
+      "invocations_in_window": 333,
+      "total_tokens_in_window": 16226392,
+      "tokens_per_use_avg": 10324,
+      "annual_total": 65831528,
+      "uses_per_year": 1351,
+      "last_invoked": "2026-05-27T02:13:38.565Z",
       "tokens_saved_per_use": 16968,
       "tokens_saved_source": "calibration",
       "calibration_arm_A": 48037,
@@ -1677,10 +1669,10 @@
           "procedure_deviation_note": null
         }
       },
-      "tokens_per_use_mean": 48662,
+      "tokens_per_use_mean": 48728,
       "tokens_per_use_min": 1152,
       "tokens_per_use_max": 980564,
-      "tokens_per_use_stddev": 135085,
+      "tokens_per_use_stddev": 134887,
       "calibration_arm_A_source": "weighted-bucket-median",
       "calibration_ab_runs": [
         {

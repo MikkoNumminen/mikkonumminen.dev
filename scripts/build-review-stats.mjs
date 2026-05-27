@@ -31,9 +31,14 @@
 //
 // Chain order: run AFTER `node scripts/apply-measurement-overlay.mjs`.
 // Overlay writes the upstream session-grouped figures; this script
-// replaces them with per-invocation accounting and a median headline
-// (second-write wins). Not chained into prebuild because it reads local
-// user data under ~/.claude/projects/.
+// replaces them with per-invocation accounting on /review and on every
+// other transcript-measured row with N≥2 invocations (second-write
+// wins). After this pass the volume fields are coherent — both
+// `invocations_in_window` and `total_tokens_in_window` reflect the
+// per-invocation walk (NOT the upstream session count), and
+// `uses_per_year` / `annual_total` are re-derived from those. Not
+// chained into prebuild because it reads local user data under
+// ~/.claude/projects/.
 //
 // CI behavior: when ~/.claude/projects/ is missing (build server, fresh
 // clone, CI runner), the script exits 0 with a no-op message and leaves
@@ -493,7 +498,18 @@ for (const repo of registry.repos ?? []) {
     rec.tokens_per_use_min = matched.min;
     rec.tokens_per_use_max = matched.max;
     rec.tokens_per_use_stddev = matched.stddev;
-    rec.invocations_per_use_count = matched.n;
+    // Recompute the volume fields off the per-invocation walk so the receipt
+    // is internally consistent: invocations_in_window now counts distinct
+    // skill invocations (not the upstream parser's session approximation),
+    // total_tokens_in_window is the actual sum from this walk, and the
+    // annual projections fall out of those. Mean (not median) is the right
+    // anchor for annual_total — it's a sum-extrapolation, not a typical-use
+    // figure. Keeps `tokens_per_use × invocations_in_window ≈
+    // total_tokens_in_window` honest for any downstream JSON consumer.
+    rec.invocations_in_window = matched.n;
+    rec.total_tokens_in_window = matched.total;
+    rec.uses_per_year = Math.round((matched.n / args.windowDays) * DAYS_PER_YEAR);
+    rec.annual_total = matched.mean * rec.uses_per_year;
     medianUpdated++;
   }
 }
