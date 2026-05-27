@@ -38,21 +38,25 @@ const CSS_FILE = path.join(ROOT, 'scripts', 'lib', 'skills-pdf.css');
 // tends to be the same A/B run feeding both numbers).
 const REGIME_MISMATCH_THRESHOLD = 2;
 
-// Returns the directional scale hint ("A/B scale ~5× production cost" /
-// "production scale ~3× A/B baseline") when production cost and A/B baseline
-// differ by REGIME_MISMATCH_THRESHOLD or more in either direction. Returns
-// empty string when the two are in the same regime (no callout needed) or
-// when either input is missing. Wraps with " · " prefix so it can splice
-// cleanly into an existing subline.
+// Returns the directional scale hint ("A/B scale ~5× production" /
+// "production scale ~3× A/B") when production cost and A/B baseline differ
+// by REGIME_MISMATCH_THRESHOLD or more in either direction. Returns empty
+// string when the two are in the same regime (no callout needed) or when
+// either input is missing. Wraps with " · " prefix so it can splice cleanly
+// into an existing subline.
+//
+// The full nouns ("A/B baseline" / "production cost") are already on the
+// row — A/B baseline in the cell's "vs <X> A/B baseline" prefix, production
+// cost in the adjacent cost cell — so the suffix uses the short forms
+// ("A/B" / "production") to avoid repeating "A/B baseline" twice when the
+// gap goes in the cost-above-baseline direction.
 function regimeScaleHint(productionCost, armA) {
   if (!productionCost || !armA || productionCost <= 0 || armA <= 0) return '';
   const ratio = productionCost > armA ? productionCost / armA : armA / productionCost;
   if (ratio < REGIME_MISMATCH_THRESHOLD) return '';
   const r = ratio >= 10 ? `${Math.round(ratio)}×` : `${ratio.toFixed(1)}×`;
   const direction =
-    productionCost > armA
-      ? `production scale ~${r} A/B baseline`
-      : `A/B scale ~${r} production cost`;
+    productionCost > armA ? `production scale ~${r} A/B` : `A/B scale ~${r} production`;
   return ` · ${direction}`;
 }
 
