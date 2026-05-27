@@ -446,6 +446,27 @@ table.spine tr.group-builtin td {
   background: var(--ink-soft);
 }
 
+/* Page-break behavior for group labels. A group-heading row must never
+   be the last visible row on a page — the reader would see only the
+   colored band with no skill rows beneath it. Two complementary rules:
+   (1) break-after: avoid on every group-heading row tells the layout
+   engine not to break right after the label; (2) the renderer pairs
+   each group-heading with its first skill row inside a dedicated
+   <tbody class="group-stick">, and break-inside: avoid on that tbody
+   keeps the pair together even when (1) is ignored (Chromium's print
+   engine honors break-after on <tr> inconsistently). The remaining
+   skill rows for the same group live in a separate tbody so they can
+   still flow across pages naturally. */
+table.spine tr.group-heading {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+table.spine tbody.group-stick {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 /* Skill column — name + tagline + optional builtin tag. */
 table.spine td.skill-cell .name {
   font-weight: 700;

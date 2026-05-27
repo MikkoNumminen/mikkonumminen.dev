@@ -440,9 +440,18 @@ function normalizeBuiltinReceipt(br) {
 }
 
 function renderSpineTable(data) {
+  // Each project group renders as TWO <tbody> elements: a "stick" tbody
+  // holding the group-heading row plus its first skill row (with
+  // break-inside: avoid in CSS so the pair is treated as one unbreakable
+  // unit), and a "rest" tbody holding the remaining skill rows. This is
+  // the only reliable way in Chromium's print pipeline to guarantee a
+  // group label never lands alone at the bottom of a page — break-after
+  // on a bare <tr> is honored inconsistently.
   const builtins = data.built_in_references ?? [];
-  const builtinRows = builtins
-    .map((br) =>
+  const builtinBodies = (() => {
+    if (builtins.length === 0) return '';
+    const heading = `<tr class="group-heading group-builtin"><td colspan="7"><strong>Claude Code built-in (reference)</strong> · not part of the custom portfolio</td></tr>`;
+    const rows = builtins.map((br) =>
       spineRowHtml({
         name: br.label ?? br.name,
         description: br.description,
@@ -450,27 +459,32 @@ function renderSpineTable(data) {
         path: br.audit_doc_path,
         isBuiltIn: true,
       }),
-    )
-    .join('\n');
+    );
+    const [first, ...rest] = rows;
+    const stick = `<tbody class="group-stick">${heading}${first ?? ''}</tbody>`;
+    const tail = rest.length > 0 ? `<tbody>${rest.join('\n')}</tbody>` : '';
+    return stick + tail;
+  })();
 
-  const repoBlocks = data.repos
+  const repoBodies = data.repos
     .map((repo) => {
       const url =
         repo.github_url && isSafeHref(repo.github_url)
           ? ` · <a href="${esc(repo.github_url)}">${esc(repo.github_url.replace(/^https?:\/\//, ''))}</a>`
           : '';
-      const rows = repo.skills
-        .map((s) =>
-          spineRowHtml({
-            name: s.name,
-            description: s.description,
-            receipt: s.receipt,
-            isRedirect: !!s.redirect,
-          }),
-        )
-        .join('\n');
-      return `<tr class="group-heading"><td colspan="7"><strong>${esc(repo.name)}</strong>${url} · ${repo.skills.length} skill${repo.skills.length === 1 ? '' : 's'}</td></tr>
-${rows}`;
+      const heading = `<tr class="group-heading"><td colspan="7"><strong>${esc(repo.name)}</strong>${url} · ${repo.skills.length} skill${repo.skills.length === 1 ? '' : 's'}</td></tr>`;
+      const rows = repo.skills.map((s) =>
+        spineRowHtml({
+          name: s.name,
+          description: s.description,
+          receipt: s.receipt,
+          isRedirect: !!s.redirect,
+        }),
+      );
+      const [first, ...rest] = rows;
+      const stick = `<tbody class="group-stick">${heading}${first ?? ''}</tbody>`;
+      const tail = rest.length > 0 ? `<tbody>${rest.join('\n')}</tbody>` : '';
+      return stick + tail;
     })
     .join('\n');
 
@@ -489,10 +503,8 @@ ${rows}`;
         <th class="num">Save: Haiku</th>
       </tr>
     </thead>
-    <tbody>
-      ${builtins.length > 0 ? `<tr class="group-heading group-builtin"><td colspan="7"><strong>Claude Code built-in (reference)</strong> · not part of the custom portfolio</td></tr>${builtinRows}` : ''}
-      ${repoBlocks}
-    </tbody>
+    ${builtinBodies}
+    ${repoBodies}
   </table>
 </section>`;
 }
