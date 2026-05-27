@@ -74,6 +74,36 @@ function saveCellWithBaseline(value, armA) {
   return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmtPrecise(armA)} A/B baseline${pctText}</span></td>`;
 }
 
+// Optional sample-stats subline for the save cell, surfaced when the save
+// number is averaged over multiple A/B runs (currently only /review, where
+// 3 A/B runs across 174–599-line PRs revealed the save-rate degrades with
+// PR size). The single-PR display would hide that the 39% headline is the
+// mean of a 6%–63% spread; this subline anchors it. Returns empty string
+// when the row only has a single A/B measurement (every other skill).
+function abSampleSubline(rec) {
+  // Threshold is 2: a single A/B is just the headline number and doesn't warrant
+  // a "sample" subline; from 2 onwards the avg + range tells a story the headline
+  // can't. Bumping to 3 would hide /review's current data.
+  if (!rec || typeof rec.calibration_ab_count !== 'number' || rec.calibration_ab_count < 2) return '';
+  const linesRange = (typeof rec.calibration_ab_lines_min === 'number' && typeof rec.calibration_ab_lines_max === 'number')
+    ? ` · ${rec.calibration_ab_lines_min}–${rec.calibration_ab_lines_max} lines`
+    : '';
+  const pctRange = (typeof rec.calibration_save_pct_min === 'number' && typeof rec.calibration_save_pct_max === 'number')
+    ? ` · range ${rec.calibration_save_pct_min}%–${rec.calibration_save_pct_max}%`
+    : '';
+  return `<span class="num-cell-sub">avg of ${rec.calibration_ab_count} A/Bs${linesRange}${pctRange}</span>`;
+}
+
+// Inject an AB-sample subline (when present on the row) just before the
+// closing </td> of an already-built save cell. Keeps the regime-mismatch
+// path and the plain-pct path both able to opt in without restructuring
+// the cell HTML. No-op when abSampleSubline returns empty string.
+function appendAbSubline(cellHtml, rec) {
+  const sub = abSampleSubline(rec);
+  if (!sub) return cellHtml;
+  return cellHtml.replace(/<\/td>$/, `${sub}</td>`);
+}
+
 function fmtGeneratedAt(iso) {
   const s = iso.replace('Z', '');
   const [datePart, timePart] = s.split('T');
@@ -314,9 +344,12 @@ function renderBuiltInsSection(refs) {
         br.tokens_per_use_avg > br.calibration_arm_A * REGIME_MISMATCH_THRESHOLD;
       const measuredSave =
         typeof br.tokens_saved_per_use === 'number'
-          ? brRegimeMismatch
-            ? saveCellWithBaseline(br.tokens_saved_per_use, br.calibration_arm_A)
-            : `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`
+          ? appendAbSubline(
+              brRegimeMismatch
+                ? saveCellWithBaseline(br.tokens_saved_per_use, br.calibration_arm_A)
+                : `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`,
+              br
+            )
           : dash;
       // estimated-cost has no source for built-ins (no SKILL.md author).
       // estimated-save uses the project-wide 3× baseline heuristic so the row
@@ -785,13 +818,19 @@ function renderMethodPage() {
   <p>Two sources, both real. <strong>Transcript measurement</strong>: every Claude Code session writes a JSON-Lines transcript to <code>~/.claude/projects/&lt;dir&gt;/&lt;sessionId&gt;.jsonl</code>, with each assistant message carrying an <code>attributionSkill</code> field when a skill is active. The <code>skill-usage</code> skill walks those files, groups by skill, sums <code>input_tokens + output_tokens + cache_creation_input_tokens</code> (cache reads excluded — those are paid upstream), dedupes by <code>requestId</code>, and reports per-use averages across whatever invocations landed in the 90-day window. That's "what happened in production."</p>
   <p><strong>A/B calibration arm-B</strong>: when a skill hasn't been invoked in production (no transcript data), an A/B run still spends real tokens — a Sonnet sub-agent followed the <code>SKILL.md</code> end-to-end on a representative task, with usage billed through the harness. Arm-B IS a real cost-per-use measurement, just from a controlled run instead of in-the-wild use. Rows in this state show the cost with a "tokens / use (A/B-measured)" sub-label. Rows with both transcript and A/B data prefer the transcript number — it's what happened, not what's reproducible.</p>
 
+  <h2>What counts as one “use” — the invocation-boundary caveat</h2>
+  <p>The upstream <code>skill-usage</code> parser groups assistant messages by <code>(skill, sessionId)</code>. Every assistant message attributed to one skill inside one Claude Code session counts as part of <em>one</em> invocation. That's accurate for total tokens spent and last-invoked timestamps — but it <em>overstates</em> tokens-per-use whenever a single session contains multiple uses of the same skill. For most skills (run two or three times across the 90-day window), this is a minor wobble. For <code>/review</code>, it's a 23× distortion: 14 sessions contained 336 distinct <code>/review</code> calls, so the parser's "avg 1.15M / use" is really "avg cost of 336 uses spread across 14 sessions, divided by 14 instead of by 336."</p>
+  <p>To make the gap visible the document shows <strong>two <code>/review</code> rows</strong>: the upper one matches the upstream parser exactly (session-grouped, 1.15M / use), the lower one walks the <code>parentUuid</code> → originating-user-message chain and uses each user message's <code>promptId</code> as the invocation ID (per-invocation, ~48K / use). The total tokens spent across the 90-day window is the same in both methods — only the decomposition into <em>per use × uses</em> differs. The per-invocation row is the right intuition for "what does one <code>/review</code> cost"; the session row is what every other skill on the page is currently using, so it's there for comparison consistency.</p>
+  <p>Other heavily-iterated skills have the same potential for over-counting, but with much smaller blast radius — most have one or two sessions in the window, so session-grouped = invocation-grouped. The fix at the parser level (walk the chain for every skill, not just <code>/review</code>) is a follow-up; today the correction lives only on <code>/review</code> because that's where it materially distorts the number.</p>
+
   <h2>How “measured save / use” is produced</h2>
   <p>One source: a calibration A/B test. Two Sonnet sub-agents solve the same task in fresh sandboxed worktrees — arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save / use is arm-A tokens minus arm-B tokens for that one run. <strong>N = 1 per skill, single data point</strong>. A re-run would produce different absolute numbers for both arms; trust direction and rough magnitude, not two-significant-digit precision.</p>
   <p>Some skills show negative save / use in orange. Those are real findings: the skill arm spent MORE tokens than the unstructured arm, because the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The skill's value is completeness, not token compression. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for any downstream consumer that wants to see both sides.</p>
+  <p><strong>Exception: <code>/review</code>.</strong> The original N=1 A/B on a 5-file PR showed 63% saved; re-running on PRs of 174 and 599 lines produced 44% and 6% respectively. The save rate degrades as the PR grows — cold Sonnet already does most of the work the recipe encodes once the diff is big enough to keep it focused. The <code>/review</code> rows therefore show the average of 3 A/B runs (24K saved per use = 39%), with the spread surfaced in a subline ("avg of 3 A/Bs · 174–599 lines · range 6%–63%") so the reader can see the recipe's value isn't uniform across PR sizes. The single-PR measurements are kept on the row's <code>calibration_ab_runs</code> array for anyone who wants the breakdown. Other skills stay at N=1 until they accumulate enough usage to warrant a multi-PR pass.</p>
 
   <h2>Regime gap: when measured cost and measured save come from different scales</h2>
   <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>
-  <p>Concrete: built-in <code>/review</code> shows <strong>1.05M tokens / use measured cost</strong> (averaged across 14 real-PR reviews, some over 3M tokens, some under 10K) next to <strong>46K tokens / use measured save</strong> (from one A/B on a 5-file PR where the cold arm spent 72K). Doing 46K ÷ 1.05M reads as a 4% save rate; the actual A/B finding was 46K ÷ 72K = 63% on the small PR. The same trap shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
+  <p>Concrete: built-in <code>/review</code>'s upper (session-grouped) row shows <strong>1.15M tokens / use measured cost</strong> next to <strong>24K tokens / use measured save</strong> (averaged across 3 A/Bs on PRs of 174–599 lines; average A/B baseline 60,794 tokens). Doing 24K ÷ 1.15M reads as a 2% save rate; the actual finding is 24K ÷ 60,794 = 39% averaged across the 3 PR sizes. The corrected <code>/review</code> row below (~48K / use) doesn't have this problem — its cost is close to the A/B baseline, so the 39% reads directly. The trap shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
   <p>When a row hits this regime gap (transcript cost &gt; 2× the A/B arm-A baseline) the measured-save cell prints a subline making the baseline explicit: <em>vs &lt;armA&gt; A/B baseline · &lt;pct&gt;%</em>. Math on the row now works: <code>save ÷ baseline = pct</code> instead of <code>save ÷ visible-cost = misleading</code>. This isn't a correction — both numbers were always real. It's a labelling fix so a reader doesn't combine them wrong.</p>
   <p>The gap itself is the finding: <strong>the A/B calibration task isn't representative of what production runs of these skills actually look like</strong>. The honest read is that recipe value scales with task complexity, and the A/B numbers underestimate the absolute save at production scale (the same recipe collapsing the same amount of structure, applied to a 1M-token task instead of a 70K-token task, would save proportionally more). The fix is either re-running calibrations on representative-sized targets, or treating the A/B save as a lower bound. I haven't done the former; the document treats the A/B save as what it is.</p>
 

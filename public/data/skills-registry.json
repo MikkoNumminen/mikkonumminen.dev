@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-26T23:10:59.552Z",
+  "generated_at": "2026-05-27T00:29:53.189Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -1599,19 +1599,19 @@
     {
       "name": "review",
       "label": "/review",
-      "description": "Claude Code built-in PR code review",
+      "description": "Claude Code built-in PR code review · session-grouped (current upstream parser)",
       "measurement_window_days": 90,
       "invocations_in_window": 14,
-      "total_tokens_in_window": 16023550,
-      "tokens_per_use_avg": 1144539,
+      "total_tokens_in_window": 16084226,
+      "tokens_per_use_avg": 1148873,
       "annual_total": 59853534,
       "uses_per_year": 57,
-      "last_invoked": "2026-05-26T23:15:15.725Z",
-      "tokens_saved_per_use": 45738,
+      "last_invoked": "2026-05-27T00:28:27.920Z",
+      "tokens_saved_per_use": 23836,
       "tokens_saved_source": "calibration",
-      "calibration_arm_A": 72170,
-      "calibration_arm_B": 26432,
-      "calibration_pct_saved": 63,
+      "calibration_arm_A": 60794,
+      "calibration_arm_B": 36958,
+      "calibration_pct_saved": 39,
       "calibration_generated_at": "2026-05-22T00:00:00Z",
       "calibration_model": "sonnet",
       "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md",
@@ -1639,7 +1639,78 @@
       },
       "tokens_per_use_min": 4295,
       "tokens_per_use_max": 3730055,
-      "tokens_per_use_stddev": 1088635
+      "tokens_per_use_stddev": 1090860,
+      "calibration_ab_runs": [
+        {
+          "pr": 149,
+          "lines": 292,
+          "arm_A": 72170,
+          "arm_B": 26432
+        },
+        {
+          "pr": 167,
+          "lines": 174,
+          "arm_A": 50194,
+          "arm_B": 28319
+        },
+        {
+          "pr": 168,
+          "lines": 599,
+          "arm_A": 60017,
+          "arm_B": 56122
+        }
+      ],
+      "calibration_ab_count": 3,
+      "calibration_save_pct_min": 6,
+      "calibration_save_pct_max": 63,
+      "calibration_ab_lines_min": 174,
+      "calibration_ab_lines_max": 599
+    },
+    {
+      "name": "review-per-invocation",
+      "label": "/review",
+      "description": "Claude Code built-in PR code review · per-invocation (corrected via parentUuid → promptId chain)",
+      "measurement_window_days": 90,
+      "invocations_in_window": 337,
+      "total_tokens_in_window": 16084226,
+      "tokens_per_use_avg": 47728,
+      "tokens_per_use_min": 1152,
+      "tokens_per_use_max": 980564,
+      "tokens_per_use_stddev": 133406,
+      "annual_total": 65244176,
+      "uses_per_year": 1367,
+      "last_invoked": "2026-05-27T00:28:27.920Z",
+      "tokens_saved_per_use": 23836,
+      "tokens_saved_source": "calibration",
+      "calibration_arm_A": 60794,
+      "calibration_arm_B": 36958,
+      "calibration_pct_saved": 39,
+      "calibration_ab_runs": [
+        {
+          "pr": 149,
+          "lines": 292,
+          "arm_A": 72170,
+          "arm_B": 26432
+        },
+        {
+          "pr": 167,
+          "lines": 174,
+          "arm_A": 50194,
+          "arm_B": 28319
+        },
+        {
+          "pr": 168,
+          "lines": 599,
+          "arm_A": 60017,
+          "arm_B": 56122
+        }
+      ],
+      "calibration_ab_count": 3,
+      "calibration_save_pct_min": 6,
+      "calibration_save_pct_max": 63,
+      "calibration_ab_lines_min": 174,
+      "calibration_ab_lines_max": 599,
+      "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md"
     }
   ]
 }
