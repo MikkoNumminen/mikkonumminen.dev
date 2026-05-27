@@ -211,49 +211,134 @@ const perInvocation = stats(bucketTokens(records, (r) => {
   return `${r.sessionId}|${id}`;
 }));
 
-// A/B calibrations for /review's save rate, measured on three real PRs of
-// different sizes. The original N=1 measurement on PR #149 (5 files / 292
-// lines) showed 63% saved; running on bigger PRs revealed the recipe value
-// degrades as the PR grows. Stored here so the renderer can compute an
-// honest avg + range without re-running the A/Bs on every build.
+// A/B calibrations for /review's save rate, measured across N=11 real PRs
+// spanning the production size distribution. Each PR is bucketed by its
+// diff size (additions + deletions); each bucket gets a median save number
+// + range, and the headline is the bucket medians weighted by each bucket's
+// share of production invocations (so a small-PR-heavy workload doesn't
+// over-weight the toy-end of the spread).
+//
+// Bucket weights come from walking the 337 per-invocation /review records
+// in the 90-day window, extracting the PR number from each invocation's
+// originating user message + tool calls, looking up the PR size via gh CLI,
+// and computing the fraction in each bucket. The weights below are frozen
+// snapshots from that walk; refresh them by re-running the bucket analysis
+// in scripts/.tmp/bucket-review-invocations.py (see PR #173 description).
 //
 // Each entry: arm A is a cold Sonnet sub-agent given a generic "review PR
 // #N" task; arm B is a Sonnet sub-agent given the literal /review builtin
-// prompt. Same dispatch shape as the original PR #149 calibration so the
-// rows compose into one average.
+// prompt. Same dispatch shape as the original PR #149 calibration.
 const REVIEW_AB_RUNS = [
-  { pr: 149, lines: 292, arm_A: 72170, arm_B: 26432 },
-  { pr: 167, lines: 174, arm_A: 50194, arm_B: 28319 },
-  { pr: 168, lines: 599, arm_A: 60017, arm_B: 56122 },
+  // small: 0-199 lines · 63% of production /review invocations
+  { pr: 149, lines: 292, arm_A: 72170, arm_B: 26432, bucket: 'small' },
+  { pr: 167, lines: 174, arm_A: 50194, arm_B: 28319, bucket: 'small' },
+  { pr: 75,  lines:  86, arm_A: 19841, arm_B: 18556, bucket: 'small' },
+  // med: 200-799 lines · 26% of production
+  { pr: 23,  lines: 244, arm_A: 43317, arm_B: 31993, bucket: 'med' },
+  { pr: 168, lines: 599, arm_A: 60017, arm_B: 56122, bucket: 'med' },
+  { pr: 143, lines: 245, arm_A: 39027, arm_B: 21263, bucket: 'med' },
+  // large: 800-2499 lines · 7% of production
+  { pr: 63,  lines:1066, arm_A: 38037, arm_B: 32510, bucket: 'large' },
+  { pr: 60,  lines: 926, arm_A: 49077, arm_B: 41234, bucket: 'large' },
+  { pr: 90,  lines:1183, arm_A: 32951, arm_B: 42580, bucket: 'large' },
+  // xlarge: 2500+ lines · 3% of production (only 2 unique PRs available)
+  { pr: 91,  lines:3977, arm_A: 45400, arm_B: 41821, bucket: 'xlarge' },
+  { pr: 13,  lines:3806, arm_A: 88573, arm_B:113093, bucket: 'xlarge' },
 ];
 
-function summarizeAbRuns(runs) {
-  const n = runs.length;
+// Production invocation weights per bucket — derived from the per-PR walk
+// over the 337 mapped /review invocations. Used for the weighted headline
+// save figure. The remainder (37% of all invocations) couldn't be mapped to
+// a PR number and is excluded from the weighting; the relative fractions
+// among mapped invocations stay the most defensible estimate.
+const BUCKET_WEIGHTS = {
+  small:  0.63,
+  med:    0.26,
+  large:  0.07,
+  xlarge: 0.03,
+};
+
+const BUCKET_LABEL_LINES = {
+  small:  '0–199 lines',
+  med:    '200–799 lines',
+  large:  '800–2499 lines',
+  xlarge: '2500+ lines',
+};
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+    : sorted[mid];
+}
+
+function summarizeBucket(runs) {
+  if (runs.length === 0) return null;
   const saved = runs.map((r) => r.arm_A - r.arm_B);
+  const armA = runs.map((r) => r.arm_A);
   const pcts = runs.map((r) => Math.round(((r.arm_A - r.arm_B) / r.arm_A) * 100));
-  const armATotal = runs.reduce((a, r) => a + r.arm_A, 0);
-  const armBTotal = runs.reduce((a, r) => a + r.arm_B, 0);
-  const savedAvg = Math.round(saved.reduce((a, b) => a + b, 0) / n);
-  // Weight pct by total tokens, not by simple average — keeps the headline
-  // consistent with avg-saved / avg-baseline rather than a per-PR mean of
-  // pcts (which would over-weight small-PR results).
-  const pctAvg = Math.round(((armATotal - armBTotal) / armATotal) * 100);
-  const lines = runs.map((r) => r.lines);
   return {
-    n,
-    arm_A_avg: Math.round(armATotal / n),
-    arm_B_avg: Math.round(armBTotal / n),
-    saved_avg: savedAvg,
-    pct_avg: pctAvg,
+    n: runs.length,
+    saved_median: median(saved),
+    saved_min: saved.reduce((a, b) => (a < b ? a : b)),
+    saved_max: saved.reduce((a, b) => (a > b ? a : b)),
+    arm_A_median: median(armA),
+    pct_median: median(pcts),
     pct_min: pcts.reduce((a, b) => (a < b ? a : b)),
     pct_max: pcts.reduce((a, b) => (a > b ? a : b)),
-    lines_min: lines.reduce((a, b) => (a < b ? a : b)),
-    lines_max: lines.reduce((a, b) => (a > b ? a : b)),
+    lines_min: runs.map((r) => r.lines).reduce((a, b) => (a < b ? a : b)),
+    lines_max: runs.map((r) => r.lines).reduce((a, b) => (a > b ? a : b)),
     runs,
   };
 }
 
-const ab = summarizeAbRuns(REVIEW_AB_RUNS);
+function summarizeAbRuns(runs, weights) {
+  const byBucket = {};
+  for (const r of runs) {
+    if (!byBucket[r.bucket]) byBucket[r.bucket] = [];
+    byBucket[r.bucket].push(r);
+  }
+  const buckets = {};
+  for (const [name, bucketRuns] of Object.entries(byBucket)) {
+    buckets[name] = summarizeBucket(bucketRuns);
+  }
+  // Weighted headline: each bucket's median save × bucket's production share.
+  // Skip buckets with no data (weight reallocated implicitly).
+  let weightedSaved = 0;
+  let weightedArmA = 0;
+  let activeWeight = 0;
+  for (const [name, w] of Object.entries(weights)) {
+    const b = buckets[name];
+    if (!b) continue;
+    weightedSaved += w * b.saved_median;
+    weightedArmA += w * b.arm_A_median;
+    activeWeight += w;
+  }
+  // Renormalize over active weight so 100% adds to 100% even if a bucket is
+  // missing.
+  const weightedSavedNormalized = activeWeight > 0 ? weightedSaved / activeWeight : 0;
+  const weightedArmANormalized = activeWeight > 0 ? weightedArmA / activeWeight : 0;
+  const weightedPct = weightedArmANormalized > 0
+    ? Math.round((weightedSavedNormalized / weightedArmANormalized) * 100)
+    : 0;
+  const allPcts = runs.map((r) => Math.round(((r.arm_A - r.arm_B) / r.arm_A) * 100));
+  return {
+    n: runs.length,
+    buckets,
+    bucket_weights: weights,
+    weighted_saved_per_use: Math.round(weightedSavedNormalized),
+    weighted_arm_A: Math.round(weightedArmANormalized),
+    weighted_pct: weightedPct,
+    overall_pct_min: allPcts.reduce((a, b) => (a < b ? a : b)),
+    overall_pct_max: allPcts.reduce((a, b) => (a > b ? a : b)),
+    overall_lines_min: runs.map((r) => r.lines).reduce((a, b) => (a < b ? a : b)),
+    overall_lines_max: runs.map((r) => r.lines).reduce((a, b) => (a > b ? a : b)),
+    runs,
+  };
+}
+
+const ab = summarizeAbRuns(REVIEW_AB_RUNS, BUCKET_WEIGHTS);
 
 const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 const refs = registry.built_in_references ?? [];
@@ -275,20 +360,24 @@ if (lastInvoked) sessionRow.last_invoked = lastInvoked;
 // Make the methodology explicit in the row's description so the PDF carries it.
 sessionRow.description = 'Claude Code built-in PR code review · session-grouped (current upstream parser)';
 
-// Replace the single-PR save numbers with the 3-PR average. Both /review rows
-// share these — save is independent of how the cost is decomposed. Single-PR
-// arm_A / arm_B / pct_saved are preserved on the row's calibration_ab_runs
-// array for anyone who wants to see the individual measurements.
-sessionRow.tokens_saved_per_use = ab.saved_avg;
-sessionRow.calibration_arm_A = ab.arm_A_avg;
-sessionRow.calibration_arm_B = ab.arm_B_avg;
-sessionRow.calibration_pct_saved = ab.pct_avg;
+// Replace the single-PR save numbers with the bucketed weighted figure.
+// Both /review rows share these — save is independent of how the cost is
+// decomposed. The per-bucket breakdown + per-PR runs are preserved on the
+// row's calibration_ab_buckets / calibration_ab_runs arrays so any
+// downstream consumer can drill into the spread.
+sessionRow.tokens_saved_per_use = ab.weighted_saved_per_use;
+sessionRow.calibration_arm_A = ab.weighted_arm_A;
+sessionRow.calibration_arm_B = ab.weighted_arm_A - ab.weighted_saved_per_use;
+sessionRow.calibration_pct_saved = ab.weighted_pct;
 sessionRow.calibration_ab_runs = ab.runs;
 sessionRow.calibration_ab_count = ab.n;
-sessionRow.calibration_save_pct_min = ab.pct_min;
-sessionRow.calibration_save_pct_max = ab.pct_max;
-sessionRow.calibration_ab_lines_min = ab.lines_min;
-sessionRow.calibration_ab_lines_max = ab.lines_max;
+sessionRow.calibration_save_pct_min = ab.overall_pct_min;
+sessionRow.calibration_save_pct_max = ab.overall_pct_max;
+sessionRow.calibration_ab_lines_min = ab.overall_lines_min;
+sessionRow.calibration_ab_lines_max = ab.overall_lines_max;
+sessionRow.calibration_ab_buckets = ab.buckets;
+sessionRow.calibration_ab_bucket_weights = ab.bucket_weights;
+sessionRow.calibration_ab_bucket_labels = BUCKET_LABEL_LINES;
 
 // 2. Append (or update) the per-invocation row. uses_per_year scales with the
 // invocation count (each /review call counts as one use), so annual_total is
@@ -330,6 +419,9 @@ const perInvocationRow = {
   calibration_save_pct_max: sessionRow.calibration_save_pct_max,
   calibration_ab_lines_min: sessionRow.calibration_ab_lines_min,
   calibration_ab_lines_max: sessionRow.calibration_ab_lines_max,
+  calibration_ab_buckets: sessionRow.calibration_ab_buckets,
+  calibration_ab_bucket_weights: sessionRow.calibration_ab_bucket_weights,
+  calibration_ab_bucket_labels: sessionRow.calibration_ab_bucket_labels,
   audit_doc_path: sessionRow.audit_doc_path,
 };
 
@@ -361,11 +453,12 @@ console.log(`    annual total: ${perInvocationAnnualTotal.toLocaleString()}`);
 console.log('');
 console.log(`Total in window (both methods should match): session=${sessionGrouped.total.toLocaleString()} per-inv=${perInvocation.total.toLocaleString()}`);
 console.log('');
-console.log(`  A/B SAVE (avg of ${ab.n} runs on PRs ${REVIEW_AB_RUNS.map(r => '#' + r.pr).join(', ')}):`);
-console.log(`    avg arm A: ${ab.arm_A_avg.toLocaleString()} tokens`);
-console.log(`    avg arm B: ${ab.arm_B_avg.toLocaleString()} tokens`);
-console.log(`    avg saved: ${ab.saved_avg.toLocaleString()} tokens (${ab.pct_avg}%)`);
-console.log(`    pct range: ${ab.pct_min}% – ${ab.pct_max}%`);
-console.log(`    PR sizes: ${ab.lines_min}–${ab.lines_max} lines`);
+console.log(`  A/B SAVE (N=${ab.n} runs across 4 size buckets):`);
+for (const [name, bucket] of Object.entries(ab.buckets)) {
+  const w = (ab.bucket_weights[name] * 100).toFixed(0);
+  console.log(`    ${name.padEnd(7)} (${BUCKET_LABEL_LINES[name].padEnd(14)} · ${w}% of prod): N=${bucket.n} · median saved ${bucket.saved_median.toLocaleString()} (${bucket.pct_median}%) · range ${bucket.pct_min}%–${bucket.pct_max}%`);
+}
+console.log(`    weighted: ${ab.weighted_saved_per_use.toLocaleString()} tokens saved / use (${ab.weighted_pct}%)`);
+console.log(`    overall pct range across all ${ab.n} runs: ${ab.overall_pct_min}%–${ab.overall_pct_max}%`);
 console.log('');
 console.log(`Wrote ${REGISTRY_PATH}`);
