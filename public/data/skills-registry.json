@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-26T23:53:41.463Z",
+  "generated_at": "2026-05-27T00:22:41.892Z",
   "repos": [
     {
       "name": "AudiobookMaker",
@@ -1607,11 +1607,11 @@
       "annual_total": 59853534,
       "uses_per_year": 57,
       "last_invoked": "2026-05-26T23:26:55.151Z",
-      "tokens_saved_per_use": 45738,
+      "tokens_saved_per_use": 23836,
       "tokens_saved_source": "calibration",
-      "calibration_arm_A": 72170,
-      "calibration_arm_B": 26432,
-      "calibration_pct_saved": 63,
+      "calibration_arm_A": 60794,
+      "calibration_arm_B": 36958,
+      "calibration_pct_saved": 39,
       "calibration_generated_at": "2026-05-22T00:00:00Z",
       "calibration_model": "sonnet",
       "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md",
@@ -1639,7 +1639,32 @@
       },
       "tokens_per_use_min": 4295,
       "tokens_per_use_max": 3730055,
-      "tokens_per_use_stddev": 1089549
+      "tokens_per_use_stddev": 1089549,
+      "calibration_ab_runs": [
+        {
+          "pr": 149,
+          "lines": 292,
+          "arm_A": 72170,
+          "arm_B": 26432
+        },
+        {
+          "pr": 167,
+          "lines": 174,
+          "arm_A": 50194,
+          "arm_B": 28319
+        },
+        {
+          "pr": 168,
+          "lines": 599,
+          "arm_A": 60017,
+          "arm_B": 56122
+        }
+      ],
+      "calibration_ab_count": 3,
+      "calibration_save_pct_min": 6,
+      "calibration_save_pct_max": 63,
+      "calibration_ab_lines_min": 174,
+      "calibration_ab_lines_max": 599
     },
     {
       "name": "review-per-invocation",
@@ -1655,11 +1680,36 @@
       "annual_total": 65105058,
       "uses_per_year": 1363,
       "last_invoked": "2026-05-26T23:26:55.151Z",
-      "tokens_saved_per_use": 45738,
+      "tokens_saved_per_use": 23836,
       "tokens_saved_source": "calibration",
-      "calibration_arm_A": 72170,
-      "calibration_arm_B": 26432,
-      "calibration_pct_saved": 63,
+      "calibration_arm_A": 60794,
+      "calibration_arm_B": 36958,
+      "calibration_pct_saved": 39,
+      "calibration_ab_runs": [
+        {
+          "pr": 149,
+          "lines": 292,
+          "arm_A": 72170,
+          "arm_B": 26432
+        },
+        {
+          "pr": 167,
+          "lines": 174,
+          "arm_A": 50194,
+          "arm_B": 28319
+        },
+        {
+          "pr": 168,
+          "lines": 599,
+          "arm_A": 60017,
+          "arm_B": 56122
+        }
+      ],
+      "calibration_ab_count": 3,
+      "calibration_save_pct_min": 6,
+      "calibration_save_pct_max": 63,
+      "calibration_ab_lines_min": 174,
+      "calibration_ab_lines_max": 599,
       "audit_doc_path": "docs/audits/builtin-review-calibration-2026-05-22.md"
     }
   ]

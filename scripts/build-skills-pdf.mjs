@@ -74,6 +74,33 @@ function saveCellWithBaseline(value, armA) {
   return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmtPrecise(armA)} A/B baseline${pctText}</span></td>`;
 }
 
+// Optional sample-stats subline for the save cell, surfaced when the save
+// number is averaged over multiple A/B runs (currently only /review, where
+// 3 A/B runs across 174–599-line PRs revealed the save-rate degrades with
+// PR size). The single-PR display would hide that the 39% headline is the
+// mean of a 6%–63% spread; this subline anchors it. Returns empty string
+// when the row only has a single A/B measurement (every other skill).
+function abSampleSubline(rec) {
+  if (!rec || typeof rec.calibration_ab_count !== 'number' || rec.calibration_ab_count < 2) return '';
+  const linesRange = (typeof rec.calibration_ab_lines_min === 'number' && typeof rec.calibration_ab_lines_max === 'number')
+    ? ` · ${rec.calibration_ab_lines_min}–${rec.calibration_ab_lines_max} lines`
+    : '';
+  const pctRange = (typeof rec.calibration_save_pct_min === 'number' && typeof rec.calibration_save_pct_max === 'number')
+    ? ` · range ${rec.calibration_save_pct_min}%–${rec.calibration_save_pct_max}%`
+    : '';
+  return `<span class="num-cell-sub">avg of ${rec.calibration_ab_count} A/Bs${linesRange}${pctRange}</span>`;
+}
+
+// Inject an AB-sample subline (when present on the row) just before the
+// closing </td> of an already-built save cell. Keeps the regime-mismatch
+// path and the plain-pct path both able to opt in without restructuring
+// the cell HTML. No-op when abSampleSubline returns empty string.
+function appendAbSubline(cellHtml, rec) {
+  const sub = abSampleSubline(rec);
+  if (!sub) return cellHtml;
+  return cellHtml.replace(/<\/td>$/, `${sub}</td>`);
+}
+
 function fmtGeneratedAt(iso) {
   const s = iso.replace('Z', '');
   const [datePart, timePart] = s.split('T');
@@ -314,9 +341,12 @@ function renderBuiltInsSection(refs) {
         br.tokens_per_use_avg > br.calibration_arm_A * REGIME_MISMATCH_THRESHOLD;
       const measuredSave =
         typeof br.tokens_saved_per_use === 'number'
-          ? brRegimeMismatch
-            ? saveCellWithBaseline(br.tokens_saved_per_use, br.calibration_arm_A)
-            : `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`
+          ? appendAbSubline(
+              brRegimeMismatch
+                ? saveCellWithBaseline(br.tokens_saved_per_use, br.calibration_arm_A)
+                : `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`,
+              br
+            )
           : dash;
       // estimated-cost has no source for built-ins (no SKILL.md author).
       // estimated-save uses the project-wide 3× baseline heuristic so the row
@@ -793,6 +823,7 @@ function renderMethodPage() {
   <h2>How “measured save / use” is produced</h2>
   <p>One source: a calibration A/B test. Two Sonnet sub-agents solve the same task in fresh sandboxed worktrees — arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save / use is arm-A tokens minus arm-B tokens for that one run. <strong>N = 1 per skill, single data point</strong>. A re-run would produce different absolute numbers for both arms; trust direction and rough magnitude, not two-significant-digit precision.</p>
   <p>Some skills show negative save / use in orange. Those are real findings: the skill arm spent MORE tokens than the unstructured arm, because the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The skill's value is completeness, not token compression. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for any downstream consumer that wants to see both sides.</p>
+  <p><strong>Exception: <code>/review</code>.</strong> The original N=1 A/B on a 5-file PR showed 63% saved; re-running on PRs of 174 and 599 lines produced 44% and 6% respectively. The save rate degrades as the PR grows — cold Sonnet already does most of the work the recipe encodes once the diff is big enough to keep it focused. The <code>/review</code> rows therefore show the average of 3 A/B runs (24K saved per use = 39%), with the spread surfaced in a subline ("avg of 3 A/Bs · 174–599 lines · range 6%–63%") so the reader can see the recipe's value isn't uniform across PR sizes. The single-PR measurements are kept on the row's <code>calibration_ab_runs</code> array for anyone who wants the breakdown. Other skills stay at N=1 until they accumulate enough usage to warrant a multi-PR pass.</p>
 
   <h2>Regime gap: when measured cost and measured save come from different scales</h2>
   <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>

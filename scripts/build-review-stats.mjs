@@ -211,6 +211,50 @@ const perInvocation = stats(bucketTokens(records, (r) => {
   return `${r.sessionId}|${id}`;
 }));
 
+// A/B calibrations for /review's save rate, measured on three real PRs of
+// different sizes. The original N=1 measurement on PR #149 (5 files / 292
+// lines) showed 63% saved; running on bigger PRs revealed the recipe value
+// degrades as the PR grows. Stored here so the renderer can compute an
+// honest avg + range without re-running the A/Bs on every build.
+//
+// Each entry: arm A is a cold Sonnet sub-agent given a generic "review PR
+// #N" task; arm B is a Sonnet sub-agent given the literal /review builtin
+// prompt. Same dispatch shape as the original PR #149 calibration so the
+// rows compose into one average.
+const REVIEW_AB_RUNS = [
+  { pr: 149, lines: 292, arm_A: 72170, arm_B: 26432 },
+  { pr: 167, lines: 174, arm_A: 50194, arm_B: 28319 },
+  { pr: 168, lines: 599, arm_A: 60017, arm_B: 56122 },
+];
+
+function summarizeAbRuns(runs) {
+  const n = runs.length;
+  const saved = runs.map((r) => r.arm_A - r.arm_B);
+  const pcts = runs.map((r) => Math.round(((r.arm_A - r.arm_B) / r.arm_A) * 100));
+  const armATotal = runs.reduce((a, r) => a + r.arm_A, 0);
+  const armBTotal = runs.reduce((a, r) => a + r.arm_B, 0);
+  const savedAvg = Math.round(saved.reduce((a, b) => a + b, 0) / n);
+  // Weight pct by total tokens, not by simple average — keeps the headline
+  // consistent with avg-saved / avg-baseline rather than a per-PR mean of
+  // pcts (which would over-weight small-PR results).
+  const pctAvg = Math.round(((armATotal - armBTotal) / armATotal) * 100);
+  const lines = runs.map((r) => r.lines);
+  return {
+    n,
+    arm_A_avg: Math.round(armATotal / n),
+    arm_B_avg: Math.round(armBTotal / n),
+    saved_avg: savedAvg,
+    pct_avg: pctAvg,
+    pct_min: pcts.reduce((a, b) => (a < b ? a : b)),
+    pct_max: pcts.reduce((a, b) => (a > b ? a : b)),
+    lines_min: lines.reduce((a, b) => (a < b ? a : b)),
+    lines_max: lines.reduce((a, b) => (a > b ? a : b)),
+    runs,
+  };
+}
+
+const ab = summarizeAbRuns(REVIEW_AB_RUNS);
+
 const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 const refs = registry.built_in_references ?? [];
 
@@ -230,6 +274,21 @@ sessionRow.tokens_per_use_stddev = sessionGrouped.stddev;
 if (lastInvoked) sessionRow.last_invoked = lastInvoked;
 // Make the methodology explicit in the row's description so the PDF carries it.
 sessionRow.description = 'Claude Code built-in PR code review · session-grouped (current upstream parser)';
+
+// Replace the single-PR save numbers with the 3-PR average. Both /review rows
+// share these — save is independent of how the cost is decomposed. Single-PR
+// arm_A / arm_B / pct_saved are preserved on the row's calibration_ab_runs
+// array for anyone who wants to see the individual measurements.
+sessionRow.tokens_saved_per_use = ab.saved_avg;
+sessionRow.calibration_arm_A = ab.arm_A_avg;
+sessionRow.calibration_arm_B = ab.arm_B_avg;
+sessionRow.calibration_pct_saved = ab.pct_avg;
+sessionRow.calibration_ab_runs = ab.runs;
+sessionRow.calibration_ab_count = ab.n;
+sessionRow.calibration_save_pct_min = ab.pct_min;
+sessionRow.calibration_save_pct_max = ab.pct_max;
+sessionRow.calibration_ab_lines_min = ab.lines_min;
+sessionRow.calibration_ab_lines_max = ab.lines_max;
 
 // 2. Append (or update) the per-invocation row. uses_per_year scales with the
 // invocation count (each /review call counts as one use), so annual_total is
@@ -254,13 +313,19 @@ const perInvocationRow = {
   // Carry the same A/B calibration save data — the recipe save itself doesn't
   // change with how we count uses. The regime-mismatch detection in the
   // renderer will correctly decide whether to show the baseline subline (the
-  // per-invocation row's 45K cost is BELOW 2× the 72K A/B baseline, so it
+  // per-invocation row's cost is BELOW 2× the avg A/B baseline, so it
   // won't trigger the subline — the math anchors directly now).
   tokens_saved_per_use: sessionRow.tokens_saved_per_use,
   tokens_saved_source: sessionRow.tokens_saved_source,
   calibration_arm_A: sessionRow.calibration_arm_A,
   calibration_arm_B: sessionRow.calibration_arm_B,
   calibration_pct_saved: sessionRow.calibration_pct_saved,
+  calibration_ab_runs: sessionRow.calibration_ab_runs,
+  calibration_ab_count: sessionRow.calibration_ab_count,
+  calibration_save_pct_min: sessionRow.calibration_save_pct_min,
+  calibration_save_pct_max: sessionRow.calibration_save_pct_max,
+  calibration_ab_lines_min: sessionRow.calibration_ab_lines_min,
+  calibration_ab_lines_max: sessionRow.calibration_ab_lines_max,
   audit_doc_path: sessionRow.audit_doc_path,
 };
 
@@ -291,4 +356,12 @@ console.log(`    uses/yr extrapolated: ${perInvocationUsesPerYear.toLocaleString
 console.log(`    annual total: ${perInvocationAnnualTotal.toLocaleString()}`);
 console.log('');
 console.log(`Total in window (both methods should match): session=${sessionGrouped.total.toLocaleString()} per-inv=${perInvocation.total.toLocaleString()}`);
+console.log('');
+console.log(`  A/B SAVE (avg of ${ab.n} runs on PRs ${REVIEW_AB_RUNS.map(r => '#' + r.pr).join(', ')}):`);
+console.log(`    avg arm A: ${ab.arm_A_avg.toLocaleString()} tokens`);
+console.log(`    avg arm B: ${ab.arm_B_avg.toLocaleString()} tokens`);
+console.log(`    avg saved: ${ab.saved_avg.toLocaleString()} tokens (${ab.pct_avg}%)`);
+console.log(`    pct range: ${ab.pct_min}% – ${ab.pct_max}%`);
+console.log(`    PR sizes: ${ab.lines_min}–${ab.lines_max} lines`);
+console.log('');
 console.log(`Wrote ${REGISTRY_PATH}`);
