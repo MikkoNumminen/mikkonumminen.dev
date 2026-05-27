@@ -574,16 +574,21 @@ function candidateAttributionNames(repoName, skillName) {
 }
 
 let medianUpdated = 0;
+let modelTagged = 0;
 for (const repo of registry.repos ?? []) {
   for (const skill of repo.skills ?? []) {
     const rec = skill.receipt;
     if (!rec || rec.source !== 'transcript-measurement') continue;
     // Find the best matching scanned skill — try canonical then prefixed.
+    // Match at ANY N so single-invocation rows still get their cost_model
+    // tag; the renderer needs every production row labelled with the model
+    // its sessions actually ran on. Median + spread fields only update
+    // when N≥2 because there's no distribution to medianize at N=1.
     let matched = null;
     let matchedCandidate = null;
     for (const candidate of candidateAttributionNames(repo.name, skill.name)) {
       const s = statsForSkill(candidate);
-      if (s && s.n >= 2) {
+      if (s) {
         // Pick the candidate with the most invocations — handles the case
         // where transcripts also exist for a now-renamed skill.
         if (!matched || s.n > matched.n) {
@@ -593,29 +598,39 @@ for (const repo of registry.repos ?? []) {
       }
     }
     if (!matched) continue;
-    rec.tokens_per_use = matched.median;
-    rec.tokens_per_use_mean = matched.mean;
-    rec.tokens_per_use_min = matched.min;
-    rec.tokens_per_use_max = matched.max;
-    rec.tokens_per_use_stddev = matched.stddev;
+
     // Tag the production-cost model the same way as /review's row. Picks the
     // family that spent the most tokens on this skill — that's "the model
-    // /audit ran on", at the granularity the registry cares about.
+    // /audit ran on", at the granularity the registry cares about. Done
+    // regardless of N so a single-invocation skill still carries its
+    // model label.
     const cm = dominantModel(modelTokensBySkill.get(matchedCandidate));
-    if (cm) rec.cost_model = cm;
-    // Recompute the volume fields off the per-invocation walk so the receipt
-    // is internally consistent: invocations_in_window now counts distinct
-    // skill invocations (not the upstream parser's session approximation),
-    // total_tokens_in_window is the actual sum from this walk, and the
-    // annual projections fall out of those. Mean (not median) is the right
-    // anchor for annual_total — it's a sum-extrapolation, not a typical-use
-    // figure. Keeps `tokens_per_use × invocations_in_window ≈
-    // total_tokens_in_window` honest for any downstream JSON consumer.
-    rec.invocations_in_window = matched.n;
-    rec.total_tokens_in_window = matched.total;
-    rec.uses_per_year = Math.round((matched.n / args.windowDays) * DAYS_PER_YEAR);
-    rec.annual_total = matched.mean * rec.uses_per_year;
-    medianUpdated++;
+    if (cm) {
+      rec.cost_model = cm;
+      modelTagged++;
+    }
+
+    if (matched.n >= 2) {
+      rec.tokens_per_use = matched.median;
+      rec.tokens_per_use_mean = matched.mean;
+      rec.tokens_per_use_min = matched.min;
+      rec.tokens_per_use_max = matched.max;
+      rec.tokens_per_use_stddev = matched.stddev;
+      // Recompute the volume fields off the per-invocation walk so the
+      // receipt is internally consistent: invocations_in_window now counts
+      // distinct skill invocations (not the upstream parser's session
+      // approximation), total_tokens_in_window is the actual sum from this
+      // walk, and the annual projections fall out of those. Mean (not
+      // median) is the right anchor for annual_total — it's a sum-
+      // extrapolation, not a typical-use figure. Keeps `tokens_per_use ×
+      // invocations_in_window ≈ total_tokens_in_window` honest for any
+      // downstream JSON consumer.
+      rec.invocations_in_window = matched.n;
+      rec.total_tokens_in_window = matched.total;
+      rec.uses_per_year = Math.round((matched.n / args.windowDays) * DAYS_PER_YEAR);
+      rec.annual_total = matched.mean * rec.uses_per_year;
+      medianUpdated++;
+    }
   }
 }
 
@@ -648,6 +663,6 @@ console.log(
 );
 console.log('');
 console.log(
-  `Generic transcript-stats pass: ${medianUpdated} non-/review receipt(s) updated with median + spread.`,
+  `Generic transcript-stats pass: ${medianUpdated} non-/review receipt(s) updated with median + spread; ${modelTagged} cost_model tag${modelTagged === 1 ? '' : 's'} written.`,
 );
 console.log(`Wrote ${REGISTRY_PATH}`);

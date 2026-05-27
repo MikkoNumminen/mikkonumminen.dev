@@ -289,12 +289,39 @@ function costCellHtml(receipt) {
     typeof n === 'number' &&
     n >= 2 &&
     typeof receipt.tokens_per_use_mean === 'number';
+  // Meta line: "<Model> production · median of N" for transcript rows with
+  // distribution; "<Model> production" for single-hit transcript rows;
+  // "production · model unknown" when the transcripts predate the
+  // message.model field; "A/B arm-B" for calibration-only rows.
   const metaParts = [];
-  if (model) metaParts.push(`${esc(MODEL_LABEL[model] ?? model)} production`);
-  else if (receipt.source === 'transcript-measurement') metaParts.push('production');
-  else metaParts.push('A/B arm-B');
+  if (model) {
+    metaParts.push(`${esc(MODEL_LABEL[model] ?? model)} production`);
+  } else if (receipt.source === 'transcript-measurement') {
+    metaParts.push('production · model unknown');
+  } else {
+    metaParts.push('A/B arm-B');
+  }
   if (isMedian) metaParts.push(`median of ${n}`);
-  return `<td class="cost-cell"><span class="num">${fmt(cost)}</span><span class="unit">tokens / use</span><span class="meta">${metaParts.join(' · ')}</span></td>`;
+  // Spread suffix: for multi-run rows, show mean + range + σ so the
+  // median headline sits alongside the spread it summarises. Rendering
+  // side of finding-6 ("median and mean tell different stories"); the
+  // actual stats are computed by build-review-stats.mjs and live on
+  // the receipt.
+  let spread = '';
+  if (isMedian) {
+    const mean = receipt.tokens_per_use_mean;
+    const lo = receipt.tokens_per_use_min;
+    const hi = receipt.tokens_per_use_max;
+    const sd = receipt.tokens_per_use_stddev;
+    const parts = [];
+    if (typeof mean === 'number') parts.push(`mean ${fmt(mean)}`);
+    if (typeof lo === 'number' && typeof hi === 'number') {
+      parts.push(`range ${fmt(lo)}–${fmt(hi)}`);
+    }
+    if (typeof sd === 'number') parts.push(`σ ${fmt(sd)}`);
+    if (parts.length > 0) spread = ` — ${parts.join(', ')}`;
+  }
+  return `<td class="cost-cell"><span class="num">${fmt(cost)}</span><span class="unit">tokens / use</span><span class="meta">${metaParts.join(' · ')}${spread}</span></td>`;
 }
 
 function estCostCellHtml(receipt) {
@@ -493,18 +520,24 @@ function renderCalibrationChart(rows) {
   const closeCount = sorted.filter((r) => r.delta.direction === 'close').length;
 
   // SVG geometry. The chart sits inside a fixed viewBox so Chrome's PDF
-  // renderer scales it predictably regardless of viewport width.
+  // renderer scales it predictably regardless of viewport width. Right
+  // margin is generous to give labels at the rightmost dot somewhere to
+  // extend; left margin matches for symmetry.
   const W = 720;
   const H = 230;
-  const margin = { top: 38, right: 36, bottom: 44, left: 36 };
+  const margin = { top: 38, right: 64, bottom: 44, left: 64 };
   const innerW = W - margin.left - margin.right;
   const innerH = H - margin.top - margin.bottom;
 
-  // X axis: log10(measured/guessed). Find the max absolute log so the chart
-  // shows both extremes symmetrically; floor at log10(20) so the ±10% band
-  // stays a visible width even when no marks are at the edges.
+  // X axis: log10(measured/guessed). Auto-fit to the data with padding so
+  // even the most extreme dot sits comfortably inside the plot, not on an
+  // edge. Floor at log10(100) so the chart consistently spans ÷100 to ×100
+  // — the ±10% band reads as a thin sliver against that span (the right
+  // visual proportion for "most guesses were wildly off"), and the ×10 /
+  // ÷10 tick marks always render.
   const logRatios = sorted.map((r) => Math.log10(r.delta.raw));
-  const maxAbsLog = Math.max(...logRatios.map(Math.abs), Math.log10(20));
+  const dataMax = logRatios.length > 0 ? Math.max(...logRatios.map(Math.abs)) : 0;
+  const maxAbsLog = Math.max(dataMax + 0.2, Math.log10(100));
   const xOf = (logR) => margin.left + ((logR + maxAbsLog) / (2 * maxAbsLog)) * innerW;
 
   // Lane assignment that both spreads marks vertically (so the chart fills
@@ -588,30 +621,38 @@ function renderCalibrationChart(rows) {
 
   // Annotate the 3 most extreme misses inline so the chart names what the
   // reader is looking at without forcing them to flip back to the spine
-  // table. Stagger label Y so they don't collide with the mark itself.
+  // table. Pick text-anchor by the dot's position in the plot — dots on
+  // the right anchor 'end' so the label extends leftward into the chart
+  // instead of clipping off the right edge; dots on the left anchor 'start'
+  // for the mirror reason; centre marks stay 'middle'. Stagger label Y so
+  // they don't collide with the mark itself.
   const topMisses = marks.slice(0, 3);
   const annotations = topMisses
-    .map((m, i) => {
+    .map((m) => {
       const labelY = m.y < margin.top + innerH / 2 ? m.y - 10 : m.y + 16;
-      const labelX = m.x;
+      const relX = (m.x - margin.left) / innerW;
+      const anchor = relX > 0.78 ? 'end' : relX < 0.22 ? 'start' : 'middle';
       const text = `${m.name} ${fmtMultiplier(m.delta.multiplier)} ${m.delta.direction}`;
-      return `<text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" font-size="9" font-weight="600" fill="#1a1a1a" text-anchor="${i === 0 ? 'middle' : i === 1 ? 'start' : 'end'}">${esc(text)}</text>`;
+      return `<text x="${m.x.toFixed(1)}" y="${labelY.toFixed(1)}" font-size="9" font-weight="600" fill="#1a1a1a" text-anchor="${anchor}">${esc(text)}</text>`;
     })
     .join('');
 
+  const grayCount = sorted.length - offCount - closeCount;
   return `<section class="page-break calibration-chart-section">
   <h2>Calibration honesty — where my guesses landed</h2>
-  <p>Each dot is one skill: position on the x-axis shows how wrong the guess was (measured ÷ guessed). Inside the green ±10% band, the guess was effectively right (${closeCount} ${closeCount === 1 ? 'skill' : 'skills'}). Orange dots missed by 5× or more — <strong>${offCount} of ${sorted.length}</strong> are out there, and <strong>${underCount} of ${sorted.length} guesses were too low</strong>. The fix is not "guess better next time" — intuition about token cost is unreliable in a way better intuition will not fix. The fix is to keep measuring.</p>
-  <svg class="calibration-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Calibration scatter: ${sorted.length} skill guesses vs measurements">
-    ${band}
-    ${bandLabel}
-    ${dots}
-    ${annotations}
-    ${axisLine}
-    ${ticks}
-    ${xAxisTitle}
-  </svg>
-  <p class="caption">Per-skill guess and measured numbers are in the spine table above (<em>Est. cost</em> and <em>Cost / use</em> columns). This chart shows the ratio between them. ${sorted.length} skills total — every measured row that has a prior editorial estimate on record.</p>
+  <p>Each dot is one skill: position on the x-axis shows how wrong the guess was (measured ÷ guessed). <strong>Green dots</strong> sit inside the ±10% band — the guess was effectively right (${closeCount} ${closeCount === 1 ? 'skill' : 'skills'}). <strong>Orange dots</strong> missed by 5× or more (${offCount} of ${sorted.length}). <strong>Gray dots</strong> missed by less than 5× — between the ±10% band and the 5× threshold (${grayCount} of ${sorted.length}). <strong>${underCount} of ${sorted.length} guesses were too low</strong>. The fix is not "guess better next time" — intuition about token cost is unreliable in a way better intuition will not fix. The fix is to keep measuring.</p>
+  <div class="avoid-break">
+    <svg class="calibration-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Calibration scatter: ${sorted.length} skill guesses vs measurements">
+      ${band}
+      ${bandLabel}
+      ${dots}
+      ${annotations}
+      ${axisLine}
+      ${ticks}
+      ${xAxisTitle}
+    </svg>
+    <p class="caption">Per-skill guess and measured numbers are in the spine table above (<em>Est. cost</em> and <em>Cost / use</em> columns). This chart shows the ratio between them. ${sorted.length} skills total — every measured row that has a prior editorial estimate on record.</p>
+  </div>
 </section>`;
 }
 
