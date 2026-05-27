@@ -308,6 +308,24 @@ const BUCKET_LABEL_LINES = {
   xlarge: '2500+ lines',
 };
 
+// Pick the bucket containing the 50th percentile of production invocations.
+// Walks the weights in declared order accumulating until the cumulative share
+// crosses 0.5 — that's the band the median PR sits in, and therefore the
+// band the median production cost was incurred in. Used to anchor the
+// headline save to the same point of the distribution as the headline cost.
+// Bucket weights are intentionally close to (but not exactly) 1.0 (rounding
+// loss across 4 buckets), so we tolerate the sum being shy of 1.
+function pickTypicalBucket(weights) {
+  let cumulative = 0;
+  for (const [name, weight] of Object.entries(weights)) {
+    cumulative += weight;
+    if (cumulative >= 0.5) return name;
+  }
+  // Cumulative never reached 0.5 — degenerate weights. Fall back to the
+  // last named bucket so downstream code at least gets a defined value.
+  return Object.keys(weights).pop();
+}
+
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
@@ -427,17 +445,35 @@ reviewRow.annual_total = annualTotal;
 reviewRow.uses_per_year = usesPerYear;
 if (lastInvoked) reviewRow.last_invoked = lastInvoked;
 
-// A/B save: bucketed weighted figure. Per-bucket breakdown + per-PR runs
-// stay on calibration_ab_buckets / calibration_ab_runs for downstream
-// consumers that want to drill into the spread.
-reviewRow.tokens_saved_per_use = ab.weighted_saved_per_use;
-reviewRow.calibration_arm_A = ab.weighted_arm_A;
-reviewRow.calibration_arm_B = ab.weighted_arm_A - ab.weighted_saved_per_use;
-reviewRow.calibration_pct_saved = ab.weighted_pct;
-// arm_A above is a synthetic weighted-bucket-median value, not any single
-// A/B run's baseline. The source tag makes that explicit for downstream
-// consumers reading the field directly.
-reviewRow.calibration_arm_A_source = 'weighted-bucket-median';
+// A/B save: bucket-aligned with the cost headline. The cost headline is the
+// MEDIAN production /review run; the typical run lives in whichever bucket
+// holds the 50th percentile of production invocations (small at 63% — easily
+// the median bucket). Headline save uses THAT bucket's measured A/B median so
+// cost and save describe the same point of the distribution; the aggregate
+// across-bucket weighted figure moves into a sub-label alongside the
+// per-bucket breakdown.
+const typicalBucketName = pickTypicalBucket(BUCKET_WEIGHTS);
+const typical = ab.buckets[typicalBucketName];
+if (!typical) {
+  console.error(
+    `bucket '${typicalBucketName}' has no A/B runs — cannot anchor headline save`,
+  );
+  process.exit(1);
+}
+reviewRow.tokens_saved_per_use = typical.saved_median;
+reviewRow.calibration_arm_A = typical.arm_A_median;
+reviewRow.calibration_arm_B = typical.arm_A_median - typical.saved_median;
+reviewRow.calibration_pct_saved = typical.pct_median;
+// The headline save now describes one specific bucket's typical A/B run.
+// Tagging the source lets a downstream consumer tell this apart from the
+// older 'weighted-bucket-median' aggregate.
+reviewRow.calibration_arm_A_source = `${typicalBucketName}-bucket-median`;
+reviewRow.calibration_headline_bucket = typicalBucketName;
+// Preserve the across-bucket aggregate for the sub-label and for any
+// downstream consumer that wants the population-weighted number.
+reviewRow.calibration_aggregate_saved_per_use = ab.weighted_saved_per_use;
+reviewRow.calibration_aggregate_arm_A = ab.weighted_arm_A;
+reviewRow.calibration_aggregate_pct_saved = ab.weighted_pct;
 reviewRow.calibration_ab_runs = ab.runs;
 reviewRow.calibration_ab_count = ab.n;
 reviewRow.calibration_save_pct_min = ab.overall_pct_min;

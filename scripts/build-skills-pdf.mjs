@@ -92,8 +92,10 @@ function abSampleSubline(rec) {
     rec.calibration_ab_count < 2
   )
     return '';
-  // Bucketed mode: emit per-bucket pct breakdown so the size→save gradient is
-  // visible alongside the weighted headline.
+  // Bucketed mode: the headline already shows the typical-bucket save (the
+  // bucket holding the median production run), so the subline frames it
+  // ("typical-bucket median · …") and then shows the across-bucket aggregate
+  // + per-bucket spread the typical figure was picked from.
   if (rec.calibration_ab_buckets && typeof rec.calibration_ab_buckets === 'object') {
     const buckets = rec.calibration_ab_buckets;
     const parts = [];
@@ -102,7 +104,22 @@ function abSampleSubline(rec) {
       if (!b) continue;
       parts.push(`${name} ${b.pct_median}%`);
     }
-    return `<span class="num-cell-sub">weighted across ${rec.calibration_ab_count} A/Bs · ${parts.join(' · ')}</span>`;
+    const headlineBucket = rec.calibration_headline_bucket;
+    const headlineFrame = headlineBucket
+      ? `${headlineBucket}-bucket median (typical run)`
+      : `bucket median`;
+    const aggregateBits = [];
+    if (
+      typeof rec.calibration_aggregate_saved_per_use === 'number' &&
+      typeof rec.calibration_aggregate_pct_saved === 'number'
+    ) {
+      aggregateBits.push(
+        `aggregate ${fmt(rec.calibration_aggregate_saved_per_use)} (${rec.calibration_aggregate_pct_saved}%) weighted across ${rec.calibration_ab_count} A/Bs`,
+      );
+    } else {
+      aggregateBits.push(`weighted across ${rec.calibration_ab_count} A/Bs`);
+    }
+    return `<span class="num-cell-sub">${headlineFrame} · ${aggregateBits.join(' · ')} · ${parts.join(' · ')}</span>`;
   }
   // Fallback: plain multi-A/B subline.
   const linesRange =
@@ -423,7 +440,13 @@ function renderBuiltInsSection(refs) {
   const noteText = anyCalibrated
     ? `Built-in slash commands. Per-use cost is measured from real session transcripts the same way as the custom-skill rows. Per-use save is measured by treating the built-in's prompt as an arm-B recipe in the same A/B methodology used on custom skills — both measured columns are real numbers, not heuristics. The estimated-cost cell stays "—" because built-ins have no SKILL.md author who wrote a guess; the estimated-save cell shows the project-wide 3× baseline heuristic prediction (2× measured cost) so the row carries the same heuristic-vs-measured contrast the custom-skill rows show.${auditFragment}`
     : `Built-in slash commands. Per-use cost is measured the same way as the custom-skill rows. No <code>SKILL.md</code> exists for these, so there's no procedure to A/B-test against — the save columns read "—" rather than zero. Shown as a scale anchor for the reader.`;
-  return `<div class="repo-heading"><span class="repo-name">Claude Code built-ins</span><span class="repo-stats">reference — not part of the portfolio</span></div>
+  // Wrap the whole built-ins section in .avoid-break so the heading,
+  // explainer note, column-header row, and the single /review data row stay
+  // on one printed page — they were previously splitting across a page
+  // boundary, orphaning the column headers from the data row that
+  // depends on them.
+  return `<div class="builtins-section avoid-break">
+  <div class="repo-heading"><span class="repo-name">Claude Code built-ins</span><span class="repo-stats">reference — not part of the portfolio</span></div>
   <p class="note">${noteText}</p>
   <table class="skills">
     <thead>
@@ -437,7 +460,8 @@ function renderBuiltInsSection(refs) {
       </tr>
     </thead>
     <tbody>${rows}</tbody>
-  </table>`;
+  </table>
+</div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -880,12 +904,12 @@ function renderMethodPage() {
   <h2>How “measured save / use” is produced</h2>
   <p>One source: a calibration A/B test. Two Sonnet sub-agents solve the same task in fresh sandboxed worktrees — arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save / use is arm-A tokens minus arm-B tokens for that one run. <strong>N = 1 per skill, single data point</strong>. A re-run would produce different absolute numbers for both arms; trust direction and rough magnitude, not two-significant-digit precision.</p>
   <p>Some skills show negative save / use in orange. Those are real findings: the skill arm spent MORE tokens than the unstructured arm, because the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The skill's value is completeness, not token compression. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for any downstream consumer that wants to see both sides.</p>
-  <p><strong>Exception: <code>/review</code>.</strong> N=11 A/Bs, bucketed by PR size, weighted by production frequency. The original N=1 measurement on a 5-file PR (63% saved) was the upper end of a sharp size gradient: re-running on real production PRs of 174–3977 lines reveals the recipe saves most on small PRs and actively <em>costs more</em> on the largest ones. Bucket medians: small (0–199 lines) <strong>44%</strong>, medium (200–799) <strong>26%</strong>, large (800–2499) <strong>15%</strong>, extra-large (2500+) <strong>−10%</strong>. The headline 35% (17K saved per use) is each bucket's median weighted by its share of production /review invocations (63% small, 26% medium, 7% large, 3% extra-large). The per-bucket and per-PR data live on the row's <code>calibration_ab_buckets</code> + <code>calibration_ab_runs</code> arrays for downstream consumers. Other skills stay at N=1 until they accumulate enough production usage to warrant a multi-PR pass.</p>
+  <p><strong>Exception: <code>/review</code>.</strong> N=11 A/Bs, bucketed by PR size. The original N=1 measurement on a 5-file PR (63% saved) was the upper end of a sharp size gradient: re-running on real production PRs of 174–3977 lines reveals the recipe saves most on small PRs and actively <em>costs more</em> on the largest ones. Bucket medians: small (0–199 lines) <strong>44%</strong>, medium (200–799) <strong>26%</strong>, large (800–2499) <strong>15%</strong>, extra-large (2500+) <strong>−10%</strong>. 63% of production /review invocations are on small PRs, so the median production run lives in that bucket — the row's headline save (22K, 44%) is the small-bucket median, picked to describe the same typical run as the headline cost. The across-bucket aggregate (17K, 35%, weighted by production frequency) sits in the row's sub-label for readers who want the population-level figure. The per-bucket and per-PR data live on the row's <code>calibration_ab_buckets</code> + <code>calibration_ab_runs</code> arrays for downstream consumers. Other skills stay at N=1 until they accumulate enough production usage to warrant a multi-PR pass.</p>
   <p><strong>Different regimes.</strong> Cost on the <code>/review</code> row is from production transcripts (real invocations summarised over the 90-day window). Save is from A/B calibrations (synthetic cold-vs-recipe pairs on representative PRs). They measure related but distinct things: cost is what one production use spends; save is what one matched A/B pair would save. A reader must not divide save by cost to get a "%" — the % shown is anchored to the A/B baseline, not the production cost. Same caveat applies to every transcript-measured row in the document; the row-level subline ("vs &lt;armA&gt; A/B baseline · pct") makes the anchoring explicit on rows where the regime gap is large.</p>
 
   <h2>Regime gap: when measured cost and measured save come from different scales</h2>
   <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>
-  <p>Concrete: an early version of this document showed <code>/review</code> as <strong>1.15M tokens / use measured cost</strong> next to <strong>~24K tokens / use measured save</strong>. The cost was a session-grouped artifact (14 sessions, 336 actual invocations) and the save was a single small-PR A/B (~60K baseline). Doing 24K ÷ 1.15M would read as a 2% save rate; the actual finding from the A/B was ~39%. Both numbers were real, but they sat in different regimes — the cost was production-scale, the save was calibration-scale. The current <code>/review</code> row corrects the cost via per-invocation accounting (~10K median, close to the calibration scale) so the math anchors directly. The same trap still shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
+  <p>Concrete: an early version of this document showed <code>/review</code> as <strong>1.15M tokens / use measured cost</strong> next to <strong>~24K tokens / use measured save</strong>. The cost was a session-grouped artifact (14 sessions, 336 actual invocations) and the save was a single small-PR A/B (~60K baseline). Doing 24K ÷ 1.15M would read as a 2% save rate; the actual finding from the A/B was ~39%. Both numbers were real, but they sat in different regimes — the cost was production-scale, the save was calibration-scale. The current <code>/review</code> row pulls both numbers to the same point of the distribution: cost is the per-invocation production median (~10K), save is the small-bucket A/B median (~22K, 44% off a ~50K arm-A). The save still sits at the calibration scale rather than the production scale — production /review tasks run smaller than even the smallest A/B PR — so the absolute save figure overstates the tokens you would have spent, but the 44% rate describes the typical small-bucket A/B run truthfully, and the row's headline can be parsed end-to-end without mixing distribution points. The same trap still shows up on roughly a dozen other transcript-measured rows where the production-scale cost runs 2× or more above its A/B baseline — common offenders include <code>mikko-help</code>, <code>session-cost</code>, <code>equipment</code>, <code>audit</code>, <code>release-cut</code>, and <code>skill-registry</code>. Every row that hits the threshold gets the same labelling treatment described next.</p>
   <p>When a row hits this regime gap (transcript cost &gt; 2× the A/B arm-A baseline) the measured-save cell prints a subline making the baseline explicit: <em>vs &lt;armA&gt; A/B baseline · &lt;pct&gt;%</em>. Math on the row now works: <code>save ÷ baseline = pct</code> instead of <code>save ÷ visible-cost = misleading</code>. This isn't a correction — both numbers were always real. It's a labelling fix so a reader doesn't combine them wrong.</p>
   <p>The gap itself is the finding: <strong>the A/B calibration task isn't representative of what production runs of these skills actually look like</strong>. The honest read is that recipe value scales with task complexity, and the A/B numbers underestimate the absolute save at production scale (the same recipe collapsing the same amount of structure, applied to a 1M-token task instead of a 70K-token task, would save proportionally more). The fix is either re-running calibrations on representative-sized targets, or treating the A/B save as a lower bound. I haven't done the former; the document treats the A/B save as what it is.</p>
 
