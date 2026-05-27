@@ -27,14 +27,34 @@ const SRC = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const OUT = path.join(ROOT, 'public', 'skills-registry.pdf');
 const CSS_FILE = path.join(ROOT, 'scripts', 'lib', 'skills-pdf.css');
 
-// Regime mismatch threshold: when transcript-measured cost is more than this
-// multiple of the A/B calibration baseline, the row prints an extra subline
-// anchoring the saved percentage to the A/B baseline so reader math works.
-// 2× catches every row where the gap is meaningful (current data: 9 rows,
-// from /review at 14.6× down to a handful at ~3×) without false-flagging
-// rows where cost and save come from the same regime (within ~1.5× tends
-// to be the same A/B run feeding both numbers).
+// Regime mismatch threshold: when the transcript-measured cost and the A/B
+// calibration baseline differ by more than this multiple in EITHER direction,
+// the row prints an extra subline anchoring the saved percentage to the A/B
+// baseline so reader math works. Symmetric trigger — production-cost-above-
+// A/B-baseline (most transcript-measured rows) and A/B-baseline-above-
+// production-cost (/review after the bucket-aligned headline) both need the
+// hint. 2× catches every row where the gap is meaningful without false-
+// flagging rows where cost and save come from the same regime (within ~1.5×
+// tends to be the same A/B run feeding both numbers).
 const REGIME_MISMATCH_THRESHOLD = 2;
+
+// Returns the directional scale hint ("A/B scale ~5× production cost" /
+// "production scale ~3× A/B baseline") when production cost and A/B baseline
+// differ by REGIME_MISMATCH_THRESHOLD or more in either direction. Returns
+// empty string when the two are in the same regime (no callout needed) or
+// when either input is missing. Wraps with " · " prefix so it can splice
+// cleanly into an existing subline.
+function regimeScaleHint(productionCost, armA) {
+  if (!productionCost || !armA || productionCost <= 0 || armA <= 0) return '';
+  const ratio = productionCost > armA ? productionCost / armA : armA / productionCost;
+  if (ratio < REGIME_MISMATCH_THRESHOLD) return '';
+  const r = ratio >= 10 ? `${Math.round(ratio)}×` : `${ratio.toFixed(1)}×`;
+  const direction =
+    productionCost > armA
+      ? `production scale ~${r} A/B baseline`
+      : `A/B scale ~${r} production cost`;
+  return ` · ${direction}`;
+}
 
 // ---------------------------------------------------------------------------
 //  Formatting helpers
@@ -63,14 +83,15 @@ const fmtPrecise = (n) => (n < 100_000 ? n.toLocaleString('en-US') : fmt(n));
 // the bottom end — current baselines run 16K–117K, where fmt would
 // collapse 16,225 and 19,500 to the same "16K"/"20K" reading. Matches
 // the accuracy-stats subline style on the /review row.
-function saveCellWithBaseline(value, armA) {
+function saveCellWithBaseline(value, armA, productionCost = null) {
   const negative = value < 0;
   const cellClasses = ['num-cell', 'num-cell-measured-save'];
   if (negative) cellClasses.push('cell-negative');
   const display = negative ? `−${fmt(Math.abs(value))}` : fmt(value);
   const pct = armA > 0 ? Math.round((value / armA) * 100) : null;
   const pctText = pct != null ? ` · ${pct}%` : '';
-  return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmtPrecise(armA)} A/B baseline${pctText}</span></td>`;
+  const scaleHint = regimeScaleHint(productionCost, armA);
+  return `<td class="${cellClasses.join(' ')}"><span class="num-cell-big">${display}</span><span class="num-cell-unit">tokens / use</span><span class="num-cell-sub">vs ${fmtPrecise(armA)} A/B baseline${pctText}${scaleHint}</span></td>`;
 }
 
 // Optional sample-stats subline for the save cell, surfaced when the save
@@ -388,20 +409,35 @@ function renderBuiltInsSection(refs) {
       // cost is much larger than the A/B baseline, the bare "(63%)" reads as
       // if it applies to the visible cost — actually it's 63% of the much
       // smaller A/B baseline. Surface the baseline in a subline when the gap
-      // is real. /review hits 14.6× — far past the threshold. Recompute the
+      // is real, in EITHER direction (production cost above A/B baseline OR
+      // A/B baseline above production cost). /review after the bucket-aligned
+      // headline lands in the inverse case: 10K production median vs 50K
+      // small-bucket A/B baseline — a reader doing 22K/10K = 220% needs the
+      // hint as much as the original cost > baseline case did. Recompute the
       // percentage fresh from `saved / armA` so the math the reader sees on
       // the row exactly matches what they'd compute themselves (also
       // unifies with the per-skill path which doesn't carry a pre-stored
       // calibration_pct_saved field on the receipt).
-      const brRegimeMismatch =
+      const brRegimeRatio =
         typeof br.calibration_arm_A === 'number' &&
         typeof br.tokens_per_use_avg === 'number' &&
-        br.tokens_per_use_avg > br.calibration_arm_A * REGIME_MISMATCH_THRESHOLD;
+        br.calibration_arm_A > 0 &&
+        br.tokens_per_use_avg > 0
+          ? Math.max(
+              br.tokens_per_use_avg / br.calibration_arm_A,
+              br.calibration_arm_A / br.tokens_per_use_avg,
+            )
+          : 0;
+      const brRegimeMismatch = brRegimeRatio >= REGIME_MISMATCH_THRESHOLD;
       const measuredSave =
         typeof br.tokens_saved_per_use === 'number'
           ? appendAbSubline(
               brRegimeMismatch
-                ? saveCellWithBaseline(br.tokens_saved_per_use, br.calibration_arm_A)
+                ? saveCellWithBaseline(
+                    br.tokens_saved_per_use,
+                    br.calibration_arm_A,
+                    br.tokens_per_use_avg,
+                  )
                 : `<td class="num-cell num-cell-measured-save"><span class="num-cell-big">${fmt(br.tokens_saved_per_use)}</span><span class="num-cell-unit">tokens / use${typeof br.calibration_pct_saved === 'number' ? ` (${br.calibration_pct_saved}%)` : ''}</span></td>`,
               br,
             )
@@ -598,15 +634,24 @@ function renderSkillRow(repoName, s) {
   // Regime mismatch: see saveCellWithBaseline + REGIME_MISMATCH_THRESHOLD at
   // the top of the file for the why. Per-skill path applies the same
   // detection rule as the built-in path; both render the same subline.
-  const regimeMismatch =
+  // Symmetric trigger — fires when cost and A/B baseline differ by ≥2× in
+  // either direction.
+  const regimeRatio =
     rec?.source === 'transcript-measurement' &&
     rec?.tokens_saved_source === 'calibration' &&
     typeof rec?.calibration_arm_A === 'number' &&
     typeof rec?.tokens_per_use === 'number' &&
-    rec.tokens_per_use > rec.calibration_arm_A * REGIME_MISMATCH_THRESHOLD;
+    rec.calibration_arm_A > 0 &&
+    rec.tokens_per_use > 0
+      ? Math.max(
+          rec.tokens_per_use / rec.calibration_arm_A,
+          rec.calibration_arm_A / rec.tokens_per_use,
+        )
+      : 0;
+  const regimeMismatch = regimeRatio >= REGIME_MISMATCH_THRESHOLD;
 
   const measuredSaveCell = regimeMismatch
-    ? saveCellWithBaseline(measuredSave, rec.calibration_arm_A)
+    ? saveCellWithBaseline(measuredSave, rec.calibration_arm_A, rec.tokens_per_use)
     : num(measuredSave, 'measured-save');
 
   // Median-headline subline for transcript-measured rows. `tokens_per_use`

@@ -462,6 +462,17 @@ if (!typical) {
 }
 reviewRow.tokens_saved_per_use = typical.saved_median;
 reviewRow.calibration_arm_A = typical.arm_A_median;
+// arm_B is the difference of two independently-picked medians (arm_A's
+// median and saved's median) within the bucket. When the same run holds
+// both medians (today: PR 167 in the small bucket) this matches the actual
+// measured arm_B exactly; when a future calibration set splits those
+// medians across different runs, this becomes a synthetic value whose only
+// guarantee is arm_A − arm_B = saved (so the row's arithmetic still
+// holds). The renderer's multi-model comparison page reads this field, so
+// the bucket-aligned headline necessarily trades "this is the arm_B from
+// one real A/B run" for "the row's three save numbers are internally
+// consistent". Documenting so a future reader doesn't try to reconcile
+// this against a specific run-id.
 reviewRow.calibration_arm_B = typical.arm_A_median - typical.saved_median;
 reviewRow.calibration_pct_saved = typical.pct_median;
 // The headline save now describes one specific bucket's typical A/B run.
