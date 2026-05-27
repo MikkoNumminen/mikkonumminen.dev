@@ -75,16 +75,32 @@ function saveCellWithBaseline(value, armA) {
 }
 
 // Optional sample-stats subline for the save cell, surfaced when the save
-// number is averaged over multiple A/B runs (currently only /review, where
-// 3 A/B runs across 174–599-line PRs revealed the save-rate degrades with
-// PR size). The single-PR display would hide that the 39% headline is the
-// mean of a 6%–63% spread; this subline anchors it. Returns empty string
-// when the row only has a single A/B measurement (every other skill).
+// number is averaged over multiple A/B runs. Two display modes:
+//
+//  - Plain multi-A/B (no buckets): "avg of N A/Bs · L1–L2 lines · range P1%–P2%"
+//  - Bucketed (recipe value varies systematically with task size):
+//      "weighted across N A/Bs · small 44% · med 26% · large 15% · xlarge -10%"
+//    so the reader sees both that the headline is weighted by production
+//    frequency AND that the recipe value isn't uniform across the population.
+//
+// Returns empty string for rows with only one A/B measurement.
 function abSampleSubline(rec) {
   // Threshold is 2: a single A/B is just the headline number and doesn't warrant
-  // a "sample" subline; from 2 onwards the avg + range tells a story the headline
-  // can't. Bumping to 3 would hide /review's current data.
+  // a "sample" subline; from 2 onwards the spread tells a story the headline can't.
   if (!rec || typeof rec.calibration_ab_count !== 'number' || rec.calibration_ab_count < 2) return '';
+  // Bucketed mode: emit per-bucket pct breakdown so the size→save gradient is
+  // visible alongside the weighted headline.
+  if (rec.calibration_ab_buckets && typeof rec.calibration_ab_buckets === 'object') {
+    const buckets = rec.calibration_ab_buckets;
+    const parts = [];
+    for (const name of ['small', 'med', 'large', 'xlarge']) {
+      const b = buckets[name];
+      if (!b) continue;
+      parts.push(`${name} ${b.pct_median}%`);
+    }
+    return `<span class="num-cell-sub">weighted across ${rec.calibration_ab_count} A/Bs · ${parts.join(' · ')}</span>`;
+  }
+  // Fallback: plain multi-A/B subline.
   const linesRange = (typeof rec.calibration_ab_lines_min === 'number' && typeof rec.calibration_ab_lines_max === 'number')
     ? ` · ${rec.calibration_ab_lines_min}–${rec.calibration_ab_lines_max} lines`
     : '';
@@ -827,7 +843,8 @@ function renderMethodPage() {
   <h2>How “measured save / use” is produced</h2>
   <p>One source: a calibration A/B test. Two Sonnet sub-agents solve the same task in fresh sandboxed worktrees — arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save / use is arm-A tokens minus arm-B tokens for that one run. <strong>N = 1 per skill, single data point</strong>. A re-run would produce different absolute numbers for both arms; trust direction and rough magnitude, not two-significant-digit precision.</p>
   <p>Some skills show negative save / use in orange. Those are real findings: the skill arm spent MORE tokens than the unstructured arm, because the skill encodes rigor (e.g. a full-CRUD lifecycle or a multi-phase audit) that the unstructured arm skipped. The skill's value is completeness, not token compression. The arm-A / arm-B numbers are preserved on each calibrated row's receipt for any downstream consumer that wants to see both sides.</p>
-  <p><strong>Exception: <code>/review</code>.</strong> The original N=1 A/B on a 5-file PR showed 63% saved; re-running on PRs of 174 and 599 lines produced 44% and 6% respectively. The save rate degrades as the PR grows — cold Sonnet already does most of the work the recipe encodes once the diff is big enough to keep it focused. The <code>/review</code> rows therefore show the average of 3 A/B runs (24K saved per use = 39%), with the spread surfaced in a subline ("avg of 3 A/Bs · 174–599 lines · range 6%–63%") so the reader can see the recipe's value isn't uniform across PR sizes. The single-PR measurements are kept on the row's <code>calibration_ab_runs</code> array for anyone who wants the breakdown. Other skills stay at N=1 until they accumulate enough usage to warrant a multi-PR pass.</p>
+  <p><strong>Exception: <code>/review</code>.</strong> N=11 A/Bs, bucketed by PR size, weighted by production frequency. The original N=1 measurement on a 5-file PR (63% saved) was the upper end of a sharp size gradient: re-running on real production PRs of 174–3977 lines reveals the recipe saves most on small PRs and actively <em>costs more</em> on the largest ones. Bucket medians: small (0–199 lines) <strong>44%</strong>, medium (200–799) <strong>26%</strong>, large (800–2499) <strong>15%</strong>, extra-large (2500+) <strong>−10%</strong>. The headline 35% (17K saved per use) is each bucket's median weighted by its share of production /review invocations (63% small, 26% medium, 7% large, 3% extra-large). The per-bucket and per-PR data live on the row's <code>calibration_ab_buckets</code> + <code>calibration_ab_runs</code> arrays for downstream consumers. Other skills stay at N=1 until they accumulate enough production usage to warrant a multi-PR pass.</p>
+  <p><strong>Different regimes.</strong> Cost on the <code>/review</code> rows is from production transcripts (real invocations averaged over the 90-day window). Save is from A/B calibrations (synthetic cold-vs-recipe pairs on representative PRs). They measure related but distinct things: cost is what one production use spends; save is what one matched A/B pair would save. A reader must not divide save by cost to get a "%" — the % shown is anchored to the A/B baseline, not the production cost. Same caveat applies to every transcript-measured row in the document; the row-level subline ("vs &lt;armA&gt; A/B baseline · pct") makes the anchoring explicit on rows where the regime gap is large.</p>
 
   <h2>Regime gap: when measured cost and measured save come from different scales</h2>
   <p>Several rows pair a transcript-measured cost (the average of N real production invocations) with an A/B-measured save (a single calibration run on a deliberately-small representative task). When the production runs are <em>much larger</em> than the A/B task — and they often are, by 5–15× — the cost and save sit in different regimes. Reading the row as "save / cost = recipe efficiency" gives the wrong answer.</p>
