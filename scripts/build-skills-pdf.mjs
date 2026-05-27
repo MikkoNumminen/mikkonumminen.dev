@@ -507,13 +507,18 @@ function renderCalibrationChart(rows) {
   const maxAbsLog = Math.max(...logRatios.map(Math.abs), Math.log10(20));
   const xOf = (logR) => margin.left + ((logR + maxAbsLog) / (2 * maxAbsLog)) * innerW;
 
-  // Lane assignment so marks close together on the x-axis don't paint over
-  // each other. Walk marks left-to-right; for each one, pick the lowest
-  // lane whose last-occupied x is far enough away. The collision distance
-  // is the dot diameter plus a small breathing margin — wider than 2r
-  // means the next dot doesn't visually touch the previous one. 7 lanes
-  // fits the current ~30 marks; the (i % ROWS) fallback keeps the chart
-  // sane if the density ever spikes past what 7 lanes can absorb.
+  // Lane assignment that both spreads marks vertically (so the chart fills
+  // its plot area) AND avoids overlap when marks are close on the x-axis.
+  // Walk marks left-to-right; for each one, START the lane search at a
+  // rotating cursor (`idx % ROWS`) so consecutive marks prefer different
+  // lanes, then fall through to the next lane whose last-occupied x is
+  // far enough away. That recovers the old round-robin's even distribution
+  // while still pushing colliding marks to a free lane. Collision distance
+  // is the dot diameter plus a breathing margin — wider than 2r means the
+  // next dot does not visually touch the previous one. If the entire row
+  // of 7 lanes is still occupied within the collision radius, fall back
+  // to the rotating start anyway so a dense cluster degrades to overlap
+  // rather than a runtime error.
   //
   // Order of operations matters: the lane assignment walks left-to-right
   // (by x), but the renderer's `sorted`/`marks` order stays "biggest miss
@@ -531,14 +536,16 @@ function renderCalibrationChart(rows) {
   const laneLastX = new Array(ROWS).fill(-Infinity);
   const byX = [...marks].sort((a, b) => a.x - b.x);
   byX.forEach((m, idx) => {
+    const start = idx % ROWS;
     let lane = -1;
-    for (let l = 0; l < ROWS; l++) {
+    for (let i = 0; i < ROWS; i++) {
+      const l = (start + i) % ROWS;
       if (m.x - laneLastX[l] >= COLLIDE) {
         lane = l;
         break;
       }
     }
-    if (lane === -1) lane = idx % ROWS;
+    if (lane === -1) lane = start;
     m.lane = lane;
     laneLastX[lane] = m.x;
   });
