@@ -8,6 +8,7 @@ const GITHUB = 'https://github.com/MikkoNumminen';
 const LINKEDIN = 'https://www.linkedin.com/in/mikko-numminen-269795205/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
 const SKILLS_PDF_PATH = '/skills-registry.pdf';
+const STUDY_PDF_PATH = '/skills-optim-study.pdf';
 
 /**
  * Build the terminal command set for a given locale.
@@ -101,46 +102,59 @@ export function buildCommands(t: Translations): CommandSpec[] {
       description: tt.cmdDownloadDesc,
       usage: tt.cmdDownloadUsage,
       handler: async (args, ctx) => {
-        const wantsCv = args.includes('--cv');
-        const wantsSkills = args.includes('--skills');
-        if (!wantsCv && !wantsSkills) {
+        // Flag → downloadable target. Order here is the order shown in the
+        // options list. Adding a target is a one-line append; the selection,
+        // listing, and ambiguity handling below are all driven off this array.
+        const targets = [
+          {
+            flag: '--cv',
+            label: tt.cmdDownloadOptionCv,
+            url: CV_PATH,
+            filename: 'mikko-numminen-cv.pdf',
+            notAvailableMsg: tt.cmdDownloadNotAvailable,
+          },
+          {
+            flag: '--skills',
+            label: tt.cmdDownloadOptionSkills,
+            url: SKILLS_PDF_PATH,
+            filename: 'skills-registry.pdf',
+            notAvailableMsg: tt.cmdDownloadSkillsNotAvailable,
+          },
+          {
+            flag: '--study',
+            label: tt.cmdDownloadOptionStudy,
+            url: STUDY_PDF_PATH,
+            filename: 'skills-optim-study.pdf',
+            notAvailableMsg: tt.cmdDownloadStudyNotAvailable,
+          },
+        ];
+        const selected = targets.filter((tgt) => args.includes(tgt.flag));
+        if (selected.length === 0) {
           ctx.print(tt.cmdDownloadIntro, 'dim');
-          const opts: Array<[string, string]> = [
-            ['--cv', tt.cmdDownloadOptionCv],
-            ['--skills', tt.cmdDownloadOptionSkills],
-          ];
           // Two-space indent + flag + four-space gap before description, so
           // the description column lines up regardless of which flag is
           // longest. `padEnd` handles the variable flag length.
           const INDENT = 2;
           const GAP = 4;
-          const colWidth = INDENT + Math.max(...opts.map(([f]) => f.length)) + GAP;
-          opts.forEach(([flag, desc]) => {
+          const colWidth =
+            INDENT + Math.max(...targets.map((tgt) => tgt.flag.length)) + GAP;
+          targets.forEach(({ flag, label }) => {
             const padded = ' '.repeat(INDENT) + flag.padEnd(colWidth - INDENT, ' ');
             ctx.printHTML(
-              `<span class="line"><span style="color:var(--color-term-green)">${escape(padded)}</span><span style="color:var(--color-term-dim)">${escape(desc)}</span></span>`,
+              `<span class="line"><span style="color:var(--color-term-green)">${escape(padded)}</span><span style="color:var(--color-term-dim)">${escape(label)}</span></span>`,
             );
           });
           ctx.print('');
           ctx.print(tt.cmdDownloadTryHint, 'dim');
           return;
         }
-        if (wantsCv && wantsSkills) {
+        if (selected.length > 1) {
           ctx.print(tt.cmdDownloadAmbiguous, 'err');
           ctx.print(tt.cmdDownloadTryHint, 'dim');
           return;
         }
-        const target = wantsCv
-          ? {
-              url: CV_PATH,
-              filename: 'mikko-numminen-cv.pdf',
-              notAvailableMsg: tt.cmdDownloadNotAvailable,
-            }
-          : {
-              url: SKILLS_PDF_PATH,
-              filename: 'skills-registry.pdf',
-              notAvailableMsg: tt.cmdDownloadSkillsNotAvailable,
-            };
+        const target = selected[0];
+        if (!target) return; // unreachable: length is exactly 1 here
 
         ctx.print(tt.cmdDownloadPreparing, 'dim');
 

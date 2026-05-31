@@ -375,20 +375,26 @@ export const fi: Translations = {
     cmdLinksUsage: 'käyttö: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'tuntematon valitsin:',
     cmdDownloadDesc: 'lataa tiedosto',
-    cmdDownloadUsage: 'download [--cv|--skills]',
+    cmdDownloadUsage: 'download [--cv|--skills|--study]',
     // i18n: awaiting Finnish translation — English placeholders for now.
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'every claude code skill across my portfolio — pdf with token-savings estimates',
-    cmdDownloadTryHint: 'try `download --cv` or `download --skills`.',
+    cmdDownloadOptionStudy:
+      'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
+    cmdDownloadTryHint:
+      'try `download --cv`, `download --skills`, or `download --study`.',
     // i18n: awaiting Finnish translation — English placeholder for now.
-    cmdDownloadAmbiguous: 'specify only one of --cv or --skills.',
+    cmdDownloadAmbiguous: 'specify only one of --cv, --skills, or --study.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla — vielä viimeistelyssä.',
     // i18n: awaiting Finnish translation — English placeholder for now.
     cmdDownloadSkillsNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
+    // i18n: awaiting Finnish translation — English placeholder for now.
+    cmdDownloadStudyNotAvailable:
+      'optimization study pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',
