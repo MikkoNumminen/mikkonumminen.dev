@@ -131,7 +131,7 @@ The question: are Rounds 1 + 2 actually repeatable, or did we tell a coherent st
 
 The "maximize local computation, minimize LLM tokens" principle is real and the cost-trap rules in `skills-quality` (claude-skills PR #18) detect genuine waste. The fix's effectiveness is **model-dependent**:
 
-- **Smaller models (Haiku) benefit reliably and substantially.** Haiku is the round's largest-saving cell in three of five rounds (R2 +20%, R4 +11% flip, R5 +54%). In the two rounds where it isn't (R1, R3) it was actually a *negative* cell — so "reliable beneficiary" describes the post-fix pattern, not a clean sweep; pre-fix, bounded guidance can cost haiku more than it saves (R1 freshness/haiku −70%).
+- **Smaller models (Haiku) benefit reliably and substantially.** Haiku is the round's largest-saving cell **by % saved** in three of five rounds (R2 +20%, R4 +11% flip, R5 +54%). (By absolute tokens R4's largest is opus; R2 and R5 hold under both metrics.) In the two rounds where it isn't (R1, R3) it was actually a *negative* cell — so "reliable beneficiary" describes the post-fix pattern, not a clean sweep; pre-fix, bounded guidance can cost haiku more than it saves (R1 freshness/haiku −70%).
 - **Larger models (Opus) show variable response.** Sometimes a small save, sometimes an N=1 anomaly. Don't over-interpret single Opus cells.
 
 N=1 per cell is sufficient to surface direction but not magnitude. Headline numbers should always be read with that caveat. Wholesale rigor-exempt labels are inflated; per-finding judgment beats blanket dismissal.

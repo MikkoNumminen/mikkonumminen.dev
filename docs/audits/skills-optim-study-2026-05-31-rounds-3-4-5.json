@@ -7,7 +7,7 @@
     "round_2": "Post-fix re-run of skills-freshness only after PR #18 tightened its SKILL.md. 3 of 3 cells positive. Aggregate +11%. All sign-flipped cells turned around.",
     "round_3": "Rigor-exempt label test on content-audit (Spacepotatis project skill). Result: not deep-negative as assumed; sat at break-even (+1%). Label inflated.",
     "round_4": "Post-fix re-run of content-audit after a cap was added to step 2. Result: MIXED. 1 of 2 negative cells flipped (haiku +16pp), aggregate moved from +1% to +4%, but sonnet regressed -6pp.",
-    "round_5": "Re-validation of both new skills (skills-freshness, skills-quality) at current state. Result: MIXED per goal. Aggregate strongly positive (+16% across 12 cells) but one cell (opus skills-quality) showed -62% — an N=1 anomaly from an anomalously cheap cold-walk."
+    "round_5": "Re-validation of both new skills (skills-freshness, skills-quality) at current state. Result: MIXED per goal. Aggregate strongly positive (+16% across 6 cells) but one cell (opus skills-quality) showed -62% — an N=1 anomaly from an anomalously cheap cold-walk."
   },
   "round_3": {
     "skill": "content-audit",
