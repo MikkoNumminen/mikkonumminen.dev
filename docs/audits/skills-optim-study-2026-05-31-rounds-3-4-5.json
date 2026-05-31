@@ -52,7 +52,7 @@
       "skills-quality|opus":     { "before":  31454, "after":  50900, "saved": -19446, "pct_saved": -62 },
       "skills-quality|haiku":    { "before": 103284, "after":  47661, "saved": 55623, "pct_saved": 54 }
     },
-    "aggregate_12_cells": { "before": 579154, "after": 488866, "saved": 90288, "pct_saved": 16 },
+    "aggregate_6_cells": { "before": 579154, "after": 488866, "saved": 90288, "pct_saved": 16, "note": "6 cells (2 skills x 3 models), 12 agents (BEFORE+AFTER per cell); ratio-of-sums" },
     "goal_stated_up_front": {
       "PASS":  "skills-freshness >=2 cells positive AND skills-quality direction matches Round 1 AND aggregate > 0",
       "MIXED": "one of the two passes",
@@ -68,7 +68,7 @@
     "stable_findings_across_rounds": [
       "Haiku consistently benefits most from bounded SKILL.md guidance (Round 1 +17% to +54%, Round 2 +20%, Round 4 +16pp flip, Round 5 +48% / +54%)",
       "Aggregate save trends positive — small in Round 1 (+2.5%), strong in Round 5 (+16%) — the optimization principle holds in the aggregate even when individual cells show high N=1 variance",
-      "Opus is the most variable model, with single-cell swings up to 60pp between rounds — measurement noise dominates for this model at N=1"
+      "Opus is the most variable model, with single-cell swings up to 67pp between rounds (skills-quality/opus +5% R1 to -62% R5) — measurement noise dominates for this model at N=1"
     ],
     "what_the_5_rounds_collectively_show": "The 'maximize local computation, minimize LLM tokens' principle is real and the cost-trap rules in skills-quality detect genuine waste. The fix's effectiveness is model-dependent: smaller models (Haiku) benefit reliably, larger models (Opus) show variable response. N=1 per cell is sufficient to surface direction but not magnitude — the headline numbers should always be read with that caveat. Wholesale rigor-exempt labels are inflated; per-finding judgment is the right level of skepticism."
   }

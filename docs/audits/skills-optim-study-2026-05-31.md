@@ -13,7 +13,7 @@ Raw data: [`skills-optim-study-2026-05-31.json`](./skills-optim-study-2026-05-31
 | 2 | skills-freshness (post-fix) | 3 | **+11%** | all 3 flipped cells turned around after fix |
 | 3 | content-audit (rigor-exempt test) | 3 | **+1%** | rigor-exempt label inflated, sat at break-even |
 | 4 | content-audit (post-fix) | 3 | **+4%** | MIXED — haiku +16pp flip, sonnet −6pp regression |
-| 5 | both new skills (re-validation) | 12 | **+16%** | MIXED — strongest aggregate, one N=1 anomaly |
+| 5 | both new skills (re-validation) | 6 | **+16%** | MIXED — strongest aggregate, concentrated in two haiku cells |
 
 42 sub-agents total, ~4.48M subagent tokens spent measuring.
 
@@ -61,7 +61,7 @@ Each fired because the SKILL.md procedure **removed scoping pressure** the impro
 
 ## Round 3 — rigor-exempt label test on content-audit
 
-The new cost-trap rules flagged five "rigor-exempt" skills where we dismissed the findings on the assumption that cost-IS-the-point. Round 3 tested that assumption on `content-audit` (Spacepotatis project skill, single-phase, no nested sub-agents — the cleanest test case from the rigor-exempt list).
+The new cost-trap rules flagged a group of "rigor-exempt" skills where we dismissed the findings on the assumption that cost-IS-the-point — five tracked in [issue #20](https://github.com/MikkoNumminen/claude-skills/issues/20), drawn from the broader seven-skill set this study's Round-1 scope skipped (`rigor_exempt_skills_skipped` in the raw JSON). Round 3 tested that assumption on `content-audit` (Spacepotatis project skill, single-phase, no nested sub-agents — the cleanest test case in that skipped set).
 
 | Cell | BEFORE | AFTER | Saved | % |
 | --- | ---: | ---: | ---: | ---: |
@@ -88,7 +88,9 @@ Added "at most 5 traces, batch into a single grep with alternation if more, don'
 | content-audit/haiku | −5% | **+11%** | **+16pp** | **YES (neg → pos)** |
 | **Aggregate** | +1% | +4% | +3pp | — |
 
-**Verdict: MIXED.** Haiku's +16pp mirrors Round 2's freshness/haiku result (+90pp on a similar cap fix) — smaller models reliably benefit from bounded procedural language. Sonnet regressed −6pp, plausibly N=1 noise from the added wording's procedural complexity. Aggregate moved positive but stayed under the +5% PASS threshold.
+**Verdict: MIXED.** Haiku's +16pp mirrors Round 2's freshness/haiku result (+90pp on a similar cap fix) — smaller models reliably benefit from bounded procedural language. Sonnet regressed −6pp, plausibly N=1 noise from the added wording's procedural complexity. Aggregate moved positive but stayed under the +5% PASS threshold. (Opus was already positive going in, so only sonnet and haiku were candidates to flip — the "≥ 2 of 3 cells flip" PASS bar effectively required both; one did.)
+
+Two N=1 caveats apply to this table: R3 and R4 used independent BEFORE arms (content-audit's cold-walk baseline drifted +7–13% per model between the two runs), so the per-cell pp swings fold in baseline variance, not just the fix's effect — the opus +2pp in particular sits inside its own ~13% baseline drift. The robust signal is the haiku sign-flip, which is large enough to survive that noise.
 
 Fix shipped anyway as [Spacepotatis PR #280](https://github.com/MikkoNumminen/Spacepotatis/pull/280).
 
@@ -109,9 +111,11 @@ The question: are Rounds 1 + 2 actually repeatable, or did we tell a coherent st
 | skills-quality/sonnet | −12% | — | **+2%** | flipped positive (no R2 data) |
 | skills-quality/opus | +5% | — | **−62%** | **N=1 anomaly** — BEFORE was 31K (short-circuited) |
 | skills-quality/haiku | +17% | — | **+54%** | strongest haiku save in study |
-| **Aggregate 12 cells** | — | — | **+16%** | strongest aggregate of any round |
+| **Aggregate (6 cells)** | — | — | **+16%** | strongest aggregate of any round |
 
-**Verdict: MIXED** per the strict goal. skills-freshness passed (2 of 3 cells positive). skills-quality didn't directionally match Round 1 (1 of 3 cells match sign). But aggregate is the strongest of any round (+16% / 12 cells).
+**Verdict: MIXED** per the strict goal. skills-freshness passed (2 of 3 cells positive). skills-quality didn't directionally match Round 1 (1 of 3 cells match sign). But aggregate is the strongest of any round (+16% across the 6 cells / 12 agents).
+
+**The +16% is concentrated, not broad-based.** The two haiku cells (skills-freshness +52,289, skills-quality +55,623) sum to ~108K — more than the entire net save of 90,288 — while the other four cells net **−17,624** (freshness/sonnet +1,548, freshness/opus −1,921, quality/sonnet +2,195, quality/opus −19,446). Read "strongest aggregate" as "two strong haiku saves outweighing four flat-to-negative cells," not an across-the-board gain. This is what ratio-of-sums weighting surfaces (see Method → How aggregates are computed).
 
 **The opus/skills-quality −62% is an N=1 anomaly**: BEFORE cell was 31K tokens (opus short-circuited cold without thoroughly auditing); AFTER (51K) was the more representative number.
 
@@ -120,14 +124,14 @@ The question: are Rounds 1 + 2 actually repeatable, or did we tell a coherent st
 ### Stable findings across all five rounds
 
 - **Haiku consistently benefits most**. Round 1 +17% on quality, Round 2 +20% on freshness, Round 4 +16pp flip on content-audit, Round 5 +48% on freshness and +54% on quality. The investigation-collapse pattern is the most reliable finding in the study.
-- **Aggregate trend is positive and growing**: Round 1 +2.5%, Round 2 +11%, Round 5 +16%. As the fixes land, the optimization principle pays off harder.
-- **Opus is the most variable model**: single-cell swings up to 60pp between rounds. Measurement noise dominates Opus at N=1; do not read individual Opus cells as confident signal.
+- **Aggregate trend is positive and growing — on a composition-matched basis.** The headline aggregates (R1 +2.5%, R2 +11%, R5 +16%) are *not* a like-for-like series: R1 and R5 are 6 cells (skills-freshness + skills-quality), R2 is 3 cells (skills-freshness only — skills-quality was skipped), and Rounds 3–4 measure a different skill entirely (content-audit, +1% / +4%). The comparable skills-freshness-only ratio-of-sums does climb cleanly: **+2.7% (R1) → +10.7% (R2) → +14.9% (R5)**. So the principle pays off harder as fixes land *when you hold the skill set constant*; the raw headline progression also reflects changing composition.
+- **Opus is the most variable model**: single-cell swings up to **67pp** between rounds (skills-quality/opus +5% in R1 → −62% in R5). Measurement noise dominates Opus at N=1; do not read individual Opus cells as confident signal.
 
 ### What the five rounds collectively show
 
 The "maximize local computation, minimize LLM tokens" principle is real and the cost-trap rules in `skills-quality` (claude-skills PR #18) detect genuine waste. The fix's effectiveness is **model-dependent**:
 
-- **Smaller models (Haiku) benefit reliably and substantially.** Every round confirmed this — Haiku is the largest winner four out of five times.
+- **Smaller models (Haiku) benefit reliably and substantially.** Haiku is the round's largest-saving cell in three of five rounds (R2 +20%, R4 +11% flip, R5 +54%). In the two rounds where it isn't (R1, R3) it was actually a *negative* cell — so "reliable beneficiary" describes the post-fix pattern, not a clean sweep; pre-fix, bounded guidance can cost haiku more than it saves (R1 freshness/haiku −70%).
 - **Larger models (Opus) show variable response.** Sometimes a small save, sometimes an N=1 anomaly. Don't over-interpret single Opus cells.
 
 N=1 per cell is sufficient to surface direction but not magnitude. Headline numbers should always be read with that caveat. Wholesale rigor-exempt labels are inflated; per-finding judgment beats blanket dismissal.
@@ -151,7 +155,11 @@ Each agent returned a structured report (skills examined, findings count, tool-u
 
 ### Token accounting
 
-Per-agent JSONL transcripts under `~/.claude/projects/.../subagents/workflows/*/agent-*.jsonl`. For each assistant message, summed `usage.input_tokens + usage.cache_creation_input_tokens + usage.output_tokens`, deduped by `requestId`. `cache_read_input_tokens` excluded — those were paid upstream. Same convention as `scripts/build-review-stats.mjs`.
+Per-agent JSONL transcripts under `~/.claude/projects/.../subagents/workflows/*/agent-*.jsonl`. For each assistant message, summed `usage.input_tokens + usage.cache_creation_input_tokens + usage.output_tokens`, deduped by `(sessionId, requestId)` (per agent, so `requestId` alone is equivalent). `cache_read_input_tokens` excluded — those were paid upstream. Same convention as `scripts/build-review-stats.mjs`.
+
+### How aggregates are computed
+
+Every round's aggregate `%` is **ratio-of-sums**: net tokens saved across all cells divided by total BEFORE tokens — volume-weighted, so high-baseline cells count more. It is **not** the mean of the per-cell percentages, and the two diverge sharply at N=1. Round 1's +2.5% ratio-of-sums becomes **−6.3%** as an unweighted mean of its six cell percentages; Round 5's +16% becomes **+7%**. Ratio-of-sums answers "did this batch of runs get cheaper overall," which is the right question for a portfolio-cost lens — but every headline `%` here should be read as a token-weighted figure, not a typical-cell figure.
 
 ### Why same-model, same-hour
 
@@ -170,14 +178,16 @@ For these new skills, the parent commit of the optimizing PR did not contain the
 | 3 | `wf_1f7f067c-791` | 6 | 573 s | 758,141 |
 | 4 | `wf_9c93fac3-e6b` | 6 | 610 s | 828,450 |
 | 5 | `wf_0d56c8c9-5bc` | 12 | 212 s | 1,122,667 |
-| **Total** | | **42** | **~28 min** | **~4.48M** |
+| **Total** | | **42** | **~30 min** | **~4.48M** |
+
+The **Subagent tokens** column is each run's workflow-harness-reported total, captured from the `wf_*` run record at completion. It uses a different accounting/dedupe scope than the per-cell BEFORE/AFTER sums recomputed from the JSONL transcripts in the round tables, so the two do not tie out exactly (they differ by up to ~10% per round, in both directions). The per-cell token figures are the authoritative measurement behind every save and percentage in this study; this column is a rough cost-of-running-the-study tally only.
 
 ### Fixes shipped between rounds
 
-- `MikkoNumminen/claude-skills` PR #18 — cost-trap rules + skills-freshness SKILL.md tightening (between Round 1 and Round 2)
-- `MikkoNumminen/claude-skills` PR #19 — clears 3 cleared-this-round findings on ai-codegen-smell-audit, readme-drift-sync, skill-calibration (between Round 2 and Round 3)
-- `MikkoNumminen/claude-skills` issue #20 — rigor-exempt dismissal tracking
-- `MikkoNumminen/Spacepotatis` PR #280 — content-audit cap (between Round 3 and Round 4)
+- [`MikkoNumminen/claude-skills` PR #18](https://github.com/MikkoNumminen/claude-skills/pull/18) — cost-trap rules + skills-freshness SKILL.md tightening (between Round 1 and Round 2)
+- [`MikkoNumminen/claude-skills` PR #19](https://github.com/MikkoNumminen/claude-skills/pull/19) — clears 3 cleared-this-round findings on ai-codegen-smell-audit, readme-drift-sync, skill-calibration (between Round 2 and Round 3)
+- [`MikkoNumminen/claude-skills` issue #20](https://github.com/MikkoNumminen/claude-skills/issues/20) — rigor-exempt dismissal tracking
+- [`MikkoNumminen/Spacepotatis` PR #280](https://github.com/MikkoNumminen/Spacepotatis/pull/280) — content-audit cap (between Round 3 and Round 4)
 
 ## What this study does NOT claim
 
@@ -185,4 +195,4 @@ For these new skills, the parent commit of the optimizing PR did not contain the
 - That the "minimize LLM tokens" principle is invalidated. Three of six original cells confirmed it; the conditions matter.
 - That maintenance cost of writing the new cost-trap rules and the SKILL.md edits is folded in. It isn't.
 - That per-model dollar pricing is included. Raw token totals only.
-- That a second N=1 re-run would land within 5% of these numbers. With per-cell variance up to 60pp on Opus, the precision bound is wider than we can pin from one observation.
+- That a second N=1 re-run would land within 5% of these numbers. With per-cell variance up to 67pp on Opus, the precision bound is wider than we can pin from one observation.
