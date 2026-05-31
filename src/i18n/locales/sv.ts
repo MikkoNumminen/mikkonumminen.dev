@@ -394,7 +394,7 @@ export const sv: Translations = {
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
     // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadStudyNotAvailable:
-      'optimization study pdf not available yet — it ships from docs/audits/.',
+      'optimization study pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'under tiden, hör av dig:',
     cmdDownloadStarted: 'nedladdning startad.',
     cmdClearDesc: 'rensa skärmen',

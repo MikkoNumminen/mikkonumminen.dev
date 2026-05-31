@@ -128,7 +128,7 @@ export function buildCommands(t: Translations): CommandSpec[] {
             notAvailableMsg: tt.cmdDownloadStudyNotAvailable,
           },
         ];
-        const selected = targets.filter((t) => args.includes(t.flag));
+        const selected = targets.filter((tgt) => args.includes(tgt.flag));
         if (selected.length === 0) {
           ctx.print(tt.cmdDownloadIntro, 'dim');
           // Two-space indent + flag + four-space gap before description, so
@@ -136,7 +136,8 @@ export function buildCommands(t: Translations): CommandSpec[] {
           // longest. `padEnd` handles the variable flag length.
           const INDENT = 2;
           const GAP = 4;
-          const colWidth = INDENT + Math.max(...targets.map((t) => t.flag.length)) + GAP;
+          const colWidth =
+            INDENT + Math.max(...targets.map((tgt) => tgt.flag.length)) + GAP;
           targets.forEach(({ flag, label }) => {
             const padded = ' '.repeat(INDENT) + flag.padEnd(colWidth - INDENT, ' ');
             ctx.printHTML(

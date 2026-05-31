@@ -382,7 +382,7 @@ export const en: Translations = {
     cmdLinksDesc: 'show online profiles',
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
-    cmdDownloadDesc: 'CV résumé or skills-registry PDF',
+    cmdDownloadDesc: 'CV, skills registry, or optimization study (PDF)',
     cmdDownloadUsage: 'download [--cv|--skills|--study]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
@@ -398,7 +398,7 @@ export const en: Translations = {
     cmdDownloadSkillsNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
     cmdDownloadStudyNotAvailable:
-      'optimization study pdf not available yet — it ships from docs/audits/.',
+      'optimization study pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'in the meantime, reach out:',
     cmdDownloadStarted: 'download started.',
     cmdClearDesc: 'clear the screen',
