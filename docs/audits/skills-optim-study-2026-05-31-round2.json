@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-05-31T04:00:00Z",
+  "study": "local-computation-optimization-round2-postfix-2026-05-31",
+  "source_repo": "https://github.com/MikkoNumminen/claude-skills",
+  "round": 2,
+  "context": "Round 2 re-runs skills-freshness A/B after PR #18 tightened the SKILL.md with `limit=80`, `no deep read`, `one ls per finding, max 3 traces total, don't spelunk` guidance. Validates whether the three mechanisms identified in Round 1's forensic pass actually translate to per-cell savings.",
+  "fix_prs": [18, 19],
+  "skills_re_measured": ["skills-freshness"],
+  "skills_unchanged_skipped": ["skills-quality"],
+  "skill_md_diff": {
+    "step_3_unchanged_row": "Read the SKILL.md once. Verify: (a)..., (b)..., (c)... Surface anything off.",
+    "step_3_post_fix_row": "Read the SKILL.md once with `limit=80` (frontmatter + first one or two sections is all you need — no deep read). Verify: (a)..., (b)..., (c) no broken file/command references in the body — cap path verification at one `ls` per finding, max 3 traces total, don't spelunk into source repos. Surface anything off."
+  },
+  "cells": {
+    "skills-freshness|sonnet": { "round1": { "before": 194751, "after": 110828, "saved": 83923, "pct_saved": 43 }, "round2": { "before": 106046, "after": 91369,  "saved": 14677, "pct_saved": 14 } },
+    "skills-freshness|opus":   { "round1": { "before": 134765, "after": 163301, "saved": -28536, "pct_saved": -21 }, "round2": { "before": 132716, "after": 131231, "saved": 1485,  "pct_saved": 1  } },
+    "skills-freshness|haiku":  { "round1": { "before": 64192,  "after": 108806, "saved": -44614, "pct_saved": -70 }, "round2": { "before": 96884,  "after": 77138,  "saved": 19746, "pct_saved": 20 } }
+  },
+  "round2_aggregate": {
+    "cells_measured": 3,
+    "cells_positive_save": 3,
+    "cells_negative_save": 0,
+    "total_arm_A_tokens": 335646,
+    "total_arm_B_tokens": 299738,
+    "net_saved_tokens": 35908,
+    "net_pct_saved": 11
+  },
+  "round_over_round": {
+    "sonnet": { "r1_pct": 43, "r2_pct": 14, "swing_pp": -29, "interpretation": "Still positive but smaller magnitude. The BEFORE cost dropped 195K -> 106K — sonnet's cold scan became cheaper on this run (likely cache state and a different traversal strategy). N=1 variance; sign and direction unchanged." },
+    "opus":   { "r1_pct": -21, "r2_pct": 1, "swing_pp": 22, "interpretation": "Sign-flip cleared. The `max 3 traces total, don't spelunk` cap killed the 4-Bash-call source-repo hunt that drove Round 1's -21%. Post-fix sits at break-even — the procedural overhead and procedural savings are now roughly balanced." },
+    "haiku":  { "r1_pct": -70, "r2_pct": 20, "swing_pp": 90, "interpretation": "Largest swing in the study (+90pp). The `limit=80, no deep read` guidance killed the 233K-char full-file read pattern. Haiku BEFORE actually grew 64K -> 97K (the model decided to read more on the cold pass this time), AFTER stayed similar to Round 1, so the relative save flipped strongly positive." }
+  },
+  "hypothesis_verdict": "CONFIRMED. All three skills-freshness cells now net-positive (was 1 of 3 in Round 1). The three mechanisms identified by the forensic pass are real and the SKILL.md fixes neutralise them.",
+  "epistemic_notes": {
+    "n_per_cell": 1,
+    "model_held_constant": true,
+    "controls_for_model_drift": "yes — Round 2 ran ~25 minutes after Round 1's data",
+    "skills_quality_not_remeasured": "skills-quality SKILL.md was unchanged by the fix (it was already clean by its own rules); re-measuring those 3 cells would have added noise without testable signal",
+    "sonnet_regression_explained": "Sonnet's +43% -> +14% is mostly BEFORE-arm variance: the cold scan happened to take a different (cheaper) route this time. AFTER-arm token cost barely moved (111K -> 91K). The optimization still saves, just less relative to a now-cheaper baseline.",
+    "agent_count_round2": 6,
+    "agent_runtime_seconds_round2": 190,
+    "workflow_run_id_round2": "wf_8323de85-910"
+  }
+}

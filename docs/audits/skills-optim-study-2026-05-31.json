@@ -1,0 +1,132 @@
+{
+  "generated_at": "2026-05-31T00:00:00Z",
+  "study": "local-computation-optimization-before-after-2026-05-31",
+  "source_repo": "https://github.com/MikkoNumminen/claude-skills",
+  "optimization_round": {
+    "prs": [14, 15, 16, 17],
+    "merged_window": "2026-05-30T23:43Z .. 2026-05-31T00:59Z"
+  },
+  "scope": {
+    "portfolio_total_skills": 28,
+    "skills_optimized_this_round": 2,
+    "rigor_exempt_skills_skipped": [
+      "mikko-audit",
+      "mikko-security-audit",
+      "mikko-audit-suite",
+      "modular-architecture-audit",
+      "save-roundtrip-audit",
+      "content-audit",
+      "equipment"
+    ]
+  },
+  "skills": [
+    {
+      "name": "skills-freshness",
+      "github_url": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/skills-freshness/SKILL.md",
+      "optimizing_commits": ["847154d", "df58142"],
+      "before_state": "skill did not exist (parent of 847154d = 8c4e173)",
+      "after_state": "current main",
+      "receipt": {
+        "source": "ab-study-2026-05-31",
+        "calibration_model": "sonnet",
+        "calibration_arm_A": 194751,
+        "calibration_arm_B": 110828,
+        "tokens_saved_per_use": 83923,
+        "pct_saved": 43,
+        "alt_model_measurements": {
+          "opus": {
+            "arm_A_tokens": 134765,
+            "arm_B_tokens": 163301,
+            "saved": -28536,
+            "pct_saved": -21,
+            "notes": "Sign flip: BEFORE arm (cold walk) terminated in 9 assistant turns at 135K tokens. AFTER arm ran script + LLM-review of results in 12 turns at 163K. On Opus the cold walk is already compact; the SKILL.md-driven dispatch + follow-up review pays more than it saves.",
+            "procedure_deviation": false
+          },
+          "haiku": {
+            "arm_A_tokens": 64192,
+            "arm_B_tokens": 108806,
+            "saved": -44614,
+            "pct_saved": -70,
+            "notes": "Largest sign flip in the study. Haiku BEFORE was unusually cheap (32 small assistant turns, 64K total) - many tiny look-ups instead of fewer big reads. AFTER cost 109K because the SKILL.md context, script dispatch, and result review carry overhead a cost-pinched cold walk avoids.",
+            "procedure_deviation": false
+          }
+        }
+      }
+    },
+    {
+      "name": "skills-quality",
+      "github_url": "https://github.com/MikkoNumminen/claude-skills/blob/main/skills/skills-quality/SKILL.md",
+      "optimizing_commits": ["778b40d", "bb174dc"],
+      "before_state": "skill did not exist (parent of 778b40d = 44792ca)",
+      "after_state": "current main",
+      "receipt": {
+        "source": "ab-study-2026-05-31",
+        "calibration_model": "sonnet",
+        "calibration_arm_A": 97928,
+        "calibration_arm_B": 109465,
+        "tokens_saved_per_use": -11537,
+        "pct_saved": -12,
+        "alt_model_measurements": {
+          "opus": {
+            "arm_A_tokens": 56615,
+            "arm_B_tokens": 53895,
+            "saved": 2720,
+            "pct_saved": 5,
+            "notes": "Marginal positive. Opus BEFORE (56K, 7 assistant turns) was an unusually compact cold walk; AFTER (54K, 9 turns) trims the deep judgement step. The 5% delta sits inside likely variance for N=1.",
+            "procedure_deviation": false
+          },
+          "haiku": {
+            "arm_A_tokens": 81544,
+            "arm_B_tokens": 67623,
+            "saved": 13921,
+            "pct_saved": 17,
+            "notes": "Largest positive in the study. Same investigation-collapse pattern seen with copyright-scan/calibration: the smaller model would scout exhaustively when cold, and benefits most when handed a directed walk.",
+            "procedure_deviation": false
+          }
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "cells_measured": 6,
+    "cells_positive_save": 3,
+    "cells_negative_save": 3,
+    "cells_breakeven": 0,
+    "total_arm_A_tokens": 629795,
+    "total_arm_B_tokens": 613918,
+    "net_saved_tokens": 15877,
+    "net_pct_saved": 2.5
+  },
+  "current_state_confirmations": {
+    "freshness": {
+      "command": "python ~/.claude/skills/mikko-skills-freshness/skills-freshness.py --scope both --project-root d:/koodaamista/Spacepotatis",
+      "verdict": "clean",
+      "detail": "Only mikko-skills-freshness (3 pass, status: changed because never baselined) and mikko-skills-quality (5 pass, status: new) surface. No drift in the 12 other global skills."
+    },
+    "quality": {
+      "command": "python ~/.claude/skills/mikko-skills-quality/skills-quality.py --scope both --project-root d:/koodaamista/Spacepotatis",
+      "high_findings": [
+        {
+          "scope": "project",
+          "skill": "content-audit",
+          "issue": "8 loop-style prose patterns with no companion script - genuine target for the next optimization round"
+        }
+      ],
+      "medium_findings_count": 12,
+      "medium_findings_note": "11 of 12 MEDIUM flags fire because the prose describes script-driven loops with phrases like 'for each X'. The pre-pass is recall-biased and cannot distinguish 'LLM is the loop' from 'script is the loop, prose describes it'. Read these as suggestions to consider, not confirmed waste."
+    }
+  },
+  "epistemic_notes": {
+    "n_per_cell": 1,
+    "model_held_constant": true,
+    "controls_for_model_drift": "yes - BEFORE and AFTER ran on the same model in the same hour, so delta isolates the optimization from background drift",
+    "ignores_maintenance_cost": "yes - writing and maintaining the Python script is real cost the token delta does not capture",
+    "ignores_pricing_differences": "raw token totals reported per registry convention; per-model dollar cost not folded in",
+    "worktree_isolation": "skipped - both arms are read-only against ~/.claude/skills/, no cross-arm mutation risk",
+    "before_arm_design": "for these two NEW skills, BEFORE = no SKILL.md (the actual pre-PR state). For future optimizations of pre-existing skills, BEFORE would be the SKILL.md at the parent of the optimizing commit.",
+    "token_accounting": "input + output + cache_creation_input_tokens, deduped by requestId per agent. cache_read_input_tokens excluded (tokens were paid upstream). Matches scripts/build-review-stats.mjs convention.",
+    "agent_count": 12,
+    "agent_runtime_seconds": 244,
+    "workflow_run_id": "wf_69f7e105-98f"
+  }
+}
