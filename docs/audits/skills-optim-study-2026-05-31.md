@@ -1,6 +1,6 @@
 # Local-computation optimization — before / after study
 
-Date: 2026-05-31. Methodology: five rounds of paired A/B testing across three Claude Code skills, with the model held constant per cell so the delta isolates the optimization from background model drift.
+Date: 2026-05-31. Methodology: five rounds of paired A/B testing across three Claude Code skills, with the model held constant per cell so the delta controls for background model drift. (It does not by itself isolate the optimization — the within-round delta also carries the skill's fixed loading overhead; see "What this measures".)
 
 Companion PDF: [`skills-optim-study-2026-05-31.pdf`](./skills-optim-study-2026-05-31.pdf).
 Raw data: [`skills-optim-study-2026-05-31.json`](./skills-optim-study-2026-05-31.json) (Round 1), [`-round2.json`](./skills-optim-study-2026-05-31-round2.json), [`-rounds-3-4-5.json`](./skills-optim-study-2026-05-31-rounds-3-4-5.json).
@@ -47,7 +47,7 @@ The 2026-05-22 [Spacepotatis skills calibration](./spacepotatis-skills-calibrati
 This study set out to answer a *different* one: **for a specific optimization, did it actually work?** But "the optimization" is two things, and the design measures them with two different numbers:
 
 - **Creating the skill** (`claude-skills` PRs #14–#17 created skills-freshness and skills-quality). For a brand-new skill the only available "before" is *no skill*, so the within-round aggregate (AFTER-with-SKILL.md vs BEFORE-no-SKILL.md) is the right comparison — but it is **skill-vs-cold**, and it bundles in the fixed overhead of loading the SKILL.md and dispatching its script. That overhead is exactly why 3 of 6 Round-1 cells went negative.
-- **Tightening the skill** (PR #18 / [Spacepotatis #280](https://github.com/MikkoNumminen/Spacepotatis/pull/280) added the guard wording above). Here the cold arm is held fixed in role and the SKILL.md content is the only thing that changed between rounds, so the **swing** (R1→R2, R3→R4) isolates the tightening's effect.
+- **Tightening the skill** (PR #18 / [Spacepotatis #280](https://github.com/MikkoNumminen/Spacepotatis/pull/280) added the guard wording above). Here the cold arm is held fixed in role and the SKILL.md content is the only *intended* change between rounds, so the **swing** (R1→R2, R3→R4) **targets** the tightening's effect — though the re-run cold arm still adds variance (see [Method → Pin the BEFORE arm](#pin-the-before-arm)).
 
 Read in that light: the within-round aggregates partly re-answer the calibration's question; the **swings** are the part that is genuinely new here. The headline belongs to the swings and the mechanisms, not the aggregate.
 
