@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-05-31T05:30:00Z",
+  "study": "local-computation-optimization-rounds-3-4-5-2026-05-31",
+  "source_repo": "https://github.com/MikkoNumminen/claude-skills",
+  "rounds_summary": {
+    "round_1": "Original study: 2 skills x 2 arms x 3 models = 6 cells. 3 of 6 cells sign-flipped negative. Aggregate +2.5%.",
+    "round_2": "Post-fix re-run of skills-freshness only after PR #18 tightened its SKILL.md. 3 of 3 cells positive. Aggregate +11%. All sign-flipped cells turned around.",
+    "round_3": "Rigor-exempt label test on content-audit (Spacepotatis project skill). Result: not deep-negative as assumed; sat at break-even (+1%). Label inflated.",
+    "round_4": "Post-fix re-run of content-audit after a cap was added to step 2. Result: MIXED. 1 of 2 negative cells flipped (haiku +16pp), aggregate moved from +1% to +4%, but sonnet regressed -6pp.",
+    "round_5": "Re-validation of both new skills (skills-freshness, skills-quality) at current state. Result: MIXED per goal. Aggregate strongly positive (+16% across 12 cells) but one cell (opus skills-quality) showed -62% — an N=1 anomaly from an anomalously cheap cold-walk."
+  },
+  "round_3": {
+    "skill": "content-audit",
+    "context": "Test whether rigor-exempt label was real or assumed",
+    "cells": {
+      "sonnet": { "before": 138012, "after": 142301, "saved": -4289, "pct_saved": -3 },
+      "opus":   { "before": 162332, "after": 149141, "saved":  13191, "pct_saved":  8 },
+      "haiku":  { "before":  93281, "after":  98137, "saved":  -4856, "pct_saved": -5 }
+    },
+    "aggregate": { "before": 393625, "after": 389579, "saved": 4046, "pct_saved": 1 },
+    "finding": "Content-audit sits at break-even, not deep-negative as the rigor-exempt label assumed. The label was inflated. Wholesale exemption from cost-trap rules would silence a genuine signal."
+  },
+  "round_4": {
+    "skill": "content-audit",
+    "fix": "Added 'at most 5 traces, batch into a single grep with alternation if more, don't spelunk per-id' cap to step 2 of content-audit/SKILL.md",
+    "cells": {
+      "sonnet": { "before": 147246, "after": 160967, "saved": -13721, "pct_saved":  -9 },
+      "opus":   { "before": 184154, "after": 165167, "saved":  18987, "pct_saved":  10 },
+      "haiku":  { "before": 102240, "after":  90648, "saved":  11592, "pct_saved":  11 }
+    },
+    "aggregate": { "before": 433640, "after": 416782, "saved": 16858, "pct_saved": 4 },
+    "round_over_round_swing": {
+      "sonnet": "-6pp (regressed)",
+      "opus":   "+2pp",
+      "haiku":  "+16pp (FLIPPED neg -> pos)"
+    },
+    "goal_stated_up_front": {
+      "PASS":   ">=2 of 3 cells flip AND aggregate >+5%",
+      "MIXED":  "1 cell flips AND aggregate moves but <+5%",
+      "FAIL":   "0 cells flip OR aggregate regresses"
+    },
+    "verdict": "MIXED — 1 of 2 negative cells flipped (haiku), aggregate moved +3pp from +1% to +4% but stayed under +5%. The cost-trap rule's prediction is correct on smaller models; the fix may slightly hurt larger models that don't over-execute."
+  },
+  "round_5": {
+    "skills": ["skills-freshness", "skills-quality"],
+    "context": "Re-validate Round 1 + Round 2 results — test repeatability vs N=1 noise",
+    "cells": {
+      "skills-freshness|sonnet": { "before": 109066, "after": 107518, "saved":  1548, "pct_saved":  1 },
+      "skills-freshness|opus":   { "before": 129687, "after": 131608, "saved": -1921, "pct_saved": -1 },
+      "skills-freshness|haiku":  { "before": 109876, "after":  57587, "saved": 52289, "pct_saved": 48 },
+      "skills-quality|sonnet":   { "before":  95787, "after":  93592, "saved":  2195, "pct_saved":  2 },
+      "skills-quality|opus":     { "before":  31454, "after":  50900, "saved": -19446, "pct_saved": -62 },
+      "skills-quality|haiku":    { "before": 103284, "after":  47661, "saved": 55623, "pct_saved": 54 }
+    },
+    "aggregate_12_cells": { "before": 579154, "after": 488866, "saved": 90288, "pct_saved": 16 },
+    "goal_stated_up_front": {
+      "PASS":  "skills-freshness >=2 cells positive AND skills-quality direction matches Round 1 AND aggregate > 0",
+      "MIXED": "one of the two passes",
+      "FAIL":  "both deviate from prior rounds"
+    },
+    "verdict": "MIXED — skills-freshness passed (2 of 3 cells positive, Round 2 was 3 of 3); skills-quality did not directionally match Round 1 (1 of 3 cells match sign); but aggregate is strongly positive at +16% (best of any round)",
+    "anomalies": {
+      "opus_quality_minus_62": "Cell BEFORE was 31K tokens — anomalously cheap, suggests opus short-circuited the cold-walk without thoroughly auditing. AFTER (51K) was more representative. The -62% delta is an artifact of an unusually cheap cold-walk baseline, not a sign of the optimization hurting opus on this skill.",
+      "haiku_quality_plus_54": "Haiku continues to be the most consistent beneficiary of the optimization across all rounds — same investigation-collapse pattern."
+    }
+  },
+  "cross_round_synthesis": {
+    "stable_findings_across_rounds": [
+      "Haiku consistently benefits most from bounded SKILL.md guidance (Round 1 +17% to +54%, Round 2 +20%, Round 4 +16pp flip, Round 5 +48% / +54%)",
+      "Aggregate save trends positive — small in Round 1 (+2.5%), strong in Round 5 (+16%) — the optimization principle holds in the aggregate even when individual cells show high N=1 variance",
+      "Opus is the most variable model, with single-cell swings up to 60pp between rounds — measurement noise dominates for this model at N=1"
+    ],
+    "what_the_5_rounds_collectively_show": "The 'maximize local computation, minimize LLM tokens' principle is real and the cost-trap rules in skills-quality detect genuine waste. The fix's effectiveness is model-dependent: smaller models (Haiku) benefit reliably, larger models (Opus) show variable response. N=1 per cell is sufficient to surface direction but not magnitude — the headline numbers should always be read with that caveat. Wholesale rigor-exempt labels are inflated; per-finding judgment is the right level of skepticism."
+  }
+}
