@@ -226,11 +226,13 @@ export interface Translations {
     cmdDownloadIntro: string;
     cmdDownloadOptionCv: string;
     cmdDownloadOptionSkills: string;
+    cmdDownloadOptionStudy: string;
     cmdDownloadTryHint: string;
     cmdDownloadAmbiguous: string;
     cmdDownloadPreparing: string;
     cmdDownloadNotAvailable: string;
     cmdDownloadSkillsNotAvailable: string;
+    cmdDownloadStudyNotAvailable: string;
     cmdDownloadMeantime: string;
     cmdDownloadStarted: string;
     cmdClearDesc: string;

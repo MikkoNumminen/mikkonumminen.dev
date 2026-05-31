@@ -383,17 +383,22 @@ export const en: Translations = {
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc: 'CV résumé or skills-registry PDF',
-    cmdDownloadUsage: 'download [--cv|--skills]',
+    cmdDownloadUsage: 'download [--cv|--skills|--study]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'every claude code skill across my portfolio — pdf with token-savings estimates',
-    cmdDownloadTryHint: 'try `download --cv` or `download --skills`.',
-    cmdDownloadAmbiguous: 'specify only one of --cv or --skills.',
+    cmdDownloadOptionStudy:
+      'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
+    cmdDownloadTryHint:
+      'try `download --cv`, `download --skills`, or `download --study`.',
+    cmdDownloadAmbiguous: 'specify only one of --cv, --skills, or --study.',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet — still being polished.',
     cmdDownloadSkillsNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
+    cmdDownloadStudyNotAvailable:
+      'optimization study pdf not available yet — it ships from docs/audits/.',
     cmdDownloadMeantime: 'in the meantime, reach out:',
     cmdDownloadStarted: 'download started.',
     cmdClearDesc: 'clear the screen',

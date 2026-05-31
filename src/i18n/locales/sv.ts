@@ -375,20 +375,26 @@ export const sv: Translations = {
     cmdLinksUsage: 'användning: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'okänd flagga:',
     cmdDownloadDesc: 'ladda ner en fil',
-    cmdDownloadUsage: 'download [--cv|--skills]',
+    cmdDownloadUsage: 'download [--cv|--skills|--study]',
     // i18n: awaiting Swedish translation — English placeholders for now.
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'every claude code skill across my portfolio — pdf with token-savings estimates',
-    cmdDownloadTryHint: 'try `download --cv` or `download --skills`.',
+    cmdDownloadOptionStudy:
+      'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
+    cmdDownloadTryHint:
+      'try `download --cv`, `download --skills`, or `download --study`.',
     // i18n: awaiting Swedish translation — English placeholder for now.
-    cmdDownloadAmbiguous: 'specify only one of --cv or --skills.',
+    cmdDownloadAmbiguous: 'specify only one of --cv, --skills, or --study.',
     cmdDownloadPreparing: 'förbereder nedladdning...',
     cmdDownloadNotAvailable: 'cv inte tillgänglig än — fortfarande under finputsning.',
     // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadSkillsNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
+    // i18n: awaiting Swedish translation — English placeholder for now.
+    cmdDownloadStudyNotAvailable:
+      'optimization study pdf not available yet — it ships from docs/audits/.',
     cmdDownloadMeantime: 'under tiden, hör av dig:',
     cmdDownloadStarted: 'nedladdning startad.',
     cmdClearDesc: 'rensa skärmen',
