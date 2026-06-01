@@ -71,14 +71,14 @@ The headline is a **swing**, not an aggregate — because across rounds the cold
 | content-audit / Haiku | −5% | +11% | **+16pp** | uncapped tracing → trace cap (Spacepotatis #280) |
 | skills-quality / Haiku | +17% | +54% | — | same investigation-collapse pattern |
 
-**The durable claim:** bounded, scoped procedural language in a SKILL.md *reliably* cuts token use for **Haiku-class** models; for **Opus-class** the effect sits inside the measurement noise. That's it — supported by swings with identified mechanisms, not by an aggregate percentage. The study's full round-by-round tables, the noise-floor discussion, and the "pin the baseline" caveat are in [`skills-optim-study-2026-05-31.md`](./skills-optim-study-2026-05-31.md).
+**The durable claim:** bounded, scoped procedural language in a SKILL.md *reliably* cuts token use for **Haiku-class** models. For **Opus-class**, the rounds 1–5 *swings* (before-fix minus after-fix — a difference of two N=1 ratios) sat inside the measurement noise; that was a property of the fragile N=1 swing, not a verdict on Opus. **[Round 6](./skills-optim-study-2026-06-01-replicates.json) re-measured both auditors' Opus cells as a *level* (skill-vs-cold) at depth — N=5/arm, stable — and found a real +76% save each:** going cold, Opus does the full audit (116–200K tokens) while the script-backed skill short-circuits to ~30–46K, and the earlier near-zero/negative reads were N=1 artifacts of an unusually shallow cold arm. So the honest read: **Haiku-class benefits at any depth; Opus-class benefits too, once the task is deep enough that going cold actually does the work** — trust direction and magnitude, not the exact %, since cold-arm cost is task-framing-sensitive. Full round-by-round tables and the noise-floor discussion are in [`skills-optim-study-2026-05-31.md`](./skills-optim-study-2026-05-31.md).
 
 ## What this sheet does NOT claim
 
 - **No portfolio-wide save rate.** Both halves are small-N: the A/B is two skills on a four-skill fixture, N=1 per cell; the downstream is three skills, N=1 per cell. Direction and rough magnitude only.
 - **Quality's 48–54% is partly a coarser read**, not pure efficiency — it missed two real findings on Sonnet and Opus to get there.
 - **The +36% aggregate is ratio-of-sums** (volume-weighted), not a typical-cell figure, and the downstream "+16%" round was concentrated in two Haiku cells.
-- **A re-run yields different absolute numbers.** Opus single-cell swings ran up to 67pp between rounds.
+- **A re-run yields different absolute numbers at N=1.** Opus single-cell *swings* ran up to 67pp between rounds — which is exactly why round 6 re-measured the noisiest cells as deep *levels* (N=5/arm) instead of trusting N=1 swing differences.
 - **These two are meta-skills — they audit other skills rather than ship a portfolio feature** — so their results live in this sheet rather than as portfolio skill-registry rows. (A registry *scan* keys on the library name and may still list them; the value story is here, not in the catalog.)
 
 ## Appendix — cost of the measurements
