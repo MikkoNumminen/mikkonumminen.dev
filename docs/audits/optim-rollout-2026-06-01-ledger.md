@@ -243,3 +243,23 @@ Phase 5 cost: 3 workflows, 44 sub-agents, ~3.55M sub-agent tokens (Stage1 0.77M 
 Stage3 1.65M, per-draw JSONL recompute). Scoreboard: `skills-optim-study-2026-06-01-replicates.json`.
 
 
+
+---
+
+## RUN COMPLETE (2026-06-01)
+
+Queue empty, all stages done, no errors. Final tally:
+- **Audited:** 32 skills · **Changed:** 0 · **Fixes measured:** 0 · **Replicate cells measured:** 6
+- **Skipped+logged:** 16 (9 rigor-exempt, 4 structural-only, 3 false-positive) · **Clean:** 16 · **Failed:** 0 · **Pending:** 0
+- **Replicate result:** all 6 cells +54%..+85% at depth (aggregate +75%); overturns the original +2.5%/3-negative N=1 headline. Caveat: cold-arm thoroughness is task-framing-sensitive → trust direction + magnitude, not exact %.
+
+**Deliverables (all on branch `optim-rollout-2026-06-01`, mikkonumminen.dev, NOT pushed):**
+- `docs/audits/optim-rollout-2026-06-01-ledger.md` (this file)
+- `docs/audits/optim-rollout-2026-06-01-morning-report.md`
+- `docs/audits/skills-optim-study-2026-06-01-replicates.json`
+- `docs/audits/skills-optim-study-2026-06-01-replicates.pdf`
+
+**Git state:** nothing merged, nothing pushed, 0 skill files edited. claude-skills + Spacepotatis
+`optim-rollout-2026-06-01` branches have 0 commits (no fixes); `pre-optim-rollout` tags pin the
+before-arm in both. The dirty `chore/skills-token-estimates` checkout in claude-skills was left exactly
+as found. Teardown commands are in the morning report.
