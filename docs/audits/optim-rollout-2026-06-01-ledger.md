@@ -128,5 +128,31 @@ widest spread."* See Phase 5.
 
 ## Phase 5 — replicates on widest-spread / N=1 cells
 
-_(appended below as draws complete)_
+**Design.** Re-measure the noisiest cells fresh tonight at depth (both arms in the same window),
+pinning the before-arm by averaging cold draws. Opus first (study: "most variable model, swings up
+to 67pp"; methodology wants ≥5 opus draws). Faithful to `mikko-skill-calibration`: arm A = cold
+(no skills-quality SKILL.md / script, but DOES inspect the target skills since auditing them is the
+task), arm B = read the SKILL.md + run its script (read-only, no `--update`). Worktree isolation
+skipped — both arms read-only against `~/.claude/skills/` (same call the round-1 study made).
+
+**Accounting instrument:** `d:/tmp/draw-tokens.mjs` — sums `input + output + cache_creation` per
+assistant msg, dedup by `(sessionId,requestId)`, excludes `cache_read`. Validated against existing
+transcripts (e.g. 55,244 tok / 40 turns / opus). Each draw carries a `DRAW_ID:` marker in its prompt
+for bulletproof transcript→cell mapping.
+
+**Priority queue (widest spread / lowest N / opus-first):**
+1. `skills-quality/opus` — pool N=2, pct +5%(R1)/−62%(R5), **saved crosses zero** → new draws. The
+   −62% was an N=1 anomaly (cold arm short-circuited at 31K). **Highest value.**
+2. `skills-freshness/opus` — pool N=3, pct −21/+1/−1, saved crosses zero → new draws.
+3. (if quota remains) skills-quality/sonnet, skills-freshness/haiku, etc. at N≥3.
+
+### Stage 1 — skills-quality/opus — LAUNCHED
+
+- Workflow `wf_eb3d085c-094` (background): 5×arm-A (`q-opus-A-1..5`) + 5×arm-B (`q-opus-B-1..5`), all opus.
+- Transcript dir: `…/4647675b…/subagents/workflows/wf_eb3d085c-094`.
+- Stage 2 (skills-freshness/opus) held until Stage 1 returns and draws are verified to have done real
+  work (guards against burning ~1M more tokens on a flawed prompt design).
+
+_(per-cell results appended as stages complete)_
+
 
