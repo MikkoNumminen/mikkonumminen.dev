@@ -12,6 +12,18 @@ export const REGENERATE_HINT =
   'node scripts/build-scoreboard.mjs --input <cells.json> --output <scoreboard.json> (per-draw tokens via scripts/draw-tokens.mjs)';
 
 /**
+ * Keep only finite numbers from a draws list (drops a non-array arm, and any
+ * stray null/object/string/Infinity/NaN a hand-maintained input might carry).
+ * The single source of truth for "what counts as a draw", shared by stat() and
+ * computeCell() so the published draws array and `n` can never disagree.
+ */
+export function finiteNums(vals) {
+  return Array.isArray(vals)
+    ? vals.filter((v) => typeof v === 'number' && Number.isFinite(v))
+    : [];
+}
+
+/**
  * Median + spread for a list of draw token-totals.
  * Population (not sample) variance — the draws ARE the cell, not a sample of it.
  * Returns null when there are no valid draws so the caller can skip the cell.
@@ -23,9 +35,7 @@ export const REGENERATE_HINT =
  * with NaN. Valid numeric input is unchanged — this only filters garbage.
  */
 export function stat(vals) {
-  const nums = Array.isArray(vals)
-    ? vals.filter((v) => typeof v === 'number' && Number.isFinite(v))
-    : [];
+  const nums = finiteNums(vals);
   const n = nums.length;
   if (!n) return null;
   const sum = nums.reduce((a, b) => a + b, 0);
@@ -59,8 +69,10 @@ export function computeCell(c) {
     model: c.model,
     n_arm_A: A.n,
     n_arm_B: B.n,
-    arm_A_draws: c.arm_A_draws,
-    arm_B_draws: c.arm_B_draws,
+    // Store the same finite draws the stats were computed on, so arm_*_draws
+    // and n stay consistent even if the input carried a stray non-number.
+    arm_A_draws: finiteNums(c.arm_A_draws),
+    arm_B_draws: finiteNums(c.arm_B_draws),
     arm_A: A,
     arm_B: B,
     saved_median: savedMedian,

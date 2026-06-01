@@ -24,28 +24,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildScoreboard } from './lib/scoreboard-stats.mjs';
+import { parseInputOutput } from './lib/cli-args.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-function parseArgs(argv) {
-  const out = {
-    input: path.join(
-      REPO_ROOT,
-      'docs/audits/skills-optim-study-2026-06-01-replicates.input.json',
-    ),
-    output: path.join(
-      REPO_ROOT,
-      'docs/audits/skills-optim-study-2026-06-01-replicates.json',
-    ),
-  };
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--input') out.input = path.resolve(argv[++i] ?? '');
-    else if (argv[i] === '--output') out.output = path.resolve(argv[++i] ?? '');
-  }
-  return out;
-}
-
-const args = parseArgs(process.argv.slice(2));
+const args = parseInputOutput(process.argv.slice(2), {
+  input: path.join(
+    REPO_ROOT,
+    'docs/audits/skills-optim-study-2026-06-01-replicates.input.json',
+  ),
+  output: path.join(
+    REPO_ROOT,
+    'docs/audits/skills-optim-study-2026-06-01-replicates.json',
+  ),
+});
 const data = JSON.parse(fs.readFileSync(args.input, 'utf8'));
 const scoreboard = buildScoreboard(data);
 

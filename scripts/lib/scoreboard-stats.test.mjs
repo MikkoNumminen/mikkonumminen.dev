@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { stat, computeCell, buildScoreboard } from './scoreboard-stats.mjs';
+import { stat, computeCell, buildScoreboard, finiteNums } from './scoreboard-stats.mjs';
+
+describe('finiteNums', () => {
+  it('keeps finite numbers, drops everything else, and tolerates non-arrays', () => {
+    expect(finiteNums([1, 2, 3])).toEqual([1, 2, 3]);
+    expect(finiteNums([1, {}, null, '2', NaN, Infinity, -3])).toEqual([1, -3]);
+    expect(finiteNums('nope')).toEqual([]);
+    expect(finiteNums(undefined)).toEqual([]);
+  });
+});
 
 describe('stat', () => {
   it('odd-length median is the middle value', () => {
@@ -79,6 +88,17 @@ describe('computeCell', () => {
 
   it('skips a cell with a malformed (non-array) arm instead of crashing', () => {
     expect(computeCell({ arm_A_draws: 'abc', arm_B_draws: [1] })).toBeNull();
+  });
+
+  it('stores the filtered draws so arm_*_draws length always matches n', () => {
+    const cell = computeCell({
+      arm_A_draws: [100, {}, 300],
+      arm_B_draws: [10, null, 20],
+    });
+    expect(cell.arm_A_draws).toEqual([100, 300]);
+    expect(cell.arm_B_draws).toEqual([10, 20]);
+    expect(cell.arm_A_draws.length).toBe(cell.n_arm_A);
+    expect(cell.arm_B_draws.length).toBe(cell.n_arm_B);
   });
 });
 
