@@ -1461,6 +1461,88 @@
             "tokens_per_use_max": 38730,
             "tokens_per_use_stddev": 12067
           }
+        },
+        {
+          "name": "mikko-skills-quality",
+          "description": "Audit Claude Code skills (project + global) for token-economy hygiene — do they push work onto the LLM that a deterministic script should handle? A deterministic Python pre-pass flags smells; only flagged or changed skills enter LLM review. Manifest key is (skill_hash + ruleset_hash), so editing the rules re-keys every skill. Use whenever the user says \"audit my skills for quality / token waste / LLM-as-loop smells\", \"are my skills well-designed\", or invokes `/mikko-skills-quality`.",
+          "redirect": false,
+          "receipt": {
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-2026-06-01.json",
+            "source": "calibration",
+            "tokens_per_use": 17486,
+            "uses_per_year": 4,
+            "annual_total": 69944,
+            "tokens_saved_per_use": 16054,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 33540,
+            "calibration_arm_B": 17486,
+            "calibration_model": "sonnet",
+            "calibration_notes": "Cheapest auditor — its triage skips reading the SKILL.md, which is also why arm B missed real findings the cold arm caught: a hardcoded path on Sonnet and mikko-audit's specific structural bloat on Opus (outcome NOT equivalent on those two models). Savings are partly a coarser read. See SKILL-CALIBRATION-2026-06-01.json.",
+            "last_invoked": "2026-06-01T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 44316,
+                "arm_B_tokens": 20227,
+                "saved": 24089,
+                "pct_saved": 54,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-2026-06-01.json",
+                "notes": "Biggest save (54%) but outcome NOT equivalent: skill arm gave mikko-audit a generic MEDIUM and missed the cold arm's specific HIGH (~400 lines of duplicated embedded prompt templates).",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 38975,
+                "arm_B_tokens": 24338,
+                "saved": 14637,
+                "pct_saved": 38,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-2026-06-01.json",
+                "notes": "Outcome-equivalent on Haiku (both arms coarse; no confirmed miss).",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
+          }
+        },
+        {
+          "name": "mikko-skills-freshness",
+          "description": "Audit Claude Code skills (project + global scopes) for staleness. A pure-stdlib Python script does sha256-based change detection — only new/changed/removed skills are surfaced, unchanged skills are never loaded into context. Skills can declare their own freshness checks under '# Freshness check' as TOML; otherwise the LLM does a generic review (frontmatter, description-vs-behavior, broken refs). Asks before editing anything. Use whenever the user says \"are my skills up to date\", \"audit my skills\", \"check for skill drift\", or invokes `/mikko-skills-freshness`.",
+          "redirect": false,
+          "receipt": {
+            "path": ".claude/agent-verdicts/SKILL-CALIBRATION-2026-06-01.json",
+            "source": "calibration",
+            "tokens_per_use": 24127,
+            "uses_per_year": 4,
+            "annual_total": 96508,
+            "tokens_saved_per_use": 10408,
+            "tokens_saved_source": "calibration",
+            "calibration_arm_A": 34535,
+            "calibration_arm_B": 24127,
+            "calibration_model": "sonnet",
+            "calibration_notes": "Reads each flagged skill at limit=80, so it saves less than quality but was outcome-equivalent to the cold arm on all 3 models — it even caught the hardcoded-path bug the quality arm missed. See SKILL-CALIBRATION-2026-06-01.json.",
+            "last_invoked": "2026-06-01T00:00:00Z",
+            "alt_model_measurements": {
+              "opus": {
+                "arm_A_tokens": 48437,
+                "arm_B_tokens": 31161,
+                "saved": 17276,
+                "pct_saved": 36,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-2026-06-01.json",
+                "notes": "Outcome-equivalent; skill arm caught the mikko-skills hardcoded path.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              },
+              "haiku": {
+                "arm_A_tokens": 39300,
+                "arm_B_tokens": 34869,
+                "saved": 4431,
+                "pct_saved": 11,
+                "source": ".claude/agent-verdicts/SKILL-CALIBRATION-2026-06-01.json",
+                "notes": "Thinnest save in the batch (11%); Haiku skill arm used 21 tool uses. Equivalent, but both arms noisy on Haiku.",
+                "procedure_deviation": false,
+                "procedure_deviation_note": null
+              }
+            }
+          }
         }
       ]
     },
@@ -1669,10 +1751,10 @@
     }
   ],
   "totals": {
-    "skills": 34,
+    "skills": 36,
     "redirects": 1,
-    "with_receipts": 33,
-    "annual_tokens_saved": 31180138
+    "with_receipts": 35,
+    "annual_tokens_saved": 31346590
   },
   "built_in_references": [
     {
