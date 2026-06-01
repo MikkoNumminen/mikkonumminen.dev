@@ -1,5 +1,21 @@
 {
   "generated_at": "2026-06-01T05:25:59Z",
+  "study": "optim-rollout-replicates-2026-06-01",
+  "round": 6,
+  "source_repo": "https://github.com/MikkoNumminen/claude-skills",
+  "context": "Re-measure the study's noisiest cells at depth (N>=5/arm on opus), both arms in the same window, before-arm pinned by averaging cold draws. Resolves N=1 anomalies from rounds 1-5. Triggered as the optim-rollout fallback: the audit/fix queue found 0 fixes to apply, so remaining quota went to firming up the noisiest existing cells.",
+  "methodology": {
+    "arm_A": "cold (no skills-quality/freshness SKILL.md or script; DOES inspect target skills since auditing them is the task)",
+    "arm_B": "with-skill (read SKILL.md, run its script read-only, no --update)",
+    "model_held_constant": true,
+    "before_arm": "pinned by averaging >=5 cold draws (not a single N=1 draw)",
+    "cell": "MEDIAN + spread; ratio computed on medians (and on pinned mean for the before arm)",
+    "aggregate": "ratio of sum-of-per-cell-medians (volume-weighted), NOT mean-of-cell-percentages",
+    "token_accounting": "input + output + cache_creation_input_tokens, deduped by (sessionId,requestId), cache_read excluded. Matches scripts/build-review-stats.mjs + the round-1-5 study.",
+    "noise_floor": "cells within ~2% carry direction only",
+    "worktree_isolation": "skipped - both arms read-only against ~/.claude/skills/",
+    "caveat": "cold-arm token cost is task-framing-sensitive (how thoroughly it audits); trust direction + magnitude, not the exact %."
+  },
   "cells": {
     "skills-quality|opus": {
       "model": "opus",

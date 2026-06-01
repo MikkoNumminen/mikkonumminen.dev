@@ -3,7 +3,7 @@
   "study": "optim-rollout-replicates-2026-06-01",
   "round": 6,
   "source_repo": "https://github.com/MikkoNumminen/claude-skills",
-  "regenerate": "node scripts/build-scoreboard.mjs (reads the *.input.json sibling; per-draw tokens via scripts/draw-tokens.mjs)",
+  "regenerate": "node scripts/build-scoreboard.mjs --input <cells.json> --output <scoreboard.json> (per-draw tokens via scripts/draw-tokens.mjs)",
   "context": "Re-measure the study's noisiest cells at depth (N>=5/arm on opus), both arms in the same window, before-arm pinned by averaging cold draws. Resolves N=1 anomalies from rounds 1-5. Triggered as the optim-rollout fallback: the audit/fix queue found 0 fixes to apply, so remaining quota went to firming up the noisiest existing cells.",
   "methodology": {
     "arm_A": "cold (no skills-quality/freshness SKILL.md or script; DOES inspect target skills since auditing them is the task)",

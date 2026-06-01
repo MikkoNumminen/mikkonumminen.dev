@@ -12,7 +12,7 @@ export default defineConfig({
     // Vitest's own internal symbols.
     globals: false,
 
-    include: ['src/**/*.test.ts', 'src/**/*.test.mts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.mts', 'scripts/**/*.test.mjs'],
     exclude: ['node_modules', 'dist', '.astro'],
 
     coverage: {
