@@ -388,7 +388,7 @@ export const fi: Translations = {
     cmdDownloadOptionResults:
       'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
     cmdDownloadScopeNote:
-      'note — these are three different scopes, not one figure: +17% across the 34-skill portfolio (--skills), +36% for the two skill-auditors alone (--results), and 54–85% on the re-measured noisiest study cells (--replicates, skill-vs-cold, not portfolio-wide).',
+      'note — three lenses, not one figure: +17% across the 34-skill portfolio, 33 calibrated (--skills); +36% for the two skill-auditors alone (--results); those same two auditors re-measured at depth land at 54–85% per cell (--replicates).',
     cmdDownloadTryHint:
       'try `download --cv`, `download --skills`, `download --study`, `download --replicates`, or `download --results`.',
     // i18n: awaiting Finnish translation — English placeholder for now.
