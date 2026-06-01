@@ -153,6 +153,25 @@ for bulletproof transcript→cell mapping.
 - Stage 2 (skills-freshness/opus) held until Stage 1 returns and draws are verified to have done real
   work (guards against burning ~1M more tokens on a flawed prompt design).
 
+### Stage 1 — skills-quality/opus — DONE ✓ (workflow wen9wzyee, 10 agents, 140s)
+
+All 10 draws `completed:true`; **no short-circuit recurred** (cold arms did full audits, 10-12 turns each).
+
+| Arm | Draws (tokens) | median | mean | spread | turns |
+| --- | --- | ---: | ---: | --- | --- |
+| A (cold) | 130827, 126654, 121426, 125778, 116085 | **125,778** | 124,154 | sd ~5.0K | 10-12 |
+| B (with-skill) | 34540, 28790, 28648, 30060, 30015 | **30,015** | 30,411 | sd ~2.1K | 8-9 |
+
+**Cell: saved 95,763 → +76%.** Both arms tight; no N=1 fragility.
+**Resolves the R5 −62% anomaly:** that came from a short-circuited cold arm (31K). When the cold arm
+does the full audit (116-131K) and the script-backed skill runs the audit in ~0 LLM tokens (~30K),
+the save is large and stable. This is the strongest, best-supported skills-quality/opus number in the
+study. Prior: R1 +5%, R5 −62% (N=1). Now: **+76% (N=5/arm)**.
+→ scoreboard `skills-optim-study-2026-06-01-replicates.json`.
+
+### Stage 2 — skills-freshness/opus — LAUNCHED
+(pipeline verified on Stage 1; proceeding.)
+
 _(per-cell results appended as stages complete)_
 
 

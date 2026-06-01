@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-06-01T05:25:59Z",
+  "study": "optim-rollout-replicates-2026-06-01",
+  "round": 6,
+  "source_repo": "https://github.com/MikkoNumminen/claude-skills",
+  "context": "Re-measure the study's noisiest cells at depth (N>=5/arm on opus), both arms in the same window, before-arm pinned by averaging cold draws. Resolves N=1 anomalies from rounds 1-5. Triggered as the optim-rollout fallback: the audit/fix queue found 0 fixes to apply, so remaining quota went to firming up the noisiest existing cells.",
+  "methodology": {
+    "arm_A": "cold (no skills-quality/freshness SKILL.md or script; DOES inspect target skills since auditing them is the task)",
+    "arm_B": "with-skill (read SKILL.md, run its script read-only, no --update)",
+    "model_held_constant": true,
+    "before_arm": "pinned by averaging >=5 cold draws (not a single N=1 draw)",
+    "cell": "MEDIAN + spread; ratio computed on medians (and on pinned mean for the before arm)",
+    "token_accounting": "input + output + cache_creation_input_tokens, deduped by (sessionId,requestId), cache_read excluded. Matches scripts/build-review-stats.mjs + the round-1-5 study.",
+    "noise_floor": "cells within ~2% carry direction only",
+    "worktree_isolation": "skipped - both arms read-only against ~/.claude/skills/"
+  },
+  "cells": {
+    "skills-quality|opus": {
+      "model": "opus",
+      "n_arm_A": 5,
+      "n_arm_B": 5,
+      "arm_A_draws": [
+        130827,
+        126654,
+        121426,
+        125778,
+        116085
+      ],
+      "arm_B_draws": [
+        34540,
+        28790,
+        28648,
+        30060,
+        30015
+      ],
+      "arm_A": {
+        "n": 5,
+        "median": 125778,
+        "mean": 124154,
+        "min": 116085,
+        "max": 130827,
+        "stddev": 5019
+      },
+      "arm_B": {
+        "n": 5,
+        "median": 30015,
+        "mean": 30411,
+        "min": 28648,
+        "max": 34540,
+        "stddev": 2148
+      },
+      "saved_median": 95763,
+      "pct_saved_median": 76,
+      "before_arm_pinned_mean": 124154,
+      "saved_pinned": 94139,
+      "pct_saved_pinned": 76,
+      "prior_rounds": {
+        "R1_pct": 5,
+        "R5_pct": -62,
+        "R5_note": "N=1 anomaly: cold arm short-circuited at 31K"
+      },
+      "verdict": "Strong saver at depth (+76%, N=5/arm). OVERTURNS the R5 -62% anomaly, which came from a short-circuited cold arm (31K). With the cold arm doing the full audit (116-131K) and the script-backed skill running the audit in ~0 LLM tokens (~30K total), the save is large and tight. arm_A spread 116-131K (sd ~5K), arm_B spread 28.6-34.5K (sd ~2K) - both arms stable, no N=1 fragility."
+    }
+  },
+  "aggregate": {
+    "cells_measured": 1,
+    "sum_median_arm_A": 125778,
+    "sum_median_arm_B": 30015,
+    "net_saved": 95763,
+    "net_pct_saved": 76
+  }
+}
