@@ -380,13 +380,15 @@ export const fi: Translations = {
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
-      'every claude code skill across my portfolio — pdf with token-savings estimates',
+      'every claude code skill across my portfolio — pdf, token savings measured against going cold',
     cmdDownloadOptionStudy:
       'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
     cmdDownloadOptionReplicates:
-      'round-6 replication — the noisiest study cells re-measured at depth; every cell now saves 54–85% — pdf',
+      'round-6 replication — the noisiest study cells re-measured at depth to settle the N=1 anomalies (per-cell skill-vs-cold, not a portfolio rate) — pdf',
     cmdDownloadOptionResults:
       'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
+    cmdDownloadScopeNote:
+      'note — these are three different scopes, not one figure: +17% across the 34-skill portfolio, +36% for the two skill-auditors alone (--results), and 54–85% on the re-measured noisiest study cells (--replicates, skill-vs-cold, not portfolio-wide).',
     cmdDownloadTryHint:
       'try `download --cv`, `download --skills`, `download --study`, `download --replicates`, or `download --results`.',
     // i18n: awaiting Finnish translation — English placeholder for now.

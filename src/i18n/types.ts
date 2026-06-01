@@ -229,6 +229,7 @@ export interface Translations {
     cmdDownloadOptionStudy: string;
     cmdDownloadOptionReplicates: string;
     cmdDownloadOptionResults: string;
+    cmdDownloadScopeNote: string;
     cmdDownloadTryHint: string;
     cmdDownloadAmbiguous: string;
     cmdDownloadPreparing: string;
