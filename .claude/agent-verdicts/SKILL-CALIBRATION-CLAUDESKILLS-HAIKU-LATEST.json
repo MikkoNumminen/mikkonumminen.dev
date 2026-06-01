@@ -15,20 +15,114 @@
     "security-audit": "Security audit of Spacepotatis src/. Findings with severity tags and file:line citations.",
     "session-cost": "Compute the token cost of session 47fcb7d8-762b-45af-ae2a-b9e4af3c295b. Main thread + sub-agents breakdown.",
     "skill-calibration": "Plan an A/B calibration for a hypothetical /example-skill in AudiobookMaker. Plan only, no actual dispatch.",
-    "skill-usage": "Scan local Claude Code JSONLs and produce a per-skill usage summary for the last 90 days."
+    "skill-usage": "Scan local Claude Code JSONLs and produce a per-skill usage summary for the last 90 days.",
+    "mikko-skills-quality": "Audit 4 fixture Claude Code skills for token-economy quality (LLM-as-loop prose, oversized SKILL.md, bad frontmatter). Findings table.",
+    "mikko-skills-freshness": "Audit 4 fixture Claude Code skills for staleness/drift (frontmatter, description-vs-behavior, broken refs). Findings table."
   },
   "skills": [
-    {"name": "ai-codegen-smell-audit",    "arm_A_tokens": 60702, "arm_B_tokens": 60206, "saved": 496,    "pct_saved":   1, "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +1% save on Haiku — near-break-even. Sonnet was +48%, Opus +47%; Haiku doesn't get the same recipe benefit because the cold arm explores broadly (12 LOW findings) and arm B's stricter inclusion criteria don't compress the work as much."},
-    {"name": "audit",                     "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,    "pct_saved": null, "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."},
-    {"name": "mikko-audit-suite",         "arm_A_tokens": 37092, "arm_B_tokens": 34008, "saved": 3084,    "pct_saved":  8},
-    {"name": "mikko-help",                "arm_A_tokens": 20029, "arm_B_tokens": 32511, "saved": -12482,  "pct_saved": -62, "notes": "WIDENING cost-more vs Sonnet's -22% — Haiku takes -40pp WORSE. The skill's recipe (read each SKILL.md's frontmatter via 16 parallel Reads) pays more per-turn overhead on Haiku."},
-    {"name": "mikko-install",             "arm_A_tokens": 22980, "arm_B_tokens": 26186, "saved": -3206,   "pct_saved": -14, "notes": "NARROWING vs Sonnet's -35% (+21pp better on Haiku). Matches the SAMPLE's mikko-install Opus narrowing pattern."},
-    {"name": "react-anti-patterns-audit", "arm_A_tokens": 21004, "arm_B_tokens": 25474, "saved": -4470,   "pct_saved": -21, "notes": "Target has no React; both arms correctly bailed at pre-flight. Recipe's structured abort costs more than arm A's quick check — same pattern as Sonnet (-33%) but narrower."},
-    {"name": "readme-drift-sync",         "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,    "pct_saved": null, "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."},
-    {"name": "security-audit",            "arm_A_tokens": 71506, "arm_B_tokens": 69103, "saved": 2403,    "pct_saved":  3,   "notes": "Near-break-even on Haiku (+3%) vs Sonnet's -4% and Opus's -10% — Haiku is the only model that narrowly saves on this skill. Both arms ran the full Critical/High/Medium/Low/Info severity walk."},
-    {"name": "session-cost",              "arm_A_tokens": 29844, "arm_B_tokens": 56326, "saved": -26482,  "pct_saved": -89, "notes": "CORRECTNESS-not-tokens win for the recipe. Haiku arm A measured only main thread (10.6M tokens reported, missed sub-agents); arm B followed the SKILL.md and walked sub-agent JSONLs too (20.6M tokens reported, correct). Arm B paid more TOKENS to do more thorough work — the -89% pct_saved misrepresents the recipe's value: it's a correctness win (arm A's answer was wrong), not a compression failure. Same pattern as the Opus session-cost (arm A counted cache_read incorrectly)."},
-    {"name": "skill-calibration",         "arm_A_tokens": 37676, "arm_B_tokens": 31889, "saved": 5787,    "pct_saved":  15, "notes": "Strong +15% save on Haiku, matches Opus's +13% — both flip from Sonnet's -74%. Arm A's cold plan was more rigorous on the bigger/smaller models; only Sonnet's arm A produced a sparse plan."},
-    {"name": "skill-usage",               "arm_A_tokens": null,  "arm_B_tokens": null,  "saved": null,    "pct_saved": null, "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."}
+    {
+      "name": "ai-codegen-smell-audit",
+      "arm_A_tokens": 60702,
+      "arm_B_tokens": 60206,
+      "saved": 496,
+      "pct_saved": 1,
+      "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +1% save on Haiku — near-break-even. Sonnet was +48%, Opus +47%; Haiku doesn't get the same recipe benefit because the cold arm explores broadly (12 LOW findings) and arm B's stricter inclusion criteria don't compress the work as much."
+    },
+    {
+      "name": "audit",
+      "arm_A_tokens": null,
+      "arm_B_tokens": null,
+      "saved": null,
+      "pct_saved": null,
+      "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."
+    },
+    {
+      "name": "mikko-audit-suite",
+      "arm_A_tokens": 37092,
+      "arm_B_tokens": 34008,
+      "saved": 3084,
+      "pct_saved": 8
+    },
+    {
+      "name": "mikko-help",
+      "arm_A_tokens": 20029,
+      "arm_B_tokens": 32511,
+      "saved": -12482,
+      "pct_saved": -62,
+      "notes": "WIDENING cost-more vs Sonnet's -22% — Haiku takes -40pp WORSE. The skill's recipe (read each SKILL.md's frontmatter via 16 parallel Reads) pays more per-turn overhead on Haiku."
+    },
+    {
+      "name": "mikko-install",
+      "arm_A_tokens": 22980,
+      "arm_B_tokens": 26186,
+      "saved": -3206,
+      "pct_saved": -14,
+      "notes": "NARROWING vs Sonnet's -35% (+21pp better on Haiku). Matches the SAMPLE's mikko-install Opus narrowing pattern."
+    },
+    {
+      "name": "react-anti-patterns-audit",
+      "arm_A_tokens": 21004,
+      "arm_B_tokens": 25474,
+      "saved": -4470,
+      "pct_saved": -21,
+      "notes": "Target has no React; both arms correctly bailed at pre-flight. Recipe's structured abort costs more than arm A's quick check — same pattern as Sonnet (-33%) but narrower."
+    },
+    {
+      "name": "readme-drift-sync",
+      "arm_A_tokens": null,
+      "arm_B_tokens": null,
+      "saved": null,
+      "pct_saved": null,
+      "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."
+    },
+    {
+      "name": "security-audit",
+      "arm_A_tokens": 71506,
+      "arm_B_tokens": 69103,
+      "saved": 2403,
+      "pct_saved": 3,
+      "notes": "Near-break-even on Haiku (+3%) vs Sonnet's -4% and Opus's -10% — Haiku is the only model that narrowly saves on this skill. Both arms ran the full Critical/High/Medium/Low/Info severity walk."
+    },
+    {
+      "name": "session-cost",
+      "arm_A_tokens": 29844,
+      "arm_B_tokens": 56326,
+      "saved": -26482,
+      "pct_saved": -89,
+      "notes": "CORRECTNESS-not-tokens win for the recipe. Haiku arm A measured only main thread (10.6M tokens reported, missed sub-agents); arm B followed the SKILL.md and walked sub-agent JSONLs too (20.6M tokens reported, correct). Arm B paid more TOKENS to do more thorough work — the -89% pct_saved misrepresents the recipe's value: it's a correctness win (arm A's answer was wrong), not a compression failure. Same pattern as the Opus session-cost (arm A counted cache_read incorrectly)."
+    },
+    {
+      "name": "skill-calibration",
+      "arm_A_tokens": 37676,
+      "arm_B_tokens": 31889,
+      "saved": 5787,
+      "pct_saved": 15,
+      "notes": "Strong +15% save on Haiku, matches Opus's +13% — both flip from Sonnet's -74%. Arm A's cold plan was more rigorous on the bigger/smaller models; only Sonnet's arm A produced a sparse plan."
+    },
+    {
+      "name": "skill-usage",
+      "arm_A_tokens": null,
+      "arm_B_tokens": null,
+      "saved": null,
+      "pct_saved": null,
+      "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."
+    },
+    {
+      "name": "mikko-skills-quality",
+      "arm_A_tokens": 38975,
+      "arm_B_tokens": 24338,
+      "saved": 14637,
+      "pct_saved": 38,
+      "notes": "Outcome-equivalent on Haiku (both arms coarse; no confirmed miss)."
+    },
+    {
+      "name": "mikko-skills-freshness",
+      "arm_A_tokens": 39300,
+      "arm_B_tokens": 34869,
+      "saved": 4431,
+      "pct_saved": 11,
+      "notes": "Thinnest save in the batch; Haiku arm-B used 21 tool uses. Equivalent but both arms noisy on Haiku."
+    }
   ],
   "aggregate_clean": {
     "skills_measured": 8,
@@ -36,7 +130,12 @@
     "arm_B_total": 335703,
     "saved_total": -34870,
     "pct_saved": -12,
-    "sonnet_comparison_total": {"arm_A": 394407, "arm_B": 349876, "saved": 44531, "pct_saved": 11}
+    "sonnet_comparison_total": {
+      "arm_A": 394407,
+      "arm_B": 349876,
+      "saved": 44531,
+      "pct_saved": 11
+    }
   },
   "caveats": [
     "N=1 per skill per arm.",
