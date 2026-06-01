@@ -48,7 +48,7 @@ The kicker: **`mikko-skills-freshness` caught the same hardcoded path the qualit
 
 ## Question 2 — did running them save tokens elsewhere? (the downstream)
 
-Round 1 of the [optimization study](./skills-optim-study-2026-05-31.md) ran these two skills, then did a forensic pass over the transcripts. It found three concrete ways a procedural SKILL.md turns *against* token economy — each visible in the JSONL, each with a one-line guard that neutralises it. **This taxonomy is the transferable artifact.**
+Round 1 of the [optimization study](./skills-optim-study-2026-05-31.md) ran these two skills (it refers to them by their unprefixed library names, `skills-quality` / `skills-freshness`), then did a forensic pass over the transcripts. It found three concrete ways a procedural SKILL.md turns *against* token economy — each visible in the JSONL, each with a one-line guard that neutralises it. **This taxonomy is the transferable artifact.**
 
 | # | Cost-trap | How the prose triggered it | The guard that fixes it |
 | --- | --- | --- | --- |
@@ -79,7 +79,7 @@ The headline is a **swing**, not an aggregate — because across rounds the cold
 - **Quality's 48–54% is partly a coarser read**, not pure efficiency — it missed two real findings on Sonnet and Opus to get there.
 - **The +36% aggregate is ratio-of-sums** (volume-weighted), not a typical-cell figure, and the downstream "+16%" round was concentrated in two Haiku cells.
 - **A re-run yields different absolute numbers.** Opus single-cell swings ran up to 67pp between rounds.
-- **These two skills are no longer carried as rows in the portfolio skill-registry** — they audit other skills rather than ship a portfolio feature, so their value lives in this results sheet, not the catalog.
+- **These two are meta-skills — they audit other skills rather than ship a portfolio feature** — so their results live in this sheet rather than as portfolio skill-registry rows. (A registry *scan* keys on the library name and may still list them; the value story is here, not in the catalog.)
 
 ## Appendix — cost of the measurements
 
