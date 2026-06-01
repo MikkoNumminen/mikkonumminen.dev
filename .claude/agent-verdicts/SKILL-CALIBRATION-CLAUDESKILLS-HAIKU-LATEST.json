@@ -16,8 +16,8 @@
     "session-cost": "Compute the token cost of session 47fcb7d8-762b-45af-ae2a-b9e4af3c295b. Main thread + sub-agents breakdown.",
     "skill-calibration": "Plan an A/B calibration for a hypothetical /example-skill in AudiobookMaker. Plan only, no actual dispatch.",
     "skill-usage": "Scan local Claude Code JSONLs and produce a per-skill usage summary for the last 90 days.",
-    "mikko-skills-quality": "Audit 4 fixture Claude Code skills for token-economy quality (LLM-as-loop prose, oversized SKILL.md, bad frontmatter). Findings table.",
-    "mikko-skills-freshness": "Audit 4 fixture Claude Code skills for staleness/drift (frontmatter, description-vs-behavior, broken refs). Findings table."
+    "skills-quality": "Audit 4 fixture Claude Code skills for token-economy quality (LLM-as-loop prose, oversized SKILL.md, bad frontmatter). Findings table.",
+    "skills-freshness": "Audit 4 fixture Claude Code skills for staleness/drift (frontmatter, description-vs-behavior, broken refs). Findings table."
   },
   "skills": [
     {
@@ -108,7 +108,7 @@
       "notes": "Covered in SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json."
     },
     {
-      "name": "mikko-skills-quality",
+      "name": "skills-quality",
       "arm_A_tokens": 38975,
       "arm_B_tokens": 24338,
       "saved": 14637,
@@ -116,7 +116,7 @@
       "notes": "Outcome-equivalent on Haiku (both arms coarse; no confirmed miss)."
     },
     {
-      "name": "mikko-skills-freshness",
+      "name": "skills-freshness",
       "arm_A_tokens": 39300,
       "arm_B_tokens": 34869,
       "saved": 4431,

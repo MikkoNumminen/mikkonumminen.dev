@@ -13,8 +13,8 @@
     "security-audit": "Security audit of Spacepotatis src/. Findings with severity tags and file:line citations.",
     "session-cost": "Compute the token cost of session 47fcb7d8-762b-45af-ae2a-b9e4af3c295b. Main thread + sub-agents breakdown.",
     "skill-calibration": "Plan an A/B calibration for a hypothetical /example-skill in AudiobookMaker. Plan only.",
-    "mikko-skills-quality": "Audit 4 fixture Claude Code skills for token-economy quality (LLM-as-loop prose, oversized SKILL.md, bad frontmatter). Findings table.",
-    "mikko-skills-freshness": "Audit 4 fixture Claude Code skills for staleness/drift (frontmatter, description-vs-behavior, broken refs). Findings table."
+    "skills-quality": "Audit 4 fixture Claude Code skills for token-economy quality (LLM-as-loop prose, oversized SKILL.md, bad frontmatter). Findings table.",
+    "skills-freshness": "Audit 4 fixture Claude Code skills for staleness/drift (frontmatter, description-vs-behavior, broken refs). Findings table."
   },
   "skills": [
     {
@@ -81,7 +81,7 @@
       "notes": "FLIPPED from -74% (Sonnet) to +13% (Opus). Opus arm A sketched a more rigorous plan cold (~42K) so the recipe's value is preserved; on Sonnet arm A was too sparse to be comparable."
     },
     {
-      "name": "mikko-skills-quality",
+      "name": "skills-quality",
       "arm_A_tokens": 44316,
       "arm_B_tokens": 20227,
       "saved": 24089,
@@ -89,7 +89,7 @@
       "notes": "Biggest save; arm-B gave mikko-audit a generic flag and missed the cold arms specific structural-bloat HIGH — outcome NOT equivalent on Opus."
     },
     {
-      "name": "mikko-skills-freshness",
+      "name": "skills-freshness",
       "arm_A_tokens": 48437,
       "arm_B_tokens": 31161,
       "saved": 17276,
