@@ -60,13 +60,60 @@
         "R5_note": "N=1 anomaly: cold arm short-circuited at 31K"
       },
       "verdict": "Strong saver at depth (+76%, N=5/arm). OVERTURNS the R5 -62% anomaly, which came from a short-circuited cold arm (31K). With the cold arm doing the full audit (116-131K) and the script-backed skill running the audit in ~0 LLM tokens (~30K total), the save is large and tight. arm_A spread 116-131K (sd ~5K), arm_B spread 28.6-34.5K (sd ~2K) - both arms stable, no N=1 fragility."
+    },
+    "skills-freshness|opus": {
+      "model": "opus",
+      "n_arm_A": 5,
+      "n_arm_B": 5,
+      "arm_A_draws": [
+        200044,
+        191519,
+        196357,
+        179196,
+        171714
+      ],
+      "arm_B_draws": [
+        40764,
+        53351,
+        52386,
+        45913,
+        40843
+      ],
+      "arm_A": {
+        "n": 5,
+        "median": 191519,
+        "mean": 187766,
+        "min": 171714,
+        "max": 200044,
+        "stddev": 10675
+      },
+      "arm_B": {
+        "n": 5,
+        "median": 45913,
+        "mean": 46651,
+        "min": 40764,
+        "max": 53351,
+        "stddev": 5417
+      },
+      "saved_median": 145606,
+      "pct_saved_median": 76,
+      "before_arm_pinned_mean": 187766,
+      "saved_pinned": 141853,
+      "pct_saved_pinned": 76,
+      "prior_rounds": {
+        "R1_pct": -21,
+        "R2_pct": 1,
+        "R5_pct": -1,
+        "note": "all near-zero/negative at N=1; R1 cold arm was shallow (135K/9 turns)"
+      },
+      "verdict": "Strong saver at depth (+76%, N=5/arm). OVERTURNS the prior near-zero/negative opus rounds. At depth the cold arm does a full staleness audit (172-200K, 16-31 turns, verifying file:line citations against source) while the sha256 change-detection script short-circuits unchanged skills (~46K). The prior near-zero numbers were N=1 artifacts of an unusually shallow cold arm. arm_A sd ~10K, arm_B sd ~5K - stable."
     }
   },
   "aggregate": {
-    "cells_measured": 1,
-    "sum_median_arm_A": 125778,
-    "sum_median_arm_B": 30015,
-    "net_saved": 95763,
+    "cells_measured": 2,
+    "sum_median_arm_A": 317297,
+    "sum_median_arm_B": 75928,
+    "net_saved": 241369,
     "net_pct_saved": 76
   }
 }

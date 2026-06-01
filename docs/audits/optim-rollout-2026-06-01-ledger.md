@@ -169,8 +169,36 @@ the save is large and stable. This is the strongest, best-supported skills-quali
 study. Prior: R1 +5%, R5 −62% (N=1). Now: **+76% (N=5/arm)**.
 → scoreboard `skills-optim-study-2026-06-01-replicates.json`.
 
-### Stage 2 — skills-freshness/opus — LAUNCHED
-(pipeline verified on Stage 1; proceeding.)
+### Stage 2 — skills-freshness/opus — DONE ✓ (workflow wxirdto7p, 10 agents, 437s)
+
+All 10 draws `completed:true`.
+
+| Arm | Draws (tokens) | median | mean | spread | turns |
+| --- | --- | ---: | ---: | --- | --- |
+| A (cold) | 200044, 191519, 196357, 179196, 171714 | **191,519** | 187,766 | sd ~10K | 16-31 |
+| B (with-skill) | 40764, 53351, 52386, 45913, 40843 | **45,913** | 46,651 | sd ~5.4K | 9-13 |
+
+**Cell: saved 145,606 → +76%.** **Overturns the prior near-zero/negative opus rounds** (R1 −21%,
+R2 +1%, R5 −1%). At depth the cold arm does a full staleness audit (verifying file:line citations
+against source — 172-200K) while the sha256 change-detection script short-circuits unchanged skills
+(~46K). The prior near-zero numbers were N=1 artifacts of an unusually shallow cold arm (R1: 135K/9 turns).
+
+### Cross-opus finding (both cells)
+
+**Both opus cells = +76% at N=5/arm.** The consistent story: the script-backed audit skills
+(skills-quality, skills-freshness) are **strong opus savers once the baseline does real work**; the
+study's prior near-zero/negative opus numbers (R1 quality +5%/R5 −62%; R1-R5 freshness −21/+1/−1) were
+**N=1 artifacts of unusually cheap cold arms** (short-circuited or shallow). This is precisely the
+opus-variance the study flagged ("most variable model, swings up to 67pp") — and exactly what the
+pinned/averaged-baseline design at N≥5 was meant to resolve. Caveat (carried from the calibration
+skill): the absolute cold-arm cost depends on how deeply it verifies, which is task-framing-sensitive;
+trust direction + magnitude, not the exact %.
+
+### Stage 3 — widest-spread sonnet+haiku cells (N=3/arm) — LAUNCHED
+
+4 cells: {skills-quality, skills-freshness} × {sonnet, haiku}. Firms the headline
+`skills-freshness/haiku` swing (−70%→+20%→+48%) and the high-variance sonnet cells. This is the final
+measurement stage; report + PDF finalize after it regardless of outcome.
 
 _(per-cell results appended as stages complete)_
 
