@@ -17,8 +17,8 @@ export default defineConfig({
 
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/**/*.d.ts'],
+      include: ['src/**/*.ts', 'scripts/lib/**/*.mjs'],
+      exclude: ['src/**/*.test.ts', 'src/**/*.d.ts', 'scripts/**/*.test.mjs'],
     },
   },
 });

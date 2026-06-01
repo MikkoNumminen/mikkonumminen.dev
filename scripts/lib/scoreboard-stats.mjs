@@ -14,17 +14,26 @@ export const REGENERATE_HINT =
 /**
  * Median + spread for a list of draw token-totals.
  * Population (not sample) variance — the draws ARE the cell, not a sample of it.
- * Returns null for an empty list so the caller can skip the cell.
+ * Returns null when there are no valid draws so the caller can skip the cell.
+ *
+ * Defensive on input: a hand-maintained *.input.json can carry a malformed arm
+ * (a non-array, or a stray non-number from a paste/typo). We keep only finite
+ * numbers, so a bad draw is dropped (and an all-bad/missing arm becomes null ->
+ * cell skipped) rather than crashing the build or poisoning mean/median/stddev
+ * with NaN. Valid numeric input is unchanged — this only filters garbage.
  */
 export function stat(vals) {
-  const n = vals.length;
+  const nums = Array.isArray(vals)
+    ? vals.filter((v) => typeof v === 'number' && Number.isFinite(v))
+    : [];
+  const n = nums.length;
   if (!n) return null;
-  const sum = vals.reduce((a, b) => a + b, 0);
+  const sum = nums.reduce((a, b) => a + b, 0);
   const mean = sum / n;
-  const s = [...vals].sort((a, b) => a - b);
+  const s = [...nums].sort((a, b) => a - b);
   const mid = Math.floor(n / 2);
   const median = n % 2 ? s[mid] : round((s[mid - 1] + s[mid]) / 2);
-  const variance = vals.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+  const variance = nums.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
   return {
     n,
     median,
@@ -55,10 +64,12 @@ export function computeCell(c) {
     arm_A: A,
     arm_B: B,
     saved_median: savedMedian,
-    pct_saved_median: round((savedMedian / A.median) * 100),
+    // Guard the divisor: real draws are large positive token counts, but a
+    // degenerate all-zero arm would otherwise yield NaN.
+    pct_saved_median: A.median > 0 ? round((savedMedian / A.median) * 100) : 0,
     before_arm_pinned_mean: A.mean,
     saved_pinned: savedPinned,
-    pct_saved_pinned: round((savedPinned / A.mean) * 100),
+    pct_saved_pinned: A.mean > 0 ? round((savedPinned / A.mean) * 100) : 0,
     prior_rounds: c.prior_rounds ?? null,
     verdict: c.verdict ?? null,
   };
@@ -97,7 +108,7 @@ export function buildScoreboard(data) {
           sum_median_arm_A: aggA,
           sum_median_arm_B: aggB,
           net_saved: aggA - aggB,
-          net_pct_saved: round(((aggA - aggB) / aggA) * 100),
+          net_pct_saved: aggA > 0 ? round(((aggA - aggB) / aggA) * 100) : 0,
         }
       : null,
   };

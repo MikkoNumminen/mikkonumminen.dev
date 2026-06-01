@@ -31,6 +31,14 @@ describe('stat', () => {
   it('empty list -> null (caller skips the cell)', () => {
     expect(stat([])).toBeNull();
   });
+
+  it('drops malformed input: non-array -> null; stray non-numbers filtered out', () => {
+    expect(stat('abc')).toBeNull();
+    expect(stat(undefined)).toBeNull();
+    // only the two finite numbers (100, 300) survive {} / null / '200' / Infinity / NaN
+    const s = stat([100, {}, null, '200', 300, Infinity, NaN]);
+    expect(s).toMatchObject({ n: 2, median: 200, mean: 200, min: 100, max: 300 });
+  });
 });
 
 describe('computeCell', () => {
@@ -50,6 +58,27 @@ describe('computeCell', () => {
 
   it('returns null when an arm has no draws', () => {
     expect(computeCell({ arm_A_draws: [1, 2], arm_B_draws: [] })).toBeNull();
+  });
+
+  it('guards a zero-median cold arm: pct is 0, never NaN', () => {
+    const cell = computeCell({ arm_A_draws: [0, 0], arm_B_draws: [0] });
+    expect(cell.pct_saved_median).toBe(0);
+    expect(cell.pct_saved_pinned).toBe(0);
+    expect(Number.isNaN(cell.pct_saved_median)).toBe(false);
+  });
+
+  it('pinned uses the cold-arm MEAN, distinct from the median, on skewed draws', () => {
+    // mean(100,100,400)=200 != median=100, so the pinned % (95) differs from the
+    // median % (90) — a regression swapping A.mean->A.median would fail here.
+    const cell = computeCell({ arm_A_draws: [100, 100, 400], arm_B_draws: [10, 10, 10] });
+    expect(cell.arm_A.median).toBe(100);
+    expect(cell.before_arm_pinned_mean).toBe(200);
+    expect(cell.pct_saved_median).toBe(90); // (100-10)/100
+    expect(cell.pct_saved_pinned).toBe(95); // (200-10)/200
+  });
+
+  it('skips a cell with a malformed (non-array) arm instead of crashing', () => {
+    expect(computeCell({ arm_A_draws: 'abc', arm_B_draws: [1] })).toBeNull();
   });
 });
 
@@ -96,5 +125,11 @@ describe('buildScoreboard', () => {
     const sb = buildScoreboard({ cells: { x: { arm_A_draws: [1], arm_B_draws: [] } } });
     expect(sb.cells).toEqual({});
     expect(sb.aggregate).toBeNull();
+  });
+
+  it('guards a zero-sum cold aggregate: net_pct_saved is 0, never NaN', () => {
+    const sb = buildScoreboard({ cells: { z: { arm_A_draws: [0], arm_B_draws: [0] } } });
+    expect(sb.aggregate.net_pct_saved).toBe(0);
+    expect(Number.isNaN(sb.aggregate.net_pct_saved)).toBe(false);
   });
 });
