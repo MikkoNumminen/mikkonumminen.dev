@@ -194,12 +194,52 @@ pinned/averaged-baseline design at N≥5 was meant to resolve. Caveat (carried f
 skill): the absolute cold-arm cost depends on how deeply it verifies, which is task-framing-sensitive;
 trust direction + magnitude, not the exact %.
 
-### Stage 3 — widest-spread sonnet+haiku cells (N=3/arm) — LAUNCHED
+### Stage 3 — sonnet+haiku cells (N=3/arm) — DONE ✓ (workflow w01t7rdr4, 24 agents, 669s)
 
-4 cells: {skills-quality, skills-freshness} × {sonnet, haiku}. Firms the headline
-`skills-freshness/haiku` swing (−70%→+20%→+48%) and the high-variance sonnet cells. This is the final
-measurement stage; report + PDF finalize after it regardless of outcome.
+All 24 draws `completed:true`.
 
-_(per-cell results appended as stages complete)_
+| Cell | arm_A median (draws) | arm_B median (draws) | saved | % | prior rounds |
+| --- | --- | --- | ---: | ---: | --- |
+| skills-quality/sonnet | 94,849 (93k,95k,102k) | 13,988 (14k,14k,16k) | 80,861 | **+85%** | R1 −12%, R5 +2% |
+| skills-quality/haiku | 74,612 (54k,75k,119k) | 34,511 (30k,35k,50k) | 40,101 | **+54%** | R1 +17%, R5 +54% |
+| skills-freshness/sonnet | 146,622 (140k,147k,151k) | 32,872 (30k,33k,37k) | 113,750 | **+78%** | R1 +43%, R2 +14%, R5 +1% |
+| skills-freshness/haiku | 115,388 (81k,115k,126k) | 31,175 (27k,31k,41k) | 84,213 | **+73%** | R1 −70%, R2 +20%, R5 +48% |
+
+---
+
+## Phase 5 synthesis — all 6 cells
+
+| Cell | N/arm | % saved (this round) | prior N=1 history | resolution |
+| --- | ---: | ---: | --- | --- |
+| skills-quality/opus | 5 | **+76%** | +5% / **−62%** | −62% anomaly overturned |
+| skills-quality/sonnet | 3 | **+85%** | −12% / +2% | −12% sign-flip overturned |
+| skills-quality/haiku | 3 | **+54%** | +17% / +54% | confirmed (matches R5) |
+| skills-freshness/opus | 5 | **+76%** | −21% / +1% / −1% | near-zero overturned |
+| skills-freshness/sonnet | 3 | **+78%** | +43% / +14% / +1% | confirmed positive, firmed |
+| skills-freshness/haiku | 3 | **+73%** | **−70%** / +20% / +48% | headline swing confirmed positive |
+| **Aggregate** | — | **+75%** (560,294 tok) | R1 +2.5% | — |
+
+**The durable result of this round.** At N≥3 (≥5 on opus) with the before-arm pinned by averaging,
+**every one of the 6 cells is a strong net saver (+54% to +85%)**. Every prior negative/near-zero cell
+(quality/opus −62%, quality/sonnet −12%, freshness/opus −21%, freshness/haiku −70%) **flips strongly
+positive at depth** — confirming they were N=1 artifacts of cold arms that happened to short-circuit
+cheaply, exactly the failure mode the pinned-baseline design targets. This **overturns the original
+study's headline** ("3 of 6 cells negative, +2.5% aggregate, no portfolio save claim"): with replication
+at depth there IS a consistent, large save.
+
+**The honest caveat (load-bearing — do not drop it).** Tonight's save % is driven by how *thorough*
+the cold arm is, and that is **task-framing-sensitive**. The script-backed skills cost ~14–46K because
+their Python script does the audit in near-zero LLM tokens; the cold arm costs 54–200K because it must
+read everything itself — and the deeper it verifies (one freshness/sonnet cold draw ran **109 turns**),
+the larger the gap. My calibration prompt ("audit ALL skills, per-skill findings with severity")
+encourages a thorough cold audit; a cold arm that short-circuits (as several original N=1 draws did)
+shrinks or flips the save. So: **trust the consistent positive DIRECTION across all 6 cells and the
+rough magnitude; do not treat the exact percentages as a universal guarantee.** This is still a
+*skill-vs-cold* comparison (it answers "is the skill, in its current state, cheaper than no skill?" →
+yes at depth), NOT an optimization *swing* (no skill was changed tonight, so there is no pre/post-fix
+swing to measure).
+
+Phase 5 cost: 3 workflows, 44 sub-agents, ~3.55M sub-agent tokens (Stage1 0.77M + Stage2 1.17M +
+Stage3 1.65M, per-draw JSONL recompute). Scoreboard: `skills-optim-study-2026-06-01-replicates.json`.
 
 

@@ -22,10 +22,11 @@ noisiest existing cells** (opus, where the study's N=1 numbers are least trustwo
 | **Audited** | 32 | 14 global library + 14 Spacepotatis project + 4 mikkonumminen.dev project |
 | **Changed (fixes applied)** | **0** | No skill had a clear, bounded, non-rigor-exempt, not-already-guarded finding |
 | **Measured (from fixes)** | 0 | Nothing changed → nothing to measure (by rule) |
+| **Measured (replicate cells)** | 6 | Fallback: re-measured the noisiest study cells at depth (44 draws). See Phase 5. |
 | **Skipped + logged** | 16 | 9 rigor-exempt · 4 structural-only · 3 bounded-mechanism false-positives |
 | **Audited, no change (clean)** | 16 | No pre-findings |
-| **Failed / errored** | 0 | — |
-| **Still pending** | replicate cells | Phase 5 in progress — see below |
+| **Failed / errored** | 0 | All 44 draws completed; no short-circuits |
+| **Still pending** | 0 | Queue empty; run complete |
 
 ## Branches & tags (for your review / cleanup)
 
@@ -95,10 +96,37 @@ This produced 2 false positives (sync-readmes, skill-registry). Adding those alt
 batch-guard regex would cut the false-positive rate. *Not applied:* editing `rules.py` re-keys every
 skill and is a detector-tuning change, not a per-skill guard-wording fix — out of this run's scope.
 
-## Phase 5 — replicate measurements (in progress)
+## Phase 5 — replicate measurements (done)
 
-> Re-measuring the noisiest opus cells at depth (≥5 draws/arm, before-arm pinned by averaging) to
-> resolve the study's N=1 anomalies. Numbers and the updated scoreboard land here and in the
-> `skills-optim-study-2026-06-01-replicates.json` scoreboard when the draws complete.
+The audit/fix queue found 0 fixes, so per the task's fallback clause remaining quota went to
+**re-measuring the study's noisiest cells at depth** — both arms in the same window, before-arm pinned
+by averaging, ≥5 draws/arm on opus and ≥3 elsewhere. 6 cells, 44 sub-agent draws, ~3.55M tokens.
+Scoreboard: [`skills-optim-study-2026-06-01-replicates.json`](./skills-optim-study-2026-06-01-replicates.json).
+Per-draw raw numbers + accounting in the [ledger](./optim-rollout-2026-06-01-ledger.md).
 
-_(filled on stop)_
+| Cell | N/arm | **% saved** | prior N=1 history | resolution |
+| --- | ---: | ---: | --- | --- |
+| skills-quality/opus | 5 | **+76%** | +5% / −62% | −62% anomaly **overturned** |
+| skills-quality/sonnet | 3 | **+85%** | −12% / +2% | −12% sign-flip **overturned** |
+| skills-quality/haiku | 3 | **+54%** | +17% / +54% | confirmed |
+| skills-freshness/opus | 5 | **+76%** | −21% / +1% / −1% | near-zero **overturned** |
+| skills-freshness/sonnet | 3 | **+78%** | +43% / +14% / +1% | confirmed + firmed |
+| skills-freshness/haiku | 3 | **+73%** | −70% / +20% / +48% | headline swing **confirmed +** |
+| **Aggregate** | — | **+75%** | (orig. study: +2.5%) | — |
+
+**Headline.** At depth (N≥3, ≥5 on opus) with a pinned/averaged before-arm, **all 6 cells are strong
+net savers (+54% to +85%)**. Every prior negative/near-zero cell flips strongly positive — they were
+**N=1 artifacts of cold arms that short-circuited cheaply**, exactly the failure the pinned-baseline
+design targets. This overturns the original study's "3 of 6 negative, +2.5%, no portfolio save claim."
+
+**Caveat (do not drop).** The save % is driven by how thorough the cold arm is, which is
+**task-framing-sensitive** (the script-backed skill costs ~14–46K because its Python script does the
+audit in ~0 LLM tokens; the cold arm costs 54–200K reading everything — one cold draw ran 109 turns).
+Trust the consistent positive **direction** and rough magnitude, not the exact %. This is a
+*skill-vs-cold* result ("is the skill cheaper than no skill?" → yes at depth), not an optimization
+*swing* — no skill was changed tonight.
+
+---
+
+*Render note: the companion PDF (`skills-optim-study-2026-06-01-replicates.pdf`) carries this table +
+the synthesis in registry style.*
