@@ -375,7 +375,7 @@ export const fi: Translations = {
     cmdLinksUsage: 'käyttö: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'tuntematon valitsin:',
     cmdDownloadDesc: 'lataa tiedosto',
-    cmdDownloadUsage: 'download [--cv|--skills|--study]',
+    cmdDownloadUsage: 'download [--cv|--skills|--study|--results]',
     // i18n: awaiting Finnish translation — English placeholders for now.
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
@@ -383,10 +383,12 @@ export const fi: Translations = {
       'every claude code skill across my portfolio — pdf with token-savings estimates',
     cmdDownloadOptionStudy:
       'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
+    cmdDownloadOptionResults:
+      'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --skills`, or `download --study`.',
+      'try `download --cv`, `download --skills`, `download --study`, or `download --results`.',
     // i18n: awaiting Finnish translation — English placeholder for now.
-    cmdDownloadAmbiguous: 'specify only one of --cv, --skills, or --study.',
+    cmdDownloadAmbiguous: 'specify only one of --cv, --skills, --study, or --results.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla — vielä viimeistelyssä.',
     // i18n: awaiting Finnish translation — English placeholder for now.
@@ -395,6 +397,9 @@ export const fi: Translations = {
     // i18n: awaiting Finnish translation — English placeholder for now.
     cmdDownloadStudyNotAvailable:
       'optimization study pdf not available right now — reach out and I will send it.',
+    // i18n: awaiting Finnish translation — English placeholder for now.
+    cmdDownloadResultsNotAvailable:
+      'skill-auditor results pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',
