@@ -227,6 +227,7 @@ export interface Translations {
     cmdDownloadOptionCv: string;
     cmdDownloadOptionSkills: string;
     cmdDownloadOptionStudy: string;
+    cmdDownloadOptionReplicates: string;
     cmdDownloadOptionResults: string;
     cmdDownloadTryHint: string;
     cmdDownloadAmbiguous: string;
@@ -234,6 +235,7 @@ export interface Translations {
     cmdDownloadNotAvailable: string;
     cmdDownloadSkillsNotAvailable: string;
     cmdDownloadStudyNotAvailable: string;
+    cmdDownloadReplicatesNotAvailable: string;
     cmdDownloadResultsNotAvailable: string;
     cmdDownloadMeantime: string;
     cmdDownloadStarted: string;

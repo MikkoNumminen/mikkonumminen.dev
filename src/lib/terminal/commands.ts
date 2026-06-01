@@ -9,6 +9,7 @@ const LINKEDIN = 'https://www.linkedin.com/in/mikko-numminen-269795205/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
 const SKILLS_PDF_PATH = '/skills-registry.pdf';
 const STUDY_PDF_PATH = '/skills-optim-study.pdf';
+const REPLICATES_PDF_PATH = '/skills-optim-study-replicates.pdf';
 const RESULTS_PDF_PATH = '/skills-results.pdf';
 
 /**
@@ -127,6 +128,13 @@ export function buildCommands(t: Translations): CommandSpec[] {
             url: STUDY_PDF_PATH,
             filename: 'skills-optim-study.pdf',
             notAvailableMsg: tt.cmdDownloadStudyNotAvailable,
+          },
+          {
+            flag: '--replicates',
+            label: tt.cmdDownloadOptionReplicates,
+            url: REPLICATES_PDF_PATH,
+            filename: 'skills-optim-study-replicates.pdf',
+            notAvailableMsg: tt.cmdDownloadReplicatesNotAvailable,
           },
           {
             flag: '--results',

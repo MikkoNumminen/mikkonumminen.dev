@@ -3,7 +3,6 @@
   "study": "optim-rollout-replicates-2026-06-01",
   "round": 6,
   "source_repo": "https://github.com/MikkoNumminen/claude-skills",
-  "regenerate": "node scripts/build-scoreboard.mjs --input <cells.json> --output <scoreboard.json> (per-draw tokens via scripts/draw-tokens.mjs)",
   "context": "Re-measure the study's noisiest cells at depth (N>=5/arm on opus), both arms in the same window, before-arm pinned by averaging cold draws. Resolves N=1 anomalies from rounds 1-5. Triggered as the optim-rollout fallback: the audit/fix queue found 0 fixes to apply, so remaining quota went to firming up the noisiest existing cells.",
   "methodology": {
     "arm_A": "cold (no skills-quality/freshness SKILL.md or script; DOES inspect target skills since auditing them is the task)",
@@ -20,8 +19,6 @@
   "cells": {
     "skills-quality|opus": {
       "model": "opus",
-      "n_arm_A": 5,
-      "n_arm_B": 5,
       "arm_A_draws": [
         130827,
         126654,
@@ -36,27 +33,6 @@
         30060,
         30015
       ],
-      "arm_A": {
-        "n": 5,
-        "median": 125778,
-        "mean": 124154,
-        "min": 116085,
-        "max": 130827,
-        "stddev": 5019
-      },
-      "arm_B": {
-        "n": 5,
-        "median": 30015,
-        "mean": 30411,
-        "min": 28648,
-        "max": 34540,
-        "stddev": 2148
-      },
-      "saved_median": 95763,
-      "pct_saved_median": 76,
-      "before_arm_pinned_mean": 124154,
-      "saved_pinned": 94139,
-      "pct_saved_pinned": 76,
       "prior_rounds": {
         "R1_pct": 5,
         "R5_pct": -62,
@@ -66,8 +42,6 @@
     },
     "skills-freshness|opus": {
       "model": "opus",
-      "n_arm_A": 5,
-      "n_arm_B": 5,
       "arm_A_draws": [
         200044,
         191519,
@@ -82,27 +56,6 @@
         45913,
         40843
       ],
-      "arm_A": {
-        "n": 5,
-        "median": 191519,
-        "mean": 187766,
-        "min": 171714,
-        "max": 200044,
-        "stddev": 10675
-      },
-      "arm_B": {
-        "n": 5,
-        "median": 45913,
-        "mean": 46651,
-        "min": 40764,
-        "max": 53351,
-        "stddev": 5417
-      },
-      "saved_median": 145606,
-      "pct_saved_median": 76,
-      "before_arm_pinned_mean": 187766,
-      "saved_pinned": 141853,
-      "pct_saved_pinned": 76,
       "prior_rounds": {
         "R1_pct": -21,
         "R2_pct": 1,
@@ -113,8 +66,6 @@
     },
     "skills-quality|sonnet": {
       "model": "sonnet",
-      "n_arm_A": 3,
-      "n_arm_B": 3,
       "arm_A_draws": [
         94849,
         102386,
@@ -125,27 +76,6 @@
         13988,
         13908
       ],
-      "arm_A": {
-        "n": 3,
-        "median": 94849,
-        "mean": 96772,
-        "min": 93082,
-        "max": 102386,
-        "stddev": 4034
-      },
-      "arm_B": {
-        "n": 3,
-        "median": 13988,
-        "mean": 14637,
-        "min": 13908,
-        "max": 16014,
-        "stddev": 974
-      },
-      "saved_median": 80861,
-      "pct_saved_median": 85,
-      "before_arm_pinned_mean": 96772,
-      "saved_pinned": 82784,
-      "pct_saved_pinned": 86,
       "prior_rounds": {
         "R1_pct": -12,
         "R5_pct": 2
@@ -154,8 +84,6 @@
     },
     "skills-quality|haiku": {
       "model": "haiku",
-      "n_arm_A": 3,
-      "n_arm_B": 3,
       "arm_A_draws": [
         74612,
         53635,
@@ -166,27 +94,6 @@
         50362,
         29542
       ],
-      "arm_A": {
-        "n": 3,
-        "median": 74612,
-        "mean": 82276,
-        "min": 53635,
-        "max": 118581,
-        "stddev": 27062
-      },
-      "arm_B": {
-        "n": 3,
-        "median": 34511,
-        "mean": 38138,
-        "min": 29542,
-        "max": 50362,
-        "stddev": 8878
-      },
-      "saved_median": 40101,
-      "pct_saved_median": 54,
-      "before_arm_pinned_mean": 82276,
-      "saved_pinned": 47765,
-      "pct_saved_pinned": 58,
       "prior_rounds": {
         "R1_pct": 17,
         "R5_pct": 54
@@ -195,8 +102,6 @@
     },
     "skills-freshness|sonnet": {
       "model": "sonnet",
-      "n_arm_A": 3,
-      "n_arm_B": 3,
       "arm_A_draws": [
         151393,
         140088,
@@ -207,27 +112,6 @@
         37166,
         29661
       ],
-      "arm_A": {
-        "n": 3,
-        "median": 146622,
-        "mean": 146034,
-        "min": 140088,
-        "max": 151393,
-        "stddev": 4634
-      },
-      "arm_B": {
-        "n": 3,
-        "median": 32872,
-        "mean": 33233,
-        "min": 29661,
-        "max": 37166,
-        "stddev": 3075
-      },
-      "saved_median": 113750,
-      "pct_saved_median": 78,
-      "before_arm_pinned_mean": 146034,
-      "saved_pinned": 113162,
-      "pct_saved_pinned": 77,
       "prior_rounds": {
         "R1_pct": 43,
         "R2_pct": 14,
@@ -237,8 +121,6 @@
     },
     "skills-freshness|haiku": {
       "model": "haiku",
-      "n_arm_A": 3,
-      "n_arm_B": 3,
       "arm_A_draws": [
         125506,
         81107,
@@ -249,27 +131,6 @@
         41032,
         26869
       ],
-      "arm_A": {
-        "n": 3,
-        "median": 115388,
-        "mean": 107334,
-        "min": 81107,
-        "max": 125506,
-        "stddev": 19000
-      },
-      "arm_B": {
-        "n": 3,
-        "median": 31175,
-        "mean": 33025,
-        "min": 26869,
-        "max": 41032,
-        "stddev": 5928
-      },
-      "saved_median": 84213,
-      "pct_saved_median": 73,
-      "before_arm_pinned_mean": 107334,
-      "saved_pinned": 76159,
-      "pct_saved_pinned": 71,
       "prior_rounds": {
         "R1_pct": -70,
         "R2_pct": 20,
@@ -278,12 +139,5 @@
       },
       "verdict": "THE headline swing cell, now firmly positive (+73%, N=3). The R1 -70% was a pre-fix N=1 artifact (unusually cheap cold arm, 64K); post-fix it went +20% (R2) -> +48% (R5) -> +73% (N=3 here). Confirms the central study claim: bounded script-backed guidance reliably saves haiku-class tokens."
     }
-  },
-  "aggregate": {
-    "cells_measured": 6,
-    "sum_median_arm_A": 748768,
-    "sum_median_arm_B": 188474,
-    "net_saved": 560294,
-    "net_pct_saved": 75
   }
 }
