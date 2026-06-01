@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-06-01T00:02:50Z",
+  "target": "mikko-skills-quality + mikko-skills-freshness — 3-model A/B calibration",
+  "summary": "A/B-measured token savings for the two skill-auditing skills, across Haiku 4.5, Sonnet 4.6, and Opus 4.8. Both skills save tokens on every model (quality 38-54%, freshness 11-36%), savings rising with model capability. An adversarial equivalence pass confirmed the freshness arm reaches the same audit conclusions as the cold arm on all three models, but the quality arm missed real, specific findings on Sonnet and Opus (a hardcoded path; structural-bloat specifics) — its savings are partly a coarser, cheaper read.",
+  "method": {
+    "arms": "Arm A = cold (no skill awareness, scout + reason). Arm B = skill (read SKILL.md, run the deterministic pre-pass scoped to the fixture, review only what it flagged).",
+    "isolation": "The two skills are installed-only (not in a git repo), so worktree isolation does not apply; each arm ran against a shared read-only fixture with `--scope project --project-root <fixture>` pinning the audit to the 4-skill corpus (the real global set was NOT scanned).",
+    "accounting": "Per-arm tokens = harness subagent_tokens (input + output + cache-creation, cache-read excluded). N=1 per cell.",
+    "models": ["haiku-4.5", "sonnet-4.6", "opus-4.8"],
+    "equivalence_verification": "12-agent adversarial workflow: one Sonnet judge per (skill, model) pair compared arm-A vs arm-B findings against the real SKILL.md files; disputed findings were re-examined by a skeptic instructed to refute. Verdict per pair is equivalent_final = (no confirmed material miss)."
+  },
+  "fixture": {
+    "description": "4 diverse installed skills, weighted to verbose ones with optimization headroom; the audited corpus for both skills.",
+    "skills": ["mikko-audit", "mikko-help", "mikko-skill-calibration", "mikko-skills"],
+    "skill_md_line_counts": { "mikko-audit": 389, "mikko-help": 264, "mikko-skill-calibration": 289, "mikko-skills": 62 }
+  },
+  "skills": [
+    {
+      "name": "mikko-skills-quality",
+      "task": "Audit the 4 fixture skills for token-economy quality (LLM-as-loop prose, oversized SKILL.md, missing/invalid frontmatter); produce a severity-ranked findings table.",
+      "per_model": {
+        "haiku":  { "arm_A_tokens": 38975, "arm_B_tokens": 24338, "saved": 14637, "pct_saved": 38, "arm_A_tool_uses": 7, "arm_B_tool_uses": 7 },
+        "sonnet": { "arm_A_tokens": 33540, "arm_B_tokens": 17486, "saved": 16054, "pct_saved": 48, "arm_A_tool_uses": 6, "arm_B_tool_uses": 6 },
+        "opus":   { "arm_A_tokens": 44316, "arm_B_tokens": 20227, "saved": 24089, "pct_saved": 54, "arm_A_tool_uses": 7, "arm_B_tool_uses": 3 }
+      },
+      "aggregate": { "arm_A_total": 116831, "arm_B_total": 62051, "saved": 54780, "pct_saved": 47 },
+      "equivalence": {
+        "haiku":  { "equivalent": true,  "confirmed_misses": [], "note": "Both arms flagged the same 3/4 skills for the same root cause and cleared mikko-skills; the HIGH->MEDIUM severity disagreement on mikko-skill-calibration is a one-notch debatable call, not a miss." },
+        "sonnet": { "equivalent": false, "confirmed_misses": ["mikko-skills: hardcoded Windows path C:/Users/vandr/.claude/skills/ at SKILL.md line 21 — cold arm flagged LOW, skill arm passed it clean. Sibling mikko-help uses ~ and warns against hardcoded author paths, so the defect is real and material."], "note": "Skill arm's pre-pass checks line count + loop-prose only; it cannot see a hardcoded path, so it cleared a file that needed flagging." },
+        "opus":   { "equivalent": false, "confirmed_misses": ["mikko-audit: skill arm issued a generic MEDIUM (loop-prose) and missed the cold arm's specific HIGH — ~400 lines of duplicated embedded sub-agent prompt templates (the Phase 2 pattern lists) plus the per-language tool-runner loop, both concrete scriptable slices."], "note": "Pre-pass detects smell presence, not the specific structural bloat the cold reading surfaced." }
+      }
+    },
+    {
+      "name": "mikko-skills-freshness",
+      "task": "Audit the 4 fixture skills for staleness/drift (frontmatter present, description matches behavior, no broken file/command refs); produce a findings table.",
+      "per_model": {
+        "haiku":  { "arm_A_tokens": 39300, "arm_B_tokens": 34869, "saved": 4431,  "pct_saved": 11, "arm_A_tool_uses": 9,  "arm_B_tool_uses": 21 },
+        "sonnet": { "arm_A_tokens": 34535, "arm_B_tokens": 24127, "saved": 10408, "pct_saved": 30, "arm_A_tool_uses": 7,  "arm_B_tool_uses": 12 },
+        "opus":   { "arm_A_tokens": 48437, "arm_B_tokens": 31161, "saved": 17276, "pct_saved": 36, "arm_A_tool_uses": 11, "arm_B_tool_uses": 9 }
+      },
+      "aggregate": { "arm_A_total": 122272, "arm_B_total": 90157, "saved": 32115, "pct_saved": 26 },
+      "equivalence": {
+        "haiku":  { "equivalent": true, "confirmed_misses": [], "note": "Both arms noisy (cold arm mis-cited mikko-help for a path it does not have); no confirmed material miss in either direction." },
+        "sonnet": { "equivalent": true, "confirmed_misses": [], "note": "Skill arm read each flagged file at limit=80 and itself caught the mikko-skills hardcoded path the quality arm missed." },
+        "opus":   { "equivalent": true, "confirmed_misses": [], "note": "Skill arm caught the mikko-skills hardcoded path; cold-arm-only items were off-dimension or runtime-output paths, not real drift." }
+      }
+    }
+  ],
+  "aggregate_overall": {
+    "arm_A_total": 239103,
+    "arm_B_total": 152208,
+    "saved": 86895,
+    "pct_saved": 36,
+    "per_model": {
+      "haiku":  { "arm_A_total": 78275, "arm_B_total": 59207, "saved": 19068, "pct_saved": 24 },
+      "sonnet": { "arm_A_total": 68075, "arm_B_total": 41613, "saved": 26462, "pct_saved": 39 },
+      "opus":   { "arm_A_total": 92753, "arm_B_total": 51388, "saved": 41365, "pct_saved": 45 }
+    }
+  },
+  "experiment_cost": {
+    "ab_arm_tokens_total": 391311,
+    "equivalence_workflow_tokens": 401602,
+    "note": "Plus main-thread orchestration. 12 A/B arms + a 12-agent equivalence workflow."
+  },
+  "caveats": [
+    "N=1 per cell — trust direction and rough magnitude, not two-significant-digit precision.",
+    "Sub-agent execution is not identical to main-thread; numbers are representative, not exact.",
+    "The fixture is a small fixed 4-skill corpus, not a production audit run — chosen for cost efficiency and to weight toward verbose skills with optimization headroom.",
+    "Equivalence was judged by Sonnet judges + an adversarial skeptic, grounded against the real SKILL.md files; it is a measured check, not a proof.",
+    "Haiku findings were the noisiest on both arms (e.g. a cold-arm path mis-citation on mikko-help), so the Haiku equivalence verdicts carry the least confidence.",
+    "Real bug surfaced (not part of the measurement, but worth fixing): mikko-skills/SKILL.md line 21 hardcodes C:/Users/vandr/.claude/skills/ — non-portable; sibling mikko-help uses ~."
+  ]
+}
