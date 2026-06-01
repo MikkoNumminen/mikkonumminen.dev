@@ -13,18 +13,98 @@
     "readme-drift-sync": "Detect drift between mikkonumminen.dev/README.md and the repo's actual state. Report only, no rewrites.",
     "session-cost": "Compute the token cost of session 47fcb7d8-762b-45af-ae2a-b9e4af3c295b. Main thread + sub-agents breakdown.",
     "skill-calibration": "Plan an A/B calibration for a hypothetical /example-skill in AudiobookMaker. Plan only, no actual dispatch.",
-    "skill-usage": "Scan local Claude Code JSONLs and produce a per-skill usage summary for the last 90 days."
+    "skill-usage": "Scan local Claude Code JSONLs and produce a per-skill usage summary for the last 90 days.",
+    "skills-quality": "Audit 4 fixture Claude Code skills for token-economy quality (LLM-as-loop prose, oversized SKILL.md, bad frontmatter). Findings table.",
+    "skills-freshness": "Audit 4 fixture Claude Code skills for staleness/drift (frontmatter, description-vs-behavior, broken refs). Findings table."
   },
   "skills": [
-    {"name": "audit",                     "arm_A_tokens": 117161, "arm_B_tokens": 114437, "saved":   2724, "pct_saved":   2},
-    {"name": "mikko-audit-suite",         "arm_A_tokens":  20068, "arm_B_tokens":  24350, "saved":  -4282, "pct_saved": -21, "notes": "skill encodes detection-then-plan rigor — arm A's freestyle was tighter on this specific task; recipe overhead exceeded the focus benefit at this scale."},
-    {"name": "mikko-help",                "arm_A_tokens":  24092, "arm_B_tokens":  29421, "saved":  -5329, "pct_saved": -22, "notes": "skill encodes a source-repo cross-check on top of the install scan — extra work for completeness, costs more than just listing installed skills."},
-    {"name": "mikko-install",             "arm_A_tokens":  16930, "arm_B_tokens":  22824, "saved":  -5894, "pct_saved": -35, "notes": "skill encodes the full install protocol (modes, prefixing, source-repo validation) — costs more than a plain cp pass; value is in correctness, not token compression."},
-    {"name": "react-anti-patterns-audit", "arm_A_tokens":  16522, "arm_B_tokens":  21900, "saved":  -5378, "pct_saved": -33, "notes": "target had no React; both arms correctly returned no findings. Arm B's structured pre-flight + abort cost more than arm A's quick check. N=1 on a negative-result target; positive-result repos would likely differ."},
-    {"name": "readme-drift-sync",         "arm_A_tokens":  29583, "arm_B_tokens":  62609, "saved": -33026, "pct_saved": -112, "notes": "biggest cost-more in this calibration. Skill encodes a thorough multi-axis drift detection + rewrite-in-voice procedure. Arm A scouted faster and produced 8 findings with file:line; arm B used 63 tool uses against arm A's 37 doing the structured walk. Skill's value is rewrite quality, not detection speed."},
-    {"name": "session-cost",              "arm_A_tokens":  35880, "arm_B_tokens":  30816, "saved":   5064, "pct_saved":  14, "notes": "arm B ran the prescribed scan.mjs directly; arm A wrote a JSONL walker from scratch. Modest save from delegating to the existing tool."},
-    {"name": "skill-calibration",         "arm_A_tokens":  15682, "arm_B_tokens":  27235, "saved": -11553, "pct_saved": -74, "notes": "SKILL.md is detailed (modes, flags, worktree management, output schema); arm A wrote a sparse plan that wouldn't have actually worked. Cost-more reflects spec depth, not waste."},
-    {"name": "skill-usage",               "arm_A_tokens":  48949, "arm_B_tokens":  22899, "saved":  26050, "pct_saved":  53, "notes": "biggest save in this calibration. Recipe says 'run scan.mjs'; arm A wrote a from-scratch JSONL walker including dedup logic. Big save from delegating to the existing tool."}
+    {
+      "name": "audit",
+      "arm_A_tokens": 117161,
+      "arm_B_tokens": 114437,
+      "saved": 2724,
+      "pct_saved": 2
+    },
+    {
+      "name": "mikko-audit-suite",
+      "arm_A_tokens": 20068,
+      "arm_B_tokens": 24350,
+      "saved": -4282,
+      "pct_saved": -21,
+      "notes": "skill encodes detection-then-plan rigor — arm A's freestyle was tighter on this specific task; recipe overhead exceeded the focus benefit at this scale."
+    },
+    {
+      "name": "mikko-help",
+      "arm_A_tokens": 24092,
+      "arm_B_tokens": 29421,
+      "saved": -5329,
+      "pct_saved": -22,
+      "notes": "skill encodes a source-repo cross-check on top of the install scan — extra work for completeness, costs more than just listing installed skills."
+    },
+    {
+      "name": "mikko-install",
+      "arm_A_tokens": 16930,
+      "arm_B_tokens": 22824,
+      "saved": -5894,
+      "pct_saved": -35,
+      "notes": "skill encodes the full install protocol (modes, prefixing, source-repo validation) — costs more than a plain cp pass; value is in correctness, not token compression."
+    },
+    {
+      "name": "react-anti-patterns-audit",
+      "arm_A_tokens": 16522,
+      "arm_B_tokens": 21900,
+      "saved": -5378,
+      "pct_saved": -33,
+      "notes": "target had no React; both arms correctly returned no findings. Arm B's structured pre-flight + abort cost more than arm A's quick check. N=1 on a negative-result target; positive-result repos would likely differ."
+    },
+    {
+      "name": "readme-drift-sync",
+      "arm_A_tokens": 29583,
+      "arm_B_tokens": 62609,
+      "saved": -33026,
+      "pct_saved": -112,
+      "notes": "biggest cost-more in this calibration. Skill encodes a thorough multi-axis drift detection + rewrite-in-voice procedure. Arm A scouted faster and produced 8 findings with file:line; arm B used 63 tool uses against arm A's 37 doing the structured walk. Skill's value is rewrite quality, not detection speed."
+    },
+    {
+      "name": "session-cost",
+      "arm_A_tokens": 35880,
+      "arm_B_tokens": 30816,
+      "saved": 5064,
+      "pct_saved": 14,
+      "notes": "arm B ran the prescribed scan.mjs directly; arm A wrote a JSONL walker from scratch. Modest save from delegating to the existing tool."
+    },
+    {
+      "name": "skill-calibration",
+      "arm_A_tokens": 15682,
+      "arm_B_tokens": 27235,
+      "saved": -11553,
+      "pct_saved": -74,
+      "notes": "SKILL.md is detailed (modes, flags, worktree management, output schema); arm A wrote a sparse plan that wouldn't have actually worked. Cost-more reflects spec depth, not waste."
+    },
+    {
+      "name": "skill-usage",
+      "arm_A_tokens": 48949,
+      "arm_B_tokens": 22899,
+      "saved": 26050,
+      "pct_saved": 53,
+      "notes": "biggest save in this calibration. Recipe says 'run scan.mjs'; arm A wrote a from-scratch JSONL walker including dedup logic. Big save from delegating to the existing tool."
+    },
+    {
+      "name": "skills-quality",
+      "arm_A_tokens": 33540,
+      "arm_B_tokens": 17486,
+      "saved": 16054,
+      "pct_saved": 48,
+      "notes": "Cheapest auditor (its triage skips reading the SKILL.md), but arm-B missed a real hardcoded-path finding the cold arm caught — outcome NOT equivalent on Sonnet."
+    },
+    {
+      "name": "skills-freshness",
+      "arm_A_tokens": 34535,
+      "arm_B_tokens": 24127,
+      "saved": 10408,
+      "pct_saved": 30,
+      "notes": "Reads each flagged skill at limit=80; outcome-equivalent to the cold arm — even caught the hardcoded-path bug the quality arm missed."
+    }
   ],
   "aggregate": {
     "arm_A_total": 324867,

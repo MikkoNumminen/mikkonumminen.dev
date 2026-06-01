@@ -494,7 +494,13 @@ function applyCalibrationFile(file, receiptPath) {
     const matches = [];
     for (const r of reg.repos) {
       for (const s of r.skills) {
-        if (s.name === entry.name && s.receipt) matches.push({ r, s });
+        // Match by name even when the row has no receipt yet: a freshly
+        // scanned library skill with no editorial/transcript source still has
+        // a real measured cost in its calibration arm-B. The apply loop seeds
+        // a receipt for those, so the measured savings attach instead of being
+        // silently dropped (the case for mikko-skills-quality / -freshness,
+        // which have no docs/SKILLS.md or ## Token expectations source).
+        if (s.name === entry.name) matches.push({ r, s });
       }
     }
     if (matches.length === 0) {
@@ -502,6 +508,22 @@ function applyCalibrationFile(file, receiptPath) {
       continue;
     }
     for (const { r, s } of matches) {
+      if (!s.receipt) {
+        // No editorial/transcript receipt existed (e.g. a freshly scanned
+        // library skill with no docs/SKILLS.md or ## Token expectations
+        // section). Seed one from the calibration arm-B — itself a real
+        // measured cost — so the savings overlay below has a receipt to write
+        // onto. Deliberately no prior_estimate: there was no pre-measurement
+        // guess, so the calibration-honesty chart must not invent a dot.
+        s.receipt = {
+          path: receiptPath,
+          source: 'calibration',
+          tokens_per_use: entry.arm_B_tokens,
+          uses_per_year: null,
+          annual_total: null,
+          last_invoked: calibration.generated_at ?? null,
+        };
+      }
       s.receipt.tokens_saved_per_use = entry.saved;
       s.receipt.tokens_saved_source = 'calibration';
       s.receipt.calibration_arm_A = entry.arm_A_tokens;
