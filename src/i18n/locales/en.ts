@@ -383,25 +383,30 @@ export const en: Translations = {
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc:
-      'CV, skills registry, optimization study, or skill-auditor results (PDF)',
-    cmdDownloadUsage: 'download [--cv|--skills|--study|--results]',
+      'CV, skills registry, optimization study, round-6 replicates, or skill-auditor results (PDF)',
+    cmdDownloadUsage: 'download [--cv|--skills|--study|--replicates|--results]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'every claude code skill across my portfolio — pdf with token-savings estimates',
     cmdDownloadOptionStudy:
       'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
+    cmdDownloadOptionReplicates:
+      'round-6 replication — the noisiest study cells re-measured at depth; every cell now saves 54–85% — pdf',
     cmdDownloadOptionResults:
       'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --skills`, `download --study`, or `download --results`.',
-    cmdDownloadAmbiguous: 'specify only one of --cv, --skills, --study, or --results.',
+      'try `download --cv`, `download --skills`, `download --study`, `download --replicates`, or `download --results`.',
+    cmdDownloadAmbiguous:
+      'specify only one of --cv, --skills, --study, --replicates, or --results.',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet — still being polished.',
     cmdDownloadSkillsNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
     cmdDownloadStudyNotAvailable:
       'optimization study pdf not available right now — reach out and I will send it.',
+    cmdDownloadReplicatesNotAvailable:
+      'replicates pdf not available right now — reach out and I will send it.',
     cmdDownloadResultsNotAvailable:
       'skill-auditor results pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'in the meantime, reach out:',
