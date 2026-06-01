@@ -9,6 +9,7 @@ const LINKEDIN = 'https://www.linkedin.com/in/mikko-numminen-269795205/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
 const SKILLS_PDF_PATH = '/skills-registry.pdf';
 const STUDY_PDF_PATH = '/skills-optim-study.pdf';
+const RESULTS_PDF_PATH = '/skills-results.pdf';
 
 /**
  * Build the terminal command set for a given locale.
@@ -126,6 +127,13 @@ export function buildCommands(t: Translations): CommandSpec[] {
             url: STUDY_PDF_PATH,
             filename: 'skills-optim-study.pdf',
             notAvailableMsg: tt.cmdDownloadStudyNotAvailable,
+          },
+          {
+            flag: '--results',
+            label: tt.cmdDownloadOptionResults,
+            url: RESULTS_PDF_PATH,
+            filename: 'skills-results.pdf',
+            notAvailableMsg: tt.cmdDownloadResultsNotAvailable,
           },
         ];
         const selected = targets.filter((tgt) => args.includes(tgt.flag));

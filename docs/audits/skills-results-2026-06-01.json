@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-06-01T00:00:00Z",
+  "title": "The two skill-auditors — what they cost, and what they fixed",
+  "skills": ["mikko-skills-quality", "mikko-skills-freshness"],
+  "summary": "Results sheet for the two meta-skills that audit other skills for token waste. Q1: are the auditors cheap to run (A/B cost). Q2: did running them save tokens elsewhere (downstream optimization). Synthesis of two backing docs; not carried as registry rows.",
+  "cross_links": {
+    "calibration_method": "docs/audits/skill-calibration-2026-06-01.md",
+    "optimization_study": "docs/audits/skills-optim-study-2026-05-31.md",
+    "raw_ab_data": ".claude/agent-verdicts/SKILL-CALIBRATION-2026-06-01.json"
+  },
+  "question_1_cost": {
+    "description": "Cold (arm A) vs with-skill (arm B), 3 models, fixed 4-skill fixture, N=1 per cell. Tokens = subagent_tokens (input + output + cache-creation).",
+    "models": ["haiku", "sonnet", "opus"],
+    "per_skill": {
+      "mikko-skills-quality": {
+        "tokens_per_use": 17486,
+        "tokens_per_use_source": "sonnet arm B",
+        "saved_pct": { "haiku": 38, "sonnet": 48, "opus": 54 },
+        "arm_A": { "haiku": 38975, "sonnet": 33540, "opus": 44316 },
+        "arm_B": { "haiku": 24338, "sonnet": 17486, "opus": 20227 },
+        "saved": { "haiku": 14637, "sonnet": 16054, "opus": 24089 },
+        "outcome_equivalent": { "haiku": true, "sonnet": false, "opus": false },
+        "aggregate_pct_saved": 47,
+        "note": "Cheapest auditor — pre-pass skips reading the SKILL.md. That is why arm B missed real findings on Sonnet and Opus."
+      },
+      "mikko-skills-freshness": {
+        "tokens_per_use": 24127,
+        "tokens_per_use_source": "sonnet arm B",
+        "saved_pct": { "haiku": 11, "sonnet": 30, "opus": 36 },
+        "arm_A": { "haiku": 39300, "sonnet": 34535, "opus": 48437 },
+        "arm_B": { "haiku": 34869, "sonnet": 24127, "opus": 31161 },
+        "saved": { "haiku": 4431, "sonnet": 10408, "opus": 17276 },
+        "outcome_equivalent": { "haiku": true, "sonnet": true, "opus": true },
+        "aggregate_pct_saved": 26,
+        "note": "Reads each flagged file at limit=80 — saves less but stayed faithful on all three models, and caught the hardcoded path the quality arm missed."
+      }
+    },
+    "per_model_pct_saved": { "haiku": 24, "sonnet": 39, "opus": 45 },
+    "overall": { "arm_A_total": 239103, "arm_B_total": 152208, "saved": 86895, "pct_saved": 36 },
+    "confirmed_regressions": [
+      {
+        "pair": "quality/sonnet",
+        "missed": "hardcoded Windows path in mikko-skills/SKILL.md line 21 that fails on any other machine"
+      },
+      {
+        "pair": "quality/opus",
+        "missed": "specifics of mikko-audit's ~400 lines of duplicated embedded prompt templates (issued generic MEDIUM, named nothing)"
+      }
+    ]
+  },
+  "question_2_downstream": {
+    "description": "Optimization the two skills' cost-trap methodology drove across the portfolio. Headline is the swing (before/after the fix), not the aggregate. N=1 per cell.",
+    "cost_trap_mechanisms": [
+      {
+        "id": "unlimited_read_in_procedure",
+        "name": "Unlimited read",
+        "trigger": "'read each SKILL.md' → skill arm read 233,876 chars across 14 files in full vs cold arm's 116,731",
+        "guard": "limit=80 — frontmatter + a section or two; no deep read"
+      },
+      {
+        "id": "uncapped_followup",
+        "name": "Uncapped follow-up",
+        "trigger": "missing cap let the agent chase broken path refs into the source repo: +4 Bash calls, +28K tokens",
+        "guard": "one ls per finding, max 3 traces total, don't spelunk into source repos"
+      },
+      {
+        "id": "batch_invitation",
+        "name": "Batch invitation",
+        "trigger": "'read in parallel' staged as a 6+8-file batch, paying +27K cache-creation tokens",
+        "guard": "cap the batch; don't pre-stage a large parallel read for the model"
+      }
+    ],
+    "fixes_shipped": [
+      {
+        "repo": "claude-skills",
+        "pr": 18,
+        "url": "https://github.com/MikkoNumminen/claude-skills/pull/18",
+        "what": "added the three cost-trap rules and tightened skills-freshness/SKILL.md step 3 (limit=80, don't spelunk)"
+      },
+      {
+        "repo": "Spacepotatis",
+        "pr": 280,
+        "url": "https://github.com/MikkoNumminen/Spacepotatis/pull/280",
+        "what": "applied the trace-cap to content-audit"
+      }
+    ],
+    "headline_swings": [
+      { "cell": "skills-freshness/haiku", "before_pct": -70, "after_pct": 20, "swing_pp": 90, "mechanism": "unlimited_read_in_procedure", "fix_pr": 18 },
+      { "cell": "content-audit/haiku", "before_pct": -5, "after_pct": 11, "swing_pp": 16, "mechanism": "uncapped_followup", "fix_pr": 280 },
+      { "cell": "skills-quality/haiku", "before_pct": 17, "after_pct": 54, "swing_pp": null, "mechanism": "investigation-collapse", "fix_pr": null }
+    ],
+    "durable_claim": "Bounded, scoped procedural language in a SKILL.md reliably cuts token use for Haiku-class models; on Opus-class the effect is inside the measurement noise.",
+    "experiment_cost_subagent_tokens": 4480000
+  },
+  "caveats": [
+    "No portfolio-wide save rate — both halves are small-N (A/B: N=1 per cell on a 4-skill fixture; downstream: 3 skills, N=1 per cell).",
+    "quality's 48-54% is partly a coarser read, not pure efficiency — it missed two real findings.",
+    "+36% aggregate is ratio-of-sums (volume-weighted), not a typical-cell figure.",
+    "A re-run yields different absolute numbers; Opus single-cell swings ran up to 67pp between rounds.",
+    "Not carried as portfolio skill-registry rows — value lives in this results sheet."
+  ]
+}
