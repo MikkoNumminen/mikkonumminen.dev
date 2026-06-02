@@ -1,4 +1,4 @@
-# Skill-suite calibration — updated mikko- library (2026-06-02)
+# Skill-suite calibration — mikko- library (2026-06-02) + Spacepotatis audit skills (2026-06-03)
 
 *A/B token measurement (cold arm A vs with-skill arm B) for the 8 cleanly-A/B-able mikko- skills, across **all three models** (Opus 4.8, Sonnet 4.6, Haiku 4.5). This is the **"before" baseline** — the skills were just audited + given freshness blocks (claude-skills #22/#23); a planned optimization pass will re-measure against these numbers. The optimization pass (claude-skills #24) has since landed and three of these skills were re-measured — see **After-optimization re-measure** below. Method mirrors the first calibration document, extended to the full updated suite and every model.*
 
@@ -55,6 +55,27 @@
 **Reading: the optimization's per-invocation token effect is below the N = 1 noise floor — this delta is not the optimization.** The per-cell swings span −50% to +12% with no relationship to the 1–3 KB of `SKILL.md` body each skill shed. The same `audit` task cost 56K, 59K, 83K, 127K and 143K across these runs; that ±40–60K task-work variance dwarfs the few-KB body trim by 20–60×. The overall −16% (all nine cells, 643,788 → 539,712) is the *before* pass's high outliers — `audit` Opus 143K, `readme` Sonnet 75K — regressing toward the mean, not a measured saving.
 
 **What this means for skill optimization.** Trimming `SKILL.md` *body* size buys ≈ 0 measurable per-invocation tokens for task-heavy skills: the one-time body read is a rounding error against the audit work itself. The payoff of the #24 optimizations is real but lives where this metric can't see it — the always-loaded `description` (charged on every matching turn, not just on invocation), context cleanliness, and correctness (the dead links / dead game-refs / stale narrative removed). To *measure* a body-size win you'd need a skill whose body dominates its task (none of these three) or N ≫ 1 to drop the noise floor below the signal.
+
+## Spacepotatis audit-skills calibration (2026-06-03)
+
+*A second corpus, same A/B method, run after the Spacepotatis skills were finetuned (quality + freshness, Spacepotatis #286). The **4 cleanly-A/B-able read-only audit skills** were measured cold vs with-skill across all three models — `balance-review`, `content-audit`, `ai-codegen-smell-audit`, `save-roundtrip-audit`. The 8 generative scaffolders (`new-*`, `equipment`) + 2 orchestrators (`modular-architecture-audit`, `security-audit`) were finetuned too but **excluded from A/B** — they mutate the repo, so they aren't cleanly read-only measurable (same exclusion logic the mikko- suite used). **24 sub-agent arms** (4 × 2 × 3). Same accounting (`subagent_tokens`), N = 1, pinned read-only targets in the Spacepotatis repo.*
+
+| Skill (arm B reads the finetuned `SKILL.md`) | Opus A | Opus B | Opus % | Sonnet A | Sonnet B | Sonnet % | Haiku A | Haiku B | Haiku % |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| balance-review | 81,911 | 58,089 | **+29%** | 60,719 | 39,256 | **+35%** | 61,852 | 32,037 | **+48%** |
+| content-audit | 121,173 | 100,912 | +17% | 99,250 | 83,336 | +16% | 62,300 | 69,919 | −12% |
+| ai-codegen-smell-audit | 103,964 | 106,804 | −3% | 85,301 | 86,767 | −2% | 61,452 | 77,202 | −26% |
+| save-roundtrip-audit | 64,695 | 83,155 | −29% | 44,787 | 56,412 | −26% | 73,877 | 62,340 | +16% |
+| **Aggregate (ratio-of-sums)** | **371,743** | **348,960** | **+6%** | **290,057** | **265,771** | **+8%** | **259,481** | **241,498** | **+7%** |
+
+**What this corpus shows:**
+
+1. **`balance-review` is the standout (+29/+35/+48%)** — its structured metric procedure (DPS / TTK / energy-per-DPS formulas + a flagged-issues checklist) is far cheaper than scouting the balance maths cold. It's the Spacepotatis analogue of the mikko- script-backed skills, and it's the one place the inverse-capability curve holds cleanly here: the win *grows* as the model weakens (+29 → +35 → +48%).
+2. **`ai-codegen` is a wash-to-negative (−3/−2/−26%)** — the same prose-audit pattern as its mikko- copy, reproduced on a different repo. The with-skill arm also follows the skill's "write a report" step, inflating Haiku-B.
+3. **`content-audit` / `save-roundtrip` are mixed** — content saves modestly on the capable models (+17/+16%) and loses on Haiku; save-roundtrip's layer-by-layer procedure costs *more* on Opus/Sonnet (which scout the save pipeline efficiently cold) but saves on Haiku.
+4. **Net is flat (+6/+8/+7%), not monotonic.** Unlike the mikko- suite's clean +13 → +15 → +27 inverse-capability curve, this corpus blends one strong saver with three washes, so the aggregate is small and the per-model spread collapses. The durable lesson reproduces across both repos: **token savings concentrate in procedure/script-backed skills; prose audits wash against a capable cold model.**
+
+*Caveats (this corpus):* N = 1 per cell; the with-skill audit arms wrote stray `docs/audits/*-2026-06-03.md` reports into the Spacepotatis checkout (cleaned up); one Haiku `content-audit` arm tripped the PowerShell-via-Bash deny flag (read-only file listing); the generative + orchestrator skills were finetuned but not A/B-measured. Outcome ≠ tokens — e.g. one Haiku `save` arm flagged a "critical `currentPlanet` drop" that the Opus/Sonnet arms (and the skill) correctly read as a by-design re-derivation.
 
 ## Caveats
 
