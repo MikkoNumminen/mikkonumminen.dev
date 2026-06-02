@@ -79,29 +79,30 @@
   },
   "spacepotatis_calibration": {
     "date": "2026-06-03",
-    "note": "Second corpus: the 4 cleanly-A/B-able read-only Spacepotatis audit skills, measured cold (A) vs with-skill (B) across 3 models after the finetune (Spacepotatis #286). 8 generative scaffolders + 2 orchestrators were finetuned but excluded from A/B (they mutate the repo). 24 arms, subagent_tokens, N=1, read-only pinned targets.",
+    "note": "Second corpus: the 4 cleanly-A/B-able read-only Spacepotatis audit skills, measured cold (A) vs with the FINETUNED skill (B) across 3 models after the finetune (Spacepotatis #286). 8 generative scaffolders + 2 orchestrators were finetuned but excluded from A/B (they mutate the repo). 24 arms, subagent_tokens, N=1, read-only pinned targets. B arms read the finetuned SKILL.md from a worktree off the merged master; cold A arms are skill-independent and unchanged.",
     "ab_measured": ["balance-review", "content-audit", "ai-codegen-smell-audit", "save-roundtrip-audit"],
     "finetuned_not_measured": ["equipment", "new-enemy", "new-migration", "new-mission", "new-perk", "new-solar-system", "new-story", "new-weapon", "modular-architecture-audit", "security-audit"],
     "cells": [
-      { "skill": "balance-review", "model": "opus", "cold_A": 81911, "skill_B": 58089, "saved": 23822, "pct": 29 },
-      { "skill": "balance-review", "model": "sonnet", "cold_A": 60719, "skill_B": 39256, "saved": 21463, "pct": 35 },
-      { "skill": "balance-review", "model": "haiku", "cold_A": 61852, "skill_B": 32037, "saved": 29815, "pct": 48 },
-      { "skill": "content-audit", "model": "opus", "cold_A": 121173, "skill_B": 100912, "saved": 20261, "pct": 17 },
-      { "skill": "content-audit", "model": "sonnet", "cold_A": 99250, "skill_B": 83336, "saved": 15914, "pct": 16 },
-      { "skill": "content-audit", "model": "haiku", "cold_A": 62300, "skill_B": 69919, "saved": -7619, "pct": -12 },
-      { "skill": "ai-codegen-smell-audit", "model": "opus", "cold_A": 103964, "skill_B": 106804, "saved": -2840, "pct": -3 },
-      { "skill": "ai-codegen-smell-audit", "model": "sonnet", "cold_A": 85301, "skill_B": 86767, "saved": -1466, "pct": -2 },
-      { "skill": "ai-codegen-smell-audit", "model": "haiku", "cold_A": 61452, "skill_B": 77202, "saved": -15750, "pct": -26 },
-      { "skill": "save-roundtrip-audit", "model": "opus", "cold_A": 64695, "skill_B": 83155, "saved": -18460, "pct": -29 },
-      { "skill": "save-roundtrip-audit", "model": "sonnet", "cold_A": 44787, "skill_B": 56412, "saved": -11625, "pct": -26 },
-      { "skill": "save-roundtrip-audit", "model": "haiku", "cold_A": 73877, "skill_B": 62340, "saved": 11537, "pct": 16 }
+      { "skill": "balance-review", "model": "opus", "cold_A": 81911, "skill_B": 46403, "saved": 35508, "pct": 43 },
+      { "skill": "balance-review", "model": "sonnet", "cold_A": 60719, "skill_B": 25715, "saved": 35004, "pct": 58 },
+      { "skill": "balance-review", "model": "haiku", "cold_A": 61852, "skill_B": 37892, "saved": 23960, "pct": 39 },
+      { "skill": "content-audit", "model": "opus", "cold_A": 121173, "skill_B": 66732, "saved": 54441, "pct": 45 },
+      { "skill": "content-audit", "model": "sonnet", "cold_A": 99250, "skill_B": 71408, "saved": 27842, "pct": 28 },
+      { "skill": "content-audit", "model": "haiku", "cold_A": 62300, "skill_B": 57438, "saved": 4862, "pct": 8 },
+      { "skill": "ai-codegen-smell-audit", "model": "opus", "cold_A": 103964, "skill_B": 126094, "saved": -22130, "pct": -21 },
+      { "skill": "ai-codegen-smell-audit", "model": "sonnet", "cold_A": 85301, "skill_B": 93056, "saved": -7755, "pct": -9 },
+      { "skill": "ai-codegen-smell-audit", "model": "haiku", "cold_A": 61452, "skill_B": 62478, "saved": -1026, "pct": -2 },
+      { "skill": "save-roundtrip-audit", "model": "opus", "cold_A": 64695, "skill_B": 72437, "saved": -7742, "pct": -12 },
+      { "skill": "save-roundtrip-audit", "model": "sonnet", "cold_A": 44787, "skill_B": 58010, "saved": -13223, "pct": -30 },
+      { "skill": "save-roundtrip-audit", "model": "haiku", "cold_A": 73877, "skill_B": 62038, "saved": 11839, "pct": 16 }
     ],
     "aggregates": {
-      "opus": { "cold_total": 371743, "skill_total": 348960, "saved": 22783, "pct": 6 },
-      "sonnet": { "cold_total": 290057, "skill_total": 265771, "saved": 24286, "pct": 8 },
-      "haiku": { "cold_total": 259481, "skill_total": 241498, "saved": 17983, "pct": 7 },
-      "overall": { "cold_total": 921281, "skill_total": 856229, "saved": 65052, "pct": 7 }
+      "opus": { "cold_total": 371743, "skill_total": 311666, "saved": 60077, "pct": 16 },
+      "sonnet": { "cold_total": 290057, "skill_total": 248189, "saved": 41868, "pct": 14 },
+      "haiku": { "cold_total": 259481, "skill_total": 219846, "saved": 39635, "pct": 15 },
+      "overall": { "cold_total": 921281, "skill_total": 779701, "saved": 141580, "pct": 15 }
     },
-    "finding": "balance-review is the standout saver (+29/+35/+48%) -- structured metric procedure beats cold scouting, and the inverse-capability curve holds. ai-codegen is wash-to-negative (-3/-2/-26%), same prose-audit pattern as the mikko- copy. content/save are mixed. Net is flat +6/+8/+7% (not monotonic) because the corpus blends one strong saver with three washes. Durable lesson reproduces across both repos: token savings concentrate in procedure/script-backed skills; prose audits wash against a capable cold model."
+    "remeasure_note": "B column re-measured. A first pass accidentally read the pre-finetune skills (local checkout lagged the #286 merge): aggregate +6/+8/+7% (overall skill_total 856229). Re-running the same arms against the finetuned skills (near-identical content) gave +16/+14/+15% -- an ~8-point swing that is pure N=1 task-work variance, not a finetune effect, a direct confirmation of this doc's noise-floor thesis. Which skill saves vs washes is stable across both runs; only magnitudes wobble.",
+    "finding": "balance-review is the standout saver (+43/+58/+39%) -- structured metric procedure beats cold scouting. ai-codegen is wash-to-negative (-21/-9/-2%), same prose-audit pattern as the mikko- copy. content saves (+45/+28/+8%); save-roundtrip is mixed (-12/-30/+16%). Net is a flat ~+15% (+16/+14/+15%, not monotonic) because the corpus blends strong savers (balance, content) with washes (ai-codegen, save). Durable lesson reproduces across both repos: token savings concentrate in procedure/script-backed skills; prose audits wash against a capable cold model."
   }
 }
