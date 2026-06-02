@@ -161,6 +161,8 @@ export function buildCommands(t: Translations): CommandSpec[] {
             );
           });
           ctx.print('');
+          ctx.print(tt.cmdDownloadScopeNote, 'dim');
+          ctx.print('');
           ctx.print(tt.cmdDownloadTryHint, 'dim');
           return;
         }

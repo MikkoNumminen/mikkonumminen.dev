@@ -388,13 +388,15 @@ export const en: Translations = {
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
-      'every claude code skill across my portfolio — pdf with token-savings estimates',
+      'every claude code skill across my portfolio — pdf, token savings measured against going cold',
     cmdDownloadOptionStudy:
       'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
     cmdDownloadOptionReplicates:
-      'round-6 replication — the noisiest study cells re-measured at depth; every cell now saves 54–85% — pdf',
+      'round-6 replication — the noisiest study cells re-measured at depth to settle the N=1 anomalies (per-cell skill-vs-cold, not a portfolio rate) — pdf',
     cmdDownloadOptionResults:
       'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
+    cmdDownloadScopeNote:
+      'note — three lenses, not one figure: +17% across the 34-skill portfolio, 33 calibrated (--skills); +36% for the two skill-auditors alone (--results); those same two auditors re-measured at depth land at 54–85% per cell (--replicates).',
     cmdDownloadTryHint:
       'try `download --cv`, `download --skills`, `download --study`, `download --replicates`, or `download --results`.',
     cmdDownloadAmbiguous:
