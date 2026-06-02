@@ -8,6 +8,7 @@ const GITHUB = 'https://github.com/MikkoNumminen';
 const LINKEDIN = 'https://www.linkedin.com/in/mikko-numminen-269795205/';
 const CV_PATH = '/mikko-numminen-cv.pdf';
 const SKILLS_PDF_PATH = '/skills-registry.pdf';
+const SUITE_PDF_PATH = '/skills-suite-calibration.pdf';
 const STUDY_PDF_PATH = '/skills-optim-study.pdf';
 const REPLICATES_PDF_PATH = '/skills-optim-study-replicates.pdf';
 const RESULTS_PDF_PATH = '/skills-results.pdf';
@@ -121,6 +122,13 @@ export function buildCommands(t: Translations): CommandSpec[] {
             url: SKILLS_PDF_PATH,
             filename: 'skills-registry.pdf',
             notAvailableMsg: tt.cmdDownloadSkillsNotAvailable,
+          },
+          {
+            flag: '--suite',
+            label: tt.cmdDownloadOptionSuite,
+            url: SUITE_PDF_PATH,
+            filename: 'skills-suite-calibration.pdf',
+            notAvailableMsg: tt.cmdDownloadSuiteNotAvailable,
           },
           {
             flag: '--study',
