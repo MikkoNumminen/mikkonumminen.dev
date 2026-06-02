@@ -696,7 +696,11 @@ export function initPageTransitions(): void {
       sessionStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(SESSION_THEME_KEY);
       overlay.dataset.state = 'animating';
-      runner.phaseC(theme);
+      // A rejected phase (e.g. canvas context loss) would otherwise leave the
+      // overlay stuck at 'animating'; reset it so the page stays usable.
+      runner.phaseC(theme).catch(() => {
+        overlay.dataset.state = 'idle';
+      });
     }
   } catch {
     /* sessionStorage may be unavailable; ignore */
@@ -733,6 +737,14 @@ export function initPageTransitions(): void {
         .phaseA(srcTheme)
         .then(() => runner.phaseB(dstTheme))
         .then(() => {
+          window.location.href = href;
+        })
+        // Without this, a rejected phase leaves `navigating` true forever and
+        // every internal link becomes dead for the session. The animation is
+        // cosmetic, so on failure we reset and navigate anyway.
+        .catch(() => {
+          navigating = false;
+          overlay.dataset.state = 'idle';
           window.location.href = href;
         });
     },

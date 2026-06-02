@@ -179,7 +179,11 @@ export function buildCommands(t: Translations): CommandSpec[] {
         // instead of useful feedback inside the terminal.
         let available = false;
         try {
-          const res = await fetch(target.url, { method: 'HEAD', cache: 'no-store' });
+          const res = await fetch(target.url, {
+            method: 'HEAD',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(10_000),
+          });
           available = res.ok;
         } catch {
           available = false;

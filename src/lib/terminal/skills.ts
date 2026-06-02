@@ -69,14 +69,22 @@ async function fetchRegistry(): Promise<SkillRegistry | null> {
   }
   const promise = (async () => {
     try {
-      const res = await fetch(REGISTRY_PATH, { cache: 'no-store' });
+      const res = await fetch(REGISTRY_PATH, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10_000),
+      });
       if (!res.ok) return null;
       return (await res.json()) as SkillRegistry;
     } catch {
       return null;
     }
   })();
-  registryCache = { promise, loadedAt: now };
+  // Only cache a successful load. Caching a null (404 / network error / timeout)
+  // would short-circuit every retry for the full TTL, so a transient failure
+  // would wedge the `skills` command for a minute.
+  void promise.then((result) => {
+    registryCache = result !== null ? { promise, loadedAt: now } : null;
+  });
   return promise;
 }
 
@@ -221,9 +229,11 @@ export async function runSkillsCommand(
 
   if (mode === 'json') {
     // Probe the file first so we don't pop a 404 tab on a missing registry.
-    const res = await fetch(REGISTRY_PATH, { method: 'HEAD', cache: 'no-store' }).catch(
-      () => null,
-    );
+    const res = await fetch(REGISTRY_PATH, {
+      method: 'HEAD',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10_000),
+    }).catch(() => null);
     if (!res || !res.ok) {
       ctx.print(tt.cmdSkillsNotGenerated, 'err');
       ctx.print(tt.cmdSkillsNotGeneratedHint, 'dim');

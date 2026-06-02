@@ -144,17 +144,27 @@ export async function initTerminal(
     { signal },
   );
 
+  // handleCommand is async (fetches, char-by-char typing). Without this guard a
+  // second Enter mid-command launches a concurrent handleCommand whose output
+  // interleaves with the first in the same output div.
+  let busy = false;
   form.addEventListener(
     'submit',
     async (e) => {
       e.preventDefault();
+      if (busy) return;
+      busy = true;
       const value = input.value;
       input.value = '';
       // history.push() already resets idx to -1 internally, so no second
       // history.reset() call is needed here (Minor 32).
       history.push(value);
       updateCursor(input, cursor);
-      await handleCommand(value, ctx, output, commandMap, t);
+      try {
+        await handleCommand(value, ctx, output, commandMap, t);
+      } finally {
+        busy = false;
+      }
     },
     { signal },
   );
