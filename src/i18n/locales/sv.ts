@@ -381,9 +381,8 @@ export const sv: Translations = {
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'every claude code skill across my portfolio — pdf, token savings measured against going cold',
-    // i18n: this --suite option is translated; siblings above/below remain English placeholders pending a full download-block pass.
     cmdDownloadOptionSuite:
-      'hela mikko- bibliotekets A/B — 8 skills × 3 modeller (opus/sonnet/haiku) + en ommätning efter optimering. ärlig slutsats: token-vinsterna ligger i de skript-baserade skill-arna; prosa-auditerna är noll till negativa mot en kapabel cold-modell; och att krympa SKILL.md-kroppen ger ~0 mätbara token per körning — pdf',
+      'full mikko- library A/B — 8 skills x 3 models (opus/sonnet/haiku) + an after-optimization re-measure. honest finding: the token wins live in the script-backed skills; the prose audits are wash-to-negative on a capable cold model; and trimming SKILL.md body size buys ~0 measurable per-invocation tokens — pdf',
     cmdDownloadOptionStudy:
       'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
     cmdDownloadOptionReplicates:
@@ -402,8 +401,9 @@ export const sv: Translations = {
     // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadSkillsNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
+    // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadSuiteNotAvailable:
-      'skill-suite-kalibreringens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
+      'skill-suite calibration pdf not available right now — reach out and I will send it.',
     // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadStudyNotAvailable:
       'optimization study pdf not available right now — reach out and I will send it.',
