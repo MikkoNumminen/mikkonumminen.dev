@@ -375,12 +375,15 @@ export const sv: Translations = {
     cmdLinksUsage: 'användning: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'okänd flagga:',
     cmdDownloadDesc: 'ladda ner en fil',
-    cmdDownloadUsage: 'download [--cv|--skills|--study|--replicates|--results]',
+    cmdDownloadUsage: 'download [--cv|--skills|--suite|--study|--replicates|--results]',
     // i18n: awaiting Swedish translation — English placeholders for now.
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'every claude code skill across my portfolio — pdf, token savings measured against going cold',
+    // i18n: this --suite option is translated; siblings above/below remain English placeholders pending a full download-block pass.
+    cmdDownloadOptionSuite:
+      'hela mikko- bibliotekets A/B — 8 skills × 3 modeller (opus/sonnet/haiku) + en ommätning efter optimering. ärlig slutsats: token-vinsterna ligger i de skript-baserade skill-arna; prosa-auditerna är noll till negativa mot en kapabel cold-modell; och att krympa SKILL.md-kroppen ger ~0 mätbara token per körning — pdf',
     cmdDownloadOptionStudy:
       'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
     cmdDownloadOptionReplicates:
@@ -388,17 +391,19 @@ export const sv: Translations = {
     cmdDownloadOptionResults:
       'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
     cmdDownloadScopeNote:
-      'note — three lenses, not one figure: +17% across the 34-skill portfolio, 33 calibrated (--skills); +36% for the two skill-auditors alone (--results); those same two auditors re-measured at depth land at 54–85% per cell (--replicates).',
+      'note — different lenses, not one figure: skill-vs-cold is +17% across the 34-skill portfolio, 33 calibrated (--skills), and +13/+15/+27% as a per-model aggregate (opus/sonnet/haiku) across an 8-skill subset (--suite); +36% for the two skill-auditors alone (--results), or 54–85% per cell re-measured at depth (--replicates); and where --suite calls its optimization delta below the noise floor, that is SKILL.md body-size trimming (~0 effect) — a different lever than the runtime-read bounding behind --study/--replicates (the freshness limit=80 case cut a 233K-char read), so fixes-worked and body-trim-is-noise are two findings, not a contradiction.',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --skills`, `download --study`, `download --replicates`, or `download --results`.',
+      'try `download --cv`, `download --skills`, `download --suite`, `download --study`, `download --replicates`, or `download --results`.',
     // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadAmbiguous:
-      'specify only one of --cv, --skills, --study, --replicates, or --results.',
+      'specify only one of --cv, --skills, --suite, --study, --replicates, or --results.',
     cmdDownloadPreparing: 'förbereder nedladdning...',
     cmdDownloadNotAvailable: 'cv inte tillgänglig än — fortfarande under finputsning.',
     // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadSkillsNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
+    cmdDownloadSuiteNotAvailable:
+      'skill-suite-kalibreringens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadStudyNotAvailable:
       'optimization study pdf not available right now — reach out and I will send it.',

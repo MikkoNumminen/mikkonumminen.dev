@@ -383,12 +383,14 @@ export const en: Translations = {
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc:
-      'CV, skills registry, optimization study, round-6 replicates, or skill-auditor results (PDF)',
-    cmdDownloadUsage: 'download [--cv|--skills|--study|--replicates|--results]',
+      'CV, skills registry, skill-suite calibration, optimization study, round-6 replicates, or skill-auditor results (PDF)',
+    cmdDownloadUsage: 'download [--cv|--skills|--suite|--study|--replicates|--results]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'every claude code skill across my portfolio — pdf, token savings measured against going cold',
+    cmdDownloadOptionSuite:
+      'full mikko- library A/B — 8 skills x 3 models (opus/sonnet/haiku) + an after-optimization re-measure. honest finding: the token wins live in the script-backed skills; the prose audits are wash-to-negative on a capable cold model; and trimming SKILL.md body size buys ~0 measurable per-invocation tokens — pdf',
     cmdDownloadOptionStudy:
       'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
     cmdDownloadOptionReplicates:
@@ -396,15 +398,17 @@ export const en: Translations = {
     cmdDownloadOptionResults:
       'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
     cmdDownloadScopeNote:
-      'note — three lenses, not one figure: +17% across the 34-skill portfolio, 33 calibrated (--skills); +36% for the two skill-auditors alone (--results); those same two auditors re-measured at depth land at 54–85% per cell (--replicates).',
+      'note — different lenses, not one figure: skill-vs-cold is +17% across the 34-skill portfolio, 33 calibrated (--skills), and +13/+15/+27% as a per-model aggregate (opus/sonnet/haiku) across an 8-skill subset (--suite); +36% for the two skill-auditors alone (--results), or 54–85% per cell re-measured at depth (--replicates); and where --suite calls its optimization delta below the noise floor, that is SKILL.md body-size trimming (~0 effect) — a different lever than the runtime-read bounding behind --study/--replicates (the freshness limit=80 case cut a 233K-char read), so fixes-worked and body-trim-is-noise are two findings, not a contradiction.',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --skills`, `download --study`, `download --replicates`, or `download --results`.',
+      'try `download --cv`, `download --skills`, `download --suite`, `download --study`, `download --replicates`, or `download --results`.',
     cmdDownloadAmbiguous:
-      'specify only one of --cv, --skills, --study, --replicates, or --results.',
+      'specify only one of --cv, --skills, --suite, --study, --replicates, or --results.',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet — still being polished.',
     cmdDownloadSkillsNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
+    cmdDownloadSuiteNotAvailable:
+      'skill-suite calibration pdf not available right now — reach out and I will send it.',
     cmdDownloadStudyNotAvailable:
       'optimization study pdf not available right now — reach out and I will send it.',
     cmdDownloadReplicatesNotAvailable:
