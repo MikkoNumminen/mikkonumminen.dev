@@ -696,7 +696,12 @@ export function initPageTransitions(): void {
       sessionStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(SESSION_THEME_KEY);
       overlay.dataset.state = 'animating';
-      runner.phaseC(theme);
+      // A synchronous throw while phaseC sets up rejects the promise; catch it
+      // so the overlay can't get stuck at 'animating'. (A throw inside the rAF
+      // loop doesn't reject — that rarer case isn't recovered here.)
+      runner.phaseC(theme).catch(() => {
+        overlay.dataset.state = 'idle';
+      });
     }
   } catch {
     /* sessionStorage may be unavailable; ignore */
@@ -733,6 +738,15 @@ export function initPageTransitions(): void {
         .phaseA(srcTheme)
         .then(() => runner.phaseB(dstTheme))
         .then(() => {
+          window.location.href = href;
+        })
+        // A synchronous throw in a phase rejects the chain; without this the
+        // `navigating` flag would stay true for the session, killing every
+        // internal link. Reset and navigate anyway — the animation is cosmetic.
+        // (A throw inside the rAF loop doesn't reject; not recovered here.)
+        .catch(() => {
+          navigating = false;
+          overlay.dataset.state = 'idle';
           window.location.href = href;
         });
     },
