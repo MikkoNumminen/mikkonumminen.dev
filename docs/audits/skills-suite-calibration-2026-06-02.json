@@ -1,0 +1,80 @@
+{
+  "generated_at": "2026-06-02T00:00:00Z",
+  "title": "Skill-suite calibration — updated mikko- library",
+  "type": "before-baseline",
+  "method": "A/B token measurement, cold arm A (no skill) vs with-skill arm B, across Opus 4.8 / Sonnet 4.6 / Haiku 4.5. 8 skills x 2 arms x 3 models = 48 sub-agent arms. Tasks auto-synthesized, pinned targets. Single-agent approximation for orchestrators. Tokens = harness subagent_tokens (input + output + cache-creation). N=1 per cell. Read-only.",
+  "models": ["opus", "sonnet", "haiku"],
+  "corpus": ["audit", "ai-codegen-smell-audit", "react-anti-patterns-audit", "readme-drift-sync", "skills-quality", "skills-freshness", "skill-usage", "session-cost"],
+  "cells": [
+    { "skill": "skills-freshness", "model": "opus", "cold_A": 101969, "skill_B": 23215, "saved": 78754, "pct": 77 },
+    { "skill": "skills-freshness", "model": "sonnet", "cold_A": 82177, "skill_B": 18083, "saved": 64094, "pct": 78 },
+    { "skill": "skills-freshness", "model": "haiku", "cold_A": 88412, "skill_B": 29948, "saved": 58464, "pct": 66 },
+    { "skill": "skills-quality", "model": "opus", "cold_A": 75323, "skill_B": 21829, "saved": 53494, "pct": 71 },
+    { "skill": "skills-quality", "model": "sonnet", "cold_A": 83680, "skill_B": 14895, "saved": 68785, "pct": 82 },
+    { "skill": "skills-quality", "model": "haiku", "cold_A": 55753, "skill_B": 23637, "saved": 32116, "pct": 58 },
+    { "skill": "session-cost", "model": "opus", "cold_A": 31926, "skill_B": 22572, "saved": 9354, "pct": 29 },
+    { "skill": "session-cost", "model": "sonnet", "cold_A": 19823, "skill_B": 15859, "saved": 3964, "pct": 20 },
+    { "skill": "session-cost", "model": "haiku", "cold_A": 69520, "skill_B": 23054, "saved": 46466, "pct": 67 },
+    { "skill": "react-anti-patterns-audit", "model": "opus", "cold_A": 103254, "skill_B": 97460, "saved": 5794, "pct": 6 },
+    { "skill": "react-anti-patterns-audit", "model": "sonnet", "cold_A": 73050, "skill_B": 68354, "saved": 4696, "pct": 6 },
+    { "skill": "react-anti-patterns-audit", "model": "haiku", "cold_A": 55856, "skill_B": 57445, "saved": -1589, "pct": -3 },
+    { "skill": "audit", "model": "opus", "cold_A": 94777, "skill_B": 142666, "saved": -47889, "pct": -51, "note": "orchestrator run inline (5 scope-passes)" },
+    { "skill": "audit", "model": "sonnet", "cold_A": 130314, "skill_B": 127089, "saved": 3225, "pct": 2 },
+    { "skill": "audit", "model": "haiku", "cold_A": 64032, "skill_B": 59455, "saved": 4577, "pct": 7 },
+    { "skill": "skill-usage", "model": "opus", "cold_A": 22946, "skill_B": 32014, "saved": -9068, "pct": -40, "note": "skill pricier but more correct (cold mis-counted cache-read)" },
+    { "skill": "skill-usage", "model": "sonnet", "cold_A": 21899, "skill_B": 21938, "saved": -39, "pct": 0 },
+    { "skill": "skill-usage", "model": "haiku", "cold_A": 28879, "skill_B": 28147, "saved": 732, "pct": 3 },
+    { "skill": "readme-drift-sync", "model": "opus", "cold_A": 33383, "skill_B": 44341, "saved": -10958, "pct": -33 },
+    { "skill": "readme-drift-sync", "model": "sonnet", "cold_A": 24539, "skill_B": 74709, "saved": -50170, "pct": -204, "note": "skill arm did a 453s/117-tool deep pass; cold arm lean" },
+    { "skill": "readme-drift-sync", "model": "haiku", "cold_A": 41126, "skill_B": 39715, "saved": 1411, "pct": 3 },
+    { "skill": "ai-codegen-smell-audit", "model": "opus", "cold_A": 34224, "skill_B": 48665, "saved": -14441, "pct": -42 },
+    { "skill": "ai-codegen-smell-audit", "model": "sonnet", "cold_A": 26908, "skill_B": 52222, "saved": -25314, "pct": -94 },
+    { "skill": "ai-codegen-smell-audit", "model": "haiku", "cold_A": 31588, "skill_B": 54926, "saved": -23338, "pct": -74, "note": "CONTAMINATED — skill arm reused a prior arm's report file; unreliable" }
+  ],
+  "aggregates": {
+    "opus": { "cold_total": 497802, "skill_total": 432762, "saved": 65040, "pct": 13 },
+    "sonnet": { "cold_total": 462390, "skill_total": 393149, "saved": 69241, "pct": 15 },
+    "haiku": { "cold_total": 435166, "skill_total": 316327, "saved": 118839, "pct": 27 }
+  },
+  "cross_model_finding": "Token savings scale inversely with model capability: aggregate +13% (Opus) -> +15% (Sonnet) -> +27% (Haiku). Weaker models scout cold less efficiently, so the skill's procedure/script wins more. 'audit' is monotonic: -51% -> +2% -> +7%.",
+  "durable_findings": [
+    "Script-backed skills (skills-quality, skills-freshness, session-cost) save on every model — they carry the aggregate.",
+    "react-anti-patterns-audit is neutral on every model (+6/+6/-3%).",
+    "Big meta-skill saves are 'save by not looking' — short-circuit pre-pass/hash; cold arms caught real bloat/drift the skill arms missed.",
+    "Prose audits (ai-codegen, readme) are wash-to-negative vs a capable cold model, high N=1 variance.",
+    "Haiku is the least reliable arm (hallucinated finding, wrong 'tokens unavailable' conclusion, a PowerShell-deny-circumvention flag)."
+  ],
+  "caveats": [
+    "N=1 per cell — direction + rough magnitude only.",
+    "Auto-synthesized tasks + single-agent orchestrator approximation inflate audit/readme skill-arm cost.",
+    "Side-effect contamination: skill arms wrote reports later same-skill arms occasionally reused (ai-codegen Haiku-B).",
+    "Outcome != tokens — saves can hide misses; costs can carry better fidelity.",
+    "Total measurement cost ~2.54M subagent_tokens across 48 arms (Opus ~931K, Sonnet ~856K, Haiku ~751K)."
+  ],
+  "cross_links": {
+    "first_calibration": "docs/audits/skill-calibration-2026-06-01.md",
+    "optimization_study": "docs/audits/skills-optim-study-2026-05-31.md"
+  },
+  "after_remeasure": {
+    "note": "After claude-skills #24 optimized 3 skills, each optimized skill's with-skill arm (B) was re-measured on all 3 models, same tasks + accounting. Compares B(before-optim) -> B(after-optim). N=1 per cell.",
+    "optimized_skills": ["ai-codegen-smell-audit", "audit", "readme-drift-sync"],
+    "cells": [
+      { "skill": "ai-codegen-smell-audit", "model": "opus", "before_B": 48665, "after_B": 50044, "delta": 1379, "pct": 3 },
+      { "skill": "ai-codegen-smell-audit", "model": "sonnet", "before_B": 52222, "after_B": 39148, "delta": -13074, "pct": -25 },
+      { "skill": "ai-codegen-smell-audit", "model": "haiku", "before_B": 54926, "after_B": 47403, "delta": -7523, "pct": -14 },
+      { "skill": "audit", "model": "opus", "before_B": 142666, "after_B": 82841, "delta": -59825, "pct": -42 },
+      { "skill": "audit", "model": "sonnet", "before_B": 127089, "after_B": 142847, "delta": 15758, "pct": 12 },
+      { "skill": "audit", "model": "haiku", "before_B": 59455, "after_B": 56378, "delta": -3077, "pct": -5 },
+      { "skill": "readme-drift-sync", "model": "opus", "before_B": 44341, "after_B": 43303, "delta": -1038, "pct": -2 },
+      { "skill": "readme-drift-sync", "model": "sonnet", "before_B": 74709, "after_B": 37044, "delta": -37665, "pct": -50 },
+      { "skill": "readme-drift-sync", "model": "haiku", "before_B": 39715, "after_B": 40704, "delta": 989, "pct": 2 }
+    ],
+    "aggregates": {
+      "opus": { "before_B": 235672, "after_B": 176188, "delta": -59484, "pct": -25 },
+      "sonnet": { "before_B": 254020, "after_B": 219039, "delta": -34981, "pct": -14 },
+      "haiku": { "before_B": 154096, "after_B": 144485, "delta": -9611, "pct": -6 },
+      "overall": { "before_B": 643788, "after_B": 539712, "delta": -104076, "pct": -16 }
+    },
+    "conclusion": "Per-invocation token effect of the optimization is below the N=1 noise floor. Per-cell swings (-50% to +12%) are uncorrelated with the 1-3 KB SKILL.md body reduction; task-work variance (the same audit cost 56K-143K across runs) dwarfs it 20-60x. The -16% overall is the before pass's high outliers regressing to the mean, not a measured saving. The optimization's real payoff is the always-loaded description weight, context cleanliness, and correctness -- not per-invocation tokens."
+  }
+}
