@@ -696,8 +696,9 @@ export function initPageTransitions(): void {
       sessionStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(SESSION_THEME_KEY);
       overlay.dataset.state = 'animating';
-      // A rejected phase (e.g. canvas context loss) would otherwise leave the
-      // overlay stuck at 'animating'; reset it so the page stays usable.
+      // A synchronous throw while phaseC sets up rejects the promise; catch it
+      // so the overlay can't get stuck at 'animating'. (A throw inside the rAF
+      // loop doesn't reject — that rarer case isn't recovered here.)
       runner.phaseC(theme).catch(() => {
         overlay.dataset.state = 'idle';
       });
@@ -739,9 +740,10 @@ export function initPageTransitions(): void {
         .then(() => {
           window.location.href = href;
         })
-        // Without this, a rejected phase leaves `navigating` true forever and
-        // every internal link becomes dead for the session. The animation is
-        // cosmetic, so on failure we reset and navigate anyway.
+        // A synchronous throw in a phase rejects the chain; without this the
+        // `navigating` flag would stay true for the session, killing every
+        // internal link. Reset and navigate anyway — the animation is cosmetic.
+        // (A throw inside the rAF loop doesn't reject; not recovered here.)
         .catch(() => {
           navigating = false;
           overlay.dataset.state = 'idle';
