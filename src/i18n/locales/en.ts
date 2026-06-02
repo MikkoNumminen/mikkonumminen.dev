@@ -398,7 +398,7 @@ export const en: Translations = {
     cmdDownloadOptionResults:
       'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
     cmdDownloadScopeNote:
-      'note — different lenses, not one figure: skill-vs-cold is +17% across the 34-skill portfolio, 33 calibrated (--skills), and one scope wider, +13/+15/+27% per cell on opus/sonnet/haiku across the 8-skill × 3-model suite (--suite); +36% for the two skill-auditors alone (--results), or 54–85% per cell re-measured at depth (--replicates); and where --suite calls its optimization delta below the noise floor, that is SKILL.md body-size trimming (~0 effect) — a different lever than the runtime-read bounding behind --study/--replicates (the freshness limit=80 case cut a 233K-char read), so fixes-worked and body-trim-is-noise are two findings, not a contradiction.',
+      'note — different lenses, not one figure: skill-vs-cold is +17% across the 34-skill portfolio, 33 calibrated (--skills), and +13/+15/+27% as a per-model aggregate (opus/sonnet/haiku) across an 8-skill subset (--suite); +36% for the two skill-auditors alone (--results), or 54–85% per cell re-measured at depth (--replicates); and where --suite calls its optimization delta below the noise floor, that is SKILL.md body-size trimming (~0 effect) — a different lever than the runtime-read bounding behind --study/--replicates (the freshness limit=80 case cut a 233K-char read), so fixes-worked and body-trim-is-noise are two findings, not a contradiction.',
     cmdDownloadTryHint:
       'try `download --cv`, `download --skills`, `download --suite`, `download --study`, `download --replicates`, or `download --results`.',
     cmdDownloadAmbiguous:
