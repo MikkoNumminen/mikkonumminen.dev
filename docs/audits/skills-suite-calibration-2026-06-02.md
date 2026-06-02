@@ -1,6 +1,6 @@
 # Skill-suite calibration — updated mikko- library (2026-06-02)
 
-*A/B token measurement (cold arm A vs with-skill arm B) for the 8 cleanly-A/B-able mikko- skills, across **all three models** (Opus 4.8, Sonnet 4.6, Haiku 4.5). This is the **"before" baseline** — the skills were just audited + given freshness blocks (claude-skills #22/#23); a planned optimization pass will re-measure against these numbers. Method mirrors the first calibration document, extended to the full updated suite and every model.*
+*A/B token measurement (cold arm A vs with-skill arm B) for the 8 cleanly-A/B-able mikko- skills, across **all three models** (Opus 4.8, Sonnet 4.6, Haiku 4.5). This is the **"before" baseline** — the skills were just audited + given freshness blocks (claude-skills #22/#23); a planned optimization pass will re-measure against these numbers. The optimization pass (claude-skills #24) has since landed and three of these skills were re-measured — see **After-optimization re-measure** below. Method mirrors the first calibration document, extended to the full updated suite and every model.*
 
 ## Method
 
@@ -40,6 +40,21 @@
 6. **Haiku is the least reliable arm** — it hallucinated a finding (`skill-calibration` "has no freshness check" — it does), wrongly concluded "token data unavailable" on skill-usage, and one Haiku arm tripped a security flag (ran PowerShell through Bash, circumventing a deny rule). Its verdicts carry the least confidence — same caveat the first calibration flagged.
 
 **Headline:** across all three models the library's token economy is carried by the **script-backed skills** plus the neutral `react`; the prose audits are wash-to-negative against a capable cold model and only turn positive as the model weakens. The cold-arm findings (the bloat list, the real drift) are the targets for the upcoming optimization pass — which should re-measure against these numbers.
+
+## After-optimization re-measure
+
+*The "after" the baseline anticipated. claude-skills #24 optimized three of these skills — `ai-codegen-smell-audit` (655→580 lines; Provenance extracted to a companion file + 5 dead links removed), `audit` (410→390; the 5×-duplicated sub-agent prompt footer deduped), `readme-drift-sync` (325→310; dated content-calibration narrative extracted). Each optimized skill's **with-skill arm (B)** was re-measured on all three models — same tasks, same accounting. This compares **B(before-optim) → B(after-optim)**; a negative Δ means cheaper after.*
+
+| Skill (arm B) | Opus → | Δ | Sonnet → | Δ | Haiku → | Δ |
+|---|---:|---:|---:|---:|---:|---:|
+| ai-codegen-smell-audit | 48,665 → 50,044 | +3% | 52,222 → 39,148 | −25% | 54,926 → 47,403 | −14% |
+| audit | 142,666 → 82,841 | −42% | 127,089 → 142,847 | +12% | 59,455 → 56,378 | −5% |
+| readme-drift-sync | 44,341 → 43,303 | −2% | 74,709 → 37,044 | −50% | 39,715 → 40,704 | +2% |
+| **Aggregate (3 skills)** | **235,672 → 176,188** | **−25%** | **254,020 → 219,039** | **−14%** | **154,096 → 144,485** | **−6%** |
+
+**Reading: the optimization's per-invocation token effect is below the N = 1 noise floor — this delta is not the optimization.** The per-cell swings span −50% to +12% with no relationship to the 1–3 KB of `SKILL.md` body each skill shed. The same `audit` task cost 56K, 60K, 83K, 127K and 143K across these runs; that ±40–60K task-work variance dwarfs the few-KB body trim by 20–60×. The overall −16% (all nine cells, 643,788 → 539,712) is the *before* pass's high outliers — `audit` Opus 143K, `readme` Sonnet 75K — regressing toward the mean, not a measured saving.
+
+**What this means for skill optimization.** Trimming `SKILL.md` *body* size buys ≈ 0 measurable per-invocation tokens for task-heavy skills: the one-time body read is a rounding error against the audit work itself. The payoff of the #24 optimizations is real but lives where this metric can't see it — the always-loaded `description` (charged on every matching turn, not just on invocation), context cleanliness, and correctness (the dead links / dead game-refs / stale narrative removed). To *measure* a body-size win you'd need a skill whose body dominates its task (none of these three) or N ≫ 1 to drop the noise floor below the signal.
 
 ## Caveats
 
