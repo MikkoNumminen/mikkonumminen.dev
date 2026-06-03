@@ -114,7 +114,14 @@ export function buildCommands(t: Translations): CommandSpec[] {
         // would 404 through the download branch); it's appended as a menu row
         // below. Adding a target is a one-line append; selection, listing, and
         // ambiguity handling below all drive off this array.
-        const targets = [
+        const targets: {
+          flag: string;
+          tier: 'primary' | 'research';
+          label: string;
+          url: string;
+          filename: string;
+          notAvailableMsg: string;
+        }[] = [
           {
             flag: '--cv',
             tier: 'primary',

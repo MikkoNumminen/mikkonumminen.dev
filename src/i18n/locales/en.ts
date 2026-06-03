@@ -384,7 +384,8 @@ export const en: Translations = {
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc:
       'my cv, the skills registry, or the full skills-measurement set (pdf)',
-    cmdDownloadUsage: 'download [--cv|--skills|--research]',
+    cmdDownloadUsage:
+      'download [--cv|--skills|--research]; --research lists [--suite|--study|--replicates|--results]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:

@@ -375,7 +375,8 @@ export const fi: Translations = {
     cmdLinksUsage: 'käyttö: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'tuntematon valitsin:',
     cmdDownloadDesc: 'lataa tiedosto',
-    cmdDownloadUsage: 'download [--cv|--skills|--research]',
+    cmdDownloadUsage:
+      'download [--cv|--skills|--research]; --research lists [--suite|--study|--replicates|--results]',
     // i18n: awaiting Finnish translation — English placeholders for now.
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',

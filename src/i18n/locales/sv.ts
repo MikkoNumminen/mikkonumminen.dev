@@ -375,7 +375,8 @@ export const sv: Translations = {
     cmdLinksUsage: 'användning: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'okänd flagga:',
     cmdDownloadDesc: 'ladda ner en fil',
-    cmdDownloadUsage: 'download [--cv|--skills|--research]',
+    cmdDownloadUsage:
+      'download [--cv|--skills|--research]; --research lists [--suite|--study|--replicates|--results]',
     // i18n: awaiting Swedish translation — English placeholders for now.
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
