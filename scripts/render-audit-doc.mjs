@@ -174,7 +174,8 @@ function renderBody(md) {
   return out;
 }
 
-function buildHtml(md, title) {
+export function buildHtml(md, title) {
+  state.coloured = false;
   const out = renderBody(md);
   if (state.coloured) {
     const legend =
@@ -242,7 +243,6 @@ function main() {
   const firstH1 = md.split('\n').find((l) => /^#\s/.test(l));
   const title = firstH1 ? firstH1.replace(/^#\s/, '').trim() : path.basename(inputAbs, '.md');
 
-  state.coloured = false;
   const html = buildHtml(md, title);
 
   const htmlPath = args.keepHtml

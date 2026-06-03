@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inline, pctClass, slug } from './render-audit-doc.mjs';
+import { inline, pctClass, slug, buildHtml } from './render-audit-doc.mjs';
 
 describe('inline', () => {
   it('parses nested bold-with-italic without dropping the bold or leaking asterisks', () => {
@@ -58,5 +58,46 @@ describe('slug — GitHub-style, matches the in-doc anchors', () => {
     expect(slug('The three cost-trap mechanisms (the transferable result)')).toBe(
       'the-three-cost-trap-mechanisms-the-transferable-result',
     );
+  });
+});
+
+describe('buildHtml — block-level assembly', () => {
+  const md = [
+    '# Title',
+    '',
+    '## A section',
+    '',
+    '> a quoted note',
+    '',
+    '| Skill | Opus % |',
+    '| --- | ---: |',
+    '| x | +43% |',
+    '| y | −30% |',
+    '',
+    '- bullet one',
+    '',
+    'Plain [link](https://e.com).',
+  ].join('\n');
+  const html = buildHtml(md, 'Title');
+
+  it('gives headings GitHub-slug ids (so in-doc anchors resolve)', () => {
+    expect(html).toContain('<h1 id="title">Title</h1>');
+    expect(html).toContain('<h2 id="a-section">A section</h2>');
+  });
+
+  it('renders blockquote, list item, and link', () => {
+    expect(html).toContain('<blockquote>a quoted note</blockquote>');
+    expect(html).toContain('<li>bullet one</li>');
+    expect(html).toContain('<a href="https://e.com">link</a>');
+  });
+
+  it('colours the % column by sign and appends the legend', () => {
+    expect(html).toContain('class="pos">+43%</td>');
+    expect(html).toContain('class="neg">−30%</td>');
+    expect(html).toContain('class="legend"');
+  });
+
+  it('omits the legend when nothing is coloured (state resets per call)', () => {
+    expect(buildHtml('# Plain\n\nNo tables here.', 'Plain')).not.toContain('class="legend"');
   });
 });
