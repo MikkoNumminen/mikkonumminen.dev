@@ -375,22 +375,21 @@ export const sv: Translations = {
     cmdLinksUsage: 'användning: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'okänd flagga:',
     cmdDownloadDesc: 'ladda ner en fil',
-    cmdDownloadUsage: 'download [--cv|--skills|--suite|--study|--replicates|--results]',
+    cmdDownloadUsage: 'download [--cv|--skills|--research]',
     // i18n: awaiting Swedish translation — English placeholders for now.
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
-      'every claude code skill across my portfolio — pdf, token savings measured against going cold',
-    cmdDownloadOptionSuite:
-      'full mikko- library A/B — 8 skills x 3 models (opus/sonnet/haiku) + an after-optimization re-measure. honest finding: the token wins live in the script-backed skills; the prose audits are wash-to-negative on a capable cold model; and trimming SKILL.md body size buys ~0 measurable per-invocation tokens — pdf',
-    cmdDownloadOptionStudy:
-      'the 5-round before/after study measuring whether a SKILL.md change actually cut tokens — pdf',
-    cmdDownloadOptionReplicates:
-      'round-6 replication — the noisiest study cells re-measured at depth to settle the N=1 anomalies (per-cell skill-vs-cold, not a portfolio rate) — pdf',
+      'every claude code skill across my portfolio, with measured token savings — pdf',
+    cmdDownloadResearchBridge:
+      'i measured these for real — A/B against a cold model, then optimized them. `download --research` for the full set.',
+    cmdDownloadResearchIntro: 'the full measurement set — each a pdf:',
+    cmdDownloadOptionSuite: 'the A/B — 8 skills × 3 models, cold vs skill',
+    cmdDownloadOptionStudy: 'the optimization — 5 rounds of before/after on a SKILL.md',
+    cmdDownloadOptionReplicates: 'round 6 — the noisiest cells re-measured at depth',
     cmdDownloadOptionResults:
-      'the two skill-auditing skills: what they cost to run, and what they fixed across the portfolio — pdf',
-    cmdDownloadScopeNote:
-      'note — different lenses, not one figure: skill-vs-cold is +17% across the 34-skill portfolio, 33 calibrated (--skills), and +13/+15/+27% as a per-model aggregate (opus/sonnet/haiku) across an 8-skill subset (--suite); +36% for the two skill-auditors alone (--results), or 54–85% per cell re-measured at depth (--replicates); and where --suite calls its optimization delta below the noise floor, that is SKILL.md body-size trimming (~0 effect) — a different lever than the runtime-read bounding behind --study/--replicates (the freshness limit=80 case cut a 233K-char read), so fixes-worked and body-trim-is-noise are two findings, not a contradiction.',
+      'the synthesis — what the two skill-auditors cost and fixed',
+    cmdDownloadResearchHint: 'grab any directly, e.g. `download --suite`.',
     cmdDownloadTryHint:
       'try `download --cv`, `download --skills`, `download --suite`, `download --study`, `download --replicates`, or `download --results`.',
     // i18n: awaiting Swedish translation — English placeholder for now.

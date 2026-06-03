@@ -226,11 +226,13 @@ export interface Translations {
     cmdDownloadIntro: string;
     cmdDownloadOptionCv: string;
     cmdDownloadOptionSkills: string;
+    cmdDownloadResearchBridge: string;
+    cmdDownloadResearchIntro: string;
     cmdDownloadOptionSuite: string;
     cmdDownloadOptionStudy: string;
     cmdDownloadOptionReplicates: string;
     cmdDownloadOptionResults: string;
-    cmdDownloadScopeNote: string;
+    cmdDownloadResearchHint: string;
     cmdDownloadTryHint: string;
     cmdDownloadAmbiguous: string;
     cmdDownloadPreparing: string;
