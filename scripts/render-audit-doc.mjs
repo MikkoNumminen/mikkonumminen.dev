@@ -18,7 +18,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { printHtmlToPdf } from './lib/chrome-pdf.mjs';
 
 function parseArgs(argv) {
@@ -37,7 +37,7 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 
 // GitHub-style heading slug: lowercase, drop punctuation except spaces/hyphens,
 // spaces -> hyphens. Matches the in-doc anchor links like (#pin-the-before-arm).
-function slug(text) {
+export function slug(text) {
   return text
     .toLowerCase()
     .replace(/[^\w\s-]/g, '')
@@ -45,7 +45,7 @@ function slug(text) {
     .replace(/\s+/g, '-');
 }
 
-function inline(text) {
+export function inline(text) {
   let t = esc(text);
   const codes = [];
   t = t.replace(/`([^`]+)`/g, (_, c) => ` C${codes.push(c) - 1} `);
@@ -66,7 +66,7 @@ function inline(text) {
 // ending in "%" so only savings columns get coloured; +/-10% brackets the docs'
 // own noise band. Strip bold (**) but keep a lone footnote * so flagged cells
 // (e.g. a contaminated "-74%*") fall through to neutral. Returns '' for no class.
-function pctClass(raw, header) {
+export function pctClass(raw, header) {
   if (!(header || '').trim().endsWith('%')) return '';
   // Optional sign: a bare "38%" in a "% saved" column is a +38% save (the results
   // sheet writes saves unsigned), so unsigned and "+" read as positive; only an
@@ -264,4 +264,6 @@ function tableCountNote(html) {
   return `${tables} table${tables === 1 ? '' : 's'}`;
 }
 
-main();
+// Run main() only as a CLI (incl. when render-audit-pdfs.mjs spawns this file),
+// not when imported by the unit test — so importing inline/pctClass/slug is side-effect-free.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

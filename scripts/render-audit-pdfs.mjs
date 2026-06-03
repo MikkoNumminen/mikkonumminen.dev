@@ -12,6 +12,10 @@
 // Skips entirely in CI / when Chrome is absent, so the committed PDFs stay
 // canonical on hosted builds (same guard as build-skills-pdf.mjs). The replicates
 // doc is json+pdf only (no .md), so it has no source to render from and is left as-is.
+//
+// Note: Chrome stamps a creation date into the PDF, so renders aren't byte-
+// reproducible — a --force run always yields a (metadata-only) diff even when the
+// .md is unchanged. Same property as build-skills-pdf; commit PDFs intentionally.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -56,6 +60,7 @@ function main() {
   let rendered = 0;
   let skipped = 0;
   const missing = [];
+  const failed = [];
 
   for (const { pub, re } of MAP) {
     const mdName = latestMd(names, re);
@@ -68,23 +73,35 @@ function main() {
     const pubPdf = path.join(PUBLIC_DIR, pub);
 
     // Default (prebuild) mode: only re-render when the source .md is newer than the
-    // rendered PDF, so a build with no .md edits produces no churn. --force overrides.
+    // rendered PDF, so a no-edit build produces no churn. --force overrides. The mtime
+    // guard is a heuristic — git doesn't preserve mtimes, so right after a fresh clone
+    // the comparison reflects whatever order the checkout wrote files (worst case: one
+    // spurious render). CI never reaches here (no Chrome), so this only affects local builds.
     if (!force && fs.existsSync(datedPdf) && fs.statSync(datedPdf).mtimeMs >= fs.statSync(mdPath).mtimeMs) {
       skipped += 1;
       continue;
     }
 
-    execFileSync(process.execPath, [RENDERER, '--input', mdPath, '--output', datedPdf], { stdio: 'inherit' });
-    fs.mkdirSync(PUBLIC_DIR, { recursive: true });
-    fs.copyFileSync(datedPdf, pubPdf);
-    rendered += 1;
-    console.log(`render-audit-pdfs: ${mdName} → docs/audits/${path.basename(datedPdf)} + public/${pub}`);
+    // Degrade gracefully: a single doc's render failure warns and keeps the existing
+    // committed PDFs rather than aborting the whole prebuild (mirrors build-skills-pdf).
+    try {
+      execFileSync(process.execPath, [RENDERER, '--input', mdPath, '--output', datedPdf], { stdio: 'inherit' });
+      fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+      fs.copyFileSync(datedPdf, pubPdf);
+      rendered += 1;
+      console.log(`render-audit-pdfs: ${mdName} → docs/audits/${path.basename(datedPdf)} + public/${pub}`);
+    } catch (err) {
+      failed.push(pub);
+      console.warn(`render-audit-pdfs: FAILED ${mdName} (${err.message}) — keeping existing PDFs.`);
+    }
   }
 
   if (missing.length > 0) {
     console.log(`render-audit-pdfs: no .md source for ${missing.join(', ')} — left as-is (json+pdf only).`);
   }
-  console.log(`render-audit-pdfs: ${rendered} rendered, ${skipped} up-to-date, ${missing.length} without .md.`);
+  console.log(
+    `render-audit-pdfs: ${rendered} rendered, ${skipped} up-to-date, ${missing.length} without .md, ${failed.length} failed.`,
+  );
 }
 
 main();
