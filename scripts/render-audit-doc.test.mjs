@@ -26,19 +26,24 @@ describe('inline', () => {
 describe('pctClass — gated on a "% saved" column header', () => {
   const H = 'Opus %'; // header ends in "%"
 
-  it('greens a save >= +10%, signed or unsigned', () => {
+  it('greens a save >= +20% (the demonstrated noise floor), signed or unsigned', () => {
     expect(pctClass('+43%', H)).toBe(' class="pos"');
     expect(pctClass('38%', H)).toBe(' class="pos"'); // results sheet writes saves unsigned
+    expect(pctClass('+20%', H)).toBe(' class="pos"'); // boundary
   });
 
-  it('reds a cost <= -10% (ascii or unicode minus)', () => {
+  it('reds a cost <= -20% (ascii or unicode minus)', () => {
     expect(pctClass('−30%', H)).toBe(' class="neg"'); // U+2212 unicode minus (as the docs use)
     expect(pctClass('-21%', H)).toBe(' class="neg"'); // ascii hyphen-minus
   });
 
-  it('stays neutral within +/-10%', () => {
+  it('leaves within-noise-floor magnitudes (|%| < 20) neutral = direction-at-best', () => {
     expect(pctClass('+8%', H)).toBe('');
     expect(pctClass('−9%', H)).toBe('');
+    // the band that used to colour at the old ±10 threshold but is now noise:
+    expect(pctClass('+13%', H)).toBe(''); // e.g. audit-opus — within the cross-session band
+    expect(pctClass('−16%', H)).toBe(''); // e.g. release-bundle-opus
+    expect(pctClass('+19%', H)).toBe(''); // just under the floor
   });
 
   it('only colours columns whose header ends with "%"', () => {
