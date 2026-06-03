@@ -63,9 +63,17 @@ export function inline(text) {
 }
 
 // Colour a "% saved" cell by sign + signal threshold. Gated on the column HEADER
-// ending in "%" so only savings columns get coloured; +/-10% brackets the docs'
-// own noise band. Strip bold (**) but keep a lone footnote * so flagged cells
-// (e.g. a contaminated "-74%*") fall through to neutral. Returns '' for no class.
+// ending in "%" so only savings columns get coloured. Strip bold (**) but keep a
+// lone footnote * so flagged cells (e.g. a contaminated "-74%*") fall through to
+// neutral. Returns '' for no class.
+//
+// Threshold is ±20%, NOT ±10% — set to the noise floor the doc itself demonstrates.
+// The Spacepotatis accidental re-measure showed ~8pp of pure cross-session drift
+// (run-1 A vs run-2 B), and that band applies to every cell whose A and B arms
+// weren't simultaneous (i.e. all of them) plus N=1 task-work variance on top. So
+// anything inside ±20% is direction-at-best, not a magnitude we can colour as
+// signal; only cells that clear the demonstrated floor get green/red.
+const NOISE_FLOOR_PCT = 20;
 export function pctClass(raw, header) {
   if (!(header || '').trim().endsWith('%')) return '';
   // Optional sign: a bare "38%" in a "% saved" column is a +38% save (the results
@@ -75,8 +83,8 @@ export function pctClass(raw, header) {
   const m = raw.replace(/\*\*/g, '').trim().match(/^([+−-]?)\s?(\d+)%$/);
   if (!m) return '';
   const val = (m[1] === '−' || m[1] === '-' ? -1 : 1) * parseInt(m[2], 10);
-  if (val >= 10) return ' class="pos"';
-  if (val <= -10) return ' class="neg"';
+  if (val >= NOISE_FLOOR_PCT) return ' class="pos"';
+  if (val <= -NOISE_FLOOR_PCT) return ' class="neg"';
   return '';
 }
 
@@ -179,9 +187,11 @@ export function buildHtml(md, title) {
   const out = renderBody(md);
   if (state.coloured) {
     const legend =
-      '<p class="legend"><span class="pos">green</span> = saved &ge;10% &middot; ' +
-      '<span class="neg">red</span> = cost &ge;10% more &middot; black = within &plusmn;10% (no signed signal). ' +
-      'Colours the &ldquo;% saved&rdquo; columns only; swing/pp and token columns stay neutral.</p>';
+      '<p class="legend"><span class="pos">green</span> = saved &ge;20% &middot; ' +
+      '<span class="neg">red</span> = cost &ge;20% more &middot; black = within &plusmn;20% = direction-at-best. ' +
+      'The &plusmn;20% band is the noise floor this doc demonstrates (cross-session drift ~8pp + N=1 task variance), ' +
+      'so within-band magnitudes are not coloured as signal. Colours the &ldquo;% saved&rdquo; columns only; ' +
+      'swing/pp and token columns stay neutral.</p>';
     const h1idx = out.findIndex((b) => b.startsWith('<h1'));
     if (h1idx >= 0) out.splice(h1idx + 1, 0, legend);
     else out.unshift(legend);
