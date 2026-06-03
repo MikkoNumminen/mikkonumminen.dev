@@ -104,5 +104,32 @@
     },
     "remeasure_note": "B column re-measured. A first pass accidentally read the pre-finetune skills (local checkout lagged the #286 merge): aggregate +6/+8/+7% (overall skill_total 856229). Re-running the same arms against the finetuned skills (near-identical content) gave +16/+14/+15% -- an ~8-point swing from two compounding noise sources, neither a finetune effect: the few-KB skill delta is far too small to move 8 points, and the cold A-arms were not re-run (so each cell now pairs a run-1 A against a run-2 B, adding cross-session drift on top of the per-cell N=1 variance) -- a direct confirmation of this doc's noise-floor thesis. Which skill saves vs washes is stable across both runs; only magnitudes wobble.",
     "finding": "balance-review is the standout saver (+43/+58/+39%) -- structured metric procedure beats cold scouting. ai-codegen is wash-to-negative (-21/-9/-2%), same prose-audit pattern as the mikko- copy. content saves (+45/+28/+8%); save-roundtrip is mixed (-12/-30/+16%). Net is a flat ~+15% (+16/+14/+15%, not monotonic) because the corpus blends strong savers (balance, content) with washes (ai-codegen, save). Durable lesson reproduces across both repos: token savings concentrate in procedure/script-backed skills; prose audits wash against a capable cold model."
+  },
+  "audiobookmaker_calibration": {
+    "date": "2026-06-03",
+    "note": "Third corpus: the 4 cleanly-A/B-able read-only AudiobookMaker skills (a Python desktop app), measured cold (A) vs with the FINETUNED skill (B) across 3 models. The other 6 skills (ci-failure-triage, pronunciation-corpus-add, release-cut, voice-pack-finnish, work-session, worktree-launch) were finetuned but excluded from A/B (they mutate the repo or need live inputs). 24 arms, subagent_tokens, N=1, read-only pinned targets: src/ tree (audit, ai-codegen), the PyInstaller .spec (release-bundle), a HEAD~3..HEAD diff (copyright-scan). copyright-scan was previously gitignored local-only; sanitized + tracked for this run.",
+    "ab_measured": ["audit", "ai-codegen-smell-audit", "release-bundle-audit", "copyright-scan"],
+    "finetuned_not_measured": ["ci-failure-triage", "pronunciation-corpus-add", "release-cut", "voice-pack-finnish", "work-session", "worktree-launch"],
+    "cells": [
+      { "skill": "audit", "model": "opus", "cold_A": 115835, "skill_B": 100367, "saved": 15468, "pct": 13 },
+      { "skill": "audit", "model": "sonnet", "cold_A": 134264, "skill_B": 112891, "saved": 21373, "pct": 16 },
+      { "skill": "audit", "model": "haiku", "cold_A": 101262, "skill_B": 75794, "saved": 25468, "pct": 25 },
+      { "skill": "ai-codegen-smell-audit", "model": "opus", "cold_A": 76035, "skill_B": 76160, "saved": -125, "pct": 0 },
+      { "skill": "ai-codegen-smell-audit", "model": "sonnet", "cold_A": 121961, "skill_B": 59172, "saved": 62789, "pct": 51 },
+      { "skill": "ai-codegen-smell-audit", "model": "haiku", "cold_A": 71418, "skill_B": 48614, "saved": 22804, "pct": 32 },
+      { "skill": "release-bundle-audit", "model": "opus", "cold_A": 45668, "skill_B": 52984, "saved": -7316, "pct": -16 },
+      { "skill": "release-bundle-audit", "model": "sonnet", "cold_A": 73861, "skill_B": 65758, "saved": 8103, "pct": 11 },
+      { "skill": "release-bundle-audit", "model": "haiku", "cold_A": 46597, "skill_B": 38099, "saved": 8498, "pct": 18 },
+      { "skill": "copyright-scan", "model": "opus", "cold_A": 25725, "skill_B": 30560, "saved": -4835, "pct": -19 },
+      { "skill": "copyright-scan", "model": "sonnet", "cold_A": 17620, "skill_B": 26874, "saved": -9254, "pct": -53 },
+      { "skill": "copyright-scan", "model": "haiku", "cold_A": 32365, "skill_B": 33988, "saved": -1623, "pct": -5 }
+    ],
+    "aggregates": {
+      "opus": { "cold_total": 263263, "skill_total": 260071, "saved": 3192, "pct": 1 },
+      "sonnet": { "cold_total": 347706, "skill_total": 264695, "saved": 83011, "pct": 24 },
+      "haiku": { "cold_total": 251642, "skill_total": 196495, "saved": 55147, "pct": 22 },
+      "overall": { "cold_total": 862611, "skill_total": 721261, "saved": 141350, "pct": 16 }
+    },
+    "finding": "audit is the standout -- a clean monotonic saver (+13/+16/+25%); its 5-phase procedure caps the cold arm's scaling and it saves on every model. ai-codegen washes on Opus (~0%) but saves big on Sonnet/Haiku (+51/+32%) -- cold arms ran exhaustive 122K/71K audits while the skill short-circuited via its prior-audit calibration log. copyright-scan is wash-to-negative (-19/-53/-5%): the 7-check procedure on a tiny 2-file diff costs more than a cold scan. release-bundle is mixed (-16/+11/+18%). Net opus +1 / sonnet +24 / haiku +22 / overall +16%, but the per-model aggregates are not broad-based: sonnet's +24% is ~76% the single ai-codegen N=1 short-circuit cell (62.8K of 83K), opus is flat-by-offset (audit's +15.5K cancelled by copyright/release-bundle ~-12K), only haiku is broad (audit ~46%, ai-codegen ~41%). Read magnitudes as N=1; the curve holds only directionally. Arm-B skills were read from the unmerged local-only chore/skills-token-finetune branch (not yet reproducible from mainline, unlike the SP corpus vs merged #286). Durable lesson reproduces across all three repos: savings concentrate in procedure/script-backed skills and scale inversely with model capability; prose audits wash or lose against a capable cold model, especially on a small target."
   }
 }
