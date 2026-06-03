@@ -106,12 +106,14 @@ export function buildCommands(t: Translations): CommandSpec[] {
       usage: tt.cmdDownloadUsage,
       handler: async (args, ctx) => {
         // Flag → downloadable target. `tier` drives the two-level menu: bare
-        // `download` lists only the 'primary' rows (cv + skills registry);
-        // `download --research` lists the 'research' rows (the measurement
-        // PDFs), so the default view never floods the viewport. Every flag
-        // still downloads directly regardless of tier. Order within a tier is
-        // the listing order. Adding a target is a one-line append; selection,
-        // listing, and ambiguity handling below all drive off this array.
+        // `download` lists the 'primary' rows (cv + skills) plus a synthetic
+        // `--research` row; `download --research` then lists the 'research'
+        // rows (the measurement PDFs), so the default view never floods. Every
+        // entry in THIS array is a real download — `--research` is deliberately
+        // NOT here, because it lists rather than downloads (a flag with no url
+        // would 404 through the download branch); it's appended as a menu row
+        // below. Adding a target is a one-line append; selection, listing, and
+        // ambiguity handling below all drive off this array.
         const targets = [
           {
             flag: '--cv',
@@ -166,10 +168,12 @@ export function buildCommands(t: Translations): CommandSpec[] {
         // Render an aligned flag/description list. The description column lines
         // up to the longest flag in *this* list, so each tier aligns on its own
         // — the bare menu's short flags don't inherit the research flags' width.
-        const printOptions = (rows: typeof targets) => {
+        // Typed to the minimal {flag,label} shape so the synthetic `--research`
+        // row (which has no url) can be passed alongside real targets.
+        const printOptions = (rows: { flag: string; label: string }[]) => {
           const INDENT = 2;
           const GAP = 4;
-          const colWidth = INDENT + Math.max(...rows.map((tgt) => tgt.flag.length)) + GAP;
+          const colWidth = INDENT + Math.max(...rows.map((row) => row.flag.length)) + GAP;
           rows.forEach(({ flag, label }) => {
             const padded = ' '.repeat(INDENT) + flag.padEnd(colWidth - INDENT, ' ');
             ctx.printHTML(
@@ -187,10 +191,14 @@ export function buildCommands(t: Translations): CommandSpec[] {
             ctx.print(tt.cmdDownloadResearchHint, 'dim');
             return;
           }
+          // `--research` rides in the green flag column as a first-class row so
+          // a skimmer discovers it by the same scan that reads cv/skills — but
+          // it's a listing trigger, handled by the branch above, not a target.
           ctx.print(tt.cmdDownloadIntro, 'dim');
-          printOptions(targets.filter((tgt) => tgt.tier === 'primary'));
-          ctx.print('');
-          ctx.print(tt.cmdDownloadResearchBridge, 'dim');
+          printOptions([
+            ...targets.filter((tgt) => tgt.tier === 'primary'),
+            { flag: '--research', label: tt.cmdDownloadOptionResearch },
+          ]);
           return;
         }
         if (selected.length > 1) {

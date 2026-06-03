@@ -389,8 +389,8 @@ export const en: Translations = {
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'every claude code skill across my portfolio, with measured token savings — pdf',
-    cmdDownloadResearchBridge:
-      'i measured these for real — A/B against a cold model, then optimized them. `download --research` for the full set.',
+    cmdDownloadOptionResearch:
+      'lists 4 more pdfs — the receipts behind those savings (not a download)',
     cmdDownloadResearchIntro: 'the full measurement set — each a pdf:',
     cmdDownloadOptionSuite: 'the A/B — 8 skills × 3 models, cold vs skill',
     cmdDownloadOptionStudy: 'the optimization — 5 rounds of before/after on a SKILL.md',
