@@ -1,6 +1,6 @@
 ---
 name: md-to-pdf
-description: Render a markdown report (or any HTML) to a styled PDF using the local Chrome's `--print-to-pdf` flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off "I need this report as a PDF" moment.
+description: Render a markdown report (or any HTML) to a styled PDF using the local Chrome's `--print-to-pdf` flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --catalog` (registry PDF) and any one-off "I need this report as a PDF" moment.
 ---
 
 # md-to-pdf

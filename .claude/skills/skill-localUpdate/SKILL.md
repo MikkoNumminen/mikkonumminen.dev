@@ -32,7 +32,7 @@ Three places on the deployed site read from the artifacts this chain produces. O
 | Surface | Reads | When the surface updates |
 | --- | --- | --- |
 | `/contact` terminal's `skills` command | `public/data/skills-registry.json` (fetched at runtime via `src/lib/terminal/skills.ts`) | On next page load / cache expiry — no rebuild needed once the JSON is committed |
-| `download --skills` (terminal) | `public/skills-registry.pdf` | On next page load — same as above |
+| `download --catalog` (terminal) | `public/skills-registry.pdf` | On next page load — same as above |
 | Dated registry snapshot | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `LATEST.json` | Persistent inventory history for other Claude sessions to read |
 
 That's why this skill is named `skill-localUpdate` rather than `skill-pdf` (renamed 2026-05-21): the PDF is one of three outputs, not the headline.
@@ -129,7 +129,7 @@ Print a four-line summary:
 skill-localUpdate — refreshed:
   inventory:   .claude/agent-verdicts/SKILL-REGISTRY-{date}.json
   data:        public/data/skills-registry.json   ← /contact terminal reads this
-  pdf:         public/skills-registry.pdf          ← download --skills serves this
+  pdf:         public/skills-registry.pdf          ← download --catalog serves this
 
 Open public/skills-registry.pdf to review. Commit when ready:
   git add public/data/skills-registry.json public/skills-registry.pdf .claude/agent-verdicts/SKILL-REGISTRY-*

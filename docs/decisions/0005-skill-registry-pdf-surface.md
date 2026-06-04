@@ -1,6 +1,6 @@
 # ADR 0005 — Skill registry as a terminal-download PDF
 
-**Status:** accepted
+**Status:** accepted — amended 2026-06-04 (PR #204): the registry download moved from `download --skills` to `download --catalog`; see the Amendment at the end. The body below records the original 2026-05-19 decision.
 **Date:** 2026-05-19
 **Decided by:** repo owner
 
@@ -212,3 +212,17 @@ deployed site — humans review the PDF in a PR, not Vercel's renderer.
       ones. Tracked in
       [`SKILL-REGISTRY-AGENT.md`](../../.claude/agent-verdicts/SKILL-REGISTRY-AGENT.md)'s
       "Open questions" section.
+
+## Amendment — 2026-06-04 (PR #204)
+
+The terminal flag that downloads the registry PDF was renamed
+`download --skills` → `download --catalog`. The contact terminal's
+`download` menu is now two-tier (PRs #203, #204): `download --skills`
+leads with the *current* cold-vs-skill A/B calibration PDF
+(`/skills-suite-calibration.pdf`), and the full registry inventory moved
+one tier down to `download --catalog` (`/skills-registry.pdf`).
+
+The mechanism in this ADR is otherwise unchanged — `build-skills-pdf.mjs`
+still renders the registry PDF via local Chrome and the `prebuild`
+auto-sync is untouched; only the terminal flag that surfaces it moved.
+The `skills` inline command still serves the registry JSON.

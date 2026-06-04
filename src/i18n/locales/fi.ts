@@ -381,7 +381,7 @@ export const fi: Translations = {
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
-      'my skills measured cold-vs-skill, 3 models — the current round · jun 2026 — pdf',
+      '16 of my skills, cold-vs-skill A/B across 3 models — the current round · jun 2026 — pdf',
     cmdDownloadOptionResearch:
       'lists 4 more pdfs — the full catalog + how the numbers were made (not a download)',
     cmdDownloadResearchIntro: 'the catalog + the methodology — each a pdf:',
