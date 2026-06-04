@@ -105,12 +105,26 @@ export function buildCommands(t: Translations): CommandSpec[] {
       description: tt.cmdDownloadDesc,
       usage: tt.cmdDownloadUsage,
       handler: async (args, ctx) => {
-        // Flag → downloadable target. Order here is the order shown in the
-        // options list. Adding a target is a one-line append; the selection,
-        // listing, and ambiguity handling below are all driven off this array.
-        const targets = [
+        // Flag → downloadable target. `tier` drives the two-level menu: bare
+        // `download` lists the 'primary' rows (cv + skills) plus a synthetic
+        // `--research` row; `download --research` then lists the 'research'
+        // rows (the measurement PDFs), so the default view never floods. Every
+        // entry in THIS array is a real download — `--research` is deliberately
+        // NOT here, because it lists rather than downloads (a flag with no url
+        // would 404 through the download branch); it's appended as a menu row
+        // below. Adding a target is a one-line append; selection, listing, and
+        // ambiguity handling below all drive off this array.
+        const targets: {
+          flag: string;
+          tier: 'primary' | 'research';
+          label: string;
+          url: string;
+          filename: string;
+          notAvailableMsg: string;
+        }[] = [
           {
             flag: '--cv',
+            tier: 'primary',
             label: tt.cmdDownloadOptionCv,
             url: CV_PATH,
             filename: 'mikko-numminen-cv.pdf',
@@ -118,6 +132,7 @@ export function buildCommands(t: Translations): CommandSpec[] {
           },
           {
             flag: '--skills',
+            tier: 'primary',
             label: tt.cmdDownloadOptionSkills,
             url: SKILLS_PDF_PATH,
             filename: 'skills-registry.pdf',
@@ -125,6 +140,7 @@ export function buildCommands(t: Translations): CommandSpec[] {
           },
           {
             flag: '--suite',
+            tier: 'research',
             label: tt.cmdDownloadOptionSuite,
             url: SUITE_PDF_PATH,
             filename: 'skills-suite-calibration.pdf',
@@ -132,6 +148,7 @@ export function buildCommands(t: Translations): CommandSpec[] {
           },
           {
             flag: '--study',
+            tier: 'research',
             label: tt.cmdDownloadOptionStudy,
             url: STUDY_PDF_PATH,
             filename: 'skills-optim-study.pdf',
@@ -139,6 +156,7 @@ export function buildCommands(t: Translations): CommandSpec[] {
           },
           {
             flag: '--replicates',
+            tier: 'research',
             label: tt.cmdDownloadOptionReplicates,
             url: REPLICATES_PDF_PATH,
             filename: 'skills-optim-study-replicates.pdf',
@@ -146,32 +164,48 @@ export function buildCommands(t: Translations): CommandSpec[] {
           },
           {
             flag: '--results',
+            tier: 'research',
             label: tt.cmdDownloadOptionResults,
             url: RESULTS_PDF_PATH,
             filename: 'skills-results.pdf',
             notAvailableMsg: tt.cmdDownloadResultsNotAvailable,
           },
         ];
-        const selected = targets.filter((tgt) => args.includes(tgt.flag));
-        if (selected.length === 0) {
-          ctx.print(tt.cmdDownloadIntro, 'dim');
-          // Two-space indent + flag + four-space gap before description, so
-          // the description column lines up regardless of which flag is
-          // longest. `padEnd` handles the variable flag length.
+
+        // Render an aligned flag/description list. The description column lines
+        // up to the longest flag in *this* list, so each tier aligns on its own
+        // — the bare menu's short flags don't inherit the research flags' width.
+        // Typed to the minimal {flag,label} shape so the synthetic `--research`
+        // row (which has no url) can be passed alongside real targets.
+        const printOptions = (rows: { flag: string; label: string }[]) => {
           const INDENT = 2;
           const GAP = 4;
-          const colWidth =
-            INDENT + Math.max(...targets.map((tgt) => tgt.flag.length)) + GAP;
-          targets.forEach(({ flag, label }) => {
+          const colWidth = INDENT + Math.max(...rows.map((row) => row.flag.length)) + GAP;
+          rows.forEach(({ flag, label }) => {
             const padded = ' '.repeat(INDENT) + flag.padEnd(colWidth - INDENT, ' ');
             ctx.printHTML(
               `<span class="line"><span style="color:var(--color-term-green)">${escape(padded)}</span><span style="color:var(--color-term-dim)">${escape(label)}</span></span>`,
             );
           });
-          ctx.print('');
-          ctx.print(tt.cmdDownloadScopeNote, 'dim');
-          ctx.print('');
-          ctx.print(tt.cmdDownloadTryHint, 'dim');
+        };
+
+        const selected = targets.filter((tgt) => args.includes(tgt.flag));
+        if (selected.length === 0) {
+          if (args.includes('--research')) {
+            ctx.print(tt.cmdDownloadResearchIntro, 'dim');
+            printOptions(targets.filter((tgt) => tgt.tier === 'research'));
+            ctx.print('');
+            ctx.print(tt.cmdDownloadResearchHint, 'dim');
+            return;
+          }
+          // `--research` rides in the green flag column as a first-class row so
+          // a skimmer discovers it by the same scan that reads cv/skills — but
+          // it's a listing trigger, handled by the branch above, not a target.
+          ctx.print(tt.cmdDownloadIntro, 'dim');
+          printOptions([
+            ...targets.filter((tgt) => tgt.tier === 'primary'),
+            { flag: '--research', label: tt.cmdDownloadOptionResearch },
+          ]);
           return;
         }
         if (selected.length > 1) {
