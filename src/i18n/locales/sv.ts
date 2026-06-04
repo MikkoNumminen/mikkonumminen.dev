@@ -324,7 +324,7 @@ export const sv: Translations = {
     noscriptGithubLabel: 'GitHub:',
   },
   mobileContact: {
-    typedWhoamiOutputName: 'mikko numminen — full-stack-utvecklare · finland',
+    typedWhoamiOutputName: 'Mikko Numminen — full-stack-utvecklare · finland',
     typedWhoamiOutputBio:
       'levererar full-stack-produktionsappar från ände till ände. sql till drift.',
     typedContactLabelEmail: 'e-post',
@@ -344,7 +344,7 @@ export const sv: Translations = {
     bootMounting: '[ ok ] monterar /portfolio',
     bootLoading: '[ ok ] laddar projekt, erfarenhet, kontakt',
     bootComms: '[ ok ] etablerar kommunikationslänk',
-    bootWelcome: 'välkommen till mikko numminen — full-stack-utvecklare.',
+    bootWelcome: 'välkommen till Mikko Numminen — full-stack-utvecklare.',
     bootTypeHelp: 'skriv `help` för att se vad jag kan göra.',
     commandNotFound: 'kommando hittades inte:',
     typeHelpHint: 'skriv `help` för att se tillgängliga kommandon.',
@@ -356,7 +356,7 @@ export const sv: Translations = {
     cmdHelpAvailable: 'tillgängliga kommandon:',
     cmdHelpTip: 'tips: prova `whoami`, `contact --email` eller `download --cv`.',
     cmdWhoamiDesc: 'kort bio',
-    cmdWhoamiName: 'mikko numminen',
+    cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack-utvecklare · finland',
     cmdWhoamiIntro:
       'levererar full-stack-produktionsappar från ände till ände. sql till drift.',
