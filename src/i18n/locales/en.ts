@@ -383,32 +383,33 @@ export const en: Translations = {
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc:
-      'my cv, the skills registry, or the full skills-measurement set (pdf)',
+      'my cv, my measured skills, or the full catalog and methodology (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--skills|--research]; --research lists [--suite|--study|--replicates|--results]',
+      'download [--cv|--skills|--research]; --research lists [--catalog|--study|--replicates|--results]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
-      'every claude code skill across my portfolio, with measured token savings — pdf',
+      'my skills measured cold-vs-skill, 3 models — the current round · jun 2026 — pdf',
     cmdDownloadOptionResearch:
-      'lists 4 more pdfs — the receipts behind those savings (not a download)',
-    cmdDownloadResearchIntro: 'the full measurement set — each a pdf:',
-    cmdDownloadOptionSuite: 'the A/B — 8 skills × 3 models, cold vs skill',
+      'lists 4 more pdfs — the full catalog + how the numbers were made (not a download)',
+    cmdDownloadResearchIntro: 'the catalog + the methodology — each a pdf:',
+    cmdDownloadOptionCatalog:
+      'every skill across all 4 repos — the full portfolio inventory',
     cmdDownloadOptionStudy: 'the optimization — 5 rounds of before/after on a SKILL.md',
     cmdDownloadOptionReplicates: 'round 6 — the noisiest cells re-measured at depth',
     cmdDownloadOptionResults:
       'the synthesis — what the two skill-auditors cost and fixed',
-    cmdDownloadResearchHint: 'grab any directly, e.g. `download --suite`.',
+    cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --skills`, `download --suite`, `download --study`, `download --replicates`, or `download --results`.',
+      'try `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates`, or `download --results`.',
     cmdDownloadAmbiguous:
-      'specify only one of --cv, --skills, --suite, --study, --replicates, or --results.',
+      'specify only one of --cv, --skills, --catalog, --study, --replicates, or --results.',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet — still being polished.',
     cmdDownloadSkillsNotAvailable:
+      'skills calibration pdf not available right now — reach out and I will send it.',
+    cmdDownloadCatalogNotAvailable:
       'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
-    cmdDownloadSuiteNotAvailable:
-      'skill-suite calibration pdf not available right now — reach out and I will send it.',
     cmdDownloadStudyNotAvailable:
       'optimization study pdf not available right now — reach out and I will send it.',
     cmdDownloadReplicatesNotAvailable:

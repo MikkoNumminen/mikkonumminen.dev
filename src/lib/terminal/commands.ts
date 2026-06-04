@@ -106,9 +106,10 @@ export function buildCommands(t: Translations): CommandSpec[] {
       usage: tt.cmdDownloadUsage,
       handler: async (args, ctx) => {
         // Flag → downloadable target. `tier` drives the two-level menu: bare
-        // `download` lists the 'primary' rows (cv + skills) plus a synthetic
-        // `--research` row; `download --research` then lists the 'research'
-        // rows (the measurement PDFs), so the default view never floods. Every
+        // `download` lists the 'primary' rows (cv + the current skills
+        // measurement) plus a synthetic `--research` row; `download --research`
+        // then lists the 'research' rows (the full catalog + the methodology
+        // trail behind that number), so the default view never floods. Every
         // entry in THIS array is a real download — `--research` is deliberately
         // NOT here, because it lists rather than downloads (a flag with no url
         // would 404 through the download branch); it's appended as a menu row
@@ -134,17 +135,17 @@ export function buildCommands(t: Translations): CommandSpec[] {
             flag: '--skills',
             tier: 'primary',
             label: tt.cmdDownloadOptionSkills,
-            url: SKILLS_PDF_PATH,
-            filename: 'skills-registry.pdf',
+            url: SUITE_PDF_PATH,
+            filename: 'skills-suite-calibration.pdf',
             notAvailableMsg: tt.cmdDownloadSkillsNotAvailable,
           },
           {
-            flag: '--suite',
+            flag: '--catalog',
             tier: 'research',
-            label: tt.cmdDownloadOptionSuite,
-            url: SUITE_PDF_PATH,
-            filename: 'skills-suite-calibration.pdf',
-            notAvailableMsg: tt.cmdDownloadSuiteNotAvailable,
+            label: tt.cmdDownloadOptionCatalog,
+            url: SKILLS_PDF_PATH,
+            filename: 'skills-registry.pdf',
+            notAvailableMsg: tt.cmdDownloadCatalogNotAvailable,
           },
           {
             flag: '--study',
