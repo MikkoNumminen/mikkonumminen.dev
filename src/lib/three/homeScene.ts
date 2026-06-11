@@ -447,14 +447,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
    * Returns the screen-pixel position of the zone's world center plus a
    * hover hot-radius. Used by the per-frame hover-boost lerp.
    */
+  // Reused scratch — the single caller destructures the result immediately,
+  // so returning a shared object avoids a per-frame, per-zone literal allocation.
+  const zoneHotspot = { x: 0, y: 0, r: 0 };
   const zoneScreenHotspot = (entry: ZoneEntry): { x: number; y: number; r: number } => {
     entry.decor.group.getWorldPosition(projectedDecorPos);
     projectedDecorPos.project(camera);
-    const x = (projectedDecorPos.x + 1) * 0.5 * window.innerWidth;
-    const y = (1 - projectedDecorPos.y) * 0.5 * window.innerHeight;
+    zoneHotspot.x = (projectedDecorPos.x + 1) * 0.5 * window.innerWidth;
+    zoneHotspot.y = (1 - projectedDecorPos.y) * 0.5 * window.innerHeight;
     // Hot radius scales with the title (responsive layouts shrink it).
-    const r = entry.hotRadiusBase * title.group.scale.x;
-    return { x, y, r };
+    zoneHotspot.r = entry.hotRadiusBase * title.group.scale.x;
+    return zoneHotspot;
   };
 
   // ── Meteors (converge on the galaxy and detonate on impact) ─────────

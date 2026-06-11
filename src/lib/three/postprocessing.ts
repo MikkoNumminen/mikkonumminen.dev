@@ -58,7 +58,13 @@ export function createBloomComposer(
       bloomPass.setSize(width, height);
     },
     dispose: (): void => {
-      bloomPass.dispose();
+      // Dispose every pass, not just the bloom pass — the OutputPass (and any
+      // future pass) owns a ShaderMaterial + fullscreen-quad geometry that
+      // composer.dispose() does not release. RenderPass has no dispose, so the
+      // optional call simply skips it.
+      for (const pass of composer.passes) {
+        (pass as { dispose?: () => void }).dispose?.();
+      }
       composer.dispose();
     },
   };
