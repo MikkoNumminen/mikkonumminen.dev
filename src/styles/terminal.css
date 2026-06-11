@@ -314,10 +314,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  /* Brightened from --color-term-dim to clear WCAG AA 4.5:1 against the
-     near-black backdrop. --color-term-dim is kept for stylistic dim text
-     elsewhere. */
-  color: #6e8e75;
+  color: var(--color-term-dim);
   font-size: 0.72rem;
   border-top: 1px dashed rgba(74, 222, 128, 0.15);
   padding-top: 0.85rem;
@@ -346,20 +343,10 @@
 
 @media (max-width: 640px) {
   /* Hide the desktop interactive CRT terminal on phones — the
-     MobileContactCard component takes over below 640px. The noscript
-     fallback inside .crt is still served for no-JS desktop clients;
-     no-JS mobile is an accepted non-goal. The `.terminal*` overrides
-     below only affect the noscript fallback, since `.crt` (which wraps
-     the interactive terminal) is display:none here. */
+     MobileContactCard component takes over below 640px. Only `.crt`
+     is hidden here; the noscript fallback inside it is still served for
+     no-JS desktop clients (no-JS mobile is an accepted non-goal). */
   .crt {
-    display: none;
-  }
-  .terminal {
-    width: 96vw;
-    margin-top: 5.5rem;
-    border-radius: 10px;
-  }
-  .terminal__title {
     display: none;
   }
 }

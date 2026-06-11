@@ -248,7 +248,11 @@ body[data-theme='projects'] .site-footer {
 .projects-scene__list-item:hover,
 .projects-scene__list-item:focus-visible {
   background: rgba(120, 170, 255, 0.08);
-  border-color: color-mix(in srgb, var(--brand, #80c8ff) 45%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--brand, var(--color-api-accent)) 45%,
+    transparent
+  );
   transform: translateX(2px);
 }
 /* Keyboard focus keeps the global themed ring (projects-accent) so it is
@@ -260,8 +264,12 @@ body[data-theme='projects'] .site-footer {
    so when the user closes the drawer they see which planet they were
    just looking at. */
 .projects-scene__list-item[data-selected='true'] {
-  background: color-mix(in srgb, var(--brand, #80c8ff) 12%, transparent);
-  border-color: color-mix(in srgb, var(--brand, #80c8ff) 55%, transparent);
+  background: color-mix(in srgb, var(--brand, var(--color-api-accent)) 12%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--brand, var(--color-api-accent)) 55%,
+    transparent
+  );
 }
 
 .projects-scene__list-dot {
@@ -269,8 +277,8 @@ body[data-theme='projects'] .site-footer {
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
-  background: var(--brand, #80c8ff);
-  box-shadow: 0 0 8px var(--brand, #80c8ff);
+  background: var(--brand, var(--color-api-accent));
+  box-shadow: 0 0 8px var(--brand, var(--color-api-accent));
 }
 
 .projects-scene__list-text {
@@ -374,11 +382,11 @@ body[data-theme='projects'] .site-footer {
 .hover-label__apis {
   margin-top: 0.4rem;
   padding-top: 0.4rem;
-  border-top: 1px solid rgba(128, 200, 255, 0.18);
+  border-top: 1px solid rgba(var(--color-api-accent-rgb), 0.18);
   font-family: var(--font-mono);
   font-size: 0.68rem;
   letter-spacing: 0.04em;
-  color: #80c8ff;
+  color: var(--color-api-accent);
   display: flex;
   gap: 0.35rem;
   align-items: baseline;

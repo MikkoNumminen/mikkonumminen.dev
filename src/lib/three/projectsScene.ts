@@ -335,7 +335,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
   canvas.style.touchAction = 'none';
 
-  const findPlanetByMeshId = (id: string | undefined): PlanetEntry | null => {
+  const planetById = (id: string | undefined): PlanetEntry | null => {
     if (!id) return null;
     return planets.find((p) => p.project.id === id) ?? null;
   };
@@ -353,7 +353,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       // `userData.projectId` is a string we set ourselves in buildPlanet,
       // but Three.js types `userData` as `Record<string, any>`.
       const id = hits[0]!.object.userData.projectId as string | undefined;
-      const entry = findPlanetByMeshId(id);
+      const entry = planetById(id);
       if (entry) selectPlanet(entry);
     }
   };
@@ -491,7 +491,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       const hits = raycaster.intersectObjects(planetMeshes);
       const raycastHovered =
         hits.length > 0
-          ? findPlanetByMeshId(hits[0]!.object.userData.projectId as string | undefined)
+          ? planetById(hits[0]!.object.userData.projectId as string | undefined)
           : null;
       const newHovered = forcedHovered ?? raycastHovered;
 
@@ -624,7 +624,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
         if (selected) deselect();
         return;
       }
-      const entry = planets.find((p) => p.project.id === id);
+      const entry = planetById(id);
       if (entry && entry !== selected) selectPlanet(entry);
     },
     hoverById: (id: string | null): void => {
@@ -634,7 +634,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
         forcedHovered = null;
         return;
       }
-      forcedHovered = id ? (planets.find((p) => p.project.id === id) ?? null) : null;
+      forcedHovered = planetById(id ?? undefined);
     },
     resize: resize.handler,
     dispose: (): void => {

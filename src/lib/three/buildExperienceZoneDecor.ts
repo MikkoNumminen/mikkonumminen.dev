@@ -15,6 +15,7 @@ import {
   SpriteMaterial,
   type Texture,
 } from 'three';
+import { decayImpulse, makeRadialSpriteTexture } from './textures';
 
 export interface ExperienceZoneDecorHandle {
   group: Group;
@@ -149,41 +150,21 @@ function makeMeteorTexture(): Texture {
 }
 
 function makeSnowflakeTexture(): Texture {
-  const c = document.createElement('canvas');
-  c.width = c.height = SNOW_TEX_SIZE;
-  const ctx = c.getContext('2d');
-  if (!ctx) throw new Error('makeSnowflakeTexture: 2D context unavailable');
-
-  const cx = SNOW_TEX_SIZE / 2;
-  const g = ctx.createRadialGradient(cx, cx, 0, cx, cx, cx);
-  g.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  g.addColorStop(0.35, 'rgba(240, 248, 255, 0.55)');
-  g.addColorStop(1, 'rgba(220, 235, 255, 0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, SNOW_TEX_SIZE, SNOW_TEX_SIZE);
-
-  const t = new CanvasTexture(c);
-  t.needsUpdate = true;
-  return t;
+  return makeRadialSpriteTexture(SNOW_TEX_SIZE, [
+    [0, 'rgba(255, 255, 255, 1)'],
+    [0.35, 'rgba(240, 248, 255, 0.55)'],
+    [1, 'rgba(220, 235, 255, 0)'],
+  ]);
 }
 
 function makeDustTexture(): Texture {
-  const c = document.createElement('canvas');
-  c.width = c.height = DUST_TEX_SIZE;
-  const ctx = c.getContext('2d');
-  if (!ctx) throw new Error('makeDustTexture: 2D context unavailable');
-  const cx = DUST_TEX_SIZE / 2;
   // Soft, warm-grey radial cloud — reads as kicked-up dust rather than
   // snow (the snowflakes already in the scene are cool-white).
-  const g = ctx.createRadialGradient(cx, cx, 0, cx, cx, cx);
-  g.addColorStop(0, 'rgba(225, 220, 210, 0.7)');
-  g.addColorStop(0.4, 'rgba(200, 190, 175, 0.32)');
-  g.addColorStop(1, 'rgba(170, 160, 145, 0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, DUST_TEX_SIZE, DUST_TEX_SIZE);
-  const t = new CanvasTexture(c);
-  t.needsUpdate = true;
-  return t;
+  return makeRadialSpriteTexture(DUST_TEX_SIZE, [
+    [0, 'rgba(225, 220, 210, 0.7)'],
+    [0.4, 'rgba(200, 190, 175, 0.32)'],
+    [1, 'rgba(170, 160, 145, 0)'],
+  ]);
 }
 
 function makeGoatTexture(): Texture {
@@ -446,7 +427,7 @@ export function buildExperienceZoneDecor(
     // a smooth in-out curve over the decay so the apex hits at the
     // midpoint of the impulse's life, not the start.
     if (clickImpulse > 0) {
-      clickImpulse = Math.max(0, clickImpulse - delta * CLICK_DECAY);
+      clickImpulse = decayImpulse(clickImpulse, delta, CLICK_DECAY);
       const env = Math.sin(clickImpulse * Math.PI);
       goat.scale.setScalar(GOAT_BASE_SCALE * (1 + env * GOAT_PULSE_PEAK));
       goat.position.y += env * GOAT_PULSE_HOP * scale;

@@ -10,6 +10,7 @@ import {
 } from 'three';
 import type { PlanetEntry } from './buildPlanet';
 import { PLANET_BASE_RADIUS } from './constants';
+import { makeRadialSpriteTexture } from '../textures';
 
 const NUM_PULSES = 3;
 const PULSE_DURATION = 2.6;
@@ -21,26 +22,11 @@ let sharedPulseTextureRefCount = 0;
 
 function getPulseTexture(): CanvasTexture {
   if (sharedPulseTexture) return sharedPulseTexture;
-  const size = 128;
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const ctx = c.getContext('2d');
-  if (!ctx) throw new Error('Failed to acquire 2D context for pulse texture');
-  const grad = ctx.createRadialGradient(
-    size / 2,
-    size / 2,
-    0,
-    size / 2,
-    size / 2,
-    size / 2,
-  );
-  grad.addColorStop(0, 'rgba(190, 225, 255, 0.95)');
-  grad.addColorStop(0.5, 'rgba(140, 180, 255, 0.4)');
-  grad.addColorStop(1, 'rgba(120, 160, 255, 0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, size, size);
-  const tex = new CanvasTexture(c);
-  tex.needsUpdate = true;
+  const tex = makeRadialSpriteTexture(128, [
+    [0, 'rgba(190, 225, 255, 0.95)'],
+    [0.5, 'rgba(140, 180, 255, 0.4)'],
+    [1, 'rgba(120, 160, 255, 0)'],
+  ]);
   sharedPulseTexture = tex;
   return tex;
 }

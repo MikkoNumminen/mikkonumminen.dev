@@ -45,6 +45,7 @@ import {
 } from './buildProjectsZoneDecor';
 import { createBloomComposer, type BloomComposerHandle } from './postprocessing';
 import { disposeMaterial } from './disposeMaterial';
+import { decayImpulse } from './textures';
 
 interface HomeSceneOptions {
   canvas: HTMLCanvasElement;
@@ -792,14 +793,15 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     if (!reducedMotion) {
       // Decay the collision-flash pulse each frame; bright on hit, fades
       // smoothly to zero.
-      collisionFlashEnergy = Math.max(
-        0,
-        collisionFlashEnergy - delta * COLLISION_FLASH_DECAY,
+      collisionFlashEnergy = decayImpulse(
+        collisionFlashEnergy,
+        delta,
+        COLLISION_FLASH_DECAY,
       );
       collisionFlashLight.intensity = collisionFlashEnergy * COLLISION_FLASH_PEAK;
       // Rim flash decays slightly faster than the point light so the
       // bright moment on the title's chrome reads as a sharp peak.
-      collisionRimEnergy = Math.max(0, collisionRimEnergy - delta * COLLISION_RIM_DECAY);
+      collisionRimEnergy = decayImpulse(collisionRimEnergy, delta, COLLISION_RIM_DECAY);
 
       sparks.tick(delta);
       impactText.tick(delta);

@@ -59,14 +59,29 @@ const REGISTRY_PATH = '/data/skills-registry.json';
 // one session don't re-hit the network. Long enough to be useful, short
 // enough that replacing the file on disk shows up within a reload.
 const CACHE_TTL_MS = 60_000;
-let registryCache: { promise: Promise<SkillRegistry | null>; loadedAt: number } | null =
-  null;
+// `loadedAt` is stamped at RESOLUTION, not at fetch start — stamping it before
+// the fetch resolves would shorten the effective TTL by the fetch's own
+// latency. It stays null while the fetch is in flight so the TTL check below
+// only kicks in once a load has actually completed.
+let registryCache: {
+  promise: Promise<SkillRegistry | null>;
+  loadedAt: number | null;
+} | null = null;
 
 async function fetchRegistry(): Promise<SkillRegistry | null> {
-  const now = Date.now();
-  if (registryCache && now - registryCache.loadedAt < CACHE_TTL_MS) {
+  // Share the in-flight or fresh-enough cached promise. Caching the promise
+  // synchronously (before it resolves) means concurrent callers all await the
+  // same fetch instead of each firing their own. An in-flight entry has
+  // loadedAt === null and is always reused; a resolved entry is reused only
+  // while inside the TTL.
+  if (
+    registryCache &&
+    (registryCache.loadedAt === null ||
+      Date.now() - registryCache.loadedAt < CACHE_TTL_MS)
+  ) {
     return registryCache.promise;
   }
+
   const promise = (async () => {
     try {
       const res = await fetch(REGISTRY_PATH, {
@@ -79,12 +94,21 @@ async function fetchRegistry(): Promise<SkillRegistry | null> {
       return null;
     }
   })();
-  // Only cache a successful load. Caching a null (404 / network error / timeout)
-  // would short-circuit every retry for the full TTL, so a transient failure
-  // would wedge the `skills` command for a minute.
+
+  // Store the in-flight promise synchronously so concurrent calls share it.
+  registryCache = { promise, loadedAt: null };
+
   void promise.then((result) => {
-    registryCache = result !== null ? { promise, loadedAt: now } : null;
+    // Stamp the cache time at resolution so the TTL counts from when the data
+    // actually landed. Only keep a successful load — caching a null (404 /
+    // network error / timeout) would short-circuit every retry for the full
+    // TTL, so a transient failure would wedge the `skills` command. Clearing
+    // back to null on failure leaves a retry possible. Guard the identity check
+    // so a newer fetch that replaced this entry isn't clobbered.
+    if (registryCache?.promise !== promise) return;
+    registryCache = result !== null ? { promise, loadedAt: Date.now() } : null;
   });
+
   return promise;
 }
 

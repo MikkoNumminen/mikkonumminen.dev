@@ -23,7 +23,7 @@
  * separate palette table to drift.
  */
 
-import type { Theme } from '../theme';
+import { isTheme, type Theme } from '../theme';
 // Deep import (`/routing` rather than the `/i18n` barrel) — we only need
 // path manipulation, not the locale dictionaries. Importing from the
 // barrel would force en / fi / sv translation maps into every page's
@@ -87,15 +87,6 @@ function pickTheme(href: string): Theme {
   return 'home';
 }
 
-function isValidTheme(value: string | null): value is Theme {
-  return (
-    value === 'home' ||
-    value === 'projects' ||
-    value === 'experience' ||
-    value === 'contact'
-  );
-}
-
 function readAccent(theme: Theme): string {
   const styles = getComputedStyle(document.documentElement);
   const value = styles.getPropertyValue(`--color-${theme}-accent`).trim();
@@ -104,7 +95,7 @@ function readAccent(theme: Theme): string {
 
 function currentTheme(): Theme {
   const raw = document.body.dataset.theme ?? null;
-  return isValidTheme(raw) ? raw : DEFAULT_THEME;
+  return isTheme(raw) ? raw : DEFAULT_THEME;
 }
 
 function isInternalLink(anchor: HTMLAnchorElement): boolean {
@@ -311,8 +302,16 @@ class TransitionRunner {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /** Configure streaks for "departure": from edges → toward centre. */
-  private spawnStreaksInward(): void {
+  /**
+   * Configure the streak pool for a phase.
+   *
+   *  `'in'`  — departure: streaks start at the edges and pull toward centre.
+   *  `'out'` — arrival:   streaks start near centre and fly out past edges.
+   *
+   * Only the origin/target geometry differs between the two; the size and
+   * per-streak delay are shared so the swarm reads as one effect either way.
+   */
+  private spawnStreaks(dir: 'in' | 'out'): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
     const cx = w / 2;
@@ -321,47 +320,34 @@ class TransitionRunner {
 
     for (let i = 0; i < STREAK_COUNT; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const r = maxDim * (0.7 + Math.random() * 0.4);
-      const ox = cx + Math.cos(angle) * r;
-      const oy = cy + Math.sin(angle) * r;
-      // Target near centre with a slight angular offset so trails
-      // don't all converge on a single pixel.
-      const ta = angle + (Math.random() - 0.5) * 0.4;
-      const tr = Math.random() * 80;
-      const tx = cx + Math.cos(ta) * tr;
-      const ty = cy + Math.sin(ta) * tr;
+      let ox: number;
+      let oy: number;
+      let tx: number;
+      let ty: number;
+      if (dir === 'in') {
+        // Origin: out near the corners.
+        const r = maxDim * (0.7 + Math.random() * 0.4);
+        ox = cx + Math.cos(angle) * r;
+        oy = cy + Math.sin(angle) * r;
+        // Target near centre with a slight angular offset so trails
+        // don't all converge on a single pixel.
+        const ta = angle + (Math.random() - 0.5) * 0.4;
+        const tr = Math.random() * 80;
+        tx = cx + Math.cos(ta) * tr;
+        ty = cy + Math.sin(ta) * tr;
+      } else {
+        // Origin: small cluster near centre.
+        const or = Math.random() * 60;
+        ox = cx + Math.cos(angle) * or;
+        oy = cy + Math.sin(angle) * or;
+        // Target: well past the viewport edge so streaks fly off-screen.
+        const tr = maxDim * (0.85 + Math.random() * 0.5);
+        tx = cx + Math.cos(angle) * tr;
+        ty = cy + Math.sin(angle) * tr;
+      }
       const s = this.streaks[i];
       // Pool is pre-allocated so this guard is unreachable, but it
       // satisfies noUncheckedIndexedAccess.
-      if (!s) continue;
-      s.ox = ox;
-      s.oy = oy;
-      s.tx = tx;
-      s.ty = ty;
-      s.size = 1.5 + Math.random() * 3;
-      s.delay = Math.random() * 0.3;
-    }
-  }
-
-  /** Configure streaks for "arrival": from centre → out to edges. */
-  private spawnStreaksOutward(): void {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const cx = w / 2;
-    const cy = h / 2;
-    const maxDim = Math.hypot(w, h) * 0.6;
-
-    for (let i = 0; i < STREAK_COUNT; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      // Origin: small cluster near centre.
-      const or = Math.random() * 60;
-      const ox = cx + Math.cos(angle) * or;
-      const oy = cy + Math.sin(angle) * or;
-      // Target: well past the viewport edge so streaks fly off-screen.
-      const tr = maxDim * (0.85 + Math.random() * 0.5);
-      const tx = cx + Math.cos(angle) * tr;
-      const ty = cy + Math.sin(angle) * tr;
-      const s = this.streaks[i];
       if (!s) continue;
       s.ox = ox;
       s.oy = oy;
@@ -418,7 +404,7 @@ class TransitionRunner {
   phaseA(srcTheme: Theme): Promise<void> {
     return new Promise((resolve) => {
       this.overlay.dataset.state = 'animating';
-      this.spawnStreaksInward();
+      this.spawnStreaks('in');
       const accent = readAccent(srcTheme);
       const start = performance.now();
 
@@ -534,7 +520,7 @@ class TransitionRunner {
   phaseC(dstTheme: Theme): Promise<void> {
     return new Promise((resolve) => {
       this.overlay.dataset.state = 'animating';
-      this.spawnStreaksOutward();
+      this.spawnStreaks('out');
       const accent = readAccent(dstTheme);
       const start = performance.now();
 
@@ -605,14 +591,18 @@ const FALLBACK_RGB: AccentRgb = { r: 255, g: 255, b: 255 };
  * failure so the gradient never silently goes invisible.
  */
 function parseAccentRgb(input: string, ctx: CanvasRenderingContext2D): AccentRgb {
+  // Shared `#rrggbb` → rgb decode, used by both the fast path (raw input)
+  // and the slow path (canvas-normalised read-back). `h` is the six hex
+  // digits without the leading `#`.
+  const hex6ToRgb = (h: string): AccentRgb => ({
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  });
+
   const hex6 = /^#([0-9a-f]{6})$/i.exec(input);
   if (hex6) {
-    const h = hex6[1] ?? '';
-    return {
-      r: parseInt(h.slice(0, 2), 16),
-      g: parseInt(h.slice(2, 4), 16),
-      b: parseInt(h.slice(4, 6), 16),
-    };
+    return hex6ToRgb(hex6[1] ?? '');
   }
   const hex3 = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(input);
   if (hex3) {
@@ -640,12 +630,7 @@ function parseAccentRgb(input: string, ctx: CanvasRenderingContext2D): AccentRgb
   }
   const fromHex = /^#([0-9a-f]{6})$/i.exec(normalised);
   if (fromHex) {
-    const h = fromHex[1] ?? '';
-    return {
-      r: parseInt(h.slice(0, 2), 16),
-      g: parseInt(h.slice(2, 4), 16),
-      b: parseInt(h.slice(4, 6), 16),
-    };
+    return hex6ToRgb(fromHex[1] ?? '');
   }
   const fromRgb = /^rgba?\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)/i.exec(
     normalised,
@@ -692,7 +677,7 @@ export function initPageTransitions(): void {
   try {
     if (sessionStorage.getItem(SESSION_KEY) === '1') {
       const stored = sessionStorage.getItem(SESSION_THEME_KEY);
-      const theme: Theme = isValidTheme(stored) ? stored : DEFAULT_THEME;
+      const theme: Theme = isTheme(stored) ? stored : DEFAULT_THEME;
       sessionStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(SESSION_THEME_KEY);
       overlay.dataset.state = 'animating';

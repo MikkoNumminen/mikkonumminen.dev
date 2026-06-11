@@ -199,6 +199,18 @@ export function buildCommands(t: Translations): CommandSpec[] {
             ctx.print(tt.cmdDownloadResearchHint, 'dim');
             return;
           }
+          // A leftover `--` token that's neither a known target flag nor
+          // `--research` is a typo, not a request for the menu — error on it
+          // the way contact/links/skills do, instead of silently showing the
+          // default list. Bare `download` (no `--` tokens) still falls through
+          // to the menu below.
+          const known = new Set(targets.map((tgt) => tgt.flag));
+          const unknown = args.filter((a) => a.startsWith('--') && !known.has(a));
+          if (unknown.length > 0) {
+            ctx.print(`${tt.cmdLinksUnknownFlag} ${unknown.join(' ')}`, 'err');
+            ctx.print(tt.cmdDownloadTryHint, 'dim');
+            return;
+          }
           // `--research` rides in the green flag column as a first-class row so
           // a skimmer discovers it by the same scan that reads cv/skills — but
           // it's a listing trigger, handled by the branch above, not a target.

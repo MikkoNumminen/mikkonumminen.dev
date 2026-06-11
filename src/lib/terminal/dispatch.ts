@@ -30,7 +30,11 @@ export async function handleCommand(
   const rawArgsMatch = /^\s*\S+(?:\s+([\s\S]*))?$/.exec(input);
   const rawArgs = rawArgsMatch?.[1] ?? '';
 
-  const cmd = commandMap.get(name);
+  // Lowercase before lookup so `HELP` and `help` resolve the same. The map is
+  // keyed by lowercased names; tab-completion already lowercases its partial,
+  // so this keeps the Enter and Tab paths case-insensitive in lockstep. The
+  // original casing is preserved in the not-found message below.
+  const cmd = commandMap.get(name.toLowerCase());
   if (!cmd) {
     ctx.print(`${t.terminal.commandNotFound} ${name}`, 'err');
     ctx.print(t.terminal.typeHelpHint, 'dim');

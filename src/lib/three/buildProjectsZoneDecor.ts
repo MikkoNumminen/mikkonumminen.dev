@@ -1,6 +1,5 @@
 import {
   AdditiveBlending,
-  CanvasTexture,
   Group,
   Mesh,
   MeshPhysicalMaterial,
@@ -10,6 +9,7 @@ import {
   type Texture,
   TorusGeometry,
 } from 'three';
+import { decayImpulse, makeRadialSpriteTexture } from './textures';
 
 export interface ProjectsZoneDecorHandle {
   group: Group;
@@ -53,27 +53,22 @@ const SPIN_PEAK_MULT = 3;
 const SPIN_DECAY = 1.8;
 
 function makeFlareTexture(): Texture {
-  const c = document.createElement('canvas');
-  c.width = c.height = FLARE_TEX_SIZE;
-  const ctx = c.getContext('2d');
-  if (!ctx) throw new Error('makeFlareTexture: 2D context unavailable');
-
-  const cx = FLARE_TEX_SIZE / 2;
-  const halo = ctx.createRadialGradient(cx, cx, 0, cx, cx, cx);
-  halo.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  halo.addColorStop(0.16, 'rgba(220, 235, 255, 0.7)');
-  halo.addColorStop(0.5, 'rgba(150, 195, 255, 0.18)');
-  halo.addColorStop(1, 'rgba(120, 170, 240, 0)');
-  ctx.fillStyle = halo;
-  ctx.fillRect(0, 0, FLARE_TEX_SIZE, FLARE_TEX_SIZE);
+  const t = makeRadialSpriteTexture(FLARE_TEX_SIZE, [
+    [0, 'rgba(255, 255, 255, 1)'],
+    [0.16, 'rgba(220, 235, 255, 0.7)'],
+    [0.5, 'rgba(150, 195, 255, 0.18)'],
+    [1, 'rgba(120, 170, 240, 0)'],
+  ]);
   // Cross streak — gives the planet's specular peak a brief lens-flare
-  // moment when it crosses the camera-facing apex of its orbit.
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.fillRect(0, cx, FLARE_TEX_SIZE, 1);
-  ctx.fillRect(cx, 0, 1, FLARE_TEX_SIZE);
-
-  const t = new CanvasTexture(c);
-  t.needsUpdate = true;
+  // moment when it crosses the camera-facing apex of its orbit. Drawn on
+  // top of the shared radial fill via the texture's backing canvas.
+  const ctx = (t.image as HTMLCanvasElement).getContext('2d');
+  if (ctx) {
+    const cx = FLARE_TEX_SIZE / 2;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillRect(0, cx, FLARE_TEX_SIZE, 1);
+    ctx.fillRect(cx, 0, 1, FLARE_TEX_SIZE);
+  }
   return t;
 }
 
@@ -174,7 +169,7 @@ export function buildProjectsZoneDecor(
     // is multiplied by (1 + impulse * (SPIN_PEAK_MULT-1)), so a fresh
     // click triples the spin and it decays back over ~550 ms.
     if (spinImpulse > 0) {
-      spinImpulse = Math.max(0, spinImpulse - delta * SPIN_DECAY);
+      spinImpulse = decayImpulse(spinImpulse, delta, SPIN_DECAY);
     }
     const spinBoost = 1 + spinImpulse * (SPIN_PEAK_MULT - 1);
     ringSpinT += delta * 0.18 * speedMul * spinBoost;

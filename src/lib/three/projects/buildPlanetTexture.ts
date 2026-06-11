@@ -172,13 +172,110 @@ function styleFor(id: string): SurfaceStyle {
   }
 }
 
+/**
+ * Pending texture-paint jobs, drained a couple per animation frame so the
+ * first /projects navigation doesn't block the main thread painting every
+ * planet's procedural surface synchronously in one tight loop. The scene
+ * graph is wired up immediately against blank CanvasTextures; the pixels
+ * fill in over the next few frames as the queue drains.
+ *
+ * Each job carries a `cancelled` flag flipped by a `dispose` listener on
+ * its textures, so a scene torn down mid-build never paints into (or
+ * re-uploads) a canvas whose texture has already been freed.
+ */
+interface PaintJob {
+  run: () => void;
+  cancelled: boolean;
+}
+
+const pendingPaintJobs: PaintJob[] = [];
+/** How many queued planets to paint per frame — a couple keeps the reveal
+ *  to a few frames (subtle), not a slow drip, while still yielding to the
+ *  renderer between batches. */
+const PAINT_JOBS_PER_FRAME = 2;
+let drainScheduled = false;
+/**
+ * True once the first planet of the current synchronous build burst has
+ * been painted inline. The planets are built in one synchronous loop, so
+ * the queue is momentarily empty between calls; this flag (cleared on the
+ * next animation frame) is what makes only the *first* planet paint
+ * synchronously rather than every one.
+ */
+let syncPaintedThisBurst = false;
+
+function drainPaintJobs(): void {
+  drainScheduled = false;
+  // A new burst can begin paint-synchronously again once the loop has
+  // yielded to a frame.
+  syncPaintedThisBurst = false;
+  let painted = 0;
+  while (pendingPaintJobs.length > 0 && painted < PAINT_JOBS_PER_FRAME) {
+    const job = pendingPaintJobs.shift()!;
+    if (job.cancelled) continue;
+    job.run();
+    painted++;
+  }
+  if (pendingPaintJobs.length > 0) scheduleDrain();
+}
+
+function scheduleDrain(): void {
+  if (drainScheduled) return;
+  drainScheduled = true;
+  requestAnimationFrame(drainPaintJobs);
+}
+
 export function buildPlanetTexture(id: string, baseColor: number): ProceduralPlanet {
   const seed = hashString(id);
   const palette = derivePalette(baseColor);
   const style = styleFor(id);
   const heights = new Float32Array(TEX_W * TEX_H);
-  const map = paintDiffuse(seed, palette, style, heights);
-  const bumpMap = paintBump(heights);
+
+  // Create the textures up front against blank canvases so the planet
+  // material has valid resources immediately. The expensive pixel work is
+  // deferred into a paint job below.
+  const mapCanvas = document.createElement('canvas');
+  mapCanvas.width = TEX_W;
+  mapCanvas.height = TEX_H;
+  const map = finishDiffuseTexture(mapCanvas);
+
+  const bumpCanvas = document.createElement('canvas');
+  bumpCanvas.width = TEX_W;
+  bumpCanvas.height = TEX_H;
+  const bumpMap = finishBumpTexture(bumpCanvas);
+
+  const job: PaintJob = {
+    cancelled: false,
+    run: (): void => {
+      // Diffuse populates `heights`; bump reads it — keep that order.
+      paintDiffuse(mapCanvas, seed, palette, style, heights);
+      paintBump(bumpCanvas, heights);
+      map.needsUpdate = true;
+      bumpMap.needsUpdate = true;
+    },
+  };
+  // Disposing either texture (scene teardown) cancels the pending paint so
+  // we never touch a freed resource if the build is still in flight.
+  const cancel = (): void => {
+    job.cancelled = true;
+  };
+  map.addEventListener('dispose', cancel);
+  bumpMap.addEventListener('dispose', cancel);
+
+  // Paint the first planet of a fresh burst synchronously so the scene
+  // isn't entirely blank on the first rendered frame; defer the rest a
+  // couple per animation frame. `scheduleDrain` after the synchronous
+  // paint clears `syncPaintedThisBurst` on the next frame even when no
+  // jobs were deferred (a single-planet scene), so a later navigation can
+  // paint its first planet synchronously again.
+  if (!syncPaintedThisBurst) {
+    syncPaintedThisBurst = true;
+    job.run();
+    scheduleDrain();
+  } else {
+    pendingPaintJobs.push(job);
+    scheduleDrain();
+  }
+
   return { map, bumpMap, bumpScale: style.bumpScale };
 }
 
@@ -208,19 +305,18 @@ function derivePalette(baseColor: number): readonly [Rgb, Rgb, Rgb, Rgb] {
 }
 
 function paintDiffuse(
+  canvas: HTMLCanvasElement,
   seed: number,
   palette: readonly [Rgb, Rgb, Rgb, Rgb],
   style: SurfaceStyle,
   heightsOut: Float32Array,
-): CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = TEX_W;
-  canvas.height = TEX_H;
+): void {
   const ctx = canvas.getContext('2d');
-  // 2D context can fail in extremely locked-down environments. Return an
-  // unpainted CanvasTexture so the caller still gets a valid Three.js
-  // resource; planet renders dark but the page doesn't crash.
-  if (!ctx) return finishDiffuseTexture(canvas);
+  // 2D context can fail in extremely locked-down environments. Leave the
+  // (blank) canvas as-is so the already-created CanvasTexture stays a
+  // valid Three.js resource; planet renders dark but the page doesn't
+  // crash.
+  if (!ctx) return;
 
   const img = ctx.createImageData(TEX_W, TEX_H);
   const data = img.data;
@@ -291,7 +387,6 @@ function paintDiffuse(
   }
 
   ctx.putImageData(img, 0, 0);
-  return finishDiffuseTexture(canvas);
 }
 
 function finishDiffuseTexture(canvas: HTMLCanvasElement): CanvasTexture {
@@ -306,14 +401,11 @@ function finishDiffuseTexture(canvas: HTMLCanvasElement): CanvasTexture {
   return texture;
 }
 
-function paintBump(heights: Float32Array): CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = TEX_W;
-  canvas.height = TEX_H;
+function paintBump(canvas: HTMLCanvasElement, heights: Float32Array): void {
   const ctx = canvas.getContext('2d');
-  // Same fallback rationale as paintDiffuse — return an unpainted texture
-  // rather than crashing the scene if the 2D context is unavailable.
-  if (!ctx) return finishBumpTexture(canvas);
+  // Same fallback rationale as paintDiffuse — leave the blank canvas in
+  // place rather than crashing the scene if the 2D context is unavailable.
+  if (!ctx) return;
 
   const img = ctx.createImageData(TEX_W, TEX_H);
   const data = img.data;
@@ -326,7 +418,6 @@ function paintBump(heights: Float32Array): CanvasTexture {
     data[idx + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
-  return finishBumpTexture(canvas);
 }
 
 function finishBumpTexture(canvas: HTMLCanvasElement): CanvasTexture {
