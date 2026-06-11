@@ -250,8 +250,10 @@ body[data-theme='projects'] .site-footer {
   background: rgba(120, 170, 255, 0.08);
   border-color: color-mix(in srgb, var(--brand, #80c8ff) 45%, transparent);
   transform: translateX(2px);
-  outline: none;
 }
+/* Keyboard focus keeps the global themed ring (projects-accent) so it is
+   visibly distinct from mouse hover, which shares the tint above but has
+   no ring. (Previously `outline: none` suppressed it — WCAG 2.4.7.) */
 
 /* Marks the list item whose project is currently selected (drawer open
    or just closed). Brand-color left accent makes the choice persistent

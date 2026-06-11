@@ -37,6 +37,13 @@ const siteUrl =
 export default defineConfig({
   site: siteUrl,
   output: 'static',
+  // Emit slash-less URLs so the in-page canonical / og:url / hreflang match
+  // what is actually served — vercel.json sets `trailingSlash: false` +
+  // `cleanUrls`, so a trailing-slash (or .html) canonical would 308-redirect.
+  trailingSlash: 'never',
+  build: {
+    inlineStylesheets: 'auto',
+  },
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'fi', 'sv'],
@@ -62,9 +69,6 @@ export default defineConfig({
       },
     }),
   ],
-  build: {
-    inlineStylesheets: 'auto',
-  },
   vite: {
     ssr: {
       noExternal: ['three', 'gsap'],
