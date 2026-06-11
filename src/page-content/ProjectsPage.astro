@@ -179,6 +179,9 @@ const connectionLegendEntries = connections.map((c) => ({
     hoverById: (id: string | null) => void;
     dispose: () => void;
   } | null = null;
+  // Hoisted to script scope (like sceneHandle) so the beforeunload teardown can
+  // dispose it — its document-level listeners otherwise leak on navigation.
+  let drawer: ReturnType<typeof initProjectDrawer> | null = null;
 
   const sceneRoot = document.querySelector<HTMLElement>('[data-projects-scene]');
   const fallback = document.querySelector<HTMLElement>('[data-projects-fallback]');
@@ -229,7 +232,7 @@ const connectionLegendEntries = connections.map((c) => ({
       });
     };
 
-    const drawer = initProjectDrawer({
+    drawer = initProjectDrawer({
       detail,
       closeBtn,
       intro,
@@ -254,7 +257,7 @@ const connectionLegendEntries = connections.map((c) => ({
       const id = btn.getAttribute('data-project-id');
       if (!id) return;
       btn.addEventListener('click', () => {
-        drawer.prepareOpen(btn);
+        drawer?.prepareOpen(btn);
         sceneHandle?.selectById(id);
       });
       btn.addEventListener('mouseenter', () => sceneHandle?.hoverById(id));
@@ -273,7 +276,7 @@ const connectionLegendEntries = connections.map((c) => ({
         reducedMotion,
         onSelect: (project) => {
           setListSelected(project.id);
-          drawer.open(project);
+          drawer?.open(project);
         },
         onDeselect: () => {
           /* triggered by drawer.close via onClose */
@@ -283,7 +286,7 @@ const connectionLegendEntries = connections.map((c) => ({
       console.warn('projects scene failed to init', err);
       sceneRoot.setAttribute('data-fallback-active', 'true');
       fallback?.setAttribute('data-active', 'true');
-      drawer.dispose();
+      drawer?.dispose();
     }
   };
 
@@ -292,5 +295,6 @@ const connectionLegendEntries = connections.map((c) => ({
   window.addEventListener('beforeunload', () => {
     bootHandle.cancel();
     sceneHandle?.dispose();
+    drawer?.dispose();
   });
 </script>

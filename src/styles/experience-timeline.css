@@ -105,6 +105,12 @@
   align-items: flex-start;
   opacity: 0;
   transform: translateY(50px);
+}
+
+/* Only hint the compositor for entries that have not yet revealed. Once
+   `.is-visible` lands the reveal is done, so the layer is released instead of
+   being promoted for the whole page lifetime (previously 7-15 permanent layers). */
+.timeline__entry:not(.is-visible) {
   will-change: transform, opacity;
 }
 
@@ -120,6 +126,9 @@
   .timeline__entry {
     opacity: 1;
     transform: none;
+    /* Static here (no reveal animation, `.is-visible` is never added), so
+       drop the compositor hint the :not(.is-visible) rule would otherwise pin. */
+    will-change: auto;
   }
   .timeline__cta:hover,
   .timeline__cta:focus-visible {

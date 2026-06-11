@@ -412,22 +412,28 @@ export function buildExperienceZoneDecor(
     snowT += delta * speedMul;
     goatT += delta * (0.6 + boost * 0.4);
 
-    const posAttr = snowGeo.getAttribute('position');
-    const fall = delta * speedMul;
-    for (let i = 0; i < SNOW_COUNT; i++) {
-      const speed = snowSpeeds[i]!;
-      const phase = snowPhases[i]!;
-      let y = posAttr.getY(i) - speed * fall;
-      if (y < SNOW_FIELD_BOTTOM * scale) {
-        y = SNOW_FIELD_TOP * scale;
-        const nx = (Math.random() * 2 - 1) * SNOW_FIELD_HALF_WIDTH * scale;
-        snowBaseX[i] = nx;
+    // Only rewrite + re-upload the snow buffer when time actually advanced.
+    // On reduced-motion / paused frames (delta === 0) the positions are
+    // unchanged, so setting needsUpdate would re-upload the whole buffer to the
+    // GPU for nothing.
+    if (delta > 0) {
+      const posAttr = snowGeo.getAttribute('position');
+      const fall = delta * speedMul;
+      for (let i = 0; i < SNOW_COUNT; i++) {
+        const speed = snowSpeeds[i]!;
+        const phase = snowPhases[i]!;
+        let y = posAttr.getY(i) - speed * fall;
+        if (y < SNOW_FIELD_BOTTOM * scale) {
+          y = SNOW_FIELD_TOP * scale;
+          const nx = (Math.random() * 2 - 1) * SNOW_FIELD_HALF_WIDTH * scale;
+          snowBaseX[i] = nx;
+        }
+        const baseX = snowBaseX[i]!;
+        posAttr.setX(i, baseX + Math.sin(snowT * 0.8 + phase) * 0.05 * scale);
+        posAttr.setY(i, y);
       }
-      const baseX = snowBaseX[i]!;
-      posAttr.setX(i, baseX + Math.sin(snowT * 0.8 + phase) * 0.05 * scale);
-      posAttr.setY(i, y);
+      posAttr.needsUpdate = true;
     }
-    posAttr.needsUpdate = true;
 
     snowMat.opacity = 0.7 + boost * 0.25;
     ridgeMat.emissiveIntensity = ridgeBaseEmissive + boost * 0.18;
