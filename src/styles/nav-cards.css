@@ -76,8 +76,10 @@
 .nav-card:hover,
 .nav-card:focus-visible {
   transform: translateY(-6px);
-  outline: none;
 }
+/* Keyboard focus keeps the global themed ring (white on the home theme).
+   It is not suppressed here and survives the reduced-motion block below
+   (which only cancels the transform), so focus stays perceivable. */
 
 .nav-card:hover::before,
 .nav-card:focus-visible::before {
