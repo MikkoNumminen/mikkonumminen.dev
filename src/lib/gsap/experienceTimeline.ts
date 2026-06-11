@@ -253,13 +253,37 @@ export function initExperienceTimeline(
   if (reducedMotion) {
     applyPhase(0.6, sceneRoot);
     timelineEntries.forEach((el) => el.classList.add('is-visible'));
-    if (goat && timelineEntries[0]) {
-      const rect = timelineEntries[0].getBoundingClientRect();
-      const x = Math.max(GOAT_LEFT_CLAMP_PX, rect.left - GOAT_GAP_PX);
-      const y = clampGoatY(rect.top + rect.height / 2);
-      goat.style.setProperty('--goat-x', `${x}px`);
-      goat.style.setProperty('--goat-y', `${y}px`);
+
+    const firstEntry = timelineEntries[0];
+    if (goat && firstEntry) {
+      const positionGoat = (): void => {
+        const rect = firstEntry.getBoundingClientRect();
+        const x = Math.max(GOAT_LEFT_CLAMP_PX, rect.left - GOAT_GAP_PX);
+        const y = clampGoatY(rect.top + rect.height / 2);
+        goat.style.setProperty('--goat-x', `${x}px`);
+        goat.style.setProperty('--goat-y', `${y}px`);
+      };
+      positionGoat();
+
+      // The static placement above is computed against the current layout; a
+      // resize (or orientation change) shifts the first card, so recompute on
+      // a debounced resize and clean the listener + props up in dispose.
+      let resizeTimer = 0;
+      const onResize = (): void => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(positionGoat, 150);
+      };
+      window.addEventListener('resize', onResize);
+
+      return {
+        dispose: (): void => {
+          window.clearTimeout(resizeTimer);
+          window.removeEventListener('resize', onResize);
+          GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
+        },
+      };
     }
+
     return { dispose: (): void => {} };
   }
 
@@ -320,6 +344,7 @@ export function initExperienceTimeline(
     // centre. Linear scan — fine for the 7-15 entries we ever expect.
     const viewportCenter = window.innerHeight / 2;
     let closest: HTMLElement | null = null;
+    let closestRect: DOMRect | null = null;
     let closestDist = Infinity;
     for (const el of timelineEntries) {
       const rect = el.getBoundingClientRect();
@@ -328,9 +353,10 @@ export function initExperienceTimeline(
       if (dist < closestDist) {
         closestDist = dist;
         closest = el;
+        closestRect = rect;
       }
     }
-    if (!closest) return;
+    if (!closest || !closestRect) return;
 
     // Update the active-entry attribute only when it actually changes,
     // so the CSS transitions on the card glow / dot scale aren't being
@@ -343,9 +369,10 @@ export function initExperienceTimeline(
 
     if (!goat) return;
 
-    const rect = closest.getBoundingClientRect();
-    goatTargetX = Math.max(GOAT_LEFT_CLAMP_PX, rect.left - GOAT_GAP_PX);
-    goatTargetY = clampGoatY(rect.top + rect.height / 2);
+    // Reuse the rect measured in the scan loop above rather than forcing a
+    // second layout read on `closest` every frame.
+    goatTargetX = Math.max(GOAT_LEFT_CLAMP_PX, closestRect.left - GOAT_GAP_PX);
+    goatTargetY = clampGoatY(closestRect.top + closestRect.height / 2);
 
     if (!goatInitialized) {
       // First frame: snap to target so we don't see the goat fly in from
@@ -354,6 +381,15 @@ export function initExperienceTimeline(
       goatCurrentY = goatTargetY;
       goatInitialized = true;
     } else {
+      // Once the goat has settled within a sub-pixel of its target on both
+      // axes, skip the lerp + setProperty writes entirely so an idle page
+      // isn't repainting the goat's custom properties every frame.
+      if (
+        Math.abs(goatTargetX - goatCurrentX) < 0.1 &&
+        Math.abs(goatTargetY - goatCurrentY) < 0.1
+      ) {
+        return;
+      }
       goatCurrentX += (goatTargetX - goatCurrentX) * GOAT_DAMPING;
       goatCurrentY += (goatTargetY - goatCurrentY) * GOAT_DAMPING;
     }
@@ -369,16 +405,20 @@ export function initExperienceTimeline(
   // ── Timeline entry reveals (intersection-based, simpler than ScrollTrigger
   //     since each just toggles a class) ─────────────────────────────────────
   const entries = document.querySelectorAll<HTMLElement>('[data-timeline-entry]');
-  let revealOrder = 0;
   const io = new IntersectionObserver(
     (records) => {
-      records.forEach((rec) => {
-        if (!rec.isIntersecting) return;
+      // Stagger reveals by position WITHIN THIS callback's intersecting set so
+      // a batch scrolling into view together cascades top-to-bottom. Indexing
+      // a module-level counter instead would give an entry that reveals late
+      // (long after earlier ones) a huge transition-delay, leaving it
+      // invisible for up to ~1s. Sort the intersecting entries by their top
+      // edge so the cascade reads top-down regardless of observer order.
+      const intersecting = records
+        .filter((rec) => rec.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      intersecting.forEach((rec, i) => {
         const target = rec.target as HTMLElement;
-        // Stagger reveals by intersection order so a batch of entries scrolling
-        // into view together cascade rather than landing in the same frame.
-        target.style.transitionDelay = `${revealOrder * 80}ms`;
-        revealOrder += 1;
+        target.style.transitionDelay = `${Math.min(i, 4) * 80}ms`;
         target.classList.add('is-visible');
         io.unobserve(target);
       });

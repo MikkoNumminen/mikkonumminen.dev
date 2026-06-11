@@ -173,12 +173,12 @@
 .project-detail__externalApis li {
   padding: 0.3rem 0.7rem;
   border-radius: 4px;
-  background: rgba(128, 200, 255, 0.1);
-  border: 1px solid rgba(128, 200, 255, 0.32);
+  background: rgba(var(--color-api-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--color-api-accent-rgb), 0.32);
   font-family: var(--font-mono);
   font-size: 0.72rem;
   letter-spacing: 0.02em;
-  color: #80c8ff;
+  color: var(--color-api-accent);
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -186,7 +186,7 @@
 
 .project-detail__externalApis li::before {
   content: '↗';
-  color: #80c8ff;
+  color: var(--color-api-accent);
   font-weight: 600;
   opacity: 0.85;
 }

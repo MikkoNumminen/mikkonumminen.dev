@@ -138,16 +138,24 @@ function paint(
 
   // Visible window: most recent MAX_LINES total (active counts as one).
   // When active exists and the buffer is full, the oldest buffer line
-  // slides out of view at the top via slideOffset.
-  const all: ConsoleLine[] = active ? [...buffer, active] : buffer;
-  const visible = all.slice(-MAX_LINES);
+  // slides out of view at the top via slideOffset. Computed with index
+  // math — the conceptual array is `buffer` followed by `active` (when
+  // present), and we render its last `count` entries — so no throwaway
+  // `[...buffer, active].slice(...)` arrays are allocated per frame.
+  const hasActive = active !== null;
+  const total = buffer.length + (hasActive ? 1 : 0);
+  const count = Math.min(MAX_LINES, total);
+  // Index into the conceptual array at which the visible window starts.
+  // The active line, when present, is always its final entry.
+  const start = total - count;
 
-  for (let i = 0; i < visible.length; i++) {
-    const line = visible[i]!;
+  for (let i = 0; i < count; i++) {
+    const j = start + i;
+    const line = hasActive && j === buffer.length ? active! : buffer[j]!;
     const y = PAD_TOP + i * LINE_HEIGHT + slideOffset;
     const isActive = line === active;
     // Older lines fade by row; the active line is always full opacity.
-    const ageOffset = visible.length - 1 - i;
+    const ageOffset = count - 1 - i;
     const opacity = isActive ? 1 : Math.max(0.25, 0.85 - ageOffset * 0.13);
     drawLine(ctx, line, y, opacity);
 

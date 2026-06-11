@@ -49,7 +49,11 @@ export async function initTerminal(
   const locale = asLocale(document.documentElement.lang);
   const t = getTranslations(locale);
   const commands = buildCommands(t);
-  const commandMap = new Map(commands.map((c) => [c.name, c]));
+  // Key the lookup map by lowercased name so the CLI is case-insensitive on the
+  // Enter path, matching tab-completion (which lowercases the partial). Command
+  // names are already lowercase, but lowercasing here keeps both paths aligned
+  // if that ever changes.
+  const commandMap = new Map(commands.map((c) => [c.name.toLowerCase(), c]));
 
   const elements: TerminalElements = { output, form, input, cursor };
   const ctx = makeContext(elements);
@@ -98,6 +102,15 @@ export async function initTerminal(
   input.addEventListener('click', () => updateCursor(input, cursor), { signal });
   input.addEventListener('focus', () => updateCursor(input, cursor), { signal });
 
+  // `busy` is true while a command's async handler is in flight (and during the
+  // boot sequence). It's shared with the keydown handler via the isBusy closure
+  // so Ctrl+L / Ctrl+C can't clear or interrupt output that an in-flight command
+  // is still mutating. handleCommand is async (fetches, char-by-char typing);
+  // without this guard a second Enter mid-command launches a concurrent
+  // handleCommand whose output interleaves with the first in the same div.
+  let busy = false;
+  const isBusy = (): boolean => busy;
+
   input.addEventListener(
     'keydown',
     (e) => {
@@ -130,11 +143,17 @@ export async function initTerminal(
         });
       } else if (e.key === 'l' && e.ctrlKey) {
         // Ctrl+L only — Cmd+L on macOS is the browser's "focus address bar"
-        // shortcut and we shouldn't shadow it.
+        // shortcut and we shouldn't shadow it. Ignored while a command is in
+        // flight: clearing the output mid-command would leave late prints from
+        // the still-running handler mutating a screen the user thinks is empty.
         e.preventDefault();
+        if (isBusy()) return;
         ctx.clear();
       } else if (e.key === 'c' && e.ctrlKey) {
+        // Ignored while busy for the same reason — an in-flight handler keeps
+        // writing after the ^C echo, so the interrupt would be a visual lie.
         e.preventDefault();
+        if (isBusy()) return;
         echoPromptLine(output, input.value, '^C');
         input.value = '';
         history.reset();
@@ -144,10 +163,6 @@ export async function initTerminal(
     { signal },
   );
 
-  // handleCommand is async (fetches, char-by-char typing). Without this guard a
-  // second Enter mid-command launches a concurrent handleCommand whose output
-  // interleaves with the first in the same output div.
-  let busy = false;
   form.addEventListener(
     'submit',
     async (e) => {
@@ -169,8 +184,18 @@ export async function initTerminal(
     { signal },
   );
 
-  // Boot sequence then focus
-  await runBoot(ctx, elements, t);
+  // Gate input for the duration of the boot typing animation. Submitting a
+  // command mid-boot would interleave its output with the boot lines; the
+  // disabled input also gives a visible "not ready" cue. Mirror the state in
+  // `busy` so the keydown shortcuts (Ctrl+L / Ctrl+C) are inert during boot too.
+  busy = true;
+  input.disabled = true;
+  try {
+    await runBoot(ctx, elements, t);
+  } finally {
+    input.disabled = false;
+    busy = false;
+  }
   input.focus();
   updateCursor(input, cursor);
 

@@ -202,10 +202,6 @@
     margin-left: 0.1ch;
   }
 
-  .mcc__cursor--idle {
-    animation: mcc-cursor-blink 1.05s steps(1) infinite;
-  }
-
   @keyframes mcc-cursor-blink {
     0%,
     49% {

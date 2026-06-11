@@ -182,11 +182,11 @@
 .project-card__externalApis li {
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
-  background: rgba(128, 200, 255, 0.1);
-  border: 1px solid rgba(128, 200, 255, 0.32);
+  background: rgba(var(--color-api-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--color-api-accent-rgb), 0.32);
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  color: #80c8ff;
+  color: var(--color-api-accent);
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -194,7 +194,7 @@
 
 .project-card__externalApis li::before {
   content: '↗';
-  color: #80c8ff;
+  color: var(--color-api-accent);
   font-weight: 600;
   opacity: 0.85;
 }

@@ -31,9 +31,8 @@
   height: 100%;
 }
 
-.layer--sky {
-  /* the body gradient is what we tween — no SVG content needed */
-}
+/* .layer--sky carries no styles — the body gradient is what we tween,
+   so the sky layer needs no SVG content of its own. */
 
 .layer--stars {
   opacity: var(--stars-opacity, 1);

@@ -1,11 +1,5 @@
-import {
-  AdditiveBlending,
-  CanvasTexture,
-  Group,
-  Sprite,
-  SpriteMaterial,
-  type Texture,
-} from 'three';
+import { AdditiveBlending, Group, Sprite, SpriteMaterial, type Texture } from 'three';
+import { makeRadialSpriteTexture } from './textures';
 
 export interface CollisionSparksHandle {
   group: Group;
@@ -29,32 +23,13 @@ interface FlashState {
 }
 
 function makeFlashTexture(): Texture {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('makeFlashTexture: 2D context unavailable');
-
-  const grad = ctx.createRadialGradient(
-    size / 2,
-    size / 2,
-    0,
-    size / 2,
-    size / 2,
-    size / 2,
-  );
-  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  grad.addColorStop(0.14, 'rgba(232, 245, 255, 0.88)');
-  grad.addColorStop(0.4, 'rgba(180, 215, 255, 0.32)');
-  grad.addColorStop(0.75, 'rgba(140, 180, 255, 0.07)');
-  grad.addColorStop(1, 'rgba(140, 180, 255, 0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, size, size);
-
-  const texture = new CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
+  return makeRadialSpriteTexture(128, [
+    [0, 'rgba(255, 255, 255, 1)'],
+    [0.14, 'rgba(232, 245, 255, 0.88)'],
+    [0.4, 'rgba(180, 215, 255, 0.32)'],
+    [0.75, 'rgba(140, 180, 255, 0.07)'],
+    [1, 'rgba(140, 180, 255, 0)'],
+  ]);
 }
 
 /**

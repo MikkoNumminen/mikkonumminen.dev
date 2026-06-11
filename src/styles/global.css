@@ -32,6 +32,12 @@
   --color-projects-accent: #80a8ff;
   --color-experience-accent: #d4ff80;
   --color-contact-accent: #b5f5c8;
+
+  /* External-API accent — the blue used for the "↗ API" pills and labels
+     on /projects (project-detail.css, project-grid.css, projects-scene.css).
+     The -rgb triple feeds rgba(...) call sites that need an alpha. */
+  --color-api-accent: #80c8ff;
+  --color-api-accent-rgb: 128, 200, 255;
 }
 
 html {
