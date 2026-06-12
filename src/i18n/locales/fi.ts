@@ -1,6 +1,9 @@
 import type { Translations } from '../types';
 
 export const fi: Translations = {
+  common: {
+    opensInNewTab: '(avautuu uuteen välilehteen)',
+  },
   meta: {
     jobTitle: 'Fullstack-kehittäjä',
     home: {
@@ -65,7 +68,7 @@ export const fi: Translations = {
       },
       {
         title: 'AI-natiivi, jäljitettävästi',
-        body: 'Spacepotatis ajaa kymmentä omaa Claude Code -skilliä .claude/skills/-hakemistossa — versionhallittuja, neljännesvuosittain auditoituja, kuten tuotantokoodia. Pariohjelmointi tekoälyn kanssa on osa työkalupakkia; auditointijälki on kuitti.',
+        body: 'Spacepotatis toimittaa kokoelman omia Claude Code -skillejä .claude/skills/-hakemistossa — versionhallittuja, auditoituja, tuotantoartefaktien tavoin käsiteltyjä. Pariohjelmointi tekoälyn kanssa on osa työkalupakkia; menetelmä on kuitti.',
       },
     ],
   },
@@ -100,7 +103,11 @@ export const fi: Translations = {
     sectionAria: 'Kehitysvauhti',
     eyebrow: 'vauhti',
     heading: 'Nopeaa — todistettavasti.',
-    body: 'Spacepotatis ehti tyhjästä reposta tuotantoon 12 päivässä: 387 commitia, ~1170 testiä, kymmenen auditoitua Claude Code -skilliä, koko Next.js + Phaser 3 + Three.js -pino. Seitsemästä portfolioreposta kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
+    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 387 commitia, ~1170 testiä, koko Next.js + Phaser 3 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Seitsemästä portfolioreposta kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
+    link: {
+      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
+      label: 'Miten 3,13M tokenia arvioitiin',
+    },
     stats: [
       { num: '12', label: 'päivää tyhjästä reposta Spacepotatis-tuotantoon' },
       { num: '387', label: 'Spacepotatis-commitia' },
@@ -192,11 +199,11 @@ export const fi: Translations = {
     spacepotatis: {
       tagline: 'Selainampumapeli — perunasi vastaan galaksi',
       description:
-        'Selainpeli, jossa suojakuplaan suljettu peruna ampuu hyönteisiä proseduraalisessa galaksissa. Käynnistyy kuin vanha terminaali, avautuu 3D-aurinkokunnaksi jota voit pyörittää ja zoomata, ja heittää sinut ylhäältä alas vyöryvään taisteluun Tyrian 2000:n hengessä. Next.js 15 + React 19 -kuori Phaser 3 -taistelukentän ympärillä, Three.js + GSAP galaksinäkymässä ja kamerasiirtymässä taisteluun, PostgreSQL Neonissa Kyselyn (tyypitetty SQL-rakentaja, ei ORM:ää) kautta. Kaikki äänet AudiobookMakerin tuottamia, kaikki musiikki kirjoitettu strudel-patterns-repoon. Mukana kymmenen omaa Claude Code -skilliä .claude/skills/-hakemistossa — versionhallittuja, neljännesvuosittain auditoituja, kuten tuotantokoodia.',
+        'Selainpeli, jossa suojakuplaan suljettu peruna ampuu hyönteisiä proseduraalisessa galaksissa. Käynnistyy kuin vanha terminaali, avautuu 3D-aurinkokunnaksi jota voit pyörittää ja zoomata, ja heittää sinut ylhäältä alas vyöryvään taisteluun Tyrian 2000:n hengessä. Next.js 15 + React 19 -kuori Phaser 3 -taistelukentän ympärillä, Three.js + GSAP galaksinäkymässä ja kamerasiirtymässä taisteluun, PostgreSQL Neonissa Kyselyn (tyypitetty SQL-rakentaja, ei ORM:ää) kautta. Kaikki äänet AudiobookMakerin tuottamia, kaikki musiikki kirjoitettu strudel-patterns-repoon. Mukana kokoelma omia Claude Code -skillejä .claude/skills/-hakemistossa — versionhallittuja, auditoituja, tuotantoartefaktien tavoin käsiteltyjä.',
       highlights: [
         'Next.js 15 + Phaser 3 + Three.js',
         '~1170 testiä, CI joka pushissa',
-        '10 omaa Claude Code -skilliä tuotantotason artefakteina',
+        'Omat Claude Code -skillit tuotantoartefakteina',
       ],
     },
     'strudel-patterns': {
@@ -243,7 +250,7 @@ export const fi: Translations = {
     },
     'ai-workflows': {
       title: 'AI-natiivit työnkulut',
-      body: 'Agenttilähtöistä, AI-avusteista kehitystä versioituna kurinalaisuutena. Mukautetut Claude Code -skillit menevät repoon tuotantoartefakteina — jokainen opettaa agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki) niin että se menee suoraan asiaan eikä grepaa ympäriinsä jokaisella kutsulla. Parikoodausta rinnakkaisilla subagenteilla itsenäisten siivujen yli, sen jälkeen tulosten synteesi.\n\nSkillit ovat versionhallinnassa, auditoidaan kvartaaleittain (skillin ja sen viittaaman koodin välinen drift on aito bugiluokka — kaksi oikeaa tällaista löydettiin viime auditoinnissa), ja niitä käsitellään tuotantoartefakteina. Arvioitu säästö pelkästään Spacepotatiksella: noin 2,76 miljoonaa tokenia vuodessa. Nopeammin tuotantoon ilman että rima laskee.',
+      body: 'Agenttilähtöistä, AI-avusteista kehitystä versioituna kurinalaisuutena. Mukautetut Claude Code -skillit menevät repoon tuotantoartefakteina — jokainen opettaa agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki) niin että se menee suoraan asiaan eikä grepaa ympäriinsä hinnalla $X/token. Parikoodausta rinnakkaisilla subagenteilla itsenäisten siivujen yli, sen jälkeen tulosten synteesi.\n\nSkillit ovat versionhallinnassa, auditoituja (skillin ja sen viittaaman koodin välinen drift on aito bugiluokka — drift napataan ja korjataan), ja niitä käsitellään tuotantoartefakteina. Arvioitu säästö pelkästään Spacepotatiksella: ~3,13M tokenia vuodessa. Nopeammin tuotantoon ilman että rima laskee.',
       tags: [
         'Agenttikehitys',
         'Mukautetut skillit',
@@ -272,7 +279,11 @@ export const fi: Translations = {
         },
         {
           title: 'AI-työnkulku osana koodia',
-          body: 'Spacepotatis toimittaa kymmenen Claude Code -skilliä repon sisällä — koodikatselmoidut, neljännesvuosittain auditoidut. ~2,76M tokenia säästöä ensimmäisenä vuotenaan.',
+          body: 'Spacepotatis toimittaa kokoelman Claude Code -skillejä repon sisällä — koodikatselmoidut ja auditoidut. ~3,13M tokenia säästöä ensimmäisenä vuotenaan.',
+          link: {
+            href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
+            label: 'Menetelmä',
+          },
         },
         {
           title: 'Ei työkalulukitusta',
@@ -354,15 +365,19 @@ export const fi: Translations = {
     copyFallback: 'paina ctrl+c',
     cmdHelpDesc: 'listaa käytettävissä olevat komennot',
     cmdHelpAvailable: 'käytettävissä olevat komennot:',
-    cmdHelpTip: 'vinkki: kokeile `whoami`, `contact --email` tai `download --cv`.',
+    cmdHelpTip:
+      'vinkki: kokeile `whoami`, `contact --email`, `skills` tai `download --skills`.',
     cmdWhoamiDesc: 'lyhyt esittely',
     cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack-kehittäjä · suomi',
     cmdWhoamiIntro:
       'vie full-stack-tuotantosovellukset maaliin päästä päähän. sql:stä ops:iin.',
     cmdWhoamiLargest: 'suurin:',
+    cmdWhoamiLargestStats: '{tests}+ testiä, {coverage} kattavuus.',
     cmdWhoamiAlso: 'myös:',
     cmdWhoamiYear: 'tänä vuonna:',
+    cmdWhoamiYearStats:
+      '{projects} projektia yksin tuotantoon · ~{tokens} tokenia säästetty · {prs} PR:ää upstreamiin',
     cmdWhoamiCommunity: 'yhteisö',
     cmdWhoamiDesktop: 'työpöytä',
     cmdWhoamiGame: 'peli',
@@ -374,46 +389,39 @@ export const fi: Translations = {
     cmdLinksDesc: 'näytä verkkoprofiilit',
     cmdLinksUsage: 'käyttö: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'tuntematon valitsin:',
-    cmdDownloadDesc: 'lataa tiedosto',
+    cmdDownloadDesc: 'cv:ni, mitatut skillini tai koko katalogi ja menetelmä (pdf)',
     cmdDownloadUsage:
       'download [--cv|--skills|--research]; --research lists [--catalog|--study|--replicates|--results]',
-    // i18n: awaiting Finnish translation — English placeholders for now.
-    cmdDownloadIntro: "pick what you'd like to grab:",
-    cmdDownloadOptionCv: 'my cv — pdf, full résumé',
+    cmdDownloadIntro: 'valitse mitä haluat napata:',
+    cmdDownloadOptionCv: 'cv:ni — pdf, koko ansioluettelo',
     cmdDownloadOptionSkills:
-      '16 of my skills, cold-vs-skill A/B across 3 models — the current round · jun 2026 — pdf',
+      '16 skilliäni, kylmä-vs-skilli A/B kolmella mallilla — nykyinen kierros · kesäkuu 2026 — pdf',
     cmdDownloadOptionResearch:
-      'lists 4 more pdfs — the full catalog + how the numbers were made (not a download)',
-    cmdDownloadResearchIntro: 'the catalog + the methodology — each a pdf:',
+      'listaa 4 lisää pdf:ää — koko katalogi + miten luvut tehtiin (ei lataus)',
+    cmdDownloadResearchIntro: 'katalogi + menetelmä — kukin pdf:nä:',
     cmdDownloadOptionCatalog:
-      'every skill across all 4 repos — the full portfolio inventory',
-    cmdDownloadOptionStudy: 'the optimization — 5 rounds of before/after on a SKILL.md',
-    cmdDownloadOptionReplicates: 'round 6 — the noisiest cells re-measured at depth',
-    cmdDownloadOptionResults:
-      'the synthesis — what the two skill-auditors cost and fixed',
-    cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
+      'jokainen skilli kaikista 4 reposta — koko portfolion inventaario',
+    cmdDownloadOptionStudy: 'optimointi — 5 kierrosta ennen/jälkeen yhdellä SKILL.md:llä',
+    cmdDownloadOptionReplicates:
+      'kierros 6 — meluisimmat solut mitattuna uudelleen syvemmin',
+    cmdDownloadOptionResults: 'synteesi — mitä kaksi skilliauditoijaa maksoi ja korjasi',
+    cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates`, or `download --results`.',
-    // i18n: awaiting Finnish translation — English placeholder for now.
+      'kokeile `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates` tai `download --results`.',
     cmdDownloadAmbiguous:
-      'specify only one of --cv, --skills, --catalog, --study, --replicates, or --results.',
+      'anna vain yksi seuraavista: --cv, --skills, --catalog, --study, --replicates tai --results.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla — vielä viimeistelyssä.',
-    // i18n: awaiting Finnish translation — English placeholder for now.
     cmdDownloadSkillsNotAvailable:
-      'skills calibration pdf not available right now — reach out and I will send it.',
-    // i18n: awaiting Finnish translation — English placeholder for now.
+      'skillien kalibrointi-pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadCatalogNotAvailable:
-      'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
-    // i18n: awaiting Finnish translation — English placeholder for now.
+      'skillirekisterin pdf ei vielä saatavilla — luo se ajamalla `npm run build:skills-pdf`.',
     cmdDownloadStudyNotAvailable:
-      'optimization study pdf not available right now — reach out and I will send it.',
-    // i18n: awaiting Finnish translation — English placeholder for now.
+      'optimointitutkimuksen pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadReplicatesNotAvailable:
-      'replicates pdf not available right now — reach out and I will send it.',
-    // i18n: awaiting Finnish translation — English placeholder for now.
+      'replikaattien pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadResultsNotAvailable:
-      'skill-auditor results pdf not available right now — reach out and I will send it.',
+      'skilliauditoijan tulosten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',
@@ -422,18 +430,29 @@ export const fi: Translations = {
     cmdManNoEntry: 'ei manuaalimerkintää komennolle',
     cmdManNameLabel: 'NIMI',
     cmdManUsageLabel: 'KÄYTTÖ',
-    // i18n: awaiting Finnish translation — English placeholders for now.
-    cmdSkillsDesc: 'list claude code skills across all repos',
-    cmdSkillsUsage: 'usage: skills [--repo <name>|--all|--json]',
-    cmdSkillsUnknownFlag: 'unknown flag:',
-    cmdSkillsLoading: 'loading skill registry...',
-    cmdSkillsNotGenerated: 'skill registry not generated yet.',
+    cmdSkillsDesc: 'listaa claude code -skillit kaikista repoista',
+    cmdSkillsUsage: 'käyttö: skills [--repo <nimi>|--all|--json]',
+    cmdSkillsUnknownFlag: 'tuntematon valitsin:',
+    cmdSkillsLoading: 'ladataan skillirekisteriä...',
+    cmdSkillsNotGenerated: 'skillirekisteriä ei ole vielä luotu.',
     cmdSkillsNotGeneratedHint:
-      'run the `skill-registry` skill locally, then drop the json at public/data/skills-registry.json.',
-    cmdSkillsGeneratedLabel: 'generated:',
-    cmdSkillsAggregateTip: 'tip: `skills --repo <name>` or `skills --all` for details.',
-    cmdSkillsRepoNotFound: 'repo not found:',
-    cmdSkillsJsonOpened: 'opened skills-registry.json in new tab.',
+      'aja `skill-registry`-skilli paikallisesti ja pudota json polkuun public/data/skills-registry.json.',
+    cmdSkillsGeneratedLabel: 'luotu:',
+    cmdSkillsAggregateTip:
+      'vinkki: `skills --repo <nimi>` tai `skills --all` näyttää lisätiedot.',
+    cmdSkillsRepoNotFound: 'repoa ei löytynyt:',
+    cmdSkillsJsonOpened: 'avattiin skills-registry.json uuteen välilehteen.',
+    cmdSkillsColRepo: 'Repo',
+    cmdSkillsColSkills: 'Skillit',
+    cmdSkillsColRedirects: 'Uudelleenohj.',
+    cmdSkillsColReceipts: 'Kuitit',
+    cmdSkillsColTokensYr: 'Tokenia/v',
+    cmdSkillsTotal:
+      'yhteensä: {skills} skilliä · {redirects} uudelleenohjausta · {receipts} kuitein · ~{tokens} tokenia/v',
+    cmdSkillsNoSkills: '(ei skillejä)',
+    cmdSkillsKnownRepos: 'tunnetut repot:',
+    cmdSkillsReceiptLabel: '[kuitti]',
+    cmdSkillsPerYear: '/v',
   },
   langSwitcher: {
     label: 'Kieli',

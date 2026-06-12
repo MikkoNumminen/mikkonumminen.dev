@@ -1,6 +1,9 @@
 import type { Translations } from '../types';
 
 export const sv: Translations = {
+  common: {
+    opensInNewTab: '(öppnas i en ny flik)',
+  },
   meta: {
     jobTitle: 'Fullstack-utvecklare',
     home: {
@@ -65,7 +68,7 @@ export const sv: Translations = {
       },
       {
         title: 'AI-nativt, dokumenterat',
-        body: 'Spacepotatis levererar tio egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade varje kvartal, behandlade som produktionsartefakter. Parprogrammering med AI är en del av verktygskedjan; granskningsspåret är kvittot.',
+        body: 'Spacepotatis levererar en uppsättning egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade, behandlade som produktionsartefakter. Parprogrammering med AI är en del av verktygskedjan; metoden är kvittot.',
       },
     ],
   },
@@ -100,7 +103,11 @@ export const sv: Translations = {
     sectionAria: 'Utvecklingstempo',
     eyebrow: 'tempo',
     heading: 'Snabbt — på riktigt.',
-    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 387 commits, ~1170 tester, tio granskade Claude Code-skills, hela Next.js + Phaser 3 + Three.js-stacken. Sex av sju portföljrepor startade under de senaste sex veckorna. AI-nativt är inte snack — det är matematik.',
+    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 387 commits, ~1170 tester, hela Next.js + Phaser 3 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Sex av sju portföljrepor startade under de senaste sex veckorna. AI-nativt är inte snack — det är matematik.',
+    link: {
+      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
+      label: 'Hur 3,13M token uppskattades',
+    },
     stats: [
       { num: '12', label: 'dagar från tomt repo till live Spacepotatis' },
       { num: '387', label: 'Spacepotatis-commits' },
@@ -193,11 +200,11 @@ export const sv: Translations = {
     spacepotatis: {
       tagline: 'Webbläsarspel — din potatis mot galaxen',
       description:
-        'Live webbläsarspel där en potatis i en sköldbubbla skjuter buggar tvärs över en procedurell galax. Bootar som en vintage-terminal, öppnar sig till ett 3D-solsystem du drar och zoomar, släpper sedan dig i top-down vertikal strid i andan av Tyrian 2000. Next.js 15 + React 19-skal runt en Phaser 3-stridsscen; Three.js + GSAP driver galaxvyn och kameraövergången in i strid; PostgreSQL på Neon talas till via Kysely (typad SQL-byggare, ingen ORM). All röst genererad av AudiobookMaker; all musik skriven i strudel-patterns. Levereras med tio egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade kvartalsvis, behandlade som produktionsartefakter.',
+        'Live webbläsarspel där en potatis i en sköldbubbla skjuter buggar tvärs över en procedurell galax. Bootar som en vintage-terminal, öppnar sig till ett 3D-solsystem du drar och zoomar, släpper sedan dig i top-down vertikal strid i andan av Tyrian 2000. Next.js 15 + React 19-skal runt en Phaser 3-stridsscen; Three.js + GSAP driver galaxvyn och kameraövergången in i strid; PostgreSQL på Neon talas till via Kysely (typad SQL-byggare, ingen ORM). All röst genererad av AudiobookMaker; all musik skriven i strudel-patterns. Levereras med en uppsättning egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade, behandlade som produktionsartefakter.',
       highlights: [
         'Next.js 15 + Phaser 3 + Three.js',
         '~1170 tester, CI vid varje push',
-        '10 egna Claude Code-skills som produktionsartefakter',
+        'Egna Claude Code-skills som produktionsartefakter',
       ],
     },
     'strudel-patterns': {
@@ -244,7 +251,7 @@ export const sv: Translations = {
     },
     'ai-workflows': {
       title: 'AI-nativa arbetsflöden',
-      body: 'Agentisk, AI-assisterad utveckling som en versionerad disciplin. Anpassade Claude Code-skills checkas in i repot som produktionsartefakter — varje skill lär agenten ett projektspecifikt recept (lägg till en fiende, släpp en databasmigration, granska sparpipelinen) så att den går rakt på sak istället för att grepa runt vid varje anrop. Parprogrammering med parallella delagenter över oberoende delar, sedan syntes av resultaten.\n\nSkillsen är versionshanterade, granskas kvartalsvis (drift mellan en skill och koden den refererar till är en verklig kategori av buggar — två sådana fångades i den senaste granskningen), och behandlas som produktionsartefakter. Uppskattad besparing enbart i Spacepotatis: ~2,76 miljoner token per år. Snabbare leverans utan att sänka ribban.',
+      body: 'Agentisk, AI-assisterad utveckling som en versionerad disciplin. Anpassade Claude Code-skills checkas in i repot som produktionsartefakter — varje skill lär agenten ett projektspecifikt recept (lägg till en fiende, släpp en databasmigration, granska sparpipelinen) så att den går rakt på sak istället för att grepa runt vid $X/token. Parprogrammering med parallella delagenter över oberoende delar, sedan syntes av resultaten.\n\nSkillsen är versionshanterade, granskade (drift mellan en skill och koden den refererar till är en verklig kategori av buggar — drift fångas och åtgärdas), och behandlas som produktionsartefakter. Uppskattad besparing enbart i Spacepotatis: ~3,13 miljoner token per år. Snabbare leverans utan att sänka ribban.',
       tags: [
         'Agentisk utveckling',
         'Anpassade skills',
@@ -273,7 +280,11 @@ export const sv: Translations = {
         },
         {
           title: 'AI-flöde som incheckad kod',
-          body: 'Spacepotatis levererar tio Claude Code-skills i repot — kodgranskade, auditerade kvartalsvis. ~2,76M token sparat under första året.',
+          body: 'Spacepotatis levererar en uppsättning Claude Code-skills i repot — kodgranskade och auditerade. ~3,13M token sparat under första året.',
+          link: {
+            href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
+            label: 'Metod',
+          },
         },
         {
           title: 'Ingen verktygsinlåsning',
@@ -354,15 +365,19 @@ export const sv: Translations = {
     copyFallback: 'tryck ctrl+c',
     cmdHelpDesc: 'lista tillgängliga kommandon',
     cmdHelpAvailable: 'tillgängliga kommandon:',
-    cmdHelpTip: 'tips: prova `whoami`, `contact --email` eller `download --cv`.',
+    cmdHelpTip:
+      'tips: prova `whoami`, `contact --email`, `skills` eller `download --skills`.',
     cmdWhoamiDesc: 'kort bio',
     cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack-utvecklare · finland',
     cmdWhoamiIntro:
       'levererar full-stack-produktionsappar från ände till ände. sql till drift.',
     cmdWhoamiLargest: 'störst:',
+    cmdWhoamiLargestStats: '{tests}+ tester, {coverage} täckning.',
     cmdWhoamiAlso: 'även:',
     cmdWhoamiYear: 'i år:',
+    cmdWhoamiYearStats:
+      '{projects} projekt levererade solo · ~{tokens} token sparade · {prs} PR:er upstream till',
     cmdWhoamiCommunity: 'gemenskap',
     cmdWhoamiDesktop: 'skrivbord',
     cmdWhoamiGame: 'spel',
@@ -374,46 +389,39 @@ export const sv: Translations = {
     cmdLinksDesc: 'visa onlineprofiler',
     cmdLinksUsage: 'användning: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'okänd flagga:',
-    cmdDownloadDesc: 'ladda ner en fil',
+    cmdDownloadDesc:
+      'mitt cv, mina uppmätta skills eller hela katalogen och metoden (pdf)',
     cmdDownloadUsage:
       'download [--cv|--skills|--research]; --research lists [--catalog|--study|--replicates|--results]',
-    // i18n: awaiting Swedish translation — English placeholders for now.
-    cmdDownloadIntro: "pick what you'd like to grab:",
-    cmdDownloadOptionCv: 'my cv — pdf, full résumé',
+    cmdDownloadIntro: 'välj vad du vill hämta:',
+    cmdDownloadOptionCv: 'mitt cv — pdf, fullständig meritförteckning',
     cmdDownloadOptionSkills:
-      '16 of my skills, cold-vs-skill A/B across 3 models — the current round · jun 2026 — pdf',
+      '16 av mina skills, kall-vs-skill A/B över 3 modeller — den aktuella omgången · juni 2026 — pdf',
     cmdDownloadOptionResearch:
-      'lists 4 more pdfs — the full catalog + how the numbers were made (not a download)',
-    cmdDownloadResearchIntro: 'the catalog + the methodology — each a pdf:',
-    cmdDownloadOptionCatalog:
-      'every skill across all 4 repos — the full portfolio inventory',
-    cmdDownloadOptionStudy: 'the optimization — 5 rounds of before/after on a SKILL.md',
-    cmdDownloadOptionReplicates: 'round 6 — the noisiest cells re-measured at depth',
+      'listar 4 pdf:er till — hela katalogen + hur siffrorna togs fram (ingen nedladdning)',
+    cmdDownloadResearchIntro: 'katalogen + metoden — var och en som pdf:',
+    cmdDownloadOptionCatalog: 'varje skill i alla 4 repor — hela portföljinventeringen',
+    cmdDownloadOptionStudy: 'optimeringen — 5 omgångar före/efter på en SKILL.md',
+    cmdDownloadOptionReplicates: 'omgång 6 — de brusigaste cellerna ommätta på djupet',
     cmdDownloadOptionResults:
-      'the synthesis — what the two skill-auditors cost and fixed',
-    cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
+      'syntesen — vad de två skill-granskarna kostade och åtgärdade',
+    cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates`, or `download --results`.',
-    // i18n: awaiting Swedish translation — English placeholder for now.
+      'prova `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates` eller `download --results`.',
     cmdDownloadAmbiguous:
-      'specify only one of --cv, --skills, --catalog, --study, --replicates, or --results.',
+      'ange endast en av --cv, --skills, --catalog, --study, --replicates eller --results.',
     cmdDownloadPreparing: 'förbereder nedladdning...',
     cmdDownloadNotAvailable: 'cv inte tillgänglig än — fortfarande under finputsning.',
-    // i18n: awaiting Swedish translation — English placeholder for now.
     cmdDownloadSkillsNotAvailable:
-      'skills calibration pdf not available right now — reach out and I will send it.',
-    // i18n: awaiting Swedish translation — English placeholder for now.
+      'skills-kalibrerings-pdf:en är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadCatalogNotAvailable:
-      'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
-    // i18n: awaiting Swedish translation — English placeholder for now.
+      'skillregistrets pdf är inte tillgänglig än — kör `npm run build:skills-pdf` för att skapa den.',
     cmdDownloadStudyNotAvailable:
-      'optimization study pdf not available right now — reach out and I will send it.',
-    // i18n: awaiting Swedish translation — English placeholder for now.
+      'optimeringsstudiens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadReplicatesNotAvailable:
-      'replicates pdf not available right now — reach out and I will send it.',
-    // i18n: awaiting Swedish translation — English placeholder for now.
+      'replikat-pdf:en är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadResultsNotAvailable:
-      'skill-auditor results pdf not available right now — reach out and I will send it.',
+      'skill-granskarens resultat-pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadMeantime: 'under tiden, hör av dig:',
     cmdDownloadStarted: 'nedladdning startad.',
     cmdClearDesc: 'rensa skärmen',
@@ -422,18 +430,29 @@ export const sv: Translations = {
     cmdManNoEntry: 'ingen manualpost för',
     cmdManNameLabel: 'NAMN',
     cmdManUsageLabel: 'ANVÄNDNING',
-    // i18n: awaiting Swedish translation — English placeholders for now.
-    cmdSkillsDesc: 'list claude code skills across all repos',
-    cmdSkillsUsage: 'usage: skills [--repo <name>|--all|--json]',
-    cmdSkillsUnknownFlag: 'unknown flag:',
-    cmdSkillsLoading: 'loading skill registry...',
-    cmdSkillsNotGenerated: 'skill registry not generated yet.',
+    cmdSkillsDesc: 'lista claude code-skills i alla repor',
+    cmdSkillsUsage: 'användning: skills [--repo <namn>|--all|--json]',
+    cmdSkillsUnknownFlag: 'okänd flagga:',
+    cmdSkillsLoading: 'laddar skillregistret...',
+    cmdSkillsNotGenerated: 'skillregistret har inte genererats än.',
     cmdSkillsNotGeneratedHint:
-      'run the `skill-registry` skill locally, then drop the json at public/data/skills-registry.json.',
-    cmdSkillsGeneratedLabel: 'generated:',
-    cmdSkillsAggregateTip: 'tip: `skills --repo <name>` or `skills --all` for details.',
-    cmdSkillsRepoNotFound: 'repo not found:',
-    cmdSkillsJsonOpened: 'opened skills-registry.json in new tab.',
+      'kör `skill-registry`-skillen lokalt och lägg sedan json:en på public/data/skills-registry.json.',
+    cmdSkillsGeneratedLabel: 'genererad:',
+    cmdSkillsAggregateTip:
+      'tips: `skills --repo <namn>` eller `skills --all` för detaljer.',
+    cmdSkillsRepoNotFound: 'repo hittades inte:',
+    cmdSkillsJsonOpened: 'öppnade skills-registry.json i ny flik.',
+    cmdSkillsColRepo: 'Repo',
+    cmdSkillsColSkills: 'Skills',
+    cmdSkillsColRedirects: 'Omdirig.',
+    cmdSkillsColReceipts: 'Kvitton',
+    cmdSkillsColTokensYr: 'Token/år',
+    cmdSkillsTotal:
+      'totalt: {skills} skills · {redirects} omdirigeringar · {receipts} med kvitto · ~{tokens} token/år',
+    cmdSkillsNoSkills: '(inga skills)',
+    cmdSkillsKnownRepos: 'kända repor:',
+    cmdSkillsReceiptLabel: '[kvitto]',
+    cmdSkillsPerYear: '/år',
   },
   langSwitcher: {
     label: 'Språk',
