@@ -5,9 +5,12 @@ interface Props {
   /** The body text to render. Project hosts inside the text become
    *  `<a target="_blank">` links via `linkifyBody`. */
   text: string;
+  /** Localized "(opens in a new tab)" suffix appended to each link's
+   *  aria-label. Pass `t.common.opensInNewTab` from the caller. */
+  opensInNewTab: string;
 }
 
-const { text } = Astro.props;
+const { text, opensInNewTab } = Astro.props;
 const parts = linkifyBody(text);
 ---
 
@@ -18,7 +21,7 @@ const parts = linkifyBody(text);
         href={part.href}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`${part.value} (opens in a new tab)`}
+        aria-label={`${part.value} ${opensInNewTab}`}
       >
         {part.value}
       </a>

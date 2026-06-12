@@ -141,18 +141,22 @@ function printTable(ctx: CommandContext, headers: string[], rows: string[][]): v
   for (const row of rows) ctx.print(fmtRow(row));
 }
 
-function renderSkillLine(s: RegistrySkill, ctx: CommandContext): void {
+function renderSkillLine(
+  s: RegistrySkill,
+  ctx: CommandContext,
+  tt: Translations['terminal'],
+): void {
   const nameLabel = s.redirect ? `${s.name} (redirect)` : s.name;
   const tokens =
     s.receipt && s.receipt.annual_total !== null
-      ? `~${formatNumber(s.receipt.annual_total)}/yr`
+      ? `~${formatNumber(s.receipt.annual_total)}${tt.cmdSkillsPerYear}`
       : '—';
   const padded = nameLabel.padEnd(22, ' ');
   const tokenCol = tokens.padStart(12, ' ');
 
   const receiptCell =
     s.receipt && isSafeHref(s.receipt.path)
-      ? `<a href="${escape(s.receipt.path)}" target="_blank" rel="noopener noreferrer">[receipt]</a>`
+      ? `<a href="${escape(s.receipt.path)}" target="_blank" rel="noopener noreferrer">${escape(tt.cmdSkillsReceiptLabel)}</a>`
       : s.receipt
         ? `<span style="color:var(--color-term-dim)">[${escape(s.receipt.source)}]</span>`
         : '';
@@ -188,18 +192,36 @@ function renderAggregate(
     ];
   });
 
-  printTable(ctx, ['Repo', 'Skills', 'Redirects', 'Receipts', 'Tokens/yr'], rows);
+  printTable(
+    ctx,
+    [
+      tt.cmdSkillsColRepo,
+      tt.cmdSkillsColSkills,
+      tt.cmdSkillsColRedirects,
+      tt.cmdSkillsColReceipts,
+      tt.cmdSkillsColTokensYr,
+    ],
+    rows,
+  );
 
   ctx.print('');
   ctx.print(
-    `total: ${reg.totals.skills} skills · ${reg.totals.redirects} redirects · ${reg.totals.with_receipts} with receipts · ~${formatNumber(reg.totals.annual_tokens_saved)} tokens/yr`,
+    tt.cmdSkillsTotal
+      .replace('{skills}', String(reg.totals.skills))
+      .replace('{redirects}', String(reg.totals.redirects))
+      .replace('{receipts}', String(reg.totals.with_receipts))
+      .replace('{tokens}', formatNumber(reg.totals.annual_tokens_saved)),
     'accent',
   );
   ctx.print('');
   ctx.print(tt.cmdSkillsAggregateTip, 'dim');
 }
 
-function renderRepo(repo: RegistryRepo, ctx: CommandContext): void {
+function renderRepo(
+  repo: RegistryRepo,
+  ctx: CommandContext,
+  tt: Translations['terminal'],
+): void {
   const headerHtml =
     repo.github_url && isSafeHref(repo.github_url)
       ? `<span class="line" style="color:var(--color-term-cyan)">${escape(repo.name)} — <a href="${escape(repo.github_url)}" target="_blank" rel="noopener noreferrer">${escape(repo.github_url)}</a></span>`
@@ -208,18 +230,22 @@ function renderRepo(repo: RegistryRepo, ctx: CommandContext): void {
   ctx.print('');
 
   if (repo.skills.length === 0) {
-    ctx.print('(no skills)', 'dim');
+    ctx.print(tt.cmdSkillsNoSkills, 'dim');
     return;
   }
   for (const s of repo.skills) {
-    renderSkillLine(s, ctx);
+    renderSkillLine(s, ctx, tt);
   }
 }
 
-function renderAll(reg: SkillRegistry, ctx: CommandContext): void {
+function renderAll(
+  reg: SkillRegistry,
+  ctx: CommandContext,
+  tt: Translations['terminal'],
+): void {
   reg.repos.forEach((repo, i) => {
     if (i > 0) ctx.print('');
-    renderRepo(repo, ctx);
+    renderRepo(repo, ctx, tt);
   });
 }
 
@@ -288,7 +314,7 @@ export async function runSkillsCommand(
     return;
   }
   if (mode === 'all') {
-    renderAll(registry, ctx);
+    renderAll(registry, ctx, tt);
     return;
   }
   if (mode === 'repo') {
@@ -301,9 +327,9 @@ export async function runSkillsCommand(
     if (!repo) {
       ctx.print(`${tt.cmdSkillsRepoNotFound} ${repoName}`, 'err');
       const known = registry.repos.map((r) => r.name).join(', ');
-      ctx.print(`known repos: ${known}`, 'dim');
+      ctx.print(`${tt.cmdSkillsKnownRepos} ${known}`, 'dim');
       return;
     }
-    renderRepo(repo, ctx);
+    renderRepo(repo, ctx, tt);
   }
 }

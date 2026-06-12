@@ -23,6 +23,10 @@ export interface TimelineLesson {
 }
 
 export interface Translations {
+  common: {
+    /** Appended to aria-labels on links that open in a new browser tab. */
+    opensInNewTab: string;
+  };
   meta: {
     jobTitle: string;
     home: { title: string; description: string };
@@ -208,8 +212,12 @@ export interface Translations {
     cmdWhoamiTitle: string;
     cmdWhoamiIntro: string;
     cmdWhoamiLargest: string;
+    /** Stat fragment after the largest-project link. `{tests}` and `{coverage}` interpolated. */
+    cmdWhoamiLargestStats: string;
     cmdWhoamiAlso: string;
     cmdWhoamiYear: string;
+    /** Year stat fragment before the chatterbox link. `{projects}`, `{tokens}`, `{prs}` interpolated. */
+    cmdWhoamiYearStats: string;
     cmdWhoamiCommunity: string;
     cmdWhoamiDesktop: string;
     cmdWhoamiGame: string;
@@ -260,6 +268,22 @@ export interface Translations {
     cmdSkillsAggregateTip: string;
     cmdSkillsRepoNotFound: string;
     cmdSkillsJsonOpened: string;
+    /** Aggregate table column headers. */
+    cmdSkillsColRepo: string;
+    cmdSkillsColSkills: string;
+    cmdSkillsColRedirects: string;
+    cmdSkillsColReceipts: string;
+    cmdSkillsColTokensYr: string;
+    /** Aggregate summary line. `{skills}`, `{redirects}`, `{receipts}`, `{tokens}` interpolated. */
+    cmdSkillsTotal: string;
+    /** Rendered when a repo has no skills. */
+    cmdSkillsNoSkills: string;
+    /** Prefix for the comma-separated list of known repos on a not-found error. */
+    cmdSkillsKnownRepos: string;
+    /** Label on a skill's receipt link. */
+    cmdSkillsReceiptLabel: string;
+    /** Suffix appended to a skill's annual token figure (e.g. "/yr"). */
+    cmdSkillsPerYear: string;
   };
   langSwitcher: {
     label: string;

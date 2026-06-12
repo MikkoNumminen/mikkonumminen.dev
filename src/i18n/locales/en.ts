@@ -1,6 +1,9 @@
 import type { Translations } from '../types';
 
 export const en: Translations = {
+  common: {
+    opensInNewTab: '(opens in a new tab)',
+  },
   meta: {
     jobTitle: 'Full-Stack Developer',
     home: {
@@ -369,8 +372,11 @@ export const en: Translations = {
     cmdWhoamiTitle: 'full-stack developer · finland',
     cmdWhoamiIntro: 'ships full-stack production apps end to end. sql to ops.',
     cmdWhoamiLargest: 'largest:',
+    cmdWhoamiLargestStats: '{tests}+ tests, {coverage} coverage.',
     cmdWhoamiAlso: 'also:',
     cmdWhoamiYear: 'this year:',
+    cmdWhoamiYearStats:
+      '{projects} projects shipped solo · ~{tokens} tokens saved · {prs} PRs upstream to',
     cmdWhoamiCommunity: 'community',
     cmdWhoamiDesktop: 'desktop',
     cmdWhoamiGame: 'game',
@@ -435,6 +441,17 @@ export const en: Translations = {
     cmdSkillsAggregateTip: 'tip: `skills --repo <name>` or `skills --all` for details.',
     cmdSkillsRepoNotFound: 'repo not found:',
     cmdSkillsJsonOpened: 'opened skills-registry.json in new tab.',
+    cmdSkillsColRepo: 'Repo',
+    cmdSkillsColSkills: 'Skills',
+    cmdSkillsColRedirects: 'Redirects',
+    cmdSkillsColReceipts: 'Receipts',
+    cmdSkillsColTokensYr: 'Tokens/yr',
+    cmdSkillsTotal:
+      'total: {skills} skills · {redirects} redirects · {receipts} with receipts · ~{tokens} tokens/yr',
+    cmdSkillsNoSkills: '(no skills)',
+    cmdSkillsKnownRepos: 'known repos:',
+    cmdSkillsReceiptLabel: '[receipt]',
+    cmdSkillsPerYear: '/yr',
   },
   langSwitcher: {
     label: 'Language',

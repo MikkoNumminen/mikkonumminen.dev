@@ -50,14 +50,21 @@ export function buildCommands(t: Translations): CommandSpec[] {
         ctx.print(tt.cmdWhoamiTitle, 'dim');
         ctx.print('');
         ctx.print(tt.cmdWhoamiIntro);
+        const largestStats = tt.cmdWhoamiLargestStats
+          .replace('{tests}', '1828')
+          .replace('{coverage}', '91.9%');
         ctx.printHTML(
-          `<span class="line">${escape(tt.cmdWhoamiLargest)} <a href="https://hr-manager-pearl.vercel.app" target="_blank" rel="noopener noreferrer">hr-manager-pearl.vercel.app</a> — 1828+ tests, 91.9% coverage.</span>`,
+          `<span class="line">${escape(tt.cmdWhoamiLargest)} <a href="https://hr-manager-pearl.vercel.app" target="_blank" rel="noopener noreferrer">hr-manager-pearl.vercel.app</a> — ${escape(largestStats)}</span>`,
         );
         ctx.printHTML(
           `<span class="line">${escape(tt.cmdWhoamiAlso)} <a href="https://spacepotatis.vercel.app" target="_blank" rel="noopener noreferrer">spacepotatis.vercel.app</a> (${escape(tt.cmdWhoamiGame)}), <a href="https://github.com/MikkoNumminen/AudiobookMaker" target="_blank" rel="noopener noreferrer">audiobookmaker</a> (${escape(tt.cmdWhoamiDesktop)}), <a href="https://vuohiliitto.com" target="_blank" rel="noopener noreferrer">vuohiliitto.com</a> (${escape(tt.cmdWhoamiCommunity)})</span>`,
         );
+        const yearStats = tt.cmdWhoamiYearStats
+          .replace('{projects}', '7')
+          .replace('{tokens}', '3.13M')
+          .replace('{prs}', '2');
         ctx.printHTML(
-          `<span class="line">${escape(tt.cmdWhoamiYear)} 7 projects shipped solo · ~3.13M tokens saved · 2 PRs upstream to <a href="https://github.com/resemble-ai/chatterbox" target="_blank" rel="noopener noreferrer">resemble-ai/chatterbox</a></span>`,
+          `<span class="line">${escape(tt.cmdWhoamiYear)} ${escape(yearStats)} <a href="https://github.com/resemble-ai/chatterbox" target="_blank" rel="noopener noreferrer">resemble-ai/chatterbox</a></span>`,
         );
         ctx.print('');
         ctx.print(tt.cmdWhoamiCurrently, 'dim');
