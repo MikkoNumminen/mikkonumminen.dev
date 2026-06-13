@@ -1,4 +1,5 @@
 import { type ToneMapping, WebGLRenderer } from 'three';
+import { resolvePixelRatio } from './resolvePixelRatio';
 
 export interface CreateRendererOptions {
   toneMapping?: ToneMapping;
@@ -24,8 +25,9 @@ export function createRenderer(
     alpha: true,
     powerPreference: 'high-performance',
   });
-  const maxPixelRatio = options.maxPixelRatio ?? 1.5;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
+  renderer.setPixelRatio(
+    resolvePixelRatio(window.devicePixelRatio, options.maxPixelRatio),
+  );
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setClearColor(0x000000, 0);
   if (options.toneMapping !== undefined) {
