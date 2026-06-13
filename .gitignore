@@ -76,3 +76,8 @@ NOTES.md
 # lookups). Grows as new PRs are queried; not useful to commit because each
 # developer's local /review usage targets a different set of PRs.
 .cache/
+
+# playwright e2e
+/test-results/
+/playwright-report/
+/blob-report/
