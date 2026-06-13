@@ -34,7 +34,8 @@ try {
     .filter((p) => /\([^()]+\)$/.test(p));
   commitMessages = subjects.slice(0, 40);
 } catch {
-  commitMessages = [];
+  // Outside a git checkout (e.g. a history-less clone) — leave the empty
+  // initializer; the scene falls back to its hardcoded sentinel list.
 }
 
 const personSchema = {
