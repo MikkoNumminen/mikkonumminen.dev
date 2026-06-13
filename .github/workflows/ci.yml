@@ -5,6 +5,16 @@ on:
     branches: [master]
   pull_request:
 
+# Least privilege: the gate only reads the repo. No write scope on GITHUB_TOKEN.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref so rapid pushes don't pile up
+# redundant CI (and don't waste minutes racing each other).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
