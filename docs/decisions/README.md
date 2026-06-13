@@ -13,9 +13,12 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0005](0005-skill-registry-pdf-surface.md) | Ship the skills registry as a committed JSON + PDF surface (builds on 0002) | Accepted (Decision 3 superseded by 0006) |
 | [0006](0006-skill-registry-canonical-artifact.md) | Committed registry JSON is canonical; prebuild no longer auto-syncs it | Accepted |
 | [0007](0007-astro-6-node-22.md) | Upgrade to Astro 6 + Node 22 (clears the Astro-native CVEs) | Accepted |
+| [0008](0008-testing-strategy.md) | Layered testing strategy (unit + Playwright scene boot-smoke + coverage ratchet + CodeQL); per-frame visual regression rejected | Accepted |
 
 ## Writing a new one
 
-Copy the structure of an existing record: **Context → Decision → Considered
-alternatives (with "Rejected because") → Consequences**. Number it sequentially,
-cite the code it concerns by path, and add a row to the table above.
+Copy [`TEMPLATE.md`](TEMPLATE.md) (or an existing record): **Context → Decision →
+Considered alternatives (with "Rejected because") → Consequences**. Number it
+sequentially, cite the code it concerns by path, and add a row to the table above.
+A superseding decision gets a NEW record plus a back-pointer on the old one's
+status line — never an in-place rewrite.

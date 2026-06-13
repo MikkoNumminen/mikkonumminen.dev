@@ -1,5 +1,8 @@
 # AI-First Rating (re-rate) — mikkonumminen.dev
 
+> **⚠️ Superseded by [ai-first-rating-2026-06-14.md](ai-first-rating-2026-06-14.md).**
+> The gaps below were acted on in the push-to-9 campaign (#231–244). Kept for history.
+
 **2026-06-13 · Overall: 8.4/10 (B+) — up from 7.3/10 (B) on 2026-06-12**
 
 > A focused remediation pass (PRs #212–223) closed the gaps the [2026-06-12 rating](ai-first-rating-2026-06-12.md) surfaced. The weakest dimension — security/ops docs — rose the most (5.5 → 8.5), and onboarding cleared its headline gap (a clean clone now gets a committed contract). The visual layer (Three.js / GSAP) remains the largest untested surface and is the main thing still holding the score below an A.
