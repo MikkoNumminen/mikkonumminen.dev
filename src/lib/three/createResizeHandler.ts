@@ -1,4 +1,5 @@
 import { PerspectiveCamera, WebGLRenderer } from 'three';
+import { resolvePixelRatio } from './resolvePixelRatio';
 
 export interface ResizeHandlerHandle {
   handler: () => void;
@@ -23,7 +24,7 @@ export function createResizeHandler(
   const handler = (): void => {
     const width = window.innerWidth;
     const height = window.innerHeight;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
+    renderer.setPixelRatio(resolvePixelRatio(window.devicePixelRatio, maxPixelRatio));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();

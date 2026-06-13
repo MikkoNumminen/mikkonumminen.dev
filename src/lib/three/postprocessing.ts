@@ -3,6 +3,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { disposePasses } from './disposePasses';
 
 export interface BloomComposerOptions {
   strength?: number;
@@ -60,11 +61,8 @@ export function createBloomComposer(
     dispose: (): void => {
       // Dispose every pass, not just the bloom pass — the OutputPass (and any
       // future pass) owns a ShaderMaterial + fullscreen-quad geometry that
-      // composer.dispose() does not release. RenderPass has no dispose, so the
-      // optional call simply skips it.
-      for (const pass of composer.passes) {
-        (pass as { dispose?: () => void }).dispose?.();
-      }
+      // composer.dispose() does not release.
+      disposePasses(composer.passes);
       composer.dispose();
     },
   };
