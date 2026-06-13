@@ -51,11 +51,11 @@ src/
     observability/ Sentry + Core Web Vitals init
     utils/        cross-cutting helpers (e.g. escapeHtml)
     debug/        dev-only diagnostics, stripped from production
+    theme.ts      shared theme / palette constants
   i18n/           locale tables, structural parity enforced at compile time
   data/           typed page/content data
   page-content/   per-page prose content
   styles/         global.css (Tailwind v4 + CSS vars)
-  assets/         imported assets processed by Astro
 public/           Static assets served as-is (favicon, manifest, og images, JSON the terminal fetches)
 docs/
   decisions/      ADRs (numbered, append-only)
@@ -80,7 +80,7 @@ before the next is started. Confirm with Mikko before starting a new page.
 - Small commits, [Conventional Commits](https://www.conventionalcommits.org/) style
   (`feat:`, `fix:`, `chore:`, `refactor:`, `style:`, `docs:`, `perf:`).
 - No commit trailers and no co-author lines — commits read as ordinary development.
-- Branch first, then open a PR; CI (typecheck → format:check → lint → test → build, on Node 22) must be green before squash-merge.
+- Branch first, then open a PR. CI must be green before squash-merge — three workflows run on every PR: the main gate (`typecheck → format:check → lint → test:coverage → build`, on Node 22), the **Playwright scene smoke** (`e2e/`, a headless-WebGL boot test of all four worlds), and **CodeQL** static security analysis.
 - `TODO.md`, if present, is a gitignored personal working file — keep it current locally, but it is not committed (don't link or rely on it).
 - `npm run build` must succeed and `npm run typecheck` must pass before a page is "done".
 
@@ -99,9 +99,11 @@ every string interpolated into `innerHTML` must pass through it first (see the
 npm run dev          # local dev server
 npm run build        # production build (must succeed)
 npm run preview      # preview the built site
-npm run typecheck    # astro check
-npm run lint         # eslint
-npm test             # vitest
-npm run format       # prettier --write (run before pushing)
-npm run format:check # prettier --check (CI gate)
+npm run typecheck     # astro check
+npm run lint          # eslint (no-explicit-any is an error)
+npm test              # vitest (unit)
+npm run test:coverage # vitest + coverage ratchet (this is the CI test step)
+npm run test:e2e      # Playwright scene smoke (build first; needs a browser)
+npm run format        # prettier --write (run before pushing)
+npm run format:check  # prettier --check (CI gate)
 ```
