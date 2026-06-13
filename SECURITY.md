@@ -44,6 +44,9 @@ and the current dependency-advisory status are documented in
 ## Dependency advisories
 
 Dependencies are monitored by [Dependabot](.github/dependabot.yml). Run
-`npm audit` for the current state. As of this writing the open advisories resolve
-with the Astro 5 → 6 major upgrade (a breaking change); see the threat model for
-reachability analysis.
+`npm audit` for the current state. The **Astro 5 → 6 upgrade has been adopted**
+(see [ADR 0007](docs/decisions/0007-astro-6-node-22.md)), which cleared the two
+Astro-native high advisories. The remaining highs reduce to one transitive,
+dev-only `esbuild` advisory pair with no fix available — not present in the
+static production artifact. See [the threat model](docs/security/threat-model.md)
+for the per-advisory reachability analysis.

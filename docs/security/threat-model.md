@@ -4,7 +4,7 @@ A lightweight threat model for a fully static portfolio site. The goal is to mak
 the trust boundaries and the invariants that protect them explicit, so a change
 (human or automated) doesn't silently weaken one.
 
-**Last reviewed:** 2026-06-12
+**Last reviewed:** 2026-06-13
 
 ## What we're protecting
 
@@ -30,7 +30,7 @@ at runtime. All third-party network egress is to Sentry for telemetry.
 | # | Boundary | Threat | Mitigation | Invariant |
 | - | --- | --- | --- | --- |
 | 1 | String → `innerHTML` (terminal output, Three.js hover label) | Reflected/stored XSS via command args or registry text | [`escapeHtml`](../../src/lib/utils/escapeHtml.ts) escapes the five HTML-significant characters; applied at every sink (`commands.ts`, `dom.ts`, `skills.ts`, `createHoverLabel.ts`) | **Anything reaching `innerHTML` must pass `escapeHtml` first.** Covered by `escapeHtml.test.ts`. |
-| 2 | Runtime fetch of `skills-registry.json` | Malformed/oversized data breaking the terminal; tampered data injecting markup | Same-origin, author-controlled committed file; CSP `connect-src 'self'`; values are escaped at the `innerHTML` sink (boundary 1) | The file is cast `as SkillRegistry` **without runtime schema validation** — a known gap. Treat its contents as data, never as trusted HTML. |
+| 2 | Runtime fetch of `skills-registry.json` | Malformed/oversized data breaking the terminal; tampered data injecting markup | Same-origin, author-controlled committed file; CSP `connect-src 'self'`; the fetched JSON passes the [`parseRegistry`](../../src/lib/terminal/skills.ts) shape-guard (malformed input → graceful empty state, never a crash); values are still escaped at the `innerHTML` sink (boundary 1) | **`parseRegistry` validates the skeleton before use** (`repos[].skills[]` shape); it is deliberately skeleton-only (does not check receipt inner fields or `totals`), so still treat contents as data, never as trusted HTML. |
 | 3 | HTTP response headers | Clickjacking, MIME sniffing, protocol downgrade, referrer leakage, feature abuse | CSP, HSTS `preload`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, locked `Permissions-Policy`, `frame-ancestors 'none'`, `object-src 'none'` — all in [`vercel.json`](../../vercel.json) | **Do not weaken these without a recorded reason.** Widening `script-src`/`connect-src` or removing `frame-ancestors`/`object-src` needs explicit justification. |
 | 4 | Third-party egress (Sentry) | Data exfiltration via a compromised or over-broad allowlist | `connect-src` allowlists only `*.ingest.sentry.io` (+ regional hosts); DSN is public by design; no other third-party scripts load | Keep the Sentry hosts the **only** non-`'self'` `connect-src` entries. No new third-party origins without updating this model. |
 | 5 | npm dependencies | Supply-chain / known-CVE exploitation | [Dependabot](../../.github/dependabot.yml) update PRs; `npm audit`; static output shrinks reachability (see below) | New `high`/`critical` **production** advisories should be triaged, not ignored. |
