@@ -250,7 +250,8 @@ export function buildCommands(t: Translations): CommandSpec[] {
           });
           available = res.ok;
         } catch {
-          available = false;
+          // fetch failed (network / timeout / abort) — leave `available`
+          // false from its initializer and fall through to the error path.
         }
 
         if (!available) {
