@@ -44,7 +44,7 @@ One pre-flight check + four sequenced actions, with the chain bailing on the fir
 | Step | Action | Reads | Writes |
 | --- | --- | --- | --- |
 | 1 | Pre-flight | `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` | (nothing — verifies the file exists and is fresh enough) |
-| 2 | `/skill-registry` | `D:/koodaamista/*/.claude/skills/*/SKILL.md` (every sibling repo) | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `SKILL-REGISTRY-LATEST.json` |
+| 2 | `/skill-registry` | `<workspace>/*/.claude/skills/*/SKILL.md` (every sibling repo) | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `SKILL-REGISTRY-LATEST.json` |
 | 3 | `npm run sync:skills-registry` | `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` | `public/data/skills-registry.json` (in-place copy of the latest dated JSON — **what the /contact terminal reads**) |
 | 4 | `node scripts/apply-measurement-overlay.mjs` | `SKILL-USAGE-LATEST.json` + `public/data/skills-registry.json` | `public/data/skills-registry.json` (in-place — measurements merged, canonical duplicates dropped) |
 | 5 | `npm run build:skills-pdf` | `public/data/skills-registry.json` | `public/skills-registry.pdf` |
@@ -79,7 +79,7 @@ warning: SKILL-USAGE-LATEST.json is N days old. The deployed surfaces will
 
 ### 2. Refresh the inventory — `/skill-registry`
 
-Invoke the existing `/skill-registry` skill. It walks every sibling repo under `D:/koodaamista/*/.claude/skills/*/SKILL.md`, reads frontmatter, locates receipts, and writes the dated + LATEST registry JSONs to `.claude/agent-verdicts/`.
+Invoke the existing `/skill-registry` skill. It walks every sibling repo in the workspace (`<workspace>/*/.claude/skills/*/SKILL.md`), reads frontmatter, locates receipts, and writes the dated + LATEST registry JSONs to `.claude/agent-verdicts/`.
 
 ### 3. Sync the inventory into `public/data/`
 
