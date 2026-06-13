@@ -1,0 +1,38 @@
+name: E2E
+
+# Browser-level scene smoke: the verification the unit gates structurally can't
+# do (the product is WebGL/GSAP, which jsdom can't run). Builds the site and
+# loads each of the four worlds in headless Chromium (WebGL via SwiftShader),
+# asserting each boots without console/page errors and its canvas mounts.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scenes:
+    name: Scene smoke (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
