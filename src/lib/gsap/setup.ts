@@ -10,16 +10,10 @@ gsap.registerPlugin(ScrollTrigger);
 
 export { gsap, ScrollTrigger };
 
-/**
- * Read the user's reduced-motion preference. Safe in non-browser contexts:
- * returns `false` if `window`/`matchMedia` are unavailable.
- */
-export function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return false;
-  }
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
+// Re-exported from its own side-effect-free module so the scenes keep importing
+// it from here, while it stays unit-testable in isolation (importing this file
+// registers the gsap ScrollTrigger plugin, which needs a real browser).
+export { prefersReducedMotion } from './reducedMotion';
 
 export interface GsapScope {
   context: gsap.Context;

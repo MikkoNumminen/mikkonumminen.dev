@@ -2,6 +2,9 @@
 dist/
 .output/
 
+# test coverage output (vitest --coverage)
+coverage/
+
 # dependencies
 node_modules/
 
