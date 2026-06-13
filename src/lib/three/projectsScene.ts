@@ -55,7 +55,13 @@ export interface ProjectsSceneOptions {
   reducedMotion?: boolean;
 }
 
+/**
+ * Imperative handle to a mounted projects scene. The caller owns the lifecycle:
+ * call `dispose()` once on unmount to release the WebGL context, GPU resources,
+ * and listeners.
+ */
 export interface ProjectsSceneHandle {
+  /** Open/close the detail focus for a planet by project id; `null` deselects. */
   selectById: (id: string | null) => void;
   /**
    * Force a hover state on a specific planet, mirroring the raycast-driven
@@ -65,7 +71,9 @@ export interface ProjectsSceneHandle {
    * hover and let raycast take over again.
    */
   hoverById: (id: string | null) => void;
+  /** Re-fit the renderer + camera to the viewport. */
   resize: () => void;
+  /** Tear the scene down — release the WebGL context, GPU resources, and listeners. Call once on unmount. */
   dispose: () => void;
 }
 
@@ -85,6 +93,16 @@ const MIN_POLAR = 0.25;
 const MAX_POLAR = Math.PI - 0.25;
 const DRAG_THRESHOLD = 4;
 
+/**
+ * Build and mount the projects "solar system": one planet per project orbiting
+ * a central sun, with drag-to-rotate / wheel-to-zoom camera control (spherical
+ * coords damped each frame), raycast hover labels, and click-to-select that
+ * opens the detail drawer.
+ *
+ * Lifecycle: returns a {@link ProjectsSceneHandle}; the caller owns it and MUST
+ * call `dispose()` on unmount to release the WebGL context and GPU resources.
+ * Honours `reducedMotion`.
+ */
 export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHandle {
   const {
     canvas,
