@@ -6,6 +6,10 @@
  * The character class in the regex guarantees `c` is one of the five keys
  * in the lookup table, so the result is `string` (not `string | undefined`)
  * and we don't need a non-null assertion.
+ *
+ * SECURITY INVARIANT: this is the project's only HTML-injection boundary —
+ * every string interpolated into `innerHTML` must pass through here first.
+ * See docs/security/threat-model.md (boundary 1). Covered by escapeHtml.test.ts.
  */
 const HTML_ESCAPES: Record<'&' | '<' | '>' | '"' | "'", string> = {
   '&': '&amp;',
