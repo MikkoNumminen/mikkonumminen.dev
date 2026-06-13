@@ -12,6 +12,8 @@ import {
 } from 'three';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
+import { easeOutCubic } from './easing';
+import { entranceFlashEnvelope } from './entranceFlash';
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { readPerfFlags } from '../debug/perfFlags';
 import {
@@ -161,31 +163,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const collisionRimLight = new DirectionalLight(0xc8e0ff, 0);
   collisionRimLight.position.set(2, 2, 6);
   scene.add(collisionRimLight);
-
-  /**
-   * Stroboscopic flash peaks during AND just after the entrance —
-   * `[center, height, width]` in seconds. Three peaks land while the
-   * title is still arriving (entrance ends at 1.4 s), and two more
-   * land just after to extend the bright sequence so the arrival reads
-   * as a real moment rather than a single hit. After ~2.6 s the rim
-   * sits at the very dim steady level.
-   */
-  const ENTRANCE_FLASH_PEAKS: Array<[number, number, number]> = [
-    [0.15, 4.0, 0.1],
-    [0.55, 3.5, 0.13],
-    [1.05, 5.0, 0.16],
-    [1.55, 4.2, 0.16],
-    [2.1, 3.6, 0.18],
-  ];
-  const entranceFlashEnvelope = (t: number): number => {
-    let sum = 0;
-    for (const [c, h, w] of ENTRANCE_FLASH_PEAKS) {
-      const d = (t - c) / w;
-      if (Math.abs(d) > 4) continue;
-      sum += h * Math.exp(-d * d);
-    }
-    return sum;
-  };
 
   const fillLight = new PointLight(0xff8a4c, 0.55, 40);
   fillLight.position.set(-4, 4, 6);
@@ -724,8 +701,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // ENTRANCE_DURATION seconds, then settles into its idle float. Disabled
   // for reduced-motion clients so they see the title in its final pose.
   const ENTRANCE_DURATION = 1.4;
-
-  const easeOutCubic = (x: number): number => 1 - Math.pow(1 - x, 3);
 
   const tick = (): void => {
     if (disposed) return;

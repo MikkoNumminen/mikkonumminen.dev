@@ -10,6 +10,7 @@
  */
 
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
+import { easeOutCubic } from '../three/easing';
 
 type LineKind = 'cmd' | 'out' | 'status';
 
@@ -259,8 +260,7 @@ export function buildDataFeedConsole(
     if (slideOffset > 0) {
       const elapsed = now - slideStartedAt;
       const t = Math.min(1, elapsed / SLIDE_DURATION_MS);
-      // easeOutCubic — fast at start, settles smoothly at the end.
-      const eased = 1 - Math.pow(1 - t, 3);
+      const eased = easeOutCubic(t);
       slideOffset = LINE_HEIGHT * (1 - eased);
       if (t >= 1) slideOffset = 0;
     }
