@@ -55,6 +55,47 @@ export interface SkillRegistry {
 
 const REGISTRY_PATH = '/data/skills-registry.json';
 
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null && !Array.isArray(x);
+}
+
+/**
+ * Runtime shape-guard for the fetched registry JSON.
+ *
+ * The file is an author-controlled build artifact, but it is fetched at
+ * runtime and was previously trusted via a blind `as SkillRegistry` cast — a
+ * truncated or malformed file would surface as an opaque render crash rather
+ * than the intended graceful empty state. This validates the skeleton the
+ * renderer actually walks (`repos[].skills[]` with the required scalar fields)
+ * and returns `null` on any structural mismatch.
+ *
+ * It is deliberately tolerant of the receipt's *inner* shape: the enrichment
+ * pipeline layers many optional fields (calibration buckets, alt-model
+ * measurements, prior estimates) onto each receipt, so validating beyond
+ * "null or object" would reject perfectly good enriched data.
+ */
+export function parseRegistry(raw: unknown): SkillRegistry | null {
+  if (!isRecord(raw)) return null;
+  if (typeof raw.generated_at !== 'string') return null;
+  if (!isRecord(raw.totals)) return null;
+  if (!Array.isArray(raw.repos)) return null;
+
+  for (const repo of raw.repos) {
+    if (!isRecord(repo)) return null;
+    if (typeof repo.name !== 'string') return null;
+    if (!Array.isArray(repo.skills)) return null;
+    for (const skill of repo.skills) {
+      if (!isRecord(skill)) return null;
+      if (typeof skill.name !== 'string') return null;
+      if (typeof skill.description !== 'string') return null;
+      if (typeof skill.redirect !== 'boolean') return null;
+      if (skill.receipt !== null && !isRecord(skill.receipt)) return null;
+    }
+  }
+
+  return raw as unknown as SkillRegistry;
+}
+
 // Cache the fetch promise for a minute so repeated `skills` invocations in
 // one session don't re-hit the network. Long enough to be useful, short
 // enough that replacing the file on disk shows up within a reload.
@@ -89,7 +130,13 @@ async function fetchRegistry(): Promise<SkillRegistry | null> {
         signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) return null;
-      return (await res.json()) as SkillRegistry;
+      const parsed = parseRegistry(await res.json());
+      if (!parsed && import.meta.env.DEV) {
+        console.warn(
+          '[skills] registry JSON failed shape validation — rendering empty state',
+        );
+      }
+      return parsed;
     } catch {
       return null;
     }
