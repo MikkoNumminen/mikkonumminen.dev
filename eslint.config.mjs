@@ -17,7 +17,11 @@ export default [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // Error, not warn: the codebase already carries zero `any`, so this
+      // enforces the discipline in CI (a warning would let one slip through a
+      // green build). `unknown` + a narrowing guard is the intended escape
+      // hatch — see parseRegistry in src/lib/terminal/skills.ts.
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
   // Node-side build/config files need Node globals (console, process, …).
