@@ -1,11 +1,13 @@
 ---
 name: skill-registry
-description: Scan every sibling repo under D:/koodaamista for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.
+description: Scan every sibling repo in the workspace for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.
 ---
 
 # Skill registry
 
-Walk every sibling repo under `D:/koodaamista`, find each Claude Code skill, and produce one consolidated JSON document listing every skill the portfolio operates: name, description, token-savings estimate (if a per-repo receipt exists), and the file path that backs each claim. Reads are parallelised — one Sonnet sub-agent per repo — so the whole run lands in ~30s.
+Walk every sibling repo in the workspace, find each Claude Code skill, and produce one consolidated JSON document listing every skill the portfolio operates: name, description, token-savings estimate (if a per-repo receipt exists), and the file path that backs each claim. Reads are parallelised — one Sonnet sub-agent per repo — so the whole run lands in ~30s.
+
+**Workspace root.** This skill refers to the directory that holds this repo and its siblings as `$WS`. Resolve it portably as the parent of the current repo — `WS="$(dirname "$(git rev-parse --show-toplevel)")"` — which is `~/koodailua` on the current macOS setup and was `$WS` on the original Windows setup. Override by exporting `WS` if the layout differs. Every path below is written relative to `$WS`.
 
 **Companion doc:** [.claude/agent-verdicts/SKILL-REGISTRY-AGENT.md](../../agent-verdicts/SKILL-REGISTRY-AGENT.md) — design rationale, what's verifiable vs editorial, schema gaps, validation notes.
 
@@ -19,7 +21,7 @@ NOT for: editing skills, validating skill correctness, measuring actual run-time
 
 ## What this skill does
 
-1. **Main thread** enumerates `D:/koodaamista/*/.claude/skills/*/SKILL.md` plus `D:/koodaamista/claude-skills/skills/*/SKILL.md` (library layout — no `.claude/` prefix) and groups paths by repo.
+1. **Main thread** enumerates `$WS/*/.claude/skills/*/SKILL.md` plus `$WS/claude-skills/skills/*/SKILL.md` (library layout — no `.claude/` prefix) and groups paths by repo.
 2. **Dispatches one Sonnet sub-agent per repo in parallel** (all in a single message) — each agent reads the YAML frontmatter (`name`, `description`) of every SKILL.md in its repo, classifies redirects from the description, locates a token-savings receipt from `docs/SKILLS.md` / `agent-verdicts/*-AGENT.md` / the SKILL.md body, and returns a structured per-repo JSON blob.
 3. **Main thread aggregates** the per-repo blobs into the final document, computes `totals`, validates the arithmetic. Editorial-only — no transcript-measurement overlay happens in this skill (that's a separate step in the `/skill-localUpdate` chain).
 4. Writes `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` and prints the path.
@@ -31,8 +33,8 @@ End-to-end with no user pauses. The numbers are editorial-grade until a frontmat
 
 **Repos scanned:**
 
-- Every direct subdirectory of `D:/koodaamista/` that contains a `.claude/skills/` directory (the standard consumer-repo layout).
-- The `claude-skills/` library at `D:/koodaamista/claude-skills/` — uses `skills/<name>/SKILL.md` (no `.claude/` prefix). Treated as a 4th virtual repo entry in the output so newly authored library skills appear in the registry automatically.
+- Every direct subdirectory of `$WS/` that contains a `.claude/skills/` directory (the standard consumer-repo layout).
+- The `claude-skills/` library at `$WS/claude-skills/` — uses `skills/<name>/SKILL.md` (no `.claude/` prefix). Treated as a 4th virtual repo entry in the output so newly authored library skills appear in the registry automatically.
 
 **Repos excluded:**
 
@@ -40,10 +42,10 @@ End-to-end with no user pauses. The numbers are editorial-grade until a frontmat
 
 **Files read:**
 
-- `D:/koodaamista/*/.claude/skills/*/SKILL.md` — every skill file under every sibling consumer repo
-- `D:/koodaamista/claude-skills/skills/*/SKILL.md` — every skill file in the library (no `.claude/` prefix)
-- `D:/koodaamista/*/docs/SKILLS.md` — Spacepotatis's methodology doc (and any repo that adopts the same pattern)
-- `D:/koodaamista/*/.claude/agent-verdicts/*.md` — per-skill verdict docs (mikkonumminen.dev pattern); look for "Token expectations" sections
+- `$WS/*/.claude/skills/*/SKILL.md` — every skill file under every sibling consumer repo
+- `$WS/claude-skills/skills/*/SKILL.md` — every skill file in the library (no `.claude/` prefix)
+- `$WS/*/docs/SKILLS.md` — Spacepotatis's methodology doc (and any repo that adopts the same pattern)
+- `$WS/*/.claude/agent-verdicts/*.md` — per-skill verdict docs (mikkonumminen.dev pattern); look for "Token expectations" sections
 
 **Files written:** one dated report under `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json` in this repo only.
 
@@ -55,12 +57,12 @@ The expensive part (reading ~37 SKILL.md files + per-repo receipt sources) is pa
 
 Run both via Bash and concatenate the output:
 
-- `ls d:/koodaamista/*/.claude/skills/*/SKILL.md` — standard consumer-repo layout.
-- `ls d:/koodaamista/claude-skills/skills/*/SKILL.md` — library layout (no `.claude/` prefix).
+- `ls "$WS"/*/.claude/skills/*/SKILL.md` — standard consumer-repo layout.
+- `ls "$WS"/claude-skills/skills/*/SKILL.md` — library layout (no `.claude/` prefix).
 
 (Equivalent `Glob` invocations have proven unreliable in some Windows sessions — see [SKILL-REGISTRY-AGENT.md "Open questions"](../../agent-verdicts/SKILL-REGISTRY-AGENT.md); the `ls` fallback always works.)
 
-Group the resulting paths by repo name (the segment after `koodaamista/`). The `claude-skills` repo's paths group under `claude-skills` and feed step 2's dispatch as a 4th sub-agent. Drop any meta-repo entries whose layout uses a singular `skill/` directory.
+Group the resulting paths by repo name (the path segment directly under `$WS`). The `claude-skills` repo's paths group under `claude-skills` and feed step 2's dispatch as a 4th sub-agent. Drop any meta-repo entries whose layout uses a singular `skill/` directory.
 
 ### 2. Dispatch one Sonnet agent per repo (parallel, in a single message)
 
@@ -82,9 +84,9 @@ For each path, do all of:
 1. Read the first 30 lines and extract YAML frontmatter `name` and `description`.
 2. Classify as a redirect stub if `description` contains "superseded", "redirect", "renamed", "moved to", or "see also" (case-insensitive). Redirect stubs have `receipt: null`.
 3. For non-redirect skills, locate a token-savings receipt by checking these sources in order:
-   a. `D:/koodaamista/{REPO}/docs/SKILLS.md` — markdown table with rows like `| /<skill> | ~X K | Y | ~Z K |`. Label `source: "docs/SKILLS.md"`. Use `https://github.com/MikkoNumminen/{REPO}/blob/master/docs/SKILLS.md` for `path`.
-   b. `D:/koodaamista/{REPO}/.claude/agent-verdicts/<NAME>-AGENT.md` — `## Token expectations` or `## Token economics` section per skill. Label `source: "agent-verdicts/<NAME>-AGENT.md"`.
-   c. `D:/koodaamista/{REPO}/README.md` — look for a heading containing "Skill catalog" (or similar phrasing like "Skills inventory") with a per-skill table that has at least a "saves/inv" or "tokens/use"-equivalent column. AudiobookMaker uses this pattern. Use `https://github.com/MikkoNumminen/{REPO}/blob/master/README.md` for `path`. Label `source: "readme.md"`. **Extraction conventions:** ranges (e.g. `~5-6k`) → midpoint integer; qualitative entries (`load-bearing`, `negligible`) → `null`; numeric N-day usage counts (e.g. `22 commits` in a "90-day usage" column) → multiply by `365/N` (typically ×4 for 90-day evidence) and round to integer; explicit zeros (`0 invocations`, `corpus empty`) → `0`; qualitative usage (`actively used`) and outstanding-count phrasing (`63 active worktrees`) → `null`. This is **unit conversion from stated evidence**, not imputation.
+   a. `$WS/{REPO}/docs/SKILLS.md` — markdown table with rows like `| /<skill> | ~X K | Y | ~Z K |`. Label `source: "docs/SKILLS.md"`. Use `https://github.com/MikkoNumminen/{REPO}/blob/master/docs/SKILLS.md` for `path`.
+   b. `$WS/{REPO}/.claude/agent-verdicts/<NAME>-AGENT.md` — `## Token expectations` or `## Token economics` section per skill. Label `source: "agent-verdicts/<NAME>-AGENT.md"`.
+   c. `$WS/{REPO}/README.md` — look for a heading containing "Skill catalog" (or similar phrasing like "Skills inventory") with a per-skill table that has at least a "saves/inv" or "tokens/use"-equivalent column. AudiobookMaker uses this pattern. Use `https://github.com/MikkoNumminen/{REPO}/blob/master/README.md` for `path`. Label `source: "readme.md"`. **Extraction conventions:** ranges (e.g. `~5-6k`) → midpoint integer; qualitative entries (`load-bearing`, `negligible`) → `null`; numeric N-day usage counts (e.g. `22 commits` in a "90-day usage" column) → multiply by `365/N` (typically ×4 for 90-day evidence) and round to integer; explicit zeros (`0 invocations`, `corpus empty`) → `0`; qualitative usage (`actively used`) and outstanding-count phrasing (`63 active worktrees`) → `null`. This is **unit conversion from stated evidence**, not imputation.
    d. The SKILL.md body itself — `## Token expectations` section. Label `source: "skill-body"` and use the SKILL.md's own path (e.g. `.claude/skills/<NAME>/SKILL.md`) as `path`.
    Use the first source that names the skill. If none, `receipt: null`.
 

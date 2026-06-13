@@ -6,7 +6,7 @@ import type { CommandContext } from './types';
  * Consumer of the `skill-registry` skill's JSON output.
  *
  * The skill lives in `.claude/skills/skill-registry/` and is run locally by
- * the author. It scans every sibling repo under `D:/koodaamista` and writes
+ * the author. It scans every sibling repo in the workspace and writes
  * a dated markdown report plus a JSON sibling. To surface the registry in
  * the contact-page terminal, the author copies the JSON output to
  * `public/data/skills-registry.json` and the `skills` command fetches it at
