@@ -20,7 +20,7 @@ and network conditions but is typically 50–200 ms: audible and jarring
 on a continuous music bed.
 
 The component comment in
-[`src/components/BackgroundAudio.astro`](../../../src/components/BackgroundAudio.astro)
+[`src/components/BackgroundAudio.astro`](../../src/components/BackgroundAudio.astro)
 (lines 20–23) states this explicitly:
 
 > Seamless looping via two `<audio>` "decks" sharing the same source.

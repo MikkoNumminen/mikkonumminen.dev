@@ -19,14 +19,17 @@ npm run dev        # http://localhost:4321
 CI runs these on every PR, on Node 22, in this order — run them locally first:
 
 ```bash
-npm run typecheck    # astro check
-npm run format:check # prettier
-npm run lint         # eslint (no-explicit-any is an error)
-npm test             # vitest
-npm run build        # astro build (must succeed)
+npm run typecheck     # astro check
+npm run format:check  # prettier
+npm run lint          # eslint (no-explicit-any is an error)
+npm run test:coverage # vitest + coverage ratchet (CI runs this, not plain test)
+npm run build         # astro build (must succeed)
+npm run test:e2e      # Playwright scene smoke — boots all 4 worlds in headless WebGL
 ```
 
-`npm run format` fixes formatting in place.
+`npm run format` fixes formatting in place. CI runs the unit gate, the Playwright
+scene smoke (`e2e.yml`), and CodeQL static analysis (`codeql.yml`) — all three
+must be green to merge. `npm test` is the fast unit-only run for local TDD.
 
 ## Flow
 

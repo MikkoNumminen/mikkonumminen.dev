@@ -90,6 +90,7 @@ scripts/
   sync-skill-registry.mjs      Copy latest dated SKILL-REGISTRY-*.json into public/data/
   apply-measurement-overlay.mjs  Layer transcript measurements onto the registry
   build-review-stats.mjs       Per-invocation /review token stats (reads ~/.claude)
+  bucket-review-invocations.py   Bucket /review invocations by size (feeds build-review-stats)
   build-skills-pdf.mjs         Bespoke HTML-from-JSON renderer; calls scripts/lib/chrome-pdf.mjs
   build-pdf.mjs                Generic HTML → PDF CLI (used by the md-to-pdf skill)
   render-audit-pdfs.mjs        Render docs/audits/*.md → committed PDFs (skips in CI)
