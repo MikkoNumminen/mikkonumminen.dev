@@ -7,7 +7,8 @@ A superseded report carries a banner pointing forward to its replacement.
 
 | Date | Report | Scope | Status |
 | --- | --- | --- | --- |
-| 2026-06-13 | [ai-first-rating-2026-06-13.md](ai-first-rating-2026-06-13.md) | AI-first / agent-operability re-rate | **current** |
+| 2026-06-14 | [ai-first-rating-2026-06-14.md](ai-first-rating-2026-06-14.md) | AI-first re-rate after the push-to-9 campaign (#231–244) | **current** |
+| 2026-06-13 | [ai-first-rating-2026-06-13.md](ai-first-rating-2026-06-13.md) | AI-first / agent-operability re-rate | superseded by 06-14 |
 | 2026-06-12 | [ai-first-rating-2026-06-12.md](ai-first-rating-2026-06-12.md) | AI-first rating (baseline) | superseded by 06-13 |
 | 2026-06-11 | [improvement-review-2026-06-11.md](improvement-review-2026-06-11.md) | Multi-agent improvement review (45 findings) | actioned (#207–211) |
 | 2026-05-17 | [FULL-AUDIT-2026-05-17.md](FULL-AUDIT-2026-05-17.md) | Full robustness/a11y/security/SEO/i18n audit | audit of record |
