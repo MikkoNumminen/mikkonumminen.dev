@@ -104,9 +104,14 @@ export function parseRegistry(raw: unknown): SkillRegistry | null {
   if (typeof raw.generated_at !== 'string') return null;
   if (!isRecord(raw.totals)) return null;
   if (!Array.isArray(raw.repos)) return null;
-  // built_in_references is optional, but if present it must be an array.
-  if (raw.built_in_references !== undefined && !Array.isArray(raw.built_in_references)) {
-    return null;
+  // built_in_references is optional; if present it must be an array of objects
+  // that each carry a string `name` (the rest of the shape is renderer-owned and
+  // deliberately open — the build-time schema validation covers it in depth).
+  if (raw.built_in_references !== undefined) {
+    if (!Array.isArray(raw.built_in_references)) return null;
+    for (const ref of raw.built_in_references) {
+      if (!isRecord(ref) || typeof ref.name !== 'string') return null;
+    }
   }
 
   for (const repo of raw.repos) {
