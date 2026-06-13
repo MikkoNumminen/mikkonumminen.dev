@@ -12,7 +12,7 @@
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { easeOutCubic } from '../three/easing';
 
-type LineKind = 'cmd' | 'out' | 'status';
+export type LineKind = 'cmd' | 'out' | 'status';
 
 export interface DataFeedConsoleHandle {
   /**
@@ -80,7 +80,10 @@ const CURSOR_BLINK_MS = 520;
 /** Slide-up animation duration when a new line bumps the oldest off the top. */
 const SLIDE_DURATION_MS = 140;
 
-function colorsFor(kind: LineKind, opacity: number): { prompt: string; text: string } {
+export function colorsFor(
+  kind: LineKind,
+  opacity: number,
+): { prompt: string; text: string } {
   switch (kind) {
     case 'cmd':
       return {
@@ -98,6 +101,33 @@ function colorsFor(kind: LineKind, opacity: number): { prompt: string; text: str
         text: `rgba(200, 220, 240, ${opacity * 0.7})`,
       };
   }
+}
+
+/**
+ * Cursor blink state at timestamp `now` (ms): a square wave on a
+ * CURSOR_BLINK_MS period, on for the first half of each period.
+ */
+export function cursorOnAt(now: number): boolean {
+  return Math.floor(now / CURSOR_BLINK_MS) % 2 === 0;
+}
+
+/**
+ * Scroll-up offset (px) `elapsed` ms into a slide: starts at LINE_HEIGHT when a
+ * new line bumps the oldest off the top and eases to 0 over SLIDE_DURATION_MS
+ * (ease-out cubic). Returns exactly 0 once the slide completes.
+ */
+export function slideOffsetAt(elapsed: number): number {
+  const t = Math.min(1, elapsed / SLIDE_DURATION_MS);
+  return LINE_HEIGHT * (1 - easeOutCubic(t));
+}
+
+/**
+ * Whether a pushLine batch of `addLen` lines fits under the pending cap.
+ * All-or-nothing: a batch that would overflow is rejected wholesale so a
+ * click's cmd/out pair is never half-accepted.
+ */
+export function canAcceptPush(pendingLen: number, addLen: number, max: number): boolean {
+  return pendingLen + addLen <= max;
 }
 
 function drawLine(
@@ -258,14 +288,10 @@ export function buildDataFeedConsole(
 
     // Advance slide animation toward 0.
     if (slideOffset > 0) {
-      const elapsed = now - slideStartedAt;
-      const t = Math.min(1, elapsed / SLIDE_DURATION_MS);
-      const eased = easeOutCubic(t);
-      slideOffset = LINE_HEIGHT * (1 - eased);
-      if (t >= 1) slideOffset = 0;
+      slideOffset = slideOffsetAt(now - slideStartedAt);
     }
 
-    const cursorOn = Math.floor(now / CURSOR_BLINK_MS) % 2 === 0;
+    const cursorOn = cursorOnAt(now);
 
     if (!active) {
       if (now < pauseUntil) {
@@ -351,7 +377,7 @@ export function buildDataFeedConsole(
     pushLine: (...lines): void => {
       // All-or-nothing: drop the whole call if any of its lines would
       // overflow the cap. Keeps each pushLine's cmd/out pair intact.
-      if (pending.length + lines.length > PENDING_MAX) return;
+      if (!canAcceptPush(pending.length, lines.length, PENDING_MAX)) return;
       for (const line of lines) pending.push(line);
       // Wake the typing loop immediately so an injected line responds on
       // the next frame instead of waiting out the resting pause.
