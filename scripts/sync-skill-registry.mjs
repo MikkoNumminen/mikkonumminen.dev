@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 // Sync the most-recent skill-registry verdict into the static data file consumed
-// by the contact-page terminal. Without this step, public/data/skills-registry.json
-// drifts whenever a new SKILL-REGISTRY-{date}.json lands in .claude/agent-verdicts/
-// — the terminal would silently serve stale data until someone remembered to copy
-// by hand. Run this as a prebuild step (package.json "prebuild") so every build
-// picks up the freshest verdict automatically.
+// by the contact-page terminal. This is the FIRST step of the manual
+// /skill-localUpdate refresh chain (sync → apply-measurement-overlay →
+// build-review-stats → build-skills-pdf), NOT a prebuild step.
+//
+// The served public/data/skills-registry.json is a locally-enriched canonical
+// artifact: the overlay and review-stats passes layer on transcript-measured
+// receipts and A/B buckets that require local ~/.claude data and cannot be
+// regenerated on a build server. Auto-syncing the raw dated registry on every
+// build (as prebuild used to) silently downgraded the committed file to its
+// pre-enrichment state. Run /skill-localUpdate to refresh, then commit the result.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
