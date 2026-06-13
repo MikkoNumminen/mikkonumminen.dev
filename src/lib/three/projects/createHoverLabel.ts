@@ -1,6 +1,16 @@
 import { Camera, Vector3 } from 'three';
 import { escapeHtml } from '../../utils/escapeHtml';
 
+/**
+ * Screen-space hover tooltip for the projects "solar system": shows a hovered
+ * planet's name / tagline / tech, and `position()` tracks it by projecting the
+ * planet's world point to pixels. Standalone DOM — not part of the scene graph.
+ *
+ * SECURITY: `show()` writes `innerHTML`, so it is a boundary-1 sink
+ * (docs/security/threat-model.md). Every interpolated field is escaped via
+ * `escapeHtml` — keep it that way.
+ */
+
 export interface HoverLabelEntry {
   name: string;
   tagline: string;
@@ -22,6 +32,7 @@ export function createHoverLabel(element: HTMLElement): HoverLabelHandle {
         entry.externalApis && entry.externalApis.length > 0
           ? `<span class="hover-label__apis"><span aria-hidden="true">↗</span> ${entry.externalApis.map(escapeHtml).join(' · ')}</span>`
           : '';
+      // SECURITY INVARIANT: innerHTML sink — every interpolation MUST be escaped.
       element.innerHTML = `
         <span class="hover-label__name">${escapeHtml(entry.name)}</span>
         <span class="hover-label__tag">${escapeHtml(entry.tagline)}</span>

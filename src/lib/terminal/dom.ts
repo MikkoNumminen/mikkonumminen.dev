@@ -35,6 +35,9 @@ export function appendLine(
 /**
  * Append a prompt-style echo line to the output. Used both when echoing the
  * submitted command and when handling Ctrl+C (with `^C` as the suffix).
+ *
+ * SECURITY: another `innerHTML` sink (boundary 1) — `value` is escaped via
+ * `escapeHtml` below; the surrounding markup is a static literal.
  */
 export function echoPromptLine(output: HTMLElement, value: string, suffix = ''): void {
   const echo = document.createElement('span');
