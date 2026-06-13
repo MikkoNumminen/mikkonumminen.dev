@@ -1,0 +1,3 @@
+# Default owner for everything in the repo. A single-maintainer portfolio, so
+# every path routes review to the owner; GitHub auto-requests review on PRs.
+* @MikkoNumminen

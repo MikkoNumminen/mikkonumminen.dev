@@ -39,7 +39,7 @@ This stack is intentionally separate from the production stack used in my other 
 
 ## Local development
 
-Requires Node 20+ (see [`.nvmrc`](./.nvmrc)).
+Requires Node 22+ (Astro 6; see [`.nvmrc`](./.nvmrc)).
 
 ```bash
 npm install
@@ -86,14 +86,25 @@ src/
 public/           Static assets — favicon, manifest, OG images, fonts, robots, icons
   data/           Build-synced registry JSON consumed by the terminal `skills` command
 scripts/
-  build-og.mjs              OG image + manifest icon rasterizer
-  sync-skill-registry.mjs   Copy latest dated SKILL-REGISTRY-*.json into public/data/
-  build-skills-pdf.mjs      Bespoke HTML-from-JSON renderer; calls scripts/lib/chrome-pdf.mjs
-  build-pdf.mjs             Generic HTML → PDF CLI (used by the md-to-pdf skill)
+  build-og.mjs                 OG image + manifest icon rasterizer
+  sync-skill-registry.mjs      Copy latest dated SKILL-REGISTRY-*.json into public/data/
+  apply-measurement-overlay.mjs  Layer transcript measurements onto the registry
+  build-review-stats.mjs       Per-invocation /review token stats (reads ~/.claude)
+  build-skills-pdf.mjs         Bespoke HTML-from-JSON renderer; calls scripts/lib/chrome-pdf.mjs
+  build-pdf.mjs                Generic HTML → PDF CLI (used by the md-to-pdf skill)
+  render-audit-pdfs.mjs        Render docs/audits/*.md → committed PDFs (skips in CI)
+  render-audit-doc.mjs         Markdown → audit-styled HTML used by the renderer
+  build-scoreboard.mjs         Build the review scoreboard artifact
+  draw-tokens.mjs              Token-figure chart rasterizer
   lib/
-    chrome-pdf.mjs          Local Chrome --print-to-pdf wrapper; size-asserts the output
-    escape.mjs              Shared HTML escaper + http(s) URL allowlist
+    chrome-pdf.mjs             Local Chrome --print-to-pdf wrapper; size-asserts the output
+    escape.mjs                 Shared HTML escaper + http(s) URL allowlist
+    cli-args.mjs               Tiny argv parser (tested)
+    scoreboard-stats.mjs       Scoreboard aggregation (tested)
+    transcript-tokens.mjs      ~/.claude transcript token accounting (tested)
 ```
+
+Several `scripts/` and `scripts/lib/` modules have co-located `*.test.mjs` suites run by `npm test`.
 
 ## Performance & accessibility
 

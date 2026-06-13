@@ -40,15 +40,22 @@ src/
   layouts/        Astro layouts (BaseLayout wraps every page)
   components/     Astro components, grouped by page (nav, contact, ...)
   pages/          One file per route (.astro)
-  lib/
-    three/        Three.js scenes, isolated modules with init + dispose
+  lib/            (sibling subdirs, not nested)
+    three/        core Three.js helpers + scene entry points (homeScene, projectsScene)
+    home/         home-scene building blocks
+    projects/     projects-scene building blocks (planets, hover labels)
+    timeline/     experience-timeline scene helpers
     gsap/         GSAP timelines, one file per page section
-    terminal/     contact-page terminal subsystem (+ home, projects, timeline, ...)
+    terminal/     contact-page terminal subsystem
+    transitions/  page transitions (canvas particle dissolve)
+    observability/ Sentry + Core Web Vitals init
+    utils/        cross-cutting helpers (e.g. escapeHtml)
+    debug/        dev-only diagnostics, stripped from production
   i18n/           locale tables, structural parity enforced at compile time
   data/           typed page/content data
   page-content/   per-page prose content
   styles/         global.css (Tailwind v4 + CSS vars)
-  assets/         Imported assets processed by Astro
+  assets/         imported assets processed by Astro
 public/           Static assets served as-is (favicon, manifest, og images, JSON the terminal fetches)
 docs/
   decisions/      ADRs (numbered, append-only)
@@ -73,8 +80,18 @@ before the next is started. Confirm with Mikko before starting a new page.
 - Small commits, [Conventional Commits](https://www.conventionalcommits.org/) style
   (`feat:`, `fix:`, `chore:`, `refactor:`, `style:`, `docs:`, `perf:`).
 - No commit trailers and no co-author lines — commits read as ordinary development.
-- Keep [`TODO.md`](TODO.md) current as work progresses.
+- Branch first, then open a PR; CI (typecheck → format:check → lint → test → build, on Node 22) must be green before squash-merge.
+- `TODO.md`, if present, is a gitignored personal working file — keep it current locally, but it is not committed (don't link or rely on it).
 - `npm run build` must succeed and `npm run typecheck` must pass before a page is "done".
+
+## Security
+
+Before editing the contact terminal, the response headers, or anything that builds
+HTML, read [`SECURITY.md`](SECURITY.md) and [`docs/security/threat-model.md`](docs/security/threat-model.md).
+The project's one HTML-injection boundary is [`escapeHtml`](src/lib/utils/escapeHtml.ts):
+every string interpolated into `innerHTML` must pass through it first (see the
+`SECURITY INVARIANT` marker on that file). Do not weaken the CSP / headers in
+[`vercel.json`](vercel.json) without recording a reason.
 
 ## Commands
 

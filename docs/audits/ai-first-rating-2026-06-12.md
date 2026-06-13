@@ -1,5 +1,9 @@
 # AI-First Rating — mikkonumminen.dev
 
+> **⚠️ Superseded.** This is the original baseline. The findings here were
+> acted on across PRs #212–233; see [`ai-first-rating-2026-06-13.md`](ai-first-rating-2026-06-13.md)
+> for the re-rate. Kept for history.
+
 **2026-06-12 · Overall: 7.3/10 (B)**
 
 > One-line verdict: an autonomous coding agent can read, change, and self-verify this repo with high confidence — as long as it keeps a copy of the uncommitted CLAUDE.md, because a clean clone strips most of the project's stated intent.
