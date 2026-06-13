@@ -60,22 +60,33 @@ site loads **no third-party scripts** and there is no server-reflected HTML, so 
 classic injection path for inline-script XSS does not exist; boundary 1 closes the
 client-side one.
 
-## Dependency advisory status (2026-06-12)
+## Dependency advisory status (2026-06-13)
 
-`npm audit` reports advisories whose fix is the **Astro 5 → 6 major upgrade** (a
-breaking change). Reachability for the production set is low:
+The **Astro 5 → 6 upgrade has been adopted**, which cleared the two Astro-native
+high advisories:
 
-- **Astro — XSS in `define:vars` via incomplete `</script>` sanitization.** Reachable
-  only if `define:vars` is used with untrusted data; this site uses static, author-
-  controlled values.
-- **Astro — Server-island encrypted-parameter replay.** Not reachable: `output:
-  'static'`, no server islands.
-- **esbuild — dev-server file read / Deno integrity.** Build-time/dev-only; the
-  production artifact is static files with no esbuild dev server and no Deno.
+- ~~**Astro — XSS in `define:vars` via incomplete `</script>` sanitization.**~~
+  Fixed in Astro 6 (and never reachable here — `define:vars` is used only with
+  static, author-controlled values).
+- ~~**Astro — Server-island encrypted-parameter replay.**~~ Fixed in Astro 6 (and
+  not reachable — `output: 'static'`, no server islands).
 
-The remaining `high` advisories are in dev tooling (`@astrojs/check` →
-`@astrojs/language-server`) and never ship to visitors. The planned remediation is
-the Astro 6 upgrade tracked in [the full audit](../audits/FULL-AUDIT-2026-05-17.md).
+The advisories that **remain** all reduce to a single transitive package,
+**`esbuild` (0.17.0–0.28.0)**, with **no fix available** — it propagates up through
+`vite` and `astro`, so `npm audit` counts it on each:
+
+- **esbuild — arbitrary file read via the dev server (Windows).** Reachable only
+  while running `astro dev` on Windows; not part of any deployed artifact.
+- **esbuild — missing binary integrity verification in the Deno module.** Requires
+  Deno, which this project does not use.
+
+Both are **build-time/dev-only**: esbuild runs during local dev and the build, never
+in the static files served to visitors. There is no patched esbuild in `vite`'s
+supported range, so they are **accepted, not actionable** — forcing an override
+risks breaking the build for a vulnerability with no production reach. They will
+clear when the Vite/esbuild chain ships a fixed release. (Dev tooling such as
+`@astrojs/check` may surface separate advisories that likewise never reach
+visitors.)
 
 ## Out of scope / non-goals
 
