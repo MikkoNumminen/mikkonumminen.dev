@@ -25,10 +25,11 @@ This site is deliberately small in attack surface:
   authentication, and no user accounts. Pages are pre-rendered HTML served from a
   CDN. There is no server-side code path an attacker can reach.
 - **No secrets** — the site requires no application secrets and ships no `.env`.
-  The only environment variables read at build time are Vercel-injected metadata
+  The environment variables it reads at build time are: Vercel-injected metadata
   (`VERCEL_ENV`, `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_URL`) used to compute the
-  canonical URL, plus an optional `CHROME_PATH` for local PDF rendering. The Sentry
-  DSN used for client telemetry is public by design.
+  canonical URL; an optional `PUBLIC_SENTRY_DSN` enabling client telemetry (a
+  `PUBLIC_`-prefixed value is exposed to the browser by design — a Sentry DSN is
+  not a secret); and an optional `CHROME_PATH` for local PDF rendering.
 - **Hardened response headers** — a strict Content-Security-Policy, HSTS with
   `preload`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, a
   locked-down `Permissions-Policy`, and `frame-ancestors 'none'` / `object-src

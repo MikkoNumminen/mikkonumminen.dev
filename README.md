@@ -47,6 +47,7 @@ npm run dev           # http://localhost:4321
 npm run build         # build to dist/
 npm run preview       # preview the production build
 npm run typecheck     # astro check
+npm run lint          # eslint
 npm run format        # prettier --write across src/
 npm run format:check  # prettier --check (CI-friendly)
 npm run build:og      # rasterize OG cards + manifest icons from the source SVGs
@@ -69,10 +70,16 @@ src/
   page-content/   Page-level composition (one .astro per page, wrapped by the routed file)
   pages/          One file per route (.astro), including /fi and /sv mirrors
   lib/
-    three/        Three.js scenes (homeScene, projectsScene)
+    three/        Core Three.js helpers + scene entry points (homeScene, projectsScene)
+    home/         Home-scene building blocks (galaxy, starfield, title)
+    projects/     Projects-scene building blocks (planets, hover labels)
+    timeline/     Experience-page timeline scene helpers
     gsap/         GSAP timelines per page
     terminal/     Terminal command parser and runtime
     transitions/  Page transitions (canvas particle dissolve)
+    observability/ Sentry + Core Web Vitals init
+    utils/        Cross-cutting helpers (e.g. escapeHtml)
+    debug/        Dev-only diagnostics, stripped from production
   data/           Project metadata, timeline entries
   i18n/           Locale dictionaries and locale-aware path helpers
   styles/         global.css (Tailwind v4 + CSS vars) and per-component CSS
@@ -147,15 +154,19 @@ script-src 'self' 'unsafe-inline';
 style-src 'self' 'unsafe-inline';
 img-src 'self' data:;
 font-src 'self' data:;
-connect-src 'self' https://*.ingest.sentry.io;
+media-src 'self';
+connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io;
 frame-ancestors 'none';
 base-uri 'self';
 form-action 'self';
 object-src 'none';
+worker-src 'none';
+manifest-src 'self';
+frame-src 'none';
 upgrade-insecure-requests
 ```
 
-`connect-src` allows `*.ingest.sentry.io` for the observability beacon (see the Observability section above). The init module no-ops when `PUBLIC_SENTRY_DSN` is unset, so this domain only sees traffic on deployments that have the DSN configured.
+`connect-src` allows the Sentry ingest hosts — `*.ingest.sentry.io` plus the regional `*.ingest.us.sentry.io` / `*.ingest.de.sentry.io` — for the observability beacon (see the Observability section above). The init module no-ops when `PUBLIC_SENTRY_DSN` is unset, so these hosts only see traffic on deployments that have the DSN configured.
 
 `'unsafe-inline'` remains on both `script-src` and `style-src` because the site relies on:
 
