@@ -1,3 +1,8 @@
+/**
+ * The central sun of the projects "solar system": an emissive core sphere, a
+ * Fresnel-glow shell, and additive corona sprites (halo + flare) that breathe
+ * on independent sine pulses. `SunHandle.tick` drives the per-frame pulsing.
+ */
 import {
   AdditiveBlending,
   CanvasTexture,

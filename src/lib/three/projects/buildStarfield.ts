@@ -1,3 +1,9 @@
+/**
+ * The deep-space backdrop for the projects scene: 1800 stars scattered on a
+ * spherical shell (radius 60–200) and colored from a 3-stop cool palette,
+ * wrapped into a single `THREE.Points` cloud. Distribution invariants are
+ * covered by buildStarfield.test.ts.
+ */
 import { BufferGeometry, Color, Points, PointsMaterial } from 'three';
 import { buildPointCloud } from '../buildPointCloud';
 
