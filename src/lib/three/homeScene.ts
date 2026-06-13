@@ -79,9 +79,17 @@ const FALLBACK_COMMITS: string[] = [
   'fix(a11y)',
 ];
 
+/**
+ * Imperative handle to a mounted home scene. The caller owns the lifecycle:
+ * call `dispose()` once on unmount / route change to release the WebGL context,
+ * geometries, materials, and rAF/event listeners.
+ */
 export interface HomeSceneHandle {
+  /** Drive the scroll-linked camera + parallax. `progress` is 0 (top) → 1 (bottom). */
   setScrollProgress: (progress: number) => void;
+  /** Release the renderer, all GPU resources, and listeners. Call once on unmount. */
   dispose: () => void;
+  /** Re-fit the title and galaxy after a viewport / orientation change. */
   resize: () => void;
 }
 
@@ -94,6 +102,15 @@ const TITLE_DESIGN_WIDTH = 1100;
 // the floor kicking in and re-introducing right-edge clipping.
 const TITLE_MIN_SCALE = 0.3;
 
+/**
+ * Build and mount the home hero scene: the 3D "MIKKO NUMMINEN" title, the
+ * spiral galaxy beside it, meteors that converge on the galaxy with collision
+ * flashes, and the one-shot entrance. Async because it loads the title font.
+ *
+ * Lifecycle: returns a {@link HomeSceneHandle}; the caller owns it and MUST
+ * call `dispose()` on unmount to release the WebGL context and GPU resources.
+ * Honours `reducedMotion` (settles to the final pose, no per-frame rAF churn).
+ */
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
   const { canvas, fontUrl, reducedMotion = false } = opts;
   const commitMessages =

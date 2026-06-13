@@ -10,6 +10,15 @@ export interface TerminalElements {
 
 export const PROMPT_HTML = `<span class="line line--prompt"><span style="color:var(--color-term-green)">guest@mikkonumminen</span><span style="color:rgba(181,245,200,0.5)">:</span><span style="color:var(--color-term-cyan)">~</span><span style="color:var(--color-term-green)">$</span> `;
 
+/**
+ * Append one output line. `html` is assigned to `innerHTML` so the terminal can
+ * render styled spans — this is the boundary-1 sink in docs/security/threat-model.md.
+ *
+ * SECURITY INVARIANT: `html` must already be escaped. Untrusted text reaches
+ * here only via `makeContext().print`, which runs it through `escapeHtml`
+ * first; `printHTML` callers (e.g. commands.ts) are responsible for escaping
+ * every interpolation. Never pass a raw user / registry string straight in.
+ */
 export function appendLine(
   output: HTMLElement,
   html: string,
