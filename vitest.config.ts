@@ -18,7 +18,52 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts', 'scripts/lib/**/*.mjs'],
-      exclude: ['src/**/*.test.ts', 'src/**/*.d.ts', 'scripts/**/*.test.mjs'],
+      exclude: [
+        'src/**/*.test.ts',
+        'src/**/*.d.ts',
+        'scripts/**/*.test.mjs',
+        // WebGL / 2d-canvas / font-loader / scene-orchestration code that cannot
+        // run in jsdom (no WebGL or canvas-2d context). These are verified by the
+        // Playwright scene smoke tests instead; excluded here so the unit-coverage
+        // threshold reflects the jsdom-testable surface rather than being dragged
+        // toward ~12% by code the gates structurally can't exercise. Their pure
+        // logic is extracted into tested helpers (planetNoise, responsiveLayout,
+        // resolvePixelRatio, easing, …).
+        'src/lib/three/homeScene.ts',
+        'src/lib/three/projectsScene.ts',
+        'src/lib/three/interactions.ts',
+        'src/lib/three/createRenderer.ts',
+        'src/lib/three/postprocessing.ts',
+        'src/lib/three/buildEnvironment.ts',
+        'src/lib/three/buildTitle.ts',
+        'src/lib/three/buildTitleColorMap.ts',
+        'src/lib/three/textures.ts',
+        'src/lib/three/buildMeteors.ts',
+        'src/lib/three/buildGalaxyLayer.ts',
+        'src/lib/three/buildHorizonGlow.ts',
+        'src/lib/three/buildImpactText.ts',
+        'src/lib/three/buildLetterFlashes.ts',
+        'src/lib/three/buildCollisionSparks.ts',
+        'src/lib/three/buildExperienceZoneDecor.ts',
+        'src/lib/three/buildProjectsZoneDecor.ts',
+        'src/lib/three/createGlowMaterial.ts',
+        'src/lib/three/projects/buildPlanet.ts',
+        'src/lib/three/projects/buildPlanetTexture.ts',
+        'src/lib/three/projects/buildSun.ts',
+        'src/lib/home/dataFeedConsole.ts',
+        'src/lib/transitions/pageTransition.ts',
+      ],
+      // Ratchet floor under the current jsdom-testable coverage (~30%, held down
+      // by DOM-orchestration files that are integration-level rather than
+      // unit-tested). Not a vanity number — a regression gate: it fails CI if the
+      // tested surface shrinks. Raise it as more pure logic gets extracted +
+      // tested. Run via `npm run test:coverage` (and in CI).
+      thresholds: {
+        lines: 29,
+        statements: 29,
+        functions: 30,
+        branches: 29,
+      },
     },
   },
 });
