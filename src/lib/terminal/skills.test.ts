@@ -59,6 +59,13 @@ describe('parseRegistry — accepts', () => {
   it('accepts an empty repo list', () => {
     expect(parseRegistry({ ...validRegistry, repos: [] })).not.toBeNull();
   });
+
+  it('accepts an optional built_in_references array (and its absence)', () => {
+    expect(parseRegistry(validRegistry)).not.toBeNull(); // absent
+    expect(
+      parseRegistry({ ...validRegistry, built_in_references: [{ name: 'review' }] }),
+    ).not.toBeNull();
+  });
 });
 
 describe('parseRegistry — rejects (returns null)', () => {
@@ -78,6 +85,11 @@ describe('parseRegistry — rejects (returns null)', () => {
   it('repos that is not an array, or totals that is not an object', () => {
     expect(parseRegistry({ ...validRegistry, repos: 'nope' })).toBeNull();
     expect(parseRegistry({ ...validRegistry, totals: null })).toBeNull();
+  });
+
+  it('a built_in_references that is present but not an array', () => {
+    expect(parseRegistry({ ...validRegistry, built_in_references: 'nope' })).toBeNull();
+    expect(parseRegistry({ ...validRegistry, built_in_references: {} })).toBeNull();
   });
 
   it('a repo missing a name or a skills array', () => {
