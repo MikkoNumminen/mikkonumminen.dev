@@ -16,7 +16,8 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:4321',
-    reducedMotion: 'no-preference', // exercise the full animated/WebGL path
+    // The browser default is prefers-reduced-motion: no-preference, so the
+    // scenes run their full animated/WebGL path (no explicit emulation needed).
   },
   projects: [
     {
