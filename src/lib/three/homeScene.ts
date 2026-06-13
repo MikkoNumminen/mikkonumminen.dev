@@ -14,6 +14,7 @@ import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { easeOutCubic } from './easing';
 import { entranceFlashEnvelope } from './entranceFlash';
+import { responsiveTitleScale, responsiveGalaxyX } from './responsiveLayout';
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { readPerfFlags } from '../debug/perfFlags';
 import {
@@ -631,26 +632,18 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     renderer,
     camera,
     (width) => {
-      // Width-based scale preserves the original design intent: at viewport
-      // widths ≥ TITLE_DESIGN_WIDTH the title sits at its full size, narrower
-      // viewports scale it down.
-      const widthScale = Math.min(1, width / TITLE_DESIGN_WIDTH);
-
-      // Frustum-fit scale: visible horizontal extent at the title's z-plane
-      // (z = 0) caps the scale so the widest line's right edge stays inside
-      // the viewport. Without this, narrow-aspect viewports (1366×768,
-      // tablets in portrait) clip "NUMMINEN" because width-based scaling
-      // alone doesn't know how wide the perspective frustum actually is.
+      // Width-based scale combined with a frustum-fit cap so the widest line's
+      // right edge never clips on narrow-aspect viewports. The fit cap is hard;
+      // the readability floor yields to it. See responsiveLayout.ts.
       const visibleHalfWidth = cameraHalfHeightAtZ0 * camera.aspect;
-      const fitScale = (visibleHalfWidth - TITLE_RIGHT_PADDING) / titleNaturalHalfWidth;
-
-      // Fit is a hard cap (clipping is worse than tiny text); the
-      // readability floor is a soft minimum that yields to the fit cap.
-      // Apply the floor only when there's slack — i.e. when `fitScale`
-      // permits it. Order: `ideal = min(width, fit)`, lift to floor if
-      // possible, never exceed the fit cap.
-      const idealScale = Math.min(widthScale, fitScale);
-      const scale = Math.min(fitScale, Math.max(TITLE_MIN_SCALE, idealScale));
+      const scale = responsiveTitleScale({
+        width,
+        visibleHalfWidth,
+        titleNaturalHalfWidth,
+        rightPadding: TITLE_RIGHT_PADDING,
+        designWidth: TITLE_DESIGN_WIDTH,
+        minScale: TITLE_MIN_SCALE,
+      });
 
       title.group.scale.setScalar(scale);
 
@@ -666,9 +659,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       // between impacts, so the stale design-x sitting on the light between
       // init and the first impact is invisible.
       const visibleHalfWidthAtGalaxyZ = cameraHalfHeightAtGalaxyZ * camera.aspect;
-      const maxGalaxyXMagnitude =
-        visibleHalfWidthAtGalaxyZ - GALAXY_RADIUS - GALAXY_LEFT_PADDING;
-      const galaxyX = Math.min(0, Math.max(GALAXY_DESIGN_X, -maxGalaxyXMagnitude));
+      const galaxyX = responsiveGalaxyX({
+        visibleHalfWidth: visibleHalfWidthAtGalaxyZ,
+        radius: GALAXY_RADIUS,
+        leftPadding: GALAXY_LEFT_PADDING,
+        designX: GALAXY_DESIGN_X,
+      });
       galaxy.group.position.x = galaxyX;
       galaxyCenter.x = galaxyX;
 
