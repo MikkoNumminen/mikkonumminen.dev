@@ -10,7 +10,9 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0002](0002-static-output-only.md) | Static output only — no SSR/edge, portable from Vercel to S3 + CloudFront | Accepted |
 | [0003](0003-astro-over-nextjs.md) | Astro over Next.js for a content-and-visuals site with island hydration | Accepted |
 | [0004](0004-manual-audio-crossfade.md) | Hand-rolled audio crossfade instead of a Web Audio library | Accepted |
-| [0005](0005-skill-registry-pdf-surface.md) | Ship the skills registry as a committed JSON + PDF surface (builds on 0002) | Accepted |
+| [0005](0005-skill-registry-pdf-surface.md) | Ship the skills registry as a committed JSON + PDF surface (builds on 0002) | Accepted (Decision 3 superseded by 0006) |
+| [0006](0006-skill-registry-canonical-artifact.md) | Committed registry JSON is canonical; prebuild no longer auto-syncs it | Accepted |
+| [0007](0007-astro-6-node-22.md) | Upgrade to Astro 6 + Node 22 (clears the Astro-native CVEs) | Accepted |
 
 ## Writing a new one
 
