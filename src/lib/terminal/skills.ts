@@ -41,6 +41,29 @@ export interface RegistryRepo {
   skills: RegistrySkill[];
 }
 
+/**
+ * A tracked built-in (e.g. Claude Code's `/review`) surfaced as a reference
+ * point alongside the custom skills. The terminal does not render these (the
+ * registry PDF does), but they ARE a top-level field of the served artifact, so
+ * they're declared here to keep this interface a faithful description of the
+ * JSON. Only the core measurement fields are guaranteed; the A/B-calibration
+ * and alt-model detail evolves with the renderer, hence the open index.
+ */
+export interface RegistryBuiltInReference {
+  name: string;
+  label: string;
+  description: string;
+  invocations_in_window: number;
+  total_tokens_in_window: number;
+  tokens_per_use_avg: number;
+  annual_total: number;
+  uses_per_year: number;
+  last_invoked: string;
+  measurement_window_days: number;
+  /** Optional calibration / alt-model fields layered on by the overlay pipeline. */
+  [key: string]: unknown;
+}
+
 export interface SkillRegistry {
   /** ISO 8601 timestamp of when the registry was generated. */
   generated_at: string;
@@ -51,6 +74,8 @@ export interface SkillRegistry {
     with_receipts: number;
     annual_tokens_saved: number;
   };
+  /** Tracked built-ins (e.g. `/review`). Present once the overlay runs; consumed by the PDF renderer, not the terminal. */
+  built_in_references?: RegistryBuiltInReference[];
 }
 
 const REGISTRY_PATH = '/data/skills-registry.json';
@@ -79,6 +104,10 @@ export function parseRegistry(raw: unknown): SkillRegistry | null {
   if (typeof raw.generated_at !== 'string') return null;
   if (!isRecord(raw.totals)) return null;
   if (!Array.isArray(raw.repos)) return null;
+  // built_in_references is optional, but if present it must be an array.
+  if (raw.built_in_references !== undefined && !Array.isArray(raw.built_in_references)) {
+    return null;
+  }
 
   for (const repo of raw.repos) {
     if (!isRecord(repo)) return null;
