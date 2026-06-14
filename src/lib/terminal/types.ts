@@ -1,3 +1,7 @@
+/**
+ * Shared terminal types: the output line kinds, the command spec, and the
+ * context object every command handler receives.
+ */
 export type LineKind = 'plain' | 'prompt' | 'err' | 'dim' | 'accent' | 'html';
 
 export interface TerminalLine {

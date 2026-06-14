@@ -1,3 +1,8 @@
+/**
+ * Terminal typewriter: types output lines character-by-character (with a
+ * reduced-motion fast path) and runs the boot sequence — the contact page's
+ * "live typing" feel.
+ */
 import type { CommandContext, LineKind } from './types';
 import type { TerminalElements } from './dom';
 import { appendLine } from './dom';

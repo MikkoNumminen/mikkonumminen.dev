@@ -1,3 +1,8 @@
+/**
+ * Home page (`/`) hero scene: the 3D "MIKKO NUMMINEN" title beside a spiral
+ * galaxy, with meteors that converge on the galaxy and a one-shot entrance.
+ * Entry point is `createHomeScene` (below); the rest of the file is its closure.
+ */
 import {
   ACESFilmicToneMapping,
   AmbientLight,
@@ -725,7 +730,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const delta = (now - lastFrame) / 1000;
     lastFrame = now;
 
-    // Smooth pointer
+    // Smooth pointer — lerp toward the target at 0.05/frame. Hand-tuned feel:
+    // low enough that the title's lean into the cursor reads as weighty, not jumpy.
     mouseX += (targetMouseX - mouseX) * 0.05;
     mouseY += (targetMouseY - mouseY) * 0.05;
 
@@ -736,7 +742,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const entranceOffset = (1 - entrance) * -22;
     const entranceTilt = (1 - entrance) * 0.18;
 
-    // Title floats and reacts to pointer + scroll
+    // Title floats and reacts to pointer + scroll. The 0.12 / 0.18 multipliers
+    // are hand-tuned lean amounts (how far the title tilts toward the cursor);
+    // the sin terms add a slow idle drift.
     title.group.rotation.x =
       mouseY * 0.12 + Math.sin(elapsed * 0.5) * 0.02 - entranceTilt;
     title.group.rotation.y = mouseX * 0.18 + Math.sin(elapsed * 0.4) * 0.03;

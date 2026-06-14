@@ -1,3 +1,8 @@
+/**
+ * Projects page (`/projects`) scene: a "solar system" — one planet per project
+ * orbiting a central sun, with drag-rotate / wheel-zoom camera control and
+ * click-to-select. Entry point is `createProjectsScene` (below).
+ */
 import {
   ACESFilmicToneMapping,
   AmbientLight,
