@@ -21,6 +21,7 @@ import { connections, type LocalizedProject } from '../../data/projects';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { disposeMaterial } from './disposeMaterial';
+import { userDataString } from './userData';
 import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { readPerfFlags } from '../debug/perfFlags';
 import {
@@ -381,9 +382,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects(planetMeshes);
     if (hits.length > 0) {
-      // `userData.projectId` is a string we set ourselves in buildPlanet,
-      // but Three.js types `userData` as `Record<string, any>`.
-      const id = hits[0]!.object.userData.projectId as string | undefined;
+      // `userData.projectId` is a string we set ourselves in buildPlanet;
+      // userDataString guards the Record<string, any> read.
+      const id = userDataString(hits[0]!.object, 'projectId');
       const entry = planetById(id);
       if (entry) selectPlanet(entry);
     }
@@ -521,9 +522,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       raycaster.setFromCamera(pointer, camera);
       const hits = raycaster.intersectObjects(planetMeshes);
       const raycastHovered =
-        hits.length > 0
-          ? planetById(hits[0]!.object.userData.projectId as string | undefined)
-          : null;
+        hits.length > 0 ? planetById(userDataString(hits[0]!.object, 'projectId')) : null;
       const newHovered = forcedHovered ?? raycastHovered;
 
       if (newHovered !== hovered) {
