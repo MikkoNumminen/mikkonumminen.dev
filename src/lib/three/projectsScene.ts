@@ -42,6 +42,13 @@ import {
 } from './projects/buildExternalIndicator';
 import { createHoverLabel } from './projects/createHoverLabel';
 import { createPlanetLabels } from './projects/createPlanetLabels';
+import {
+  clampPolar,
+  zoomRadius,
+  exceedsDragThreshold,
+  damp,
+  sphericalToCartesian,
+} from './projects/cameraControls';
 
 export interface ProjectsSceneOptions {
   canvas: HTMLCanvasElement;
@@ -311,15 +318,14 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     lastDragY = e.clientY;
     if (
       !dragMoved &&
-      Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY) > DRAG_THRESHOLD
+      exceedsDragThreshold(e.clientX - dragStartX, e.clientY - dragStartY, DRAG_THRESHOLD)
     ) {
       dragMoved = true;
     }
     if (dragMoved) {
       sphericalTarget.azimuth -= dx * ROTATE_SPEED;
       sphericalTarget.polar -= dy * ROTATE_SPEED;
-      if (sphericalTarget.polar < MIN_POLAR) sphericalTarget.polar = MIN_POLAR;
-      if (sphericalTarget.polar > MAX_POLAR) sphericalTarget.polar = MAX_POLAR;
+      sphericalTarget.polar = clampPolar(sphericalTarget.polar, MIN_POLAR, MAX_POLAR);
     }
   };
 
@@ -339,11 +345,13 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const onCanvasWheel = (e: WheelEvent): void => {
     if (selected) return;
     e.preventDefault();
-    const factor = Math.exp(e.deltaY * ZOOM_SPEED);
-    let next = sphericalTarget.radius * factor;
-    if (next < MIN_RADIUS) next = MIN_RADIUS;
-    if (next > MAX_RADIUS) next = MAX_RADIUS;
-    sphericalTarget.radius = next;
+    sphericalTarget.radius = zoomRadius(
+      sphericalTarget.radius,
+      e.deltaY,
+      ZOOM_SPEED,
+      MIN_RADIUS,
+      MAX_RADIUS,
+    );
   };
 
   canvas.addEventListener('pointerdown', onCanvasPointerDown);
@@ -571,18 +579,27 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     } else {
       // User-controlled spherical orbit. Damp current toward target each
       // frame; project to Cartesian for the camera target.
-      sphericalCurrent.azimuth +=
-        (sphericalTarget.azimuth - sphericalCurrent.azimuth) * SPHERICAL_DAMPING;
-      sphericalCurrent.polar +=
-        (sphericalTarget.polar - sphericalCurrent.polar) * SPHERICAL_DAMPING;
-      sphericalCurrent.radius +=
-        (sphericalTarget.radius - sphericalCurrent.radius) * SPHERICAL_DAMPING;
-      const sinPolar = Math.sin(sphericalCurrent.polar);
-      cameraTarget.set(
-        sphericalCurrent.radius * sinPolar * Math.sin(sphericalCurrent.azimuth),
-        sphericalCurrent.radius * Math.cos(sphericalCurrent.polar),
-        sphericalCurrent.radius * sinPolar * Math.cos(sphericalCurrent.azimuth),
+      sphericalCurrent.azimuth = damp(
+        sphericalCurrent.azimuth,
+        sphericalTarget.azimuth,
+        SPHERICAL_DAMPING,
       );
+      sphericalCurrent.polar = damp(
+        sphericalCurrent.polar,
+        sphericalTarget.polar,
+        SPHERICAL_DAMPING,
+      );
+      sphericalCurrent.radius = damp(
+        sphericalCurrent.radius,
+        sphericalTarget.radius,
+        SPHERICAL_DAMPING,
+      );
+      const pos = sphericalToCartesian(
+        sphericalCurrent.azimuth,
+        sphericalCurrent.polar,
+        sphericalCurrent.radius,
+      );
+      cameraTarget.set(pos.x, pos.y, pos.z);
       lookAtCurrent.lerp(SOLAR_LOOK_AT, 0.08);
     }
 
