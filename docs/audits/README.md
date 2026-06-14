@@ -7,12 +7,13 @@ A superseded report carries a banner pointing forward to its replacement.
 
 | Date | Report | Scope | Status |
 | --- | --- | --- | --- |
-| 2026-06-14 | [ai-first-rating-2026-06-14.md](ai-first-rating-2026-06-14.md) | AI-first re-rate after the push-to-9 campaign (#231–244) | **current** |
+| 2026-06-14 | [ai-first-rating-2026-06-14.md](ai-first-rating-2026-06-14.md) | AI-first re-rate — campaigns #231–244 then #247–258; reached 9.1/10 (every dimension ≥9) | **current** |
 | 2026-06-13 | [ai-first-rating-2026-06-13.md](ai-first-rating-2026-06-13.md) | AI-first / agent-operability re-rate | superseded by 06-14 |
 | 2026-06-12 | [ai-first-rating-2026-06-12.md](ai-first-rating-2026-06-12.md) | AI-first rating (baseline) | superseded by 06-13 |
 | 2026-06-11 | [improvement-review-2026-06-11.md](improvement-review-2026-06-11.md) | Multi-agent improvement review (45 findings) | actioned (#207–211) |
 | 2026-05-17 | [FULL-AUDIT-2026-05-17.md](FULL-AUDIT-2026-05-17.md) | Full robustness/a11y/security/SEO/i18n audit | audit of record |
 | 2026-05-16 | [MOBILE-AUDIT-2026-05-16.md](MOBILE-AUDIT-2026-05-16.md) | Mobile/responsive audit | historical |
+| 2026-05-07 | [AUDIT-2026-05-07.md](AUDIT-2026-05-07.md) | Hiring-grade code audit (six-agent, ~10.4k LOC) | historical |
 | 2026-04-08 | [AUDIT-2026-04-08.md](AUDIT-2026-04-08.md) | First principal-engineer audit | superseded by FULL-AUDIT |
 
 ## Skill-portfolio calibration & token studies
