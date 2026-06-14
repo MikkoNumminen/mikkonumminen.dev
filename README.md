@@ -52,6 +52,7 @@ npm run format        # prettier --write across src/
 npm run format:check  # prettier --check (CI-friendly)
 npm run build:og      # rasterize OG cards + manifest icons from the source SVGs
 npm run sync:skills-registry  # copy latest dated SKILL-REGISTRY-*.json → public/data/
+npm run validate:registry     # check public/data/skills-registry.json against its JSON schema
 npm run build:skills-pdf      # regenerate public/skills-registry.pdf via local Chrome
 npm test              # run the Vitest suite (i18n + project data)
 npm run test:watch    # Vitest in watch mode for TDD
@@ -59,7 +60,7 @@ npm run test:watch    # Vitest in watch mode for TDD
 
 `build:og` reads `public/og-*.svg` and `public/favicon.svg` and writes the PNGs referenced by `<head>` meta and `public/manifest.webmanifest`. Run it whenever any of those source SVGs change.
 
-`prebuild` runs `render:audit-pdfs && build:skills-pdf` automatically on every `npm run build`. Both renderers use the local Chrome's `--print-to-pdf` flag and skip silently in CI environments, where the committed PDFs are the canonical artifacts for hosted builds. The skills-registry JSON the terminal fetches is likewise a canonical committed artifact: `apply-measurement-overlay` and `build-review-stats` layer transcript-measured receipts and A/B buckets onto it from local `~/.claude` data that can't be read on a build server, so `sync:skills-registry` is the first step of the manual `/skill-localUpdate` refresh chain rather than a prebuild step — auto-syncing the raw dated registry would overwrite that enrichment. Rationale in [`docs/decisions/0005-skill-registry-pdf-surface.md`](docs/decisions/0005-skill-registry-pdf-surface.md).
+`prebuild` runs `validate:registry && render:audit-pdfs && build:skills-pdf` automatically on every `npm run build`. `validate:registry` checks the committed `public/data/skills-registry.json` against [`public/data/skills-registry.schema.json`](public/data/skills-registry.schema.json) (dependency-free schema validation, so a malformed registry fails the build instead of silently breaking the terminal). The two renderers use the local Chrome's `--print-to-pdf` flag and skip silently in CI environments, where the committed PDFs are the canonical artifacts for hosted builds. The skills-registry JSON the terminal fetches is likewise a canonical committed artifact: `apply-measurement-overlay` and `build-review-stats` layer transcript-measured receipts and A/B buckets onto it from local `~/.claude` data that can't be read on a build server, so `sync:skills-registry` is the first step of the manual `/skill-localUpdate` refresh chain rather than a prebuild step — auto-syncing the raw dated registry would overwrite that enrichment. Rationale in [`docs/decisions/0005-skill-registry-pdf-surface.md`](docs/decisions/0005-skill-registry-pdf-surface.md).
 
 ## Project structure
 
@@ -92,6 +93,7 @@ scripts/
   build-review-stats.mjs       Per-invocation /review token stats (reads ~/.claude)
   bucket-review-invocations.py   Bucket /review invocations by size (feeds build-review-stats)
   build-skills-pdf.mjs         Bespoke HTML-from-JSON renderer; calls scripts/lib/chrome-pdf.mjs
+  validate-registry.mjs        Validate public/data/skills-registry.json against its schema (prebuild gate)
   build-pdf.mjs                Generic HTML → PDF CLI (used by the md-to-pdf skill)
   render-audit-pdfs.mjs        Render docs/audits/*.md → committed PDFs (skips in CI)
   render-audit-doc.mjs         Markdown → audit-styled HTML used by the renderer
@@ -99,6 +101,7 @@ scripts/
   draw-tokens.mjs              Token-figure chart rasterizer
   lib/
     chrome-pdf.mjs             Local Chrome --print-to-pdf wrapper; size-asserts the output
+    validate-json-schema.mjs   Dependency-free JSON-schema validator (tested); backs validate-registry
     escape.mjs                 Shared HTML escaper + http(s) URL allowlist
     cli-args.mjs               Tiny argv parser (tested)
     scoreboard-stats.mjs       Scoreboard aggregation (tested)
