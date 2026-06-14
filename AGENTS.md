@@ -67,13 +67,16 @@ scripts/          build/data tooling (og images, skills registry, audit PDFs)
 
 | Route         | Concept                     | Status |
 | ------------- | --------------------------- | ------ |
-| `/`           | Immersive scroll experience | stub   |
-| `/projects`   | Interactive solar system    | stub   |
-| `/experience` | Parallax mountain landscape | stub   |
-| `/contact`    | Terminal / CRT aesthetic    | wip    |
+| `/`           | Immersive scroll experience | built  |
+| `/projects`   | Interactive solar system    | built  |
+| `/experience` | Parallax mountain landscape | built  |
+| `/contact`    | Terminal / CRT aesthetic    | built  |
 
-Build order: **Contact → Home → Projects → Experience**. Each page is fully polished
-before the next is started. Confirm with Mikko before starting a new page.
+All four worlds are built and live (the Playwright scene smoke test boots every
+one of them on each PR). They were built in the order **Contact → Home →
+Projects → Experience**, each fully polished before the next; work now is
+refinement — bug fixes, performance, i18n, accessibility. Confirm with Mikko
+before any large new feature or a fifth page.
 
 ## Workflow
 
