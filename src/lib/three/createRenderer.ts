@@ -1,3 +1,11 @@
+/**
+ * The one place a Three.js WebGLRenderer is constructed. Every scene
+ * (home, projects, experience) calls this so the renderer flags stay
+ * consistent: antialiased, alpha-transparent over the page background,
+ * high-performance GPU preference, a capped device-pixel-ratio (the single
+ * biggest per-frame cost — see maxPixelRatio below), and optional tone
+ * mapping. Construction only — callers own sizing on resize and disposal.
+ */
 import { type ToneMapping, WebGLRenderer } from 'three';
 import { resolvePixelRatio } from './resolvePixelRatio';
 
