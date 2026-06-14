@@ -17,6 +17,7 @@ import {
 } from 'three';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
+import { userDataNumber } from './userData';
 import { easeOutCubic } from './easing';
 import { entranceFlashEnvelope } from './entranceFlash';
 import { responsiveTitleScale, responsiveGalaxyX } from './responsiveLayout';
@@ -529,12 +530,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const RIPPLE_Z_GAIN = 4;
 
   const triggerLetterRipple = (clickedLetter: TitleLetter): void => {
-    const clickedLine = clickedLetter.mesh.userData.line as number;
-    const clickedChar = clickedLetter.mesh.userData.charIndex as number;
+    const clickedLine = userDataNumber(clickedLetter.mesh, 'line');
+    const clickedChar = userDataNumber(clickedLetter.mesh, 'charIndex');
     for (const s of letterStates) {
-      const sLine = s.letter.mesh.userData.line as number;
+      const sLine = userDataNumber(s.letter.mesh, 'line');
       if (sLine !== clickedLine) continue;
-      const sChar = s.letter.mesh.userData.charIndex as number;
+      const sChar = userDataNumber(s.letter.mesh, 'charIndex');
       const d = Math.abs(sChar - clickedChar);
       if (d > RIPPLE_NEIGHBOUR_RANGE) continue;
       // Each fresh click restarts neighbours from the start of their pop
