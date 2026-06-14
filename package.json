@@ -13,6 +13,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check",
+    "check:env": "node scripts/check-env.mjs",
     "build:og": "node scripts/build-og.mjs",
     "build:skills-pdf": "node scripts/build-skills-pdf.mjs",
     "build:review-stats": "node scripts/build-review-stats.mjs",

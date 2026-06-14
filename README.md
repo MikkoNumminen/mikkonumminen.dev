@@ -47,6 +47,7 @@ npm run dev           # http://localhost:4321
 npm run build         # build to dist/
 npm run preview       # preview the production build
 npm run typecheck     # astro check
+npm run check:env     # verify Node version + deps are ready on a fresh clone
 npm run lint          # eslint
 npm run format        # prettier --write across src/
 npm run format:check  # prettier --check (CI-friendly)
@@ -87,6 +88,7 @@ src/
 public/           Static assets — favicon, manifest, OG images, fonts, robots, icons
   data/           Build-synced registry JSON consumed by the terminal `skills` command
 scripts/
+  check-env.mjs                Fresh-clone sanity check: Node version + deps (npm run check:env)
   build-og.mjs                 OG image + manifest icon rasterizer
   sync-skill-registry.mjs      Copy latest dated SKILL-REGISTRY-*.json into public/data/
   apply-measurement-overlay.mjs  Layer transcript measurements onto the registry
@@ -104,6 +106,7 @@ scripts/
     validate-json-schema.mjs   Dependency-free JSON-schema validator (tested); backs validate-registry
     escape.mjs                 Shared HTML escaper + http(s) URL allowlist
     cli-args.mjs               Tiny argv parser (tested)
+    node-version.mjs           Semver-minimum check backing check-env (tested)
     scoreboard-stats.mjs       Scoreboard aggregation (tested)
     transcript-tokens.mjs      ~/.claude transcript token accounting (tested)
 ```
