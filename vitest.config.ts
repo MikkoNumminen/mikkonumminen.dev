@@ -53,16 +53,16 @@ export default defineConfig({
         'src/lib/home/dataFeedConsole.ts',
         'src/lib/transitions/pageTransition.ts',
       ],
-      // Ratchet floor under the current jsdom-testable coverage (~30%, held down
+      // Ratchet floor under the current jsdom-testable coverage (~35%, held down
       // by DOM-orchestration files that are integration-level rather than
       // unit-tested). Not a vanity number — a regression gate: it fails CI if the
       // tested surface shrinks. Raise it as more pure logic gets extracted +
       // tested. Run via `npm run test:coverage` (and in CI).
       thresholds: {
-        lines: 29,
-        statements: 29,
-        functions: 30,
-        branches: 29,
+        lines: 34,
+        statements: 34,
+        functions: 38,
+        branches: 34,
       },
     },
   },
