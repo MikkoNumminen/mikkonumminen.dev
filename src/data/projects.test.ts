@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { localizeProjects, projects } from './projects';
+import { connections, localizeProjects, projects } from './projects';
 import { getTranslations, LOCALES } from '../i18n';
 
 describe('projects (structural data)', () => {
@@ -16,6 +16,33 @@ describe('projects (structural data)', () => {
     const ids = projects.map((p) => p.id);
     const unique = new Set(ids);
     expect(unique.size).toBe(ids.length);
+  });
+});
+
+describe('connections (referential integrity)', () => {
+  // Connections are drawn as arcs between planets by id. A typo in a
+  // sourceId/targetId would not be a type error — it would silently render
+  // no arc (or throw at lookup time) only once the projects scene boots in a
+  // browser. This pins the cross-reference at unit-test time instead.
+  const ids = new Set(projects.map((p) => p.id));
+
+  it('every connection endpoint refers to a real project id', () => {
+    for (const c of connections) {
+      expect(ids.has(c.sourceId), `sourceId "${c.sourceId}"`).toBe(true);
+      expect(ids.has(c.targetId), `targetId "${c.targetId}"`).toBe(true);
+    }
+  });
+
+  it('no connection links a project to itself', () => {
+    for (const c of connections) {
+      expect(c.sourceId, 'self-link').not.toBe(c.targetId);
+    }
+  });
+
+  it('every connection has a valid hex color', () => {
+    for (const c of connections) {
+      expect(c.color, `${c.sourceId}->${c.targetId}.color`).toMatch(/^#[0-9a-f]{6}$/i);
+    }
   });
 });
 
