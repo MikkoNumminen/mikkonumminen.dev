@@ -127,6 +127,11 @@ export function parseRegistry(raw: unknown): SkillRegistry | null {
     }
   }
 
+  // Every field accessed by the renderer has now been runtime-checked above,
+  // so this is the one acknowledged trust boundary: the `unknown`-bridged cast
+  // is what those ~40 lines of guards exist to justify. TypeScript can't infer
+  // the narrowing structurally, so we assert it once, here, deliberately —
+  // rather than sprinkling unchecked casts at each call site.
   return raw as unknown as SkillRegistry;
 }
 
