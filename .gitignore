@@ -41,6 +41,10 @@ TODO.md
 NOTES.md
 .notes/
 
+# local-only scratch — never committed; safe place for personal files,
+# experiments, and anything that should never reach the repo
+.local/
+
 # AI tooling — local by default; opt in specific shareable artifacts below.
 #
 # `.claude/skills/` is broadly tracked (production-skill convention from
