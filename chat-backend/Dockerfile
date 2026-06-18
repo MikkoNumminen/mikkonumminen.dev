@@ -24,6 +24,16 @@ COPY app ./app
 COPY sql ./sql
 RUN pip install -e .
 
+# Run unprivileged. Pin a fixed UID so a mounted fastembed-cache volume's
+# ownership is predictable across hosts, and pre-create + own the cache dir so
+# the first-use ONNX download succeeds as the non-root user. When Phase 5 wires
+# the cache as a volume, a host bind-mount target must be owned by UID 10001 (a
+# Docker named volume inherits this image-path ownership automatically).
+RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p "$FASTEMBED_CACHE_DIR" \
+    && chown -R appuser:appuser /srv
+USER appuser
+
 # Default to the indexer; the long-running API command is set by compose in
 # Phase 5. `docker compose run --rm backend python -m app.indexer` overrides this.
 CMD ["python", "-m", "app.indexer"]

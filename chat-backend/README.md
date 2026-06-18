@@ -53,7 +53,7 @@ docker compose run --rm backend python -m app.indexer --dry-run
 docker compose run --rm backend python -m app.indexer
 ```
 
-Output reports `N file(s), M chunk(s) (E embedded, S unchanged, D pruned)`.
+Output reports `N file(s), M chunk(s) (E embedded, S unchanged, D pruned) - T rows in DB`.
 A run with no content changes embeds nothing and writes nothing.
 
 > The `docker compose` wrapper and the `db` / `ollama` services land in Phase 5.

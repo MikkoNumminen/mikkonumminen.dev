@@ -17,7 +17,7 @@ Available now. Open to ambitious full-stack roles where craft and velocity both 
 
 I ship full-stack production apps end to end — SQL to ops. As of 2026, seven solo projects shipped in twelve months: real users, real CI, full ownership from schema to deploy. The work spans a multi-tenant community platform serving a live WoW guild, a browser game built from empty repo to live in 12 days, a Windows desktop app for audiobook generation, a reading tracker, and this portfolio site. Every repo runs CI on every push.
 
-AI-native development is part of the toolchain, not a side note. I maintain a catalog of custom Claude Code skills — version-controlled, audited, and treated as production artifacts. An A/B calibration across 34 skills (Spacepotatis, 2026-05-22) measured a 22% aggregate token saving versus cold scouting across 13 skills.
+AI-native development is part of the toolchain, not a side note. I maintain a catalog of custom Claude Code skills — version-controlled, audited, and treated as production artifacts. A 2026-05-22 A/B calibration across 13 Spacepotatis skills (Sonnet only) measured a ~22% aggregate token saving versus cold scouting; a later portfolio-wide calibration across Sonnet, Opus, and Haiku covered 34 skills (33 calibrated) for a +17% aggregate save, ~327K tokens.
 
 ---
 

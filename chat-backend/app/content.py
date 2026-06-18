@@ -29,7 +29,10 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-_FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\n(.*?)\n---[ \t]*\n", re.DOTALL)
+# The closing `---` may be followed by a newline or end-of-file, so a file that
+# is nothing but front matter (no trailing newline) still parses rather than
+# silently losing every field.
+_FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\n(.*?)\n---[ \t]*(?:\n|\Z)", re.DOTALL)
 _H1_RE = re.compile(r"^#[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 
 _KNOWN_KINDS = {"project", "cv", "post"}
@@ -108,7 +111,10 @@ def load_doc(path: Path, content_dir: Path) -> ContentDoc:
             f"(expected one of {sorted(_KNOWN_KINDS)})"
         )
 
-    project = fields.get("project")
+    # `or None` so a blank `project:` line normalizes the same as an absent one
+    # (both -> None), letting the stem default below fire and avoiding an empty
+    # string landing in the nullable `project` column.
+    project = fields.get("project") or None
     # A project doc with no explicit `project:` field defaults to its filename
     # stem — `projects/hrm.md` is about project `hrm` — so the common case needs
     # no redundant front-matter.

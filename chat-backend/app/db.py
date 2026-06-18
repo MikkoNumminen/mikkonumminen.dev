@@ -70,33 +70,47 @@ class Database:
     async def close(self) -> None:
         await self._pool.close()
 
-    async def existing_hashes(self, source: str) -> set[str]:
-        """Content hashes already stored for a source — the skip set."""
+    async def existing_chunk_hashes(self, source: str) -> dict[int, str]:
+        """`{chunk_index: content_hash}` already stored for a source.
+
+        Drives the skip-unchanged decision: a current chunk needs re-embedding
+        only when its index is absent here, or its hash differs from the stored
+        one (see `indexer.select_chunks_to_embed`).
+        """
         rows = await self._pool.fetch(
-            "SELECT content_hash FROM documents WHERE source = $1", source
+            "SELECT chunk_index, content_hash FROM documents WHERE source = $1",
+            source,
         )
-        return {row["content_hash"] for row in rows}
+        return {row["chunk_index"]: row["content_hash"] for row in rows}
 
-    async def insert_documents(self, rows: Sequence[DocumentRow]) -> int:
-        """Insert chunk rows, skipping any whose (source, content_hash) exists.
+    async def upsert_documents(self, rows: Sequence[DocumentRow]) -> int:
+        """Upsert chunk rows keyed by (source, chunk_index). Returns the count.
 
-        Returns the number of rows actually inserted. `ON CONFLICT DO NOTHING`
-        on the unique (source, content_hash) key makes a concurrent or repeated
-        insert a no-op rather than an error.
+        A chunk is identified by its ordinal position within its source, so an
+        edited chunk overwrites the row at that index (DO UPDATE) and two chunks
+        holding identical text at different positions remain distinct rows. The
+        caller passes only the chunks it chose to (re-)embed, so the row count is
+        exactly the number embedded this run — DO UPDATE's command tag does not
+        distinguish insert from update, so the count is taken from the input.
         """
         if not rows:
             return 0
         async with self._pool.acquire() as conn:
             async with conn.transaction():
-                inserted = 0
                 for row in rows:
-                    status = await conn.execute(
+                    await conn.execute(
                         """
                         INSERT INTO documents
                             (source, project, title, kind, chunk_index,
                              content, content_hash, embedding)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                        ON CONFLICT (source, content_hash) DO NOTHING
+                        ON CONFLICT (source, chunk_index) DO UPDATE SET
+                            project = EXCLUDED.project,
+                            title = EXCLUDED.title,
+                            kind = EXCLUDED.kind,
+                            content = EXCLUDED.content,
+                            content_hash = EXCLUDED.content_hash,
+                            embedding = EXCLUDED.embedding
                         """,
                         row.source,
                         row.project,
@@ -107,23 +121,20 @@ class Database:
                         row.content_hash,
                         row.embedding,
                     )
-                    # asyncpg returns e.g. "INSERT 0 1"; the trailing count is 0
-                    # when the conflict clause skipped the row.
-                    if status.rsplit(" ", 1)[-1] == "1":
-                        inserted += 1
-                return inserted
+        return len(rows)
 
-    async def delete_stale(self, source: str, keep_hashes: Sequence[str]) -> int:
-        """Delete rows for `source` whose hash is not in `keep_hashes`.
+    async def delete_stale_chunks(self, source: str, chunk_count: int) -> int:
+        """Prune rows for `source` left over from a longer previous version.
 
-        This is the other half of idempotent re-indexing: chunks that changed or
-        were removed from the source file get their old rows pruned. Returns the
-        number of rows deleted.
+        Chunks are numbered 0..chunk_count-1, so any row at index >= chunk_count
+        belongs to a since-shortened file and is removed. In-range rows are kept
+        — `upsert_documents` already refreshed the ones whose content changed.
+        Returns the number of rows deleted.
         """
         status = await self._pool.execute(
-            "DELETE FROM documents WHERE source = $1 AND content_hash <> ALL($2::text[])",
+            "DELETE FROM documents WHERE source = $1 AND chunk_index >= $2",
             source,
-            list(keep_hashes),
+            chunk_count,
         )
         return int(status.rsplit(" ", 1)[-1])
 

@@ -5,7 +5,7 @@ kind: post
 
 # What A/B-testing my Claude Code skills actually saved
 
-After a year of claiming the AI workflow paid off, I ran the A/B. Every custom Claude Code skill measured against itself going cold — same task, sub-agent on versus sub-agent off — across Sonnet, Opus, and Haiku. Here is what the data actually shows, and how I report it.
+After a year of claiming the AI workflow paid off, I ran the A/B. Every custom Claude Code skill measured against itself going cold — same task, sub-agent on versus sub-agent off. The first calibration used Sonnet sub-agents only; the suite calibration that followed extended to Sonnet, Opus, and Haiku. Here is what the data actually shows, and how I report it.
 
 ## The first calibration: Spacepotatis (2026-05-22)
 
@@ -40,7 +40,7 @@ I then ran a broader calibration: 8 skills from the mikko- library across all th
 
 Across three corpora — a portfolio site, a browser game, and a Python desktop app — two theses were tested.
 
-**Thesis 1 (3/3, bankable): savings concentrate in procedure/script-backed skills; prose audits wash against a capable cold model.** The script-backed skills (`skills-quality`, `skills-freshness`, `session-cost`, `balance-review`, `audit`) save on every model in every corpus. The prose audit skills (`ai-codegen-smell-audit`, `readme-drift-sync`) are wash-to-negative against a capable cold model and only turn clearly positive as the model weakens. This held across all three repos.
+**Thesis 1 (3/3, bankable): savings concentrate in procedure/script-backed skills; prose audits wash against a capable cold model.** The three genuinely script-backed skills (`skills-quality`, `skills-freshness`, `session-cost`) — which replace LLM reasoning with a Python pre-pass — save on every model in every corpus. The bounded-procedure skills (`balance-review`, `audit`) save in most corpora too, with one instructive exception: `audit` costs more than cold scouting on Opus in the mikko- suite (−51%), where the cold Opus arm is already cheap; it flips positive as the model weakens (+2% Sonnet, +7% Haiku). The prose audit skills (`ai-codegen-smell-audit`, `readme-drift-sync`) are wash-to-negative against a capable cold model and only turn clearly positive as the model weakens. This held across all three repos.
 
 **Thesis 2 (1/3, do not generalize): savings scale inversely with model capability.** Clean in the mikko- suite (+13% Opus → +15% Sonnet → +27% Haiku). Non-monotonic in Spacepotatis (flat ~+15% across models). Non-monotonic in AudiobookMaker (+1% Opus, +24% Sonnet, +22% Haiku). The curve appears only when the cold arm's cost scales steeply as the model weakens — a property of the task, not a law of skills.
 

@@ -86,3 +86,20 @@ def test_load_docs_sorted_and_recursive(tmp_path: Path) -> None:
 
 def test_load_docs_missing_dir_is_empty(tmp_path: Path) -> None:
     assert load_docs(tmp_path / "does-not-exist") == []
+
+
+def test_blank_project_value_falls_back_to_stem(tmp_path: Path) -> None:
+    # A present-but-blank `project:` line must normalize like an absent one so
+    # the filename-stem default fires (not an empty string in the project field).
+    _write(tmp_path / "projects" / "hrm.md", "---\nproject: \n---\n# HRM\n\nbody")
+    doc = load_doc(tmp_path / "projects" / "hrm.md", tmp_path)
+    assert doc.project == "hrm"
+
+
+def test_front_matter_without_trailing_newline_parses() -> None:
+    # A file that is only front matter, with no final newline, still parses
+    # (regex closes on `\n` OR end-of-file) rather than silently dropping fields.
+    raw = "---\ntitle: Hi\nurl: https://e.com\n---"
+    fields, body = parse_front_matter(raw)
+    assert fields == {"title": "Hi", "url": "https://e.com"}
+    assert body == ""

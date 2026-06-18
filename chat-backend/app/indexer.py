@@ -2,10 +2,12 @@
 
 Reads the curated `content/` corpus, chunks each document, embeds the chunks
 with the in-process model, and upserts them into Postgres+pgvector. Re-running
-is idempotent: each chunk is keyed by its content hash, so unchanged content is
-neither re-embedded nor re-written, and chunks that changed or were removed have
-their stale rows pruned. The static corpus rarely changes, so this is a one-time
-offline job — embeddings are precomputed and stored, never generated per deploy.
+is idempotent: a chunk's stored content hash gates re-embedding (unchanged
+content is neither re-embedded nor re-written), while a chunk's row identity is
+its (source, chunk_index) — so edited chunks are updated in place and chunks
+that were removed have their rows pruned. The static corpus rarely changes, so
+this is a one-time offline job — embeddings are precomputed and stored, never
+generated per deploy.
 
     docker compose run --rm backend python -m app.indexer
     docker compose run --rm backend python -m app.indexer --dry-run
@@ -69,6 +71,16 @@ def plan(settings: Settings) -> list[FilePlan]:
     ]
 
 
+def select_chunks_to_embed(chunks: list[Chunk], existing: dict[int, str]) -> list[Chunk]:
+    """Chunks that must be (re-)embedded: a new index, or a changed hash.
+
+    A chunk's expensive embedding is reused only when the DB already holds its
+    exact content hash at the same index. Pure, so the core reconcile decision
+    is unit-tested without a database.
+    """
+    return [c for c in chunks if existing.get(c.index) != c.content_hash]
+
+
 async def reindex(
     settings: Settings, *, plans: list[FilePlan] | None = None
 ) -> IndexStats:
@@ -79,27 +91,35 @@ async def reindex(
 
     file_plans = plans if plans is not None else plan(settings)
     if not file_plans:
+        # Not an early return: an empty corpus (every file removed) must still
+        # reconcile the DB — delete_sources_absent_from([]) prunes every row —
+        # or the chat would keep answering from content that no longer exists.
         print(
-            f"[indexer] no markdown found under {settings.content_dir!r} - nothing to do"
+            f"[indexer] no markdown under {settings.content_dir!r} "
+            "- pruning any stale rows"
         )
-        return IndexStats(0, 0, 0, 0, 0, 0)
 
     await apply_schema(settings.database_url, SQL_PATH)
     db = await Database.connect(settings.database_url)
-    embedder = Embedder(settings.embedding_model, settings.embedding_dim)
-
-    chunks_total = embedded = skipped = deleted = 0
+    # The embedder (and its one-time model download) is built lazily, only once
+    # a chunk actually needs embedding — so an empty or fully-unchanged corpus
+    # never loads the model. `db` is bound before the try so a model-load
+    # failure still hits `finally` without a NameError, and the pool is closed.
+    embedder: Embedder | None = None
+    chunks_total = embedded = skipped = deleted = total = 0
     try:
         for fp in file_plans:
             doc = fp.doc
             chunks_total += len(fp.chunks)
-            existing = await db.existing_hashes(doc.source)
+            existing = await db.existing_chunk_hashes(doc.source)
 
-            new_chunks = [c for c in fp.chunks if c.content_hash not in existing]
-            skipped += len(fp.chunks) - len(new_chunks)
+            to_embed = select_chunks_to_embed(fp.chunks, existing)
+            skipped += len(fp.chunks) - len(to_embed)
 
-            if new_chunks:
-                vectors = embedder.embed_passages([c.text for c in new_chunks])
+            if to_embed:
+                if embedder is None:
+                    embedder = Embedder(settings.embedding_model, settings.embedding_dim)
+                vectors = embedder.embed_passages([c.text for c in to_embed])
                 rows = [
                     DocumentRow(
                         source=doc.source,
@@ -111,16 +131,15 @@ async def reindex(
                         content_hash=c.content_hash,
                         embedding=vec,
                     )
-                    for c, vec in zip(new_chunks, vectors, strict=True)
+                    for c, vec in zip(to_embed, vectors, strict=True)
                 ]
-                embedded += await db.insert_documents(rows)
+                embedded += await db.upsert_documents(rows)
 
-            # Prune chunks that changed or disappeared from this file.
-            deleted += await db.delete_stale(
-                doc.source, [c.content_hash for c in fp.chunks]
-            )
+            # Prune chunks left over from a previous, longer version of this file.
+            deleted += await db.delete_stale_chunks(doc.source, len(fp.chunks))
 
-        # Prune whole files that were deleted from the corpus since last run.
+        # Prune whole files removed from the corpus since the last run (and, when
+        # the corpus is empty, every remaining row).
         deleted += await db.delete_sources_absent_from(
             [fp.doc.source for fp in file_plans]
         )

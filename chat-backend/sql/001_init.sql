@@ -23,10 +23,13 @@ CREATE TABLE IF NOT EXISTS documents (
     embedding     vector(384) NOT NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    -- A chunk is uniquely identified by its source file and its content hash.
-    -- Re-indexing unchanged content hits this constraint and is skipped
-    -- (INSERT ... ON CONFLICT DO NOTHING) rather than duplicated.
-    CONSTRAINT documents_source_hash_key UNIQUE (source, content_hash)
+    -- A chunk's identity is its ordinal position within its source file (the
+    -- N-th chunk of projects/hrm.md), NOT its text. The stored content_hash
+    -- drives the skip-unchanged decision at re-index time but is deliberately
+    -- absent from the key: keying on the hash would silently collapse two
+    -- chunks that happen to hold identical text at different positions into one
+    -- row. Re-index upserts by this key (INSERT ... ON CONFLICT DO UPDATE).
+    CONSTRAINT documents_source_chunk_key UNIQUE (source, chunk_index)
 );
 
 -- HNSW index for cosine distance, matching the `<=>` operator the retrieval

@@ -7,8 +7,13 @@ from pathlib import Path
 
 import pytest
 
+from app.chunking import Chunk, hash_chunk
 from app.config import Settings
-from app.indexer import plan
+from app.indexer import plan, select_chunks_to_embed
+
+
+def _chunk(index: int, text: str) -> Chunk:
+    return Chunk(index=index, text=text, content_hash=hash_chunk(text))
 
 
 @pytest.fixture
@@ -38,3 +43,29 @@ def test_plan_chunks_each_document(settings: Settings, tmp_path: Path) -> None:
     for fp in plans:
         assert fp.chunks
         assert all(c.text.strip() for c in fp.chunks)
+
+
+def test_select_chunks_to_embed_all_new_on_empty_db() -> None:
+    chunks = [_chunk(0, "alpha"), _chunk(1, "beta")]
+    assert select_chunks_to_embed(chunks, {}) == chunks
+
+
+def test_select_chunks_to_embed_skips_unchanged() -> None:
+    chunks = [_chunk(0, "alpha"), _chunk(1, "beta")]
+    existing = {0: chunks[0].content_hash, 1: chunks[1].content_hash}
+    assert select_chunks_to_embed(chunks, existing) == []
+
+
+def test_select_chunks_to_embed_picks_changed_and_new_indices() -> None:
+    chunks = [_chunk(0, "alpha"), _chunk(1, "beta-v2"), _chunk(2, "gamma-new")]
+    # index 0 unchanged; index 1 hash differs from stored; index 2 absent.
+    existing = {0: chunks[0].content_hash, 1: hash_chunk("beta-v1")}
+    assert [c.index for c in select_chunks_to_embed(chunks, existing)] == [1, 2]
+
+
+def test_select_chunks_to_embed_keeps_identical_text_at_distinct_indices() -> None:
+    # Two chunks with identical text are distinct retrieval units (same hash,
+    # different index) — both must embed on a fresh DB. Regression guard for the
+    # (source, chunk_index) identity that replaced the old content-hash key.
+    chunks = [_chunk(0, "same text"), _chunk(1, "same text")]
+    assert select_chunks_to_embed(chunks, {}) == chunks
