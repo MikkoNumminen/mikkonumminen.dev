@@ -1,7 +1,8 @@
 import type { Translations } from '../../i18n';
 import { escapeHtml as escape } from '../utils/escapeHtml';
 import { runSkillsCommand } from './skills';
-import type { CommandSpec } from './types';
+import type { CommandContext, CommandSpec } from './types';
+import { localizeProjects, type LocalizedProject } from '../../data/projects';
 
 const EMAIL = 'numminen.mikko.petteri@gmail.com';
 const GITHUB = 'https://github.com/MikkoNumminen';
@@ -14,6 +15,47 @@ const REPLICATES_PDF_PATH = '/skills-optim-study-replicates.pdf';
 const RESULTS_PDF_PATH = '/skills-results.pdf';
 
 /**
+ * Print one project's "file" — the scripted alternative to asking the RAG about
+ * it. Sourced from the localized project data (`t.projectsData`), so it reads in
+ * the active locale. Field labels (tech/live/code) are shell-style and stay in
+ * English like the `links` command's labels.
+ */
+function printProjectCard(p: LocalizedProject, ctx: CommandContext): void {
+  ctx.print(p.name, 'accent');
+  if (p.tagline) ctx.print(p.tagline, 'dim');
+  if (p.description) {
+    ctx.print('');
+    ctx.print(p.description);
+  }
+  if (p.highlights && p.highlights.length > 0) {
+    ctx.print('');
+    for (const h of p.highlights) ctx.print(`- ${h}`, 'dim');
+  }
+  ctx.print('');
+  ctx.print(`tech: ${p.tech.join(', ')}`, 'dim');
+  if (p.liveUrl) {
+    ctx.printHTML(
+      `<span class="line">live: <a href="${escape(p.liveUrl)}" target="_blank" rel="noopener noreferrer">${escape(p.liveUrl)}</a></span>`,
+    );
+  }
+  if (p.githubUrl) {
+    ctx.printHTML(
+      `<span class="line">code: <a href="${escape(p.githubUrl)}" target="_blank" rel="noopener noreferrer">${escape(p.githubUrl)}</a></span>`,
+    );
+  }
+}
+
+/** Short scripted CV summary; the full résumé is the `download --cv` PDF. */
+function printCv(ctx: CommandContext, tt: Translations['terminal']): void {
+  ctx.print(tt.cmdWhoamiName, 'accent');
+  ctx.print(tt.cmdWhoamiTitle, 'dim');
+  ctx.print('');
+  ctx.print(tt.cmdWhoamiIntro);
+  ctx.print('');
+  ctx.print(tt.cmdCvDownloadHint, 'dim');
+}
+
+/**
  * Build the terminal command set for a given locale.
  *
  * Command names (`help`, `whoami`, etc.) and their flag syntax (`--email`,
@@ -23,6 +65,7 @@ const RESULTS_PDF_PATH = '/skills-results.pdf';
  */
 export function buildCommands(t: Translations): CommandSpec[] {
   const tt = t.terminal;
+  const localized = localizeProjects(t);
 
   const cmds: CommandSpec[] = [
     {
@@ -281,6 +324,59 @@ export function buildCommands(t: Translations): CommandSpec[] {
       },
     },
     {
+      name: 'ls',
+      description: tt.cmdLsDesc,
+      usage: 'ls [projects]',
+      handler: (args, ctx) => {
+        const target = (args[0] ?? '').replace(/\/+$/, '');
+        if (!target) {
+          // Top-level virtual listing — a dir of projects plus the cv "file".
+          ctx.printHTML(
+            `<span class="line"><span style="color:var(--color-term-cyan)">projects/</span>  cv</span>`,
+          );
+          return;
+        }
+        if (target === 'projects') {
+          ctx.print(localized.map((p) => p.id).join('  '));
+          return;
+        }
+        ctx.print(`ls: cannot access '${args[0] ?? ''}': ${tt.cmdLsNoSuch}`, 'err');
+      },
+    },
+    {
+      name: 'cat',
+      description: tt.cmdCatDesc,
+      usage: 'cat <path>',
+      handler: (args, ctx) => {
+        const raw = args[0];
+        if (!raw) {
+          ctx.print(tt.cmdCatUsage, 'dim');
+          return;
+        }
+        const path = raw.replace(/\.md$/, '');
+        if (path === 'cv') {
+          printCv(ctx, tt);
+          return;
+        }
+        const id = /^projects\/(.+)$/.exec(path)?.[1];
+        if (id) {
+          const project = localized.find((p) => p.id === id);
+          if (project) {
+            printProjectCard(project, ctx);
+            return;
+          }
+        }
+        ctx.print(`cat: ${raw}: ${tt.cmdCatNoSuch}`, 'err');
+      },
+    },
+    {
+      name: 'cv',
+      description: tt.cmdCvDesc,
+      handler: (_, ctx) => {
+        printCv(ctx, tt);
+      },
+    },
+    {
       name: 'clear',
       description: tt.cmdClearDesc,
       handler: (_, ctx) => {
@@ -310,6 +406,29 @@ export function buildCommands(t: Translations): CommandSpec[] {
           ctx.print(tt.cmdManUsageLabel, 'accent');
           ctx.print(`    ${cmd.usage}`);
         }
+      },
+    },
+    {
+      // Easter egg — hidden from `help`. `sudo hire mikko` is the intended path;
+      // anything else gets a playful denial in keeping with the shell tone.
+      name: 'sudo',
+      description: tt.cmdSudoDesc,
+      hidden: true,
+      handler: (args, ctx) => {
+        if (args.join(' ').toLowerCase() === 'hire mikko') {
+          ctx.print(tt.cmdSudoHire, 'accent');
+          return;
+        }
+        ctx.print(tt.cmdSudoDenied, 'err');
+      },
+    },
+    {
+      // Easter egg — hidden. A cheeky refusal; there is nothing here to delete.
+      name: 'rm',
+      description: tt.cmdRmDesc,
+      hidden: true,
+      handler: (_, ctx) => {
+        ctx.print(tt.cmdRmRefusal, 'err');
       },
     },
   ];

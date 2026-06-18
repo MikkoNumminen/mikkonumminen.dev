@@ -284,6 +284,32 @@ export interface Translations {
     cmdSkillsReceiptLabel: string;
     /** Suffix appended to a skill's annual token figure (e.g. "/yr"). */
     cmdSkillsPerYear: string;
+    // --- ls / cat / cv (fake-shell file commands) ---
+    cmdLsDesc: string;
+    /** Trailing half of an `ls: cannot access '...': <this>` error. */
+    cmdLsNoSuch: string;
+    cmdCatDesc: string;
+    cmdCatUsage: string;
+    /** Trailing half of a `cat: ...: <this>` error. */
+    cmdCatNoSuch: string;
+    cmdCvDesc: string;
+    /** Pointer from the scripted `cv` summary to the full PDF. */
+    cmdCvDownloadHint: string;
+    // --- easter eggs (hidden commands) ---
+    cmdSudoDesc: string;
+    cmdSudoHire: string;
+    cmdSudoDenied: string;
+    cmdRmDesc: string;
+    cmdRmRefusal: string;
+    // --- RAG chat (Phase 3 progressive enhancement) ---
+    /** "…thinking" placeholder shown while the model responds. */
+    chatThinking: string;
+    /** Shell-style line shown when a chat turn fails; chat then degrades. */
+    chatError: string;
+    /** Usage shown when `ask` is run with no question. */
+    chatAskUsage: string;
+    /** Hint revealed only when free chat is available. */
+    chatHint: string;
   };
   langSwitcher: {
     label: string;

@@ -5,6 +5,7 @@ import { disposeMeasureSpan, echoPromptLine, makeContext, updateCursor } from '.
 import { runBoot } from './typing';
 import { History } from './history';
 import { handleCommand, tabComplete } from './dispatch';
+import { createChatRouter } from './chat';
 
 // Allow-list for values that may be sent to the clipboard via copy buttons.
 // Only email addresses and https:// URLs are permitted; anything else is silently
@@ -54,6 +55,11 @@ export async function initTerminal(
   // names are already lowercase, but lowercasing here keeps both paths aligned
   // if that ever changes.
   const commandMap = new Map(commands.map((c) => [c.name.toLowerCase(), c]));
+
+  // The chat router is the progressive-enhancement seam. It is inert unless a
+  // backend is configured AND its LLM responds (see chat.ts) — so creating it
+  // unconditionally is safe and changes nothing when chat is unavailable.
+  const chat = createChatRouter();
 
   const elements: TerminalElements = { output, form, input, cursor };
   const ctx = makeContext(elements);
@@ -176,7 +182,7 @@ export async function initTerminal(
       history.push(value);
       updateCursor(input, cursor);
       try {
-        await handleCommand(value, ctx, output, commandMap, t);
+        await handleCommand(value, ctx, output, commandMap, t, chat);
       } finally {
         busy = false;
       }
@@ -199,5 +205,25 @@ export async function initTerminal(
   input.focus();
   updateCursor(input, cursor);
 
+  // Progressive enhancement: probe the chat backend once, after boot. Only if it
+  // AND its LLM respond do we reveal the "ask about the projects" affordance.
+  // When chat is unavailable (the default — no backend configured) nothing is
+  // added, so the terminal is pixel-identical to today (build brief constraint 5).
+  void chat.isAvailable().then((available) => {
+    if (!available || signal.aborted) return;
+    revealChatHint(root, t);
+  });
+
   return { dispose };
+}
+
+/** Append the "…or just ask about the projects" hint once chat is available. */
+function revealChatHint(root: ParentNode, t: ReturnType<typeof getTranslations>): void {
+  const hints = root.querySelector<HTMLElement>('.terminal__hints');
+  if (!hints || hints.querySelector('.terminal__hint--chat')) return;
+  const hint = document.createElement('span');
+  hint.className = 'terminal__hint--chat';
+  // textContent (not innerHTML): plain static i18n string, never an HTML sink.
+  hint.textContent = t.terminal.chatHint;
+  hints.appendChild(hint);
 }

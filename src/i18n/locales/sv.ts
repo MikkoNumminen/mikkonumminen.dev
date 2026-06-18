@@ -453,6 +453,25 @@ export const sv: Translations = {
     cmdSkillsKnownRepos: 'kända repor:',
     cmdSkillsReceiptLabel: '[kvitto]',
     cmdSkillsPerYear: '/år',
+    cmdLsDesc: 'lista projekt (prova `ls projects`)',
+    cmdLsNoSuch: 'No such file or directory',
+    cmdCatDesc: 'skriv ut ett projekt eller cv:t (t.ex. `cat projects/hrm`)',
+    cmdCatUsage: 'användning: cat <sökväg> — prova `cat projects/hrm` eller `cat cv`',
+    cmdCatNoSuch: 'No such file or directory',
+    cmdCvDesc: 'kort cv-sammanfattning',
+    cmdCvDownloadHint:
+      'kör `download --cv` för den fullständiga meritförteckningen (pdf).',
+    cmdSudoDesc: 'kör ett kommando som en annan användare',
+    cmdSudoHire:
+      'åtkomst beviljad. arbetar på erbjudandebrevet — nå mig på e-posten ovan.',
+    cmdSudoDenied: 'bra försök. det här (in)träffandet kommer (inte) att rapporteras.',
+    cmdRmDesc: 'ta bort filer',
+    cmdRmRefusal:
+      'jag är rädd att jag inte kan låta dig göra det. ingenting här är ditt att radera.',
+    chatThinking: '...tänker',
+    chatError: 'anslutningen bröts — återgår till skriptat läge.',
+    chatAskUsage: 'användning: ask "din fråga om projekten"',
+    chatHint: '…eller fråga bara om projekten',
   },
   langSwitcher: {
     label: 'Språk',
