@@ -1,0 +1,91 @@
+# One-command stack for the portfolio RAG chat (build brief Phase 5 + ADR 0009).
+# Brings up the whole backend on Mikko's own machine: a local Postgres+pgvector,
+# a GPU-accelerated Ollama serving the local Gemma, the FastAPI backend, and an
+# OPTIONAL Cloudflare Tunnel (behind the `tunnel` profile) to publish it.
+#
+#   make up            # db + ollama (+ pull model) + backend
+#   make index         # one-time: embed the content corpus
+#   make up-public     # also start the cloudflared tunnel
+#   make down          # stop everything (volumes persist)
+#
+# Prerequisite: nvidia-container-toolkit so the ollama container can use the GPU
+# (on Windows this is installed via WSL2). See chat-backend/README.md.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: rag
+      POSTGRES_DB: rag
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rag -d rag']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      # Named volume persists the pulled model across restarts, so `make up`
+      # only downloads gemma4:e4b once.
+      - ollama:/root/.ollama
+    # GPU access — requires nvidia-container-toolkit on the host.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    restart: unless-stopped
+
+  backend:
+    build: ./chat-backend
+    environment:
+      DATABASE_URL: postgresql://rag:rag@db:5432/rag
+      OLLAMA_BASE_URL: http://ollama:11434/v1
+      LLM_MODEL: ${LLM_MODEL:-gemma4:e4b}
+      # The indexer reads the version-controlled corpus mounted read-only below.
+      CONTENT_DIR: /content
+      # In prod set this to the site origin(s), e.g. https://mikkonumminen.dev
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-*}
+    volumes:
+      - ./content:/content:ro
+      # Persist the fastembed ONNX weights (downloaded on first use). The image
+      # pre-owns this path as uid 10001, which a named volume inherits.
+      - fastembed:/srv/.fastembed-cache
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - '8000:8000'
+    restart: unless-stopped
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    # Named-tunnel token from the Cloudflare dashboard (see .env.example). Only
+    # runs under the `tunnel` profile, so the backend is reachable publicly only
+    # when Mikko explicitly opts in (`make up-public`). `:-` (empty default, not
+    # `:?`) so `make up` without a token still parses — cloudflared errors
+    # clearly at runtime if the tunnel is started with no token.
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:-}
+    depends_on:
+      - backend
+    profiles: ['tunnel']
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  ollama:
+  fastembed:
