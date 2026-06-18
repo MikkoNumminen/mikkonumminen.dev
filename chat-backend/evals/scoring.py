@@ -36,6 +36,12 @@ def score_query(
     """
     if not expected:
         return best_distance is None or best_distance > weak_threshold
+    # In-corpus: mirror the pipeline's guardrail. If the closest chunk is beyond
+    # the weak threshold the pipeline refuses without answering, so an expected
+    # source that was "retrieved" but gated out is NOT a real hit — counting it
+    # would inflate the hit-rate this eval exists to measure.
+    if best_distance is None or best_distance > weak_threshold:
+        return False
     found = set(retrieved_sources)
     return all(source in found for source in expected)
 

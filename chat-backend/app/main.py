@@ -30,6 +30,7 @@ from .db import SQL_PATH, Database, apply_schema
 from .embeddings import Embedder
 from .health import health_payload
 from .llm import LLMClient
+from .middleware import BodySizeLimitMiddleware
 from .pipeline import chat_event_stream
 from .ratelimit import RateLimiter, client_ip
 
@@ -38,14 +39,15 @@ logger = logging.getLogger("chat")
 
 class Message(BaseModel):
     role: str
-    content: str
+    content: str = Field(max_length=2000)
 
 
 class ChatRequest(BaseModel):
-    # A request-size cap at the edge (Phase 4 adds per-IP rate limiting + a
-    # body-size middleware); a 2000-char question is already generous.
     message: str = Field(min_length=1, max_length=2000)
-    history: list[Message] = Field(default_factory=list)
+    # Bound the PARSED structure regardless of Content-Length: the body-size
+    # middleware caps raw bytes, and these cap the prompt that reaches the model
+    # (a no-Content-Length request can't slip a huge history past Pydantic).
+    history: list[Message] = Field(default_factory=list, max_length=20)
 
 
 async def _db_ok(db: Database) -> bool:
@@ -81,38 +83,41 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="Portfolio RAG chat", lifespan=lifespan)
 
+    # Added first -> ends up INNERMOST (runs after the rate-limit guard), so an
+    # over-limit IP is shed before its body is read. Caps actual body bytes for
+    # both Content-Length and chunked requests.
+    app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_bytes)
+
     limiter = RateLimiter(
         settings.rate_limit_requests, settings.rate_limit_window_seconds
     )
+    prune_counter = 0
 
     @app.middleware("http")
     async def guard(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        # Protect the machine while the tunnel is open: a request-body byte cap
-        # plus a per-IP sliding-window rate limit. CORS preflight is automatic
-        # browser traffic — never cap or limit it.
+        # Per-IP sliding-window rate limit (the body-size cap is its own ASGI
+        # middleware). CORS preflight is automatic browser traffic — never limit it.
+        nonlocal prune_counter
         if request.method == "OPTIONS":
             return await call_next(request)
-        length = request.headers.get("content-length")
-        if length is not None:
-            try:
-                too_big = int(length) > settings.max_body_bytes
-            except ValueError:
-                too_big = False
-            if too_big:
-                return JSONResponse({"detail": "request too large"}, status_code=413)
         ip = client_ip(
             request.headers.get("x-forwarded-for"),
             request.client.host if request.client else None,
         )
-        if not limiter.allow(ip, time.monotonic()):
+        now = time.monotonic()
+        if not limiter.allow(ip, now):
             return JSONResponse({"detail": "rate limited"}, status_code=429)
+        # Amortized sweep of drained keys so _hits stays bounded to recently
+        # active IPs (single worker; a missed sweep under the GIL is harmless).
+        prune_counter += 1
+        if prune_counter % 1000 == 0:
+            limiter.prune(now)
         return await call_next(request)
 
-    # CORS is added AFTER the guard so it is the OUTERMOST layer — its headers
-    # are attached even to the guard's 429/413 responses, so a cross-origin
-    # browser can read them. allow_credentials stays off, so a "*" origin is safe.
+    # CORS added LAST -> OUTERMOST, so its headers reach the guard's 429 and the
+    # body-size middleware's 413. allow_credentials stays off, so "*" is safe.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allow_origins,

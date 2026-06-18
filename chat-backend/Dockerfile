@@ -22,6 +22,10 @@ WORKDIR /srv
 COPY pyproject.toml ./
 COPY app ./app
 COPY sql ./sql
+# evals/ is not a wheel package, but `python -m evals.run_eval` resolves it from
+# the WORKDIR — so it must be physically present in the image (the later
+# `chown -R /srv` then makes it readable by the non-root user).
+COPY evals ./evals
 RUN pip install -e .
 
 # Run unprivileged. Pin a fixed UID so a mounted fastembed-cache volume's

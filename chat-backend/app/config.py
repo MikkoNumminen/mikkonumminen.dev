@@ -93,7 +93,7 @@ class Settings:
     # --- guardrails (Phase 4) ---
     # Cosine distance above which even the closest chunk is treated as
     # irrelevant -> deterministic refusal instead of generation. Conservative;
-    # tune against eval/run_eval.py.
+    # tune against evals/run_eval.py.
     weak_retrieval_distance: float
     # Per-IP sliding-window limit + a request-body byte cap, to protect the
     # machine while the tunnel is open.

@@ -1,11 +1,12 @@
 """Per-IP rate limiting — protects the machine while the tunnel is open.
 
 A sliding-window request log per key (client IP). `allow` is given the current
-time so it is fully deterministic and unit-tested without sleeping. Memory is
-bounded by the number of distinct recently-active IPs; a key whose window has
-fully drained is dropped on its next check. For a personal portfolio behind an
-on-demand tunnel that is plenty — this is a machine-protection guard, not a
-distributed quota.
+time so it is fully deterministic and unit-tested without sleeping. `allow`
+re-stores a drained key rather than removing it, so memory is bounded only by
+calling `prune()` periodically — the guard middleware does this on a request
+cadence, which keeps `_hits` to recently-active IPs. For a personal portfolio
+behind an on-demand tunnel that is plenty — this is a machine-protection guard,
+not a distributed quota.
 """
 
 from __future__ import annotations

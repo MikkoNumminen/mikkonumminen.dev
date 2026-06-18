@@ -10,7 +10,7 @@ never be answered from hallucinated content.
 The distance threshold is conservative (errs toward answering) because the
 prompt-level guardrail handles the borderline cases; the gate exists to catch
 the clearly-irrelevant tail. Tune `WEAK_RETRIEVAL_DISTANCE` against the eval
-harness (eval/run_eval.py). Pure and stdlib-only, so it is unit-tested.
+harness (evals/run_eval.py). Pure and stdlib-only, so it is unit-tested.
 """
 
 from __future__ import annotations

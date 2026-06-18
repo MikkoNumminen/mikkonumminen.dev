@@ -19,6 +19,18 @@ def test_in_corpus_requires_all_expected() -> None:
     )
 
 
+def test_in_corpus_miss_when_best_distance_beyond_threshold() -> None:
+    # Expected source IS retrieved, but the closest chunk is too far — the
+    # pipeline would refuse without answering, so this is NOT a hit (regression
+    # for the scorer mirroring the guardrail gate).
+    assert not score_query(["projects/hrm.md"], ["projects/hrm.md"], 0.95, 0.7)
+
+
+def test_in_corpus_hit_at_threshold_boundary() -> None:
+    # best == threshold is relevant (guardrail refuses only strictly beyond).
+    assert score_query(["projects/hrm.md"], ["projects/hrm.md"], 0.7, 0.7)
+
+
 def test_out_of_corpus_passes_when_best_is_beyond_threshold() -> None:
     # No expected source; the closest chunk is far, so the guardrail refuses.
     assert score_query([], ["projects/hrm.md"], best_distance=0.9, weak_threshold=0.7)
