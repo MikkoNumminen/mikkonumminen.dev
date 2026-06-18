@@ -64,7 +64,7 @@ export const sv: Translations = {
       },
       {
         title: 'Testat eller det skeppas inte',
-        body: 'Varje repo kör CI vid varje push. HRM har 1828+ tester med 91,9 % täckning, Spacepotatis ~1170, AudiobookMaker över 1800. Kvalitetsportar väger tyngre än den häftigaste stacken.',
+        body: 'Varje repo kör CI vid varje push. HRM har 1828+ tester med 91,9 % täckning, Spacepotatis ~1300, AudiobookMaker över 3000. Kvalitetsportar väger tyngre än den häftigaste stacken.',
       },
       {
         title: 'AI-nativt, dokumenterat',
@@ -90,7 +90,7 @@ export const sv: Translations = {
       {
         project: 'AudiobookMaker',
         api: 'Microsoft Edge-TTS',
-        body: '30+ molnröster på sex språk, ovanpå två lokala motorer (Piper, Chatterbox). Välj rösten som passar boken.',
+        body: '30+ molnröster på sex språk, ovanpå tre lokala motorer (Piper, Chatterbox, VoxCPM2). Välj rösten som passar boken.',
       },
       {
         project: 'Spacepotatis',
@@ -103,15 +103,15 @@ export const sv: Translations = {
     sectionAria: 'Utvecklingstempo',
     eyebrow: 'tempo',
     heading: 'Snabbt — på riktigt.',
-    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 387 commits, ~1170 tester, hela Next.js + Phaser 3 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Sex av sju portföljrepor startade under de senaste sex veckorna. AI-nativt är inte snack — det är matematik.',
+    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 475 commits, ~1300 tester, hela Next.js + Phaser 4 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Sex av sju portföljrepor startade under de senaste sex veckorna. AI-nativt är inte snack — det är matematik.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
       label: 'Hur 3,13M token uppskattades',
     },
     stats: [
       { num: '12', label: 'dagar från tomt repo till live Spacepotatis' },
-      { num: '387', label: 'Spacepotatis-commits' },
-      { num: '~1170', label: 'Spacepotatis-tester som går igenom' },
+      { num: '475', label: 'Spacepotatis-commits' },
+      { num: '~1300', label: 'Spacepotatis-tester som går igenom' },
     ],
   },
   navCards: {
@@ -185,7 +185,7 @@ export const sv: Translations = {
       tagline: 'Spåra varje bok du läst',
       description:
         'Personlig läsdagbok. Söker i Open Library och Google Books parallellt och avduplicerar resultat, sedan kan du logga böcker med format (papper / e-bok / ljudbok) och slutdatum. Publikt anonymt flöde av nyligen loggade böcker på startsidan.',
-      highlights: ['68 tester', 'Sökning från flera källor'],
+      highlights: ['90 tester', 'Sökning från flera källor'],
     },
     audiobookmaker: {
       tagline: 'PDF → ljudbok',
@@ -200,10 +200,10 @@ export const sv: Translations = {
     spacepotatis: {
       tagline: 'Webbläsarspel — din potatis mot galaxen',
       description:
-        'Live webbläsarspel där en potatis i en sköldbubbla skjuter buggar tvärs över en procedurell galax. Bootar som en vintage-terminal, öppnar sig till ett 3D-solsystem du drar och zoomar, släpper sedan dig i top-down vertikal strid i andan av Tyrian 2000. Next.js 15 + React 19-skal runt en Phaser 3-stridsscen; Three.js + GSAP driver galaxvyn och kameraövergången in i strid; PostgreSQL på Neon talas till via Kysely (typad SQL-byggare, ingen ORM). All röst genererad av AudiobookMaker; all musik skriven i strudel-patterns. Levereras med en uppsättning egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade, behandlade som produktionsartefakter.',
+        'Live webbläsarspel där en potatis i en sköldbubbla skjuter buggar tvärs över en procedurell galax. Bootar som en vintage-terminal, öppnar sig till ett 3D-solsystem du drar och zoomar, släpper sedan dig i top-down vertikal strid i andan av Tyrian 2000. Next.js 16 + React 19-skal runt en Phaser 4-stridsscen; Three.js + GSAP driver galaxvyn och kameraövergången in i strid; PostgreSQL på Neon talas till via Kysely (typad SQL-byggare, ingen ORM). All röst genererad av AudiobookMaker; all musik skriven i strudel-patterns. Levereras med en uppsättning egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade, behandlade som produktionsartefakter.',
       highlights: [
-        'Next.js 15 + Phaser 3 + Three.js',
-        '~1170 tester, CI vid varje push',
+        'Next.js 16 + Phaser 4 + Three.js',
+        '~1300 tester, CI vid varje push',
         'Egna Claude Code-skills som produktionsartefakter',
       ],
     },
@@ -269,7 +269,7 @@ export const sv: Translations = {
         'Next.js',
         'Astro',
         'Three.js',
-        'Phaser 3',
+        'Phaser 4',
         'Python',
         'Turborepo',
       ],

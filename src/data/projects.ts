@@ -234,7 +234,7 @@ export const projects: Project[] = [
       'Next.js',
       'React',
       'TypeScript',
-      'Phaser 3',
+      'Phaser 4',
       'Three.js',
       'GSAP',
       'PostgreSQL',

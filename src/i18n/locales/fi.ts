@@ -64,7 +64,7 @@ export const fi: Translations = {
       },
       {
         title: 'Testattu tai ei lähde',
-        body: 'Jokaisella repolla on CI joka pushissa. HRM:ssä 1828+ testiä 91,9 % kattavuudella, Spacepotatiksessa ~1170, AudiobookMakerissa yli 1800. Laatuportit painavat enemmän kuin mahtipontisin teknologiapino.',
+        body: 'Jokaisella repolla on CI joka pushissa. HRM:ssä 1828+ testiä 91,9 % kattavuudella, Spacepotatiksessa ~1300, AudiobookMakerissa yli 3000. Laatuportit painavat enemmän kuin mahtipontisin teknologiapino.',
       },
       {
         title: 'AI-natiivi, jäljitettävästi',
@@ -90,7 +90,7 @@ export const fi: Translations = {
       {
         project: 'AudiobookMaker',
         api: 'Microsoft Edge-TTS',
-        body: '30+ pilvi-ääntä kuudella kielellä, kahden offline-moottorin (Piper, Chatterbox) lisäksi. Valitse ääni, joka sopii kirjaan.',
+        body: '30+ pilvi-ääntä kuudella kielellä, kolmen offline-moottorin (Piper, Chatterbox, VoxCPM2) lisäksi. Valitse ääni, joka sopii kirjaan.',
       },
       {
         project: 'Spacepotatis',
@@ -103,15 +103,15 @@ export const fi: Translations = {
     sectionAria: 'Kehitysvauhti',
     eyebrow: 'vauhti',
     heading: 'Nopeaa — todistettavasti.',
-    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 387 commitia, ~1170 testiä, koko Next.js + Phaser 3 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Seitsemästä portfolioreposta kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
+    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 475 commitia, ~1300 testiä, koko Next.js + Phaser 4 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Seitsemästä portfolioreposta kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
       label: 'Miten 3,13M tokenia arvioitiin',
     },
     stats: [
       { num: '12', label: 'päivää tyhjästä reposta Spacepotatis-tuotantoon' },
-      { num: '387', label: 'Spacepotatis-commitia' },
-      { num: '~1170', label: 'Spacepotatis-testiä menossa läpi' },
+      { num: '475', label: 'Spacepotatis-commitia' },
+      { num: '~1300', label: 'Spacepotatis-testiä menossa läpi' },
     ],
   },
   navCards: {
@@ -184,7 +184,7 @@ export const fi: Translations = {
       tagline: 'Pidä kirjaa jokaisesta lukemastasi kirjasta',
       description:
         'Henkilökohtainen lukupäiväkirja. Hakee kirjatiedot Google Booksista ja Open Librarysta samanaikaisesti, joten kirjan lisääminen on nopeaa — valitset vain formaatin (paperi, e-kirja tai äänikirja) ja milloin luit sen. Etusivulla näkyy mitä muut ovat lukeneet viime aikoina.',
-      highlights: ['68 testiä', 'Monilähde-haku'],
+      highlights: ['90 testiä', 'Monilähde-haku'],
     },
     audiobookmaker: {
       tagline: 'PDF → äänikirja',
@@ -199,10 +199,10 @@ export const fi: Translations = {
     spacepotatis: {
       tagline: 'Selainampumapeli — perunasi vastaan galaksi',
       description:
-        'Selainpeli, jossa suojakuplaan suljettu peruna ampuu hyönteisiä proseduraalisessa galaksissa. Käynnistyy kuin vanha terminaali, avautuu 3D-aurinkokunnaksi jota voit pyörittää ja zoomata, ja heittää sinut ylhäältä alas vyöryvään taisteluun Tyrian 2000:n hengessä. Next.js 15 + React 19 -kuori Phaser 3 -taistelukentän ympärillä, Three.js + GSAP galaksinäkymässä ja kamerasiirtymässä taisteluun, PostgreSQL Neonissa Kyselyn (tyypitetty SQL-rakentaja, ei ORM:ää) kautta. Kaikki äänet AudiobookMakerin tuottamia, kaikki musiikki kirjoitettu strudel-patterns-repoon. Mukana kokoelma omia Claude Code -skillejä .claude/skills/-hakemistossa — versionhallittuja, auditoituja, tuotantoartefaktien tavoin käsiteltyjä.',
+        'Selainpeli, jossa suojakuplaan suljettu peruna ampuu hyönteisiä proseduraalisessa galaksissa. Käynnistyy kuin vanha terminaali, avautuu 3D-aurinkokunnaksi jota voit pyörittää ja zoomata, ja heittää sinut ylhäältä alas vyöryvään taisteluun Tyrian 2000:n hengessä. Next.js 16 + React 19 -kuori Phaser 4 -taistelukentän ympärillä, Three.js + GSAP galaksinäkymässä ja kamerasiirtymässä taisteluun, PostgreSQL Neonissa Kyselyn (tyypitetty SQL-rakentaja, ei ORM:ää) kautta. Kaikki äänet AudiobookMakerin tuottamia, kaikki musiikki kirjoitettu strudel-patterns-repoon. Mukana kokoelma omia Claude Code -skillejä .claude/skills/-hakemistossa — versionhallittuja, auditoituja, tuotantoartefaktien tavoin käsiteltyjä.',
       highlights: [
-        'Next.js 15 + Phaser 3 + Three.js',
-        '~1170 testiä, CI joka pushissa',
+        'Next.js 16 + Phaser 4 + Three.js',
+        '~1300 testiä, CI joka pushissa',
         'Omat Claude Code -skillit tuotantoartefakteina',
       ],
     },
@@ -268,7 +268,7 @@ export const fi: Translations = {
         'Next.js',
         'Astro',
         'Three.js',
-        'Phaser 3',
+        'Phaser 4',
         'Python',
         'Turborepo',
       ],
