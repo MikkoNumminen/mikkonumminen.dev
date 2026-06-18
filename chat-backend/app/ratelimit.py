@@ -11,6 +11,23 @@ distributed quota.
 from __future__ import annotations
 
 
+def client_ip(forwarded_for: str | None, peer: str | None) -> str:
+    """The visitor's IP for rate-limiting, preferring X-Forwarded-For.
+
+    Behind the Cloudflare Tunnel the socket peer is cloudflared (or localhost),
+    not the visitor — so keying the limiter on the peer would lump every
+    visitor into one bucket. The real client IP is the first hop of
+    X-Forwarded-For. The tunnel is the only ingress, so trusting that header is
+    safe here; a direct-to-host run with no proxy falls back to the socket peer.
+    Pure, so it is unit-tested.
+    """
+    if forwarded_for:
+        first = forwarded_for.split(",")[0].strip()
+        if first:
+            return first
+    return peer or "unknown"
+
+
 class RateLimiter:
     """Sliding-window limiter: at most `max_requests` per `window_seconds`/key."""
 

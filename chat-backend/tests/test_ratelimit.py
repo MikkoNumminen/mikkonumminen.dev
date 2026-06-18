@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.ratelimit import RateLimiter
+from app.ratelimit import RateLimiter, client_ip
 
 
 def test_allows_up_to_the_limit_then_blocks() -> None:
@@ -44,3 +44,17 @@ def test_invalid_config_raises() -> None:
         RateLimiter(max_requests=0, window_seconds=60)
     with pytest.raises(ValueError):
         RateLimiter(max_requests=5, window_seconds=0)
+
+
+def test_client_ip_prefers_first_forwarded_hop() -> None:
+    # Behind the tunnel the visitor IP is the first X-Forwarded-For hop.
+    assert client_ip("203.0.113.7, 70.0.0.1", "127.0.0.1") == "203.0.113.7"
+
+
+def test_client_ip_falls_back_to_peer() -> None:
+    assert client_ip(None, "198.51.100.3") == "198.51.100.3"
+    assert client_ip("", "198.51.100.3") == "198.51.100.3"
+
+
+def test_client_ip_unknown_when_nothing_available() -> None:
+    assert client_ip(None, None) == "unknown"

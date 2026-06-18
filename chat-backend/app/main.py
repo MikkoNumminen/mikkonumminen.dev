@@ -31,7 +31,7 @@ from .embeddings import Embedder
 from .health import health_payload
 from .llm import LLMClient
 from .pipeline import chat_event_stream
-from .ratelimit import RateLimiter
+from .ratelimit import RateLimiter, client_ip
 
 logger = logging.getLogger("chat")
 
@@ -102,8 +102,10 @@ def create_app() -> FastAPI:
                 too_big = False
             if too_big:
                 return JSONResponse({"detail": "request too large"}, status_code=413)
-        client = request.client
-        ip = client.host if client else "unknown"
+        ip = client_ip(
+            request.headers.get("x-forwarded-for"),
+            request.client.host if request.client else None,
+        )
         if not limiter.allow(ip, time.monotonic()):
             return JSONResponse({"detail": "rate limited"}, status_code=429)
         return await call_next(request)
