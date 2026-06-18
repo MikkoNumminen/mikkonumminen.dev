@@ -26,14 +26,10 @@ import asyncio
 import dataclasses
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 
 from .chunking import Chunk, chunk_text, estimate_tokens
 from .config import Settings
 from .content import ContentDoc, load_docs
-
-# sql/ sits beside app/ at the package root.
-SQL_PATH = Path(__file__).resolve().parent.parent / "sql" / "001_init.sql"
 
 
 @dataclass(frozen=True)
@@ -86,7 +82,7 @@ async def reindex(
 ) -> IndexStats:
     """Embed and upsert the corpus idempotently. Returns run statistics."""
     # Lazy heavy imports so `plan()` / dry-run / unit tests never need them.
-    from .db import Database, DocumentRow, apply_schema
+    from .db import SQL_PATH, Database, DocumentRow, apply_schema
     from .embeddings import Embedder
 
     file_plans = plans if plans is not None else plan(settings)

@@ -25,10 +25,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .config import Settings
-from .db import Database, apply_schema
+from .db import SQL_PATH, Database, apply_schema
 from .embeddings import Embedder
 from .health import health_payload
-from .indexer import SQL_PATH
 from .llm import LLMClient
 from .pipeline import chat_event_stream
 

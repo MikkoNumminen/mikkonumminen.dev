@@ -42,3 +42,11 @@ def test_malformed_json_is_none() -> None:
 def test_missing_choices_is_none() -> None:
     assert parse_stream_line(_data('{"id":"x"}')) is None
     assert parse_stream_line(_data('{"choices":[]}')) is None
+
+
+def test_non_dict_choice_entry_is_skipped_not_crashed() -> None:
+    # A non-dict choice entry must be skipped like any other non-content chunk,
+    # never raise (which would abort a healthy in-flight generation).
+    assert parse_stream_line(_data('{"choices":[null]}')) is None
+    assert parse_stream_line(_data('{"choices":[42]}')) is None
+    assert parse_stream_line(_data('{"choices":["str"]}')) is None
