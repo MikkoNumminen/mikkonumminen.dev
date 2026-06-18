@@ -28,10 +28,13 @@ services:
     restart: unless-stopped
 
   ollama:
+    # Pinned to :latest deliberately — gemma4:e4b is a recent model that needs a
+    # current Ollama; an old pin could lack support. Pin a digest once a
+    # known-good version is established if strict reproducibility is wanted.
     image: ollama/ollama:latest
     volumes:
-      # Named volume persists the pulled model across restarts, so `make up`
-      # only downloads gemma4:e4b once.
+      # Named volume persists the pulled model across restarts, so the model is
+      # only downloaded once.
       - ollama:/root/.ollama
     # GPU access — requires nvidia-container-toolkit on the host.
     deploy:
@@ -47,6 +50,22 @@ services:
       timeout: 5s
       retries: 24
     restart: unless-stopped
+
+  # One-shot init: ask the ollama server to pull the model into its volume, so a
+  # bare `docker compose up` also works — not only `make up`. Idempotent (a
+  # no-op once the model is cached). The backend waits for this to COMPLETE, so
+  # it never starts before the model is usable. `ollama list` (the daemon
+  # healthcheck) goes healthy before any model exists, which is why this gate is
+  # needed in addition to it.
+  ollama-pull:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command: ['pull', '${LLM_MODEL:-gemma4:e4b}']
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: 'no'
 
   backend:
     build: ./chat-backend
@@ -66,13 +85,31 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      ollama:
-        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    # Bind to loopback only — `make up` is a LOCAL backend; other hosts on the
+    # LAN shouldn't reach it. cloudflared talks to it over the internal Docker
+    # network (service name `backend`), so the tunnel path is unaffected.
     ports:
-      - '8000:8000'
+      - '127.0.0.1:8000:8000'
+    healthcheck:
+      # Cheap liveness: just confirm uvicorn is accepting connections. Do NOT
+      # hit /health here — it runs a real 1-token LLM completion, so a 5s probe
+      # would hammer the model. python is in the image; curl is not.
+      test:
+        - CMD
+        - python
+        - "-c"
+        - "import socket; socket.create_connection(('localhost', 8000), timeout=2).close()"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
     restart: unless-stopped
 
   tunnel:
+    # :latest — cloudflared updates frequently; pin a digest if you need
+    # reproducibility.
     image: cloudflare/cloudflared:latest
     # Named-tunnel token from the Cloudflare dashboard (see .env.example). Only
     # runs under the `tunnel` profile, so the backend is reachable publicly only
@@ -81,7 +118,11 @@ services:
     # clearly at runtime if the tunnel is started with no token.
     command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:-}
     depends_on:
-      - backend
+      # Wait for the backend to be serving (its healthcheck), not just started,
+      # so a public request through the tunnel can't hit a connection-refused
+      # during uvicorn startup.
+      backend:
+        condition: service_healthy
     profiles: ['tunnel']
     restart: unless-stopped
 

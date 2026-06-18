@@ -30,30 +30,33 @@ The whole backend comes up with one command via the repo-root
 make up          # db (pgvector) + ollama (GPU, pulls gemma4:e4b on first run) + backend
 make index       # one-time: embed the content corpus into pgvector
 make eval        # retrieval hit-rate eval (sanity-check quality)
-make up-public   # also start the Cloudflare tunnel (needs TUNNEL_TOKEN; see .env.example)
+make up-public   # also start the Cloudflare tunnel (needs TUNNEL_TOKEN; see ../.env.example)
 make down        # stop everything — the db data and the pulled model persist in named volumes
 ```
 
-`make up` starts Postgres and Ollama, waits until Ollama is ready, pulls
-`gemma4:e4b` into its volume if absent, then starts the FastAPI backend on
-`http://localhost:8000`.
+`make up` starts Postgres and Ollama, pulls `gemma4:e4b` into its volume if
+absent (via a one-shot `ollama-pull` service the backend waits on), then starts
+the FastAPI backend on `http://localhost:8000`. A bare `docker compose up` does
+the same — the model pull is wired into the dependency graph, not just `make`.
 
 **Prerequisite — GPU in Docker:** the `ollama` service needs the GPU, which
 requires [`nvidia-container-toolkit`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 on the host. On Windows that is installed inside WSL2. This is the one piece of
 host setup; Postgres and the model are provisioned by `make up`.
 
-**Pointing the frontend at it.** The static site reads the backend URL from the
-build-time `PUBLIC_CHAT_API_URL` env var (unset → the terminal stays
-scripted-only, no chat). Set it when building the site:
+**Pointing the frontend at it.** The contact-page terminal's RAG integration
+(which ships in its own PR) reads the backend URL from the build-time
+`PUBLIC_CHAT_API_URL` env var — unset → the terminal stays scripted-only with no
+chat affordance (build brief constraint 5). With that integration in place, the
+site is built pointing at the backend:
 
 ```bash
-PUBLIC_CHAT_API_URL=http://localhost:8000 npm run build   # local
-PUBLIC_CHAT_API_URL=https://<your-tunnel-host> npm run build   # live
+PUBLIC_CHAT_API_URL=http://localhost:8000 npm run build       # local
+PUBLIC_CHAT_API_URL=https://<your-tunnel-host> npm run build  # live
 ```
 
-When the stack + tunnel are down, the terminal degrades to scripted-only with
-no visual change (build brief constraint 5).
+When the stack + tunnel are down, the terminal degrades to scripted-only with no
+visual change.
 
 ## What's here
 

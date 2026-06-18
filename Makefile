@@ -10,10 +10,8 @@ SHELL := bash
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-12s %s\n", $$1, $$2}'
 
-up: ## Start db + ollama (pull the model on first run) + the backend
-	docker compose up -d db ollama
-	until docker compose exec -T ollama ollama list >/dev/null 2>&1; do echo "waiting for ollama..."; sleep 2; done
-	docker compose exec -T ollama ollama list | grep -q "$(LLM_MODEL)" || docker compose exec -T ollama ollama pull "$(LLM_MODEL)"
+up: ## Start the full stack — db + ollama, pull the model, then the backend
+	@echo "starting the stack (first run downloads $(LLM_MODEL) into the ollama volume — may take a few minutes)..."
 	docker compose up -d backend
 	@echo "backend up on http://localhost:8000 — index the corpus with: make index"
 
