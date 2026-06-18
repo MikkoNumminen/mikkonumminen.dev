@@ -10,23 +10,23 @@ url: https://spacepotatis.vercel.app
 
 Spacepotatis is a live browser game where a potato in a shield bubble shoots bugs across a procedural galaxy. The game boots like a vintage terminal, then opens into a 3D solar system you can drag and zoom. From there you drop into top-down vertical combat in the spirit of Tyrian 2000.
 
-The architecture layers three rendering systems: Next.js 15 + React 19 wraps a Phaser 3 combat scene; Three.js + GSAP power the galaxy view and the animated camera transition into combat. The database is PostgreSQL on Neon, accessed through Kysely — a typed SQL query builder without the overhead of a full ORM. Authentication is via Google OAuth and is optional: you can play indefinitely without signing in, or opt in for cloud saves and a leaderboard slot.
+The architecture layers three rendering systems: Next.js 16 + React 19 wraps a Phaser 4 combat scene; Three.js + GSAP power the galaxy view and the animated camera transition into combat. The database is PostgreSQL on Neon, accessed through Kysely — a typed SQL query builder without the overhead of a full ORM. Authentication is via Google OAuth and is optional: you can play indefinitely without signing in, or opt in for cloud saves and a leaderboard slot.
 
 All voice and story narration in the game was generated using AudiobookMaker (Chatterbox engine). All music was composed in strudel-patterns.
 
 The repo ships a catalog of custom Claude Code skills under `.claude/skills/` — version-controlled, audited, and treated as production artifacts. Each skill encodes a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so the agent goes straight to the work rather than re-scouting the codebase on every task.
 
-Spacepotatis went from empty repo to live browser game in 12 days: 387 commits, approximately 1170 tests, full Next.js + Phaser 3 + Three.js stack.
+Spacepotatis went from empty repo to live browser game in 12 days: 387 commits, approximately 1170 tests, full Next.js + Phaser 4 + Three.js stack.
 
 ## Highlights
 
-- Next.js 15 + Phaser 3 + Three.js in one project
+- Next.js 16 + Phaser 4 + Three.js in one project
 - Approximately 1170 tests, CI on every push
 - Custom Claude Code skills as production artifacts
 
 ## Tech stack
 
-Next.js, React, TypeScript, Phaser 3, Three.js, GSAP, PostgreSQL, Kysely, NextAuth, Tailwind CSS
+Next.js, React, TypeScript, Phaser 4, Three.js, GSAP, PostgreSQL, Kysely, NextAuth, Tailwind CSS
 
 ## External integrations
 
