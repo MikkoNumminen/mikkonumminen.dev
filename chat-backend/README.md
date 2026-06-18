@@ -17,9 +17,9 @@ Offline indexer ──embeds content──▶ Postgres + pgvector
 Embeddings (bge-small-en-v1.5) run in-process inside the backend container.
 ```
 
-This document covers **Phase 1 — content ingestion + indexing**. The retrieval/
-generation API, the eval harness, and the one-command Docker stack arrive in
-later phases.
+This document covers **Phases 1–2** — content ingestion + indexing, and the
+retrieval/generation API. The eval harness and the one-command Docker stack
+arrive in later phases.
 
 ## What's here
 
@@ -29,10 +29,15 @@ later phases.
 | `app/content.py` | Loads the curated `content/` corpus into typed docs. |
 | `app/chunking.py` | Markdown-aware chunking + a stable content hash per chunk. |
 | `app/embeddings.py` | In-process `bge-small-en-v1.5` embeddings via fastembed. |
-| `app/db.py` | Postgres + pgvector access (asyncpg, raw SQL). |
+| `app/db.py` | Postgres + pgvector access (asyncpg, raw SQL incl. cosine search). |
 | `app/indexer.py` | The offline indexer — `python -m app.indexer`. |
+| `app/retrieval.py` | Top-k cosine retrieval (embed query → pgvector search). |
+| `app/prompts.py` | Grounded prompt assembly (the guardrail system prompt). |
+| `app/llm.py` | Streaming chat client for the local Ollama Gemma. |
+| `app/pipeline.py` | The `/chat` event stream: retrieve → prompt → stream → SSE. |
+| `app/main.py` | FastAPI app — `POST /chat` (SSE) + `GET /health`. |
 | `sql/001_init.sql` | pgvector extension + the `documents` table (`vector(384)`). |
-| `tests/` | Pure-logic unit tests (chunking, content, config). |
+| `tests/` | Pure-logic unit tests (chunking, content, config, prompts, retrieval, pipeline, llm, health). |
 
 The corpus itself lives in the repo-root [`content/`](../content/) folder
 (one markdown file per project, `cv.md`, and selected posts).
@@ -59,6 +64,43 @@ A run with no content changes embeds nothing and writes nothing.
 > The `docker compose` wrapper and the `db` / `ollama` services land in Phase 5.
 > Until then the indexer runs against any Postgres+pgvector you point
 > `DATABASE_URL` at.
+
+## API
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000   # the default container command
+```
+
+### `GET /health`
+
+Reports liveness of the DB and the LLM. The LLM check sends a **1-token
+completion** — it confirms the model actually *generates*, not merely that the
+process is up — which is the signal the frontend uses to gate free chat.
+
+```json
+{ "status": "ok", "checks": { "db": true, "llm": true }, "model": "gemma4:e4b" }
+```
+
+`status` is `ok` only when both checks pass; otherwise `degraded`. The response
+is always `200` — the frontend reads `checks.llm`, not the status code.
+
+### `POST /chat`
+
+Body: `{ "message": "...", "history": [] }` (`history` optional). The pipeline
+embeds the query, retrieves the top-`TOP_K` cosine-nearest chunks, assembles a
+grounded prompt, and **streams** the answer back as Server-Sent Events:
+
+```
+event: sources   data: {"sources":[{"source":"projects/hrm.md","title":"HRM","project":"hrm"}]}
+event: token     data: {"text":"HRM is "}      (repeated per token)
+event: done      data: {}
+event: error     data: {"message":"..."}        (on retrieval/generation failure)
+```
+
+Empty retrieval is graceful: the `sources` list is empty and the grounded
+prompt instructs the model to say it has nothing rather than invent. Retrieval
+or generation failures emit a single `error` event and end the stream cleanly,
+so the terminal degrades to scripted-only instead of showing a broken chat box.
 
 ## Configuration
 

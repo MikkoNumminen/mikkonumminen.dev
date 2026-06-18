@@ -154,3 +154,24 @@ class Database:
     async def count_documents(self) -> int:
         value = await self._pool.fetchval("SELECT count(*) FROM documents")
         return int(value or 0)
+
+    async def search(self, embedding: list[float], top_k: int) -> list[asyncpg.Record]:
+        """Return the `top_k` chunks nearest the query embedding.
+
+        `<=>` is pgvector's cosine-distance operator (per the locked decision to
+        use raw SQL, not an ORM's vector support); smaller distance = more
+        similar. The same `<=>` ordering lets the HNSW cosine index serve the
+        query. The query vector is parameterized — never string-interpolated.
+        """
+        rows: list[asyncpg.Record] = await self._pool.fetch(
+            """
+            SELECT source, project, title, kind, chunk_index, content,
+                   embedding <=> $1 AS distance
+            FROM documents
+            ORDER BY embedding <=> $1
+            LIMIT $2
+            """,
+            embedding,
+            top_k,
+        )
+        return rows
