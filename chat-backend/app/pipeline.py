@@ -16,6 +16,7 @@ from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Protocol
 
 from . import sse
+from .guardrails import WEAK_RETRIEVAL_REPLY, is_weak_retrieval
 from .prompts import build_messages
 from .retrieval import (
     SupportsEmbedQuery,
@@ -38,6 +39,7 @@ async def chat_event_stream(
     db: SupportsSearch,
     llm: SupportsStreamChat,
     top_k: int,
+    weak_retrieval_distance: float,
 ) -> AsyncIterator[str]:
     try:
         chunks = await retrieve(embedder, db, query, top_k)
@@ -45,9 +47,17 @@ async def chat_event_stream(
         yield sse.sse_error("retrieval unavailable")
         return
 
-    # Sources up front (possibly empty): the terminal renders them, and an empty
-    # list is the graceful empty-retrieval path — the grounded prompt then tells
-    # the model to say it has nothing rather than invent.
+    # Guardrail: when retrieval is empty or every chunk is too far to be
+    # relevant, refuse deterministically WITHOUT calling the model — a clearly
+    # off-topic question can never be answered from hallucinated content. No
+    # sources are cited because none were relevant.
+    if is_weak_retrieval(chunks, weak_retrieval_distance):
+        yield sse.sse_sources([])
+        yield sse.sse_token(WEAK_RETRIEVAL_REPLY)
+        yield sse.sse_done()
+        return
+
+    # Sources up front: the terminal renders them while tokens stream.
     yield sse.sse_sources(to_source_refs(chunks))
 
     messages = build_messages(query, to_context(chunks), history)

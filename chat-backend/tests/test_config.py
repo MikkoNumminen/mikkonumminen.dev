@@ -19,6 +19,12 @@ _CONFIG_ENV_VARS = [
     "OLLAMA_BASE_URL",
     "LLM_MODEL",
     "LLM_TIMEOUT_SECONDS",
+    "TOP_K",
+    "CORS_ALLOW_ORIGINS",
+    "WEAK_RETRIEVAL_DISTANCE",
+    "RATE_LIMIT_REQUESTS",
+    "RATE_LIMIT_WINDOW_SECONDS",
+    "MAX_BODY_BYTES",
 ]
 
 
@@ -36,6 +42,45 @@ def test_defaults(clean_env: None) -> None:
     assert settings.chunk_max_tokens == 480
     assert settings.llm_model == "gemma4:e4b"
     assert settings.ollama_base_url.endswith("/v1")
+
+
+def test_phase4_defaults(clean_env: None) -> None:
+    settings = Settings.from_env()
+    assert settings.retrieval_top_k == 5
+    assert settings.cors_allow_origins == ["*"]
+    assert settings.weak_retrieval_distance == 0.7
+    assert settings.rate_limit_requests == 30
+    assert settings.rate_limit_window_seconds == 60.0
+    assert settings.max_body_bytes == 16384
+
+
+def test_cors_origins_parsed_as_list(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(
+        "CORS_ALLOW_ORIGINS", "https://mikkonumminen.dev, https://example.com"
+    )
+    settings = Settings.from_env()
+    assert settings.cors_allow_origins == [
+        "https://mikkonumminen.dev",
+        "https://example.com",
+    ]
+
+
+def test_bad_weak_distance_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WEAK_RETRIEVAL_DISTANCE", "0")
+    with pytest.raises(ValueError, match="WEAK_RETRIEVAL_DISTANCE"):
+        Settings.from_env()
+
+
+def test_non_numeric_weak_distance_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WEAK_RETRIEVAL_DISTANCE", "nope")
+    with pytest.raises(ValueError, match="WEAK_RETRIEVAL_DISTANCE"):
+        Settings.from_env()
 
 
 def test_env_overrides(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:

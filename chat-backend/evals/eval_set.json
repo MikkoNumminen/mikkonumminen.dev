@@ -1,0 +1,75 @@
+{
+  "_comment": "Retrieval eval set. Each entry: a question, the source path(s) that MUST appear in the top-k retrieval (expected_sources), and a note. An empty expected_sources marks an out-of-corpus question that the guardrail should refuse. Sources are content-dir-relative (see content/).",
+  "queries": [
+    {
+      "question": "What databases does HRM use?",
+      "expected_sources": ["projects/hrm.md"],
+      "note": "PostgreSQL + MongoDB audit log"
+    },
+    {
+      "question": "How many tests does HRM have and what's its coverage?",
+      "expected_sources": ["projects/hrm.md"],
+      "note": "1828+ tests, 91.9% coverage"
+    },
+    {
+      "question": "What is Platform and who uses it?",
+      "expected_sources": ["projects/platform.md"],
+      "note": "community platform for a WoW guild"
+    },
+    {
+      "question": "What is Spacepotatis built with?",
+      "expected_sources": ["projects/spacepotatis.md"],
+      "note": "Next.js 15 + Phaser 3 + Three.js"
+    },
+    {
+      "question": "How long did Spacepotatis take to build?",
+      "expected_sources": ["projects/spacepotatis.md"],
+      "note": "empty repo to live in 12 days"
+    },
+    {
+      "question": "What does AudiobookMaker do?",
+      "expected_sources": ["projects/audiobookmaker.md"],
+      "note": "PDF/EPUB/text to audiobook"
+    },
+    {
+      "question": "Which TTS engines does AudiobookMaker support?",
+      "expected_sources": ["projects/audiobookmaker.md"],
+      "note": "Edge-TTS, Piper, Chatterbox, VoxCPM2"
+    },
+    {
+      "question": "What is ReadLog?",
+      "expected_sources": ["projects/readlog.md"],
+      "note": "reading tracker, multi-source book search"
+    },
+    {
+      "question": "What is strudel-patterns?",
+      "expected_sources": ["projects/strudel-patterns.md"],
+      "note": "algorithmic music in Strudel"
+    },
+    {
+      "question": "What did the token-economy skill calibration measure?",
+      "expected_sources": ["posts/token-economy-findings.md"],
+      "note": "A/B token savings of Claude Code skills"
+    },
+    {
+      "question": "Is Mikko available for work?",
+      "expected_sources": ["cv.md"],
+      "note": "available now, remote-friendly"
+    },
+    {
+      "question": "What is Mikko's background before programming?",
+      "expected_sources": ["cv.md"],
+      "note": "hardware retail, Kasvu Labs"
+    },
+    {
+      "question": "What's the weather in Tokyo today?",
+      "expected_sources": [],
+      "note": "out of corpus — should refuse"
+    },
+    {
+      "question": "Write me a poem about cats.",
+      "expected_sources": [],
+      "note": "out of corpus — should refuse"
+    }
+  ]
+}

@@ -16,10 +16,11 @@ isolation.
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -30,6 +31,7 @@ from .embeddings import Embedder
 from .health import health_payload
 from .llm import LLMClient
 from .pipeline import chat_event_stream
+from .ratelimit import RateLimiter
 
 logger = logging.getLogger("chat")
 
@@ -79,8 +81,36 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="Portfolio RAG chat", lifespan=lifespan)
 
-    # The static site calls this from a different origin; allow the configured
-    # origins (default "*" in dev, tightened to the real site origin in prod).
+    limiter = RateLimiter(
+        settings.rate_limit_requests, settings.rate_limit_window_seconds
+    )
+
+    @app.middleware("http")
+    async def guard(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        # Protect the machine while the tunnel is open: a request-body byte cap
+        # plus a per-IP sliding-window rate limit. CORS preflight is automatic
+        # browser traffic — never cap or limit it.
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        length = request.headers.get("content-length")
+        if length is not None:
+            try:
+                too_big = int(length) > settings.max_body_bytes
+            except ValueError:
+                too_big = False
+            if too_big:
+                return JSONResponse({"detail": "request too large"}, status_code=413)
+        client = request.client
+        ip = client.host if client else "unknown"
+        if not limiter.allow(ip, time.monotonic()):
+            return JSONResponse({"detail": "rate limited"}, status_code=429)
+        return await call_next(request)
+
+    # CORS is added AFTER the guard so it is the OUTERMOST layer — its headers
+    # are attached even to the guard's 429/413 responses, so a cross-origin
+    # browser can read them. allow_credentials stays off, so a "*" origin is safe.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allow_origins,
@@ -105,6 +135,7 @@ def create_app() -> FastAPI:
             db=app.state.db,
             llm=app.state.llm,
             top_k=settings.retrieval_top_k,
+            weak_retrieval_distance=settings.weak_retrieval_distance,
         )
         return StreamingResponse(
             stream,
