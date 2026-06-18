@@ -7,12 +7,16 @@ name = "portfolio-rag-backend"
 version = "0.1.0"
 description = "Local RAG chat backend for the portfolio terminal (FastAPI + pgvector + Ollama)."
 requires-python = ">=3.12"
-# Runtime dependencies for Phase 1 (the offline indexer). The retrieval/
-# generation API (Phase 2) adds fastapi / uvicorn / httpx.
+# Runtime dependencies: the offline indexer (asyncpg/pgvector/fastembed) plus
+# the retrieval/generation API (fastapi/uvicorn for serving, httpx for the
+# Ollama OpenAI-compatible client).
 dependencies = [
     "asyncpg>=0.29",
     "pgvector>=0.3",
     "fastembed>=0.3",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
