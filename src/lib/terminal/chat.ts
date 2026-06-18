@@ -157,17 +157,26 @@ export interface SSEEvent {
  * Carriage returns are tolerated so CRLF streams parse identically.
  */
 export function createSSEParser(): (chunk: string) => SSEEvent[] {
-  let buffer = '';
+  // Accumulate the RAW stream and normalize lazily. A trailing lone `\r` at the
+  // end of the buffer is ambiguous — it may be the head of a `\r\n` whose `\n`
+  // arrives in the next chunk — so it is held back and re-attached, rather than
+  // normalized to `\n` immediately (which would forge a spurious `\n\n` frame
+  // separator and split one frame in two, losing its event name).
+  let raw = '';
   return (chunk: string): SSEEvent[] => {
-    buffer += chunk.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    raw += chunk;
+    const heldCR = raw.endsWith('\r');
+    let buffer = (heldCR ? raw.slice(0, -1) : raw)
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
     const events: SSEEvent[] = [];
     let sep: number;
     while ((sep = buffer.indexOf('\n\n')) !== -1) {
-      const frame = buffer.slice(0, sep);
+      const parsed = parseFrame(buffer.slice(0, sep));
       buffer = buffer.slice(sep + 2);
-      const parsed = parseFrame(frame);
       if (parsed) events.push(parsed);
     }
+    raw = heldCR ? `${buffer}\r` : buffer;
     return events;
   };
 }

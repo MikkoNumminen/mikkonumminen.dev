@@ -143,6 +143,17 @@ describe('createSSEParser', () => {
     const feed = createSSEParser();
     expect(feed('data: a\ndata: b\n\n')).toEqual([{ event: 'message', data: 'a\nb' }]);
   });
+
+  it('keeps the event name when a CRLF separator straddles a chunk boundary', () => {
+    // The \r and \n of a line separator arrive in separate reads. A naive
+    // per-chunk normalize would turn the lone \r into \n, forge a \n\n, and
+    // split the frame (losing the `sources` event name -> dropped citations).
+    const feed = createSSEParser();
+    expect(feed('event: sources\r')).toEqual([]);
+    expect(feed('\ndata: {"sources":[]}\r\n\r\n')).toEqual([
+      { event: 'sources', data: '{"sources":[]}' },
+    ]);
+  });
 });
 
 describe('streamChat', () => {

@@ -38,11 +38,13 @@ export async function handleCommand(
   if (!name) return;
   const args = tokens.slice(1);
 
-  // rawArgs is the substring after the command name, preserving repeated
-  // whitespace BETWEEN arguments. Used by `echo` so `echo a   b` keeps the
-  // gap. The capture group spans from after the first whitespace separator
-  // to end-of-input; anything before (leading whitespace + command token +
-  // separator) is discarded.
+  // rawArgs is the input after the command token, preserving the original
+  // spacing and quoting that tokenize()'s `\s+` split would otherwise collapse.
+  // The `ask` path uses it (via stripQuotes) so a quoted, multi-word question
+  // reaches the model intact; it is also forwarded to command handlers below
+  // for any future command that needs the raw string rather than split tokens.
+  // The capture group spans from after the first whitespace separator to
+  // end-of-input; the leading whitespace + command token + separator is dropped.
   const rawArgsMatch = /^\s*\S+(?:\s+([\s\S]*))?$/.exec(input);
   const rawArgs = rawArgsMatch?.[1] ?? '';
 
