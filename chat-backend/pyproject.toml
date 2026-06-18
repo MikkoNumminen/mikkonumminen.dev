@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "portfolio-rag-backend"
+version = "0.1.0"
+description = "Local RAG chat backend for the portfolio terminal (FastAPI + pgvector + Ollama)."
+requires-python = ">=3.12"
+# Runtime dependencies for Phase 1 (the offline indexer). The retrieval/
+# generation API (Phase 2) adds fastapi / uvicorn / httpx.
+dependencies = [
+    "asyncpg>=0.29",
+    "pgvector>=0.3",
+    "fastembed>=0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+# `pythonpath = ["."]` lets the suite import `app.*` when run from this
+# directory without installing the package — the pure-logic tests (chunking,
+# content, config) then run on any Python 3.11+ with just pytest, no heavy deps.
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 90
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+# fastembed / pgvector ship without complete type stubs; don't fail the strict
+# run on third-party gaps we don't control.
+ignore_missing_imports = true

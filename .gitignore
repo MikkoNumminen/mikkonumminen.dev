@@ -5,6 +5,16 @@ dist/
 # test coverage output (vitest --coverage)
 coverage/
 
+# python (chat-backend): caches, virtualenvs, build + model-download artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+chat-backend/.fastembed-cache/
+
 # dependencies
 node_modules/
 
