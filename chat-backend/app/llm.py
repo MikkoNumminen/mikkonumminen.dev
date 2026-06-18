@@ -36,7 +36,12 @@ def parse_stream_line(line: str) -> str | None:
     choices = obj.get("choices")
     if not isinstance(choices, list) or not choices:
         return None
-    delta = choices[0].get("delta") or {}
+    first = choices[0]
+    if not isinstance(first, dict):
+        # A non-dict choice entry (a malformed/keepalive chunk) is skipped like
+        # any other non-content line — never crash an in-flight stream over it.
+        return None
+    delta = first.get("delta") or {}
     content = delta.get("content")
     return content if isinstance(content, str) and content else None
 

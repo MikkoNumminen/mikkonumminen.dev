@@ -22,6 +22,11 @@ from pathlib import Path
 import asyncpg
 from pgvector.asyncpg import register_vector
 
+# The migration SQL lives in sql/ beside the app/ package. Kept here — the
+# schema/DB concern — so both the API and the offline indexer reach it via `db`
+# without the query path importing the batch-indexer module.
+SQL_PATH = Path(__file__).resolve().parent.parent / "sql" / "001_init.sql"
+
 
 @dataclass(frozen=True)
 class DocumentRow:
@@ -63,8 +68,6 @@ class Database:
         pool = await asyncpg.create_pool(
             dsn, min_size=min_size, max_size=max_size, init=register_vector
         )
-        if pool is None:  # pragma: no cover - asyncpg only returns None on misuse
-            raise RuntimeError("failed to create database pool")
         return cls(pool)
 
     async def close(self) -> None:

@@ -16,7 +16,7 @@ WORKDIR /srv
 
 # Install with `-e` (editable) on purpose: it installs the dependencies and
 # makes `app` importable while leaving the source tree in place, so the runtime
-# lookup of `sql/` beside `app/` (see indexer.SQL_PATH) resolves the same way it
+# lookup of `sql/` beside `app/` (see db.SQL_PATH) resolves the same way it
 # does when run from a source checkout. A plain `pip install .` would copy
 # `app` into site-packages and orphan the sibling `sql/` directory.
 COPY pyproject.toml ./
