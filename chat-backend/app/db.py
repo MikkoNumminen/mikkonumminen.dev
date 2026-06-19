@@ -22,6 +22,11 @@ from pathlib import Path
 import asyncpg
 from pgvector.asyncpg import register_vector
 
+# The migration SQL lives in sql/ beside the app/ package. Kept here — the
+# schema/DB concern — so both the API and the offline indexer reach it via `db`
+# without the query path importing the batch-indexer module.
+SQL_PATH = Path(__file__).resolve().parent.parent / "sql" / "001_init.sql"
+
 
 @dataclass(frozen=True)
 class DocumentRow:
@@ -63,8 +68,6 @@ class Database:
         pool = await asyncpg.create_pool(
             dsn, min_size=min_size, max_size=max_size, init=register_vector
         )
-        if pool is None:  # pragma: no cover - asyncpg only returns None on misuse
-            raise RuntimeError("failed to create database pool")
         return cls(pool)
 
     async def close(self) -> None:
@@ -154,3 +157,24 @@ class Database:
     async def count_documents(self) -> int:
         value = await self._pool.fetchval("SELECT count(*) FROM documents")
         return int(value or 0)
+
+    async def search(self, embedding: list[float], top_k: int) -> list[asyncpg.Record]:
+        """Return the `top_k` chunks nearest the query embedding.
+
+        `<=>` is pgvector's cosine-distance operator (per the locked decision to
+        use raw SQL, not an ORM's vector support); smaller distance = more
+        similar. The same `<=>` ordering lets the HNSW cosine index serve the
+        query. The query vector is parameterized — never string-interpolated.
+        """
+        rows: list[asyncpg.Record] = await self._pool.fetch(
+            """
+            SELECT source, project, title, kind, chunk_index, content,
+                   embedding <=> $1 AS distance
+            FROM documents
+            ORDER BY embedding <=> $1
+            LIMIT $2
+            """,
+            embedding,
+            top_k,
+        )
+        return rows

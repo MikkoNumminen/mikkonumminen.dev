@@ -45,6 +45,14 @@ def _get_int(name: str, default: int) -> int:
         ) from exc
 
 
+def _get_list(name: str, default: list[str]) -> list[str]:
+    raw = os.environ.get(name)
+    if not raw:
+        return default
+    items = [part.strip() for part in raw.split(",") if part.strip()]
+    return items or default
+
+
 @dataclass(frozen=True)
 class Settings:
     """Resolved runtime configuration. Construct via `Settings.from_env()`."""
@@ -66,6 +74,10 @@ class Settings:
     llm_model: str
     llm_timeout_seconds: int
 
+    # --- retrieval + API surface ---
+    retrieval_top_k: int
+    cors_allow_origins: list[str]
+
     @staticmethod
     def from_env() -> Settings:
         settings = Settings(
@@ -79,6 +91,8 @@ class Settings:
             ollama_base_url=_get_str("OLLAMA_BASE_URL", _DEFAULT_OLLAMA_BASE_URL),
             llm_model=_get_str("LLM_MODEL", _DEFAULT_LLM_MODEL),
             llm_timeout_seconds=_get_int("LLM_TIMEOUT_SECONDS", 60),
+            retrieval_top_k=_get_int("TOP_K", 5),
+            cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
         )
         settings.validate()
         return settings
@@ -109,3 +123,5 @@ class Settings:
             raise ValueError(
                 f"LLM_TIMEOUT_SECONDS must be positive, got {self.llm_timeout_seconds}"
             )
+        if self.retrieval_top_k <= 0:
+            raise ValueError(f"TOP_K must be positive, got {self.retrieval_top_k}")

@@ -16,7 +16,7 @@ WORKDIR /srv
 
 # Install with `-e` (editable) on purpose: it installs the dependencies and
 # makes `app` importable while leaving the source tree in place, so the runtime
-# lookup of `sql/` beside `app/` (see indexer.SQL_PATH) resolves the same way it
+# lookup of `sql/` beside `app/` (see db.SQL_PATH) resolves the same way it
 # does when run from a source checkout. A plain `pip install .` would copy
 # `app` into site-packages and orphan the sibling `sql/` directory.
 COPY pyproject.toml ./
@@ -34,6 +34,7 @@ RUN useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /srv
 USER appuser
 
-# Default to the indexer; the long-running API command is set by compose in
-# Phase 5. `docker compose run --rm backend python -m app.indexer` overrides this.
-CMD ["python", "-m", "app.indexer"]
+# Default command runs the API. The indexer is a one-shot override:
+#   docker compose run --rm backend python -m app.indexer
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
