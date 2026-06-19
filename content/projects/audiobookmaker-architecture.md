@@ -14,7 +14,7 @@ The system is a single Python application (`pyproject.toml` declares `requires-p
 ```
 User input (PDF / EPUB / TXT)
   → Text extraction layer  (pdf_parser, epub_parser, OCR fallback)
-  → Text normalization     (16-pass Finnish or 12-pass English)
+  → Text normalization     (16-pass Finnish or multi-pass English)
   → Chunking               (sentence-aware splits)
   → TTS engine registry    (Edge-TTS / Piper / Chatterbox / VoxCPM2 / Qwen VoiceDesign POC)
   → ffmpeg audio assembly  (pydub + bundled ffmpeg)
@@ -95,7 +95,7 @@ A dedicated credential-and-identity audit (2026-05-10) verified the following de
 
 ## Testing Strategy
 
-The test suite has 2400+ tests in flat `tests/test_*.py` files mirroring the `src/` module names. Configuration in `pytest.ini`:
+The test suite has 3000+ tests in flat `tests/test_*.py` files mirroring the `src/` module names. Configuration in `pytest.ini`:
 
 - Per-test timeout: 60 seconds (`timeout_method = thread`, chosen because `signal.alarm` is POSIX-only and Windows requires the thread method).
 - `tests/conftest.py` blocks outbound network connections by default; tests that need network access must declare the `network` marker explicitly.

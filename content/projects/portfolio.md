@@ -27,6 +27,10 @@ The build output is fully static so it can move between Vercel, S3 + CloudFront,
 
 Astro, Three.js, GSAP, TypeScript, Tailwind CSS v4
 
+## Connections
+
+- The site's looping music bed is composed in strudel-patterns.
+
 ## Status
 
 Work in progress — [mikkonumminen.dev](https://mikkonumminen.dev) · [GitHub](https://github.com/MikkoNumminen/mikkonumminen.dev)

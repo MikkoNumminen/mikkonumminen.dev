@@ -54,7 +54,7 @@ The schema has 30 Prisma models across these domains:
 
 ## Auth and Authorization
 
-**Authentication** uses NextAuth v5 with Google OAuth, GitHub OAuth, and a credentials provider for zero-friction demo mode. The sign-in callback bootstraps the first user as `superuser`; all subsequent new users receive the `pending` role with zero permissions. The demo credentials provider is gated by the `NEXT_PUBLIC_DEMO_LOGIN` env var: when its value is `"false"` the `authorize` callback returns `null` immediately, blocking demo logins without code changes.
+**Authentication** uses NextAuth v5 with Google OAuth, GitHub OAuth, and a credentials provider for zero-friction demo mode. The sign-in callback bootstraps the first user as `superuser`; all subsequent new users receive the `pending` role with zero permissions. The demo credentials provider can be disabled via configuration: when disabled, the `authorize` callback returns `null` immediately, blocking demo logins without code changes.
 
 **Permission resolution** (`lib/permissions.ts`) has five roles: `superuser`, `vuohi`, `admin`, `user`, `pending`. It starts from role defaults (superuser gets all 25 keys; pending gets none) then applies per-user `UserPermission` overrides to grant or revoke individual keys. The resolved `Record<string, boolean>` is embedded in the JWT.
 
@@ -124,6 +124,6 @@ Husky git hooks enforce quality locally: Prettier runs on staged files at pre-co
 
 **Permission sync without session invalidation:** Admin permission changes needed to propagate to active sessions without forcing sign-outs. The `permissionsVersion` counter on `User` triggers a JWT re-sync on the next token refresh, bounded by a 5-minute cache window.
 
-**Demo mode safety:** Production audit identified that DM actions bypassed the `dm:send` permission check. This was resolved: `lib/dm-actions.ts` now calls `requireUser()` and performs an explicit inline `permissions['dm:send']` check before reaching any database write. The demo login is gated by `NEXT_PUBLIC_DEMO_LOGIN` (a client-visible flag); the `authorize` callback returns `null` when the value is `"false"`, which is the intended gating mechanism rather than a server-only secret.
+**Demo mode safety:** DM actions (`lib/dm-actions.ts`) call `requireUser()` and perform an explicit inline `permissions['dm:send']` check before reaching any database write. Demo login can be disabled via configuration; when disabled, the `authorize` callback returns `null`.
 
 **Production audit remediation:** A 121-finding automated audit resulted in 106 fixes (88%). Key structural fixes included deduplicating constants (`WHISPER_COLOR`, `DEMO_EMAIL`, `CRITERIA_ACTIONS`) that had drifted to 3–6 separate definitions, resolving the N+1 gamification queries, and adding UUID and length validation across server actions.

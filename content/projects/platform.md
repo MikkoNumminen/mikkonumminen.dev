@@ -16,7 +16,7 @@ The platform is multi-tenant and adds WoW-themed gamification on top of the HRM 
 
 - Real users on a live WoW guild community site (vuohiliitto.com)
 - Multi-tenant Turborepo monorepo with HRM as a git submodule
-- 1388+ tests
+- 1,300+ tests
 - Live Raider.IO API integration for Mythic+ tracking
 
 ## Tech stack

@@ -7,7 +7,6 @@ project: hrm
 
 HRManager is a full-stack HR management system built with Next.js 16 App Router, TypeScript 5.9, and polyglot persistence (PostgreSQL + MongoDB). It targets production operational standards: granular RBAC, an immutable audit trail, real-time updates, TOTP 2FA, and a 1828-test suite with coverage tracked in CI.
 
----
 
 ## Overview and High-Level Architecture
 
@@ -23,7 +22,6 @@ Request flow:
 
 HRManager also lives inside a [Turborepo monorepo](https://github.com/MikkoNumminen/Platform) as a git submodule alongside other applications. The feature-module structure and server action isolation make it embeddable without an adapter layer.
 
----
 
 ## Tech Stack and Key Choices
 
@@ -46,7 +44,6 @@ HRManager also lives inside a [Turborepo monorepo](https://github.com/MikkoNummi
 | i18n | next-intl | 18 locale files; missing keys auto-translated via Claude API (`@anthropic-ai/sdk`) |
 | CI/CD | GitHub Actions | Lint, format, test, build on every push to `main` |
 
----
 
 ## Data Model and Persistence
 
@@ -74,7 +71,6 @@ Each audit entry includes an **HMAC-SHA256 hash** linking it to the previous ent
 
 **Migrations** are managed by Prisma (`prisma/migrations/`). The build command runs `prisma migrate deploy && prisma generate && next build`, so migrations apply automatically on each deployment.
 
----
 
 ## Auth, Authorization, and Security
 
@@ -98,7 +94,6 @@ The system defines 38 permission keys (e.g., `person:create`, `team:delete`, `re
 
 **Employee self-service** data access is IDOR-safe by design: queries derive `personId` from the session email rather than from caller-supplied IDs.
 
----
 
 ## Key Design Decisions and Trade-offs
 
@@ -122,7 +117,6 @@ The system defines 38 permission keys (e.g., `person:create`, `team:delete`, `re
 
 **Vercel `ignoreCommand`** — A shell script at `scripts/vercel-ignore.sh` short-circuits Vercel deployments when only docs, tests, or CI config files change, reducing build minutes on the free tier.
 
----
 
 ## Testing Strategy
 
@@ -144,7 +138,6 @@ The documented testing philosophy is to run server-side tests against real datab
 
 A Stryker mutation testing workflow runs on pull requests and fails if the mutation score drops below 60%.
 
----
 
 ## Infrastructure, Deployment, and CI/CD
 
@@ -177,7 +170,6 @@ Production-grade manifests are provided in `k8s/manifests/` and a Helm chart in 
 - OpenTelemetry SDK (opt-in via `OTEL_ENABLED=true`): auto-instrumented PostgreSQL queries, per-server-action spans with auth/rate-limit/business-logic events, custom metrics (`hrm.action.count`, `hrm.action.duration`, `hrm.db.query.duration`, `hrm.error.count`), `X-Trace-Id` and `Server-Timing` headers on every response, OTLP export to any compatible backend
 - Sentry (`@sentry/nextjs`) for error capture; opt-in via DSN
 
----
 
 ## Scale and Performance Considerations
 

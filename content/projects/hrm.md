@@ -10,14 +10,14 @@ url: https://hr-manager-pearl.vercel.app
 
 HRM is a production-ready HR system built to portfolio standards. It runs two databases side by side: PostgreSQL for structured relational data, and MongoDB for an immutable, hash-chained audit log. The dual-database approach means every mutation is permanently traceable without touching the transactional store.
 
-The permission model has 34 granular permissions with per-user overrides, TOTP 2FA, and server-side rate limiting. For observability, the app ships OpenTelemetry tracing. The UI is internationalised across 18 languages. Real-time activity notifications are delivered over SSE, with a polling fallback for environments where SSE is unavailable.
+The permission model has 38 granular permissions with per-user overrides, TOTP 2FA, and server-side rate limiting. For observability, the app ships OpenTelemetry tracing. The UI is internationalised across 18 languages. Real-time activity notifications are delivered over SSE, with a polling fallback for environments where SSE is unavailable.
 
 ## Highlights
 
 - 1828+ tests at 91.9% line coverage
 - HRM runs Stryker mutation testing on every PR — 91.9% line coverage means the lines ran; the mutation score means the assertions actually catch bugs
 - PostgreSQL (structured data) + MongoDB (immutable audit log)
-- 34 granular permissions, TOTP 2FA, OpenTelemetry tracing, 18 languages
+- 38 granular permissions, TOTP 2FA, OpenTelemetry tracing, 18 languages
 
 ## Tech stack
 
