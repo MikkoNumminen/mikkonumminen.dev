@@ -17,9 +17,9 @@ Offline indexer ──embeds content──▶ Postgres + pgvector
 Embeddings (bge-small-en-v1.5) run in-process inside the backend container.
 ```
 
-This document covers **Phases 1–2** — content ingestion + indexing, and the
-retrieval/generation API. The eval harness and the one-command Docker stack
-arrive in later phases.
+This document covers **Phases 1, 2 & 4** — content ingestion + indexing, the
+retrieval/generation API, and the eval harness + guardrails. The one-command
+Docker stack arrives in Phase 5.
 
 ## What's here
 
@@ -35,9 +35,12 @@ arrive in later phases.
 | `app/prompts.py` | Grounded prompt assembly (the guardrail system prompt). |
 | `app/llm.py` | Streaming chat client for the local Ollama Gemma. |
 | `app/pipeline.py` | The `/chat` event stream: retrieve → prompt → stream → SSE. |
-| `app/main.py` | FastAPI app — `POST /chat` (SSE) + `GET /health`. |
+| `app/main.py` | FastAPI app — `POST /chat` (SSE) + `GET /health` + rate-limit/size guard. |
+| `app/guardrails.py` | Weak-retrieval gate (deterministic refusal, no hallucination). |
+| `app/ratelimit.py` | Per-IP sliding-window rate limiter. |
 | `sql/001_init.sql` | pgvector extension + the `documents` table (`vector(384)`). |
-| `tests/` | Pure-logic unit tests (chunking, content, config, prompts, retrieval, pipeline, llm, health). |
+| `evals/` | Retrieval eval set + hit-rate runner (`python -m evals.run_eval`). |
+| `tests/` | Pure-logic unit tests (chunking, content, config, prompts, retrieval, pipeline, llm, health, guardrails, ratelimit, scoring). |
 
 The corpus itself lives in the repo-root [`content/`](../content/) folder
 (one markdown file per project, `cv.md`, and selected posts).
@@ -102,6 +105,28 @@ prompt instructs the model to say it has nothing rather than invent. Retrieval
 or generation failures emit a single `error` event and end the stream cleanly,
 so the terminal degrades to scripted-only instead of showing a broken chat box.
 
+## Eval + guardrails
+
+**Guardrails.** Generation is fronted by a deterministic gate: when retrieval is
+empty (un-indexed corpus) or every retrieved chunk is beyond
+`WEAK_RETRIEVAL_DISTANCE` in cosine distance, the API returns a clean canned
+refusal *without* calling the model — a clearly off-topic question can never be
+answered from hallucinated content. The grounded system prompt handles the
+borderline cases. The API is also protected by a per-IP sliding-window rate
+limit and a request-body byte cap (`RATE_LIMIT_*`, `MAX_BODY_BYTES`) to shield
+the machine while the tunnel is open.
+
+**Eval.** `evals/eval_set.json` holds ~14 questions with the source(s) that must
+be retrieved (plus out-of-corpus questions that should be refused). The runner
+measures retrieval hit-rate and prints a PASS/FAIL table — the credibility
+metric for the RAG layer and the lever for tuning `WEAK_RETRIEVAL_DISTANCE`:
+
+```bash
+docker compose run --rm backend python -m app.indexer       # index first
+docker compose run --rm backend python -m evals.run_eval
+docker compose run --rm backend python -m evals.run_eval --min-hit-rate 0.8
+```
+
 ## Configuration
 
 All configuration is environment-driven; see [`.env.example`](.env.example) for
@@ -135,5 +160,5 @@ exercised against the live Docker stack rather than mocked into the fast suite.
 
 ```bash
 ruff check . && ruff format --check .
-mypy app
+mypy app evals
 ```

@@ -53,6 +53,18 @@ def _get_list(name: str, default: list[str]) -> list[str]:
     return items or default
 
 
+def _get_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"environment variable {name!r} must be a number, got {raw!r}"
+        ) from exc
+
+
 @dataclass(frozen=True)
 class Settings:
     """Resolved runtime configuration. Construct via `Settings.from_env()`."""
@@ -78,6 +90,17 @@ class Settings:
     retrieval_top_k: int
     cors_allow_origins: list[str]
 
+    # --- guardrails (Phase 4) ---
+    # Cosine distance above which even the closest chunk is treated as
+    # irrelevant -> deterministic refusal instead of generation. Conservative;
+    # tune against evals/run_eval.py.
+    weak_retrieval_distance: float
+    # Per-IP sliding-window limit + a request-body byte cap, to protect the
+    # machine while the tunnel is open.
+    rate_limit_requests: int
+    rate_limit_window_seconds: float
+    max_body_bytes: int
+
     @staticmethod
     def from_env() -> Settings:
         settings = Settings(
@@ -93,6 +116,10 @@ class Settings:
             llm_timeout_seconds=_get_int("LLM_TIMEOUT_SECONDS", 60),
             retrieval_top_k=_get_int("TOP_K", 5),
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
+            weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.7),
+            rate_limit_requests=_get_int("RATE_LIMIT_REQUESTS", 30),
+            rate_limit_window_seconds=_get_float("RATE_LIMIT_WINDOW_SECONDS", 60.0),
+            max_body_bytes=_get_int("MAX_BODY_BYTES", 16384),
         )
         settings.validate()
         return settings
@@ -125,3 +152,21 @@ class Settings:
             )
         if self.retrieval_top_k <= 0:
             raise ValueError(f"TOP_K must be positive, got {self.retrieval_top_k}")
+        if self.weak_retrieval_distance <= 0:
+            raise ValueError(
+                "WEAK_RETRIEVAL_DISTANCE must be positive, got "
+                f"{self.weak_retrieval_distance}"
+            )
+        if self.rate_limit_requests <= 0:
+            raise ValueError(
+                f"RATE_LIMIT_REQUESTS must be positive, got {self.rate_limit_requests}"
+            )
+        if self.rate_limit_window_seconds <= 0:
+            raise ValueError(
+                "RATE_LIMIT_WINDOW_SECONDS must be positive, got "
+                f"{self.rate_limit_window_seconds}"
+            )
+        if self.max_body_bytes <= 0:
+            raise ValueError(
+                f"MAX_BODY_BYTES must be positive, got {self.max_body_bytes}"
+            )

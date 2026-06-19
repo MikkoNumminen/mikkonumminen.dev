@@ -7,6 +7,7 @@ import json
 from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 
+from app.guardrails import WEAK_RETRIEVAL_REPLY
 from app.pipeline import chat_event_stream
 
 
@@ -32,21 +33,23 @@ class FakeLLM:
     def __init__(self, tokens: list[str], fail: bool = False) -> None:
         self._tokens = tokens
         self._fail = fail
+        self.called = False
 
     async def stream_chat(self, messages: Sequence[dict[str, str]]) -> AsyncIterator[str]:
+        self.called = True
         if self._fail:
             raise RuntimeError("llm down")
         for token in self._tokens:
             yield token
 
 
-def _row(source: str) -> dict[str, Any]:
+def _row(source: str, distance: float = 0.1) -> dict[str, Any]:
     return {
         "source": source,
         "title": source.upper(),
         "project": None,
         "content": f"about {source}",
-        "distance": 0.1,
+        "distance": distance,
     }
 
 
@@ -56,10 +59,17 @@ def _collect(
     db: FakeDB,
     llm: FakeLLM,
     top_k: int = 5,
+    weak_distance: float = 0.7,
 ) -> list[str]:
     async def run() -> list[str]:
         gen = chat_event_stream(
-            query, [], embedder=FakeEmbedder(), db=db, llm=llm, top_k=top_k
+            query,
+            [],
+            embedder=FakeEmbedder(),
+            db=db,
+            llm=llm,
+            top_k=top_k,
+            weak_retrieval_distance=weak_distance,
         )
         return [frame async for frame in gen]
 
@@ -70,33 +80,43 @@ def _events(frames: list[str]) -> list[str]:
     return [f.split("\n", 1)[0].removeprefix("event: ") for f in frames]
 
 
-def test_happy_path_sources_then_tokens_then_done() -> None:
-    frames = _collect(
-        "what is hrm",
-        db=FakeDB([_row("projects/hrm.md")]),
-        llm=FakeLLM(["HRM ", "is great."]),
-    )
-    assert _events(frames) == ["sources", "token", "token", "done"]
-    # sources frame carries the retrieved ref
-    sources_data = json.loads(frames[0].split("data: ", 1)[1])
-    assert sources_data["sources"][0]["source"] == "projects/hrm.md"
-    text = "".join(
+def _token_text(frames: list[str]) -> str:
+    return "".join(
         json.loads(f.split("data: ", 1)[1])["text"]
         for f in frames
         if f.startswith("event: token")
     )
-    assert text == "HRM is great."
 
 
-def test_empty_retrieval_still_streams_with_empty_sources() -> None:
+def test_happy_path_sources_then_tokens_then_done() -> None:
+    llm = FakeLLM(["HRM ", "is great."])
+    frames = _collect("what is hrm", db=FakeDB([_row("projects/hrm.md")]), llm=llm)
+    assert _events(frames) == ["sources", "token", "token", "done"]
+    sources_data = json.loads(frames[0].split("data: ", 1)[1])
+    assert sources_data["sources"][0]["source"] == "projects/hrm.md"
+    assert _token_text(frames) == "HRM is great."
+    assert llm.called is True
+
+
+def test_empty_retrieval_refuses_without_calling_the_model() -> None:
+    llm = FakeLLM(["should not be used"])
+    frames = _collect("obscure question", db=FakeDB([]), llm=llm)
+    assert _events(frames) == ["sources", "token", "done"]
+    assert json.loads(frames[0].split("data: ", 1)[1])["sources"] == []
+    assert _token_text(frames) == WEAK_RETRIEVAL_REPLY
+    assert llm.called is False  # the guardrail short-circuits generation
+
+
+def test_far_only_retrieval_refuses_without_calling_the_model() -> None:
+    # Chunks come back but the closest is beyond the weak threshold.
+    llm = FakeLLM(["should not be used"])
     frames = _collect(
-        "obscure question",
-        db=FakeDB([]),
-        llm=FakeLLM(["I don't have anything on that."]),
+        "off topic", db=FakeDB([_row("cv.md", distance=0.95)]), llm=llm, weak_distance=0.7
     )
     assert _events(frames) == ["sources", "token", "done"]
-    sources_data = json.loads(frames[0].split("data: ", 1)[1])
-    assert sources_data["sources"] == []
+    assert json.loads(frames[0].split("data: ", 1)[1])["sources"] == []
+    assert _token_text(frames) == WEAK_RETRIEVAL_REPLY
+    assert llm.called is False
 
 
 def test_retrieval_failure_emits_error_and_stops() -> None:
