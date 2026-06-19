@@ -54,10 +54,13 @@ interface FetchOpts {
 }
 
 // How long the load-time health probe waits before deciding the backend is not
-// there. Short on purpose: when a backend URL is configured but the model is
-// off, the user should fall through to scripted-only quickly, with no visible
-// hang. The far more common "no backend configured" case never gets this far.
-const HEALTH_TIMEOUT_MS = 2500;
+// available. The probe is async and only gates the optional chat reveal, so a
+// longer wait costs nothing in the terminal's usability — and `/health` runs a
+// real 1-token generation, which a cold model (VRAM warm-up) can take a few
+// seconds to return. Generous on purpose so an up-but-cold backend isn't judged
+// unavailable on the first visit; a truly-off backend refuses the connection
+// immediately and never reaches this timeout.
+const HEALTH_TIMEOUT_MS = 5000;
 
 /**
  * The configured backend base URL, or `null` when chat is disabled.
