@@ -5,6 +5,7 @@ import { disposeMeasureSpan, echoPromptLine, makeContext, updateCursor } from '.
 import { runBoot } from './typing';
 import { History } from './history';
 import { handleCommand, tabComplete } from './dispatch';
+import { createChatRouter } from './chat';
 
 // Allow-list for values that may be sent to the clipboard via copy buttons.
 // Only email addresses and https:// URLs are permitted; anything else is silently
@@ -55,6 +56,11 @@ export async function initTerminal(
   // if that ever changes.
   const commandMap = new Map(commands.map((c) => [c.name.toLowerCase(), c]));
 
+  // The chat router is the progressive-enhancement seam. It is inert unless a
+  // backend is configured AND its LLM responds (see chat.ts) — so creating it
+  // unconditionally is safe and changes nothing when chat is unavailable.
+  const chat = createChatRouter();
+
   const elements: TerminalElements = { output, form, input, cursor };
   const ctx = makeContext(elements);
   const history = new History();
@@ -103,13 +109,12 @@ export async function initTerminal(
   input.addEventListener('focus', () => updateCursor(input, cursor), { signal });
 
   // `busy` is true while a command's async handler is in flight (and during the
-  // boot sequence). It's shared with the keydown handler via the isBusy closure
-  // so Ctrl+L / Ctrl+C can't clear or interrupt output that an in-flight command
-  // is still mutating. handleCommand is async (fetches, char-by-char typing);
-  // without this guard a second Enter mid-command launches a concurrent
-  // handleCommand whose output interleaves with the first in the same div.
+  // boot sequence). The keydown handler closes over it so Ctrl+L / Ctrl+C can't
+  // clear or interrupt output that an in-flight command is still mutating.
+  // handleCommand is async (fetches, char-by-char typing); without this guard a
+  // second Enter mid-command launches a concurrent handleCommand whose output
+  // interleaves with the first in the same div.
   let busy = false;
-  const isBusy = (): boolean => busy;
 
   input.addEventListener(
     'keydown',
@@ -147,13 +152,13 @@ export async function initTerminal(
         // flight: clearing the output mid-command would leave late prints from
         // the still-running handler mutating a screen the user thinks is empty.
         e.preventDefault();
-        if (isBusy()) return;
+        if (busy) return;
         ctx.clear();
       } else if (e.key === 'c' && e.ctrlKey) {
         // Ignored while busy for the same reason — an in-flight handler keeps
         // writing after the ^C echo, so the interrupt would be a visual lie.
         e.preventDefault();
-        if (isBusy()) return;
+        if (busy) return;
         echoPromptLine(output, input.value, '^C');
         input.value = '';
         history.reset();
@@ -176,7 +181,7 @@ export async function initTerminal(
       history.push(value);
       updateCursor(input, cursor);
       try {
-        await handleCommand(value, ctx, output, commandMap, t);
+        await handleCommand(value, ctx, output, commandMap, t, chat);
       } finally {
         busy = false;
       }
@@ -199,5 +204,25 @@ export async function initTerminal(
   input.focus();
   updateCursor(input, cursor);
 
+  // Progressive enhancement: probe the chat backend once, after boot. Only if it
+  // AND its LLM respond do we reveal the "ask about the projects" affordance.
+  // When chat is unavailable (the default — no backend configured) nothing is
+  // added, so the terminal is pixel-identical to today (build brief constraint 5).
+  void chat.isAvailable().then((available) => {
+    if (!available || signal.aborted) return;
+    revealChatHint(root, t);
+  });
+
   return { dispose };
+}
+
+/** Append the "…or just ask about the projects" hint once chat is available. */
+function revealChatHint(root: ParentNode, t: ReturnType<typeof getTranslations>): void {
+  const hints = root.querySelector<HTMLElement>('.terminal__hints');
+  if (!hints || hints.querySelector('.terminal__hint--chat')) return;
+  const hint = document.createElement('span');
+  hint.className = 'terminal__hint--chat';
+  // textContent (not innerHTML): plain static i18n string, never an HTML sink.
+  hint.textContent = t.terminal.chatHint;
+  hints.appendChild(hint);
 }

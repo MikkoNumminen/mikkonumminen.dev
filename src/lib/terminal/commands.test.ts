@@ -14,7 +14,21 @@ describe('buildCommands (English)', () => {
   it('exposes the expected command set', () => {
     const names = en.map((c) => c.name).sort();
     expect(names).toEqual(
-      ['clear', 'contact', 'download', 'help', 'links', 'man', 'skills', 'whoami'].sort(),
+      [
+        'cat',
+        'clear',
+        'contact',
+        'cv',
+        'download',
+        'help',
+        'links',
+        'ls',
+        'man',
+        'rm',
+        'skills',
+        'sudo',
+        'whoami',
+      ].sort(),
     );
   });
 
