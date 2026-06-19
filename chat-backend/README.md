@@ -17,9 +17,46 @@ Offline indexer ──embeds content──▶ Postgres + pgvector
 Embeddings (bge-small-en-v1.5) run in-process inside the backend container.
 ```
 
-This document covers **Phases 1, 2 & 4** — content ingestion + indexing, the
-retrieval/generation API, and the eval harness + guardrails. The one-command
-Docker stack arrives in Phase 5.
+This is the complete backend — content ingestion + indexing, the
+retrieval/generation API, the eval harness + guardrails, and the one-command
+Docker stack that runs it all locally.
+
+## Running the full stack (Docker)
+
+The whole backend comes up with one command via the repo-root
+[`docker-compose.yml`](../docker-compose.yml) + [`Makefile`](../Makefile):
+
+```bash
+make up          # db (pgvector) + ollama (GPU, pulls gemma4:e4b on first run) + backend
+make index       # one-time: embed the content corpus into pgvector
+make eval        # retrieval hit-rate eval (sanity-check quality)
+make up-public   # also start the Cloudflare tunnel (needs TUNNEL_TOKEN; see ../.env.example)
+make down        # stop everything — the db data and the pulled model persist in named volumes
+```
+
+`make up` starts Postgres and Ollama, pulls `gemma4:e4b` into its volume if
+absent (via a one-shot `ollama-pull` service the backend waits on), then starts
+the FastAPI backend on `http://localhost:8000`. A bare `docker compose up` does
+the same — the model pull is wired into the dependency graph, not just `make`.
+
+**Prerequisite — GPU in Docker:** the `ollama` service needs the GPU, which
+requires [`nvidia-container-toolkit`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+on the host. On Windows that is installed inside WSL2. This is the one piece of
+host setup; Postgres and the model are provisioned by `make up`.
+
+**Pointing the frontend at it.** The contact-page terminal's RAG integration
+(which ships in its own PR) reads the backend URL from the build-time
+`PUBLIC_CHAT_API_URL` env var — unset → the terminal stays scripted-only with no
+chat affordance (build brief constraint 5). With that integration in place, the
+site is built pointing at the backend:
+
+```bash
+PUBLIC_CHAT_API_URL=http://localhost:8000 npm run build       # local
+PUBLIC_CHAT_API_URL=https://<your-tunnel-host> npm run build  # live
+```
+
+When the stack + tunnel are down, the terminal degrades to scripted-only with no
+visual change.
 
 ## What's here
 
@@ -41,6 +78,9 @@ Docker stack arrives in Phase 5.
 | `sql/001_init.sql` | pgvector extension + the `documents` table (`vector(384)`). |
 | `evals/` | Retrieval eval set + hit-rate runner (`python -m evals.run_eval`). |
 | `tests/` | Pure-logic unit tests (chunking, content, config, prompts, retrieval, pipeline, llm, health, guardrails, ratelimit, scoring). |
+| `Dockerfile` | The backend image (indexer + API; non-root, GPU not needed here). |
+| [`../docker-compose.yml`](../docker-compose.yml) | The whole stack: db + ollama (GPU) + backend + optional tunnel. |
+| [`../Makefile`](../Makefile) | `make up` / `index` / `eval` / `up-public` / `down`. |
 
 The corpus itself lives in the repo-root [`content/`](../content/) folder
 (one markdown file per project, `cv.md`, and selected posts).
