@@ -14,6 +14,7 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0006](0006-skill-registry-canonical-artifact.md) | Committed registry JSON is canonical; prebuild no longer auto-syncs it | Accepted |
 | [0007](0007-astro-6-node-22.md) | Upgrade to Astro 6 + Node 22 (clears the Astro-native CVEs) | Accepted |
 | [0008](0008-testing-strategy.md) | Layered testing strategy (unit + Playwright scene boot-smoke + coverage ratchet + CodeQL); per-frame visual regression rejected | Accepted |
+| [0009](0009-rag-chat-backend.md) | Local RAG chat as a separate, optional backend service — site stays static (builds on 0002), no hosted model/DB | Accepted |
 
 ## Writing a new one
 

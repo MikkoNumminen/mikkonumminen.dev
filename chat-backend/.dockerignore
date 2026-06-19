@@ -1,0 +1,11 @@
+# Keep the build context lean — none of this belongs in the image.
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.fastembed-cache/
+tests/
+.env
+.env.*
+*.md
