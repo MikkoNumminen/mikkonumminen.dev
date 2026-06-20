@@ -32,13 +32,13 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
-    "@sentry/astro": "^10.57.0",
-    "@tailwindcss/vite": "^4.2.2",
-    "astro": "^6.4.6",
+    "@sentry/astro": "^10.59.0",
+    "@tailwindcss/vite": "^4.3.1",
+    "astro": "^6.4.8",
     "gsap": "^3.15.0",
     "tailwindcss": "^4.2.2",
     "three": "^0.184.0",
-    "web-vitals": "^5.2.0"
+    "web-vitals": "^5.3.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
