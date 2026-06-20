@@ -5,19 +5,11 @@
 // tune via a prop without touching this component's behaviour.
 //
 // Behaviour:
-// - Off by default. Nothing plays on load and nothing starts on the
-//   first stray interaction — the music begins only when the visitor
-//   explicitly clicks the sound toggle. The button reflects the actual
-//   playing/paused state.
-// - Once enabled, the choice persists per-tab (sessionStorage), so
-//   navigating `/` → `/projects` keeps the music going; if the browser
-//   blocks the post-navigation autoplay, the first interaction on the
-//   new page resumes it (the visitor already opted in). A fresh tab
-//   starts silent again.
-// - Position persists across page navigations. The current playhead is
-//   stored in sessionStorage on `beforeunload` and the next page seeks
-//   to it before resuming — so a click from `/` to `/projects` mid-track
-//   doesn't restart the music.
+// - Muted on every load. Audio never autoplays and never starts on a
+//   stray interaction — the music begins only when the visitor clicks
+//   the sound toggle, and that choice is NOT persisted: every page
+//   load, refresh, and navigation starts silent again. The button
+//   reflects the actual playing/paused state.
 // - Volume strategy depends on the page theme. The home page has a hero
 //   that scrolls past, so the volume eases between HERO_VOLUME (hero
 //   fully in view) and SCROLLED_VOLUME (hero scrolled past). Other
@@ -26,8 +18,6 @@
 //   The script crossfades active → standby in the last CROSSFADE_SEC of
 //   the active track. HTML5 `loop` would produce an audible gap at the
 //   join (especially in Safari) so we manage looping ourselves.
-// - On/off choice is remembered in sessionStorage so reloading any page
-//   in the same tab preserves the user's preference.
 //
 // Button styling reads from theme tokens via `body[data-theme=…]`
 // selectors — same accent palette other chrome (nav, focus ring) uses.
@@ -286,14 +276,6 @@ const t = getTranslations(locale);
 </style>
 
 <script>
-  const ON_KEY = 'mn_bg_audio_on';
-  // Persisted across page navigations so the next page resumes mid-track.
-  // Key namespaced by track id so future per-page tracks each carry their
-  // own playhead.
-  const TRACK_ID = 'devlander';
-  const POS_KEY = `mn_bg_audio_pos:${TRACK_ID}`;
-  const DECK_KEY = `mn_bg_audio_deck:${TRACK_ID}`;
-
   // Volume targets when the page has a hero that scrolls past (home).
   const HERO_VOLUME = 0.85;
   const SCROLLED_VOLUME = 0.35;
@@ -313,31 +295,15 @@ const t = getTranslations(locale);
 
   if (wrapper && deckA && deckB && button) {
     type DeckKey = 'a' | 'b';
+    // Two decks drive the seamless loop; the active one always starts as
+    // 'a' on a fresh page — no cross-page deck state is restored.
     let activeKey: DeckKey = 'a';
-    // Restore which deck was active when the previous page unloaded, so
-    // pause-state and currentTime line up with the right element.
-    try {
-      const savedDeck = sessionStorage.getItem(DECK_KEY);
-      if (savedDeck === 'a' || savedDeck === 'b') activeKey = savedDeck;
-    } catch {
-      /* ignore */
-    }
     const getActive = (): HTMLAudioElement => (activeKey === 'a' ? deckA : deckB);
     const getStandby = (): HTMLAudioElement => (activeKey === 'a' ? deckB : deckA);
 
     let crossfading = false;
     let crossfadeRaf: number | null = null;
     let standbyPrefetched = false;
-
-    // Opt-in: audio is off until the visitor clicks the toggle. The
-    // choice is remembered per-tab so moving between pages doesn't
-    // re-mute; a fresh tab (no stored flag) starts silent.
-    let userWantsOn = false;
-    try {
-      userWantsOn = sessionStorage.getItem(ON_KEY) === '1';
-    } catch {
-      /* sessionStorage may be unavailable; default to staying off */
-    }
 
     const setState = (state: 'on' | 'off'): void => {
       wrapper.dataset.state = state;
@@ -348,15 +314,6 @@ const t = getTranslations(locale);
       document.dispatchEvent(
         new CustomEvent('bg-audio:state', { detail: { on: state === 'on' } }),
       );
-    };
-
-    const remember = (on: boolean): void => {
-      try {
-        if (on) sessionStorage.setItem(ON_KEY, '1');
-        else sessionStorage.removeItem(ON_KEY);
-      } catch {
-        /* ignore */
-      }
     };
 
     // Volume the track *should* be at right now. On home: scroll-driven
@@ -466,38 +423,6 @@ const t = getTranslations(locale);
     deckA.addEventListener('ended', onEnded);
     deckB.addEventListener('ended', onEnded);
 
-    // Pull the previous page's playhead so the new page picks up mid-
-    // track. NaN-guard for the very first visit.
-    const restoredPos = (() => {
-      try {
-        const raw = sessionStorage.getItem(POS_KEY);
-        const n = raw === null ? 0 : Number(raw);
-        return isFinite(n) && n >= 0 ? n : 0;
-      } catch {
-        return 0;
-      }
-    })();
-
-    // Seek `el` to `t`, deferring until metadata is available if needed.
-    // Setting `currentTime` before `readyState >= HAVE_METADATA` is
-    // undefined behaviour across browsers (Chrome queues, Safari may
-    // play from 0 then seek). Wrapping in a readyState guard with a
-    // `loadedmetadata` fallback makes the restore deterministic.
-    const seekWhenReady = (el: HTMLAudioElement, t: number): void => {
-      if (el.readyState >= 1 /* HAVE_METADATA */) {
-        el.currentTime = t;
-        return;
-      }
-      const apply = (): void => {
-        try {
-          el.currentTime = t;
-        } catch {
-          /* ignore — best effort */
-        }
-      };
-      el.addEventListener('loadedmetadata', apply, { once: true });
-    };
-
     const tryPlay = async (): Promise<boolean> => {
       try {
         // Reset standby to a clean slate so resume-after-pause-mid-
@@ -509,11 +434,6 @@ const t = getTranslations(locale);
         standby.volume = 0;
 
         const active = getActive();
-        // Seek to the persisted position once per page lifetime — after
-        // playback starts the in-page state takes over.
-        if (restoredPos > 0 && active.currentTime < 0.05) {
-          seekWhenReady(active, restoredPos);
-        }
         await active.play();
         active.volume = computeVolume();
 
@@ -521,8 +441,9 @@ const t = getTranslations(locale);
         setState('on');
         return true;
       } catch {
-        // Most likely the browser blocked autoplay because there hasn't
-        // been a user gesture yet. The unlock listener below will retry.
+        // Defensive: tryPlay only runs from the toggle click (a user
+        // gesture), so autoplay should not be blocked — but if play()
+        // rejects for any reason, fall back to the off state.
         setState('off');
         return false;
       }
@@ -530,31 +451,14 @@ const t = getTranslations(locale);
 
     button.addEventListener('click', async () => {
       if (getActive().paused) {
-        const started = await tryPlay();
-        if (started) remember(true);
+        await tryPlay();
       } else {
         abortCrossfade();
         deckA.pause();
         deckB.pause();
         setState('off');
-        remember(false);
       }
     });
-
-    // First-interaction fallback for a visitor who already enabled sound
-    // earlier in this tab: if the post-navigation autoplay was blocked,
-    // the next pointer/keyboard gesture resumes it. First-time visitors
-    // have `userWantsOn === false`, so this is a no-op for them — audio
-    // stays off until they click the toggle.
-    const unlock = (): void => {
-      document.removeEventListener('pointerdown', unlock);
-      document.removeEventListener('keydown', unlock);
-      if (getActive().paused && userWantsOn) {
-        tryPlay();
-      }
-    };
-    document.addEventListener('pointerdown', unlock, { once: true });
-    document.addEventListener('keydown', unlock, { once: true });
 
     // Scroll-driven volume. Only mutates the active deck's volume and
     // only when the track is actually playing; during a crossfade the
@@ -574,29 +478,10 @@ const t = getTranslations(locale);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
 
-    // Persist playhead + active deck on navigation away. `beforeunload`
-    // is invoked on every navigation (link clicks, reloads, tab close).
-    // sessionStorage scopes to the tab, so this resets when the tab dies.
-    window.addEventListener('beforeunload', () => {
-      try {
-        const active = getActive();
-        if (!active.paused && isFinite(active.currentTime)) {
-          sessionStorage.setItem(POS_KEY, String(active.currentTime));
-          sessionStorage.setItem(DECK_KEY, activeKey);
-        }
-      } catch {
-        /* ignore */
-      }
-    });
-
-    // Initial state. Audio is opt-in: only auto-(re)start for a visitor
-    // who already enabled it earlier in this tab. Everyone else lands on
-    // `off` and stays silent until they click the toggle.
+    // Initial state: always muted. The toggle is the only thing that
+    // starts audio, and the choice is never persisted — every page load
+    // and refresh lands here, silent, until the visitor clicks it.
     getActive().volume = computeVolume();
-    if (userWantsOn) {
-      tryPlay();
-    } else {
-      setState('off');
-    }
+    setState('off');
   }
 </script>
