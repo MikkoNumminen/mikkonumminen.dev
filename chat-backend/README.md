@@ -45,10 +45,9 @@ on the host. On Windows that is installed inside WSL2. This is the one piece of
 host setup; Postgres and the model are provisioned by `make up`.
 
 **Pointing the frontend at it.** The contact-page terminal's RAG integration
-(which ships in its own PR) reads the backend URL from the build-time
-`PUBLIC_CHAT_API_URL` env var — unset → the terminal stays scripted-only with no
-chat affordance (build brief constraint 5). With that integration in place, the
-site is built pointing at the backend:
+reads the backend URL from the build-time `PUBLIC_CHAT_API_URL` env var — unset →
+the terminal stays scripted-only with no chat affordance (build brief constraint
+5). To point the built site at a running backend, set the var at build time:
 
 ```bash
 PUBLIC_CHAT_API_URL=http://localhost:8000 npm run build       # local
@@ -104,9 +103,8 @@ docker compose run --rm backend python -m app.indexer
 Output reports `N file(s), M chunk(s) (E embedded, S unchanged, D pruned) - T rows in DB`.
 A run with no content changes embeds nothing and writes nothing.
 
-> The `docker compose` wrapper and the `db` / `ollama` services land in Phase 5.
-> Until then the indexer runs against any Postgres+pgvector you point
-> `DATABASE_URL` at.
+> The indexer can also run against any Postgres+pgvector you point `DATABASE_URL`
+> at, outside the Compose stack.
 
 ## API
 
