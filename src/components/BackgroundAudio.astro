@@ -5,10 +5,15 @@
 // tune via a prop without touching this component's behaviour.
 //
 // Behaviour:
-// - Tries to start playing on load. Modern browsers will silently block
-//   autoplay without a prior user gesture; the script catches that and
-//   waits for the first pointer/keyboard event to retry, so the button
-//   reflects the actual playing/paused state.
+// - Off by default. Nothing plays on load and nothing starts on the
+//   first stray interaction — the music begins only when the visitor
+//   explicitly clicks the sound toggle. The button reflects the actual
+//   playing/paused state.
+// - Once enabled, the choice persists per-tab (sessionStorage), so
+//   navigating `/` → `/projects` keeps the music going; if the browser
+//   blocks the post-navigation autoplay, the first interaction on the
+//   new page resumes it (the visitor already opted in). A fresh tab
+//   starts silent again.
 // - Position persists across page navigations. The current playhead is
 //   stored in sessionStorage on `beforeunload` and the next page seeks
 //   to it before resuming — so a click from `/` to `/projects` mid-track
@@ -281,7 +286,7 @@ const t = getTranslations(locale);
 </style>
 
 <script>
-  const OFF_KEY = 'mn_bg_audio_off';
+  const ON_KEY = 'mn_bg_audio_on';
   // Persisted across page navigations so the next page resumes mid-track.
   // Key namespaced by track id so future per-page tracks each carry their
   // own playhead.
@@ -324,11 +329,14 @@ const t = getTranslations(locale);
     let crossfadeRaf: number | null = null;
     let standbyPrefetched = false;
 
-    let userWantsOff = false;
+    // Opt-in: audio is off until the visitor clicks the toggle. The
+    // choice is remembered per-tab so moving between pages doesn't
+    // re-mute; a fresh tab (no stored flag) starts silent.
+    let userWantsOn = false;
     try {
-      userWantsOff = sessionStorage.getItem(OFF_KEY) === '1';
+      userWantsOn = sessionStorage.getItem(ON_KEY) === '1';
     } catch {
-      /* sessionStorage may be unavailable; default to wanting on */
+      /* sessionStorage may be unavailable; default to staying off */
     }
 
     const setState = (state: 'on' | 'off'): void => {
@@ -342,10 +350,10 @@ const t = getTranslations(locale);
       );
     };
 
-    const remember = (off: boolean): void => {
+    const remember = (on: boolean): void => {
       try {
-        if (off) sessionStorage.setItem(OFF_KEY, '1');
-        else sessionStorage.removeItem(OFF_KEY);
+        if (on) sessionStorage.setItem(ON_KEY, '1');
+        else sessionStorage.removeItem(ON_KEY);
       } catch {
         /* ignore */
       }
@@ -523,23 +531,25 @@ const t = getTranslations(locale);
     button.addEventListener('click', async () => {
       if (getActive().paused) {
         const started = await tryPlay();
-        if (started) remember(false);
+        if (started) remember(true);
       } else {
         abortCrossfade();
         deckA.pause();
         deckB.pause();
         setState('off');
-        remember(true);
+        remember(false);
       }
     });
 
-    // First-interaction fallback. If the user wants audio on but the
-    // browser blocked the initial autoplay, the next pointer/keyboard
-    // event the page sees becomes the gesture that unlocks it.
+    // First-interaction fallback for a visitor who already enabled sound
+    // earlier in this tab: if the post-navigation autoplay was blocked,
+    // the next pointer/keyboard gesture resumes it. First-time visitors
+    // have `userWantsOn === false`, so this is a no-op for them — audio
+    // stays off until they click the toggle.
     const unlock = (): void => {
       document.removeEventListener('pointerdown', unlock);
       document.removeEventListener('keydown', unlock);
-      if (getActive().paused && !userWantsOff) {
+      if (getActive().paused && userWantsOn) {
         tryPlay();
       }
     };
@@ -579,10 +589,11 @@ const t = getTranslations(locale);
       }
     });
 
-    // Initial play attempt. Astro inline scripts run after the DOM is
-    // parsed, so the elements above are already in scope.
+    // Initial state. Audio is opt-in: only auto-(re)start for a visitor
+    // who already enabled it earlier in this tab. Everyone else lands on
+    // `off` and stays silent until they click the toggle.
     getActive().volume = computeVolume();
-    if (!userWantsOff) {
+    if (userWantsOn) {
       tryPlay();
     } else {
       setState('off');
