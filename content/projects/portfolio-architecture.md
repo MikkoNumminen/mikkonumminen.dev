@@ -97,6 +97,39 @@ The site has no user accounts, no authentication, and no PII collected beyond an
 
 **ADR 0007 — Astro 6 + Node 22.** The project moved to Astro 6 on Node 22 to stay on a current, supported toolchain; the static-output model (no SSR, no runtime secrets) keeps the runtime attack surface minimal regardless.
 
+## RAG Chat Backend
+
+The contact-page terminal optionally supports free-form questions answered from Mikko's own curated `content/` corpus via retrieval-augmented generation. The capability is built as a **separate, optional, fully local service** (FastAPI, Python 3.12) that the static site calls over `fetch` — ADR 0002 is preserved intact (see ADR 0009 for the full reconciliation).
+
+### Architecture
+
+```
+Astro terminal (static) ──fetch──▶  FastAPI backend ──▶ Postgres + pgvector
+                                                    └──▶ Ollama (gemma4:e4b)
+Offline indexer ──embeds content──▶ Postgres + pgvector
+Embeddings (bge-small-en-v1.5) run in-process inside the backend container.
+```
+
+The site itself remains `output: 'static'` with no server-side runtime. The backend lives under `chat-backend/` and has no overlap with the Node build, lint, or CI surfaces — it cannot break the site's pipeline.
+
+**Corpus and embeddings.** The retrieval corpus is the same `content/` directory that backs the RAG doc store (one markdown file per project, `cv.md`, selected posts). Indexing is a one-time offline job (`make index`): `bge-small-en-v1.5` embeddings (384-dimensional) are produced in-process via fastembed and written to a local Postgres + pgvector container (`vector(384)`, cosine distance). The indexer is idempotent — chunks are keyed by content hash, so unchanged content is neither re-embedded nor re-written, and stale chunks are pruned.
+
+**Retrieval and generation.** At query time the backend embeds the user message (same in-process model, keeping the vector space identical to the index) and runs a top-`TOP_K` cosine search against pgvector. The retrieved chunks are assembled into a grounded prompt and streamed to a local Gemma (`gemma4:e4b`) via Ollama's OpenAI-compatible endpoint. The entire stack — Postgres, Ollama, and the FastAPI backend — starts with `make up`; the model is pulled into a named Docker volume on first run and persists across restarts. There is no hosted model, no paid API, and no cloud database; nothing costs anything per query.
+
+**Guardrail and refusal.** Generation is fronted by a deterministic weak-retrieval gate (`app/guardrails.py`): when retrieval is empty or every retrieved chunk exceeds `WEAK_RETRIEVAL_DISTANCE` in cosine distance, the API returns a clean canned refusal without calling the model. A clearly off-topic question can never be answered from hallucinated content. The grounded system prompt handles borderline cases. The API is also protected by a per-IP sliding-window rate limit and a request-body byte cap.
+
+**Streaming.** `POST /chat` returns Server-Sent Events: a `sources` frame (the retrieved document references), repeated `token` frames, and a terminal `done` or `error` frame. The frontend (`src/lib/terminal/chat.ts`) consumes the stream with an incremental SSE parser and writes token text via `textContent` — never `innerHTML` — so streamed model output is not an XSS sink.
+
+### Progressive enhancement
+
+The static site is built with a `PUBLIC_CHAT_API_URL` build-time env var. When it is unset (the default in CI and local builds), every function in `chat.ts` is inert — no fetch, no DOM change, no chat affordance. When set, the page runs exactly one `/health` probe at load time; the probe is memoized for the session. The `/health` endpoint reports liveness of both the DB and the LLM (it sends a real 1-token completion to confirm the model actually generates, not merely that the process is up). Chat is enabled only when `checks.llm === true`. If the probe fails, or if a mid-session `/chat` call fails, the terminal degrades silently to scripted-only — the same byte-for-byte state the visitor would see if the backend were absent.
+
+An optional Cloudflare tunnel (`make up-public`) can publish the backend over HTTPS when Mikko's machine is on. When the tunnel is down, the static site is indistinguishable from a build with no `PUBLIC_CHAT_API_URL` at all.
+
+### Design rationale (ADR 0009 summary)
+
+SSR and edge functions were rejected because they would contradict ADR 0002 and bind the whole site to a server runtime. A hosted LLM + managed vector DB was rejected because of per-token cost and third-party runtime dependency on a personal portfolio. Precomputed Q&A was rejected because it cannot answer free-form questions. Running embeddings in-process (rather than calling an external embedding API) keeps the vector space identical between indexing and querying and adds no cost or lock-in. The result: a clean, typed FastAPI + pgvector + local-LLM stack that is a deliberate portfolio artifact, available on demand, and zero-cost to operate.
+
 ## AI-Tooling Layer
 
 The repository treats AI automation as a first-class architectural surface. Four custom Claude Code skills live under `.claude/skills/`, version-controlled and reviewed when added. They extend the developer's local Claude Code installation — they do not execute on Vercel or any CI runner.

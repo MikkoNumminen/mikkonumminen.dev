@@ -25,6 +25,49 @@ A looping music bed plays across every page, dual-decked and crossfaded so the l
 
 Assets live in [`public/audio/`](public/audio/) and are keyed by locale: `voice-landing-{en|fi|sv}.mp3` (home) and `voice-projects-{en|fi|sv}.mp3` (galaxy view). Locales without a recording 404 the audio element silently and the page stays usable.
 
+## RAG chat (optional, fully local)
+
+The `/contact` terminal accepts free-form questions in addition to its built-in
+commands. When you type something the command parser doesn't recognise, the
+input is routed to a retrieval-augmented-generation pipeline that answers from a
+curated corpus of project descriptions, CV, and selected posts — Mikko's own
+words, retrieved and grounded, not a general-purpose chat model.
+
+```
+static Astro terminal ──fetch──▶  FastAPI backend ──▶ Postgres + pgvector
+                                                  └──▶ Ollama  (gemma4:e4b)
+Offline indexer ──embeds corpus──▶ Postgres + pgvector
+Embeddings (bge-small-en-v1.5) run in-process inside the backend container.
+```
+
+The stack is a **separate, optional service** that runs on the repo owner's
+own machine (see [ADR 0009](docs/decisions/0009-rag-chat-backend.md) — it
+reconciles the static-output requirement from ADR 0002 with a dynamic backend).
+Load-bearing properties:
+
+- **The site stays 100% static.** ADR 0002 is preserved intact. The only
+  addition on the frontend is the build-time `PUBLIC_CHAT_API_URL` env var and
+  ordinary client-side `fetch` calls — no SSR, no edge functions, no runtime
+  secrets.
+- **Fully local, zero marginal cost.** Postgres + pgvector, in-process
+  bge-small-en-v1.5 embeddings, and Gemma (`gemma4:e4b`) via a local Ollama
+  instance all run in Docker on Mikko's own machine. No hosted model, no paid
+  API, nothing per query.
+- **Progressive enhancement, never a regression.** At page load the terminal
+  fires one `GET /health` probe. The endpoint reports liveness of both the
+  database and the LLM, but the terminal unlocks chat only when `checks.llm` is
+  `true` — a real 1-token completion confirming the model actually generates.
+  When the backend is
+  absent — the default for every static build and every CI run — the terminal is
+  byte-for-byte identical to its scripted-only mode: no chat affordance, no
+  error, no visual difference.
+
+The backend lives in [`chat-backend/`](chat-backend/) with its own README. The
+Docker stack (`docker-compose.yml`) and `Makefile` bring everything up with
+`make up && make index`. For turning it on end-to-end — including optionally
+publishing the backend via a Cloudflare tunnel for live visitors — see
+[`LAUNCH.md`](LAUNCH.md).
+
 ## Tech stack
 
 - [Astro](https://astro.build/) — static site generator with island architecture
