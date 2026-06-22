@@ -32,6 +32,17 @@ These are non-negotiable. A change that violates one is wrong even if it builds.
   `requestAnimationFrame`, and honour `prefers-reduced-motion` on every animated surface.
   Three.js scenes and GSAP timelines are isolated modules exposing an explicit `init` +
   `dispose` contract; preserve that contract.
+- **The site stays 100% static (ADR 0002 is unchanged).** The RAG chat backend is a
+  separate, optional, fully-local service; the Astro build remains `output: 'static'` with
+  no SSR, no edge functions, no runtime secrets.
+- **Chat is progressive enhancement, never a regression.** `PUBLIC_CHAT_API_URL` unset (the
+  default — including all CI builds) means the terminal is byte-for-byte identical to today:
+  no chat affordance, no chat hint, no error shown. When the var is set at build time, the
+  page probes `GET /health` once on load and shows the chat affordance only if `checks.llm`
+  is `true` — i.e. the backend **and** its local Gemma are both answering. Anything down or
+  unreachable degrades silently to scripted-only. See
+  [`docs/decisions/0009-rag-chat-backend.md`](docs/decisions/0009-rag-chat-backend.md) and
+  [`chat-backend/README.md`](chat-backend/README.md).
 
 ## Repo layout
 
@@ -46,7 +57,7 @@ src/
     projects/     projects-scene building blocks (planets, hover labels)
     timeline/     experience-timeline scene helpers
     gsap/         GSAP timelines, one file per page section
-    terminal/     contact-page terminal subsystem
+    terminal/     contact-page terminal subsystem (chat.ts = RAG client)
     transitions/  page transitions (canvas particle dissolve)
     observability/ Sentry + Core Web Vitals init
     utils/        cross-cutting helpers (e.g. escapeHtml)
@@ -61,6 +72,9 @@ docs/
   decisions/      ADRs (numbered, append-only)
   audits/         dated audit & review reports
 scripts/          build/data tooling (og images, skills registry, audit PDFs)
+chat-backend/     FastAPI RAG service (Python 3.12; Postgres+pgvector, in-process bge-small-en-v1.5, local Ollama)
+content/          Curated markdown corpus the indexer embeds (projects, cv, posts)
+docker-compose.yml + Makefile  One-command local stack (`make up` / `make index` / `make down`)
 ```
 
 ## Pages — four visual worlds
