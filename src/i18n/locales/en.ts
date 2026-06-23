@@ -9,7 +9,7 @@ export const en: Translations = {
     home: {
       title: 'Mikko Numminen — full-stack developer',
       description:
-        'Full-stack developer in Finland. Seven production apps shipped solo this year — real users, 1828+ tests, AI-native by default.',
+        'Full-stack developer in Finland. Nine projects shipped solo this year — real users, 1828+ tests, AI-native by default.',
     },
     contact: {
       title: 'Contact — Mikko Numminen',
@@ -47,7 +47,7 @@ export const en: Translations = {
   intro: {
     sectionAria: 'About',
     eyebrow: 'about',
-    heading: 'Seven repos. They build on each other.',
+    heading: 'Nine repos. They build on each other.',
     body: 'Full-stack developer in Finland. HRM is the architectural backbone of Platform — live for a real WoW guild at vuohiliitto.com. AudiobookMaker voices Spacepotatis, a browser game I shipped this year; strudel-patterns scores it. Each repo stands on its own — the seams between them are the point.',
     statTests: 'tests in the largest project',
     statCoverage: 'line coverage',
@@ -107,7 +107,7 @@ export const en: Translations = {
     sectionAria: 'Development velocity',
     eyebrow: 'velocity',
     heading: 'Fast — for real.',
-    body: 'Spacepotatis went from empty repo to live browser game in 12 days: 475 commits, ~1300 tests, full Next.js + Phaser 4 + Three.js stack — backed by audited Claude Code skills as production artifacts. Six of the seven portfolio repos started in the last six weeks. AI-native isn’t rhetoric — it’s the math.',
+    body: 'Spacepotatis went from empty repo to live browser game in 12 days: 475 commits, ~1300 tests, full Next.js + Phaser 4 + Three.js stack — backed by audited Claude Code skills as production artifacts. Most of the portfolio started in the last few months. AI-native isn’t rhetoric — it’s the math.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
       label: 'How 3.13M tokens was estimated',
@@ -163,6 +163,7 @@ export const en: Translations = {
       submodule: 'submodule',
       voice: 'voice',
       music: 'music',
+      port: 'port',
     },
   },
   projectsData: {
@@ -188,6 +189,16 @@ export const en: Translations = {
       description:
         'Personal reading tracker. Searches Open Library and Google Books in parallel and deduplicates results, then lets you log books with format (paper / e-book / audiobook) and finish date. Public anonymous feed of recently logged books on the homepage.',
       highlights: ['90 tests', 'Multi-source search'],
+    },
+    'readlog-dotnet': {
+      tagline: 'ReadLog, ported to ASP.NET Core',
+      description:
+        'An idiomatic ASP.NET Core port of ReadLog, running live and free on Azure App Service. The same reading-log app — search Open Library and Google Books, log books with format, finish date, and a 0–5 rating, then browse your library and a public "recently read" feed — re-expressed in .NET 8 Razor Pages, EF Core + SQLite, and ASP.NET Core Identity (local and Google sign-in). Containerized and shipped by a reviewer-gated GitHub Actions pipeline to GHCR, then on to Azure over OIDC; EF Core migrations apply on first run.',
+      highlights: [
+        'ASP.NET Core 8 port',
+        'Live on Azure App Service',
+        'EF Core · SQLite · OIDC deploy',
+      ],
     },
     audiobookmaker: {
       tagline: 'PDF → audiobook',
@@ -217,6 +228,16 @@ export const en: Translations = {
         'Live-coded in Strudel',
         'AI-directed iteration, logged in git',
         'Soundtrack to Spacepotatis and mikkonumminen.dev',
+      ],
+    },
+    'claude-continue': {
+      tagline: 'Keep Claude Code windows back-to-back',
+      description:
+        "A cross-platform Python tool — a CLI plus a one-button Tkinter GUI — that keeps Claude Code's 5-hour usage windows running back-to-back. It reads the active window's reset time from ccusage, waits for the rollover, then resumes paused sessions (iTerm2 on macOS, tmux on Linux, a headless run on Windows/WSL) and re-arms for the next window. Runs unattended via launchd or Windows Task Scheduler. Built for long autonomous agent runs, and honest about the review debt that pattern creates.",
+      highlights: [
+        'Python · Tkinter GUI',
+        'macOS · Windows · WSL · Linux',
+        'Unattended via launchd / Task Scheduler',
       ],
     },
   },
@@ -253,26 +274,29 @@ export const en: Translations = {
     },
     'ai-workflows': {
       title: 'AI-native workflows',
-      body: 'Agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills check into the repo as production artifacts — each one teaches the agent a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so it goes straight to the work instead of grepping around at $X/token. Pair-programming with parallel subagents on independent slices, then synthesizing the results.\n\nThe skills are version-controlled, audited (drift between a skill and the code it references is a real category of bug — drift gets caught and corrected), and treated as production artifacts. Estimated saving: ~3.13M tokens/year on Spacepotatis alone. Shipping faster without lowering the bar.',
+      body: "Agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills check into the repo as production artifacts — each one teaches the agent a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so it goes straight to the work instead of grepping around at $X/token. Pair-programming with parallel subagents on independent slices, then synthesizing the results.\n\nThe skills are version-controlled, audited (drift between a skill and the code it references is a real category of bug — drift gets caught and corrected), and treated as production artifacts. Estimated saving: ~3.13M tokens/year on Spacepotatis alone. Shipping faster without lowering the bar.\n\nThe workflow has its own tooling: claude-continue keeps Claude Code's 5-hour usage windows back-to-back, reading the active window's reset time and resuming paused sessions the moment the next one opens — so a long autonomous run doesn't stall in the gap between windows.",
       tags: [
         'Agentic dev',
         'Custom skills',
         'Subagents',
+        'claude-continue',
         'Versioned workflow',
         'Velocity',
       ],
     },
     '2026-build': {
       title: 'The 2026 build',
-      body: 'As of May 2026: seven full-stack projects shipped solo in twelve months. Real users, real ops, full ownership from schema to deploy.',
+      body: 'As of June 2026: nine projects shipped solo in twelve months — full-stack web apps, a desktop tool, and a ReadLog port running live on Azure. Real users, real ops, full ownership from schema to deploy.',
       tags: [
-        '7 repos',
+        '9 repos',
         'Real users',
         'Next.js',
         'Astro',
         'Three.js',
         'Phaser 4',
         'Python',
+        'C#/.NET',
+        'Azure',
         'Turborepo',
       ],
       lessons: [
@@ -302,7 +326,7 @@ export const en: Translations = {
         },
         {
           title: 'Solo full-stack, no queues',
-          body: 'SQL, app code, CI, Vercel deploys, signed Windows installers via GitHub Releases, OpenTelemetry — owned end to end across all seven projects.',
+          body: 'SQL, app code, CI, Vercel and Azure deploys, signed Windows installers via GitHub Releases, OpenTelemetry — owned end to end across all nine projects.',
         },
       ],
     },
@@ -319,7 +343,7 @@ export const en: Translations = {
     },
     now: {
       title: 'Looking up',
-      body: 'Available now. Open to ambitious full-stack roles where craft and velocity both matter. Seven solo-shipped projects this year — proof of both.',
+      body: 'Available now. Open to ambitious full-stack roles where craft and velocity both matter. Nine solo-shipped projects this year — proof of both.',
       tags: ['Available', 'Remote / Finland'],
     },
   },

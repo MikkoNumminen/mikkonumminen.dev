@@ -47,7 +47,7 @@ export const sv: Translations = {
   intro: {
     sectionAria: 'Om',
     eyebrow: 'om',
-    heading: 'Sju repon. De bygger på varandra.',
+    heading: 'Nio repon. De bygger på varandra.',
     body: 'Full-stack-utvecklare i Finland. HRM är den arkitektoniska ryggraden i Platform — live för ett riktigt WoW-gille på vuohiliitto.com. AudiobookMaker ger rösten åt Spacepotatis, ett webbläsarspel jag släppte i år; strudel-patterns skriver musiken. Varje repo står för sig själv — fogarna mellan dem är poängen.',
     statTests: 'tester i det största projektet',
     statCoverage: 'radtäckning',
@@ -103,7 +103,7 @@ export const sv: Translations = {
     sectionAria: 'Utvecklingstempo',
     eyebrow: 'tempo',
     heading: 'Snabbt — på riktigt.',
-    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 475 commits, ~1300 tester, hela Next.js + Phaser 4 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Sex av sju portföljrepor startade under de senaste sex veckorna. AI-nativt är inte snack — det är matematik.',
+    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 475 commits, ~1300 tester, hela Next.js + Phaser 4 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Större delen av portföljen startade under de senaste månaderna. AI-nativt är inte snack — det är matematik.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
       label: 'Hur 3,13M token uppskattades',
@@ -161,6 +161,7 @@ export const sv: Translations = {
       submodule: 'undermodul',
       voice: 'röst',
       music: 'musik',
+      port: 'portning',
     },
   },
   projectsData: {
@@ -186,6 +187,16 @@ export const sv: Translations = {
       description:
         'Personlig läsdagbok. Söker i Open Library och Google Books parallellt och avduplicerar resultat, sedan kan du logga böcker med format (papper / e-bok / ljudbok) och slutdatum. Publikt anonymt flöde av nyligen loggade böcker på startsidan.',
       highlights: ['90 tester', 'Sökning från flera källor'],
+    },
+    'readlog-dotnet': {
+      tagline: 'ReadLog, portad till ASP.NET Core',
+      description:
+        'En idiomatisk ASP.NET Core-portning av ReadLog, körandes live och gratis på Azure App Service. Samma läsdagboksapp — sök i Open Library och Google Books, logga böcker med format, slutdatum och ett 0–5-stjärnbetyg, bläddra i ditt bibliotek och ett publikt "nyligen läst"-flöde — återskapad i .NET 8 Razor Pages, EF Core + SQLite och ASP.NET Core Identity (lokal och Google-inloggning). Containeriserad och levererad av en granskarstyrd GitHub Actions-pipeline till GHCR, sedan vidare till Azure via OIDC; EF Core-migrationer tillämpas vid första körningen.',
+      highlights: [
+        'ASP.NET Core 8-portning',
+        'Live på Azure App Service',
+        'EF Core · SQLite · OIDC-deploy',
+      ],
     },
     audiobookmaker: {
       tagline: 'PDF → ljudbok',
@@ -215,6 +226,16 @@ export const sv: Translations = {
         'Live-kodat i Strudel',
         'AI-styrd iteration, loggad i git',
         'Soundtrack till Spacepotatis och mikkonumminen.dev',
+      ],
+    },
+    'claude-continue': {
+      tagline: 'Håll Claude Code-fönster rygg mot rygg',
+      description:
+        'Ett plattformsoberoende Python-verktyg — en CLI plus ett enknapps Tkinter-GUI — som håller Claude Codes 5-timmarsfönster för användning igång rygg mot rygg. Det läser det aktiva fönstrets återställningstid från ccusage, väntar på övergången och återupptar sedan pausade sessioner (iTerm2 på macOS, tmux på Linux, en headless-körning på Windows/WSL) och laddar om för nästa fönster. Körs oövervakat via launchd eller Windows Task Scheduler. Byggt för långa autonoma agentkörningar — och ärligt om den granskningsskuld som det mönstret skapar.',
+      highlights: [
+        'Python · Tkinter-GUI',
+        'macOS · Windows · WSL · Linux',
+        'Oövervakat via launchd / Task Scheduler',
       ],
     },
   },
@@ -251,26 +272,29 @@ export const sv: Translations = {
     },
     'ai-workflows': {
       title: 'AI-nativa arbetsflöden',
-      body: 'Agentisk, AI-assisterad utveckling som en versionerad disciplin. Anpassade Claude Code-skills checkas in i repot som produktionsartefakter — varje skill lär agenten ett projektspecifikt recept (lägg till en fiende, släpp en databasmigration, granska sparpipelinen) så att den går rakt på sak istället för att grepa runt vid $X/token. Parprogrammering med parallella delagenter över oberoende delar, sedan syntes av resultaten.\n\nSkillsen är versionshanterade, granskade (drift mellan en skill och koden den refererar till är en verklig kategori av buggar — drift fångas och åtgärdas), och behandlas som produktionsartefakter. Uppskattad besparing enbart i Spacepotatis: ~3,13 miljoner token per år. Snabbare leverans utan att sänka ribban.',
+      body: 'Agentisk, AI-assisterad utveckling som en versionerad disciplin. Anpassade Claude Code-skills checkas in i repot som produktionsartefakter — varje skill lär agenten ett projektspecifikt recept (lägg till en fiende, släpp en databasmigration, granska sparpipelinen) så att den går rakt på sak istället för att grepa runt vid $X/token. Parprogrammering med parallella delagenter över oberoende delar, sedan syntes av resultaten.\n\nSkillsen är versionshanterade, granskade (drift mellan en skill och koden den refererar till är en verklig kategori av buggar — drift fångas och åtgärdas), och behandlas som produktionsartefakter. Uppskattad besparing enbart i Spacepotatis: ~3,13 miljoner token per år. Snabbare leverans utan att sänka ribban.\n\nArbetsflödet har egna verktyg: claude-continue håller Claude Codes 5-timmarsfönster rygg mot rygg genom att läsa det aktiva fönstrets återställningstid och återuppta pausade sessioner i samma stund som nästa fönster öppnas — så att en lång autonom körning inte stannar av i gapet mellan fönster.',
       tags: [
         'Agentisk utveckling',
         'Anpassade skills',
         'Delagenter',
+        'claude-continue',
         'Versionerat flöde',
         'Tempo',
       ],
     },
     '2026-build': {
       title: '2026 — byggåret',
-      body: 'I maj 2026: sju full-stack-projekt levererade solo på tolv månader. Riktiga användare, riktig drift, fullt ägarskap från schema till deploy.',
+      body: 'I juni 2026: nio projekt levererade solo på tolv månader — full-stack-webbappar, ett skrivbordsverktyg och en ReadLog-portning som körs live på Azure. Riktiga användare, riktig drift, fullt ägarskap från schema till deploy.',
       tags: [
-        '7 repos',
+        '9 repos',
         'Riktiga användare',
         'Next.js',
         'Astro',
         'Three.js',
         'Phaser 4',
         'Python',
+        'C#/.NET',
+        'Azure',
         'Turborepo',
       ],
       lessons: [
@@ -300,7 +324,7 @@ export const sv: Translations = {
         },
         {
           title: 'Solo full-stack, inga köer',
-          body: 'SQL, app-kod, CI, Vercel-deployer, signerade Windows-installerare via GitHub Releases, OpenTelemetry — ägt från ände till ände över alla sju projekt.',
+          body: 'SQL, app-kod, CI, Vercel- och Azure-deployer, signerade Windows-installerare via GitHub Releases, OpenTelemetry — ägt från ände till ände över alla nio projekt.',
         },
       ],
     },
@@ -317,7 +341,7 @@ export const sv: Translations = {
     },
     now: {
       title: 'Blickar uppåt',
-      body: 'Tillgänglig nu. Öppen för ambitiösa full-stack-roller där både hantverk och tempo räknas. Sju solo-levererade projekt i år — bevis på båda.',
+      body: 'Tillgänglig nu. Öppen för ambitiösa full-stack-roller där både hantverk och tempo räknas. Nio solo-levererade projekt i år — bevis på båda.',
       tags: ['Tillgänglig', 'Distans / Finland'],
     },
   },

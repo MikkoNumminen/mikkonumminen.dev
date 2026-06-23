@@ -103,7 +103,7 @@ export function buildCommands(t: Translations): CommandSpec[] {
           `<span class="line">${escape(tt.cmdWhoamiAlso)} <a href="https://spacepotatis.vercel.app" target="_blank" rel="noopener noreferrer">spacepotatis.vercel.app</a> (${escape(tt.cmdWhoamiGame)}), <a href="https://github.com/MikkoNumminen/AudiobookMaker" target="_blank" rel="noopener noreferrer">audiobookmaker</a> (${escape(tt.cmdWhoamiDesktop)}), <a href="https://vuohiliitto.com" target="_blank" rel="noopener noreferrer">vuohiliitto.com</a> (${escape(tt.cmdWhoamiCommunity)})</span>`,
         );
         const yearStats = tt.cmdWhoamiYearStats
-          .replace('{projects}', '7')
+          .replace('{projects}', '9')
           .replace('{tokens}', '3.13M')
           .replace('{prs}', '2');
         ctx.printHTML(
