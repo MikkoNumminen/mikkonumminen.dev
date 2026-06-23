@@ -80,7 +80,7 @@ export const connections: Connection[] = [
     kind: 'music',
     color: '#ec4899',
   },
-  // ReadLog re-implemented in ASP.NET Core, running live on Azure.
+  // ReadLog re-implemented in ASP.NET Core — the same app, a second stack.
   {
     sourceId: 'readlog',
     targetId: 'readlog-dotnet',
@@ -315,7 +315,7 @@ export const projects: Project[] = [
       'tmux',
       'GitHub Actions',
     ],
-    status: 'live',
+    status: 'wip',
   },
 ];
 

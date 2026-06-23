@@ -233,10 +233,10 @@ export const en: Translations = {
     'claude-continue': {
       tagline: 'Keep Claude Code windows back-to-back',
       description:
-        "A cross-platform Python tool — a CLI plus a one-button Tkinter GUI — that keeps Claude Code's 5-hour usage windows running back-to-back. It reads the active window's reset time from ccusage, waits for the rollover, then resumes paused sessions (iTerm2 on macOS, tmux on Linux, a headless run on Windows/WSL) and re-arms for the next window. Runs unattended via launchd or Windows Task Scheduler. Built for long autonomous agent runs, and honest about the review debt that pattern creates.",
+        "A cross-platform Python tool — a CLI plus a one-button Tkinter GUI — that keeps Claude Code's 5-hour usage windows running back-to-back. It reads the active window's reset time from ccusage, waits for the rollover, then resumes paused sessions — broadcasting to iTerm2 on macOS, typing into tmux panes on macOS or Linux, or a headless run on Windows/WSL — and re-arms for the next window. Runs unattended via launchd (macOS) or Windows Task Scheduler. Built for long autonomous agent runs, and honest about the review debt that pattern creates.",
       highlights: [
         'Python · Tkinter GUI',
-        'macOS · Windows · WSL · Linux',
+        'macOS · Windows · WSL · Linux (tmux)',
         'Unattended via launchd / Task Scheduler',
       ],
     },

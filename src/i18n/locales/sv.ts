@@ -231,10 +231,10 @@ export const sv: Translations = {
     'claude-continue': {
       tagline: 'Håll Claude Code-fönster rygg mot rygg',
       description:
-        'Ett plattformsoberoende Python-verktyg — en CLI plus ett enknapps Tkinter-GUI — som håller Claude Codes 5-timmarsfönster för användning igång rygg mot rygg. Det läser det aktiva fönstrets återställningstid från ccusage, väntar på övergången och återupptar sedan pausade sessioner (iTerm2 på macOS, tmux på Linux, en headless-körning på Windows/WSL) och laddar om för nästa fönster. Körs oövervakat via launchd eller Windows Task Scheduler. Byggt för långa autonoma agentkörningar — och ärligt om den granskningsskuld som det mönstret skapar.',
+        'Ett plattformsoberoende Python-verktyg — en CLI plus ett enknapps Tkinter-GUI — som håller Claude Codes 5-timmarsfönster för användning igång rygg mot rygg. Det läser det aktiva fönstrets återställningstid från ccusage, väntar på övergången och återupptar sedan pausade sessioner — broadcast till iTerm2 på macOS, till tmux-paneler på macOS eller Linux, eller en headless-körning på Windows/WSL — och laddar om för nästa fönster. Körs oövervakat via launchd (macOS) eller Windows Task Scheduler. Byggt för långa autonoma agentkörningar — och ärligt om den granskningsskuld som det mönstret skapar.',
       highlights: [
         'Python · Tkinter-GUI',
-        'macOS · Windows · WSL · Linux',
+        'macOS · Windows · WSL · Linux (tmux)',
         'Oövervakat via launchd / Task Scheduler',
       ],
     },

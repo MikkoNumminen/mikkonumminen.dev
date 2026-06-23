@@ -230,10 +230,10 @@ export const fi: Translations = {
     'claude-continue': {
       tagline: 'Pidä Claude Code -ikkunat peräkkäin',
       description:
-        'Alustariippumaton Python-työkalu — CLI ja yhden napin Tkinter-käyttöliittymä — joka pitää Claude Coden 5-tuntiset käyttöikkunat peräkkäin. Se lukee aktiivisen ikkunan nollautumisajan ccusagesta, odottaa vaihtumista ja jatkaa keskeytettyjä istuntoja (iTerm2 macOS:llä, tmux Linuxilla, headless-ajo Windowsilla/WSL:llä) ja virittyy seuraavaa ikkunaa varten. Toimii valvomatta launchd:n tai Windowsin Task Schedulerin kautta. Rakennettu pitkiin autonomisiin agenttiajoihin — ja rehellinen siitä tarkastusvelasta, jota se synnyttää.',
+        'Alustariippumaton Python-työkalu — CLI ja yhden napin Tkinter-käyttöliittymä — joka pitää Claude Coden 5-tuntiset käyttöikkunat peräkkäin. Se lukee aktiivisen ikkunan nollautumisajan ccusagesta, odottaa vaihtumista ja jatkaa keskeytettyjä istuntoja — broadcast iTerm2:een macOS:llä, tmux-paneeleihin macOS:llä tai Linuxilla, tai headless-ajo Windowsilla/WSL:llä — ja virittyy seuraavaa ikkunaa varten. Toimii valvomatta launchd:n (macOS) tai Windowsin Task Schedulerin kautta. Rakennettu pitkiin autonomisiin agenttiajoihin — ja rehellinen siitä tarkastusvelasta, jota se synnyttää.',
       highlights: [
         'Python · Tkinter-GUI',
-        'macOS · Windows · WSL · Linux',
+        'macOS · Windows · WSL · Linux (tmux)',
         'Valvomatta launchd / Task Scheduler',
       ],
     },
