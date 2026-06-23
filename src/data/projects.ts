@@ -57,7 +57,7 @@ export interface Connection {
   targetId: string;
   /** Kind of relationship — currently unused at render time but useful for
    * future hover labels. */
-  kind: 'submodule' | 'voice' | 'music';
+  kind: 'submodule' | 'voice' | 'music' | 'port';
   /** Hex color of the line. Picked to read against the dark backdrop and
    * to convey the relationship's semantic flavor. */
   color: string;
@@ -79,6 +79,13 @@ export const connections: Connection[] = [
     targetId: 'spacepotatis',
     kind: 'music',
     color: '#ec4899',
+  },
+  // ReadLog re-implemented in ASP.NET Core — the same app, a second stack.
+  {
+    sourceId: 'readlog',
+    targetId: 'readlog-dotnet',
+    kind: 'port',
+    color: '#a78bfa',
   },
 ];
 
@@ -182,6 +189,33 @@ export const projects: Project[] = [
     externalApis: ['Open Library', 'Google Books', 'Google OAuth'],
   },
   {
+    id: 'readlog-dotnet',
+    name: 'ReadLog .NET',
+    scale: 0.72,
+    orbitRadius: 32,
+    orbitSpeed: 0.026,
+    phase: 10.6,
+    tilt: 0.03,
+    color: '#7c5cff',
+    liveUrl: 'https://readlog-a2feef.azurewebsites.net/',
+    githubUrl: 'https://github.com/MikkoNumminen/Readlog-c-.net',
+    tech: [
+      '.NET 8',
+      'ASP.NET Core',
+      'Razor Pages',
+      'EF Core',
+      'SQLite',
+      'ASP.NET Identity',
+      'Bootstrap 5',
+      'xUnit',
+      'Docker',
+      'GitHub Actions',
+      'Azure App Service',
+    ],
+    status: 'live',
+    externalApis: ['Open Library', 'Google Books', 'Google OAuth'],
+  },
+  {
     id: 'audiobookmaker',
     name: 'AudiobookMaker',
     scale: 1.05,
@@ -257,6 +291,31 @@ export const projects: Project[] = [
     githubUrl: 'https://github.com/MikkoNumminen/strudel-patterns',
     tech: ['Strudel', 'JavaScript', 'Web Audio API', 'Claude Code'],
     status: 'live',
+  },
+  {
+    id: 'claude-continue',
+    name: 'claude-continue',
+    scale: 0.55,
+    orbitRadius: 35.5,
+    orbitSpeed: 0.022,
+    phase: 12.1,
+    tilt: -0.04,
+    color: '#e07a5f',
+    githubUrl: 'https://github.com/MikkoNumminen/claude-continue',
+    // CLI + GUI tool — `liveUrl` points to releases, the closest thing to a
+    // "live demo" for a packaged executable (same pattern as AudiobookMaker).
+    liveUrl: 'https://github.com/MikkoNumminen/claude-continue/releases',
+    tech: [
+      'Python',
+      'Tkinter',
+      'ccusage',
+      'PyInstaller',
+      'launchd',
+      'Task Scheduler',
+      'tmux',
+      'GitHub Actions',
+    ],
+    status: 'wip',
   },
 ];
 

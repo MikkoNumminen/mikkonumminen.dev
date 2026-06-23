@@ -117,6 +117,7 @@ export interface Translations {
       submodule: string;
       voice: string;
       music: string;
+      port: string;
     };
   };
   projectsData: Record<

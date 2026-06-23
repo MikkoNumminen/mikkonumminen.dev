@@ -47,7 +47,7 @@ export const fi: Translations = {
   intro: {
     sectionAria: 'Tietoja',
     eyebrow: 'tietoja',
-    heading: 'Seitsemän repoa. Ne rakentavat toistensa päälle.',
+    heading: 'Yhdeksän repoa. Ne rakentavat toistensa päälle.',
     body: 'Full-stack-kehittäjä Suomesta. HRM on Platformin arkkitehtuuripohja — Platform on tuotantokäytössä oikealla WoW-killalla osoitteessa vuohiliitto.com. AudiobookMaker tuottaa äänet Spacepotatikseen, tänä vuonna julkaisemaani selainpeliin; strudel-patterns säveltää sen musiikin. Jokainen repo seisoo omillaan — saumat niiden välillä ovat se juju.',
     statTests: 'testiä suurimmassa projektissa',
     statCoverage: 'rivikattavuus',
@@ -103,7 +103,7 @@ export const fi: Translations = {
     sectionAria: 'Kehitysvauhti',
     eyebrow: 'vauhti',
     heading: 'Nopeaa — todistettavasti.',
-    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 475 commitia, ~1300 testiä, koko Next.js + Phaser 4 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Seitsemästä portfolioreposta kuusi käynnistyi viimeisen kuuden viikon aikana. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
+    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 475 commitia, ~1300 testiä, koko Next.js + Phaser 4 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Suurin osa portfoliosta käynnistyi viime kuukausina. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
       label: 'Miten 3,13M tokenia arvioitiin',
@@ -160,6 +160,7 @@ export const fi: Translations = {
       submodule: 'alimoduuli',
       voice: 'ääni',
       music: 'musiikki',
+      port: 'porttaus',
     },
   },
   projectsData: {
@@ -185,6 +186,16 @@ export const fi: Translations = {
       description:
         'Henkilökohtainen lukupäiväkirja. Hakee kirjatiedot Google Booksista ja Open Librarysta samanaikaisesti, joten kirjan lisääminen on nopeaa — valitset vain formaatin (paperi, e-kirja tai äänikirja) ja milloin luit sen. Etusivulla näkyy mitä muut ovat lukeneet viime aikoina.',
       highlights: ['90 testiä', 'Monilähde-haku'],
+    },
+    'readlog-dotnet': {
+      tagline: 'ReadLog käännettynä ASP.NET Coreen',
+      description:
+        'Idiomaattinen ASP.NET Core -käännös ReadLogista, käynnissä ilmaiseksi Azure App Servicessä. Sama lukupäiväkirjasovellus — hae Open Librarysta ja Google Booksista, kirjaa kirjat formaatilla, lukupäivämäärällä ja 0–5 tähden arviolla, selaa kirjastoasi ja julkista "viimeksi luettua" -syötettä — toteutettuna uudelleen .NET 8 Razor Pagesilla, EF Core + SQLitellä ja ASP.NET Core Identityllä (paikallinen ja Google-kirjautuminen). Kontitettu ja toimitettu tarkastajan hyväksymällä GitHub Actions -putkella GHCR:ään ja sieltä Azureen OIDC:n yli; EF Core -migraatiot ajetaan ensimmäisellä käynnistyksellä.',
+      highlights: [
+        'ASP.NET Core 8 -käännös',
+        'Live Azure App Servicessä',
+        'EF Core · SQLite · OIDC-julkaisu',
+      ],
     },
     audiobookmaker: {
       tagline: 'PDF → äänikirja',
@@ -214,6 +225,16 @@ export const fi: Translations = {
         'Live-koodattu Strudelilla',
         'Tekoälyohjattu iterointi, kirjattuna gitiin',
         'Spacepotatiksen ja mikkonumminen.devin ääniraita',
+      ],
+    },
+    'claude-continue': {
+      tagline: 'Pidä Claude Code -ikkunat peräkkäin',
+      description:
+        'Alustariippumaton Python-työkalu — CLI ja yhden napin Tkinter-käyttöliittymä — joka pitää Claude Coden 5-tuntiset käyttöikkunat peräkkäin. Se lukee aktiivisen ikkunan nollautumisajan ccusagesta, odottaa vaihtumista ja jatkaa keskeytettyjä istuntoja — broadcast iTerm2:een macOS:llä, tmux-paneeleihin macOS:llä tai Linuxilla, tai headless-ajo Windowsilla/WSL:llä — ja virittyy seuraavaa ikkunaa varten. Toimii valvomatta launchd:n (macOS) tai Windowsin Task Schedulerin kautta. Rakennettu pitkiin autonomisiin agenttiajoihin — ja rehellinen siitä tarkastusvelasta, jota se synnyttää.',
+      highlights: [
+        'Python · Tkinter-GUI',
+        'macOS · Windows · WSL · Linux (tmux)',
+        'Valvomatta launchd / Task Scheduler',
       ],
     },
   },
@@ -250,26 +271,29 @@ export const fi: Translations = {
     },
     'ai-workflows': {
       title: 'AI-natiivit työnkulut',
-      body: 'Agenttilähtöistä, AI-avusteista kehitystä versioituna kurinalaisuutena. Mukautetut Claude Code -skillit menevät repoon tuotantoartefakteina — jokainen opettaa agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki) niin että se menee suoraan asiaan eikä grepaa ympäriinsä hinnalla $X/token. Parikoodausta rinnakkaisilla subagenteilla itsenäisten siivujen yli, sen jälkeen tulosten synteesi.\n\nSkillit ovat versionhallinnassa, auditoituja (skillin ja sen viittaaman koodin välinen drift on aito bugiluokka — drift napataan ja korjataan), ja niitä käsitellään tuotantoartefakteina. Arvioitu säästö pelkästään Spacepotatiksella: ~3,13M tokenia vuodessa. Nopeammin tuotantoon ilman että rima laskee.',
+      body: 'Agenttilähtöistä, AI-avusteista kehitystä versioituna kurinalaisuutena. Mukautetut Claude Code -skillit menevät repoon tuotantoartefakteina — jokainen opettaa agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki) niin että se menee suoraan asiaan eikä grepaa ympäriinsä hinnalla $X/token. Parikoodausta rinnakkaisilla subagenteilla itsenäisten siivujen yli, sen jälkeen tulosten synteesi.\n\nSkillit ovat versionhallinnassa, auditoituja (skillin ja sen viittaaman koodin välinen drift on aito bugiluokka — drift napataan ja korjataan), ja niitä käsitellään tuotantoartefakteina. Arvioitu säästö pelkästään Spacepotatiksella: ~3,13M tokenia vuodessa. Nopeammin tuotantoon ilman että rima laskee.\n\nTyönkululla on omat työkalunsa: claude-continue pitää Claude Coden 5-tuntiset käyttöikkunat peräkkäin lukemalla aktiivisen ikkunan nollautumisajan ja jatkamalla keskeytettyjä istuntoja heti kun seuraava ikkuna avautuu — niin ettei pitkä autonominen ajo pysähdy ikkunoiden väliseen kuoppaan.',
       tags: [
         'Agenttikehitys',
         'Mukautetut skillit',
         'Subagentit',
+        'claude-continue',
         'Versioitu työnkulku',
         'Vauhti',
       ],
     },
     '2026-build': {
       title: '2026 — rakennusvuosi',
-      body: 'Toukokuussa 2026: seitsemän full-stack-projektia tuotantoon yksin yhden vuoden sisällä. Oikeita käyttäjiä, oikeaa ops-puolta, täysi omistajuus skeemasta deployhin.',
+      body: 'Kesäkuussa 2026: yhdeksän projektia tuotantoon yksin yhden vuoden sisällä — full-stack-verkkosovelluksia, työpöytätyökalu ja Azureen julkaistu ReadLog-käännös. Oikeita käyttäjiä, oikeaa ops-puolta, täysi omistajuus skeemasta deployhin.',
       tags: [
-        '7 repoa',
+        '9 repoa',
         'Oikeita käyttäjiä',
         'Next.js',
         'Astro',
         'Three.js',
         'Phaser 4',
         'Python',
+        'C#/.NET',
+        'Azure',
         'Turborepo',
       ],
       lessons: [
@@ -299,7 +323,7 @@ export const fi: Translations = {
         },
         {
           title: 'Yksin full-stack, ei jonoja',
-          body: 'SQL, sovelluskoodi, CI, Vercel-deployt, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry — omistettuna päästä päähän kaikissa seitsemässä projektissa.',
+          body: 'SQL, sovelluskoodi, CI, Vercel- ja Azure-deployt, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry — omistettuna päästä päähän kaikissa yhdeksässä projektissa.',
         },
       ],
     },
@@ -316,7 +340,7 @@ export const fi: Translations = {
     },
     now: {
       title: 'Katse ylöspäin',
-      body: 'Saatavilla nyt. Avoin kunnianhimoisille full-stack-rooleille, joissa sekä laatu että vauhti ratkaisevat. Seitsemän tänä vuonna yksin tuotantoon vietyä projektia — todiste molemmista.',
+      body: 'Saatavilla nyt. Avoin kunnianhimoisille full-stack-rooleille, joissa sekä laatu että vauhti ratkaisevat. Yhdeksän tänä vuonna yksin tuotantoon vietyä projektia — todiste molemmista.',
       tags: ['Saatavilla', 'Etänä / Suomi'],
     },
   },
