@@ -4,14 +4,14 @@ A single, plain-language tour of the retrieval-augmented chat behind the
 `/contact` terminal: the moving parts, how a question becomes an answer, and how
 the thing is actually deployed and operated today.
 
-It complements, rather than repeats, the two existing documents:
+It complements, rather than repeats, the three existing documents:
 
 - **Why it's built this way** → [ADR 0009](decisions/0009-rag-chat-backend.md) (the decision + rejected alternatives).
 - **Backend internals + the HTTP API** → [`chat-backend/README.md`](../chat-backend/README.md).
 - **Host setup runbook** → [`LAUNCH.md`](../LAUNCH.md).
 
 This page is the **as-built** reference — including the live public deployment,
-which the two docs above predate (they assume a Cloudflare tunnel; the live site
+which the docs above predate (they assume a Cloudflare tunnel; the live site
 uses Tailscale Funnel — see [§5](#5-how-its-deployed-live-the-as-built-path)).
 
 ---
