@@ -216,7 +216,7 @@ style-src 'self' 'unsafe-inline';
 img-src 'self' data:;
 font-src 'self' data:;
 media-src 'self';
-connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io;
+connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://paskamyrsky.tail6ed53b.ts.net;
 frame-ancestors 'none';
 base-uri 'self';
 form-action 'self';
@@ -227,7 +227,7 @@ frame-src 'none';
 upgrade-insecure-requests
 ```
 
-`connect-src` allows the Sentry ingest hosts — `*.ingest.sentry.io` plus the regional `*.ingest.us.sentry.io` / `*.ingest.de.sentry.io` — for the observability beacon (see the Observability section above). The init module no-ops when `PUBLIC_SENTRY_DSN` is unset, so these hosts only see traffic on deployments that have the DSN configured.
+`connect-src` allows the Sentry ingest hosts — `*.ingest.sentry.io` plus the regional `*.ingest.us.sentry.io` / `*.ingest.de.sentry.io` — for the observability beacon (see the Observability section above), plus the Tailscale Funnel origin the RAG chat backend is published at (matching `PUBLIC_CHAT_API_URL`; see [`docs/rag-chat.md`](docs/rag-chat.md)). The init module no-ops when `PUBLIC_SENTRY_DSN` is unset, so the Sentry hosts only see traffic on deployments that have the DSN configured.
 
 `'unsafe-inline'` remains on both `script-src` and `style-src` because the site relies on:
 
