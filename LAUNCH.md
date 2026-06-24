@@ -209,8 +209,11 @@ it again and the one after that gets the chat.
 
 **`make up` fails with GPU errors**
 
-Confirm `nvidia-container-toolkit` is installed inside WSL2 and Docker Desktop
-is set to use the WSL2 backend. Test GPU passthrough before starting the stack:
+With Docker Desktop's WSL2 backend you do **not** install
+`nvidia-container-toolkit` in the distro yourself — Docker Desktop provides the
+GPU passthrough. Confirm the host has a current NVIDIA driver and that Settings →
+Resources → WSL Integration is enabled for your distro, then test passthrough
+before starting the stack:
 
 ```bash
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
