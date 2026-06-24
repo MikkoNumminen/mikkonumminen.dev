@@ -209,15 +209,23 @@ it again and the one after that gets the chat.
 
 **`make up` fails with GPU errors**
 
-Confirm `nvidia-container-toolkit` is installed inside WSL2 and Docker Desktop
-is set to use the WSL2 backend. Test GPU passthrough before starting the stack:
+With Docker Desktop's WSL2 backend you do **not** install
+`nvidia-container-toolkit` in the distro yourself — Docker Desktop provides the
+GPU passthrough. Confirm the host has a current NVIDIA driver and that Settings →
+Resources → WSL Integration is enabled for your distro, then test passthrough
+before starting the stack:
 
 ```bash
-docker run --rm --gpus all nvidia/cuda:12.0-base-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
+
+If that exact tag is unavailable, any recent `nvidia/cuda:*-base-ubuntu22.04`
+tag works — the test only needs `nvidia-smi` to print your GPU.
 
 **Stack is up but `make index` errors**
 
-The backend must reach healthy before the indexer can write to Postgres. Run
-`make ps` and wait until the `backend` service shows `healthy`, then re-run
+`make index` runs as its own one-shot container that waits for Postgres and the
+model pull before it starts — it does not depend on the long-lived `backend`
+service being healthy. If it errors, make sure `make up` has been run first so
+the `db` service is up (`make ps` shows each service's state), then re-run
 `make index`.
