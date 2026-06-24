@@ -5,7 +5,7 @@ import { disposeMeasureSpan, echoPromptLine, makeContext, updateCursor } from '.
 import { runBoot } from './typing';
 import { History } from './history';
 import { handleCommand, tabComplete } from './dispatch';
-import { createChatRouter } from './chat';
+import { createChatRouter, startChatAvailabilityPolling } from './chat';
 
 // Allow-list for values that may be sent to the clipboard via copy buttons.
 // Only email addresses and https:// URLs are permitted; anything else is silently
@@ -204,14 +204,20 @@ export async function initTerminal(
   input.focus();
   updateCursor(input, cursor);
 
-  // Progressive enhancement: probe the chat backend once, after boot. Only if it
-  // AND its LLM respond do we reveal the "ask about the projects" affordance.
-  // When chat is unavailable (the default — no backend configured) nothing is
-  // added, so the terminal is pixel-identical to today (build brief constraint 5).
-  void chat.isAvailable().then((available) => {
-    if (!available || signal.aborted) return;
-    revealChatHint(root, t);
-  });
+  // Progressive enhancement: keep the "ask about the projects" affordance in sync
+  // with the backend's live state. Probes once after boot, then on an interval and
+  // on tab refocus, so the hint appears within one interval of the operator turning
+  // the stack on and disappears when it goes off — no reload. When no backend is
+  // configured nothing probes and nothing is added, so the terminal stays
+  // pixel-identical to today (build brief constraint 5).
+  startChatAvailabilityPolling(
+    (available) => {
+      if (signal.aborted) return;
+      if (available) revealChatHint(root, t);
+      else hideChatHint(root);
+    },
+    { signal },
+  );
 
   return { dispose };
 }
@@ -225,4 +231,9 @@ function revealChatHint(root: ParentNode, t: ReturnType<typeof getTranslations>)
   // textContent (not innerHTML): plain static i18n string, never an HTML sink.
   hint.textContent = t.terminal.chatHint;
   hints.appendChild(hint);
+}
+
+/** Remove the chat hint when the backend goes away mid-session. */
+function hideChatHint(root: ParentNode): void {
+  root.querySelector<HTMLElement>('.terminal__hint--chat')?.remove();
 }

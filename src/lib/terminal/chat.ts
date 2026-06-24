@@ -78,21 +78,29 @@ export function getChatBaseUrl(): string | null {
 
 // --- session availability state -------------------------------------------
 
-// Memoized so the `/health` probe runs at most once per page load (constraint
-// 5: "check /health on load, cache the result"). A reload re-probes.
+// The first `/health` probe is memoized so the initial gate decision is made
+// once; `startChatAvailabilityPolling` then re-probes to keep
+// `lastKnownAvailable` current, so the affordance can appear/disappear as the
+// backend is toggled — without a reload.
 let availabilityProbe: Promise<boolean> | null = null;
+// The latest probed availability, updated by every probe (initial + polled).
+// The dispatcher reads this (via `isChatAvailable`) so it tracks live on/off
+// transitions, not just the load-time result.
+let lastKnownAvailable = false;
 // Latched true the first time a `/chat` call fails, forcing scripted-only for
-// the rest of the session regardless of the cached probe.
+// the rest of the session regardless of any later probe.
 let sessionDisabled = false;
 
 /** Force scripted-only for the rest of the session after a mid-session failure. */
 export function disableChatForSession(): void {
   sessionDisabled = true;
+  lastKnownAvailable = false;
 }
 
-/** Test seam: clear the memoized probe + disabled latch between tests. */
+/** Test seam: clear the memoized probe + live state + disabled latch. */
 export function resetChatStateForTests(): void {
   availabilityProbe = null;
+  lastKnownAvailable = false;
   sessionDisabled = false;
 }
 
@@ -136,12 +144,88 @@ export async function probeAvailability(
  * disabled mid-session — so the scripted-only path stays instant and the
  * `/health` probe only fires when a URL is actually set.
  */
-export function isChatAvailable(): Promise<boolean> {
-  if (sessionDisabled) return Promise.resolve(false);
+export async function isChatAvailable(): Promise<boolean> {
+  if (sessionDisabled) return false;
   const base = getChatBaseUrl();
-  if (!base) return Promise.resolve(false);
-  availabilityProbe ??= probeAvailability(base);
-  return availabilityProbe;
+  if (!base) return false;
+  availabilityProbe ??= refreshAvailability(base);
+  await availabilityProbe;
+  // Reflect the latest probed value (which polling keeps current) rather than the
+  // memoized first result, so the dispatcher tracks live on/off transitions.
+  return lastKnownAvailable;
+}
+
+/** Run one `/health` probe and record it as the latest known availability. */
+async function refreshAvailability(base: string, opts: FetchOpts = {}): Promise<boolean> {
+  const available = await probeAvailability(base, opts);
+  lastKnownAvailable = available;
+  return available;
+}
+
+// How often the live page re-checks the backend so the chat affordance can
+// appear or disappear as the operator toggles the stack on/off — without a
+// reload. Each probe hits the chat backend (the operator's own machine, via the
+// tunnel), never Vercel, so the only cost is on that box; 25s is a calm cadence.
+const AVAILABILITY_POLL_MS = 25_000;
+
+export interface AvailabilityPollOpts {
+  intervalMs?: number;
+  signal?: AbortSignal;
+  fetchImpl?: typeof fetch;
+}
+
+/**
+ * Keep the chat affordance in sync with the backend's live state — no reload.
+ *
+ * Probes `/health` immediately, then on an interval and whenever the tab regains
+ * focus, calling `onChange(available)` ONLY on a transition. This is what makes
+ * the "ask about the projects" hint appear within one interval of the backend
+ * coming up, and disappear when it goes away.
+ *
+ * Inert when no backend is configured (nothing probes, `onChange` never fires —
+ * the terminal stays pixel-identical to today), and reports `false` once chat
+ * has been disabled for the session after a failed turn. Cleanup is via
+ * `opts.signal` (the terminal's AbortController): on abort the interval and the
+ * visibility listener are removed and no further probes run.
+ */
+export function startChatAvailabilityPolling(
+  onChange: (available: boolean) => void,
+  { intervalMs = AVAILABILITY_POLL_MS, signal, fetchImpl }: AvailabilityPollOpts = {},
+): void {
+  const base = getChatBaseUrl();
+  if (!base) return; // No backend -> nothing to reveal, ever.
+
+  let last = lastKnownAvailable;
+  const tick = async (): Promise<void> => {
+    if (signal?.aborted) return;
+    const probe = sessionDisabled
+      ? Promise.resolve(false)
+      : refreshAvailability(base, { fetchImpl });
+    // Let the first poll satisfy `isChatAvailable`'s memo, so the dispatcher and
+    // the poller share one initial probe rather than each firing its own.
+    availabilityProbe ??= probe;
+    const available = await probe;
+    if (signal?.aborted) return;
+    if (available !== last) {
+      last = available;
+      onChange(available);
+    }
+  };
+
+  void tick();
+  const interval = setInterval(() => void tick(), intervalMs);
+  const onVisibility = (): void => {
+    if (document.visibilityState === 'visible') void tick();
+  };
+  document.addEventListener('visibilitychange', onVisibility);
+  signal?.addEventListener(
+    'abort',
+    () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    },
+    { once: true },
+  );
 }
 
 // --- SSE parsing -----------------------------------------------------------
