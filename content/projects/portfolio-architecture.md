@@ -73,7 +73,7 @@ The site has no user accounts, no authentication, and no PII collected beyond an
 **Content Security Policy** (enforced via `vercel.json` headers on every response):
 
 - `default-src 'self'`; no third-party scripts.
-- `connect-src` allowlists only `*.ingest.sentry.io` (and regional variants) for telemetry.
+- `connect-src` allowlists `*.ingest.sentry.io` (and regional variants) for telemetry, plus the Tailscale Funnel origin the RAG chat backend is published at.
 - `frame-ancestors 'none'`; `object-src 'none'`; `base-uri 'self'`; `upgrade-insecure-requests`.
 - `'unsafe-inline'` is required on `script-src`/`style-src` because fully static output cannot emit per-request nonces (ADR 0002 explains the constraint). The classical inline-script injection path does not exist on a site that loads no third-party scripts and has no server-reflected HTML.
 
