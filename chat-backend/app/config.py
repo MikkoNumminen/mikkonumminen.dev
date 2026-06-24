@@ -85,6 +85,10 @@ class Settings:
     ollama_base_url: str
     llm_model: str
     llm_timeout_seconds: int
+    # Generation tuning — the CLI's "effort" knobs. Temperature stays low by
+    # default for grounded RAG; num_predict <= 0 means "no cap" (model default).
+    llm_temperature: float
+    llm_num_predict: int
 
     # --- retrieval + API surface ---
     retrieval_top_k: int
@@ -114,6 +118,8 @@ class Settings:
             ollama_base_url=_get_str("OLLAMA_BASE_URL", _DEFAULT_OLLAMA_BASE_URL),
             llm_model=_get_str("LLM_MODEL", _DEFAULT_LLM_MODEL),
             llm_timeout_seconds=_get_int("LLM_TIMEOUT_SECONDS", 60),
+            llm_temperature=_get_float("LLM_TEMPERATURE", 0.4),
+            llm_num_predict=_get_int("LLM_NUM_PREDICT", 0),
             retrieval_top_k=_get_int("TOP_K", 5),
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
             weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.7),

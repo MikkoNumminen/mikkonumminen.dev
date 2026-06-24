@@ -49,10 +49,36 @@ def parse_stream_line(line: str) -> str | None:
 class LLMClient:
     """Thin async client over the Ollama OpenAI-compatible chat endpoint."""
 
-    def __init__(self, base_url: str, model: str, timeout_seconds: int) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        timeout_seconds: int,
+        *,
+        temperature: float = 0.4,
+        num_predict: int = 0,
+    ) -> None:
         self._base = base_url.rstrip("/")
         self._model = model
         self._timeout = timeout_seconds
+        self._temperature = temperature
+        self._num_predict = num_predict
+
+    def _chat_payload(self, messages: Sequence[dict[str, str]]) -> dict[str, object]:
+        """The OpenAI-compatible request body with the effort knobs applied.
+
+        `temperature` is always sent; `max_tokens` (Ollama maps it to num_predict)
+        only when a positive cap is configured, so 0 keeps the model's default.
+        """
+        payload: dict[str, object] = {
+            "model": self._model,
+            "messages": list(messages),
+            "stream": True,
+            "temperature": self._temperature,
+        }
+        if self._num_predict > 0:
+            payload["max_tokens"] = self._num_predict
+        return payload
 
     async def check_health(self) -> bool:
         """True iff the model returns a 1-token completion within the timeout.
@@ -82,7 +108,7 @@ class LLMClient:
             async with client.stream(
                 "POST",
                 f"{self._base}/chat/completions",
-                json={"model": self._model, "messages": list(messages), "stream": True},
+                json=self._chat_payload(messages),
             ) as resp:
                 resp.raise_for_status()
                 async for line in resp.aiter_lines():

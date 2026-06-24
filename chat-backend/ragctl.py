@@ -17,6 +17,8 @@ it runs with any python3.
                                            live board; Ctrl-C tears it down
   python chat-backend/ragctl.py up --keep  bring it live and leave it running
   python chat-backend/ragctl.py down       cut the rag: compose down + funnel off
+  python chat-backend/ragctl.py model NAME --effort quick|balanced|thorough
+                                           [--context 4k|8k|16k]  switch model + tuning
 
 Cleanup policy (chosen): `down` stops the Compose stack (frees VRAM) and turns
 the Funnel off, but leaves Docker Desktop and Tailscale running.
@@ -40,6 +42,12 @@ BACKEND_HEALTH = "http://localhost:8000/health"
 BACKEND_CHAT = "http://localhost:8000/chat"
 FUNNEL_PORT = "8000"
 DOCKER_DESKTOP_EXE = "/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
+
+# "effort" presets -> (temperature, num_predict). Low temperature for grounded
+# RAG; effort mainly buys answer length (num_predict = max output tokens).
+EFFORT_PRESETS = {"quick": (0.2, 256), "balanced": (0.4, 512), "thorough": (0.6, 1024)}
+# "context" presets -> served context window (num_ctx). More context = more VRAM.
+CONTEXT_PRESETS = {"4k": 4096, "8k": 8192, "16k": 16384}
 
 # --- tiny terminal helpers -------------------------------------------------
 
@@ -118,6 +126,36 @@ def configured_model() -> str:
             if line.startswith("LLM_MODEL="):
                 return line.split("=", 1)[1].strip()
     return "gemma4:e4b"
+
+
+def list_models() -> list[str]:
+    rc, out = run(COMPOSE + ["exec", "-T", "ollama", "ollama", "list"], cwd=REPO, timeout=15)
+    if rc != 0:
+        return []
+    return [
+        ln.split()[0]
+        for ln in out.splitlines()
+        if ln.strip() and not ln.startswith("NAME")
+    ]
+
+
+def set_env_vars(updates: dict[str, str]) -> None:
+    """Upsert KEY=value pairs in the repo .env, preserving the other lines."""
+    env = REPO / ".env"
+    lines = env.read_text(encoding="utf-8").splitlines() if env.exists() else []
+    seen: set[str] = set()
+    out: list[str] = []
+    for line in lines:
+        key = line.split("=", 1)[0] if "=" in line and not line.lstrip().startswith("#") else None
+        if key in updates:
+            out.append(f"{key}={updates[key]}")
+            seen.add(key)
+        else:
+            out.append(line)
+    for key, val in updates.items():
+        if key not in seen:
+            out.append(f"{key}={val}")
+    env.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
 # --- component checks (each returns (state, detail)) -----------------------
@@ -495,6 +533,57 @@ def cmd_test(question: str) -> int:
     return 0
 
 
+def cmd_model(name: str | None, effort: str, context: str | None, do_test: bool) -> int:
+    """Pick a model + effort/context, write the config, recreate, warm, test."""
+    models = list_models()
+    if not models:
+        print("  ○ no models found — is ollama up? run `ragctl up` first.")
+        return 1
+    if name is None:
+        print(_c("\n  installed models:", "1"))
+        for i, m in enumerate(models, 1):
+            print(f"    {i}. {m}")
+        choice = input("\n  pick a model (number or name): ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(models):
+            name = models[int(choice) - 1]
+        elif choice in models:
+            name = choice
+        else:
+            print("  ○ no such model")
+            return 1
+    elif name not in models:
+        print(f"  ○ '{name}' is not installed. have: {', '.join(models)}")
+        return 1
+
+    temperature, num_predict = EFFORT_PRESETS[effort]
+    updates = {
+        "LLM_MODEL": name,
+        "LLM_TEMPERATURE": str(temperature),
+        "LLM_NUM_PREDICT": str(num_predict),
+    }
+    restart = ["backend"]
+    ctx_note = ""
+    if context:
+        updates["OLLAMA_CONTEXT_LENGTH"] = str(CONTEXT_PRESETS[context])
+        restart.append("ollama")  # context is read by the ollama server at start
+        ctx_note = f", context {context}"
+
+    print(
+        f"\n  applying → {_c(name, '1')}  ·  effort {effort} "
+        f"(temp {temperature}, max_tokens {num_predict}){ctx_note}"
+    )
+    set_env_vars(updates)
+    print(f"  ◐ recreating {', '.join(restart)} with the new config …")
+    run(COMPOSE + ["up", "-d", *restart], cwd=REPO, timeout=180)
+    print(f"  ◐ warming {name} …")
+    run(COMPOSE + ["exec", "-T", "ollama", "ollama", "run", name, "ok"], cwd=REPO, timeout=120)
+    print()
+    print(render(gather()))
+    if do_test:
+        cmd_test("In one sentence, what is Mikko's most impressive project and why?")
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(prog="ragctl", description="Operator CLI for the local RAG chat.")
     sub = p.add_subparsers(dest="cmd")
@@ -506,6 +595,13 @@ def main() -> int:
     sub.add_parser("down", help="cut the rag: compose down + funnel off")
     test = sub.add_parser("test", help="doctor the live model with a test question")
     test.add_argument("question", help="the question to ask")
+    mdl = sub.add_parser("model", help="choose a model + effort/context and apply it")
+    mdl.add_argument("name", nargs="?", help="model name (omit to pick interactively)")
+    mdl.add_argument(
+        "--effort", choices=list(EFFORT_PRESETS), default="balanced", help="generation effort"
+    )
+    mdl.add_argument("--context", choices=list(CONTEXT_PRESETS), help="served context window")
+    mdl.add_argument("--no-test", action="store_true", help="skip the post-apply test query")
     args = p.parse_args()
 
     if args.cmd == "status":
@@ -520,6 +616,8 @@ def main() -> int:
         return cmd_down()
     if args.cmd == "test":
         return cmd_test(args.question)
+    if args.cmd == "model":
+        return cmd_model(args.name, args.effort, args.context, not args.no_test)
     p.print_help()
     return 0
 
