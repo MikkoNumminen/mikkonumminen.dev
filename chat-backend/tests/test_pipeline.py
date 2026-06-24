@@ -129,3 +129,26 @@ def test_generation_failure_emits_sources_then_error() -> None:
     frames = _collect("q", db=FakeDB([_row("cv.md")]), llm=FakeLLM([], fail=True))
     assert _events(frames) == ["sources", "error"]
     assert "generation" in json.loads(frames[1].split("data: ", 1)[1])["message"]
+
+
+def test_markdown_markers_are_stripped_from_streamed_tokens() -> None:
+    # The model emits markdown despite the prompt; the terminal renders raw text,
+    # so it must arrive stripped — even when a `**` straddles two token chunks.
+    llm = FakeLLM(["**HR", "M** ", "is ", "`great`", "."])
+    frames = _collect("what is hrm", db=FakeDB([_row("projects/hrm.md")]), llm=llm)
+    assert _token_text(frames) == "HRM is great."
+
+
+def test_markup_only_token_is_dropped_not_emitted_empty() -> None:
+    llm = FakeLLM(["Hello", "**", " world"])
+    frames = _collect("q", db=FakeDB([_row("cv.md")]), llm=llm)
+    # The "**" token collapses to empty and is skipped, not sent as a blank token.
+    assert _events(frames) == ["sources", "token", "token", "done"]
+    assert _token_text(frames) == "Hello world"
+
+
+def test_hash_in_content_is_preserved() -> None:
+    # `#` is NOT stripped — it appears in real tech names like "C#".
+    llm = FakeLLM(["Built with C# ", "and .NET."])
+    frames = _collect("tech", db=FakeDB([_row("projects/readlog.md")]), llm=llm)
+    assert _token_text(frames) == "Built with C# and .NET."
