@@ -573,8 +573,10 @@ def cmd_model(name: str | None, effort: str, context: str | None, do_test: bool)
         f"(temp {temperature}, max_tokens {num_predict}){ctx_note}"
     )
     set_env_vars(updates)
-    print(f"  ◐ recreating {', '.join(restart)} with the new config …")
-    run(COMPOSE + ["up", "-d", *restart], cwd=REPO, timeout=180)
+    print(f"  ◐ rebuilding + recreating {', '.join(restart)} with the new config …")
+    # --build so a freshly pulled backend (which reads the new knobs) is actually
+    # current; the build is layer-cached, so it's a fast no-op when code is unchanged.
+    run(COMPOSE + ["up", "-d", "--build", *restart], cwd=REPO, timeout=300)
     print(f"  ◐ warming {name} …")
     run(COMPOSE + ["exec", "-T", "ollama", "ollama", "run", name, "ok"], cwd=REPO, timeout=120)
     print()
