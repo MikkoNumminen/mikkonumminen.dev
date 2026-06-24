@@ -239,13 +239,13 @@ def funnel_url() -> str | None:
         return None
 
 
-def check_funnel() -> tuple[str, str]:
+def check_funnel(url: str | None = None) -> tuple[str, str]:
     ts = tailscale_exe()
     if not ts:
         return ("down", "tailscale.exe not found")
-    rc, out = run([ts, "funnel", "status"], timeout=10)
+    _, out = run([ts, "funnel", "status"], timeout=10)
     if "Funnel on" in out:
-        return ("ok", funnel_url() or "on")
+        return ("ok", url or funnel_url() or "on")
     return ("down", "off — run `ragctl up`")
 
 
@@ -299,7 +299,7 @@ def gather() -> list[tuple[str, tuple[str, str]]]:
             ("GPU", ("down", "—")),
             ("backend /health", ("down", "—")),
             ("Tailscale", check_tailscale()),
-            ("Funnel", check_funnel()),
+            ("Funnel", check_funnel(url)),
             ("public reachable", check_public(url)),
         ]
     services = compose_services()
@@ -313,7 +313,7 @@ def gather() -> list[tuple[str, tuple[str, str]]]:
         ("GPU", check_gpu()),
         ("backend /health", check_backend_health()),
         ("Tailscale", check_tailscale()),
-        ("Funnel", check_funnel()),
+        ("Funnel", check_funnel(url)),
         ("public reachable", check_public(url)),
     ]
 
@@ -331,21 +331,23 @@ def cmd_status() -> int:
     return 0 if all(r[1][0] == "ok" for r in rows) else 1
 
 
+def _watch_loop() -> None:
+    """Redraw the board every 2s until interrupted. Lets KeyboardInterrupt out so
+    each caller decides what to do on Ctrl-C (watch: just stop; up: tear down)."""
+    while True:
+        frame = render(gather())
+        if USE_COLOR:
+            sys.stdout.write("\033[H\033[J")  # cursor home + clear screen
+        print(frame)
+        time.sleep(2)
+
+
 def cmd_watch() -> int:
     try:
-        first = True
-        while True:
-            rows = gather()
-            out = render(rows)
-            if not first and USE_COLOR:
-                # Move cursor up to overwrite the previous frame.
-                sys.stdout.write(f"\033[{out.count(chr(10)) + 1}A")
-            print(out)
-            first = False
-            time.sleep(2)
+        _watch_loop()
     except KeyboardInterrupt:
-        print("\nstopped watching (stack left as-is).")
-        return 0
+        print("\n  stopped watching (stack left running).")
+    return 0
 
 
 def cmd_doctor() -> int:
@@ -423,7 +425,7 @@ def cmd_up(keep: bool) -> int:
         return 0
     print("  holding the live board — Ctrl-C to cut the rag and clean up.\n")
     try:
-        cmd_watch()
+        _watch_loop()
     except KeyboardInterrupt:
         pass
     return cmd_down()
