@@ -31,6 +31,16 @@ class SupportsStreamChat(Protocol):
     def stream_chat(self, messages: Sequence[dict[str, str]]) -> AsyncIterator[str]: ...
 
 
+# The terminal renders raw text, so any markdown the model emits despite the
+# system prompt (`**bold**`, `` `code` ``) would show as literal characters.
+# Strip those markers from each streamed token — safe per token because they are
+# single characters with no cross-token state (a `**` split across two tokens
+# still loses each `*`). `#` is deliberately NOT stripped: it occurs in real
+# content (e.g. "C#").
+def _strip_markup(text: str) -> str:
+    return text.replace("*", "").replace("`", "")
+
+
 async def chat_event_stream(
     query: str,
     history: Sequence[Mapping[str, str]],
@@ -63,7 +73,9 @@ async def chat_event_stream(
     messages = build_messages(query, to_context(chunks), history)
     try:
         async for token in llm.stream_chat(messages):
-            yield sse.sse_token(token)
+            cleaned = _strip_markup(token)
+            if cleaned:
+                yield sse.sse_token(cleaned)
     except Exception:
         yield sse.sse_error("generation unavailable")
         return
