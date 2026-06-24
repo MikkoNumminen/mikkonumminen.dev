@@ -10,6 +10,7 @@ import {
   isChatAvailable,
   probeAvailability,
   resetChatStateForTests,
+  startChatAvailabilityPolling,
   streamChat,
   type ChatHandlers,
 } from './chat';
@@ -271,5 +272,125 @@ describe('askChat', () => {
     expect(output.textContent).toContain(t.terminal.chatError);
     // Degraded for the rest of the session.
     await expect(isChatAvailable()).resolves.toBe(false);
+  });
+});
+
+describe('startChatAvailabilityPolling', () => {
+  let ac: AbortController;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    ac = new AbortController();
+  });
+  afterEach(() => {
+    ac.abort();
+    vi.useRealTimers();
+  });
+
+  /** A fetch stub whose `/health` `llm` flag is read live from `getLlm()`. */
+  function healthFetch(getLlm: () => boolean) {
+    return vi.fn(async () =>
+      jsonResponse(true, { status: 'ok', checks: { db: true, llm: getLlm() } }),
+    );
+  }
+
+  it('is inert and never probes when no backend is configured', async () => {
+    const fetchImpl = healthFetch(() => true);
+    const onChange = vi.fn();
+    startChatAvailabilityPolling(onChange, {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('reveals (true) on the first probe when the backend is up', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const onChange = vi.fn();
+    startChatAvailabilityPolling(onChange, {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: healthFetch(() => true) as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('fires onChange only on a transition, not on every poll', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const onChange = vi.fn();
+    startChatAvailabilityPolling(onChange, {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: healthFetch(() => true) as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(2500); // initial + two interval polls, all up
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('hides (false) when the backend goes away', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    let up = true;
+    const onChange = vi.fn();
+    startChatAvailabilityPolling(onChange, {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: healthFetch(() => up) as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    up = false;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(onChange).toHaveBeenLastCalledWith(false);
+    expect(onChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops probing after the signal aborts', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const fetchImpl = healthFetch(() => true);
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const callsBefore = fetchImpl.mock.calls.length;
+    ac.abort();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(fetchImpl.mock.calls.length).toBe(callsBefore);
+  });
+
+  it('re-probes when the tab regains focus', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const fetchImpl = healthFetch(() => true);
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 100_000, // long, so only the focus event drives the extra probe
+      signal: ac.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const before = fetchImpl.mock.calls.length;
+    document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchImpl.mock.calls.length).toBe(before + 1);
+  });
+
+  it('does nothing when the signal is already aborted at entry', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const fetchImpl = healthFetch(() => true);
+    const aborted = new AbortController();
+    aborted.abort();
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 1000,
+      signal: aborted.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
