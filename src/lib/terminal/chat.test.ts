@@ -379,4 +379,18 @@ describe('startChatAvailabilityPolling', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchImpl.mock.calls.length).toBe(before + 1);
   });
+
+  it('does nothing when the signal is already aborted at entry', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const fetchImpl = healthFetch(() => true);
+    const aborted = new AbortController();
+    aborted.abort();
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 1000,
+      signal: aborted.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
 });

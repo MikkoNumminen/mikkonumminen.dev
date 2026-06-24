@@ -192,10 +192,15 @@ export function startChatAvailabilityPolling(
   onChange: (available: boolean) => void,
   { intervalMs = AVAILABILITY_POLL_MS, signal, fetchImpl }: AvailabilityPollOpts = {},
 ): void {
+  // Bail if already torn down: addEventListener('abort') on an already-aborted
+  // signal never fires, so the interval/listener below would leak uncleaned.
+  if (signal?.aborted) return;
   const base = getChatBaseUrl();
   if (!base) return; // No backend -> nothing to reveal, ever.
 
-  let last = lastKnownAvailable;
+  // Tracks what the hint currently reflects (nothing shown yet = false), not the
+  // module-level probe state, so the first "available" result always reveals.
+  let last = false;
   const tick = async (): Promise<void> => {
     if (signal?.aborted) return;
     const probe = sessionDisabled
