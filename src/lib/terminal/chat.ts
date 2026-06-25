@@ -26,6 +26,7 @@
 
 import type { getTranslations } from '../../i18n';
 import type { CommandContext } from './types';
+import { projects } from '../../data/projects';
 
 type Translations = ReturnType<typeof getTranslations>;
 
@@ -90,6 +91,11 @@ let lastKnownAvailable = false;
 // The model the backend reports via /health (e.g. "qwen2.5:7b"), or null when
 // chat is unavailable. Surfaced in the prompt's live AI indicator.
 let lastKnownModel: string | null = null;
+// Rolling multi-turn history so follow-ups ("tell me more", "what about the
+// database?") carry prior context. Kept short so the prompt doesn't bloat across
+// a long session; the backend threads it (build_messages). Cleared on disable/reset.
+const MAX_HISTORY_ITEMS = 6;
+let conversationHistory: ChatHistoryItem[] = [];
 // Latched true the first time a `/chat` call fails, forcing scripted-only for
 // the rest of the session regardless of any later probe.
 let sessionDisabled = false;
@@ -99,13 +105,15 @@ export function disableChatForSession(): void {
   sessionDisabled = true;
   lastKnownAvailable = false;
   lastKnownModel = null;
+  conversationHistory = [];
 }
 
-/** Test seam: clear the memoized probe + live state + disabled latch. */
+/** Test seam: clear the memoized probe + live state + disabled latch + history. */
 export function resetChatStateForTests(): void {
   availabilityProbe = null;
   lastKnownAvailable = false;
   lastKnownModel = null;
+  conversationHistory = [];
   sessionDisabled = false;
 }
 
@@ -430,17 +438,76 @@ export function formatSourceRef(source: string): string {
   return `→ ${source.replace(/\.md$/, '')}`;
 }
 
-function dedupeSources(sources: ChatSource[]): string[] {
+/**
+ * Per-project external URL (repo preferred, else live site), built once from the
+ * version-controlled `projects.ts`. Used to make citations clickable. These hrefs
+ * are build-time-trusted (they ship in the bundle), never user/model input.
+ */
+export const PROJECT_URLS: Record<string, string> = Object.fromEntries(
+  projects
+    .map((p): [string, string | undefined] => [p.id, p.githubUrl ?? p.liveUrl])
+    .filter((e): e is [string, string] => typeof e[1] === 'string'),
+);
+
+/**
+ * Locale-aware on-site path to the /projects galaxy, carrying the project id as a
+ * `?id=` query. The galaxy doesn't focus by id on load today, so this currently
+ * lands on /projects generally — it's forward-compatible if a focus-on-load
+ * handler is added, and the locale prefix keeps fi/sv visitors on their locale.
+ */
+function onsiteProjectPath(projectId: string): string {
+  const lang = document.documentElement.lang;
+  const prefix = lang && lang !== 'en' ? `/${lang}` : '';
+  return `${prefix}/projects?id=${encodeURIComponent(projectId)}`;
+}
+
+/** Dedupe retrieved sources by their rendered ref, preserving order + project id. */
+function dedupeSources(sources: ChatSource[]): ChatSource[] {
   const seen = new Set<string>();
-  const refs: string[] = [];
+  const out: ChatSource[] = [];
   for (const s of sources) {
     const ref = formatSourceRef(s.source);
     if (!seen.has(ref)) {
       seen.add(ref);
-      refs.push(ref);
+      out.push(s);
     }
   }
-  return refs;
+  return out;
+}
+
+/**
+ * Append one source citation line. A project-mapped source becomes two links:
+ * the "→ projects/hrm" label deep-links on-site to the /projects galaxy, and a
+ * trailing "↗" opens the repo/live URL in a new tab. Built via DOM with
+ * `textContent` labels + build-time-trusted hrefs — never `innerHTML`, so it is
+ * not an XSS sink. Unmapped sources (cv, posts) stay plain dim text.
+ */
+function appendSourceCitation(output: HTMLElement, source: ChatSource): void {
+  const label = formatSourceRef(source.source);
+  const line = document.createElement('span');
+  line.className = 'line line--dim';
+  const externalUrl = source.project ? PROJECT_URLS[source.project] : undefined;
+  if (source.project && externalUrl) {
+    const onsite = document.createElement('a');
+    onsite.className = 'chat-cite';
+    onsite.href = onsiteProjectPath(source.project);
+    onsite.textContent = label;
+    line.appendChild(onsite);
+
+    const repo = document.createElement('a');
+    repo.className = 'chat-cite-ext';
+    repo.href = externalUrl;
+    repo.target = '_blank';
+    repo.rel = 'noopener noreferrer';
+    repo.textContent = ' ↗';
+    repo.setAttribute('aria-label', `${label} — open repository`);
+    line.appendChild(repo);
+  } else {
+    line.textContent = label;
+  }
+  output.appendChild(line);
+  output.appendChild(document.createTextNode('\n'));
+  output.scrollTop = output.scrollHeight;
 }
 
 // --- terminal orchestration ------------------------------------------------
@@ -474,6 +541,7 @@ export async function askChat(
 
   let started = false;
   let failed = false;
+  let answer = '';
   let collected: ChatSource[] = [];
 
   const handlers: ChatHandlers = {
@@ -486,6 +554,7 @@ export async function askChat(
         line.className = 'line line--plain';
         line.textContent = '';
       }
+      answer += text;
       line.textContent += text;
       output.scrollTop = output.scrollHeight;
     },
@@ -497,16 +566,30 @@ export async function askChat(
   };
 
   try {
-    await streamChat(base, message, [], handlers, opts);
+    // Pass the recent turns so a follow-up ("tell me more") has prior context.
+    await streamChat(
+      base,
+      message,
+      conversationHistory.slice(-MAX_HISTORY_ITEMS),
+      handlers,
+      opts,
+    );
     if (failed || !started) {
       // An `error` frame, or a stream that closed before any token, is treated
       // as a failed turn: show the clean line and degrade.
       throw new Error('empty or failed chat response');
     }
-    const refs = dedupeSources(collected);
-    if (refs.length > 0) {
+    // Record the exchange so the next question is a follow-up, capped so the
+    // prompt doesn't grow unbounded across a long session.
+    conversationHistory.push({ role: 'user', content: message });
+    conversationHistory.push({ role: 'assistant', content: answer });
+    if (conversationHistory.length > MAX_HISTORY_ITEMS) {
+      conversationHistory = conversationHistory.slice(-MAX_HISTORY_ITEMS);
+    }
+    const cited = dedupeSources(collected);
+    if (cited.length > 0) {
       ctx.print('');
-      for (const ref of refs) ctx.print(ref, 'dim');
+      for (const source of cited) appendSourceCitation(output, source);
     }
   } catch {
     if (!started) {

@@ -68,6 +68,11 @@ const prompt = 'guest@mikkonumminen:~$';
         <span><kbd>↑</kbd>/<kbd>↓</kbd> {t.contactPage.hintHistory}</span>
         <span><kbd>tab</kbd> {t.contactPage.hintComplete}</span>
       </div>
+
+      <!-- Starter-question chips, populated by terminal.ts only when chat is
+           available. Empty (and CSS-collapsed) by default, so a terminal with no
+           backend is pixel-identical to today. -->
+      <div class="terminal__starters" aria-live="polite"></div>
     </div>
   </section>
 
