@@ -31,6 +31,12 @@ def test_format_preserves_non_ascii_query() -> None:
     assert record["query"] == "Mikä on HRM-järjestelmä?"
 
 
+def test_format_truncates_long_query() -> None:
+    # Privacy: the full (up to INPUT_MAX_CHARS) question text is not retained.
+    record = json.loads(format_log_record("x" * 5000, [0.2], False, 30))
+    assert len(record["query"]) == 200
+
+
 def test_build_returns_none_when_disabled() -> None:
     assert build_request_logger("") is None
 

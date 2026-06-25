@@ -23,21 +23,28 @@ from collections.abc import Callable, Sequence
 # guardrail refused without calling the model.
 RequestLogger = Callable[[str, Sequence[float], bool, int], None]
 
+# The log stores question text only to tune the gate / spot probes — the leading
+# words are enough for both. Truncate so the full (up to INPUT_MAX_CHARS) text of
+# every question isn't retained verbatim on disk.
+_MAX_LOGGED_QUERY_CHARS = 200
+
 
 def format_log_record(
     query: str, distances: Sequence[float], gated: bool, response_chars: int
 ) -> str:
     """One compact JSON line for the request log.
 
-    Distances are sorted ascending (closest match first) and rounded so a glance
-    shows retrieval strength; `best_distance` surfaces the single closest match,
-    the value the weak-retrieval threshold is compared against. `ensure_ascii`
-    is off so a non-ASCII query is stored readably rather than escaped.
+    The query is truncated to the leading `_MAX_LOGGED_QUERY_CHARS` (privacy: the
+    full text isn't retained). Distances are sorted ascending (closest match
+    first) and rounded so a glance shows retrieval strength; `best_distance`
+    surfaces the single closest match, the value the weak-retrieval threshold is
+    compared against. `ensure_ascii` is off so a non-ASCII query is stored
+    readably rather than escaped.
     """
     ordered = sorted(distances)
     return json.dumps(
         {
-            "query": query,
+            "query": query[:_MAX_LOGGED_QUERY_CHARS],
             "distances": [round(d, 4) for d in ordered],
             "best_distance": round(ordered[0], 4) if ordered else None,
             "gated": gated,
@@ -61,8 +68,11 @@ def build_request_logger(log_file: str) -> RequestLogger | None:
     logger.setLevel(logging.INFO)
     logger.propagate = False
     # Rebuilding the logger (e.g. app re-creation in a test) must not stack
-    # duplicate handlers that double-write every line.
-    logger.handlers.clear()
+    # duplicate handlers that double-write every line — and the old handler must
+    # be CLOSED, not just dropped, or its open file descriptor leaks.
+    for old in list(logger.handlers):
+        old.close()
+        logger.removeHandler(old)
     handler = logging.FileHandler(log_file, encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
     logger.addHandler(handler)
