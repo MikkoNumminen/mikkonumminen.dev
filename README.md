@@ -35,7 +35,7 @@ words, retrieved and grounded, not a general-purpose chat model.
 
 ```
 static Astro terminal ──fetch──▶  FastAPI backend ──▶ Postgres + pgvector
-                                                  └──▶ Ollama  (gemma4:e4b)
+                                                  └──▶ Ollama  (qwen2.5:7b)
 Offline indexer ──embeds corpus──▶ Postgres + pgvector
 Embeddings (bge-small-en-v1.5) run in-process inside the backend container.
 ```
@@ -50,9 +50,10 @@ Load-bearing properties:
   ordinary client-side `fetch` calls — no SSR, no edge functions, no runtime
   secrets.
 - **Fully local, zero marginal cost.** Postgres + pgvector, in-process
-  bge-small-en-v1.5 embeddings, and Gemma (`gemma4:e4b`) via a local Ollama
-  instance all run in Docker on Mikko's own machine. No hosted model, no paid
-  API, nothing per query.
+  fastembed `bge-small-en-v1.5` embeddings, and a local Ollama instance
+  (`qwen2.5:7b` by default, switchable via `ragctl`) all run in Docker on
+  Mikko's own machine. No hosted model, no paid API,
+  nothing per query.
 - **Progressive enhancement, never a regression.** At page load the terminal
   fires one `GET /health` probe. The endpoint reports liveness of both the
   database and the LLM, but the terminal unlocks chat only when `checks.llm` is
@@ -62,11 +63,43 @@ Load-bearing properties:
   byte-for-byte identical to its scripted-only mode: no chat affordance, no
   error, no visual difference.
 
+### Staying in scope — contained architecturally, not by prompt
+
+Because the terminal exposes a real LLM to the public internet, "what if someone
+tries to break it out of scope" is answered with layered, architectural
+defenses — not a hopeful system prompt. A user who can't be answered from the
+corpus, or who tries to redirect the model, hits guardrails that sit outside the
+prompt:
+
+- **Grounded-only generation.** The system prompt answers strictly from the
+  retrieved CONTEXT and declines when the answer isn't there.
+- **Pre-LLM relevance gate.** If the best retrieval is too weak
+  (`WEAK_RETRIEVAL_DISTANCE`), the request short-circuits to a fixed
+  out-of-scope reply _before_ the model ever runs.
+- **Hard output cap.** `LLM_NUM_PREDICT` (default 512) bounds generation, so no
+  single answer can dump a whole document regardless of the prompt.
+- **Input cap.** `INPUT_MAX_CHARS` (default 800; over-length → HTTP 400) plus a Pydantic length
+  backstop and a byte-size cap in middleware.
+- **Prompt-injection hardening.** The whole user message is treated as a
+  question, never as instructions; reveal/ignore-the-prompt and role-play
+  requests are declined.
+- **Concurrency shedding.** A bounded semaphore around generation sheds excess
+  load with a short busy reply instead of queueing.
+- **Acceptance harness.** `evals/acceptance.py` runs black-box contract cases
+  (injection no-dump, prompt-reveal blocked, off-topic declines, the caps, and
+  grounded technical answers) so the containment is regression-tested, not
+  assumed.
+
+Full pipeline, every config knob, and the threat model are in
+[`docs/rag-chat.md`](docs/rag-chat.md). Code-aware chunking, source-code
+indexing, and hybrid (BM25 + dense) retrieval are on the roadmap, not yet built.
+
 The backend lives in [`chat-backend/`](chat-backend/) with its own README. The
 Docker stack (`docker-compose.yml`) and `Makefile` bring everything up with
-`make up && make index`. For turning it on end-to-end — including optionally
-publishing the backend via a Cloudflare tunnel for live visitors — see
-[`LAUNCH.md`](LAUNCH.md).
+`make up && make index`, and it's controlled day-to-day via the `ragctl` REPL
+(`status`/`up`/`down`/`doctor`/`model`/`english`). For turning it on end-to-end
+— including publishing the backend via a Tailscale Funnel for live visitors —
+see [`LAUNCH.md`](LAUNCH.md) and the as-built [`docs/rag-chat.md`](docs/rag-chat.md).
 
 ## Tech stack
 
