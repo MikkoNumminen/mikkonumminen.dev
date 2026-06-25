@@ -32,6 +32,11 @@ services:
     # current Ollama; an old pin could lack support. Pin a digest once a
     # known-good version is established if strict reproducibility is wanted.
     image: ollama/ollama:latest
+    environment:
+      # Served context window. The ragctl CLI sets this via the repo .env to
+      # change "context"; the default matches Ollama's own (4096). A larger
+      # context costs more VRAM per loaded model.
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-4096}
     volumes:
       # Named volume persists the pulled model across restarts, so the model is
       # only downloaded once.

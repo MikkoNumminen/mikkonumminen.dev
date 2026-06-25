@@ -19,6 +19,8 @@ _CONFIG_ENV_VARS = [
     "OLLAMA_BASE_URL",
     "LLM_MODEL",
     "LLM_TIMEOUT_SECONDS",
+    "LLM_TEMPERATURE",
+    "LLM_NUM_PREDICT",
     "TOP_K",
     "CORS_ALLOW_ORIGINS",
     "WEAK_RETRIEVAL_DISTANCE",
@@ -52,6 +54,19 @@ def test_phase4_defaults(clean_env: None) -> None:
     assert settings.rate_limit_requests == 30
     assert settings.rate_limit_window_seconds == 60.0
     assert settings.max_body_bytes == 16384
+
+
+def test_llm_tuning_defaults_and_overrides(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    defaults = Settings.from_env()
+    assert defaults.llm_temperature == 0.4
+    assert defaults.llm_num_predict == 0
+    monkeypatch.setenv("LLM_TEMPERATURE", "0.7")
+    monkeypatch.setenv("LLM_NUM_PREDICT", "512")
+    tuned = Settings.from_env()
+    assert tuned.llm_temperature == 0.7
+    assert tuned.llm_num_predict == 512
 
 
 def test_cors_origins_parsed_as_list(

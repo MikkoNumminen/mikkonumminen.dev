@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.llm import parse_stream_line
+from app.llm import LLMClient, parse_stream_line
 
 
 def _data(payload: str) -> str:
@@ -50,3 +50,15 @@ def test_non_dict_choice_entry_is_skipped_not_crashed() -> None:
     assert parse_stream_line(_data('{"choices":[null]}')) is None
     assert parse_stream_line(_data('{"choices":[42]}')) is None
     assert parse_stream_line(_data('{"choices":["str"]}')) is None
+
+
+def test_chat_payload_applies_effort_knobs() -> None:
+    capped = LLMClient("http://x/v1", "m", 60, temperature=0.7, num_predict=256)
+    payload = capped._chat_payload([{"role": "user", "content": "hi"}])
+    assert payload["temperature"] == 0.7
+    assert payload["max_tokens"] == 256
+    assert payload["stream"] is True
+    # A non-positive num_predict means "no cap" -> max_tokens omitted (model default).
+    uncapped = LLMClient("http://x/v1", "m", 60)._chat_payload([])
+    assert "max_tokens" not in uncapped
+    assert uncapped["temperature"] == 0.4

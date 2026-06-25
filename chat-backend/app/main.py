@@ -74,7 +74,11 @@ def create_app() -> FastAPI:
         app.state.db = db
         app.state.embedder = Embedder(settings.embedding_model, settings.embedding_dim)
         app.state.llm = LLMClient(
-            settings.ollama_base_url, settings.llm_model, settings.llm_timeout_seconds
+            settings.ollama_base_url,
+            settings.llm_model,
+            settings.llm_timeout_seconds,
+            temperature=settings.llm_temperature,
+            num_predict=settings.llm_num_predict,
         )
         try:
             yield
