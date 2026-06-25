@@ -13,17 +13,35 @@ The biggest structural challenge in the codebase is running Phaser 4 (2D combat)
 
 The solution is a mutual exclusion model owned by `GameCanvas.tsx` via a `mode: "galaxy" | "combat"` state value. Only one engine canvas is mounted in the DOM at a time. The switch is orchestrated in two steps: a GSAP-driven black overlay fades to opaque via `TransitionManager.fade()`, then React's diffing unmounts the deactivated engine (triggering its `dispose` hook and releasing GPU resources), then mounts the new one. After the new engine's canvas is in the DOM, `requestAnimationFrame` schedules the fade-back to transparent. The GSAP tween is kept in `TransitionManager.ts` as a thin standalone module that returns both a `Promise<void>` and a `kill()` handle.
 
-The disposal contracts are strict: `GalaxyScene.dispose()` tears down the Three.js `WebGLRenderer`, all geometries, and the `OrbitControls`. `createPhaserGame()` returns a Phaser game instance that is destroyed via `game.destroy(true)` on the combat-to-galaxy transition. Without these, GPU memory leaks accumulate across mission completions.
+The disposal contracts are strict: `createPhaserGame()` returns a Phaser game instance destroyed via `game.destroy(true)` on the combat-to-galaxy transition. Without these, GPU memory leaks accumulate across mission completions. No camera-zoom transition exists: ARCHITECTURE.md notes it explicitly as planned polish. The fade is the entire visual bridge today.
 
-No camera-zoom transition exists: ARCHITECTURE.md notes it explicitly as planned polish. The fade is the entire visual bridge today.
+### The WebGL context-budget invariant
 
-Both Three.js scenes (`GalaxyScene` and `LandingScene`) share construction code via `SceneRig.ts`. Before that factory existed, the two scenes drifted — the same renderer settings, fog density, ambient light colors, and planet add-loop maintained in two places — and produced visible flashes at scene transitions because they were setting the same clear color to slightly different values. Centralizing everything into `createSceneRig(canvas, opts)` eliminated the drift vector entirely.
+The hardest detail in the whole bridge is a two-file invariant that ties `SceneRig.dispose()` to a React `key` prop. `dispose()` calls `renderer.forceContextLoss()` immediately before `renderer.dispose()`. The comment explains why: without `forceContextLoss()` the WebGL context lingers until garbage collection during rapid galaxy-to-combat cycling, and can exhaust the browser's per-page WebGL context budget (browsers cap concurrent contexts at roughly 8-16).
+
+The catch is that `forceContextLoss()` makes a canvas's context *permanently unrecoverable*. That is only safe if the canvas DOM element is also going away. On a galaxy-to-combat transition or a page navigation, React unmounts the canvas anyway, so it is fine. But on a warp between solar systems, the same `GameCanvas` stays mounted and would reuse the same canvas — leaving it in a permanently-lost context state, so the next `new THREE.WebGLRenderer({ canvas })` would throw deterministically (all three retries in `useGalaxyScene` would hit the same failure). The fix is that `GameCanvas.tsx` keys the galaxy `<canvas>` on `currentSolarSystemId`, forcing React to unmount the old canvas and mount a fresh DOM element on every warp. Both files carry mirrored INVARIANT comments warning that dropping the key prop without removing the `forceContextLoss()` call breaks warp deterministically. The two halves are mutually dependent.
+
+`usePhaserGame` has a parallel concern: if Phaser's init throws partway through, a half-constructed `Phaser.Game` may already hold a WebGL context and tickers. The retry loop destroys the partial game (`created.destroy(true)`, swallowing any secondary throw) before letting the retry see the original error, so retries cannot accumulate dead contexts.
+
+### The white-frame navigation flash
+
+A separate compositor bug: the galaxy canvas is a large GPU-composited layer. When React tears down the `/play` tree during a route change, the browser paints a white frame where that layer was — and it flashes even on canvas-less destinations like `/shop`. The fix in `useGalaxyTransition.leaveGalaxy(href)` sets `canvas.style.visibility = "hidden"` synchronously inside the click handler, before `router.push()`, removing the compositor layer first so the teardown has nothing to flash. The comment is explicit that this must run here and not in the effect cleanup: cleanup is a passive callback React runs after the node is already detached, too late to affect the painted frame.
+
+### Shared Three.js scaffolding
+
+Both Three.js scenes (`GalaxyScene` and `LandingScene`) share construction code via `SceneRig.ts`. Before that factory existed, the two scenes drifted — the same renderer settings, fog density, ambient light colors, and planet add-loop maintained in two places — and produced visible flashes at scene transitions. Centralizing everything into `createSceneRig(canvas, opts)` eliminated the drift vector. It is deliberately a factory rather than a base class: a base class would need protected fields that fight the readonly-everywhere style used elsewhere, and the two scenes already keep their cameras and controls in separate classes.
 
 ## Auth-Flip Mid-Combat
 
 A subtle lifecycle bug: NextAuth's `useSession` can flip from `"loading"` to `"authenticated"` while Phaser is in an active combat session. If `GameCanvas` had wired the `onComplete` callback directly into the Phaser mount effect, a session state change would have meant Phaser holding a stale closure that skipped `saveNow()` and `submitScore()` on mission completion.
 
 The fix is a ref: `handleMissionComplete` is stored in `completeRef`, which Phaser receives at creation time. The ref is updated on every session change without restarting Phaser. The ARCHITECTURE.md carries an explicit "don't refactor this" warning, acknowledging that the ref pattern looks like indirection but is the correct fix for this specific lifecycle crossing.
+
+Two related auth hardening details: the player-row upsert was rewritten from SELECT-then-INSERT (which 500'd on a concurrent first sign-in) to a single `INSERT ... ON CONFLICT (email) DO UPDATE ... RETURNING id`. And `email_verified` is checked in the NextAuth `signIn` callback rather than the `jwt` callback — returning `false` from `signIn` is the canonical NextAuth v5 reject path (redirect to the error page instead of issuing a JWT), whereas `jwt` cannot cleanly reject. The check is strict (`profile?.email_verified !== false`) so a provider that simply omits the field is still accepted; only an explicit `false` is rejected.
+
+## The Galaxy Game Loop
+
+The Three.js overworld loop in `GalaxyScene` clamps its delta time: `dt = Math.min((now - lastMs) / 1000, 0.05)`. The 50ms ceiling prevents a spiral-of-death when a backgrounded tab resumes and reports a multi-second frame gap — without the clamp, planet positions and camera lerps would jump arbitrarily far in a single frame. The planet update is a deliberate two-pass walk so that child-orbit bodies (a moon orbiting a planet) read the parent's *current*-frame world position rather than last-frame, avoiding a one-frame lag that compounds visibly at high orbit speeds.
 
 ## The May 2026 Save Wipe
 
@@ -83,7 +101,9 @@ The derivation: `getReachableSolarSystems(completedMissions)` walks `SYSTEM_UNLO
 
 The consequence: a 10x balance change to any enemy's `creditValue` automatically scales the corresponding cap without any code edit. A new player can only earn at tutorial rates; a tubernovae-system player gets tubernovae-tier caps. The tutorial-only floor is logged to Vercel function logs on cold start as `[saveValidation] tutorial-only caps (floor)`, so a regression after rebalance is detectable without waiting for a player report.
 
-The guards run inside a single DB transaction with `FOR UPDATE` on the previous row, eliminating a TOCTOU race: without the lock, two concurrent POSTs from the same account could both read the same baseline and both pass a regression check that should have failed for the second one.
+The guards run inside a single DB transaction with `.forUpdate()` on the previous-row SELECT (the save route's `SECURITY.md` tracks this as invariant INV-SAVE-1, closing finding SEC-013). Without the row lock, two concurrent POSTs from the same account could both validate against the same pre-write baseline, and the loser would overwrite the winner — a stale-baseline race. The `save_audit` write is deliberately placed *outside* the transaction: an audit-table outage must never roll back a real save. The credit-cap derivation also draws from the previously-stored row, never bootstrapped from the request body inside the same request (SEC-017).
+
+One subtle data-portability fix lives in `validatePlaytimeDelta`: it coerces `updatedAt` from `Date | string` because Neon's Edge driver sometimes returns `TIMESTAMPTZ` as a string rather than a `Date`, and it fails open on an unparseable timestamp rather than rejecting a legitimate save.
 
 ## Phaser Event and Registry Safety
 
@@ -135,20 +155,12 @@ The deduplication check `{missionId, score, timeSeconds}` prevents a double-enqu
 
 ## Vercel Hobby Tier as Architectural Constraint
 
-The deployment constraint is not incidental — it shaped the entire rendering architecture. Vercel Hobby provides 100k function invocations, 100 GB-hours of CPU, and 100 GB of egress per month. A single uncached page on social media can exhaust that in hours.
-
-The response: every Next.js page exports `dynamic = "force-static"` except the leaderboard, which is `force-dynamic` because ISR was showing a stale loading card for up to 60 seconds after each deploy. All data routes run on the Edge runtime (not Node) using the `@neondatabase/serverless` WebSocket pool driver, minimizing cold-start cost. The leaderboard API response is cached with 60-second revalidation via `unstable_cache`, and score POSTs call `revalidateTag('leaderboard')` to flush the cache without a polling loop.
-
-Phaser and Three.js are dynamically imported inside `GameCanvas` with `ssr: false`, so neither engine executes during server-side rendering. Bundles split cleanly; SSR compute stays at zero. Zod is kept out of static-page first-load bundles by moving catalog JSON validation into CI-only tests (`jsonSchemaValidation.test.ts`), saving ~98 KB from the `/play` route's First Load JS.
-
-ADR 0002 explains why Prisma was not used: its generated engine binary is incompatible with the Edge runtime, it adds tens of megabytes to the deploy, and it conflicts with hand-written forward-only migrations. Kysely provides full type safety through a hand-maintained `Database` interface.
+The Vercel Hobby quota (100k function invocations, 100 GB-hours CPU, 100 GB egress per month) is the load-bearing constraint behind the whole rendering posture: a single uncached page shared on social media can exhaust it in hours. The non-obvious consequences worth noting here are the corner cases. The leaderboard page is the one `force-dynamic` exception to `force-static` because ISR was showing a stale loading card for up to 60 seconds after each deploy. Zod is kept out of static-page first-load bundles by moving catalog JSON validation into CI-only tests, a measured ~98 KB saving on the `/play` route — and that same 98 KB figure recurs as the justification for the lazy `import("@/lib/schemas/save")` in `sync.ts` and the structural-only (Zod-free) validators in `saveQueue` and `guestCache`. The `db.ts` Kysely setup carries a type-only workaround: `new Pool(...) as unknown as PostgresPool`, because Neon's `connect()` resolves to `void` while Kysely 0.29 expects `Promise<PostgresClient>`.
 
 ## Known Accepted Cheat Vector
 
-ADR 0008 documents a deliberate economy hole introduced in PR #159. The sell refund was changed from 50% to 100% of the player's full investment (base cost plus all upgrade costs plus augment costs). The motivator: under the 50% rule, a free starter weapon (base cost zero) with ¢600 in upgrades sold for ¢0, because `floor(0 × 0.5) = 0`. With 100% refund, the ¢600 upgrade investment comes back on sale.
-
-The tradeoff: free items granted via `grantWeapon()` or `grantAugment()` can now be converted to credits at full catalog price, providing free credit generation. The decision to accept this was deliberate: content work was the bottleneck, a balance audit before content stabilized would tune numbers twice, and the leaderboard is a local cohort rather than a competitive surface. Server-side credit-delta caps throttle the worst case. A future balance audit scheduled once content work stabilizes is the documented resolution path.
+ADR 0008 documents a deliberate economy hole introduced in PR #159. The sell refund changed from 50% to 100% of the player's full investment. The motivator: under the 50% rule, a free starter weapon (base cost zero) with ¢600 in upgrades sold for ¢0, because `floor(0 × 0.5) = 0` — the player's upgrade investment was trapped. With 100% refund it comes back on sale. The tradeoff is that free items granted via `grantWeapon()` or `grantAugment()` can now be converted to credits at full catalog price. This was accepted because content work was the bottleneck (a balance audit before content stabilized would tune the numbers twice), the leaderboard is a local cohort rather than a competitive surface, and the server-side credit-delta caps throttle the worst case. The same PR forced a raise to `CREDITS_DELTA_SLACK` in `saveValidation.ts`, since a player selling a fully-upgraded weapon now recovers full price at near-zero elapsed time and would otherwise trip the credit-delta guard.
 
 ---
 
-GAPS: No CHANGELOG file was found in the repo — commit history would be required to reconstruct a chronological bug list. The exact `seen_story_entries` column migration comment's PR reference was not verified against a PR list. The `check-schema.mjs` script internals and the `audit-readiness-check.yml` daily cron's exact query were not read in full.
+GAPS: No CHANGELOG file was found in the repo — commit history would be required to reconstruct a fully chronological bug list. The `CombatScene.finishEarly()` boss early-finish behavior was reported by a sub-search but not confirmed line-by-line in scene source (only test scaffolding referencing `delayedCall` was directly read). The `check-schema.mjs` script internals and the `audit-readiness-check.yml` daily cron's exact query were not read in full. PR numbers cited (#94-#101, #159) come from in-code and ADR references rather than a verified PR list.
