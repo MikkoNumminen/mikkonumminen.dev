@@ -217,20 +217,31 @@ export async function initTerminal(
     form.requestSubmit();
   };
 
-  startChatAvailabilityPolling(
-    (available, model) => {
-      if (signal.aborted) return;
-      if (available) {
-        revealChatHint(root, t);
-        revealStarters(root, submitStarter, signal);
-      } else {
-        hideChatHint(root);
-        hideStarters(root);
-      }
-      setAiIndicator(root, available, model);
-    },
-    { signal },
-  );
+  // Only poll on wide viewports: at ≤640px this terminal is hidden and the
+  // MobileContactCard owns the chat poll, so the page doesn't double-probe
+  // /health (and double the console noise while the backend is down). If
+  // matchMedia is unavailable, default to polling. Evaluated once at init —
+  // crossing 640px at runtime needs a reload to swap which component owns the
+  // chat (same reload-to-apply limitation as prefers-reduced-motion).
+  const narrowViewport =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 640px)').matches;
+  if (!narrowViewport) {
+    startChatAvailabilityPolling(
+      (available, model) => {
+        if (signal.aborted) return;
+        if (available) {
+          revealChatHint(root, t);
+          revealStarters(root, submitStarter, signal);
+        } else {
+          hideChatHint(root);
+          hideStarters(root);
+        }
+        setAiIndicator(root, available, model);
+      },
+      { signal },
+    );
+  }
 
   return { dispose };
 }

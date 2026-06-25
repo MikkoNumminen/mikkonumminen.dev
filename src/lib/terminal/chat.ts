@@ -201,6 +201,11 @@ async function refreshAvailability(base: string, opts: FetchOpts = {}): Promise<
 // reload. Each probe hits the chat backend (the operator's own machine, via the
 // tunnel), never Vercel, so the only cost is on that box; 25s is a calm cadence.
 const AVAILABILITY_POLL_MS = 25_000;
+// Ceiling for the exponential backoff below: once the backend has been
+// unreachable for a few probes, fall back to checking at most this often, so a
+// down stack doesn't spam the console with failed /health requests (each logs a
+// CORS/502 the browser surfaces regardless of our try/catch).
+const MAX_AVAILABILITY_POLL_MS = 240_000;
 
 export interface AvailabilityPollOpts {
   intervalMs?: number;
@@ -237,28 +242,57 @@ export function startChatAvailabilityPolling(
   // module-level probe state, so the first "available" result always reveals.
   let last = false;
   let lastModel: string | null = null;
+  // Exponential backoff: each consecutive failed probe doubles the gap (capped at
+  // MAX_AVAILABILITY_POLL_MS), so a backend that stays down isn't hammered with
+  // /health requests that each log a console error. Resets to the base cadence on
+  // the first success, so coming-back-up is still noticed within `intervalMs`.
+  // `failures` is an unbounded counter, but the delay is doubly bounded (the
+  // 2**min(failures,5) exponent ceiling and the outer Math.min), so it can't
+  // overflow into a problem.
+  let failures = 0;
+  let ticking = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const schedule = (): void => {
+    if (timer !== undefined) clearTimeout(timer);
+    if (signal?.aborted) return;
+    const delay = Math.min(
+      intervalMs * 2 ** Math.min(failures, 5),
+      MAX_AVAILABILITY_POLL_MS,
+    );
+    timer = setTimeout(() => void tick(), delay);
+  };
+
   const tick = async (): Promise<void> => {
-    if (signal?.aborted) return;
-    const probe = sessionDisabled
-      ? Promise.resolve(false)
-      : refreshAvailability(base, { fetchImpl });
-    // Let the first poll satisfy `isChatAvailable`'s memo, so the dispatcher and
-    // the poller share one initial probe rather than each firing its own.
-    availabilityProbe ??= probe;
-    const available = await probe;
-    if (signal?.aborted) return;
-    const model = available ? lastKnownModel : null;
-    // Fire on a change to EITHER availability or the model, so the indicator
-    // updates when the operator switches models even while chat stays up.
-    if (available !== last || model !== lastModel) {
-      last = available;
-      lastModel = model;
-      onChange(available, model);
+    // Re-entrancy guard: a visibilitychange can fire mid-probe; serialising keeps
+    // `failures`/`last` race-free and avoids a doubled in-flight request.
+    if (signal?.aborted || ticking) return;
+    ticking = true;
+    try {
+      const probe = sessionDisabled
+        ? Promise.resolve(false)
+        : refreshAvailability(base, { fetchImpl });
+      // Let the first poll satisfy `isChatAvailable`'s memo, so the dispatcher and
+      // the poller share one initial probe rather than each firing its own.
+      availabilityProbe ??= probe;
+      const available = await probe;
+      if (signal?.aborted) return;
+      failures = available ? 0 : failures + 1;
+      const model = available ? lastKnownModel : null;
+      // Fire on a change to EITHER availability or the model, so the indicator
+      // updates when the operator switches models even while chat stays up.
+      if (available !== last || model !== lastModel) {
+        last = available;
+        lastModel = model;
+        onChange(available, model);
+      }
+    } finally {
+      ticking = false;
+      schedule();
     }
   };
 
   void tick();
-  const interval = setInterval(() => void tick(), intervalMs);
   const onVisibility = (): void => {
     if (document.visibilityState === 'visible') void tick();
   };
@@ -266,7 +300,7 @@ export function startChatAvailabilityPolling(
   signal?.addEventListener(
     'abort',
     () => {
-      clearInterval(interval);
+      if (timer !== undefined) clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisibility);
     },
     { once: true },

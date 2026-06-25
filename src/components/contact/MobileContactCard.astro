@@ -327,36 +327,60 @@ const m = t.mobileContact;
   // (which opens the keyboard, unlike the static showcase) wired to the same
   // `/chat` stream the desktop terminal uses. With no backend configured or one
   // that's unreachable, nothing is revealed and the card stays showcase + buttons.
-  import { getChatBaseUrl, probeHealth, streamChat } from '../../lib/terminal/chat';
+  import {
+    getChatBaseUrl,
+    startChatAvailabilityPolling,
+    streamChat,
+  } from '../../lib/terminal/chat';
   import type { ChatHandlers, ChatSource } from '../../lib/terminal/chat';
 
-  const wireChat = async (): Promise<void> => {
+  const wireChat = (): void => {
+    // Mobile only: above 640px the desktop terminal owns the chat poll, so the
+    // page never double-probes /health. (CSS hides this card there anyway; if
+    // matchMedia is unavailable we defer to the desktop poller and do nothing.)
+    // Evaluated once per wireChat run — crossing 640px at runtime needs a reload
+    // to swap which component owns the chat (like prefers-reduced-motion).
+    if (
+      typeof window.matchMedia !== 'function' ||
+      !window.matchMedia('(max-width: 640px)').matches
+    )
+      return;
     const base = getChatBaseUrl();
     if (!base) return;
     const form = document.querySelector<HTMLFormElement>('#mcc-chatform');
     const input = document.querySelector<HTMLInputElement>('#mcc-input');
     const output = document.querySelector<HTMLElement>('#mcc-output');
     if (!form || !input || !output) return;
+    // `.mcc__screen` — gets `--chat` while the input is live so the static idle
+    // prompt ("$ ▏") is hidden (the live input below is the prompt then).
+    const screen = output.parentElement;
 
-    // Only reveal the input once /health confirms the model answers — a visible
-    // "type here" that does nothing would be worse than the honest static card.
-    const { available } = await probeHealth(base);
-    if (!available) return;
-    form.hidden = false;
-    // Mark the screen so the static idle prompt ("$ ▏") is hidden — the live
-    // input below now *is* the prompt, so two would be redundant.
-    output.parentElement?.classList.add('mcc__screen--chat');
+    // One controller owns everything this wiring registers. Aborted on pagehide
+    // (so a bfcache-frozen page stops probing) and re-armed on pageshow(persisted)
+    // by the boot below. Binding every listener + the in-flight stream to its
+    // signal means a back/forward restore can re-run wireChat without stacking
+    // duplicate handlers or leaking a timer.
+    const controller = new AbortController();
+    const { signal } = controller;
+    window.addEventListener('pagehide', () => controller.abort(), {
+      once: true,
+      signal,
+    });
 
     // Tapping anywhere in the terminal box (not just the thin input line) focuses
     // the input — the small line was a poor touch target. focus() called inside
     // the tap gesture is what brings the keyboard up on mobile; mirrors the
     // desktop terminal's click-to-focus.
     const card = document.querySelector<HTMLElement>('.mcc__card');
-    card?.addEventListener('click', (event) => {
-      const target = event.target as HTMLElement;
-      if (target.tagName === 'A' || target === input) return;
-      if (!input.disabled) input.focus();
-    });
+    card?.addEventListener(
+      'click',
+      (event) => {
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'A' || target === input || form.hidden) return;
+        if (!input.disabled) input.focus();
+      },
+      { signal },
+    );
 
     const append = (cls: string, text: string): HTMLElement => {
       const el = document.createElement('span');
@@ -368,61 +392,89 @@ const m = t.mobileContact;
     };
 
     let busy = false;
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const question = input.value.trim();
-      if (!question || busy) return;
-      busy = true;
-      input.value = '';
-      input.disabled = true;
+    form.addEventListener(
+      'submit',
+      (event) => {
+        event.preventDefault();
+        const question = input.value.trim();
+        if (!question || busy) return;
+        busy = true;
+        input.value = '';
+        input.disabled = true;
 
-      const cmd = document.createElement('span');
-      cmd.className = 'mcc__line mcc__line--cmd';
-      const prompt = document.createElement('span');
-      prompt.className = 'mcc__prompt';
-      prompt.textContent = '$';
-      const echo = document.createElement('span');
-      echo.textContent = ` ${question}`;
-      cmd.append(prompt, echo);
-      output.appendChild(cmd);
+        const cmd = document.createElement('span');
+        cmd.className = 'mcc__line mcc__line--cmd';
+        const prompt = document.createElement('span');
+        prompt.className = 'mcc__prompt';
+        prompt.textContent = '$';
+        const echo = document.createElement('span');
+        echo.textContent = ` ${question}`;
+        cmd.append(prompt, echo);
+        output.appendChild(cmd);
 
-      let answer: HTMLElement | null = null;
-      const finish = (): void => {
-        busy = false;
-        input.disabled = false;
-        input.focus();
-      };
-      const handlers: ChatHandlers = {
-        onSources: (sources: ChatSource[]) => {
-          const seen = new Set<string>();
-          for (const s of sources) {
-            if (seen.has(s.source)) continue;
-            seen.add(s.source);
-            append('mcc__line--src', `→ ${s.source.replace(/\.md$/, '')}`);
-          }
-        },
-        onToken: (tok: string) => {
-          if (!answer) answer = append('mcc__line--out', '');
-          answer.textContent = `${answer.textContent ?? ''}${tok}`;
-          output.scrollTop = output.scrollHeight;
-        },
-        onDone: finish,
-        onError: (message: string) => {
-          append('mcc__line--out', `⚠ ${message}`);
+        let answer: HTMLElement | null = null;
+        // `settled` keeps finish idempotent, so an SSE error frame followed by a
+        // stream throw can't print two error lines or double-enable the input.
+        let settled = false;
+        const finish = (): void => {
+          if (settled) return;
+          settled = true;
+          busy = false;
+          input.disabled = false;
+          if (!form.hidden) input.focus();
+        };
+        const handlers: ChatHandlers = {
+          onSources: (sources: ChatSource[]) => {
+            const seen = new Set<string>();
+            for (const s of sources) {
+              if (seen.has(s.source)) continue;
+              seen.add(s.source);
+              append('mcc__line--src', `→ ${s.source.replace(/\.md$/, '')}`);
+            }
+          },
+          onToken: (tok: string) => {
+            if (!answer) answer = append('mcc__line--out', '');
+            answer.textContent = `${answer.textContent ?? ''}${tok}`;
+            output.scrollTop = output.scrollHeight;
+          },
+          onDone: finish,
+          onError: (message: string) => {
+            if (settled) return;
+            append('mcc__line--out', `⚠ ${message}`);
+            finish();
+          },
+        };
+
+        void streamChat(base, question, [], handlers, { signal }).catch(() => {
+          if (settled || signal.aborted) return;
+          append('mcc__line--out', '⚠ chat is unavailable right now.');
           finish();
-        },
-      };
+        });
+      },
+      { signal },
+    );
 
-      void streamChat(base, question, [], handlers).catch(() => {
-        append('mcc__line--out', '⚠ chat is unavailable right now.');
-        finish();
-      });
-    });
+    // Reveal the input live when the backend comes up and hide it when it goes
+    // down — shares the desktop poller's exponential backoff, so a down stack
+    // isn't hammered. The handlers above are wired once; only visibility flips.
+    startChatAvailabilityPolling(
+      (available) => {
+        form.hidden = !available;
+        screen?.classList.toggle('mcc__screen--chat', available);
+      },
+      { signal },
+    );
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => void wireChat(), { once: true });
+    document.addEventListener('DOMContentLoaded', wireChat, { once: true });
   } else {
-    void wireChat();
+    wireChat();
   }
+  // Re-arm after a back/forward (bfcache) restore: pagehide aborted the poller on
+  // the way out, so re-run the wiring. The prior listeners were bound to that
+  // aborted controller and are already gone, so nothing stacks.
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) wireChat();
+  });
 </script>
