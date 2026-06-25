@@ -211,15 +211,38 @@ export async function initTerminal(
   // configured nothing probes and nothing is added, so the terminal stays
   // pixel-identical to today (build brief constraint 5).
   startChatAvailabilityPolling(
-    (available) => {
+    (available, model) => {
       if (signal.aborted) return;
       if (available) revealChatHint(root, t);
       else hideChatHint(root);
+      setAiIndicator(root, available, model);
     },
     { signal },
   );
 
   return { dispose };
+}
+
+/**
+ * Show a live "● ai · <model>" badge in the prompt while the backend is
+ * answering, and clear it when chat is off. The span lives in Terminal.astro,
+ * hidden by default, so when no backend is configured nothing ever appears.
+ */
+function setAiIndicator(
+  root: ParentNode,
+  available: boolean,
+  model: string | null,
+): void {
+  const el = root.querySelector<HTMLElement>('.terminal__ai');
+  if (!el) return;
+  if (available) {
+    // textContent only — the model name is a backend string, never an HTML sink.
+    el.textContent = model ? `● ai · ${model}` : '● ai';
+    el.hidden = false;
+  } else {
+    el.textContent = '';
+    el.hidden = true;
+  }
 }
 
 /** Append the "…or just ask about the projects" hint once chat is available. */

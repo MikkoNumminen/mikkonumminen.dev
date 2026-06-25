@@ -87,6 +87,9 @@ let availabilityProbe: Promise<boolean> | null = null;
 // The dispatcher reads this (via `isChatAvailable`) so it tracks live on/off
 // transitions, not just the load-time result.
 let lastKnownAvailable = false;
+// The model the backend reports via /health (e.g. "qwen2.5:7b"), or null when
+// chat is unavailable. Surfaced in the prompt's live AI indicator.
+let lastKnownModel: string | null = null;
 // Latched true the first time a `/chat` call fails, forcing scripted-only for
 // the rest of the session regardless of any later probe.
 let sessionDisabled = false;
@@ -95,46 +98,68 @@ let sessionDisabled = false;
 export function disableChatForSession(): void {
   sessionDisabled = true;
   lastKnownAvailable = false;
+  lastKnownModel = null;
 }
 
 /** Test seam: clear the memoized probe + live state + disabled latch. */
 export function resetChatStateForTests(): void {
   availabilityProbe = null;
   lastKnownAvailable = false;
+  lastKnownModel = null;
   sessionDisabled = false;
 }
 
+/** The `/health` fields the terminal cares about: is the LLM answering, and which model. */
+export interface HealthProbe {
+  available: boolean;
+  model: string | null;
+}
+
 /**
- * Probe `${baseUrl}/health` and report whether free chat should be enabled.
+ * Probe `${baseUrl}/health` for whether free chat should be enabled AND which
+ * model is answering.
  *
- * Returns true only when the endpoint responds 2xx within the timeout AND its
- * payload reports the LLM is actually responding (`checks.llm === true`). Any
- * failure — network error, non-2xx, timeout, malformed body — resolves to
- * `false`. It never throws and never logs: an unreachable backend is the
- * expected state, not an error to surface.
+ * `available` is true only on a 2xx within the timeout whose payload reports
+ * `checks.llm === true`; `model` is the reported model name when available, else
+ * null. Any failure resolves to `{ available: false, model: null }`. Never throws
+ * and never logs: an unreachable backend is the expected state.
  */
-export async function probeAvailability(
+export async function probeHealth(
   baseUrl: string,
   { fetchImpl = fetch, signal }: FetchOpts = {},
-): Promise<boolean> {
+): Promise<HealthProbe> {
   try {
     const res = await fetchImpl(`${baseUrl}/health`, {
       cache: 'no-store',
       signal: signal ?? AbortSignal.timeout(HEALTH_TIMEOUT_MS),
     });
-    if (!res.ok) return false;
+    if (!res.ok) return { available: false, model: null };
     const body: unknown = await res.json();
-    return (
-      typeof body === 'object' &&
-      body !== null &&
-      'checks' in body &&
-      typeof (body as { checks?: unknown }).checks === 'object' &&
-      (body as { checks: Record<string, unknown> }).checks !== null &&
-      (body as { checks: { llm?: unknown } }).checks.llm === true
-    );
+    const checks =
+      typeof body === 'object' && body !== null && 'checks' in body
+        ? (body as { checks?: unknown }).checks
+        : null;
+    const available =
+      typeof checks === 'object' &&
+      checks !== null &&
+      (checks as { llm?: unknown }).llm === true;
+    const rawModel =
+      typeof body === 'object' && body !== null && 'model' in body
+        ? (body as { model?: unknown }).model
+        : null;
+    const model = typeof rawModel === 'string' ? rawModel : null;
+    return { available, model: available ? model : null };
   } catch {
-    return false;
+    return { available: false, model: null };
   }
+}
+
+/** Boolean-only availability — the dispatcher's gate. Delegates to `probeHealth`. */
+export async function probeAvailability(
+  baseUrl: string,
+  opts: FetchOpts = {},
+): Promise<boolean> {
+  return (await probeHealth(baseUrl, opts)).available;
 }
 
 /**
@@ -155,10 +180,11 @@ export async function isChatAvailable(): Promise<boolean> {
   return lastKnownAvailable;
 }
 
-/** Run one `/health` probe and record it as the latest known availability. */
+/** Run one `/health` probe and record the latest availability + model. */
 async function refreshAvailability(base: string, opts: FetchOpts = {}): Promise<boolean> {
-  const available = await probeAvailability(base, opts);
+  const { available, model } = await probeHealth(base, opts);
   lastKnownAvailable = available;
+  lastKnownModel = available ? model : null;
   return available;
 }
 
@@ -189,7 +215,7 @@ export interface AvailabilityPollOpts {
  * visibility listener are removed and no further probes run.
  */
 export function startChatAvailabilityPolling(
-  onChange: (available: boolean) => void,
+  onChange: (available: boolean, model: string | null) => void,
   { intervalMs = AVAILABILITY_POLL_MS, signal, fetchImpl }: AvailabilityPollOpts = {},
 ): void {
   // Bail if already torn down: addEventListener('abort') on an already-aborted
@@ -201,6 +227,7 @@ export function startChatAvailabilityPolling(
   // Tracks what the hint currently reflects (nothing shown yet = false), not the
   // module-level probe state, so the first "available" result always reveals.
   let last = false;
+  let lastModel: string | null = null;
   const tick = async (): Promise<void> => {
     if (signal?.aborted) return;
     const probe = sessionDisabled
@@ -211,9 +238,13 @@ export function startChatAvailabilityPolling(
     availabilityProbe ??= probe;
     const available = await probe;
     if (signal?.aborted) return;
-    if (available !== last) {
+    const model = available ? lastKnownModel : null;
+    // Fire on a change to EITHER availability or the model, so the indicator
+    // updates when the operator switches models even while chat stays up.
+    if (available !== last || model !== lastModel) {
       last = available;
-      onChange(available);
+      lastModel = model;
+      onChange(available, model);
     }
   };
 
