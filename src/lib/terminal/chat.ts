@@ -204,9 +204,10 @@ export interface AvailabilityPollOpts {
  * Keep the chat affordance in sync with the backend's live state — no reload.
  *
  * Probes `/health` immediately, then on an interval and whenever the tab regains
- * focus, calling `onChange(available)` ONLY on a transition. This is what makes
- * the "ask about the projects" hint appear within one interval of the backend
- * coming up, and disappear when it goes away.
+ * focus, calling `onChange(available, model)` only when availability OR the model
+ * name changes. This is what makes the "ask about the projects" hint and the
+ * "● ai · <model>" badge appear within one interval of the backend coming up,
+ * update when the model is switched, and disappear when it goes away.
  *
  * Inert when no backend is configured (nothing probes, `onChange` never fires —
  * the terminal stays pixel-identical to today), and reports `false` once chat
