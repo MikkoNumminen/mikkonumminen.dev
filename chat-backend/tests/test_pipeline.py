@@ -152,3 +152,41 @@ def test_hash_in_content_is_preserved() -> None:
     llm = FakeLLM(["Built with C# ", "and .NET."])
     frames = _collect("tech", db=FakeDB([_row("projects/readlog.md")]), llm=llm)
     assert _token_text(frames) == "Built with C# and .NET."
+
+
+def test_force_english_threads_into_the_assembled_messages() -> None:
+    # The force_english flag must reach build_messages: when on, the system rule
+    # AND the in-message directive are present; when off, neither is.
+    captured: dict[str, Any] = {}
+
+    class CapturingLLM:
+        async def stream_chat(
+            self, messages: Sequence[dict[str, str]]
+        ) -> AsyncIterator[str]:
+            captured["messages"] = messages
+            yield "ok"
+
+    def collect(force_english: bool) -> None:
+        async def run() -> None:
+            gen = chat_event_stream(
+                "kuka on mikko?",
+                [],
+                embedder=FakeEmbedder(),
+                db=FakeDB([_row("cv.md")]),
+                llm=CapturingLLM(),
+                top_k=5,
+                weak_retrieval_distance=0.7,
+                force_english=force_english,
+            )
+            async for _ in gen:
+                pass
+
+        asyncio.run(run())
+
+    collect(True)
+    assert captured["messages"][-1]["content"].startswith("Respond ONLY in English")
+    assert "ENTIRE reply in English" in captured["messages"][0]["content"]
+
+    collect(False)
+    assert "Respond ONLY in English" not in captured["messages"][-1]["content"]
+    assert "ENTIRE reply in English" not in captured["messages"][0]["content"]

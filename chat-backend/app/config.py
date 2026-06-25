@@ -65,6 +65,25 @@ def _get_float(name: str, default: float) -> float:
         ) from exc
 
 
+_TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+_FALSE_VALUES = frozenset({"0", "false", "no", "off"})
+
+
+def _get_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if not raw:
+        return default
+    value = raw.strip().lower()
+    if value in _TRUE_VALUES:
+        return True
+    if value in _FALSE_VALUES:
+        return False
+    raise ValueError(
+        f"environment variable {name!r} must be a boolean "
+        f"(one of {sorted(_TRUE_VALUES | _FALSE_VALUES)}), got {raw!r}"
+    )
+
+
 @dataclass(frozen=True)
 class Settings:
     """Resolved runtime configuration. Construct via `Settings.from_env()`."""
@@ -89,6 +108,12 @@ class Settings:
     # default for grounded RAG; num_predict <= 0 means "no cap" (model default).
     llm_temperature: float
     llm_num_predict: int
+    # Force every answer into English regardless of the question's language.
+    # Default on: small models (e.g. qwen2.5:7b) follow a system-prompt "answer
+    # in English" rule unreliably and slip into Finnish, so this also drives an
+    # in-message directive (see prompts.build_messages). Toggle via `ragctl
+    # english on|off`.
+    force_english: bool
 
     # --- retrieval + API surface ---
     retrieval_top_k: int
@@ -120,6 +145,7 @@ class Settings:
             llm_timeout_seconds=_get_int("LLM_TIMEOUT_SECONDS", 60),
             llm_temperature=_get_float("LLM_TEMPERATURE", 0.4),
             llm_num_predict=_get_int("LLM_NUM_PREDICT", 0),
+            force_english=_get_bool("FORCE_ENGLISH", True),
             retrieval_top_k=_get_int("TOP_K", 6),
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
             weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.7),

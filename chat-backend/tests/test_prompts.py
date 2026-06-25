@@ -47,3 +47,28 @@ def test_build_messages_threads_history_between_system_and_question() -> None:
 def test_build_messages_empty_context_path() -> None:
     messages = build_messages("anything", [])
     assert "(no relevant content found)" in messages[-1]["content"]
+
+
+def test_force_english_on_adds_system_rule_and_user_directive() -> None:
+    messages = build_messages("kuka on mikko?", [], force_english=True)
+    system = messages[0]["content"]
+    assert "ENTIRE reply in English" in system  # conditional system rule present
+    user = messages[-1]["content"]
+    assert user.startswith("Respond ONLY in English")  # in-message directive prepended
+    assert "kuka on mikko?" in user  # the question still follows
+
+
+def test_force_english_off_drops_rule_and_directive() -> None:
+    messages = build_messages("kuka on mikko?", [], force_english=False)
+    system = messages[0]["content"]
+    assert "ENTIRE reply in English" not in system  # no English rule
+    user = messages[-1]["content"]
+    assert "Respond ONLY in English" not in user  # no directive
+    assert user.startswith("Context:")  # user turn is the plain grounded ask
+
+
+def test_force_english_defaults_on() -> None:
+    # The single-turn terminal and the default path force English.
+    messages = build_messages("hello", [])
+    assert "ENTIRE reply in English" in messages[0]["content"]
+    assert messages[-1]["content"].startswith("Respond ONLY in English")
