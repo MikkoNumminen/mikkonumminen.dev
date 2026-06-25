@@ -84,10 +84,10 @@ def test_concurrency_defaults_and_overrides(
     assert defaults.llm_max_concurrency == 2
     assert defaults.llm_acquire_timeout_seconds == 0.5
     monkeypatch.setenv("LLM_MAX_CONCURRENCY", "1")
-    monkeypatch.setenv("LLM_ACQUIRE_TIMEOUT_SECONDS", "0")
+    monkeypatch.setenv("LLM_ACQUIRE_TIMEOUT_SECONDS", "0.25")
     tuned = Settings.from_env()
     assert tuned.llm_max_concurrency == 1
-    assert tuned.llm_acquire_timeout_seconds == 0.0
+    assert tuned.llm_acquire_timeout_seconds == 0.25
 
 
 def test_bad_concurrency_raises(
@@ -95,6 +95,18 @@ def test_bad_concurrency_raises(
 ) -> None:
     monkeypatch.setenv("LLM_MAX_CONCURRENCY", "0")
     with pytest.raises(ValueError, match="LLM_MAX_CONCURRENCY must be positive"):
+        Settings.from_env()
+
+
+def test_zero_acquire_timeout_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # 0 would wedge the gate: wait_for(acquire, timeout=0) always times out, so
+    # every request would be shed as "busy" even with the GPU sitting idle.
+    monkeypatch.setenv("LLM_ACQUIRE_TIMEOUT_SECONDS", "0")
+    with pytest.raises(
+        ValueError, match="LLM_ACQUIRE_TIMEOUT_SECONDS must be positive"
+    ):
         Settings.from_env()
 
 

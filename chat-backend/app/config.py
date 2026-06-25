@@ -236,8 +236,11 @@ class Settings:
                 "LLM_MAX_CONCURRENCY must be positive, got "
                 f"{self.llm_max_concurrency}"
             )
-        if self.llm_acquire_timeout_seconds < 0:
+        # Must be > 0, not >= 0: asyncio.wait_for(acquire, timeout=0) always
+        # times out — even with a free permit — so a 0 here would wedge the gate
+        # shut (every request "busy") while the GPU sits idle.
+        if self.llm_acquire_timeout_seconds <= 0:
             raise ValueError(
-                "LLM_ACQUIRE_TIMEOUT_SECONDS must be non-negative, got "
+                "LLM_ACQUIRE_TIMEOUT_SECONDS must be positive, got "
                 f"{self.llm_acquire_timeout_seconds}"
             )
