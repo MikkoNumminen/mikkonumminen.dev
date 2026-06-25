@@ -476,4 +476,70 @@ describe('startChatAvailabilityPolling', () => {
     await vi.advanceTimersByTimeAsync(3000);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
+
+  it('backs off the probe interval while the backend stays down', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const fetchImpl = healthFetch(() => false); // always unreachable
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0); // probe #1 (down) -> next at t=2000 (1000*2)
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1000); // t=1000: backed off, no probe yet
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1000); // t=2000: probe #2 -> next at t=6000 (+1000*4)
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(3999); // t≈5999: still backed off
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1); // t=6000: probe #3
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('resets the backoff to the base interval once the backend returns', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    let up = false;
+    const fetchImpl = healthFetch(() => up);
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0); // #1 down -> next +2000
+    await vi.advanceTimersByTimeAsync(2000); // #2 down -> next +4000 (t=6000)
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    up = true;
+    await vi.advanceTimersByTimeAsync(4000); // t=6000: #3 up -> failures reset -> next +1000
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(1000); // base interval again -> #4
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+  });
+
+  it('does not double-probe when a tab-focus races an in-flight probe', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    let resolveFetch: (r: Response) => void = () => {};
+    const fetchImpl = vi.fn(() => new Promise<Response>((res) => (resolveFetch = res)));
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 100_000,
+      signal: ac.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0); // first probe is in flight (unresolved)
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    // A tab refocus mid-probe must be swallowed by the re-entrancy guard.
+    document.dispatchEvent(new Event('visibilitychange'));
+    await Promise.resolve();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    // Letting the probe finish reschedules the next one normally (no leak).
+    resolveFetch(
+      jsonResponse(true, {
+        status: 'ok',
+        checks: { db: true, llm: true },
+        model: 'm',
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
 });
