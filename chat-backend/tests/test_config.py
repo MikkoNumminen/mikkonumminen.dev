@@ -46,7 +46,7 @@ def test_defaults(clean_env: None) -> None:
 
 def test_phase4_defaults(clean_env: None) -> None:
     settings = Settings.from_env()
-    assert settings.retrieval_top_k == 5
+    assert settings.retrieval_top_k == 6
     assert settings.cors_allow_origins == ["*"]
     assert settings.weak_retrieval_distance == 0.7
     assert settings.rate_limit_requests == 30
