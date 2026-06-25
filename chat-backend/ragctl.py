@@ -70,7 +70,9 @@ _GLYPH = {
 def _line(label: str, result: tuple[str, str]) -> str:
     state, detail = result
     glyph, code = _GLYPH.get(state, ("?", "0"))
-    return f"  {_c(glyph, code)} {label:<22} {detail}"
+    # Colour the WHOLE line by state — green = ok, yellow = busy/warn, red = down —
+    # so the board reads at a glance, not just the dot.
+    return _c(f"  {glyph} {label:<22} {detail}", code)
 
 
 # --- subprocess + interop --------------------------------------------------
@@ -210,10 +212,14 @@ def check_model_loaded() -> tuple[str, str]:
     if rc != 0:
         return ("down", "ollama not up")
     rows = [ln for ln in out.splitlines() if ln.strip() and not ln.startswith("NAME")]
+    active = configured_model()
     if not rows:
-        return ("warn", "no model resident (cold)")
-    names = ", ".join(r.split()[0] for r in rows)
-    return ("ok", f"{names} (100% GPU)")
+        return ("warn", f"none resident (cold) · active = {active}")
+    names = [r.split()[0] for r in rows]
+    labelled = " · ".join(f"{n} (active)" if n == active else n for n in names)
+    if active not in names:
+        labelled += f"  [active '{active}' not loaded]"
+    return ("ok", labelled)
 
 
 def check_gpu() -> tuple[str, str]:
@@ -236,7 +242,11 @@ def check_gpu() -> tuple[str, str]:
         return ("warn", "nvidia-smi unavailable")
     util, power, used, total = parts[:4]
     try:
-        return ("ok", f"{util}% util · {float(power):.0f}W · {used}/{total} MiB VRAM")
+        used_mib, total_mib = float(used), float(total)
+        pct = (used_mib / total_mib * 100) if total_mib else 0.0
+        detail = f"{util}% util · {float(power):.0f}W · {used}/{total} MiB VRAM ({pct:.0f}%)"
+        # VRAM near full risks an OOM on the next model load -> warn (yellow).
+        return ("warn" if pct >= 95 else "ok", detail)
     except ValueError:
         return ("warn", "parse error")
 
