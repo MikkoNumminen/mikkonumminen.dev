@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from .prompts import ContextChunk
+from .query_projects import detect_projects
 
 
 class SupportsEmbedQuery(Protocol):
@@ -37,25 +38,53 @@ class RetrievedChunk:
     distance: float
 
 
+# When the query names a project, pull this many * top_k candidates so that
+# project's chunks are present to float up; capped so a large top_k can't end up
+# scanning a big slice of the table.
+_CANDIDATE_MULTIPLIER = 4
+_CANDIDATE_CAP = 50
+
+
+def _to_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
+    return RetrievedChunk(
+        source=str(row["source"]),
+        title=str(row["title"]),
+        project=(None if row["project"] is None else str(row["project"])),
+        content=str(row["content"]),
+        distance=float(row["distance"]),
+    )
+
+
 async def retrieve(
     embedder: SupportsEmbedQuery,
     db: SupportsSearch,
     query: str,
     top_k: int,
 ) -> list[RetrievedChunk]:
-    """Embed `query` and return its `top_k` nearest corpus chunks."""
+    """Embed `query` and return its `top_k` nearest corpus chunks.
+
+    When the query NAMES a project (see `query_projects.detect_projects`), pull a
+    wider candidate set and float that project's chunks to the front before
+    truncating to `top_k` — so a semantically-similar passage from a DIFFERENT
+    project can't outrank the named project's own chunks (the cross-project
+    contamination bug). When no project is named, this is byte-for-byte a plain
+    `top_k` cosine search.
+    """
     vector = embedder.embed_query(query)
-    rows = await db.search(vector, top_k)
-    return [
-        RetrievedChunk(
-            source=str(row["source"]),
-            title=str(row["title"]),
-            project=(None if row["project"] is None else str(row["project"])),
-            content=str(row["content"]),
-            distance=float(row["distance"]),
-        )
-        for row in rows
-    ]
+    wanted = detect_projects(query)
+    if not wanted:
+        rows = await db.search(vector, top_k)
+        return [_to_chunk(row) for row in rows]
+
+    candidate_k = min(top_k * _CANDIDATE_MULTIPLIER, _CANDIDATE_CAP)
+    rows = await db.search(vector, candidate_k)
+    chunks = [_to_chunk(row) for row in rows]
+    # Stable partition: db rows arrive in ascending cosine distance and list
+    # comprehensions preserve that order, so within each group the most-similar
+    # chunk still leads — we only lift the named project's chunks above the rest.
+    matched = [c for c in chunks if c.project in wanted]
+    others = [c for c in chunks if c.project not in wanted]
+    return (matched + others)[:top_k]
 
 
 def to_context(chunks: Sequence[RetrievedChunk]) -> list[ContextChunk]:

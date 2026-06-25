@@ -1,0 +1,90 @@
+"""Detect which portfolio project(s) a question is about, from its text.
+
+Pure cosine retrieval is blind to project identity: a question that names a
+specific project ("how did ReadLog .NET handle the find-or-create race?") will
+happily pull a semantically-similar passage from a *different* project (e.g.
+Platform's achievement-double-unlock race) and answer from it — confidently
+wrong. This module recognises a project named in the query so retrieval can
+bias toward that project's own chunks (see `retrieval.retrieve`).
+
+Alias-based, not embedding-based, on purpose: it is deterministic, stdlib-only,
+trivially unit-tested, and a wrong guess only re-orders candidates (never
+invents). Adding a project to the corpus means adding its id + aliases here.
+"""
+
+from __future__ import annotations
+
+# project_id -> the lowercased phrases a visitor might use to name it. Order
+# within a list does not matter; matching is longest-alias-first across all
+# projects (see detect_projects), so a specific alias ("readlog .net") wins over
+# and consumes a contained shorter one ("readlog").
+PROJECT_ALIASES: dict[str, list[str]] = {
+    "readlog-dotnet": [
+        "readlog .net",
+        "readlog.net",
+        "readlog dotnet",
+        "readlog c#",
+        "readlog csharp",
+        "readlog-csharp",
+    ],
+    "readlog": ["readlog"],
+    "hrm": ["hrm", "hrmanager", "hr manager"],
+    "spacepotatis": ["spacepotatis", "space potatis"],
+    "audiobookmaker": ["audiobookmaker", "audiobook maker"],
+    "platform": ["platform"],
+    "strudel-patterns": ["strudel-patterns", "strudel patterns", "strudel"],
+    "claude-continue": ["claude-continue", "claude continue"],
+    "portfolio": ["portfolio", "mikkonumminen.dev", "mikkonumminen dev"],
+}
+
+# Flattened alias -> project_id for scanning. Built once at import.
+_ALIAS_TO_PROJECT: dict[str, str] = {
+    alias: project_id
+    for project_id, aliases in PROJECT_ALIASES.items()
+    for alias in aliases
+}
+
+
+def _word_ish_boundary(text: str, start: int, end: int) -> bool:
+    """True iff `text[start:end]` is flanked by non-alphanumeric chars (or edges).
+
+    Stops "platform" from matching inside "platforms" and "hrm" inside a random
+    word, while still allowing aliases that themselves contain spaces / `.` / `#`
+    (e.g. "readlog .net", "readlog c#") — the check only looks at the OUTER edges.
+    """
+    before = text[start - 1] if start > 0 else " "
+    after = text[end] if end < len(text) else " "
+    return not before.isalnum() and not after.isalnum()
+
+
+def detect_projects(query: str) -> set[str]:
+    """Return the set of project ids named in `query` (possibly empty).
+
+    Every alias occurrence is found, then claimed greedily LONGEST-FIRST with
+    span consumption: "readlog .net" claims its span and maps to readlog-dotnet,
+    so the contained bare "readlog" (which overlaps that span) is not also
+    counted — yet a *separate* "readlog" elsewhere in the query still maps to
+    readlog. Empty result => caller must behave exactly as plain cosine search.
+    """
+    text = query.lower()
+    occurrences: list[tuple[int, int, str]] = []
+    for alias, project_id in _ALIAS_TO_PROJECT.items():
+        start = 0
+        while True:
+            idx = text.find(alias, start)
+            if idx == -1:
+                break
+            end = idx + len(alias)
+            if _word_ish_boundary(text, idx, end):
+                occurrences.append((idx, end, project_id))
+            start = idx + 1
+    # Longest alias first (most specific claims the span), then by position.
+    occurrences.sort(key=lambda o: (-(o[1] - o[0]), o[0]))
+    claimed: list[tuple[int, int]] = []
+    detected: set[str] = set()
+    for start, end, project_id in occurrences:
+        if any(start < c_end and end > c_start for c_start, c_end in claimed):
+            continue  # overlaps an already-claimed (longer/earlier) span
+        claimed.append((start, end))
+        detected.add(project_id)
+    return detected
