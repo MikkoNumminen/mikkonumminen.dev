@@ -22,6 +22,8 @@ from pathlib import Path
 import asyncpg
 from pgvector.asyncpg import register_vector
 
+from .usage import UsageByModel, UsageSummary
+
 # The migration SQL lives in sql/ beside the app/ package. Kept here — the
 # schema/DB concern — so both the API and the offline indexer reach it via `db`
 # without the query path importing the batch-indexer module.
@@ -157,6 +159,63 @@ class Database:
     async def count_documents(self) -> int:
         value = await self._pool.fetchval("SELECT count(*) FROM documents")
         return int(value or 0)
+
+    async def record_usage(
+        self, model: str, completion_tokens: int | None, latency_ms: int | None
+    ) -> None:
+        """Append one row to the chat_usage log (one completed generation).
+
+        Best-effort telemetry: the answer has already streamed by the time this
+        runs, so the caller wraps it — a logging failure must never surface to
+        the user as a broken chat.
+        """
+        await self._pool.execute(
+            "INSERT INTO chat_usage (model, completion_tokens, latency_ms) "
+            "VALUES ($1, $2, $3)",
+            model,
+            completion_tokens,
+            latency_ms,
+        )
+
+    async def usage_summary(self, hours: int) -> UsageSummary:
+        """Aggregate the last `hours` of chat usage: totals + per-model breakdown.
+
+        The window is computed server-side (`make_interval(hours => $1)`), so it
+        never depends on the client's clock. `COALESCE(SUM(...), 0)` keeps a
+        model whose rows all have NULL token counts reporting 0, not NULL.
+        """
+        by_model_rows = await self._pool.fetch(
+            """
+            SELECT model,
+                   count(*)                            AS requests,
+                   COALESCE(SUM(completion_tokens), 0) AS tokens
+            FROM chat_usage
+            WHERE ts > now() - make_interval(hours => $1)
+            GROUP BY model
+            ORDER BY requests DESC, model
+            """,
+            hours,
+        )
+        totals = await self._pool.fetchrow(
+            """
+            SELECT count(*)                            AS requests,
+                   COALESCE(SUM(completion_tokens), 0) AS tokens,
+                   MIN(ts)                             AS since
+            FROM chat_usage
+            WHERE ts > now() - make_interval(hours => $1)
+            """,
+            hours,
+        )
+        return UsageSummary(
+            window_hours=hours,
+            since=totals["since"] if totals else None,
+            total_requests=int(totals["requests"]) if totals else 0,
+            total_tokens=int(totals["tokens"]) if totals else 0,
+            by_model=[
+                UsageByModel(r["model"], int(r["requests"]), int(r["tokens"]))
+                for r in by_model_rows
+            ],
+        )
 
     async def search(self, embedding: list[float], top_k: int) -> list[asyncpg.Record]:
         """Return the `top_k` chunks nearest the query embedding.

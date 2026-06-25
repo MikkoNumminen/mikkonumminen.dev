@@ -42,3 +42,19 @@ CREATE INDEX IF NOT EXISTS documents_embedding_cosine_idx
 -- Lookups during re-index filter by source ("what hashes already exist for this
 -- file?"), so an index on source pays for itself on every run.
 CREATE INDEX IF NOT EXISTS documents_source_idx ON documents (source);
+
+-- Chat-usage log: one row per completed /chat generation, so the operator can
+-- see how much the model is being used (GET /usage, `ragctl usage`). COUNTS
+-- ONLY — no question or answer text is stored. Lives in this same pgvector
+-- volume, so the history survives backend restarts.
+CREATE TABLE IF NOT EXISTS chat_usage (
+    id                BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ts                TIMESTAMPTZ NOT NULL DEFAULT now(),
+    model             TEXT        NOT NULL,   -- the model that answered
+    completion_tokens INTEGER,                -- streamed token-event count (≈ completion tokens); NULL if unknown
+    latency_ms        INTEGER                 -- wall time, generation start -> done
+);
+
+-- The summary query filters by ts (last N hours), so an index on ts keeps it
+-- cheap as the log grows.
+CREATE INDEX IF NOT EXISTS chat_usage_ts_idx ON chat_usage (ts);

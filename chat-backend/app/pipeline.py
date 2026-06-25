@@ -12,10 +12,21 @@ unit-tested with fakes; the heavy concrete classes are wired only in `main`.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Mapping, Sequence
+import logging
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from typing import Protocol
 
 from . import sse
+
+logger = logging.getLogger("chat")
+
+# Called once after a generation completes, with (completion_tokens, latency_ms),
+# so the caller can record usage. Injected by `main`; left None in tests. Counting
+# the streamed token EVENTS (not asking Ollama for a usage object) keeps the LLM
+# client contract unchanged and is safe under concurrent requests — no shared
+# per-client usage state to race on while friends hit the chat at once.
+UsageRecorder = Callable[[int, int], Awaitable[None]]
 from .guardrails import WEAK_RETRIEVAL_REPLY, is_weak_retrieval
 from .prompts import build_messages
 from .retrieval import (
@@ -51,7 +62,9 @@ async def chat_event_stream(
     top_k: int,
     weak_retrieval_distance: float,
     force_english: bool = True,
+    on_complete: UsageRecorder | None = None,
 ) -> AsyncIterator[str]:
+    start = time.monotonic()
     try:
         chunks = await retrieve(embedder, db, query, top_k)
     except Exception:
@@ -74,13 +87,26 @@ async def chat_event_stream(
     messages = build_messages(
         query, to_context(chunks), history, force_english=force_english
     )
+    tokens = 0
     try:
         async for token in llm.stream_chat(messages):
             cleaned = _strip_markup(token)
             if cleaned:
+                tokens += 1
                 yield sse.sse_token(cleaned)
     except Exception:
         yield sse.sse_error("generation unavailable")
         return
 
     yield sse.sse_done()
+
+    # Record usage only on a real, fully-streamed generation — the weak-retrieval
+    # refusal above never reaches here (the model wasn't called), and a mid-stream
+    # error returns early, so the metric stays "answers the model actually
+    # produced". Guarded so a telemetry failure can't break a delivered answer.
+    if on_complete is not None:
+        latency_ms = int((time.monotonic() - start) * 1000)
+        try:
+            await on_complete(tokens, latency_ms)
+        except Exception:
+            logger.exception("usage on_complete failed")

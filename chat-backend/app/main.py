@@ -20,7 +20,7 @@ import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -33,6 +33,7 @@ from .llm import LLMClient
 from .middleware import BodySizeLimitMiddleware
 from .pipeline import chat_event_stream
 from .ratelimit import RateLimiter, client_ip
+from .usage import usage_payload
 
 logger = logging.getLogger("chat")
 
@@ -139,6 +140,14 @@ def create_app() -> FastAPI:
 
     @app.post("/chat")
     async def chat(req: ChatRequest) -> StreamingResponse:
+        db = app.state.db
+
+        async def record(tokens: int, latency_ms: int) -> None:
+            # The model that answered is the configured one; counts only, never
+            # the question. The pipeline already guards this call, so a usage-log
+            # hiccup can't break an answer that has already streamed.
+            await db.record_usage(settings.llm_model, tokens, latency_ms)
+
         stream = chat_event_stream(
             req.message,
             [m.model_dump() for m in req.history],
@@ -148,12 +157,22 @@ def create_app() -> FastAPI:
             top_k=settings.retrieval_top_k,
             weak_retrieval_distance=settings.weak_retrieval_distance,
             force_english=settings.force_english,
+            on_complete=record,
         )
         return StreamingResponse(
             stream,
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
+
+    @app.get("/usage")
+    async def usage(hours: int = Query(default=24, ge=1, le=168)) -> JSONResponse:
+        # How much the model has been used over the last N hours (default 24,
+        # capped at a week). Aggregate counts only — no question text is stored
+        # or returned. `ragctl usage` reads this on localhost; it carries nothing
+        # sensitive, so being reachable through the funnel is acceptable.
+        summary = await app.state.db.usage_summary(hours)
+        return JSONResponse(usage_payload(summary))
 
     return app
 
