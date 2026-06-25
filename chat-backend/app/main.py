@@ -15,6 +15,7 @@ isolation.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -33,6 +34,7 @@ from .llm import LLMClient
 from .middleware import BodySizeLimitMiddleware
 from .pipeline import chat_event_stream
 from .ratelimit import RateLimiter, client_ip
+from .request_log import build_request_logger
 from .usage import usage_payload
 
 logger = logging.getLogger("chat")
@@ -44,7 +46,11 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=2000)
+    # Pydantic carries only a loose backstop; the operative limit is the
+    # configurable INPUT_MAX_CHARS, enforced in the handler so the real cap is
+    # one tunable number, not split across two layers. A message between the cap
+    # and this backstop is rejected by the handler with a clean 400.
+    message: str = Field(min_length=1, max_length=4000)
     # Bound the PARSED structure regardless of Content-Length: the body-size
     # middleware caps raw bytes, and these cap the prompt that reaches the model
     # (a no-Content-Length request can't slip a huge history past Pydantic).
@@ -63,6 +69,9 @@ async def _db_ok(db: Database) -> bool:
 
 def create_app() -> FastAPI:
     settings = Settings.from_env()
+    # Opt-in local request log (off unless RAG_LOG_FILE is set). None when off,
+    # in which case the pipeline skips logging entirely.
+    request_logger = build_request_logger(settings.rag_log_file)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -81,6 +90,9 @@ def create_app() -> FastAPI:
             temperature=settings.llm_temperature,
             num_predict=settings.llm_num_predict,
         )
+        # One permit per concurrent generation the single local GPU can serve.
+        # Created inside the lifespan so it binds to the running event loop.
+        app.state.llm_semaphore = asyncio.Semaphore(settings.llm_max_concurrency)
         try:
             yield
         finally:
@@ -139,7 +151,20 @@ def create_app() -> FastAPI:
         return JSONResponse(health_payload(db_ok, llm_ok, settings.llm_model))
 
     @app.post("/chat")
-    async def chat(req: ChatRequest) -> StreamingResponse:
+    async def chat(req: ChatRequest) -> Response:
+        # Hard cap on the CURRENT question, enforced before any retrieval or
+        # generation: an over-length message is rejected outright rather than
+        # truncated or fed to the model. This bounds the message only — total
+        # request size is bounded by MAX_BODY_BYTES (the body-size middleware),
+        # and prior turns by the Pydantic history limits (<=20 turns, <=2000
+        # chars each). History is deliberately not char-capped here: the byte
+        # cap already bounds it and truncating would corrupt legit multi-turn.
+        if len(req.message) > settings.input_max_chars:
+            return JSONResponse(
+                {"detail": f"message exceeds {settings.input_max_chars} characters"},
+                status_code=400,
+            )
+
         db = app.state.db
 
         async def record(tokens: int, latency_ms: int) -> None:
@@ -158,6 +183,9 @@ def create_app() -> FastAPI:
             weak_retrieval_distance=settings.weak_retrieval_distance,
             force_english=settings.force_english,
             on_complete=record,
+            semaphore=app.state.llm_semaphore,
+            acquire_timeout=settings.llm_acquire_timeout_seconds,
+            log_request=request_logger,
         )
         return StreamingResponse(
             stream,

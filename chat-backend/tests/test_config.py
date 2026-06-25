@@ -28,6 +28,10 @@ _CONFIG_ENV_VARS = [
     "RATE_LIMIT_REQUESTS",
     "RATE_LIMIT_WINDOW_SECONDS",
     "MAX_BODY_BYTES",
+    "INPUT_MAX_CHARS",
+    "LLM_MAX_CONCURRENCY",
+    "LLM_ACQUIRE_TIMEOUT_SECONDS",
+    "RAG_LOG_FILE",
 ]
 
 
@@ -55,6 +59,63 @@ def test_phase4_defaults(clean_env: None) -> None:
     assert settings.rate_limit_requests == 30
     assert settings.rate_limit_window_seconds == 60.0
     assert settings.max_body_bytes == 16384
+
+
+def test_input_max_chars_default_and_override(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert Settings.from_env().input_max_chars == 800
+    monkeypatch.setenv("INPUT_MAX_CHARS", "1200")
+    assert Settings.from_env().input_max_chars == 1200
+
+
+def test_bad_input_max_chars_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("INPUT_MAX_CHARS", "0")
+    with pytest.raises(ValueError, match="INPUT_MAX_CHARS must be positive"):
+        Settings.from_env()
+
+
+def test_concurrency_defaults_and_overrides(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    defaults = Settings.from_env()
+    assert defaults.llm_max_concurrency == 2
+    assert defaults.llm_acquire_timeout_seconds == 0.5
+    monkeypatch.setenv("LLM_MAX_CONCURRENCY", "1")
+    monkeypatch.setenv("LLM_ACQUIRE_TIMEOUT_SECONDS", "0.25")
+    tuned = Settings.from_env()
+    assert tuned.llm_max_concurrency == 1
+    assert tuned.llm_acquire_timeout_seconds == 0.25
+
+
+def test_bad_concurrency_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("LLM_MAX_CONCURRENCY", "0")
+    with pytest.raises(ValueError, match="LLM_MAX_CONCURRENCY must be positive"):
+        Settings.from_env()
+
+
+def test_zero_acquire_timeout_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # 0 would wedge the gate: wait_for(acquire, timeout=0) always times out, so
+    # every request would be shed as "busy" even with the GPU sitting idle.
+    monkeypatch.setenv("LLM_ACQUIRE_TIMEOUT_SECONDS", "0")
+    with pytest.raises(
+        ValueError, match="LLM_ACQUIRE_TIMEOUT_SECONDS must be positive"
+    ):
+        Settings.from_env()
+
+
+def test_rag_log_file_default_off_and_override(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert Settings.from_env().rag_log_file == ""  # off by default
+    monkeypatch.setenv("RAG_LOG_FILE", "/var/log/rag.log")
+    assert Settings.from_env().rag_log_file == "/var/log/rag.log"
 
 
 def test_llm_tuning_defaults_and_overrides(
