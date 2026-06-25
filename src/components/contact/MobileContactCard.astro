@@ -39,20 +39,20 @@ const m = t.mobileContact;
         data-download-output={m.typedDownloadOutput}
       >
       </div>
+      <form class="mcc__chatform" id="mcc-chatform" hidden autocomplete="off">
+        <span class="mcc__prompt" aria-hidden="true">$</span>
+        <input
+          class="mcc__chatinput"
+          id="mcc-input"
+          type="text"
+          inputmode="text"
+          enterkeyhint="send"
+          autocomplete="off"
+          placeholder="ask about the projects…"
+          aria-label="Ask the assistant about the projects"
+        />
+      </form>
     </div>
-    <form class="mcc__chatform" id="mcc-chatform" hidden autocomplete="off">
-      <span class="mcc__prompt" aria-hidden="true">$</span>
-      <input
-        class="mcc__chatinput"
-        id="mcc-input"
-        type="text"
-        inputmode="text"
-        enterkeyhint="send"
-        autocomplete="off"
-        placeholder="ask about the projects…"
-        aria-label="Ask the assistant about the projects"
-      />
-    </form>
   </div>
 
   <div class="mcc__actions">
@@ -343,6 +343,9 @@ const m = t.mobileContact;
     const { available } = await probeHealth(base);
     if (!available) return;
     form.hidden = false;
+    // Mark the screen so the static idle prompt ("$ ▏") is hidden — the live
+    // input below now *is* the prompt, so two would be redundant.
+    output.parentElement?.classList.add('mcc__screen--chat');
 
     // Tapping anywhere in the terminal box (not just the thin input line) focuses
     // the input — the small line was a poor touch target. focus() called inside
