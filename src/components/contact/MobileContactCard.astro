@@ -40,6 +40,19 @@ const m = t.mobileContact;
       >
       </div>
     </div>
+    <form class="mcc__chatform" id="mcc-chatform" hidden autocomplete="off">
+      <span class="mcc__prompt" aria-hidden="true">$</span>
+      <input
+        class="mcc__chatinput"
+        id="mcc-input"
+        type="text"
+        inputmode="text"
+        enterkeyhint="send"
+        autocomplete="off"
+        placeholder="ask about the projects…"
+        aria-label="Ask the assistant about the projects"
+      />
+    </form>
   </div>
 
   <div class="mcc__actions">
@@ -305,5 +318,97 @@ const m = t.mobileContact;
     document.addEventListener('DOMContentLoaded', start, { once: true });
   } else {
     start();
+  }
+</script>
+
+<script>
+  // Progressive enhancement: when the local RAG backend is actually answering,
+  // turn the phone card's static terminal into a real chat — a tappable input
+  // (which opens the keyboard, unlike the static showcase) wired to the same
+  // `/chat` stream the desktop terminal uses. With no backend configured or one
+  // that's unreachable, nothing is revealed and the card stays showcase + buttons.
+  import { getChatBaseUrl, probeHealth, streamChat } from '../../lib/terminal/chat';
+  import type { ChatHandlers, ChatSource } from '../../lib/terminal/chat';
+
+  const wireChat = async (): Promise<void> => {
+    const base = getChatBaseUrl();
+    if (!base) return;
+    const form = document.querySelector<HTMLFormElement>('#mcc-chatform');
+    const input = document.querySelector<HTMLInputElement>('#mcc-input');
+    const output = document.querySelector<HTMLElement>('#mcc-output');
+    if (!form || !input || !output) return;
+
+    // Only reveal the input once /health confirms the model answers — a visible
+    // "type here" that does nothing would be worse than the honest static card.
+    const { available } = await probeHealth(base);
+    if (!available) return;
+    form.hidden = false;
+
+    const append = (cls: string, text: string): HTMLElement => {
+      const el = document.createElement('span');
+      el.className = `mcc__line ${cls}`;
+      el.textContent = text;
+      output.appendChild(el);
+      output.scrollTop = output.scrollHeight;
+      return el;
+    };
+
+    let busy = false;
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const question = input.value.trim();
+      if (!question || busy) return;
+      busy = true;
+      input.value = '';
+      input.disabled = true;
+
+      const cmd = document.createElement('span');
+      cmd.className = 'mcc__line mcc__line--cmd';
+      const prompt = document.createElement('span');
+      prompt.className = 'mcc__prompt';
+      prompt.textContent = '$';
+      const echo = document.createElement('span');
+      echo.textContent = ` ${question}`;
+      cmd.append(prompt, echo);
+      output.appendChild(cmd);
+
+      let answer: HTMLElement | null = null;
+      const finish = (): void => {
+        busy = false;
+        input.disabled = false;
+        input.focus();
+      };
+      const handlers: ChatHandlers = {
+        onSources: (sources: ChatSource[]) => {
+          const seen = new Set<string>();
+          for (const s of sources) {
+            if (seen.has(s.source)) continue;
+            seen.add(s.source);
+            append('mcc__line--src', `→ ${s.source.replace(/\.md$/, '')}`);
+          }
+        },
+        onToken: (tok: string) => {
+          if (!answer) answer = append('mcc__line--out', '');
+          answer.textContent = `${answer.textContent ?? ''}${tok}`;
+          output.scrollTop = output.scrollHeight;
+        },
+        onDone: finish,
+        onError: (message: string) => {
+          append('mcc__line--out', `⚠ ${message}`);
+          finish();
+        },
+      };
+
+      void streamChat(base, question, [], handlers).catch(() => {
+        append('mcc__line--out', '⚠ chat is unavailable right now.');
+        finish();
+      });
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => void wireChat(), { once: true });
+  } else {
+    void wireChat();
   }
 </script>
