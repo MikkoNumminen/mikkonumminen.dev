@@ -26,19 +26,23 @@ PROJECT_ALIASES: dict[str, list[str]] = {
         "readlog c#",
         "readlog csharp",
         "readlog-csharp",
-        # Tech aliases: readlog-dotnet is the only Microsoft/.NET project, so
-        # these ecosystem terms point at it — e.g. "the microsoft stack projects"
-        # surfaced nothing before because the docs say ".NET"/"C#", not "Microsoft".
+        # Tech aliases: readlog-dotnet is the only Microsoft/.NET project, so these
+        # ecosystem terms point at it — "the microsoft stack projects" surfaced
+        # nothing before because the docs say ".NET"/"C#", not "Microsoft". Bare
+        # "c#" (a musical note — and there IS a music project) and "razor" (shaving,
+        # "razor-thin") are deliberately NOT aliases; use the scoped/qualified
+        # forms below. "azure"/"microsoft" can also mean a colour / Office, but in a
+        # dev-portfolio chat the cloud/.NET reading dominates and a wrong guess only
+        # re-orders already-retrieved chunks (it never invents).
         "microsoft",
         ".net",
         "dotnet",
-        "c#",
         "csharp",
         "asp.net",
         "aspnet",
         "ef core",
         "entity framework",
-        "razor",
+        "razor pages",
         "azure",
     ],
     "readlog": ["readlog"],
