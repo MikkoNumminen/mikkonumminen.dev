@@ -344,6 +344,53 @@
   font-size: 0.7rem;
 }
 
+/* Clickable source citations under a chat answer: the "→ projects/x" label links
+   on-site to the galaxy; the trailing "↗" opens the repo/live URL. */
+.chat-cite {
+  color: var(--color-term-cyan);
+  text-decoration: none;
+}
+.chat-cite:hover,
+.chat-cite:focus-visible {
+  text-decoration: underline;
+}
+.chat-cite-ext {
+  color: var(--color-term-dim);
+  text-decoration: none;
+}
+.chat-cite-ext:hover,
+.chat-cite-ext:focus-visible {
+  color: var(--color-term-cyan);
+}
+
+/* Starter-question chips — terminal.ts populates these only when chat is live.
+   Violet to match the "● ai" badge. Collapsed entirely when empty so a terminal
+   with no backend takes no extra space. */
+.terminal__starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.terminal__starters:empty {
+  display: none;
+}
+.terminal__starter {
+  cursor: pointer;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.08);
+  color: var(--color-term-fg);
+  font-family: inherit;
+  font-size: 0.72rem;
+}
+.terminal__starter:hover,
+.terminal__starter:focus-visible {
+  border-color: #a78bfa;
+  background: rgba(167, 139, 250, 0.18);
+}
+
 .terminal__noscript {
   position: relative;
   z-index: 4;

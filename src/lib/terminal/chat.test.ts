@@ -273,6 +273,62 @@ describe('askChat', () => {
     // Degraded for the rest of the session.
     await expect(isChatAvailable()).resolves.toBe(false);
   });
+
+  it('threads prior turns as history into the next question', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const bodies: string[] = [];
+    const fetchImpl = (async (_url: string, init: { body?: unknown }) => {
+      bodies.push(String(init.body));
+      return sseResponse([
+        'event: token\ndata: {"text":"answer."}\n\n',
+        'event: done\ndata: {}\n\n',
+      ]);
+    }) as unknown as typeof fetch;
+    const { output, ctx } = freshCtx();
+    await askChat('first question', ctx, output, t, { fetchImpl });
+    await askChat('follow up', ctx, output, t, { fetchImpl });
+    expect(JSON.parse(bodies[0] ?? 'null').history).toEqual([]);
+    expect(JSON.parse(bodies[1] ?? 'null').history).toEqual([
+      { role: 'user', content: 'first question' },
+      { role: 'assistant', content: 'answer.' },
+    ]);
+  });
+
+  it('renders a project-mapped source as on-site + repo links', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const fetchImpl = async () =>
+      sseResponse([
+        'event: sources\ndata: {"sources":[{"source":"projects/hrm.md","project":"hrm"}]}\n\n',
+        'event: token\ndata: {"text":"HRM."}\n\n',
+        'event: done\ndata: {}\n\n',
+      ]);
+    const { output, ctx } = freshCtx();
+    await askChat('what is hrm', ctx, output, t, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const onsite = output.querySelector<HTMLAnchorElement>('a.chat-cite');
+    const repo = output.querySelector<HTMLAnchorElement>('a.chat-cite-ext');
+    expect(onsite?.textContent).toBe('→ projects/hrm');
+    expect(onsite?.getAttribute('href')).toContain('/projects?id=hrm');
+    expect(repo?.getAttribute('href')).toBe('https://github.com/MikkoNumminen/HRManager');
+    expect(repo?.target).toBe('_blank');
+  });
+
+  it('leaves an unmapped source (no project) as plain text', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const fetchImpl = async () =>
+      sseResponse([
+        'event: sources\ndata: {"sources":[{"source":"cv.md"}]}\n\n',
+        'event: token\ndata: {"text":"hi."}\n\n',
+        'event: done\ndata: {}\n\n',
+      ]);
+    const { output, ctx } = freshCtx();
+    await askChat('who is mikko', ctx, output, t, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    expect(output.querySelector('a.chat-cite')).toBeNull();
+    expect(output.textContent).toContain('→ cv');
+  });
 });
 
 describe('startChatAvailabilityPolling', () => {

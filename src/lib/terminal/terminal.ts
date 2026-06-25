@@ -210,11 +210,23 @@ export async function initTerminal(
   // the stack on and disappears when it goes off — no reload. When no backend is
   // configured nothing probes and nothing is added, so the terminal stays
   // pixel-identical to today (build brief constraint 5).
+  // Clicking a starter chip fills the prompt and submits it like a typed question.
+  const submitStarter = (question: string): void => {
+    input.value = question;
+    updateCursor(input, cursor);
+    form.requestSubmit();
+  };
+
   startChatAvailabilityPolling(
     (available, model) => {
       if (signal.aborted) return;
-      if (available) revealChatHint(root, t);
-      else hideChatHint(root);
+      if (available) {
+        revealChatHint(root, t);
+        revealStarters(root, submitStarter, signal);
+      } else {
+        hideChatHint(root);
+        hideStarters(root);
+      }
       setAiIndicator(root, available, model);
     },
     { signal },
@@ -259,4 +271,45 @@ function revealChatHint(root: ParentNode, t: ReturnType<typeof getTranslations>)
 /** Remove the chat hint when the backend goes away mid-session. */
 function hideChatHint(root: ParentNode): void {
   root.querySelector<HTMLElement>('.terminal__hint--chat')?.remove();
+}
+
+// A few example questions shown as clickable chips when chat is available, so
+// visitors aren't staring at a blank prompt. English-only on purpose: the chat
+// itself answers only in English (see chat-backend prompt), so the starters that
+// seed it are not translated.
+const STARTER_QUESTIONS = [
+  'Which project is the most complex?',
+  'How did Spacepotatis bridge Phaser and Three.js?',
+  "What is ReadLog .NET's stack?",
+  'How does claude-continue know when a usage window resets?',
+];
+
+/**
+ * Reveal the starter-question chips once chat is available. Idempotent. Clicking
+ * a chip submits that question via `onPick`. Listeners are bound to the terminal
+ * `signal` so they're torn down with the instance. When no backend is configured
+ * this never runs, so the terminal stays pixel-identical to today.
+ */
+function revealStarters(
+  root: ParentNode,
+  onPick: (question: string) => void,
+  signal: AbortSignal,
+): void {
+  const box = root.querySelector<HTMLElement>('.terminal__starters');
+  if (!box || box.childElementCount > 0) return;
+  for (const question of STARTER_QUESTIONS) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'terminal__starter';
+    // textContent (not innerHTML): static strings, never an HTML sink.
+    chip.textContent = question;
+    chip.addEventListener('click', () => onPick(question), { signal });
+    box.appendChild(chip);
+  }
+}
+
+/** Remove the starter chips when the backend goes away mid-session. */
+function hideStarters(root: ParentNode): void {
+  const box = root.querySelector<HTMLElement>('.terminal__starters');
+  if (box) box.replaceChildren();
 }
