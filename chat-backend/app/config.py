@@ -130,6 +130,14 @@ class Settings:
     rate_limit_window_seconds: float
     max_body_bytes: int
 
+    # --- containment (Workstream A) ---
+    # Hard cap on the question length that reaches the model, enforced in the
+    # /chat handler BEFORE retrieval or generation. The Pydantic model carries a
+    # looser backstop; this is the real, tunable limit. Containment is
+    # architectural, not prompt-wording: a bounded input cannot smuggle a giant
+    # payload past the model no matter what the message says.
+    input_max_chars: int
+
     @staticmethod
     def from_env() -> Settings:
         settings = Settings(
@@ -152,6 +160,7 @@ class Settings:
             rate_limit_requests=_get_int("RATE_LIMIT_REQUESTS", 30),
             rate_limit_window_seconds=_get_float("RATE_LIMIT_WINDOW_SECONDS", 60.0),
             max_body_bytes=_get_int("MAX_BODY_BYTES", 16384),
+            input_max_chars=_get_int("INPUT_MAX_CHARS", 800),
         )
         settings.validate()
         return settings
@@ -201,4 +210,8 @@ class Settings:
         if self.max_body_bytes <= 0:
             raise ValueError(
                 f"MAX_BODY_BYTES must be positive, got {self.max_body_bytes}"
+            )
+        if self.input_max_chars <= 0:
+            raise ValueError(
+                f"INPUT_MAX_CHARS must be positive, got {self.input_max_chars}"
             )

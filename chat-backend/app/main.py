@@ -44,7 +44,11 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=2000)
+    # Pydantic carries only a loose backstop; the operative limit is the
+    # configurable INPUT_MAX_CHARS, enforced in the handler so the real cap is
+    # one tunable number, not split across two layers. A message between the cap
+    # and this backstop is rejected by the handler with a clean 400.
+    message: str = Field(min_length=1, max_length=4000)
     # Bound the PARSED structure regardless of Content-Length: the body-size
     # middleware caps raw bytes, and these cap the prompt that reaches the model
     # (a no-Content-Length request can't slip a huge history past Pydantic).
@@ -139,7 +143,17 @@ def create_app() -> FastAPI:
         return JSONResponse(health_payload(db_ok, llm_ok, settings.llm_model))
 
     @app.post("/chat")
-    async def chat(req: ChatRequest) -> StreamingResponse:
+    async def chat(req: ChatRequest) -> Response:
+        # Hard input cap, enforced before any retrieval or generation: a question
+        # longer than the configured limit is rejected outright rather than
+        # truncated or fed to the model. Architectural containment — the model
+        # never sees an oversized payload, whatever the text claims.
+        if len(req.message) > settings.input_max_chars:
+            return JSONResponse(
+                {"detail": f"message exceeds {settings.input_max_chars} characters"},
+                status_code=400,
+            )
+
         db = app.state.db
 
         async def record(tokens: int, latency_ms: int) -> None:
