@@ -50,6 +50,7 @@ async def chat_event_stream(
     llm: SupportsStreamChat,
     top_k: int,
     weak_retrieval_distance: float,
+    force_english: bool = True,
 ) -> AsyncIterator[str]:
     try:
         chunks = await retrieve(embedder, db, query, top_k)
@@ -70,7 +71,9 @@ async def chat_event_stream(
     # Sources up front: the terminal renders them while tokens stream.
     yield sse.sse_sources(to_source_refs(chunks))
 
-    messages = build_messages(query, to_context(chunks), history)
+    messages = build_messages(
+        query, to_context(chunks), history, force_english=force_english
+    )
     try:
         async for token in llm.stream_chat(messages):
             cleaned = _strip_markup(token)

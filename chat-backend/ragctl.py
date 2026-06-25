@@ -130,6 +130,26 @@ def configured_model() -> str:
     return "gemma4:e4b"
 
 
+def configured_force_english() -> bool:
+    """Read FORCE_ENGLISH from the repo .env (default on, matching config.py).
+
+    Lenient on purpose — only the explicit false words turn it off; anything
+    else (incl. empty / unset / a typo) falls back to the on default, so the
+    board never silently reports English-off because of a malformed value.
+    """
+    env = REPO / ".env"
+    if env.exists():
+        for line in env.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if line.startswith("FORCE_ENGLISH="):
+                return line.split("=", 1)[1].strip().lower() not in (
+                    "0",
+                    "false",
+                    "no",
+                    "off",
+                )
+    return True
+
+
 def list_models() -> list[str]:
     rc, out = run(COMPOSE + ["exec", "-T", "ollama", "ollama", "list"], cwd=REPO, timeout=15)
     if rc != 0:
@@ -220,6 +240,15 @@ def check_model_loaded() -> tuple[str, str]:
     if active not in names:
         labelled += f"  [active '{active}' not loaded]"
     return ("ok", labelled)
+
+
+def check_english() -> tuple[str, str]:
+    """FORCE_ENGLISH state. A mode, not a health check — both states are `ok`
+    (off is a deliberate choice, not a fault), so it never flips `render`'s
+    'rag is LIVE' verdict; the detail carries the actual on/off."""
+    if configured_force_english():
+        return ("ok", "on · every answer in English")
+    return ("ok", "off · answers follow the question's language")
 
 
 def check_gpu() -> tuple[str, str]:
@@ -346,6 +375,7 @@ def gather() -> list[tuple[str, tuple[str, str]]]:
             ("model loaded", ("down", "—")),
             ("GPU", ("down", "—")),
             ("backend /health", ("down", "—")),
+            ("English-only", check_english()),
             ("Tailscale", check_tailscale()),
             ("Funnel", check_funnel(url)),
             ("public reachable", check_public(url)),
@@ -360,6 +390,7 @@ def gather() -> list[tuple[str, tuple[str, str]]]:
         ("model loaded", check_model_loaded()),
         ("GPU", check_gpu()),
         ("backend /health", check_backend_health()),
+        ("English-only", check_english()),
         ("Tailscale", check_tailscale()),
         ("Funnel", check_funnel(url)),
         ("public reachable", check_public(url)),
@@ -596,6 +627,45 @@ def cmd_model(name: str | None, effort: str, context: str | None, do_test: bool)
     return 0
 
 
+def cmd_english(state: str | None) -> int:
+    """Force every answer into English (across all models), or allow the
+    question's language. Writes FORCE_ENGLISH to .env and rebuilds the backend.
+
+    Small models follow a system-prompt 'answer in English' rule unreliably, so
+    `on` also drives an in-message directive (see app/prompts.py); the toggle
+    flips both together."""
+    current = configured_force_english()
+    if state is None:
+        word = "on" if current else "off"
+        detail = (
+            "every answer in English"
+            if current
+            else "answers follow the question's language"
+        )
+        print(f"\n  FORCE_ENGLISH is {_c(word, '32' if current else '33')} — {detail}")
+        print("  toggle with:  ragctl english on   |   ragctl english off")
+        return 0
+
+    want = state == "on"
+    if want == current:
+        print(f"\n  already {state} — nothing to change.")
+        return 0
+    set_env_vars({"FORCE_ENGLISH": "1" if want else "0"})
+    note = (
+        "every answer in English"
+        if want
+        else "answers follow the question's language"
+    )
+    print(f"\n  applying → FORCE_ENGLISH {_c(state, '1')}  ·  {note}")
+    print("  ◐ rebuilding + recreating backend with the new config …")
+    # --build so the running backend picks up the new env; layer cache keeps it
+    # fast when the code is unchanged. Only the backend reads FORCE_ENGLISH.
+    run(COMPOSE + ["up", "-d", "--build", "backend"], cwd=REPO, timeout=300)
+    print()
+    print(render(gather()))
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(prog="ragctl", description="Operator CLI for the local RAG chat.")
     sub = p.add_subparsers(dest="cmd")
@@ -614,6 +684,15 @@ def main() -> int:
     )
     mdl.add_argument("--context", choices=list(CONTEXT_PRESETS), help="served context window")
     mdl.add_argument("--no-test", action="store_true", help="skip the post-apply test query")
+    eng = sub.add_parser(
+        "english", help="force every answer into English (on|off); omit to show state"
+    )
+    eng.add_argument(
+        "state",
+        nargs="?",
+        choices=["on", "off"],
+        help="on = force English across all models; off = follow the question's language",
+    )
     args = p.parse_args()
 
     if args.cmd == "status":
@@ -630,6 +709,8 @@ def main() -> int:
         return cmd_test(args.question)
     if args.cmd == "model":
         return cmd_model(args.name, args.effort, args.context, not args.no_test)
+    if args.cmd == "english":
+        return cmd_english(args.state)
     p.print_help()
     return 0
 

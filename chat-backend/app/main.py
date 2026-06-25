@@ -147,6 +147,7 @@ def create_app() -> FastAPI:
             llm=app.state.llm,
             top_k=settings.retrieval_top_k,
             weak_retrieval_distance=settings.weak_retrieval_distance,
+            force_english=settings.force_english,
         )
         return StreamingResponse(
             stream,

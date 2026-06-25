@@ -21,6 +21,7 @@ _CONFIG_ENV_VARS = [
     "LLM_TIMEOUT_SECONDS",
     "LLM_TEMPERATURE",
     "LLM_NUM_PREDICT",
+    "FORCE_ENGLISH",
     "TOP_K",
     "CORS_ALLOW_ORIGINS",
     "WEAK_RETRIEVAL_DISTANCE",
@@ -67,6 +68,40 @@ def test_llm_tuning_defaults_and_overrides(
     tuned = Settings.from_env()
     assert tuned.llm_temperature == 0.7
     assert tuned.llm_num_predict == 512
+
+
+def test_force_english_default_on(clean_env: None) -> None:
+    assert Settings.from_env().force_english is True
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("0", False),
+        ("false", False),
+        ("FALSE", False),
+        ("no", False),
+        ("off", False),
+        ("1", True),
+        ("true", True),
+        ("yes", True),
+        ("on", True),
+        ("", True),  # empty falls back to the on default
+    ],
+)
+def test_force_english_parsing(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch, raw: str, expected: bool
+) -> None:
+    monkeypatch.setenv("FORCE_ENGLISH", raw)
+    assert Settings.from_env().force_english is expected
+
+
+def test_force_english_bad_value_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("FORCE_ENGLISH", "maybe")
+    with pytest.raises(ValueError, match="FORCE_ENGLISH"):
+        Settings.from_env()
 
 
 def test_cors_origins_parsed_as_list(
