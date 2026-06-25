@@ -245,3 +245,34 @@ def test_generation_permit_is_released_after_a_successful_answer() -> None:
     assert _events(frames) == ["sources", "token", "token", "done"]
     assert _token_text(frames) == "HRM is great."
     assert still_held is False  # permit released back to the pool
+
+
+def test_generation_permit_is_released_on_early_client_disconnect() -> None:
+    # The leak-guard's hardest path: the consumer stops mid-stream (a browser
+    # closing the tab). aclose() raises GeneratorExit at the suspended yield —
+    # which must run the finally and release the permit, or the gate wedges.
+    llm = FakeLLM(["one ", "two ", "three ", "four"])
+
+    async def run() -> bool:
+        sem = asyncio.Semaphore(1)
+        gen = chat_event_stream(
+            "what is hrm",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            semaphore=sem,
+            acquire_timeout=0.5,
+        )
+        seen = 0
+        async for _frame in gen:
+            seen += 1
+            if seen == 3:  # sources + 2 tokens, then bail like a closed tab
+                break
+        await gen.aclose()  # mid-stream disconnect path
+        return sem.locked()
+
+    still_held = asyncio.run(run())
+    assert still_held is False  # permit released despite the early disconnect
