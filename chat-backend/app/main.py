@@ -152,10 +152,13 @@ def create_app() -> FastAPI:
 
     @app.post("/chat")
     async def chat(req: ChatRequest) -> Response:
-        # Hard input cap, enforced before any retrieval or generation: a question
-        # longer than the configured limit is rejected outright rather than
-        # truncated or fed to the model. Architectural containment — the model
-        # never sees an oversized payload, whatever the text claims.
+        # Hard cap on the CURRENT question, enforced before any retrieval or
+        # generation: an over-length message is rejected outright rather than
+        # truncated or fed to the model. This bounds the message only — total
+        # request size is bounded by MAX_BODY_BYTES (the body-size middleware),
+        # and prior turns by the Pydantic history limits (<=20 turns, <=2000
+        # chars each). History is deliberately not char-capped here: the byte
+        # cap already bounds it and truncating would corrupt legit multi-turn.
         if len(req.message) > settings.input_max_chars:
             return JSONResponse(
                 {"detail": f"message exceeds {settings.input_max_chars} characters"},
