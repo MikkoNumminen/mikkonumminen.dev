@@ -34,6 +34,7 @@ from .llm import LLMClient
 from .middleware import BodySizeLimitMiddleware
 from .pipeline import chat_event_stream
 from .ratelimit import RateLimiter, client_ip
+from .request_log import build_request_logger
 from .usage import usage_payload
 
 logger = logging.getLogger("chat")
@@ -68,6 +69,9 @@ async def _db_ok(db: Database) -> bool:
 
 def create_app() -> FastAPI:
     settings = Settings.from_env()
+    # Opt-in local request log (off unless RAG_LOG_FILE is set). None when off,
+    # in which case the pipeline skips logging entirely.
+    request_logger = build_request_logger(settings.rag_log_file)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -178,6 +182,7 @@ def create_app() -> FastAPI:
             on_complete=record,
             semaphore=app.state.llm_semaphore,
             acquire_timeout=settings.llm_acquire_timeout_seconds,
+            log_request=request_logger,
         )
         return StreamingResponse(
             stream,

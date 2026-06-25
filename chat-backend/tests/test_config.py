@@ -31,6 +31,7 @@ _CONFIG_ENV_VARS = [
     "INPUT_MAX_CHARS",
     "LLM_MAX_CONCURRENCY",
     "LLM_ACQUIRE_TIMEOUT_SECONDS",
+    "RAG_LOG_FILE",
 ]
 
 
@@ -95,6 +96,14 @@ def test_bad_concurrency_raises(
     monkeypatch.setenv("LLM_MAX_CONCURRENCY", "0")
     with pytest.raises(ValueError, match="LLM_MAX_CONCURRENCY must be positive"):
         Settings.from_env()
+
+
+def test_rag_log_file_default_off_and_override(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert Settings.from_env().rag_log_file == ""  # off by default
+    monkeypatch.setenv("RAG_LOG_FILE", "/var/log/rag.log")
+    assert Settings.from_env().rag_log_file == "/var/log/rag.log"
 
 
 def test_llm_tuning_defaults_and_overrides(

@@ -143,6 +143,11 @@ class Settings:
     # behind a slow generation just stacks timeouts and risks an OOM.
     llm_max_concurrency: int
     llm_acquire_timeout_seconds: float
+    # Opt-in local request log (empty = off). When set to a path, every /chat
+    # request appends one JSON line — query, retrieval distances, gate decision,
+    # response length — for tuning WEAK_RETRIEVAL_DISTANCE and spotting probes.
+    # The ONLY place question text is written, so keep the file local.
+    rag_log_file: str
 
     @staticmethod
     def from_env() -> Settings:
@@ -171,6 +176,7 @@ class Settings:
             llm_acquire_timeout_seconds=_get_float(
                 "LLM_ACQUIRE_TIMEOUT_SECONDS", 0.5
             ),
+            rag_log_file=_get_str("RAG_LOG_FILE", ""),
         )
         settings.validate()
         return settings

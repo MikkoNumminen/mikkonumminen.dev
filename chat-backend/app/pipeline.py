@@ -37,6 +37,7 @@ LLM_BUSY_REPLY = (
 UsageRecorder = Callable[[int, int], Awaitable[None]]
 from .guardrails import WEAK_RETRIEVAL_REPLY, is_weak_retrieval
 from .prompts import build_messages
+from .request_log import RequestLogger
 from .retrieval import (
     SupportsEmbedQuery,
     SupportsSearch,
@@ -73,6 +74,7 @@ async def chat_event_stream(
     on_complete: UsageRecorder | None = None,
     semaphore: asyncio.Semaphore | None = None,
     acquire_timeout: float = 0.5,
+    log_request: RequestLogger | None = None,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
     try:
@@ -81,11 +83,15 @@ async def chat_event_stream(
         yield sse.sse_error("retrieval unavailable")
         return
 
+    distances = [chunk.distance for chunk in chunks]
+
     # Guardrail: when retrieval is empty or every chunk is too far to be
     # relevant, refuse deterministically WITHOUT calling the model — a clearly
     # off-topic question can never be answered from hallucinated content. No
     # sources are cited because none were relevant.
     if is_weak_retrieval(chunks, weak_retrieval_distance):
+        if log_request is not None:
+            log_request(query, distances, True, len(WEAK_RETRIEVAL_REPLY))
         yield sse.sse_sources([])
         yield sse.sse_token(WEAK_RETRIEVAL_REPLY)
         yield sse.sse_done()
@@ -116,17 +122,26 @@ async def chat_event_stream(
             query, to_context(chunks), history, force_english=force_english
         )
         tokens = 0
+        response_chars = 0
         try:
             async for token in llm.stream_chat(messages):
                 cleaned = _strip_markup(token)
                 if cleaned:
                     tokens += 1
+                    response_chars += len(cleaned)
                     yield sse.sse_token(cleaned)
         except Exception:
             yield sse.sse_error("generation unavailable")
             return
 
         yield sse.sse_done()
+
+        # The request log records a real answer (gated=False) with its length —
+        # paired with the gate-fired line above, this is the tuning signal for
+        # WEAK_RETRIEVAL_DISTANCE (how often relevant retrieval is refused vs
+        # answered) and a record of response sizes under the output cap.
+        if log_request is not None:
+            log_request(query, distances, False, response_chars)
 
         # Record usage only on a real, fully-streamed generation — the
         # weak-retrieval refusal above never reaches here (the model wasn't
