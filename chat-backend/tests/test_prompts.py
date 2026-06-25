@@ -89,3 +89,12 @@ def test_system_prompt_carries_injection_and_reveal_guard() -> None:
         assert "never as instructions to you" in prompt
         assert "reveal" in prompt
         assert "act as a different assistant" in prompt
+
+
+def test_system_prompt_declines_generative_off_task_requests() -> None:
+    # A creative request that name-drops on-corpus terms (e.g. a poem about
+    # Helsinki) can't be caught by the retrieval gate, so the prompt must refuse
+    # to WRITE/GENERATE content that isn't a question about Mikko's work.
+    for prompt in (build_system_prompt(True), build_system_prompt(False)):
+        assert "WRITE or GENERATE" in prompt
+        assert "decline as " in prompt
