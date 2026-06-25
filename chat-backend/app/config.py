@@ -114,7 +114,7 @@ class Settings:
             ollama_base_url=_get_str("OLLAMA_BASE_URL", _DEFAULT_OLLAMA_BASE_URL),
             llm_model=_get_str("LLM_MODEL", _DEFAULT_LLM_MODEL),
             llm_timeout_seconds=_get_int("LLM_TIMEOUT_SECONDS", 60),
-            retrieval_top_k=_get_int("TOP_K", 5),
+            retrieval_top_k=_get_int("TOP_K", 6),
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
             weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.7),
             rate_limit_requests=_get_int("RATE_LIMIT_REQUESTS", 30),
