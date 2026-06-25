@@ -261,6 +261,20 @@
   margin-right: 0.4ch;
 }
 
+/* Live "● ai · <model>" badge in the prompt — shown by terminal.ts only while
+   the backend is actually answering. Galaxy violet so it reads as the AI, not
+   more shell green. Hidden by default (the `hidden` attribute) so a terminal
+   with no backend configured shows nothing. */
+.terminal__ai {
+  margin: 0 0.6ch;
+  color: #a78bfa;
+  text-shadow: 0 0 6px rgba(167, 139, 250, 0.5);
+  white-space: nowrap;
+}
+.terminal__ai[hidden] {
+  display: none;
+}
+
 .terminal__input-wrap {
   position: relative;
   flex: 1;
