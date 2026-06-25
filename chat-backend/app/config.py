@@ -144,7 +144,7 @@ class Settings:
             llm_model=_get_str("LLM_MODEL", _DEFAULT_LLM_MODEL),
             llm_timeout_seconds=_get_int("LLM_TIMEOUT_SECONDS", 60),
             llm_temperature=_get_float("LLM_TEMPERATURE", 0.4),
-            llm_num_predict=_get_int("LLM_NUM_PREDICT", 0),
+            llm_num_predict=_get_int("LLM_NUM_PREDICT", 512),
             force_english=_get_bool("FORCE_ENGLISH", True),
             retrieval_top_k=_get_int("TOP_K", 6),
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),

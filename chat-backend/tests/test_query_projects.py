@@ -44,3 +44,24 @@ def test_two_readlogs_both_detected_when_distinct() -> None:
         "readlog",
         "readlog-dotnet",
     }
+
+
+def test_detects_tech_ecosystem_aliases() -> None:
+    # Ecosystem terms point at the project that uses them, so a question worded in
+    # the user's vocabulary ("the microsoft stack") still retrieves the right
+    # project even when the docs say ".NET"/"C#" rather than "Microsoft".
+    assert detect_projects("tell me about the microsoft stack projects") == {
+        "readlog-dotnet"
+    }
+    assert detect_projects("is anything deployed on Azure?") == {"readlog-dotnet"}
+    assert detect_projects("which project does text-to-speech?") == {"audiobookmaker"}
+
+
+def test_ambiguous_bare_tech_words_are_not_aliases() -> None:
+    # High-collision bare words are deliberately NOT aliases: "c#" is a musical
+    # note (and there is a music project), "razor" is a blade / "razor-thin". They
+    # would mis-route everyday English; the scoped/qualified forms still work.
+    assert detect_projects("the key of C# major sounds bright") == set()
+    assert detect_projects("razor-thin margins and razor blades") == set()
+    assert detect_projects("does he use Razor Pages?") == {"readlog-dotnet"}
+    assert detect_projects("does he write csharp?") == {"readlog-dotnet"}
