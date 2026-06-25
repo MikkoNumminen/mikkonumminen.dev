@@ -97,7 +97,7 @@ The Content Security Policy lives in `vercel.json` and applies to every response
 
 The practical XSS risk from `'unsafe-inline'` on a static site with no third-party scripts is low: inline-script injection requires either server-side reflected HTML (impossible here) or compromising the build output itself. The mitigation is kept at the other end of the chain — every string that reaches an `innerHTML` sink is escaped through `escapeHtml` (tested in `escapeHtml.test.ts`), and streamed LLM output is set via `textContent`, never `innerHTML`.
 
-When the RAG chat backend was added, the `connect-src` directive gained the Cloudflare Funnel origin (a Tailscale origin visible in `vercel.json` as `https://paskamyrsky.tail6ed53b.ts.net`). The Sentry regional ingest endpoints (`*.ingest.sentry.io`, `*.ingest.us.sentry.io`, `*.ingest.de.sentry.io`) are also explicit in `connect-src`. Everything else is `'self'`.
+When the RAG chat backend was added, the `connect-src` directive gained the Tailscale Funnel origin (visible in `vercel.json` as `https://paskamyrsky.tail6ed53b.ts.net`). The Sentry regional ingest endpoints (`*.ingest.sentry.io`, `*.ingest.us.sentry.io`, `*.ingest.de.sentry.io`) are also explicit in `connect-src`. Everything else is `'self'`.
 
 ---
 
@@ -105,7 +105,7 @@ When the RAG chat backend was added, the `connect-src` directive gained the Clou
 
 ### The Core Tension
 
-The contact terminal wanted free-form Q&A grounded in Mikko's own content. RAG needs a vector database and an LLM at request time. Adding either SSR routes or managed cloud services would contradict ADR 0002 and introduce per-token billing on a personal portfolio. ADR 0009 resolves this by building the chat as a separate backend service the static site calls over `fetch`, never as part of the site's own runtime.
+The contact terminal wanted free-form Q&A grounded in Mikko's own content. RAG needs a vector database and an LLM at request time. Adding either SSR routes or managed cloud services would contradict ADR 0002 and introduce per-token billing on a personal portfolio. ADR 0009 resolves this by building the chat as a separate backend service — a single FastAPI + uvicorn process the static site calls over `fetch`, never as part of the site's own runtime. Generation is a local model served by Ollama through its OpenAI-compatible endpoint (`qwen2.5:7b` by default, switchable via `ragctl`); embeddings are `bge-small-en-v1.5` (384-dim, asymmetric query/passage prefixes) run in-process; the vector store is Postgres + pgvector over asyncpg. The full as-built reference — exact pipeline ordering and every config knob — lives in [`docs/rag-chat.md`](../../docs/rag-chat.md); this deep-dive covers only the hard problems.
 
 The frontend side of this contract is `PUBLIC_CHAT_API_URL`: a build-time environment variable. When unset (the default in CI and local builds), every function in `src/lib/terminal/chat.ts` is inert — no fetch, no DOM change, no affordance. The terminal is byte-for-byte identical to the no-backend state. When set, the page runs one `/health` probe at load time; the probe is memoized for the session.
 
@@ -123,6 +123,18 @@ If a mid-session `/chat` call fails after a successful probe, `disableChatForSes
 
 The threshold is conservative — it errs toward answering — because the system prompt (`app/prompts.py`) handles borderline cases. The guardrail exists to catch the clearly-irrelevant tail, not to second-guess the model on marginal matches.
 
+### Containment: a Public LLM, Defended in Depth
+
+The weak-retrieval gate is one layer of several. Because the Funnel exposes the model to the public internet, a single prompt-level instruction ("ignore your instructions and …") cannot be the only thing standing between a hostile message and a runaway generation. The hardening is therefore architectural, with each layer holding independently of the ones around it.
+
+The cheapest checks run first. Input length is capped in the `/chat` handler at `INPUT_MAX_CHARS` (default 800, returning HTTP 400), with a Pydantic `max_length=4000` backstop (422) and a `MAX_BODY_BYTES` (default 16384) byte cap enforced in ASGI middleware before the body is even parsed — so an oversized request is rejected without touching retrieval or the model. The weak-retrieval gate then short-circuits before any LLM call. Only past both does generation run.
+
+The system prompt is a constant — it is never assembled from user text — and it is written to treat the entire user message as a question, never as instructions; to answer only from the retrieved context; to refuse to reveal or override itself or role-play another assistant; and to decline generative off-task requests (poems, stories, code). Even if all of that were talked around, `LLM_NUM_PREDICT` (default 512) is a hard `num_predict` cap, so no single answer can dump a large document regardless of what the prompt is coaxed into.
+
+Two more layers protect the host rather than the content. Concurrency into Ollama is bounded by an `asyncio.Semaphore` (`LLM_MAX_CONCURRENCY`, default 2) acquired with a bounded wait (`LLM_ACQUIRE_TIMEOUT_SECONDS`); when no permit is free, excess load is shed with a short busy reply instead of queueing, and the permit is released on every exit path — including a client that disconnects mid-stream, which is the leak that's easy to miss. A per-IP sliding-window rate limit (`RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS`, defaults 30 / 60) caps sustained abuse.
+
+For tuning, opt-in score logging (`RAG_LOG_FILE`, empty disables it) writes one JSON line per request — the truncated query, the top cosine distances, the gate decision, and the response length — so threshold changes are driven by real numbers rather than guesses. And the whole contract is pinned by a black-box acceptance harness (`evals/acceptance.py`, run with `python -m evals.acceptance`): nine cases covering injection-no-dump, prompt-reveal-blocked, off-topic poem and trivia declined, the input cap at 400 and the oversized-body 422, and three grounded technical answers. The classifiers are anchored on the real refusal wording, so a regression that quietly changes behaviour cannot false-pass the suite.
+
 ### The Markdown-Strip in the Pipeline
 
 `_strip_markup` in `app/pipeline.py` strips `*` and backtick characters from each streamed token before it reaches the frontend. The reason: the terminal renders raw text, so any markdown the model emits (`**bold**`, backtick-code) would display as literal characters. The strip is applied per-token safely because these characters have no cross-token state — a `**` split across two tokens loses each `*` independently. The `#` character is deliberately not stripped because it appears in real content (for example, "C#" as a programming language name).
@@ -137,11 +149,17 @@ The frontend parser (`createSSEParser` in `src/lib/terminal/chat.ts`) is increme
 
 The offline indexer (`app/indexer.py`) runs `make index` once and is idempotent across re-runs. Each chunk is keyed by `(source, chunk_index)` in pgvector and carries a `content_hash` (SHA-256 of the exact stored text). On re-index, `select_chunks_to_embed` compares the planned hash against the stored hash per index position; unchanged chunks are skipped and neither re-embedded nor re-written. Chunks for a deleted file are pruned by `delete_sources_absent_from`. Chunks for a shorter version of an edited file (fewer chunks than before) are pruned by `delete_stale_chunks`.
 
-The chunker (`app/chunking.py`) uses a word-based token estimate (words * 1.4) rather than a real BPE tokenizer. `bge-small-en-v1.5` truncates silently at 512 tokens; the over-counting estimate (English BPE runs roughly 1.3 tokens/word; 1.4 gives headroom) ensures a chunk capped at 480 estimated tokens holds comfortably under 512 real tokens. The chunker also handles code fences as atomic units (a ` ``` ` pair is never split across chunk boundaries) and carries a sliding overlap tail between chunks so a fact that spans a boundary stays retrievable from either side.
+The chunker (`app/chunking.py`) uses a word-based token estimate (words \* 1.4) rather than a real BPE tokenizer. `bge-small-en-v1.5` truncates silently at 512 tokens; the over-counting estimate (English BPE runs roughly 1.3 tokens/word; 1.4 gives headroom) ensures a chunk capped at the ~480-token budget (with a 100-token floor and 60-token overlap) holds comfortably under 512 real tokens. The chunker also handles code fences as atomic units (a ` ``` ` pair is never split across chunk boundaries) and carries a sliding overlap tail between chunks so a fact that spans a boundary stays retrievable from either side. Each chunk carries its `project`, source path, title, and `kind` (`project` | `cv` | `post`) as metadata.
 
-### The Cloudflare Named Tunnel Requirement
+### Project-Aware Retrieval, and Where It's Headed
 
-A quick Cloudflare tunnel generates a random hostname on every restart. `PUBLIC_CHAT_API_URL` is baked into the Vercel static build at deploy time. A random hostname would force a new Vercel build and redeploy on every machine restart. `LAUNCH.md` documents why a named tunnel is required: a named tunnel gets a permanent, stable hostname that survives restarts; the build is done once and the chat toggles on and off simply by starting or stopping the Docker Compose stack.
+Retrieval is dense-only today: the top-`TOP_K` cosine neighbours from pgvector, followed by a soft re-rank that detects a named project in the query and floats that project's chunks to the front. It's a boost, not a filter — a question that names "Spacepotatis" surfaces Spacepotatis chunks first but doesn't hard-exclude the rest, which keeps cross-project answers possible at the cost of occasional bleed.
+
+The planned next pass tightens this. The direction (not yet built) is code-aware chunking by function/class boundaries and indexing source and config files rather than only markdown; `language` and `chunk_type` (`prose` | `code`) metadata on each chunk; hybrid retrieval that fuses a BM25/full-text signal with the dense scores via reciprocal rank fusion, so exact identifiers (a function name, a config key) resolve as reliably as prose; and a hard per-project retrieval filter to replace today's soft boost. None of that ships yet — it's the roadmap, and the current behaviour is the soft-boost dense path described above.
+
+### The Stable-Hostname Requirement
+
+`PUBLIC_CHAT_API_URL` is baked into the Vercel static build at deploy time, so the public hostname the frontend `fetch`es has to be permanent — an ephemeral tunnel that gets a fresh random hostname on every restart would force a new Vercel build and redeploy each time Mikko's machine comes back up. The as-built deployment satisfies this with a Tailscale Funnel, which gives a stable public HTTPS hostname (`paskamyrsky.tail6ed53b.ts.net`) that survives restarts: the build is done once and the chat toggles on and off simply by starting or stopping the Docker Compose stack. (The earlier design notes in `LAUNCH.md` assume a Cloudflare _named_ tunnel for the same reason — a stable name — which the live Funnel path supersedes; see [`docs/rag-chat.md`](../../docs/rag-chat.md) for the current as-built deployment.)
 
 ---
 

@@ -43,13 +43,13 @@ public/data/      committed static JSON artifacts served at runtime
 
 ## Tech Stack and Why
 
-| Technology | Version | Decision driver |
-|---|---|---|
-| Astro | 6 | Island architecture; zero framework runtime on pages with no interactive islands; each page owns its own JS lifecycle (ADR 0003). |
-| Three.js | 0.184 | WebGL scene authoring without a game engine; scenes dynamically imported per-page and disposed on `beforeunload`. |
-| GSAP + ScrollTrigger | 3.15 | Scroll-driven animation timelines; dynamically imported only on pages that need them. |
-| Tailwind CSS v4 | 4.2 | Utility CSS; no component library. |
-| TypeScript (strict) | 6 | Strict mode + `noUncheckedIndexedAccess`; ESLint treats `any` as an error, not a warning. |
+| Technology           | Version | Decision driver                                                                                                                   |
+| -------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Astro                | 6       | Island architecture; zero framework runtime on pages with no interactive islands; each page owns its own JS lifecycle (ADR 0003). |
+| Three.js             | 0.184   | WebGL scene authoring without a game engine; scenes dynamically imported per-page and disposed on `beforeunload`.                 |
+| GSAP + ScrollTrigger | 3.15    | Scroll-driven animation timelines; dynamically imported only on pages that need them.                                             |
+| Tailwind CSS v4      | 4.2     | Utility CSS; no component library.                                                                                                |
+| TypeScript (strict)  | 6       | Strict mode + `noUncheckedIndexedAccess`; ESLint treats `any` as an error, not a warning.                                         |
 
 The README frames the choice explicitly: this stack is intentionally separate from the author's production stack (Next.js / React / MUI) — "the craft side of the brain." ADR 0003 documents why Next.js was rejected: the App Router's React runtime would add unnecessary overhead and complicate Three.js scene lifecycle management for a site where no pages share client state.
 
@@ -105,18 +105,18 @@ The contact-page terminal optionally supports free-form questions answered from 
 
 ```
 Astro terminal (static) ──fetch──▶  FastAPI backend ──▶ Postgres + pgvector
-                                                    └──▶ Ollama (gemma4:e4b)
+                                                    └──▶ Ollama (qwen2.5:7b, switchable)
 Offline indexer ──embeds content──▶ Postgres + pgvector
 Embeddings (bge-small-en-v1.5) run in-process inside the backend container.
 ```
 
-The site itself remains `output: 'static'` with no server-side runtime. The backend lives under `chat-backend/` and has no overlap with the Node build, lint, or CI surfaces — it cannot break the site's pipeline.
+The site itself remains `output: 'static'` with no server-side runtime. The backend is a single FastAPI + uvicorn process living under `chat-backend/`, with no overlap with the Node build, lint, or CI surfaces — it cannot break the site's pipeline. Running locally (WSL2 + Docker on my RTX 3080 Ti) and exposed publicly over a Tailscale Funnel, it's a deliberate portfolio artifact rather than a hosted dependency. The full as-built reference — pipeline order, every config knob, the live deployment path — lives in [`docs/rag-chat.md`](../../docs/rag-chat.md); this section is the architectural summary.
 
 **Corpus and embeddings.** The retrieval corpus is the same `content/` directory that backs the RAG doc store (one markdown file per project, `cv.md`, selected posts). Indexing is a one-time offline job (`make index`): `bge-small-en-v1.5` embeddings (384-dimensional) are produced in-process via fastembed and written to a local Postgres + pgvector container (`vector(384)`, cosine distance). The indexer is idempotent — chunks are keyed by content hash, so unchanged content is neither re-embedded nor re-written, and stale chunks are pruned.
 
-**Retrieval and generation.** At query time the backend embeds the user message (same in-process model, keeping the vector space identical to the index) and runs a top-`TOP_K` cosine search against pgvector. The retrieved chunks are assembled into a grounded prompt and streamed to a local Gemma (`gemma4:e4b`) via Ollama's OpenAI-compatible endpoint. The entire stack — Postgres, Ollama, and the FastAPI backend — starts with `make up`; the model is pulled into a named Docker volume on first run and persists across restarts. There is no hosted model, no paid API, and no cloud database; nothing costs anything per query.
+**Retrieval and generation.** At query time the backend embeds the user message (same in-process model, keeping the vector space identical to the index) and runs a top-`TOP_K` (default 6) cosine search against pgvector. A project-aware re-rank then floats chunks for a named project to the front when the query mentions one. The surviving chunks are assembled into a grounded prompt and streamed to a local model (`qwen2.5:7b` by default, switchable via `ragctl`) through Ollama's OpenAI-compatible endpoint, with generation hard-capped at `LLM_NUM_PREDICT` (default 512) tokens. The entire stack — Postgres, Ollama, and the FastAPI backend — starts with `make up`; the model is pulled into a named Docker volume on first run and persists across restarts. There is no hosted model, no paid API, and no cloud database; nothing costs anything per query.
 
-**Guardrail and refusal.** Generation is fronted by a deterministic weak-retrieval gate (`app/guardrails.py`): when retrieval is empty or every retrieved chunk exceeds `WEAK_RETRIEVAL_DISTANCE` in cosine distance, the API returns a clean canned refusal without calling the model. A clearly off-topic question can never be answered from hallucinated content. The grounded system prompt handles borderline cases. The API is also protected by a per-IP sliding-window rate limit and a request-body byte cap.
+**Containment, in depth.** Because the model is reachable from the public internet through the Funnel, the chat is hardened architecturally rather than by prompt wording alone — every layer holds even if a clever message slips past the one above it. Input is capped before anything expensive runs (`INPUT_MAX_CHARS`, default 800, with a Pydantic length backstop and a `MAX_BODY_BYTES` byte cap in ASGI middleware). A deterministic weak-retrieval gate (`app/guardrails.py`) short-circuits _before_ the LLM: when retrieval is empty or every retrieved chunk's cosine distance exceeds `WEAK_RETRIEVAL_DISTANCE` (default 0.7), the API returns a fixed out-of-scope reply without calling the model, so a clearly off-topic question can never be answered from hallucinated content. The grounded system prompt — a constant, never assembled from user text — answers _only_ from the retrieved context, treats the whole user message as a question rather than instructions, and declines generative off-task requests (poems, stories, code) and attempts to reveal or override the prompt. The `LLM_NUM_PREDICT` cap means no single answer can dump a large document regardless of the prompt. Concurrency into Ollama is bounded by an `asyncio.Semaphore` (`LLM_MAX_CONCURRENCY`, default 2) acquired with a timeout; excess load is shed with a short busy reply instead of queueing. A per-IP sliding-window rate limit (`RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS`, defaults 30 / 60) caps abuse, and opt-in score logging (`RAG_LOG_FILE`) records one JSON line per request — truncated query, top distances, gate decision, response length — for threshold tuning. Every knob above is a validated env var. A black-box acceptance harness (`evals/acceptance.py`, `python -m evals.acceptance`) asserts the contract — injection no-dump, prompt-reveal blocked, off-topic declined, input caps, grounded technical answers — with classifiers anchored on the real refusal wording so they cannot false-pass.
 
 **Streaming.** `POST /chat` returns Server-Sent Events: a `sources` frame (the retrieved document references), repeated `token` frames, and a terminal `done` or `error` frame. The frontend (`src/lib/terminal/chat.ts`) consumes the stream with an incremental SSE parser and writes token text via `textContent` — never `innerHTML` — so streamed model output is not an XSS sink.
 
@@ -124,11 +124,15 @@ The site itself remains `output: 'static'` with no server-side runtime. The back
 
 The static site is built with a `PUBLIC_CHAT_API_URL` build-time env var. When it is unset (the default in CI and local builds), every function in `chat.ts` is inert — no fetch, no DOM change, no chat affordance. When set, the page runs exactly one `/health` probe at load time; the probe is memoized for the session. The `/health` endpoint reports liveness of both the DB and the LLM (it sends a real 1-token completion to confirm the model actually generates, not merely that the process is up). Chat is enabled only when `checks.llm === true`. If the probe fails, or if a mid-session `/chat` call fails, the terminal degrades silently to scripted-only — the same byte-for-byte state the visitor would see if the backend were absent.
 
-An optional Cloudflare tunnel (`make up-public`) can publish the backend over HTTPS when Mikko's machine is on. When the tunnel is down, the static site is indistinguishable from a build with no `PUBLIC_CHAT_API_URL` at all.
+A Tailscale Funnel publishes the backend over a stable public HTTPS hostname when Mikko's machine is on. When the Funnel is down, the static site is indistinguishable from a build with no `PUBLIC_CHAT_API_URL` at all.
 
 ### Design rationale (ADR 0009 summary)
 
 SSR and edge functions were rejected because they would contradict ADR 0002 and bind the whole site to a server runtime. A hosted LLM + managed vector DB was rejected because of per-token cost and third-party runtime dependency on a personal portfolio. Precomputed Q&A was rejected because it cannot answer free-form questions. Running embeddings in-process (rather than calling an external embedding API) keeps the vector space identical between indexing and querying and adds no cost or lock-in. The result: a clean, typed FastAPI + pgvector + local-LLM stack that is a deliberate portfolio artifact, available on demand, and zero-cost to operate.
+
+### Roadmap
+
+Retrieval today is dense-only with a soft project boost, and the index covers the markdown corpus. A planned next pass would make retrieval code-aware: chunking source by function/class boundaries and indexing code and config (not just prose), tagging chunks with `language` and `chunk_type` metadata, adding hybrid retrieval (BM25/full-text fused with the dense scores via reciprocal rank fusion) so exact identifiers resolve well, and a hard per-project retrieval filter to replace the current soft boost. None of this is built yet — it's the direction, not the current state.
 
 ## AI-Tooling Layer
 
@@ -136,11 +140,11 @@ The repository treats AI automation as a first-class architectural surface. Four
 
 ### Skills shipped in this repo
 
-| Skill | Purpose |
-|---|---|
-| `/sync-readmes` | Audits `src/data/projects.ts` and the three locale dictionaries against the canonical READMEs of all sibling repos in parallel. Opens a PR with drift corrections. |
-| `/skill-registry` | Walks every sibling repo in the workspace, reads each `.claude/skills/*/SKILL.md`, and emits a consolidated `SKILL-REGISTRY-{YYYY-MM-DD}.json` under `.claude/agent-verdicts/`. One Sonnet sub-agent per repo, run in parallel. The dated JSON is committed so other Claude sessions can read the inventory without re-running the scan. |
-| `/md-to-pdf` | Renders any HTML/Markdown source to a styled PDF using the developer's locally-installed Chrome via `--print-to-pdf`. Zero npm install — no puppeteer or Chromium download (~150 MB avoided). Page layout is controlled via `@page` CSS in the generated HTML. |
+| Skill                | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/sync-readmes`      | Audits `src/data/projects.ts` and the three locale dictionaries against the canonical READMEs of all sibling repos in parallel. Opens a PR with drift corrections.                                                                                                                                                                                                                                                                                                                         |
+| `/skill-registry`    | Walks every sibling repo in the workspace, reads each `.claude/skills/*/SKILL.md`, and emits a consolidated `SKILL-REGISTRY-{YYYY-MM-DD}.json` under `.claude/agent-verdicts/`. One Sonnet sub-agent per repo, run in parallel. The dated JSON is committed so other Claude sessions can read the inventory without re-running the scan.                                                                                                                                                   |
+| `/md-to-pdf`         | Renders any HTML/Markdown source to a styled PDF using the developer's locally-installed Chrome via `--print-to-pdf`. Zero npm install — no puppeteer or Chromium download (~150 MB avoided). Page layout is controlled via `@page` CSS in the generated HTML.                                                                                                                                                                                                                             |
 | `/skill-localUpdate` | One-command refresh of every local artifact the site renders about portfolio skills: (1) re-runs `/skill-registry`; (2) `npm run sync:skills-registry` copies the dated JSON into `public/data/`; (3) `scripts/apply-measurement-overlay.mjs` layers transcript-measured receipts with `prior_estimate` snapshotting; (4) `npm run build:skills-pdf` renders the PDF via local Chrome. Exists to prevent the chain from running out of order and producing a plausible-but-wrong artifact. |
 
 ### Orchestration pattern
