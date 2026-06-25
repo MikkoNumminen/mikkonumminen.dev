@@ -189,5 +189,3 @@ The app is sized for a single personal-use instance. `IMemoryCache` is used thro
 Account stats use EF Core's `GroupBy` translation to a single SQL `GROUP BY` query — not client-side grouping. The public-feed query uses `Take(20)` with `OrderByDescending(e => e.CreatedAt)`, served from in-memory cache on all but the first hit after a write.
 
 There is no horizontal scale path in the current configuration. Moving to a managed database (Postgres or Azure SQL) and `IDistributedCache` would be the prerequisites for multi-instance deployment; the LINQ-only data access layer requires no raw SQL changes.
-
-[gap: test count — PORTING-NOTES.md notes "86 tests total" at the end of PR6, growing in PR7, but the exact post-PR7 count is not stated; a live `dotnet test` run would give the current number]
