@@ -805,6 +805,12 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["on", "off"],
         help="on = force English across all models; off = follow the question's language",
     )
+    usg = sub.add_parser(
+        "usage", help="how much the model's been used (last N hours; default 24)"
+    )
+    usg.add_argument(
+        "--hours", type=int, default=24, help="window in hours (1-168, default 24)"
+    )
     return p
 
 
@@ -829,6 +835,8 @@ def dispatch(argv: list[str]) -> int:
         return cmd_model(args.name, args.effort, args.context, not args.no_test)
     if args.cmd == "english":
         return cmd_english(args.state)
+    if args.cmd == "usage":
+        return cmd_usage(args.hours)
     p.print_help()
     return 0
 
