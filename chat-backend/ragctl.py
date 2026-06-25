@@ -19,6 +19,10 @@ it runs with any python3.
   python chat-backend/ragctl.py down       cut the rag: compose down + funnel off
   python chat-backend/ragctl.py model NAME --effort quick|balanced|thorough
                                            [--context 4k|8k|16k]  switch model + tuning
+  python chat-backend/ragctl.py english on|off  force English across all models
+  python chat-backend/ragctl.py            (no command, on a TTY) -> interactive
+                                           REPL: bare commands, Tab-complete, the
+                                           menu reprinted after each command
 
 Cleanup policy (chosen): `down` stops the Compose stack (frees VRAM) and turns
 the Funnel off, but leaves Docker Desktop and Tailscale running.
@@ -29,6 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -111,6 +116,13 @@ def tailscale_exe() -> str | None:
 
 def tasklist_exe() -> str | None:
     return _win_exe("tasklist.exe", "/mnt/c/Windows/System32/tasklist.exe")
+
+
+def powershell_exe() -> str | None:
+    return _win_exe(
+        "powershell.exe",
+        "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+    )
 
 
 def http_json(url: str, timeout: int = 8) -> dict | None:
@@ -337,25 +349,55 @@ def check_public(url: str | None) -> tuple[str, str]:
     return ("warn", "public but llm not ready")
 
 
+def defender_note() -> str:
+    """Windows Defender real-time-protection state, via Get-MpComputerStatus.
+
+    Informational, not a fault — Defender on is the normal Windows state; it just
+    occasionally scans (and so slows) Docker image/model pulls. Hence a plain `·`
+    rather than the `▲` used for actively TLS-breaking apps like IPVanish.
+    """
+    ps = powershell_exe()
+    if not ps:
+        return "  · Windows Defender: can't check (powershell.exe not found)"
+    rc, out = run(
+        [ps, "-NoProfile", "-Command", "(Get-MpComputerStatus).RealTimeProtectionEnabled"],
+        timeout=20,
+    )
+    val = out.strip().lower()
+    if rc != 0 or not val:
+        return "  · Windows Defender: status unknown (Get-MpComputerStatus unavailable)"
+    if "true" in val:
+        return (
+            "  · Windows Defender real-time protection on — normal; may briefly scan "
+            "Docker image/model pulls (not the running chat)."
+        )
+    if "false" in val:
+        return "  · Windows Defender real-time protection off"
+    return "  · Windows Defender: status unknown"
+
+
 def security_preflight() -> list[str]:
-    """Surface TLS-intercepting apps that can break model/image downloads."""
+    """Surface TLS-intercepting / scanning apps that can break or slow downloads."""
+    notes: list[str] = []
     tl = tasklist_exe()
     if not tl:
-        return ["  (could not read the Windows process list)"]
-    rc, out = run([tl], timeout=15)
-    procs = out.lower()
-    notes: list[str] = []
-    if "ipvanish" in procs:
-        notes.append(
-            "  ▲ IPVanish running — Threat Protection can block model/image pulls "
-            "(not the running chat). Toggle it off if a pull stalls."
-        )
-    if any(v in procs for v in ("nordvpn", "expressvpn", "surfshark", "openvpn", "protonvpn")):
-        notes.append("  ▲ A VPN client is running — can break TLS on downloads.")
-    if any(a in procs for a in ("avast", "avgui", "kaspersky", "bdagent", "norton", "mcshield")):
-        notes.append("  ▲ Third-party AV running — its web shield can block pulls.")
-    if not notes:
-        notes.append("  ● no known download-blocking security apps detected")
+        notes.append("  (could not read the Windows process list)")
+    else:
+        rc, out = run([tl], timeout=15)
+        procs = out.lower()
+        if "ipvanish" in procs:
+            notes.append(
+                "  ▲ IPVanish running — Threat Protection can block model/image pulls "
+                "(not the running chat). Toggle it off if a pull stalls."
+            )
+        if any(v in procs for v in ("nordvpn", "expressvpn", "surfshark", "openvpn", "protonvpn")):
+            notes.append("  ▲ A VPN client is running — can break TLS on downloads.")
+        if any(a in procs for a in ("avast", "avgui", "kaspersky", "bdagent", "norton", "mcshield")):
+            notes.append("  ▲ Third-party AV running — its web shield can block pulls.")
+    # Windows Defender uses a separate API (not the process list); always reported.
+    notes.append(defender_note())
+    if not any("▲" in n for n in notes):
+        notes.insert(0, "  ● no known download-blocking security apps detected")
     return notes
 
 
@@ -666,7 +708,37 @@ def cmd_english(state: str | None) -> int:
     return 0
 
 
-def main() -> int:
+# --- command menu (reprinted in the REPL after every command) --------------
+
+_MENU: list[tuple[str, str]] = [
+    ("status", "live status board (one-shot)"),
+    ("watch", "live board, refreshing (Ctrl-C exits)"),
+    ("doctor", "board + security pre-flight + versions"),
+    ("up [--keep]", "bring it live (Ctrl-C tears it down)"),
+    ("down", "cut the rag (stack + funnel off)"),
+    ('test "Q"', "ask the live model a test question"),
+    ("model NAME", "switch model (--effort, --context)"),
+    ("english on|off", "force English across all models"),
+    ("exit", "leave ragctl"),
+]
+
+# Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
+_VERBS = [
+    "status", "watch", "doctor", "up", "down", "test", "model", "english", "exit", "quit",
+]
+
+
+def print_menu() -> None:
+    print()
+    print(_c("  commands", "1") + _c("   ·  Tab completes  ·  'exit' to leave", "2"))
+    for cmd, desc in _MENU:
+        print(f"    {cmd:<16}{_c(desc, '2')}")
+
+
+# --- argparse / dispatch (shared by one-shot mode and the REPL) -------------
+
+
+def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ragctl", description="Operator CLI for the local RAG chat.")
     sub = p.add_subparsers(dest="cmd")
     sub.add_parser("status", help="one-shot status board")
@@ -693,8 +765,14 @@ def main() -> int:
         choices=["on", "off"],
         help="on = force English across all models; off = follow the question's language",
     )
-    args = p.parse_args()
+    return p
 
+
+def dispatch(argv: list[str]) -> int:
+    """Parse one command line and run it. Raises SystemExit on argparse errors /
+    `-h` — correct for one-shot mode; the REPL catches it to stay alive."""
+    p = _build_parser()
+    args = p.parse_args(argv)
     if args.cmd == "status":
         return cmd_status()
     if args.cmd == "watch":
@@ -713,6 +791,89 @@ def main() -> int:
         return cmd_english(args.state)
     p.print_help()
     return 0
+
+
+# --- interactive REPL ------------------------------------------------------
+
+
+def _setup_readline() -> None:
+    """Wire Tab-completion of command verbs. No-op if readline is unavailable."""
+    try:
+        import readline
+    except ImportError:
+        return
+
+    def completer(text: str, state: int) -> str | None:
+        # Verbs at the start of the line; on/off right after `english`.
+        if readline.get_begidx() == 0:
+            opts = [v for v in _VERBS if v.startswith(text)]
+        else:
+            words = readline.get_line_buffer().split()
+            if words and words[0] == "english":
+                opts = [o for o in ("on", "off") if o.startswith(text)]
+            else:
+                opts = []
+        return opts[state] if state < len(opts) else None
+
+    readline.set_completer(completer)
+    readline.parse_and_bind("tab: complete")
+
+
+def _prompt() -> str:
+    # Wrap the ANSI in \001..\002 so readline doesn't miscount the prompt width.
+    if USE_COLOR:
+        return "\001\033[36m\002ragctl>\001\033[0m\002 "
+    return "ragctl> "
+
+
+def repl() -> int:
+    """Interactive console: type bare commands, Tab completes, and the menu
+    reprints after each one. Entered when ragctl is run with no subcommand on a
+    TTY. One-shot `ragctl <command>` is unaffected."""
+    _setup_readline()
+    print(_c("\n  ragctl", "1") + " — interactive console for the local RAG chat.")
+    print_menu()
+    while True:
+        try:
+            line = input(_prompt()).strip()
+        except EOFError:  # Ctrl-D leaves cleanly
+            print()
+            break
+        except KeyboardInterrupt:  # Ctrl-C at the prompt: cancel the line, stay
+            print()
+            continue
+        if not line:
+            continue
+        if line in ("exit", "quit"):
+            break
+        try:
+            argv = shlex.split(line)
+        except ValueError as exc:  # e.g. an unbalanced quote
+            print(f"  ✗ {exc}")
+            print_menu()
+            continue
+        try:
+            dispatch(argv)
+        except SystemExit:
+            pass  # argparse already explained the error; keep the console alive
+        except KeyboardInterrupt:
+            # A blocking command (watch/up) interrupted: return to the prompt.
+            print("\n  (interrupted — back to ragctl)")
+        except Exception as exc:  # noqa: BLE001 — one bad command mustn't kill the console
+            print(f"  ✗ {exc}")
+        print_menu()
+    print("  bye.")
+    return 0
+
+
+def main() -> int:
+    argv = sys.argv[1:]
+    # No subcommand on an interactive terminal -> drop into the REPL. A no-arg
+    # invocation that is NOT a TTY (piped, `| cat`, a script) prints help and
+    # exits instead, so it can never hang waiting for input.
+    if not argv and sys.stdin.isatty():
+        return repl()
+    return dispatch(argv)
 
 
 if __name__ == "__main__":
