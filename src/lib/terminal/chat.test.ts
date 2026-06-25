@@ -287,10 +287,17 @@ describe('startChatAvailabilityPolling', () => {
     vi.useRealTimers();
   });
 
-  /** A fetch stub whose `/health` `llm` flag is read live from `getLlm()`. */
-  function healthFetch(getLlm: () => boolean) {
+  /** A fetch stub whose `/health` `llm` flag + model name are read live. */
+  function healthFetch(
+    getLlm: () => boolean,
+    getModel: () => string = () => 'qwen2.5:7b',
+  ) {
     return vi.fn(async () =>
-      jsonResponse(true, { status: 'ok', checks: { db: true, llm: getLlm() } }),
+      jsonResponse(true, {
+        status: 'ok',
+        checks: { db: true, llm: getLlm() },
+        model: getModel(),
+      }),
     );
   }
 
@@ -317,7 +324,7 @@ describe('startChatAvailabilityPolling', () => {
     });
     await vi.advanceTimersByTimeAsync(0);
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenLastCalledWith(true);
+    expect(onChange).toHaveBeenLastCalledWith(true, 'qwen2.5:7b');
   });
 
   it('fires onChange only on a transition, not on every poll', async () => {
@@ -330,7 +337,7 @@ describe('startChatAvailabilityPolling', () => {
     });
     await vi.advanceTimersByTimeAsync(2500); // initial + two interval polls, all up
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenLastCalledWith(true);
+    expect(onChange).toHaveBeenLastCalledWith(true, 'qwen2.5:7b');
   });
 
   it('hides (false) when the backend goes away', async () => {
@@ -343,10 +350,30 @@ describe('startChatAvailabilityPolling', () => {
       fetchImpl: healthFetch(() => up) as unknown as typeof fetch,
     });
     await vi.advanceTimersByTimeAsync(0);
-    expect(onChange).toHaveBeenLastCalledWith(true);
+    expect(onChange).toHaveBeenLastCalledWith(true, 'qwen2.5:7b');
     up = false;
     await vi.advanceTimersByTimeAsync(1000);
-    expect(onChange).toHaveBeenLastCalledWith(false);
+    expect(onChange).toHaveBeenLastCalledWith(false, null);
+    expect(onChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('fires onChange when only the model changes while available', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    let model = 'qwen2.5:7b';
+    const onChange = vi.fn();
+    startChatAvailabilityPolling(onChange, {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: healthFetch(
+        () => true,
+        () => model,
+      ) as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onChange).toHaveBeenLastCalledWith(true, 'qwen2.5:7b');
+    model = 'gemma4:e4b';
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(onChange).toHaveBeenLastCalledWith(true, 'gemma4:e4b');
     expect(onChange).toHaveBeenCalledTimes(2);
   });
 
