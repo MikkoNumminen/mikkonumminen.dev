@@ -281,4 +281,45 @@
       opacity: 1;
     }
   }
+
+  /* Interactive chat input — revealed by the card script only when the local
+     RAG backend is answering (see MobileContactCard.astro). A real tappable
+     input opens the keyboard, unlike the static showcase above it. */
+  .mcc__chatform {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 0.5ch;
+    width: 96vw;
+    max-width: 560px;
+    margin: 0.6rem auto 0;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgba(74, 222, 128, 0.18);
+  }
+  .mcc__chatform[hidden] {
+    display: none;
+  }
+  .mcc__chatinput {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--color-term-fg);
+    font-family: var(--font-mono);
+    /* >= 16px so iOS doesn't zoom the viewport when the field is focused. */
+    font-size: 16px;
+    caret-color: var(--color-term-green);
+  }
+  .mcc__chatinput::placeholder {
+    color: rgba(181, 245, 200, 0.4);
+  }
+  .mcc__chatinput:disabled {
+    opacity: 0.6;
+  }
+  .mcc__line--src {
+    color: #67e8f9;
+    opacity: 0.85;
+  }
 }
