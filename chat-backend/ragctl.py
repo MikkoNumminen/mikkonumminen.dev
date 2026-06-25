@@ -464,6 +464,30 @@ def _watch_loop() -> None:
         time.sleep(2)
 
 
+def _watch_until_ready(timeout_s: float = 90.0) -> None:
+    """Redraw the live board until every check is ok (the rag is fully LIVE) or
+    `timeout_s` elapses, then return. Lets `up` show each component turning green
+    as it comes online without ever blocking the caller indefinitely."""
+    start = time.monotonic()
+    while True:
+        rows = gather()
+        if USE_COLOR:
+            sys.stdout.write("\033[H\033[J")  # cursor home + clear screen
+        print(render(rows))
+        if all(r[1][0] == "ok" for r in rows):
+            print(_c("\n  ✓ rag is LIVE — back to the prompt (still running).", "32"))
+            return
+        if time.monotonic() - start > timeout_s:
+            print(
+                _c(
+                    "\n  still coming up — back to the prompt; it'll finish in the background.",
+                    "33",
+                )
+            )
+            return
+        time.sleep(1.5)
+
+
 def cmd_watch() -> int:
     try:
         _watch_loop()
@@ -540,17 +564,19 @@ def cmd_up(keep: bool) -> int:
     model = configured_model()
     print(f"  ◐ warming {model} into VRAM …")
     run(COMPOSE + ["exec", "-T", "ollama", "ollama", "run", model, "ok"], cwd=REPO, timeout=120)
-    print()
-    print(render(gather()))
     if keep:
+        print()
+        print(render(gather()))
         print("  (left running — `ragctl down` to cut it)")
         return 0
-    print("  holding the live board — Ctrl-C to cut the rag and clean up.\n")
+    # Show a live, colour-coded board while the backend finishes coming up, then
+    # return to the prompt with the stack STILL running. Ctrl-C also just returns
+    # — only `down` tears it down, so `up` never strands you in a blocking hold.
     try:
-        _watch_loop()
+        _watch_until_ready()
     except KeyboardInterrupt:
-        pass
-    return cmd_down()
+        print(_c("\n  (returned — the rag is still up; `down` to cut it)", "33"))
+    return 0
 
 
 def cmd_down() -> int:
