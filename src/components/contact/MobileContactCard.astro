@@ -344,6 +344,17 @@ const m = t.mobileContact;
     if (!available) return;
     form.hidden = false;
 
+    // Tapping anywhere in the terminal box (not just the thin input line) focuses
+    // the input — the small line was a poor touch target. focus() called inside
+    // the tap gesture is what brings the keyboard up on mobile; mirrors the
+    // desktop terminal's click-to-focus.
+    const card = document.querySelector<HTMLElement>('.mcc__card');
+    card?.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'A' || target === input) return;
+      if (!input.disabled) input.focus();
+    });
+
     const append = (cls: string, text: string): HTMLElement => {
       const el = document.createElement('span');
       el.className = `mcc__line ${cls}`;
