@@ -137,6 +137,12 @@ class Settings:
     # architectural, not prompt-wording: a bounded input cannot smuggle a giant
     # payload past the model no matter what the message says.
     input_max_chars: int
+    # One local GPU serves generation. Bound how many requests generate at once
+    # (default 2) and how long a request waits for a free slot before being shed
+    # with a clean "busy" reply (default 0.5s). Shedding, not queueing: a queue
+    # behind a slow generation just stacks timeouts and risks an OOM.
+    llm_max_concurrency: int
+    llm_acquire_timeout_seconds: float
 
     @staticmethod
     def from_env() -> Settings:
@@ -161,6 +167,10 @@ class Settings:
             rate_limit_window_seconds=_get_float("RATE_LIMIT_WINDOW_SECONDS", 60.0),
             max_body_bytes=_get_int("MAX_BODY_BYTES", 16384),
             input_max_chars=_get_int("INPUT_MAX_CHARS", 800),
+            llm_max_concurrency=_get_int("LLM_MAX_CONCURRENCY", 2),
+            llm_acquire_timeout_seconds=_get_float(
+                "LLM_ACQUIRE_TIMEOUT_SECONDS", 0.5
+            ),
         )
         settings.validate()
         return settings
@@ -214,4 +224,14 @@ class Settings:
         if self.input_max_chars <= 0:
             raise ValueError(
                 f"INPUT_MAX_CHARS must be positive, got {self.input_max_chars}"
+            )
+        if self.llm_max_concurrency <= 0:
+            raise ValueError(
+                "LLM_MAX_CONCURRENCY must be positive, got "
+                f"{self.llm_max_concurrency}"
+            )
+        if self.llm_acquire_timeout_seconds < 0:
+            raise ValueError(
+                "LLM_ACQUIRE_TIMEOUT_SECONDS must be non-negative, got "
+                f"{self.llm_acquire_timeout_seconds}"
             )

@@ -12,6 +12,7 @@ unit-tested with fakes; the heavy concrete classes are wired only in `main`.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
@@ -20,6 +21,13 @@ from typing import Protocol
 from . import sse
 
 logger = logging.getLogger("chat")
+
+# Shown verbatim (not LLM-generated) when every generation slot is taken and the
+# request can't acquire one within the timeout. A clean, friendly shed beats
+# queueing behind a slow generation on the single local GPU.
+LLM_BUSY_REPLY = (
+    "I'm handling another question right now — give me a moment and try again."
+)
 
 # Called once after a generation completes, with (completion_tokens, latency_ms),
 # so the caller can record usage. Injected by `main`; left None in tests. Counting
@@ -63,6 +71,8 @@ async def chat_event_stream(
     weak_retrieval_distance: float,
     force_english: bool = True,
     on_complete: UsageRecorder | None = None,
+    semaphore: asyncio.Semaphore | None = None,
+    acquire_timeout: float = 0.5,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
     try:
@@ -81,32 +91,57 @@ async def chat_event_stream(
         yield sse.sse_done()
         return
 
-    # Sources up front: the terminal renders them while tokens stream.
-    yield sse.sse_sources(to_source_refs(chunks))
-
-    messages = build_messages(
-        query, to_context(chunks), history, force_english=force_english
-    )
-    tokens = 0
-    try:
-        async for token in llm.stream_chat(messages):
-            cleaned = _strip_markup(token)
-            if cleaned:
-                tokens += 1
-                yield sse.sse_token(cleaned)
-    except Exception:
-        yield sse.sse_error("generation unavailable")
-        return
-
-    yield sse.sse_done()
-
-    # Record usage only on a real, fully-streamed generation — the weak-retrieval
-    # refusal above never reaches here (the model wasn't called), and a mid-stream
-    # error returns early, so the metric stays "answers the model actually
-    # produced". Guarded so a telemetry failure can't break a delivered answer.
-    if on_complete is not None:
-        latency_ms = int((time.monotonic() - start) * 1000)
+    # Concurrency gate around generation ONLY (retrieval and the weak-retrieval
+    # refusal above never touch the GPU). One local GPU serves generation: bound
+    # how many requests generate at once and shed the overflow with a clean
+    # "busy" reply rather than queueing behind a slow generation, which would
+    # stack timeouts and risk an OOM. When no semaphore is injected (unit tests)
+    # generation runs unguarded.
+    acquired = False
+    if semaphore is not None:
         try:
-            await on_complete(tokens, latency_ms)
+            await asyncio.wait_for(semaphore.acquire(), timeout=acquire_timeout)
+            acquired = True
+        except TimeoutError:
+            yield sse.sse_sources([])
+            yield sse.sse_token(LLM_BUSY_REPLY)
+            yield sse.sse_done()
+            return
+
+    try:
+        # Sources up front: the terminal renders them while tokens stream.
+        yield sse.sse_sources(to_source_refs(chunks))
+
+        messages = build_messages(
+            query, to_context(chunks), history, force_english=force_english
+        )
+        tokens = 0
+        try:
+            async for token in llm.stream_chat(messages):
+                cleaned = _strip_markup(token)
+                if cleaned:
+                    tokens += 1
+                    yield sse.sse_token(cleaned)
         except Exception:
-            logger.exception("usage on_complete failed")
+            yield sse.sse_error("generation unavailable")
+            return
+
+        yield sse.sse_done()
+
+        # Record usage only on a real, fully-streamed generation — the
+        # weak-retrieval refusal above never reaches here (the model wasn't
+        # called), and a mid-stream error returns early, so the metric stays
+        # "answers the model actually produced". Guarded so a telemetry failure
+        # can't break a delivered answer.
+        if on_complete is not None:
+            latency_ms = int((time.monotonic() - start) * 1000)
+            try:
+                await on_complete(tokens, latency_ms)
+            except Exception:
+                logger.exception("usage on_complete failed")
+    finally:
+        # Release on every exit — normal completion, the generation-error early
+        # return, or the consumer closing the stream early (GeneratorExit runs
+        # this finally) — so a permit can never leak and wedge the gate.
+        if acquired:
+            semaphore.release()

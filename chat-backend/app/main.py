@@ -15,6 +15,7 @@ isolation.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -85,6 +86,9 @@ def create_app() -> FastAPI:
             temperature=settings.llm_temperature,
             num_predict=settings.llm_num_predict,
         )
+        # One permit per concurrent generation the single local GPU can serve.
+        # Created inside the lifespan so it binds to the running event loop.
+        app.state.llm_semaphore = asyncio.Semaphore(settings.llm_max_concurrency)
         try:
             yield
         finally:
@@ -172,6 +176,8 @@ def create_app() -> FastAPI:
             weak_retrieval_distance=settings.weak_retrieval_distance,
             force_english=settings.force_english,
             on_complete=record,
+            semaphore=app.state.llm_semaphore,
+            acquire_timeout=settings.llm_acquire_timeout_seconds,
         )
         return StreamingResponse(
             stream,

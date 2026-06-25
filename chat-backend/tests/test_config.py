@@ -29,6 +29,8 @@ _CONFIG_ENV_VARS = [
     "RATE_LIMIT_WINDOW_SECONDS",
     "MAX_BODY_BYTES",
     "INPUT_MAX_CHARS",
+    "LLM_MAX_CONCURRENCY",
+    "LLM_ACQUIRE_TIMEOUT_SECONDS",
 ]
 
 
@@ -71,6 +73,27 @@ def test_bad_input_max_chars_raises(
 ) -> None:
     monkeypatch.setenv("INPUT_MAX_CHARS", "0")
     with pytest.raises(ValueError, match="INPUT_MAX_CHARS must be positive"):
+        Settings.from_env()
+
+
+def test_concurrency_defaults_and_overrides(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    defaults = Settings.from_env()
+    assert defaults.llm_max_concurrency == 2
+    assert defaults.llm_acquire_timeout_seconds == 0.5
+    monkeypatch.setenv("LLM_MAX_CONCURRENCY", "1")
+    monkeypatch.setenv("LLM_ACQUIRE_TIMEOUT_SECONDS", "0")
+    tuned = Settings.from_env()
+    assert tuned.llm_max_concurrency == 1
+    assert tuned.llm_acquire_timeout_seconds == 0.0
+
+
+def test_bad_concurrency_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("LLM_MAX_CONCURRENCY", "0")
+    with pytest.raises(ValueError, match="LLM_MAX_CONCURRENCY must be positive"):
         Settings.from_env()
 
 

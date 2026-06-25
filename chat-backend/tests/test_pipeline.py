@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 
 from app.guardrails import WEAK_RETRIEVAL_REPLY
-from app.pipeline import chat_event_stream
+from app.pipeline import LLM_BUSY_REPLY, chat_event_stream
 
 
 class FakeEmbedder:
@@ -190,3 +190,58 @@ def test_force_english_threads_into_the_assembled_messages() -> None:
     collect(False)
     assert "Respond ONLY in English" not in captured["messages"][-1]["content"]
     assert "ENTIRE reply in English" not in captured["messages"][0]["content"]
+
+
+def test_busy_when_no_generation_slot_is_free() -> None:
+    # All generation permits taken: the request is shed with a clean "busy"
+    # reply and the model is NEVER called — shedding, not queueing.
+    llm = FakeLLM(["should not be used"])
+
+    async def run() -> list[str]:
+        sem = asyncio.Semaphore(1)
+        await sem.acquire()  # exhaust the only permit
+        gen = chat_event_stream(
+            "what is hrm",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            semaphore=sem,
+            acquire_timeout=0.01,
+        )
+        return [frame async for frame in gen]
+
+    frames = asyncio.run(run())
+    assert _events(frames) == ["sources", "token", "done"]
+    assert json.loads(frames[0].split("data: ", 1)[1])["sources"] == []
+    assert _token_text(frames) == LLM_BUSY_REPLY
+    assert llm.called is False
+
+
+def test_generation_permit_is_released_after_a_successful_answer() -> None:
+    # After a normal answer the permit must return so the next request can
+    # generate — a leaked permit would wedge the gate at "busy" forever.
+    llm = FakeLLM(["HRM ", "is great."])
+
+    async def run() -> tuple[list[str], bool]:
+        sem = asyncio.Semaphore(1)
+        gen = chat_event_stream(
+            "what is hrm",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            semaphore=sem,
+            acquire_timeout=0.5,
+        )
+        frames = [frame async for frame in gen]
+        return frames, sem.locked()
+
+    frames, still_held = asyncio.run(run())
+    assert _events(frames) == ["sources", "token", "token", "done"]
+    assert _token_text(frames) == "HRM is great."
+    assert still_held is False  # permit released back to the pool
