@@ -45,6 +45,7 @@ REPO = Path(__file__).resolve().parent.parent
 COMPOSE = ["docker", "compose"]
 BACKEND_HEALTH = "http://localhost:8000/health"
 BACKEND_CHAT = "http://localhost:8000/chat"
+BACKEND_USAGE = "http://localhost:8000/usage"
 FUNNEL_PORT = "8000"
 DOCKER_DESKTOP_EXE = "/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
 
@@ -708,6 +709,43 @@ def cmd_english(state: str | None) -> int:
     return 0
 
 
+def cmd_usage(hours: int) -> int:
+    """Show how much the model has been used over the last `hours` (default 24).
+
+    Reads the backend's /usage on LOCALHOST — operator-only; the funnel is for
+    visitors. Counts only: number of answered requests + an approximate token
+    total (the streamed token-event count), with a per-model breakdown. The log
+    lives in Postgres, so it spans restarts.
+    """
+    hours = max(1, min(hours, 168))  # mirror the endpoint's 1..168 clamp
+    body = http_json(f"{BACKEND_USAGE}?hours={hours}", timeout=8)
+    if body is None:
+        print(f"\n  {_c('○', '31')} backend not reachable — start it with `up`\n")
+        return 1
+    total_req = body.get("total_requests", 0)
+    total_tok = body.get("total_tokens", 0)
+    by_model = body.get("by_model", [])
+    plural = "" if total_req == 1 else "s"
+    print(_c(f"\n  usage — last {hours}h", "1"))
+    print(
+        f"  {_c('●', '32')} {_c(str(total_req), '32')} request{plural}"
+        f"  ·  ~{_c(str(total_tok), '32')} tokens"
+    )
+    if by_model:
+        print()
+        for m in by_model:
+            name = str(m.get("model", "?"))
+            req = m.get("requests", 0)
+            tok = m.get("tokens", 0)
+            # Colour the whole padded name (the pad spaces are invisible), so the
+            # columns line up even with ANSI codes in the string.
+            print(f"    {_c(f'{name:<22}', '36')} {req} req · ~{tok} tokens")
+    elif total_req == 0:
+        print(f"  {_c('·', '2')} no chat requests in this window yet")
+    print()
+    return 0
+
+
 # --- command menu (reprinted in the REPL after every command) --------------
 
 _MENU: list[tuple[str, str]] = [
@@ -719,12 +757,14 @@ _MENU: list[tuple[str, str]] = [
     ('test "Q"', "ask the live model a test question"),
     ("model NAME", "switch model (--effort, --context)"),
     ("english on|off", "force English across all models"),
+    ("usage [--hours N]", "how much the model's been used (24h)"),
     ("exit", "leave ragctl"),
 ]
 
 # Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
 _VERBS = [
-    "status", "watch", "doctor", "up", "down", "test", "model", "english", "exit", "quit",
+    "status", "watch", "doctor", "up", "down", "test", "model", "english",
+    "usage", "exit", "quit",
 ]
 
 
