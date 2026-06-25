@@ -39,6 +39,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -425,19 +426,26 @@ def gather() -> list[tuple[str, tuple[str, str]]]:
         ]
     services = compose_services()
     url = funnel_url()
-    return [
-        ("Docker engine", docker),
-        ("db (pgvector)", check_container(services, "db")),
-        ("ollama", check_container(services, "ollama")),
-        ("backend", check_container(services, "backend")),
-        ("model loaded", check_model_loaded()),
-        ("GPU", check_gpu()),
-        ("backend /health", check_backend_health()),
-        ("English-only", check_english()),
-        ("Tailscale", check_tailscale()),
-        ("Funnel", check_funnel(url)),
-        ("public reachable", check_public(url)),
+    # Run the independent checks concurrently. Sequentially, the /health
+    # generation plus the network/exe probes summed to ~10s and made the board
+    # (and `up`) feel hung; in parallel the whole board resolves in ~max(check).
+    labeled = [
+        ("db (pgvector)", lambda: check_container(services, "db")),
+        ("ollama", lambda: check_container(services, "ollama")),
+        ("backend", lambda: check_container(services, "backend")),
+        ("model loaded", check_model_loaded),
+        ("GPU", check_gpu),
+        ("backend /health", check_backend_health),
+        ("English-only", check_english),
+        ("Tailscale", check_tailscale),
+        ("Funnel", lambda: check_funnel(url)),
+        ("public reachable", lambda: check_public(url)),
     ]
+    with ThreadPoolExecutor(max_workers=len(labeled)) as ex:
+        pending = [(label, ex.submit(fn)) for label, fn in labeled]
+        return [("Docker engine", docker)] + [
+            (label, fut.result()) for label, fut in pending
+        ]
 
 
 def render(rows: list[tuple[str, tuple[str, str]]]) -> str:
@@ -559,11 +567,11 @@ def cmd_up(keep: bool) -> int:
     if not ensure_docker():
         return 1
     ensure_funnel()
-    print("  ◐ starting the stack …")
+    print("  ◐ starting the stack …  (watch it come online below)")
     run(COMPOSE + ["up", "-d", "backend"], cwd=REPO, timeout=180)
-    model = configured_model()
-    print(f"  ◐ warming {model} into VRAM …")
-    run(COMPOSE + ["exec", "-T", "ollama", "ollama", "run", model, "ok"], cwd=REPO, timeout=120)
+    # No separate blocking warm: the live board's /health check loads and verifies
+    # the model lazily and SHOWS it happening, instead of a silent multi-second
+    # `ollama run` that made `up` feel hung.
     if keep:
         print()
         print(render(gather()))
