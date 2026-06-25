@@ -286,18 +286,16 @@
      RAG backend is answering (see MobileContactCard.astro). A real tappable
      input opens the keyboard, unlike the static showcase above it. */
   .mcc__chatform {
-    position: relative;
-    z-index: 4;
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 0.5ch;
-    width: 96vw;
-    max-width: 560px;
-    margin: 0.6rem auto 0;
-    padding-top: 0.6rem;
-    border-top: 1px solid rgba(74, 222, 128, 0.18);
+    margin-top: 0.3rem;
   }
   .mcc__chatform[hidden] {
+    display: none;
+  }
+  /* Once the live input is shown it IS the prompt, so drop the static idle one. */
+  .mcc__screen--chat .mcc__idle-prompt {
     display: none;
   }
   .mcc__chatinput {
@@ -307,9 +305,9 @@
     border: 0;
     outline: none;
     color: var(--color-term-fg);
-    font-family: var(--font-mono);
-    /* >= 16px so iOS doesn't zoom the viewport when the field is focused. */
-    font-size: 16px;
+    /* Inherit the terminal's font so typed text reads as terminal text, not a
+       separate field. (Trade-off: < 16px means iOS zooms in on focus.) */
+    font: inherit;
     caret-color: var(--color-term-green);
   }
   .mcc__chatinput::placeholder {
