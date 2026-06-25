@@ -70,9 +70,9 @@ _GLYPH = {
 def _line(label: str, result: tuple[str, str]) -> str:
     state, detail = result
     glyph, code = _GLYPH.get(state, ("?", "0"))
-    # Colour the WHOLE line by state — green = ok, yellow = busy/warn, red = down —
-    # so the board reads at a glance, not just the dot.
-    return _c(f"  {glyph} {label:<22} {detail}", code)
+    # Colour the dot AND the result value by state (green ok / yellow busy|warn /
+    # red down); leave the label column in the terminal's default colour.
+    return f"  {_c(glyph, code)} {label:<22} {_c(detail, code)}"
 
 
 # --- subprocess + interop --------------------------------------------------
