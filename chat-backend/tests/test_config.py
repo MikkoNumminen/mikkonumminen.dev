@@ -62,12 +62,14 @@ def test_llm_tuning_defaults_and_overrides(
 ) -> None:
     defaults = Settings.from_env()
     assert defaults.llm_temperature == 0.4
-    assert defaults.llm_num_predict == 0
+    # Caps generation length by default (a 0 here let answers run away into
+    # whole-document dumps); still overridable, incl. back to 0 for no cap.
+    assert defaults.llm_num_predict == 512
     monkeypatch.setenv("LLM_TEMPERATURE", "0.7")
-    monkeypatch.setenv("LLM_NUM_PREDICT", "512")
+    monkeypatch.setenv("LLM_NUM_PREDICT", "256")
     tuned = Settings.from_env()
     assert tuned.llm_temperature == 0.7
-    assert tuned.llm_num_predict == 512
+    assert tuned.llm_num_predict == 256
 
 
 def test_force_english_default_on(clean_env: None) -> None:
