@@ -73,3 +73,42 @@ def test_to_context_adapts_fields() -> None:
     assert ctx[0].source == "cv.md"
     assert ctx[0].project == "proj"
     assert ctx[0].content == "body"
+
+
+def test_named_project_chunks_float_to_front() -> None:
+    # Candidates in cosine order: a Platform chunk is the closest, but the query
+    # names ReadLog .NET, so that project's chunks must lead the returned top_k —
+    # the cross-project contamination fix.
+    db = FakeDB(
+        [
+            _row("projects/platform-deepdive.md", 0.10, project="platform"),
+            _row(
+                "projects/readlog-dotnet-architecture.md", 0.20, project="readlog-dotnet"
+            ),
+            _row("projects/hrm.md", 0.25, project="hrm"),
+            _row("projects/readlog-dotnet.md", 0.30, project="readlog-dotnet"),
+        ]
+    )
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "ReadLog .NET find-or-create race", top_k=2)
+    )
+    assert [c.project for c in result] == ["readlog-dotnet", "readlog-dotnet"]
+    # cosine order preserved within the boosted group
+    assert [c.source for c in result] == [
+        "projects/readlog-dotnet-architecture.md",
+        "projects/readlog-dotnet.md",
+    ]
+    # a wider candidate set was pulled (top_k * 4) so the named chunks were present
+    assert db.calls[0][1] == 8
+
+
+def test_no_project_named_is_byte_identical_to_plain_search() -> None:
+    db = FakeDB(
+        [_row("a.md", 0.1, project="hrm"), _row("b.md", 0.2, project="platform")]
+    )
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "what is the most complex thing here?", top_k=2)
+    )
+    assert [c.source for c in result] == ["a.md", "b.md"]
+    # exactly top_k requested, no widening, no re-rank
+    assert db.calls == [([0.1, 0.2, 0.3], 2)]
