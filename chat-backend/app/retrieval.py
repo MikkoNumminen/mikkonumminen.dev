@@ -188,7 +188,9 @@ async def _with_prose_anchor(
     a real description grounds a legitimate deep-code answer. No-op when the result
     already holds prose, or when the corpus has no prose at all (code-only works).
     """
-    if any(c.chunk_type == "prose" for c in result):
+    # Empty retrieval already refuses (is_weak_retrieval([]) is True), and prose
+    # already in the result means the gate has its signal — neither needs a fetch.
+    if not result or any(c.chunk_type == "prose" for c in result):
         return result
     prose_row = await db.closest_prose(vector)
     if prose_row is None:

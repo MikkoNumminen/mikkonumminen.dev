@@ -28,6 +28,11 @@ class FakeDB:
             raise RuntimeError("db down")
         return self._rows[:top_k]
 
+    async def closest_prose(
+        self, embedding: list[float]
+    ) -> Mapping[str, Any] | None:
+        return next((r for r in self._rows if r.get("chunk_type") == "prose"), None)
+
 
 class FakeLLM:
     def __init__(self, tokens: list[str], fail: bool = False) -> None:
