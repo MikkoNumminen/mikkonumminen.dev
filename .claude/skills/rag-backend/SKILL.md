@@ -18,11 +18,10 @@ The `/contact` terminal's chat is a **fully local retrieval-augmented-generation
 ## The /chat pipeline — exact order (`app/pipeline.py:chat_event_stream`)
 
 1. **Task gates** (pre-retrieval, deterministic, no GPU): `guardrails.is_generative_request` (write a poem/story/song/…) and `is_translation_request` (translate X → a named language) → decline with `GENERATIVE_REPLY`.
-2. **Hybrid retrieve** (`retrieval.retrieve`): dense pgvector cosine **+** lexical BM25 (`db.search_lexical`, `websearch_to_tsquery`/`ts_rank`) fused with **reciprocal rank fusion** (`RRF_K=60`, dense/lexical weights 1.0). `HYBRID_ENABLED=false` → pure dense.
-3. **Hard project filter** (`PROJECT_FILTER_STRICT`, default on, **fails open**): when `query_projects.detect_projects` names a project, restrict retrieval to it.
-4. **Prose-anchored weak-retrieval gate** (`guardrails.is_weak_retrieval`): gates on the best **prose**-chunk cosine distance (code chunks can lower off-topic distances, so gating on prose is the honest signal); `db.closest_prose` is fetched explicitly when the top-k is all code. Threshold `WEAK_RETRIEVAL_DISTANCE=0.45`. Off-corpus → fixed `WEAK_RETRIEVAL_REPLY`, no LLM call.
-5. **Concurrency semaphore** (`LLM_MAX_CONCURRENCY=2`) around generation only — shed with a busy reply, never queue.
-6. **Grounded prompt** (`prompts.build_messages`) + FORCE_ENGLISH → Ollama stream (capped at `LLM_NUM_PREDICT=512`, markdown stripped) → SSE `sources` / `token` / `done`.
+2. **Hybrid retrieve** (`retrieval.retrieve`): dense pgvector cosine **+** lexical BM25 (`db.search_lexical`, `websearch_to_tsquery`/`ts_rank`) fused with **reciprocal rank fusion** (`RRF_K=60`, dense/lexical weights 1.0) — **with the hard per-project filter applied _inside_ `retrieve()`** (`PROJECT_FILTER_STRICT`, default on, **fails open**) restricting to the named project when `query_projects.detect_projects` matches. `HYBRID_ENABLED=false` → pure dense.
+3. **Prose-anchored weak-retrieval gate** (`guardrails.is_weak_retrieval`): gates on the best **prose**-chunk cosine distance (code chunks can lower off-topic distances, so gating on prose is the honest signal); `db.closest_prose` is fetched explicitly when the top-k is all code. Threshold `WEAK_RETRIEVAL_DISTANCE=0.45`. Off-corpus → fixed `WEAK_RETRIEVAL_REPLY`, no LLM call.
+4. **Concurrency semaphore** (`LLM_MAX_CONCURRENCY=2`) around generation only — shed with a busy reply, never queue.
+5. **Grounded prompt** (`prompts.build_messages`) + FORCE_ENGLISH → Ollama stream (capped at `LLM_NUM_PREDICT=512`, markdown stripped) → SSE `sources` / `token` / `done`.
 
 ## app/ file map
 

@@ -13,6 +13,7 @@ Use this when **hardening, reviewing, or auditing the RAG output** — the recur
 - When the chat answered something out of scope (a containment leak) or refused something legitimate (over-gating).
 
 ## Runbook — apply live, then validate (against the WSL clone `~/mikkonumminen.dev`)
+Rebuild for **any** `app/` change (it's baked into the image); re-index **only** when the corpus or chunking changed (content is bind-mounted).
 ```bash
 # 1. sync the change from the worktree to the working clone
 cp -a <worktree>/chat-backend/app/. ~/mikkonumminen.dev/chat-backend/app/
