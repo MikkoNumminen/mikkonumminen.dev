@@ -327,3 +327,27 @@ class Database:
             top_k,
         )
         return rows
+
+    async def closest_prose(self, embedding: list[float]) -> asyncpg.Record | None:
+        """The single PROSE chunk nearest the query embedding, or None.
+
+        The weak-retrieval gate keys on prose distance, but an off-topic query
+        ("translate hello to spanish") can retrieve ONLY code chunks (coincidental
+        token overlap) with no prose in the top-k — leaving the gate nothing prose
+        to judge. This fetches the corpus's closest prose chunk explicitly so the
+        gate always has the honest relevance signal: far prose ⇒ refuse, near
+        prose ⇒ a real description grounds the answer. Returns None for a corpus
+        with no prose at all (the gate then falls back to all chunks).
+        """
+        row = await self._pool.fetchrow(
+            """
+            SELECT source, project, title, kind, chunk_index, content, chunk_type,
+                   embedding <=> $1 AS distance
+            FROM documents
+            WHERE chunk_type = 'prose'
+            ORDER BY embedding <=> $1
+            LIMIT 1
+            """,
+            embedding,
+        )
+        return row

@@ -36,6 +36,10 @@ class SupportsSearch(Protocol):
         projects: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
 
+    async def closest_prose(
+        self, embedding: list[float]
+    ) -> Mapping[str, Any] | None: ...
+
 
 @dataclass(frozen=True)
 class RetrievedChunk:
@@ -169,6 +173,29 @@ def _ensure_gate_anchor(
     return ([best] + result)[:top_k]
 
 
+async def _with_prose_anchor(
+    result: list[RetrievedChunk],
+    db: SupportsSearch,
+    vector: list[float],
+) -> list[RetrievedChunk]:
+    """Give the prose-anchored weak-retrieval gate a prose distance to judge.
+
+    Off-topic queries ("translate hello to spanish", "what time is it in New
+    York") can retrieve ONLY code chunks — coincidental token overlap with the
+    source — leaving no prose in the result for the gate to key on, so a near code
+    chunk would falsely pass. When the result has no prose, append the corpus's
+    closest prose chunk: far prose ⇒ the gate refuses (off-topic), near prose ⇒
+    a real description grounds a legitimate deep-code answer. No-op when the result
+    already holds prose, or when the corpus has no prose at all (code-only works).
+    """
+    if any(c.chunk_type == "prose" for c in result):
+        return result
+    prose_row = await db.closest_prose(vector)
+    if prose_row is None:
+        return result
+    return result + [_to_chunk(prose_row)]
+
+
 async def retrieve(
     embedder: SupportsEmbedQuery,
     db: SupportsSearch,
@@ -231,7 +258,8 @@ async def retrieve(
         # Anchor on EVERY path: fusion or the boost can push the gate's closest
         # eligible chunk out of top_k, starving the weak-retrieval gate into a
         # false refusal. (No-op when that chunk already ranks in.)
-        return _ensure_gate_anchor(result[:top_k], anchor_pool, top_k)
+        anchored = _ensure_gate_anchor(result[:top_k], anchor_pool, top_k)
+        return await _with_prose_anchor(anchored, db, vector)
 
     if project_filter is not None:
         lexical_rows = await db.search_lexical(query, candidate_k, project_filter)
@@ -247,8 +275,8 @@ async def retrieve(
     )
     if wanted and not strict:
         fused = _project_boost(fused, wanted)
-    result = fused[:top_k]
-    return _ensure_gate_anchor(result, anchor_pool, top_k)
+    result = _ensure_gate_anchor(fused[:top_k], anchor_pool, top_k)
+    return await _with_prose_anchor(result, db, vector)
 
 
 def to_context(chunks: Sequence[RetrievedChunk]) -> list[ContextChunk]:

@@ -23,11 +23,20 @@ class FakeDB:
         self,
         rows: list[dict[str, Any]],
         lexical_rows: list[dict[str, Any]] | None = None,
+        prose_row: dict[str, Any] | None = None,
     ) -> None:
         self._rows = rows
         self._lexical = rows if lexical_rows is None else lexical_rows
+        self._prose_row = prose_row
         self.calls: list[tuple[list[float], int]] = []
         self.lexical_calls: list[tuple[str, int]] = []
+        self.prose_calls = 0
+
+    async def closest_prose(
+        self, embedding: list[float]
+    ) -> Mapping[str, Any] | None:
+        self.prose_calls += 1
+        return self._prose_row
 
     @staticmethod
     def _filter(
@@ -277,3 +286,56 @@ def test_hybrid_anchor_retains_closest_when_fusion_pushes_it_out() -> None:
         retrieve(FakeEmbedder(), db, "keyword query", top_k=1, hybrid=True)
     )
     assert min(c.distance for c in result) == 0.10
+
+
+# --- prose anchor for the gate when the top-k is all code (B1 completion) ---
+
+from app.guardrails import is_weak_retrieval  # noqa: E402
+
+
+def test_all_code_topk_with_far_prose_gates_weak() -> None:
+    # Off-topic query matches only CODE chunks (coincidental tokens); the closest
+    # PROSE is far (0.80). The injected prose anchor makes the gate refuse.
+    code = [_row("code/audiobookmaker/src/tts.py", 0.30, chunk_type="code")]
+    far_prose = _row("projects/audiobookmaker.md", 0.80, chunk_type="prose")
+    db = FakeDB(code, lexical_rows=code, prose_row=far_prose)
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "translate hello to spanish", top_k=3, hybrid=True)
+    )
+    assert any(c.chunk_type == "prose" for c in result)  # anchor injected
+    assert db.prose_calls == 1
+    assert is_weak_retrieval(result, max_distance=0.45) is True
+
+
+def test_all_code_topk_with_near_prose_still_answers() -> None:
+    # Legit deep-code question: the project's PROSE doc is near (0.30), so the
+    # gate must NOT over-gate — the answer goes through.
+    code = [_row("code/audiobookmaker/src/tts.py", 0.20, chunk_type="code")]
+    near_prose = _row("projects/audiobookmaker.md", 0.30, chunk_type="prose")
+    db = FakeDB(code, lexical_rows=code, prose_row=near_prose)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(), db, "how does salvageRemovedWeapons work", top_k=3, hybrid=True
+        )
+    )
+    assert is_weak_retrieval(result, max_distance=0.45) is False
+
+
+def test_prose_anchor_skipped_when_topk_already_has_prose() -> None:
+    rows = [
+        _row("projects/a.md", 0.20, chunk_type="prose"),
+        _row("code/a/x.py", 0.30, chunk_type="code"),
+    ]
+    db = FakeDB(rows, lexical_rows=rows, prose_row=_row("projects/z.md", 0.9))
+    result = asyncio.run(retrieve(FakeEmbedder(), db, "tell me about A", top_k=3, hybrid=True))
+    assert db.prose_calls == 0  # no extra fetch when prose already present
+    assert all(c.source != "projects/z.md" for c in result)
+
+
+def test_code_only_corpus_falls_back_to_all_chunks() -> None:
+    # No prose anywhere in the corpus: closest_prose returns None, so the gate
+    # falls back to all chunks and a near code chunk keeps the query answerable.
+    code = [_row("code/a/x.py", 0.30, chunk_type="code")]
+    db = FakeDB(code, lexical_rows=code, prose_row=None)
+    result = asyncio.run(retrieve(FakeEmbedder(), db, "q", top_k=3, hybrid=True))
+    assert is_weak_retrieval(result, max_distance=0.45) is False
