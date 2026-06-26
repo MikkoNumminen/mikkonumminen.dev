@@ -82,7 +82,7 @@ async def reindex(
 ) -> IndexStats:
     """Embed and upsert the corpus idempotently. Returns run statistics."""
     # Lazy heavy imports so `plan()` / dry-run / unit tests never need them.
-    from .db import SQL_PATH, Database, DocumentRow, apply_schema
+    from .db import Database, DocumentRow, apply_schema
     from .embeddings import Embedder
 
     file_plans = plans if plans is not None else plan(settings)
@@ -95,7 +95,7 @@ async def reindex(
             "- pruning any stale rows"
         )
 
-    await apply_schema(settings.database_url, SQL_PATH)
+    await apply_schema(settings.database_url)
     db = await Database.connect(settings.database_url)
     # The embedder (and its one-time model download) is built lazily, only once
     # a chunk actually needs embedding — so an empty or fully-unchanged corpus
