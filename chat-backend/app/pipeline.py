@@ -39,6 +39,7 @@ from .guardrails import (
     GENERATIVE_REPLY,
     WEAK_RETRIEVAL_REPLY,
     is_generative_request,
+    is_translation_request,
     is_weak_retrieval,
 )
 from .prompts import build_messages
@@ -93,7 +94,7 @@ async def chat_event_stream(
     # past the retrieval gate below, and a small local model won't reliably refuse
     # it from the prompt alone — so decline deterministically before any retrieval
     # or generation. No GPU touched, no sources cited.
-    if is_generative_request(query):
+    if is_generative_request(query) or is_translation_request(query):
         if log_request is not None:
             log_request(query, [], True, len(GENERATIVE_REPLY))
         yield sse.sse_sources([])

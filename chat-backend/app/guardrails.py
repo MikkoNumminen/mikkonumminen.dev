@@ -88,3 +88,29 @@ def is_generative_request(query: str) -> bool:
     a small LLM won't reliably refuse them from the system prompt alone.
     """
     return bool(_GENERATIVE_RE.search(query))
+
+
+# Translating text into a named language is a TASK, not a question about Mikko —
+# and because the portfolio itself is multilingual (EN/FI/SV i18n), a prose chunk
+# stays close enough that the retrieval gate passes, so a small model just does
+# the translation. Anchor on a LEADING "translate" (optionally after a politeness
+# marker) followed by a target language, so "how does the site translate to
+# Finnish" (a real question about the i18n) is NOT caught.
+_TRANSLATE_RE = re.compile(
+    r"^(?:please\s+|can you\s+|could you\s+|pls\s+|hey,?\s+)?translate\b"
+    r"[^.?!]{1,60}?\b(?:in)?to\b\s+"
+    r"(spanish|french|german|finnish|swedish|english|italian|portuguese|dutch|"
+    r"russian|chinese|mandarin|japanese|korean|arabic|hindi|polish|norwegian|"
+    r"danish|greek|turkish|hebrew|latin|czech|romanian|hungarian|ukrainian)\b",
+    re.IGNORECASE,
+)
+
+
+def is_translation_request(query: str) -> bool:
+    """True when the message is an imperative request to translate text into a
+    named language — a task, not a question about Mikko's work.
+
+    Anchored on a LEADING "translate" so "how does the site translate to Finnish"
+    (a genuine question about the portfolio's i18n) is not caught.
+    """
+    return bool(_TRANSLATE_RE.search(query.strip()))

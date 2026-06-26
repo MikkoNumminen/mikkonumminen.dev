@@ -6,6 +6,7 @@ from app.guardrails import (
     GENERATIVE_REPLY,
     WEAK_RETRIEVAL_REPLY,
     is_generative_request,
+    is_translation_request,
     is_weak_retrieval,
 )
 from app.retrieval import RetrievedChunk
@@ -109,3 +110,26 @@ def test_real_questions_are_not_generative() -> None:
 
 def test_generative_reply_is_nonempty() -> None:
     assert GENERATIVE_REPLY
+
+
+def test_translation_tasks_are_declined() -> None:
+    # Translating text into a named language is a task, not a question — and the
+    # portfolio's own i18n keeps a prose chunk close enough to defeat the gate.
+    for q in (
+        "translate hello to spanish",
+        "Translate this to Finnish",
+        "please translate good morning into french",
+        "can you translate the readme to german",
+    ):
+        assert is_translation_request(q) is True, q
+
+
+def test_translation_questions_are_not_declined() -> None:
+    # Genuine questions about the portfolio's i18n must still answer.
+    for q in (
+        "how does the site translate to Finnish?",
+        "what languages does the portfolio support",
+        "does ReadLog translate book titles",
+        "how is the translation pipeline built",
+    ):
+        assert is_translation_request(q) is False, q
