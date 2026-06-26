@@ -75,6 +75,15 @@ def test_generative_requests_are_declined() -> None:
         "generate a short story set in space",
         "draft an essay on TTS",
         "write me a rap about audiobooks",
+        # verbs the first cut missed
+        "pen a poem",
+        "tell me a joke",
+        "sing me a song",
+        "come up with a haiku",
+        "make up a story",
+        "recite a limerick",
+        # adjectives between the determiner and the artefact
+        "write me a funny poem",
     ):
         assert is_generative_request(q) is True, q
 
@@ -89,6 +98,11 @@ def test_real_questions_are_not_generative() -> None:
         "what song-playback library does strudel use?",
         "generate the build script — how is it set up?",
         "tell me about AudiobookMaker",
+        # artefact words NOT anchored to a producing determiner (was a false decline)
+        "give me an overview of the songs feature",
+        "give a summary of the essays project",
+        "how would you describe Spacepotatis",
+        "tell me about the songs feature",
     ):
         assert is_generative_request(q) is False, q
 

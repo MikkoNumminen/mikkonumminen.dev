@@ -61,14 +61,20 @@ GENERATIVE_REPLY = (
 # A request like "write me a poem about Helsinki" names an on-corpus topic, so it
 # retrieves real content and slips past is_weak_retrieval; and a small local model
 # does not reliably refuse it from the system prompt alone (especially once the
-# corpus holds source code, which lowers off-topic distances). Match an imperative
-# verb followed (within one clause) by an unambiguously creative artefact, so
-# legitimate questions — "how does X work", "the story behind ReadLog", "write a
-# test for Y" — don't trip it.
+# corpus holds source code, which lowers off-topic distances). Match a producing
+# VERB, then a PRODUCING DETERMINER (a/an/some/another/one/your — deliberately NOT
+# "the"/"of the"), then 0-2 adjectives, then a creative ARTEFACT. The determiner
+# anchor is what keeps legitimate questions out: "the story behind ReadLog", "an
+# overview of the songs feature", "a summary of the essays project" don't match
+# (no producing determiner immediately before the artefact), while "a story" /
+# "a joke" / "me a funny poem" do.
 _GENERATIVE_RE = re.compile(
-    r"\b(write|compose|create|generate|draft|make|give)\b[^.?!]{0,30}?\b"
-    r"(poems?|haikus?|limericks?|sonnets?|verses?|rhymes?|songs?|lyrics|raps?|"
-    r"jokes?|riddles?|essays?|screenplays?|novels?|short stor(?:y|ies))\b",
+    r"\b(?:come up with|make up|write|compose|create|generate|draft|pen|recite|"
+    r"sing|tell|make|give)\b\s+"
+    r"(?:me\s+|us\s+)?(?:a|an|some|another|one|your)\s+"
+    r"(?:\w+\s+){0,2}"
+    r"(?:poems?|haikus?|limericks?|sonnets?|verses?|rhymes?|songs?|lyrics|raps?|"
+    r"jokes?|riddles?|essays?|screenplays?|novels?|poetry|stor(?:y|ies)|tales?)\b",
     re.IGNORECASE,
 )
 
