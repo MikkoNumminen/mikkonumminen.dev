@@ -37,11 +37,25 @@ pipeline order:
   handler (HTTP 400), with a Pydantic `max_length=4000` backstop (422) and a
   `MAX_BODY_BYTES` (default 16384) byte cap in ASGI middleware. A request can't
   smuggle a large instruction payload in the first place.
-- **Relevance gate.** Before the LLM is ever called, the weak-retrieval gate
-  (`guardrails.is_weak_retrieval`) short-circuits the request when the best
-  cosine distance exceeds `WEAK_RETRIEVAL_DISTANCE` (default 0.7), returning a
-  fixed out-of-scope reply. Off-corpus questions never reach generation. The
-  threshold is config and the scores are logged for tuning.
+- **Pre-retrieval task gates.** Two deterministic checks run _before_ retrieval
+  and decline outright: `is_generative_request` ("write me a poem/story/song/
+  joke/…") and `is_translation_request` ("translate &lt;text&gt; to &lt;language&gt;").
+  These are TASK requests that often name an on-corpus topic, so retrieval alone
+  wouldn't catch them — the small model would happily perform the task. Catching
+  them by shape, before a single vector is fetched, closes that hole. (Added by
+  [ADR 0011](0011-hybrid-retrieval-and-code-corpus.md)'s Workstream B.)
+- **Relevance gate (prose-anchored).** Before the LLM is ever called, the
+  weak-retrieval gate (`guardrails.is_weak_retrieval`) short-circuits the request
+  when the best **prose-chunk** cosine distance exceeds `WEAK_RETRIEVAL_DISTANCE`
+  (default 0.45), returning a fixed out-of-scope reply. Off-corpus questions never
+  reach generation. The gate anchors on prose, not the raw top-k, because the
+  code-aware corpus added by [ADR 0011](0011-hybrid-retrieval-and-code-corpus.md) means an
+  off-topic query can land suspiciously close to a stray code chunk (identifiers,
+  boilerplate) and slip past a naive distance check; gating on the closest prose
+  keeps those leaks out. When the top-k holds no prose, the closest prose chunk is
+  fetched explicitly (`db.closest_prose`) so the gate always has a prose anchor.
+  The threshold was retuned 0.7 → 0.45 for the denser code-enriched corpus; it
+  is config and the scores are logged for tuning.
 - **Grounded generation.** The system prompt instructs the model to answer
   **only** from the retrieved CONTEXT and to decline when the answer isn't there.
 - **Output cap.** `LLM_NUM_PREDICT` (default 512) is a hard `num_predict` cap, so
@@ -99,9 +113,9 @@ dependency that [ADR 0009](0009-rag-chat-backend.md) deliberately closed.
 ### Gained
 
 - **Defense in depth.** No single control is load-bearing: the input cap, the
-  pre-LLM relevance gate, grounded prompting, the output cap, prompt hardening,
-  concurrency shedding, and rate limiting each catch a different failure, and a
-  breach of one is bounded by the others.
+  pre-retrieval task gates, the prose-anchored relevance gate, grounded prompting,
+  the output cap, prompt hardening, concurrency shedding, and rate limiting each
+  catch a different failure, and a breach of one is bounded by the others.
 - **Tunable without code changes.** Every threshold is a validated env var, so a
   deployment can tighten or relax containment from config, informed by the
   opt-in score log.
@@ -111,12 +125,18 @@ dependency that [ADR 0009](0009-rag-chat-backend.md) deliberately closed.
 
 ### Costs
 
-- **More moving parts in the request path.** Seven-plus layers add code and
+- **More moving parts in the request path.** Nine-plus layers add code and
   config surface to the `/chat` handler and middleware. Mitigated by keeping each
   layer small, independently testable, and driven by one env var.
 - **Tuning is ongoing.** The relevance-gate threshold in particular trades false
   refusals against off-scope leakage and needs revisiting as the corpus grows;
-  the score log exists precisely to support that.
+  the prose-anchoring and the 0.7 → 0.45 retune are themselves products of that
+  tuning loop, prompted by the code-enriched corpus, and the score log exists
+  precisely to support more of it.
+- **Pattern-shaped task gates can drift.** `is_generative_request` and
+  `is_translation_request` recognise tasks by phrasing, so a novel framing can
+  evade them; they are a deterministic floor, not a complete classifier, and lean
+  on grounded prompting and the output cap behind them.
 
 ### Residual
 
@@ -128,10 +148,14 @@ dependency that [ADR 0009](0009-rag-chat-backend.md) deliberately closed.
 
 ### Follow-ups
 
-- **Workstream B (roadmap, not built).** A future retrieval-quality workstream is
-  planned but unimplemented: code-aware chunking by function/class boundaries and
-  indexing source/config (not only markdown); `language` + `chunk_type`
-  (prose|code) metadata; hybrid retrieval (BM25/full-text fused with dense via
-  reciprocal rank fusion) for exact identifiers; and a hard per-project retrieval
-  filter. Today retrieval is dense-only with a soft project boost. These improve
-  answer quality and are orthogonal to the containment decided here.
+- **Workstream B (shipped — see [ADR 0011](0011-hybrid-retrieval-and-code-corpus.md)).** The
+  retrieval-quality workstream is now built: code-aware chunking by function/class
+  boundaries with source/config indexed alongside markdown, `language` +
+  `chunk_type` (prose|code) metadata, hybrid dense + full-text retrieval fused by
+  reciprocal rank fusion, and a hard per-project filter. That work is orthogonal
+  to containment but feeds back into it twice — it is why the relevance gate now
+  anchors on prose and why `WEAK_RETRIEVAL_DISTANCE` dropped to 0.45 (both folded
+  into the layers above), and it shipped with the two pre-retrieval task gates.
+- **Still future (not built).** Cross-encoder re-ranking, automatic per-project
+  summary generation, and query expansion remain on the roadmap; none are
+  implemented today.

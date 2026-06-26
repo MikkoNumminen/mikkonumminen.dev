@@ -70,7 +70,7 @@ the only thing the frontend adds is a build-time URL and client-side `fetch`.
 | Embeddings    | **bge-small-en-v1.5** via `fastembed`, **in-process**                                             | 384-dim vectors for both indexing and queries — one model, one vector space. Asymmetric query/passage prefixes (the bge convention).                                                                                                               |
 | Generation    | **local Ollama** serving **Gemma / Qwen** (OpenAI-compatible `/v1/chat/completions` over `httpx`) | Streams the grounded answer; runs on the GPU. The served model is switchable (`ragctl model`); **`qwen2.5:7b` is the default**.                                                                                                                    |
 | Orchestration | **Docker Compose** + `Makefile`                                                                   | `db` + `ollama` (GPU) + one-shot `ollama-pull` + `backend` (+ optional, unused `tunnel`).                                                                                                                                                          |
-| Corpus        | [`content/`](../content/) markdown                                                                | One file per project, `cv.md`, selected posts — the only source of truth answers are drawn from.                                                                                                                                                   |
+| Corpus        | [`content/`](../content/) markdown **+ curated source** (`content/code/<project>/`)               | Per-project prose (`NAME.md`, `cv.md`, posts) plus 55 architecture-defining source files — the only source of truth answers are drawn from. See [§4](#indexing--offline-one-time-not-part-of-any-deploy).                                          |
 
 The load-bearing invariant: the indexer and the query path use the **same**
 embedding model and dimension, and that dimension matches the `vector(N)` column.
@@ -83,20 +83,40 @@ A mismatch returns silent garbage, so the dimension is locked to bge-small's 384
 ### Indexing — offline, one-time (not part of any deploy)
 
 ```
-content/**/*.md  ─▶  markdown-block chunking (fenced code blocks kept intact;
-                     token budget ≈ 480 max / 100 min / 60 overlap)
-                 ─▶  bge-small embeddings (in-process)
-                 ─▶  upsert into Postgres + pgvector  (per-chunk sha256 key)
+content/**/*.md              ─▶  markdown-block chunking (fenced code blocks kept
+                                 intact; token budget ≈ 480 max / 100 min / 60 overlap)
+content/code/<project>/*     ─▶  code-aware chunking (split on function/class/method
+  (py ts tsx js cs astro          boundaries; decorators/attributes kept with their
+   sql prisma + config)           definition; line-window fallback)
+                             ─▶  bge-small embeddings (in-process)
+                             ─▶  upsert into Postgres + pgvector  (per-chunk sha256 key)
 ```
 
-The corpus is `content/**/*.md`: per-project `NAME.md` + `NAME-architecture.md` +
-`NAME-deepdive.md`, plus `cv.md` and selected posts. Chunking is **markdown-block
-aware** — it splits on block boundaries and **keeps fenced code blocks intact**
-rather than slicing mid-snippet — under a token budget of roughly **480 max /
-100 min / 60 overlap** (the `CHUNK_*_TOKENS` knobs).
+The corpus is now **prose plus curated source code**:
+
+- **Prose** — `content/**/*.md`: per-project `NAME.md` + `NAME-architecture.md` +
+  `NAME-deepdive.md`, plus `cv.md` and selected posts. Chunked **markdown-block
+  aware** — it splits on block boundaries and **keeps fenced code blocks intact**
+  rather than slicing mid-snippet — under a token budget of roughly **480 max /
+  100 min / 60 overlap** (the `CHUNK_*_TOKENS` knobs).
+- **Code** — `content/code/<project>/`: **55 architecture-defining source files**
+  curated from the sibling project repos (`py`, `ts`, `tsx`, `js`, `cs`, `astro`,
+  `sql`, `prisma`, plus config). Chunked **code-aware**: it splits source by
+  **function / class / method boundaries** (Python, TypeScript, JavaScript, C#),
+  **keeps decorators / attributes with their definition**, and falls back to a
+  line-window when no structural boundary is found. So an exact-identifier or
+  deep-code question now retrieves the **actual source**, not just prose about it.
 
 Each chunk carries metadata used downstream: **`project`**, **source path**,
-**`title`**, and **`kind`** (`project` | `cv` | `post`).
+**`title`**, **`kind`** (`project` | `cv` | `post`), and — new in Workstream B —
+**`language`** and **`chunk_type`** (`prose` | `code`). The schema (`sql/002`)
+adds the `language` and `chunk_type` columns (default `prose`), plus a
+**`GENERATED` `content_tsv` `tsvector` column with a GIN index** that powers the
+lexical half of hybrid retrieval; existing rows were backfilled.
+
+> `content/code/` is **corpus data, not site code** — it's excluded from
+> `tsconfig` / `eslint` / `prettier` so the curated sources don't get linted or
+> type-checked as part of the site.
 
 Idempotent: each chunk is keyed by a **content `sha256`**, so unchanged content
 is neither re-embedded nor re-written, and chunks that changed or were removed
@@ -106,13 +126,27 @@ are pruned. Re-run only when `content/` changes.
 
 ```
 message  ─▶  input cap   (INPUT_MAX_CHARS, default 800 → HTTP 400 if over)
+         ─▶  task gates   (deterministic, pre-retrieval):
+               is_generative_request   ("write me a poem/story/song/joke/…")
+               is_translation_request  ("translate <text> to <language>")
+               → either matches → canned decline, no retrieval, model NEVER called
          ─▶  embed query (bge-small, query prefix)
-         ─▶  top-k cosine retrieval from pgvector   (TOP_K, default 6)
-         ─▶  project-aware re-rank
-               (query_projects detects a named project and floats its chunks first)
+         ─▶  HYBRID retrieval  (HYBRID_ENABLED, default true):
+               dense  — top-k pgvector cosine
+               lexical — BM25-style full-text (websearch_to_tsquery + ts_rank)
+                 fused by RECIPROCAL RANK FUSION
+                 (score = Σ weight / (RRF_K + rank) across both lists;
+                  RRF_K 60; dense/lexical weights 1.0 each)
+               (HYBRID_ENABLED=false reverts to pure dense)
+         ─▶  hard per-project filter  (PROJECT_FILTER_STRICT, default true):
+               query names a project → restrict retrieval to it,
+               failing OPEN (if it returns nothing, fall back to global best
+               so the gate sees the true closest chunk)
          ─▶  weak-retrieval gate  (guardrails.is_weak_retrieval):
-               best cosine distance > WEAK_RETRIEVAL_DISTANCE (default 0.7)
+               best PROSE-chunk distance > WEAK_RETRIEVAL_DISTANCE (default 0.45)
                → deterministic canned out-of-scope refusal, model NEVER called
+               (closest prose fetched explicitly via db.closest_prose if the
+                top-k holds no prose chunk)
          ─▶  assemble grounded prompt
                (retrieved CONTEXT + grounded/hardened system prompt + FORCE_ENGLISH)
          ─▶  stream the model via Ollama   (num_predict capped — see §7)
@@ -123,12 +157,34 @@ message  ─▶  input cap   (INPUT_MAX_CHARS, default 800 → HTTP 400 if over)
                event: error    {message}     (on failure — stream ends cleanly)
 ```
 
-The order is load-bearing. The **input cap** runs in the `/chat` handler before
-any work; the **project-aware re-rank** only _boosts_ a named project's chunks
-(it's a soft preference, not a hard filter — see the [roadmap](#9-roadmap-not-yet-implemented-workstream-b)); and the **weak-retrieval gate** short-circuits
-**before the LLM** so an off-topic question can't be answered from hallucinated
-content — with no relevant retrieval, the API refuses **without calling the
-model** at all. The containment layers that wrap this path are catalogued in
+The order is load-bearing.
+
+- The **input cap** runs in the `/chat` handler before any work.
+- The two **task gates** are deterministic and run **before retrieval**: they
+  decline "write me a poem/story/song/joke" (`is_generative_request`) and
+  "translate `<text>` to `<language>`" (`is_translation_request`). These are
+  _task_ requests that often name an on-corpus topic, so retrieval alone wouldn't
+  stop them — the small model would happily perform the task. Catching them up
+  front keeps the pipeline from ever calling the model for a task it shouldn't do.
+- **Retrieval is hybrid**: dense pgvector cosine and a lexical BM25-style
+  full-text query (`websearch_to_tsquery` + `ts_rank` over the generated
+  `content_tsv`) are fused by **reciprocal rank fusion** — so an exact identifier
+  (a function or config name) retrieves reliably, not just semantically-near
+  prose. `HYBRID_ENABLED=false` reverts to the old pure-dense behaviour.
+- The **per-project filter is now hard** (`PROJECT_FILTER_STRICT`, default
+  `true`): when the query names a project, retrieval is restricted to that
+  project. It **fails open** — if the named project returns nothing, it falls
+  back so the weak-retrieval gate still sees the true global best chunk rather
+  than wrongly refusing.
+- The **weak-retrieval gate** short-circuits **before the LLM** so an off-topic
+  question can't be answered from hallucinated content. It now anchors on the
+  best **prose-chunk** distance: a code-enriched corpus means stray code chunks
+  can sit deceptively close to an off-topic query, so gating on the closest
+  _prose_ (fetched explicitly via `db.closest_prose` when the top-k has none)
+  keeps off-topic queries out. `WEAK_RETRIEVAL_DISTANCE` was lowered from `0.7`
+  to **`0.45`** for the tighter, code-enriched corpus.
+
+The containment layers that wrap this path are catalogued in
 [§7](#7-containment-why-it-cant-be-talked-into-trouble-or-melt-the-machine).
 
 ### The reveal gate — why the chat is invisible until it's real
@@ -270,19 +326,23 @@ the last line, not the only one.) This is **Workstream A**.
 
 ### The layers
 
-| Layer                      | What it does                                                                                                                                                                                                                                                   | Config key                                            | Default                     |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------- |
-| **Input cap (handler)**    | The `/chat` handler rejects questions longer than this **before** retrieval or generation — clean HTTP 400.                                                                                                                                                    | `INPUT_MAX_CHARS`                                     | `800`                       |
-| **Input cap (Pydantic)**   | Looser schema backstop on the request body; over-length → HTTP 422.                                                                                                                                                                                            | `max_length` (constant)                               | `4000`                      |
-| **Body-byte cap (ASGI)**   | Middleware rejects oversized request bodies before they're parsed.                                                                                                                                                                                             | `MAX_BODY_BYTES`                                      | `16384`                     |
-| **Relevance gate**         | Pre-LLM short-circuit: if the best cosine distance exceeds the threshold, return the fixed out-of-scope refusal **without calling the model**. Scores are logged for tuning.                                                                                   | `WEAK_RETRIEVAL_DISTANCE`                             | `0.7`                       |
-| **Grounded generation**    | System prompt answers **only** from the retrieved `CONTEXT` and declines when the answer isn't there.                                                                                                                                                          | _(prompt constant)_                                   | —                           |
-| **Output cap**             | Hard `num_predict` cap on generation, so no single answer can dump a large document regardless of the prompt.                                                                                                                                                  | `LLM_NUM_PREDICT`                                     | `512`                       |
-| **Prompt hardening**       | The prompt is a constant: treat the whole user message as a _question_, never as instructions; never reveal/ignore the prompt or role-play another assistant; decline generative off-task requests (poems, stories, code).                                     | _(prompt constant)_                                   | —                           |
-| **Concurrency cap**        | An `asyncio.Semaphore` around Ollama generation, acquired with a bounded wait; excess load is **shed** with a short "busy" reply rather than queued. The permit is released on every exit path — verified leak-free, including a mid-stream client disconnect. | `LLM_MAX_CONCURRENCY` / `LLM_ACQUIRE_TIMEOUT_SECONDS` | `2` / `0.5` _(must be > 0)_ |
-| **Score logging**          | Opt-in: one JSON line per request — truncated query, top cosine distances, gate decision, response length. Empty = disabled. Keep the file local (it's the only place question text is written).                                                               | `RAG_LOG_FILE`                                        | `""` (off)                  |
-| **Rate limiting**          | Per-IP sliding window.                                                                                                                                                                                                                                         | `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS`   | `30` / `60`                 |
-| **Loopback + tunnel only** | The backend binds to `127.0.0.1`; the only public path is the Tailscale Funnel egress, not an open LAN port.                                                                                                                                                   | _(deploy)_                                            | —                           |
+| Layer                       | What it does                                                                                                                                                                                                                                                           | Config key                                                                         | Default                       |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------- |
+| **Input cap (handler)**     | The `/chat` handler rejects questions longer than this **before** retrieval or generation — clean HTTP 400.                                                                                                                                                            | `INPUT_MAX_CHARS`                                                                  | `800`                         |
+| **Input cap (Pydantic)**    | Looser schema backstop on the request body; over-length → HTTP 422.                                                                                                                                                                                                    | `max_length` (constant)                                                            | `4000`                        |
+| **Body-byte cap (ASGI)**    | Middleware rejects oversized request bodies before they're parsed.                                                                                                                                                                                                     | `MAX_BODY_BYTES`                                                                   | `16384`                       |
+| **Generative task gate**    | Deterministic, **pre-retrieval**: declines "write me a poem / story / song / joke / …". A task request that names an on-corpus topic, so retrieval alone wouldn't stop the small model performing it. Canned decline, model NEVER called.                              | _(deterministic `is_generative_request`)_                                          | — _(on)_                      |
+| **Translation task gate**   | Deterministic, **pre-retrieval**: declines "translate `<text>` to `<language>`". Same rationale — a task that names on-corpus content. Canned decline, model NEVER called.                                                                                             | _(deterministic `is_translation_request`)_                                         | — _(on)_                      |
+| **Hybrid retrieval**        | Dense pgvector cosine + lexical BM25-style full-text fused by **reciprocal rank fusion** (`score = Σ weight / (RRF_K + rank)`). Exact identifiers retrieve reliably, not just semantically-near prose. `false` → pure dense.                                           | `HYBRID_ENABLED` / `RRF_K` + `RETRIEVAL_DENSE_WEIGHT` / `RETRIEVAL_LEXICAL_WEIGHT` | `true` / `60` + `1.0` / `1.0` |
+| **Hard per-project filter** | When the query names a project, retrieval is restricted to it — **failing open** (if it returns nothing, falls back to the global best so the gate sees the true closest chunk).                                                                                       | `PROJECT_FILTER_STRICT`                                                            | `true`                        |
+| **Relevance gate**          | Pre-LLM short-circuit: if the best **prose-chunk** cosine distance exceeds the threshold, return the fixed out-of-scope refusal **without calling the model**. Anchored on prose so stray code chunks can't lower an off-topic distance. Scores are logged for tuning. | `WEAK_RETRIEVAL_DISTANCE`                                                          | `0.45`                        |
+| **Grounded generation**     | System prompt answers **only** from the retrieved `CONTEXT` and declines when the answer isn't there.                                                                                                                                                                  | _(prompt constant)_                                                                | —                             |
+| **Output cap**              | Hard `num_predict` cap on generation, so no single answer can dump a large document regardless of the prompt.                                                                                                                                                          | `LLM_NUM_PREDICT`                                                                  | `512`                         |
+| **Prompt hardening**        | The prompt is a constant: treat the whole user message as a _question_, never as instructions; never reveal/ignore the prompt or role-play another assistant; decline generative off-task requests (poems, stories, code).                                             | _(prompt constant)_                                                                | —                             |
+| **Concurrency cap**         | An `asyncio.Semaphore` around Ollama generation, acquired with a bounded wait; excess load is **shed** with a short "busy" reply rather than queued. The permit is released on every exit path — verified leak-free, including a mid-stream client disconnect.         | `LLM_MAX_CONCURRENCY` / `LLM_ACQUIRE_TIMEOUT_SECONDS`                              | `2` / `0.5` _(must be > 0)_   |
+| **Score logging**           | Opt-in: one JSON line per request — truncated query, top cosine distances, gate decision, response length. Empty = disabled. Keep the file local (it's the only place question text is written).                                                                       | `RAG_LOG_FILE`                                                                     | `""` (off)                    |
+| **Rate limiting**           | Per-IP sliding window.                                                                                                                                                                                                                                                 | `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS`                                | `30` / `60`                   |
+| **Loopback + tunnel only**  | The backend binds to `127.0.0.1`; the only public path is the Tailscale Funnel egress, not an open LAN port.                                                                                                                                                           | _(deploy)_                                                                         | —                             |
 
 The shedding-not-queueing choice for concurrency is deliberate: there is **one**
 local GPU, so a queue would just stack timeouts behind a slow generation. A clean
@@ -309,6 +369,11 @@ wording drifts. Exit code `0` = all passed, `1` = one or more failed, `2` = the
 backend was unreachable. Point it at the live funnel with
 `--base-url https://paskamyrsky.tail6ed53b.ts.net`.
 
+After Workstream B the harness still passes **9/9**: containment is intact **and
+extended** — off-topic queries that only matched stray code chunks, poem
+requests, and translation requests all refuse, while the deep-code grounded cases
+now answer from the **actual indexed source** rather than prose about it.
+
 Every knob above is a **validated env var** (see [`chat-backend/.env.example`](../chat-backend/.env.example)
 for the full annotated set, including the chunk-size knobs and `CORS_ALLOW_ORIGINS`).
 
@@ -325,24 +390,43 @@ gate to use after re-indexing:
 docker compose run --rm backend python -m evals.run_eval --min-hit-rate 0.8
 ```
 
+Switching dense-only → hybrid retrieval (Workstream B) raised the measured
+retrieval hit-rate by **+0.059** on this set — exact-identifier and code
+questions that dense vectors alone missed now surface via the lexical half.
+
 ---
 
-## 9. Roadmap (not yet implemented): Workstream B
+## 9. Workstream B: code-aware indexing + hybrid retrieval (as-built)
 
-The following is **planned, not built.** Today retrieval is **dense-only** with a
-**soft project boost** (the re-rank in [§4](#a-live-chat-turn)). Workstream B
-would deepen retrieval for exact-identifier and code questions:
+Workstream B deepened retrieval for exact-identifier and code questions, and is
+**now built** — the dense-only path with a soft project boost is history. What
+shipped (detailed in [§4](#a-live-chat-turn) and [§7](#the-layers)):
 
-- **Code-aware chunking** by function/class boundaries, and **indexing source
-  code and config** — not only markdown.
-- **Language + `chunk_type` (`prose` | `code`) metadata** on each chunk.
-- **Hybrid retrieval**: BM25 / full-text fused with the dense vectors via
-  **reciprocal rank fusion**, so exact identifiers (a function or config name)
-  retrieve reliably, not just semantically-near prose.
-- **A hard per-project retrieval filter** (today's project awareness is only a
-  soft re-rank boost).
+- **Code-aware chunking + source indexing** — `content/code/<project>/` is now
+  indexed alongside markdown (55 curated `py`/`ts`/`tsx`/`js`/`cs`/`astro`/`sql`/
+  `prisma`/config files), split on function/class/method boundaries with
+  decorators/attributes kept attached (line-window fallback).
+- **`language` + `chunk_type` (`prose` | `code`) metadata** on every chunk
+  (`sql/002`), plus the generated `content_tsv` + GIN index.
+- **Hybrid retrieval** — dense pgvector cosine fused with lexical BM25-style
+  full-text via **reciprocal rank fusion** (`HYBRID_ENABLED`, `RRF_K`, dense/
+  lexical weights). Measured **+0.059** retrieval hit-rate over dense-only.
+- **Hard per-project retrieval filter** (`PROJECT_FILTER_STRICT`, failing open)
+  in place of the old soft re-rank boost.
+- **Prose-anchored weak-retrieval gate** + two **pre-retrieval task gates**
+  (generative, translation) — containment extended to the code-enriched corpus
+  (acceptance harness still **9/9**).
 
-None of these ship today; treat any reference to them as future work.
+### Still future (not built — don't claim these)
+
+- **Cross-encoder re-ranking** of the fused candidate set.
+- **Automatic per-project summary generation** for retrieval anchoring.
+- **Query expansion** before retrieval.
+
+There is also a **residual** worth naming: the `qwen2.5:7b` reasoning ceiling.
+The deterministic task gates mitigate it — the small model will still perform a
+literal task when on-corpus content is only loosely related — but a **model
+upgrade** is the deeper fix.
 
 ---
 
