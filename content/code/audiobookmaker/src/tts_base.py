@@ -1,0 +1,303 @@
+"""Abstract base class and registry for TTS engines.
+
+All engines (Edge-TTS, Piper, XTTS, Qwen3, ...) implement the `TTSEngine`
+interface so the rest of the app can switch between them without knowing
+the details of any single engine.
+
+Heavy engines (XTTS, Qwen3, ...) are expected to do lazy imports inside
+their modules so that app startup stays fast even when torch or CUDA is
+installed.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Callable, ClassVar, Optional
+
+# ---------------------------------------------------------------------------
+# Progress callback type
+# ---------------------------------------------------------------------------
+
+ProgressCallback = Callable[[int, int, str], None]
+"""Callback(current, total, message) used for progress reporting.
+
+- current/total may represent chunks, percent, or bytes depending on the
+  phase. message is a short human-readable status line.
+- For downloads, total may be the content-length in bytes and current the
+  bytes received so far.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Public data types
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Voice:
+    """A single voice offered by an engine."""
+
+    id: str
+    """Engine-specific identifier, e.g. 'fi-FI-NooraNeural' or 'fi_FI-harri-medium'."""
+
+    display_name: str
+    """Human-readable name shown in the GUI, e.g. 'Noora (suomi, nainen)'."""
+
+    language: str
+    """Short language code ('fi', 'en', ...) this voice speaks."""
+
+    gender: str = ""
+    """Optional: 'female' / 'male' / '' if unknown."""
+
+
+@dataclass
+class EngineStatus:
+    """Runtime availability information for a TTS engine."""
+
+    available: bool
+    """True when the engine can be used right now (deps ok, models present)."""
+
+    reason: str = ""
+    """If not available, a short human-readable explanation for the GUI.
+    E.g. 'Install required: pip install piper-tts' or 'Requires NVIDIA GPU'."""
+
+    needs_download: bool = False
+    """True when the engine is otherwise available but still needs to
+    download models before synthesis will work. The GUI should show a
+    'Download voices' button in this state."""
+
+
+# ---------------------------------------------------------------------------
+# Abstract base class
+# ---------------------------------------------------------------------------
+
+
+class TTSEngine(ABC):
+    """Contract every TTS engine in the app must satisfy."""
+
+    # --- class-level metadata; subclasses override these ---
+
+    id: ClassVar[str]
+    """Short stable identifier, e.g. 'edge', 'piper', 'xtts', 'qwen'."""
+
+    display_name: ClassVar[str]
+    """Full human-readable name shown in the GUI."""
+
+    description: ClassVar[str]
+    """One-line description shown next to the engine in the GUI."""
+
+    requires_gpu: ClassVar[bool] = False
+    """True when the engine cannot run usefully without a CUDA GPU."""
+
+    requires_internet: ClassVar[bool] = False
+    """True when the engine calls an online API during synthesis."""
+
+    supports_voice_cloning: ClassVar[bool] = False
+    """True when the engine accepts a reference_audio sample to clone."""
+
+    supports_voice_description: ClassVar[bool] = False
+    """True when the engine accepts a free-text voice_description prompt
+    (e.g. 'a young woman with a gentle voice') to steer the generated
+    voice. Engines that do not support this should silently ignore the
+    parameter."""
+
+    uses_subprocess: ClassVar[bool] = False
+    """True when synthesis runs in a separate Python interpreter via
+    a bridge module (e.g. Chatterbox, which needs an isolated torch+CUDA
+    venv). GUI dispatch checks this flag to route work to the subprocess
+    path instead of calling ``synthesize()`` in-process. Engines with
+    ``uses_subprocess = True`` must raise from ``synthesize()`` — their
+    real work happens through the bridge runner."""
+
+    supports_per_chapter: ClassVar[bool] = False
+    """True when the engine can produce one MP3 per chapter (per-chapter
+    output mode).  Only Edge-TTS overrides this to ``True`` today.
+    The GUI shows a "per-chapter not supported" notice when this is
+    ``False`` and the user picks that mode; the CLI returns
+    ``EXIT_BAD_INPUT`` with an actionable error message."""
+
+    # --- instance methods; subclasses must implement ---
+
+    @abstractmethod
+    def check_status(self) -> EngineStatus:
+        """Return the engine's current runtime status.
+
+        Called every time the GUI is refreshed or before synthesis, so
+        implementations should be cheap and should NOT perform heavy
+        imports unless absolutely necessary.
+        """
+
+    @abstractmethod
+    def list_voices(self, language: str) -> list[Voice]:
+        """Return voices offered for a language.
+
+        May return an empty list if models have not been downloaded yet;
+        the GUI will then show a download prompt. Must not raise.
+        """
+
+    def supported_languages(self) -> set[str]:
+        """Return the set of short language codes this engine can speak.
+
+        Drives the Kieli → Moottori → Ääni funnel in the GUI: engines
+        that do not list the currently selected language are hidden from
+        the engine dropdown.
+
+        Default returns ``{"fi"}`` for back-compat with any third-party
+        engine that predates this contract; in-tree engines override to
+        advertise their real coverage. Must not raise.
+        """
+        return {"fi"}
+
+    @abstractmethod
+    def default_voice(self, language: str) -> Optional[str]:
+        """Return the voice id picked by default for `language`.
+
+        Returns None when no voice is available for that language.
+        """
+
+    @abstractmethod
+    def synthesize(
+        self,
+        text: str,
+        output_path: str,
+        voice_id: str,
+        language: str,
+        progress_cb: Optional[ProgressCallback] = None,
+        reference_audio: Optional[str] = None,
+        voice_description: Optional[str] = None,
+        rate: Optional[str] = None,
+    ) -> None:
+        """Synthesize `text` to an MP3 file at `output_path`.
+
+        Args:
+            text: The full text to speak. Engines are responsible for
+                chunking if their backend has a per-request size limit.
+            output_path: Destination MP3 path. Will be overwritten.
+            voice_id: Engine-specific voice identifier from `list_voices()`.
+            language: Short language code, e.g. 'fi' or 'en'.
+            progress_cb: Optional callback for progress updates.
+            reference_audio: Optional path to a short reference WAV/MP3 for
+                voice-cloning engines. Ignored by engines that do not clone.
+            voice_description: Optional free-text description of the desired
+                voice (e.g. 'a warm baritone elderly male voice'). Engines
+                without support must silently ignore this parameter.
+            rate: Optional speed adjustment in edge-tts notation (e.g.
+                '-25%', '+0%', '+25%', '+50%'). None means use the engine
+                default. Engines that do not support speed control should
+                silently ignore this parameter.
+
+        Raises:
+            ValueError: If text is empty or voice_id is unknown.
+            RuntimeError: If synthesis fails at runtime.
+        """
+
+
+# ---------------------------------------------------------------------------
+# Engine registry
+# ---------------------------------------------------------------------------
+
+
+_REGISTRY: dict[str, type[TTSEngine]] = {}
+
+# Back-compat alias map: maps an old/legacy engine id to its current
+# canonical id. ``get_engine`` and ``canonical_engine_id`` follow these
+# transparently. Aliases are intended for renames that must not break
+# existing user configs, env vars, scripts, or release/update paths.
+_ALIASES: dict[str, str] = {}
+
+
+def register_engine(engine_cls: type[TTSEngine]) -> type[TTSEngine]:
+    """Decorator / function to register an engine class.
+
+    Usage:
+        @register_engine
+        class MyEngine(TTSEngine):
+            id = "my"
+            ...
+    """
+    if not hasattr(engine_cls, "id") or not engine_cls.id:
+        raise ValueError(f"{engine_cls.__name__} must define a non-empty 'id'")
+    if engine_cls.id in _REGISTRY:
+        raise ValueError(f"Engine id '{engine_cls.id}' already registered")
+    if engine_cls.id in _ALIASES:
+        raise ValueError(
+            f"Engine id '{engine_cls.id}' is already registered as an alias"
+        )
+    _REGISTRY[engine_cls.id] = engine_cls
+    return engine_cls
+
+
+def register_alias(old_id: str, new_id: str) -> None:
+    """Register a back-compat alias so queries for ``old_id`` transparently
+    resolve to the engine registered under ``new_id``.
+
+    The canonical engine MUST already be registered. Aliases never appear
+    in :func:`list_engines` / :func:`registered_ids` — they are pure
+    lookup redirects so user configs and scripts that still reference an
+    old name keep working without churn.
+
+    Re-registering the same alias mapping (same ``old_id`` and ``new_id``
+    pair) is idempotent and succeeds quietly. Attempting to point an
+    existing alias at a *different* target raises ``ValueError`` so the
+    failure is loud instead of silently overwriting.
+    """
+    if not old_id or not new_id:
+        raise ValueError("Both old_id and new_id must be non-empty")
+    # Check canonical-id collision before the self-loop check so the
+    # more specific error fires first when both apply (e.g. someone
+    # calls ``register_alias("dummy", "dummy")`` with "dummy" already
+    # canonical — they get told "already a canonical engine id", not
+    # the less actionable "cannot map to itself").
+    if old_id in _REGISTRY:
+        raise ValueError(
+            f"Cannot register '{old_id}' as alias — it is already a canonical engine id"
+        )
+    if old_id == new_id:
+        raise ValueError(f"Alias '{old_id}' cannot map to itself")
+    if new_id not in _REGISTRY:
+        raise ValueError(
+            f"Cannot alias '{old_id}' to '{new_id}' — '{new_id}' is not a registered engine"
+        )
+    existing = _ALIASES.get(old_id)
+    if existing is not None and existing != new_id:
+        raise ValueError(
+            f"Alias '{old_id}' is already registered as alias for "
+            f"'{existing}'; cannot rebind to '{new_id}'"
+        )
+    _ALIASES[old_id] = new_id
+
+
+def canonical_engine_id(engine_id: str) -> str:
+    """Resolve any alias to its canonical engine id.
+
+    If ``engine_id`` is already canonical or unknown, it is returned
+    unchanged. This is the right function to call when normalizing a
+    config field, environment variable, or CLI argument before
+    persisting it.
+    """
+    return _ALIASES.get(engine_id, engine_id)
+
+
+def get_engine(engine_id: str) -> Optional[TTSEngine]:
+    """Return an engine instance by id (or alias), or None if unknown."""
+    canonical = canonical_engine_id(engine_id)
+    cls = _REGISTRY.get(canonical)
+    return cls() if cls else None
+
+
+def list_engines() -> list[TTSEngine]:
+    """Return one fresh instance of every registered engine.
+
+    Engines are returned in registration order, which by convention means
+    Edge-TTS first (default), then Piper, then GPU engines. Aliases are
+    not surfaced here — only canonical ids.
+    """
+    return [cls() for cls in _REGISTRY.values()]
+
+
+def registered_ids() -> list[str]:
+    """Return the canonical ids of all registered engines in registration
+    order. Aliases are not included; use :func:`canonical_engine_id` to
+    resolve an alias to its canonical id."""
+    return list(_REGISTRY.keys())

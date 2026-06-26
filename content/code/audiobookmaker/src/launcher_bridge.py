@@ -1,0 +1,768 @@
+"""Subprocess bridge between the Tkinter launcher and the Chatterbox runner.
+
+The Chatterbox full-book runner (``scripts/generate_chatterbox_audiobook.py``)
+is a separate Python script so we can keep the heavy dependencies
+(``torch``, ``chatterbox-tts``, ``silero-vad``) out of the launcher's import
+graph. When the user picks Chatterbox in the launcher GUI, the launcher
+spawns the runner as a subprocess and streams its stdout through the parser
+in this module to drive the progress bar.
+
+Edge-TTS and Piper engines don't need this bridge — they run in-process via
+``src.tts_engine.text_to_speech`` on a background thread.
+
+Why a parser instead of a ``--json-progress`` flag: the runner already uses
+``print(..., flush=True)`` for every meaningful event, stdout is line-
+buffered, and there is no ``tqdm`` bleeding ``\\r`` carriage returns into the
+stream. Regex parsing is cheap and avoids churn on the runner script.
+"""
+
+from __future__ import annotations
+
+import os
+import queue
+import re
+import signal
+import string
+import subprocess
+import sys
+import threading
+import time
+from collections import deque
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Callable, Optional
+
+# ---------------------------------------------------------------------------
+# Event types
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ProgressEvent:
+    """One progress event parsed from the runner's stdout."""
+
+    kind: str
+    """One of: setup_total, setup_cached, chapter_start, chunk, chapter_done,
+    full_done, done, error, signal, log, exit."""
+
+    chapter_idx: int = 0  # 1-based
+    chapter_total: int = 0
+    chunk_idx: int = 0  # 1-based, within current chapter
+    chunk_total: int = 0  # total chunks in current chapter
+    total_done: int = 0  # cumulative chunks finished across all chapters
+    total_chunks: int = 0  # cumulative total
+    elapsed_s: float = 0.0
+    eta_s: float = 0.0
+    rtf: float = 0.0
+    output_path: str = ""
+    returncode: int = 0
+    raw_line: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Line parser
+# ---------------------------------------------------------------------------
+
+
+class ChatterboxLineParser:
+    """Parse ``generate_chatterbox_audiobook.py`` stdout into ``ProgressEvent``s.
+
+    The runner currently emits lines in these shapes:
+
+        [setup] out=...
+        [setup] total chunks to synthesize: 1043
+        [setup] cached chunks found: 215/1043
+        [chapter 3/8] idx=... title=... chunks=126
+        [chapter 3/8] chunk 42/126 (215/1043 total) - 12m30s elapsed,
+            ~65m00s remaining, RTF 0.17x
+        [chapter 3/8] assembling MP3...
+        [chapter 3/8] wrote 03_foo.mp3 (1820.3s)
+        [full] concatenating 8 chapters
+        [full] wrote /abs/path/00_full.mp3 (12345.6s)
+        [done] 1043/1043 chunks, 3h05m wall-clock
+        [error] ...
+        [signal] Ctrl-C received...
+
+    Unmatched non-empty lines still produce a ``log`` event so nothing
+    disappears from the UI's log panel.
+    """
+
+    _CHUNK_RE = re.compile(
+        r"^\[chapter (\d+)/(\d+)\] chunk (\d+)/(\d+) \((\d+)/(\d+) total\) "
+        r"- (\S+) elapsed, ~(\S+) remaining, RTF ([\d.]+)x"
+    )
+    _SETUP_TOTAL_RE = re.compile(r"^\[setup\] total chunks to synthesize: (\d+)")
+    _SETUP_CACHED_RE = re.compile(r"^\[setup\] cached chunks found: (\d+)/(\d+)")
+    # Slow, silent phases (engine import + model load) the runner now marks so
+    # the GUI can show "Loading engine…" with an animated bar instead of a
+    # frozen-looking 0%.
+    _SETUP_LOADING_RE = re.compile(r"^\[setup\] (?:starting engine|loading TTS engine)")
+    _CHAPTER_START_RE = re.compile(
+        r"^\[chapter (\d+)/(\d+)\] idx=(\d+) title=(.+?) chunks=(\d+)"
+    )
+    _CHAPTER_WROTE_RE = re.compile(
+        r"^\[chapter (\d+)/(\d+)\] wrote (\S+\.mp3) \(([\d.]+)s\)"
+    )
+    _FULL_WROTE_RE = re.compile(r"^\[full\] wrote (\S+\.mp3) \(([\d.]+)s\)")
+    _DONE_RE = re.compile(r"^\[done\] (\d+)/(\d+) chunks")
+    _ERROR_RE = re.compile(r"^\[error\]")
+    _SIGNAL_RE = re.compile(r"^\[signal\]")
+
+    _HMS_RE = re.compile(r"^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$")
+
+    # Upstream chatterbox AlignmentStreamAnalyzer prints two scary-looking
+    # lines whenever our gemination fix (token-repetition window raised from
+    # 2 to 10) forces an EOS to break a loop. Two known formats:
+    #   Short (stderr print):
+    #     "WARNING: Detected 2x repetition of token 123 at position 45..."
+    #     "Forcing EOS generation to prevent loop."
+    #   Logger (logging module):
+    #     "WARNING:chatterbox.models.t3.inference.alignment_stream_analyzer:"
+    #       " 💀 Detected 2x repetition of token 6432"
+    #     "WARNING:chatterbox.models.t3.inference.alignment_stream_analyzer:"
+    #       "forcing EOS token, long_tail=tensor(False), ..."
+    # Those are our fix working, not a failure. Reframe the first into a
+    # neutral "[info]" line (no warning/error keywords, so the GUI's
+    # severity router leaves it plain-colored) and swallow the second.
+    _ALIGNMENT_WARN_RE = re.compile(
+        r"WARNING[:\s].*?Detected\s+\d+x\s+repetition of token\s+(\d+)"
+        r"(?:\s+at position\s+(\d+))?",
+        re.IGNORECASE,
+    )
+    _FORCING_EOS_RE = re.compile(
+        r"(?:Forcing EOS generation|forcing EOS token)",
+        re.IGNORECASE,
+    )
+
+    # Upstream chatterbox's s3gen flow decoder prints two more scary lines
+    # whenever a single out-of-range speech token slips through from T3. Our
+    # flow-token clamp (scripts/generate_chatterbox_audiobook.py +
+    # engine_installer._patch_flow_token_clamp) already degrades that one frame
+    # instead of crashing, so synthesis carries on — but the library still logs
+    # it: line one via the logging module, line two as a bare print:
+    #     "ERROR:chatterbox.models.s3gen.flow:6901.0>6561"
+    #     " out-of-range special tokens found in flow, fix inputs!"
+    # The literal "ERROR:" prefix would route the first to the GUI's red error
+    # color AND the diagnostic log's ERROR level, alarming the user about a
+    # condition the clamp already handled (observed flooding a real run's log).
+    # Reframe the first into a neutral "[info]" line and drop the second,
+    # exactly like the alignment noise above. The token value prints as a float
+    # ("6901.0"), so the optional decimal is tolerated and dropped.
+    _FLOW_OOR_TOKEN_RE = re.compile(
+        r"chatterbox\.models\.s3gen\.flow:\s*(\d+)(?:\.\d+)?\s*>\s*(\d+)",
+        re.IGNORECASE,
+    )
+    _FLOW_OOR_FOLLOWUP_RE = re.compile(
+        r"out-of-range special tokens found in flow",
+        re.IGNORECASE,
+    )
+
+    @classmethod
+    def parse_hms(cls, s: str) -> float:
+        """Parse ``"12m30s"`` / ``"1h23m"`` / ``"45s"`` into seconds."""
+        m = cls._HMS_RE.match(s.strip())
+        if not m:
+            return 0.0
+        h = int(m.group(1) or 0)
+        mi = int(m.group(2) or 0)
+        se = int(m.group(3) or 0)
+        return h * 3600 + mi * 60 + se
+
+    @classmethod
+    def rewrite_upstream_noise(cls, line: str) -> Optional[str]:
+        """Reframe known-benign upstream chatterbox stderr noise.
+
+        Two upstream conditions print scary WARNING/ERROR lines for events our
+        own fixes already handle, so they would mislead the user (red/yellow in
+        the GUI log, ERROR level in the diagnostic file) about a healthy run:
+
+        * the AlignmentStreamAnalyzer repetition guard — our gemination fix
+          forcing an EOS to break a loop, and
+        * the s3gen flow out-of-range token — our flow-token clamp degrading a
+          single frame instead of crashing the whole run.
+
+        Returns the rewritten line to emit, or ``None`` to drop it entirely
+        (the "Forcing EOS..." / "out-of-range...fix inputs!" follow-ups).
+        Returns the input unchanged if no pattern matches.
+        """
+        m = cls._ALIGNMENT_WARN_RE.search(line)
+        if m:
+            token = m.group(1)
+            pos = m.group(2)
+            where = f" at position {pos}" if pos else ""
+            return f"[info] alignment fix applied on token {token}{where}"
+        if cls._FORCING_EOS_RE.search(line):
+            return None
+        m = cls._FLOW_OOR_TOKEN_RE.search(line)
+        if m:
+            token, limit = m.group(1), m.group(2)
+            return (
+                f"[info] flow token clamp applied "
+                f"(out-of-range token {token} > {limit})"
+            )
+        if cls._FLOW_OOR_FOLLOWUP_RE.search(line):
+            return None
+        return line
+
+    def parse(self, line: str) -> ProgressEvent:
+        """Classify one line into a ``ProgressEvent``."""
+        line = line.rstrip("\r\n")
+
+        m = self._CHUNK_RE.match(line)
+        if m:
+            try:
+                return ProgressEvent(
+                    kind="chunk",
+                    chapter_idx=int(m.group(1)),
+                    chapter_total=int(m.group(2)),
+                    chunk_idx=int(m.group(3)),
+                    chunk_total=int(m.group(4)),
+                    total_done=int(m.group(5)),
+                    total_chunks=int(m.group(6)),
+                    elapsed_s=self.parse_hms(m.group(7)),
+                    eta_s=self.parse_hms(m.group(8)),
+                    rtf=float(m.group(9)),
+                    raw_line=line,
+                )
+            except ValueError:
+                # A numeric field the regex accepted but float()/int() rejects
+                # (e.g. a malformed RTF like "1.2.3") must not raise out of the
+                # reader thread — that would kill it silently and hang the UI.
+                # Degrade to a plain log line so the run keeps moving.
+                return ProgressEvent(kind="log", raw_line=line)
+
+        m = self._SETUP_TOTAL_RE.match(line)
+        if m:
+            return ProgressEvent(
+                kind="setup_total", total_chunks=int(m.group(1)), raw_line=line
+            )
+
+        m = self._SETUP_CACHED_RE.match(line)
+        if m:
+            return ProgressEvent(
+                kind="setup_cached",
+                total_done=int(m.group(1)),
+                total_chunks=int(m.group(2)),
+                raw_line=line,
+            )
+
+        if self._SETUP_LOADING_RE.match(line):
+            return ProgressEvent(kind="setup_loading", raw_line=line)
+
+        m = self._CHAPTER_START_RE.match(line)
+        if m:
+            return ProgressEvent(
+                kind="chapter_start",
+                chapter_idx=int(m.group(1)),
+                chapter_total=int(m.group(2)),
+                chunk_total=int(m.group(5)),
+                raw_line=line,
+            )
+
+        m = self._CHAPTER_WROTE_RE.match(line)
+        if m:
+            return ProgressEvent(
+                kind="chapter_done",
+                chapter_idx=int(m.group(1)),
+                chapter_total=int(m.group(2)),
+                output_path=m.group(3),
+                raw_line=line,
+            )
+
+        m = self._FULL_WROTE_RE.match(line)
+        if m:
+            return ProgressEvent(
+                kind="full_done", output_path=m.group(1), raw_line=line
+            )
+
+        m = self._DONE_RE.match(line)
+        if m:
+            return ProgressEvent(
+                kind="done",
+                total_done=int(m.group(1)),
+                total_chunks=int(m.group(2)),
+                raw_line=line,
+            )
+
+        if self._ERROR_RE.match(line):
+            return ProgressEvent(kind="error", raw_line=line)
+        if self._SIGNAL_RE.match(line):
+            return ProgressEvent(kind="signal", raw_line=line)
+
+        return ProgressEvent(kind="log", raw_line=line)
+
+
+# ---------------------------------------------------------------------------
+# Subprocess runner
+# ---------------------------------------------------------------------------
+
+
+EventCallback = Callable[[ProgressEvent], None]
+
+
+@dataclass
+class _RunnerState:
+    """Mutable state held by a ``ChatterboxRunner`` instance."""
+
+    proc: Optional[subprocess.Popen] = None
+    reader: Optional[threading.Thread] = None
+    waiter: Optional[threading.Thread] = None
+    event_queue: queue.Queue = field(default_factory=queue.Queue)
+    tail: deque = field(default_factory=lambda: deque(maxlen=500))
+    done: threading.Event = field(default_factory=threading.Event)
+    # Captured exception from the reader/waiter daemon threads. If a
+    # daemon dies on an unexpected OSError mid-readline, the event
+    # queue would otherwise starve silently. join() reads this and
+    # re-raises so the caller knows the run was aborted by a thread
+    # crash rather than completing cleanly.
+    reader_error: Optional[BaseException] = None
+    waiter_error: Optional[BaseException] = None
+    # Set by cancel() so the waiter switches from "wait indefinitely for
+    # natural completion" to the bounded terminate/kill escalation. Without
+    # this flag the waiter applied the short shutdown budget to *every* run
+    # and killed any synthesis (or final MP3 assembly) that ran longer than
+    # _SHUTDOWN_WAIT_S — the cause of the "crashes every few chunks" and the
+    # assembly-phase failures on long books.
+    cancel_requested: threading.Event = field(default_factory=threading.Event)
+
+
+class ChatterboxRunner:
+    """Spawn the Chatterbox runner script as a subprocess and stream events.
+
+    Usage::
+
+        runner = ChatterboxRunner(
+            python_exe="/path/to/.venv-chatterbox/bin/python",
+            script_path="scripts/generate_chatterbox_audiobook.py",
+            pdf_path="/path/to/book.pdf",
+            out_dir="/path/to/.local/audiobooks",
+        )
+        runner.start()
+        while not runner.finished:
+            ev = runner.poll_event(timeout=0.1)
+            if ev is not None:
+                ...  # update UI
+        runner.join()
+
+    Call ``cancel()`` at any time to send SIGINT — the runner script catches
+    it and saves partial progress before exiting.
+    """
+
+    def __init__(
+        self,
+        python_exe: str,
+        script_path: str,
+        pdf_path: Optional[str] = None,
+        text_path: Optional[str] = None,
+        epub_path: Optional[str] = None,
+        docx_path: Optional[str] = None,
+        out_dir: str = "",
+        extra_args: Optional[list[str]] = None,
+        language: str = "fi",
+    ) -> None:
+        self.python_exe = python_exe
+        self.script_path = script_path
+        self.pdf_path = pdf_path
+        self.text_path = text_path
+        self.epub_path = epub_path
+        self.docx_path = docx_path
+        self.out_dir = out_dir
+        self.extra_args = extra_args or []
+        self.language = language
+        self._state = _RunnerState()
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def start(self) -> None:
+        """Launch the subprocess and begin streaming events."""
+        if self._state.proc is not None:
+            raise RuntimeError("runner already started")
+
+        parser = ChatterboxLineParser()
+        input_args = []
+        if self.text_path:
+            input_args = ["--text-file", self.text_path]
+        elif self.epub_path:
+            input_args = ["--epub", self.epub_path]
+        elif self.docx_path:
+            input_args = ["--docx", self.docx_path]
+        elif self.pdf_path:
+            input_args = ["--pdf", self.pdf_path]
+
+        argv = [
+            self.python_exe,
+            "-u",
+            self.script_path,
+            *input_args,
+            "--out",
+            self.out_dir,
+            "--device",
+            "auto",
+            "--language",
+            self.language,
+            *self.extra_args,
+        ]
+
+        env = isolated_python_env()
+        env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
+        # Silence tqdm progress bars from HuggingFace downloads — their
+        # carriage returns would pollute the line-based parser.
+        env["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+        env["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+        env["TQDM_DISABLE"] = "1"
+
+        creationflags = 0
+        if sys.platform == "win32":
+            # CREATE_NEW_PROCESS_GROUP: so CTRL_C_EVENT can target the child
+            # without killing the launcher. See cancel() below.
+            # CREATE_NO_WINDOW: hide the console window that would otherwise
+            # flash when the subprocess spawns ffmpeg, ffprobe, etc.
+            creationflags = (
+                subprocess.CREATE_NEW_PROCESS_GROUP  # type: ignore[attr-defined]
+                | subprocess.CREATE_NO_WINDOW       # type: ignore[attr-defined]
+            )
+
+        self._state.proc = subprocess.Popen(
+            argv,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            env=env,
+            creationflags=creationflags,
+        )
+
+        # If a worker thread fails to start after Popen already spawned the
+        # child (e.g. the OS is out of threads), nothing will reap that child:
+        # start() is raising, so the caller never reaches join()/cancel() and
+        # the subprocess is orphaned. Kill + wait it before propagating.
+        try:
+            self._state.reader = threading.Thread(
+                target=self._reader_loop,
+                args=(parser,),
+                daemon=True,
+                name="chatterbox-reader",
+            )
+            self._state.reader.start()
+
+            self._state.waiter = threading.Thread(
+                target=self._waiter_loop,
+                daemon=True,
+                name="chatterbox-waiter",
+            )
+            self._state.waiter.start()
+        except BaseException:
+            proc = self._state.proc
+            if proc is not None:
+                try:
+                    proc.kill()
+                    proc.wait(timeout=5)
+                except Exception:
+                    pass
+            raise
+
+    def cancel(self) -> None:
+        """Send a clean cancel signal. The runner finishes the current chunk
+        then exits with code 0 and a ``[signal]`` marker."""
+        proc = self._state.proc
+        if proc is None or proc.poll() is not None:
+            return
+        # Tell the waiter a clean shutdown is in progress so it applies the
+        # bounded grace-then-escalate path instead of waiting forever.
+        self._state.cancel_requested.set()
+        try:
+            if sys.platform == "win32":
+                # CTRL_C_EVENT is the only way to raise SIGINT in the child
+                # process group on Windows.
+                proc.send_signal(signal.CTRL_C_EVENT)  # type: ignore[attr-defined]
+            else:
+                proc.send_signal(signal.SIGINT)
+        except (OSError, ProcessLookupError):
+            pass
+
+    def poll_event(self, timeout: float = 0.0) -> Optional[ProgressEvent]:
+        """Return the next queued event or ``None`` if nothing available."""
+        try:
+            return self._state.event_queue.get(timeout=timeout)
+        except queue.Empty:
+            return None
+
+    @property
+    def finished(self) -> bool:
+        """True once the subprocess has exited AND the reader has drained."""
+        return self._state.done.is_set() and self._state.event_queue.empty()
+
+    def tail_lines(self, n: int = 20) -> list[str]:
+        """Return the last ``n`` raw stdout lines for error dialogs."""
+        return list(self._state.tail)[-n:]
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        """Wait for reader + waiter threads to finish.
+
+        Surfaces any exception that crashed the reader or waiter
+        daemon as a ``RuntimeError`` so callers cannot silently
+        believe the run completed cleanly when a thread died.
+        """
+        if self._state.reader is not None:
+            self._state.reader.join(timeout=timeout)
+        if self._state.waiter is not None:
+            self._state.waiter.join(timeout=timeout)
+        err = self._state.reader_error or self._state.waiter_error
+        if err is not None:
+            which = "reader" if self._state.reader_error else "waiter"
+            raise RuntimeError(
+                f"chatterbox runner {which} thread crashed: {err!r}"
+            ) from err
+
+    # ------------------------------------------------------------------
+    # Internal threads
+    # ------------------------------------------------------------------
+
+    def _reader_loop(self, parser: ChatterboxLineParser) -> None:
+        proc = self._state.proc
+        assert proc is not None and proc.stdout is not None
+        try:
+            for raw in iter(proc.stdout.readline, ""):
+                line = raw.rstrip("\r\n")
+                if not line:
+                    continue
+                # Reframe known-benign upstream chatterbox noise (the
+                # AlignmentStreamAnalyzer "WARNING" + "Forcing EOS" pair and the
+                # s3gen flow out-of-range "ERROR" + follow-up pair) into a
+                # single neutral info line — or drop the follow-up — before the
+                # line enters the tail buffer or the severity-routing pipeline.
+                rewritten = parser.rewrite_upstream_noise(line)
+                if rewritten is None:
+                    continue
+                line = rewritten
+                self._state.tail.append(line)
+                ev = parser.parse(line)
+                self._state.event_queue.put(ev)
+        except BaseException as exc:
+            # Daemon threads die silently by default — without this catch,
+            # an OSError mid-readline (closed pipe, partial UTF-8 sequence,
+            # OS-level EIO on the read fd) would kill the reader, leave
+            # the event queue starving, and the GUI's poll loop would
+            # spin on `finished == False` forever. Stash the exception
+            # for join() to surface, and push a synthetic error event so
+            # the immediate UI loop sees something instead of nothing.
+            self._state.reader_error = exc
+            try:
+                self._state.event_queue.put(
+                    ProgressEvent(
+                        kind="error",
+                        raw_line=f"[bridge] reader thread crashed: {exc!r}",
+                    )
+                )
+            except Exception:
+                pass  # event queue itself broken; nothing more we can do
+        finally:
+            if proc.stdout is not None:
+                try:
+                    proc.stdout.close()
+                except OSError:
+                    pass
+
+    # Bounded shutdown budget, applied ONLY after a cancel() request (or the
+    # absolute hang ceiling below). The runner handles SIGINT (CTRL_C_EVENT
+    # on Windows) by finishing the current chunk and exiting cleanly, which
+    # takes seconds on a normal exit and up to ~a minute if a long chunk was
+    # in flight. Past that we escalate instead of waiting forever.
+    #
+    # This budget must NEVER bound a normal, un-cancelled run. A real
+    # audiobook synthesises for many minutes of GPU work and then assembles
+    # hundreds of WAV chunks into a single MP3 — a phase that prints nothing
+    # while it runs and legitimately exceeds a minute on a long book.
+    # Bounding the *initial* wait at this budget is exactly what silently
+    # killed long runs at 60s (observed: every synthesis >60s terminated
+    # mid-flight, and the assembly phase failing on 200-chunk books).
+    _SHUTDOWN_WAIT_S: float = 60.0
+    _TERMINATE_GRACE_S: float = 5.0
+    # Absolute ceiling for an un-cancelled run — a backstop against a runner
+    # that wedges on a stuck cleanup (rare on Windows, but seen during torch
+    # teardown) and never exits. Set generously so it can never clip a real
+    # synthesis; even a very long book finishes well inside this.
+    _MAX_RUN_S: float = 12 * 3600.0
+    # Poll slice while waiting for natural completion — small enough that a
+    # cancel request is honoured promptly, large enough to be free.
+    _POLL_INTERVAL_S: float = 1.0
+
+    def _waiter_loop(self) -> None:
+        proc = self._state.proc
+        assert proc is not None
+        try:
+            rc = self._wait_for_runner_exit(proc)
+            # Reader finishes on stdout EOF, which happens as the child exits.
+            if self._state.reader is not None:
+                self._state.reader.join(timeout=5.0)
+            self._state.event_queue.put(
+                ProgressEvent(kind="exit", returncode=rc)
+            )
+        except BaseException as exc:
+            # Daemon thread silent-death guard, matching _reader_loop.
+            # If proc.wait() raises something we did not anticipate
+            # (e.g. ProcessLookupError on a really racy shutdown), the
+            # exit event is never queued and the GUI hangs. Stash the
+            # exception for join() and push a synthetic exit event with
+            # a fault rc so the GUI loop can drain.
+            self._state.waiter_error = exc
+            try:
+                self._state.event_queue.put(
+                    ProgressEvent(
+                        kind="exit",
+                        returncode=-1,
+                        raw_line=(
+                            f"[bridge] waiter thread crashed: {exc!r}"
+                        ),
+                    )
+                )
+            except Exception:
+                pass
+        finally:
+            self._state.done.set()
+
+    def _wait_for_runner_exit(self, proc: subprocess.Popen) -> int:
+        """Block until the runner exits and return its code.
+
+        Normal completion is effectively unbounded: a long synthesis plus the
+        final MP3 assembly can run for many minutes with no output, so we poll
+        ``proc.wait`` in short slices rather than imposing a single timeout.
+        Two conditions switch us to the bounded terminate/kill escalation:
+
+        * a ``cancel()`` request (clean, user-initiated stop), or
+        * the absolute ``_MAX_RUN_S`` ceiling (a genuinely wedged runner).
+        """
+        start = time.monotonic()
+        while True:
+            try:
+                return proc.wait(timeout=self._POLL_INTERVAL_S)
+            except subprocess.TimeoutExpired:
+                pass
+            if self._state.cancel_requested.is_set():
+                return self._escalate_shutdown(proc)
+            if time.monotonic() - start > self._MAX_RUN_S:
+                return self._escalate_shutdown(proc)
+
+    def _escalate_shutdown(self, proc: subprocess.Popen) -> int:
+        """Give the runner the shutdown budget to exit on its own, then
+        SIGTERM + short grace, then SIGKILL. Returns the final exit code.
+
+        Reached only after a cancel request (or the hang ceiling) — never on
+        the normal-completion path, so it cannot clip a healthy long run.
+        """
+        try:
+            return proc.wait(timeout=self._SHUTDOWN_WAIT_S)
+        except subprocess.TimeoutExpired:
+            proc.terminate()
+        try:
+            return proc.wait(timeout=self._TERMINATE_GRACE_S)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+        # After kill() the OS reaps quickly; 5s is a safety net so a
+        # kernel-level zombie window cannot wedge the shutdown thread.
+        try:
+            return proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            return -9  # treat as forced-kill exit code
+
+
+# ---------------------------------------------------------------------------
+# Convenience: resolve the Chatterbox runner's Python interpreter.
+# ---------------------------------------------------------------------------
+
+
+def isolated_python_env() -> dict:
+    """A copy of the environment safe for running the Chatterbox venv python.
+
+    Strips the variables through which a parent process (notably the frozen
+    PyInstaller app) could redirect the venv interpreter's imports to the
+    APP's bundled or a system torch/transformers instead of the venv's own —
+    which makes model load die with a masked "Could not import module
+    'LlamaModel'" even though the venv is sound. A proper venv finds its own
+    site-packages without any of these, so stripping is always safe. Used by
+    BOTH the synthesis runner spawn and the installer's smoke test, so the
+    verified environment and the synthesis environment cannot diverge.
+    """
+    env = os.environ.copy()
+    for leak in ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP"):
+        env.pop(leak, None)
+    env["PYTHONNOUSERSITE"] = "1"
+    return env
+
+
+def resolve_chatterbox_python() -> Optional[Path]:
+    """Return the path to the Python that should run the Chatterbox script.
+
+    Preference order:
+        1. ``CHATTERBOX_PYTHON`` environment variable (escape hatch for tests)
+        2. ``.venv-chatterbox`` next to the repo/app root (dev checkouts)
+        3. Frozen app: ``C:\\AudiobookMaker\\.venv-chatterbox`` — the venv the
+           in-app installer creates and repairs. This MUST outrank exe-adjacent
+           guesses: if a stale venv lingers next to the exe from an older
+           layout, picking it means Repair fixes the managed venv while
+           synthesis keeps using the stale one — an unfixable-looking loop.
+        4. Frozen app: ``.venv-chatterbox`` next to (or one above) the exe.
+        5. Other known locations.
+        6. ``None`` if no Chatterbox venv is detected.
+
+    The launcher should show a friendly "Chatterbox not installed" message if
+    this returns ``None``.
+    """
+    override = os.environ.get("CHATTERBOX_PYTHON")
+    if override:
+        p = Path(override)
+        if p.exists():
+            return p
+
+    for c in _venv_python_candidates():
+        if c.exists():
+            return c
+
+    return None
+
+
+def _venv_python_candidates() -> list:
+    """Ordered candidate paths for the Chatterbox venv python.
+
+    Pure (no filesystem checks) so the ORDER is unit-testable — the order is
+    load-bearing: the installer-managed venv must outrank exe-adjacent guesses
+    in a frozen app (see resolve_chatterbox_python docstring).
+    """
+    suffix = ("Scripts", "python.exe") if sys.platform == "win32" else ("bin", "python")
+
+    candidates = []
+
+    # 1. Relative to the source/repo root (dev checkouts).
+    repo_root = Path(__file__).resolve().parent.parent
+    candidates.append(repo_root / ".venv-chatterbox" / suffix[0] / suffix[1])
+
+    # 2. Frozen app on Windows: the installer-managed venv BEFORE exe-relative
+    #    fallbacks — a stale venv next to the exe must not outrank the venv
+    #    that Install/Repair actually manage.
+    if sys.platform == "win32" and getattr(sys, "frozen", False):
+        candidates.append(
+            Path(r"C:\AudiobookMaker\.venv-chatterbox") / suffix[0] / suffix[1]
+        )
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        candidates.append(exe_dir / ".venv-chatterbox" / suffix[0] / suffix[1])
+        # Also check one level up from the exe.
+        candidates.append(exe_dir.parent / ".venv-chatterbox" / suffix[0] / suffix[1])
+
+    if sys.platform == "win32":
+        # 3. Default install path used by the in-app installer (dev / unfrozen
+        #    fallback; already first for frozen apps above).
+        candidates.append(Path(r"C:\AudiobookMaker\.venv-chatterbox") / suffix[0] / suffix[1])
+        # 4. Common dev locations — scan every existing drive letter so
+        #    users on E:/F:/… aren't silently skipped.
+        for letter in string.ascii_uppercase:
+            if not os.path.exists(f"{letter}:/"):
+                continue
+            candidates.append(Path(f"{letter}:\\koodaamista\\AudiobookMaker\\.venv-chatterbox") / suffix[0] / suffix[1])
+
+    return candidates
