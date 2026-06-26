@@ -3,3 +3,7 @@ node_modules
 .astro
 .vercel
 public
+
+# Curated third-party project source indexed by the RAG backend (corpus data,
+# not this site's code) — keep it out of formatting.
+content/code
