@@ -50,6 +50,7 @@ _LANG_BY_EXT = {
     ".cs": "csharp",
     ".astro": "astro",
     ".sql": "sql",
+    ".prisma": "prisma",
     ".json": "json",
     ".toml": "toml",
     ".yml": "yaml",
@@ -170,9 +171,10 @@ def load_code_doc(path: Path, content_dir: Path) -> ContentDoc | None:
     Source files carry no front-matter, so everything is derived from the path:
     `source`/`title` are the content-relative path, `language` from the
     extension, `kind` is 'config' for data formats else 'code', and `project` is
-    the first segment under `code/` (content/code/<project>/...). Returns None for
-    an unindexable type (unknown extension) or a file that can't be read as UTF-8
-    (binary) — the caller skips those.
+    the first segment under `code/` (content/code/<project>/...). Returns None —
+    skipping the file — for an unindexable type (unknown extension), a file that
+    can't be read as UTF-8 (binary), or a file directly under code/ with no
+    <project> segment to attribute it to.
     """
     language = _LANG_BY_EXT.get(path.suffix.lower())
     if language is None:
@@ -184,8 +186,14 @@ def load_code_doc(path: Path, content_dir: Path) -> ContentDoc | None:
     rel_path = path.relative_to(content_dir)
     source = rel_path.as_posix()
     # parts == ('code', '<project>', ...); the project is the segment after code/.
+    # A file directly under code/ (no <project> segment) can't be attributed, so
+    # skip it loudly rather than indexing a project-less chunk that pollutes the
+    # per-project filter and citations.
     parts = rel_path.parts
-    project = parts[1] if len(parts) >= 3 else None
+    if len(parts) < 3:
+        print(f"[content] skipping {source}: no <project> segment under code/")
+        return None
+    project = parts[1]
     kind = "config" if language in _CONFIG_LANGS else "code"
     return ContentDoc(
         source=source,
