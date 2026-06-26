@@ -14,7 +14,7 @@ The homepage shows a public anonymous feed of recently logged books, so the site
 
 ## Highlights
 
-- 68 tests
+- 90 tests
 - Multi-source book search: Open Library + Google Books queried in parallel, results deduplicated before display
 
 ## Tech stack

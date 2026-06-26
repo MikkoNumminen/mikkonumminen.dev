@@ -21,7 +21,7 @@ The platform is multi-tenant and adds WoW-themed gamification on top of the HRM 
 
 ## Tech stack
 
-Turborepo, Next.js, React, TypeScript, PostgreSQL, Prisma, NextAuth, MUI, Playwright, Jest, next-intl
+Turborepo, Next.js, React, TypeScript, PostgreSQL, Prisma, NextAuth, MUI, Jest, next-intl
 
 ## External integrations
 
