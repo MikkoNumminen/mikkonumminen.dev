@@ -5,7 +5,7 @@ project: hrm
 
 # HRManager — Architecture & Design
 
-HRManager is a full-stack HR management system built with Next.js 16 App Router, TypeScript 5.9, and polyglot persistence (PostgreSQL + MongoDB). It targets production operational standards: granular RBAC, an immutable audit trail, real-time updates, TOTP 2FA, and a 1828-test suite with coverage tracked in CI.
+HRManager is a full-stack HR management system built with Next.js 16 App Router, TypeScript 5.9, and polyglot persistence (PostgreSQL + MongoDB). It targets production operational standards: granular RBAC, an immutable audit trail, real-time updates, TOTP 2FA, and a 2906-test suite with coverage tracked in CI.
 
 
 ## Overview and High-Level Architecture
@@ -128,11 +128,11 @@ The system defines 38 permission keys (e.g., `person:create`, `team:delete`, `re
 | Prisma queries | 83 | Run against real PostgreSQL + in-memory MongoDB (no mocks) |
 | Real-time (SSE) | 43 | Event bus, ring buffer, schema validation |
 | E2E (Playwright) | 75 | Full user flows against a production build |
-| Accessibility | 25 | axe-core WCAG AA checks across 22 components |
+| Accessibility | 25 | axe-core WCAG AA checks across 25 components |
 | OpenTelemetry | 22 | SDK init, span creation, metrics, middleware tracing |
 | RBAC logic | 28 | Resolution order, overrides, deny-wins, superuser bypass |
 | Reviews UI | 86 | Cycle management, submission flow, template CRUD |
-| **Total** | **1828** | **Coverage tracked in CI** |
+| **Total** | **2906** | **Coverage tracked in CI** |
 
 The documented testing philosophy is to run server-side tests against real databases. CI spins up a PostgreSQL 16 service container; in-memory MongoDB is provided by `mongodb-memory-server`. Playwright E2E tests run against a production build.
 

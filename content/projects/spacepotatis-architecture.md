@@ -179,7 +179,7 @@ The `audio` module is one of the ten named modules in the ADR 0007 dependency gr
 - **Cheat-guard unit tests** — `src/lib/saveValidation.ts` guards are pure functions with their own test suite.
 - **Save-load logic tests** — `useCloudSaveSyncLogic.ts` decision helpers (`loadResultToState`, `decideFetch`) are extracted to pure functions and covered by vitest without a React renderer.
 
-The README reports approximately 1,170 tests on every CI run.
+The README reports approximately 1,300 tests on every CI run.
 
 **Pre-commit hook.** Husky runs lint-staged + typecheck in roughly 5 seconds on commit. Full vitest suite runs on push, not commit, to keep the local cycle fast.
 
