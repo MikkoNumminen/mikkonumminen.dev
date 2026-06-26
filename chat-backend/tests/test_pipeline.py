@@ -50,6 +50,7 @@ def _row(source: str, distance: float = 0.1) -> dict[str, Any]:
         "project": None,
         "content": f"about {source}",
         "distance": distance,
+        "chunk_index": 0,
     }
 
 
