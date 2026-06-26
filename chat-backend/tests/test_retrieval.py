@@ -208,6 +208,27 @@ def test_strict_project_filter_hard_restricts_both_searches() -> None:
     assert all(c.project == "readlog-dotnet" for c in result)
 
 
+def test_strict_filter_with_no_matching_rows_fails_open() -> None:
+    # Strict filter names readlog-dotnet, but the corpus only has a platform
+    # chunk. A hard filter would return nothing and the gate would falsely
+    # refuse; instead retrieval falls open to the global search so the close
+    # platform chunk surfaces and the gate sees the true best distance.
+    rows = [_row("projects/platform.md", 0.12, project="platform")]
+    db = FakeDB(rows, lexical_rows=rows)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "ReadLog .NET find-or-create race",
+            top_k=3,
+            hybrid=True,
+            project_filter_strict=True,
+        )
+    )
+    assert result
+    assert min(c.distance for c in result) == 0.12
+
+
 def test_soft_boost_when_strict_filter_off() -> None:
     rows = [
         _row("projects/platform.md", 0.05, project="platform"),

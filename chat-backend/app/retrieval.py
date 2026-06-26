@@ -202,6 +202,15 @@ async def retrieve(
 
     if project_filter is not None:
         dense_rows = await db.search(vector, candidate_k, project_filter)
+        if not dense_rows:
+            # Fail open for the gate: the named project has no surfacing chunk, so
+            # a hard filter would starve the weak-retrieval gate into a false
+            # refusal. Drop strict and re-run unfiltered so the gate sees the true
+            # global best distance (any of the named project's chunks that do
+            # surface are still soft-boosted below).
+            strict = False
+            project_filter = None
+            dense_rows = await db.search(vector, candidate_k)
     else:
         dense_rows = await db.search(vector, candidate_k)
     dense_chunks = [_to_chunk(row) for row in dense_rows]
