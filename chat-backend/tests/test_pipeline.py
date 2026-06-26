@@ -51,6 +51,7 @@ def _row(source: str, distance: float = 0.1) -> dict[str, Any]:
         "content": f"about {source}",
         "distance": distance,
         "chunk_index": 0,
+        "chunk_type": "prose",
     }
 
 

@@ -47,6 +47,9 @@ class RetrievedChunk:
     carries `_LEXICAL_ONLY_DISTANCE` (the cosine maximum) so it can be ranked
     without ever, on its own, making the dense-based gate judge the query
     relevant. `chunk_index` is the fusion identity (a source has many chunks).
+    `chunk_type` ('prose' | 'code') lets the weak-retrieval gate anchor on prose
+    distances — a stray nearby code chunk must not make an off-topic query look
+    relevant.
     """
 
     source: str
@@ -55,6 +58,7 @@ class RetrievedChunk:
     content: str
     distance: float
     chunk_index: int = 0
+    chunk_type: str = "prose"
 
 
 # When the query names a project, or hybrid fusion is on, pull this many * top_k
@@ -75,6 +79,7 @@ def _to_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         content=str(row["content"]),
         distance=float(row["distance"]),
         chunk_index=int(row["chunk_index"]),
+        chunk_type=str(row["chunk_type"]),
     )
 
 
@@ -87,6 +92,7 @@ def _to_lexical_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         content=str(row["content"]),
         distance=_LEXICAL_ONLY_DISTANCE,
         chunk_index=int(row["chunk_index"]),
+        chunk_type=str(row["chunk_type"]),
     )
 
 

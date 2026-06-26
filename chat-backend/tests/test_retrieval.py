@@ -57,7 +57,11 @@ class FakeDB:
 
 
 def _row(
-    source: str, distance: float, project: str | None = "p", chunk_index: int = 0
+    source: str,
+    distance: float,
+    project: str | None = "p",
+    chunk_index: int = 0,
+    chunk_type: str = "prose",
 ) -> dict[str, Any]:
     return {
         "source": source,
@@ -66,6 +70,7 @@ def _row(
         "content": f"content of {source}",
         "distance": distance,
         "chunk_index": chunk_index,
+        "chunk_type": chunk_type,
     }
 
 

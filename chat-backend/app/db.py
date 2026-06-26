@@ -257,7 +257,7 @@ class Database:
         if projects:
             rows: list[asyncpg.Record] = await self._pool.fetch(
                 """
-                SELECT source, project, title, kind, chunk_index, content,
+                SELECT source, project, title, kind, chunk_index, content, chunk_type, chunk_type,
                        embedding <=> $1 AS distance
                 FROM documents
                 WHERE project = ANY($3::text[])
@@ -271,7 +271,7 @@ class Database:
             return rows
         rows = await self._pool.fetch(
             """
-            SELECT source, project, title, kind, chunk_index, content,
+            SELECT source, project, title, kind, chunk_index, content, chunk_type,
                    embedding <=> $1 AS distance
             FROM documents
             ORDER BY embedding <=> $1
@@ -300,7 +300,7 @@ class Database:
         if projects:
             rows: list[asyncpg.Record] = await self._pool.fetch(
                 """
-                SELECT source, project, title, kind, chunk_index, content,
+                SELECT source, project, title, kind, chunk_index, content, chunk_type, chunk_type,
                        ts_rank(content_tsv, websearch_to_tsquery('english', $1))
                            AS rank
                 FROM documents
@@ -316,7 +316,7 @@ class Database:
             return rows
         rows = await self._pool.fetch(
             """
-            SELECT source, project, title, kind, chunk_index, content,
+            SELECT source, project, title, kind, chunk_index, content, chunk_type,
                    ts_rank(content_tsv, websearch_to_tsquery('english', $1)) AS rank
             FROM documents
             WHERE content_tsv @@ websearch_to_tsquery('english', $1)

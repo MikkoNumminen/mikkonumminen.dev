@@ -35,10 +35,18 @@ def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> 
     Weak means either no chunks at all (an un-indexed corpus) or the best
     (smallest-distance) chunk is still farther than `max_distance` — i.e. even
     the closest match is irrelevant. Cosine distance: smaller is more similar.
+
+    The gate anchors on the best PROSE chunk: once the corpus holds source code,
+    an off-topic query ("how do I lose weight", "what time is it in New York")
+    can land a stray code chunk just inside the threshold and get answered
+    off-corpus. Prose chunks are the human-readable description of Mikko's work,
+    so they are the honest relevance signal. Falls back to all chunks only when
+    no prose was retrieved, so a code-only corpus still works.
     """
     if not chunks:
         return True
-    best = min(chunk.distance for chunk in chunks)
+    prose = [c for c in chunks if c.chunk_type == "prose"]
+    best = min(c.distance for c in (prose or chunks))
     return best > max_distance
 
 
