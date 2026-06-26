@@ -11,11 +11,17 @@ Everything runs on Mikko's own machine via Docker Compose — **no hosted model,
 no paid API, no cloud database, nothing per query, ever.**
 
 ```
-Astro terminal (static) ──fetch──▶  FastAPI backend ──▶ Postgres + pgvector
+Astro terminal (static) ──fetch──▶  FastAPI backend ──▶ Postgres + pgvector (dense + BM25)
                                                     └──▶ Ollama (local LLM)
-Offline indexer ──embeds content──▶ Postgres + pgvector
+Offline indexer ──embeds content + code──▶ Postgres + pgvector
 Embeddings (bge-small-en-v1.5) run in-process inside the backend container.
 ```
+
+Retrieval is **hybrid**: dense pgvector cosine fused with a lexical BM25-style
+full-text rank (Reciprocal Rank Fusion). The corpus is **prose + code** — the
+indexer pulls curated source files from the sibling project repos alongside the
+markdown, with code-aware chunking that splits on function/class/method
+boundaries.
 
 The LLM is a **local Ollama** model (qwen2.5:7b by default, switchable — see
 [`ragctl`](#ragctl-ops)) reached over its OpenAI-compatible
@@ -71,32 +77,39 @@ visual change.
 
 ## What's here
 
-| Path                                             | Role                                                                                                                                             |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `app/config.py`                                  | Env-driven settings (one object for the whole service).                                                                                          |
-| `app/content.py`                                 | Loads the curated `content/` corpus into typed docs.                                                                                             |
-| `app/chunking.py`                                | Markdown-aware chunking + a stable content hash per chunk.                                                                                       |
-| `app/embeddings.py`                              | In-process `bge-small-en-v1.5` embeddings via fastembed.                                                                                         |
-| `app/db.py`                                      | Postgres + pgvector access (asyncpg, raw SQL incl. cosine search).                                                                               |
-| `app/indexer.py`                                 | The offline indexer — `python -m app.indexer`.                                                                                                   |
-| `app/retrieval.py`                               | Top-k cosine retrieval (embed query → pgvector search).                                                                                          |
-| `app/prompts.py`                                 | Grounded prompt assembly (the guardrail system prompt).                                                                                          |
-| `app/llm.py`                                     | Streaming chat client for the local Ollama model (OpenAI-compatible `/v1/chat/completions`), with the concurrency semaphore + `num_predict` cap. |
-| `app/pipeline.py`                                | The `/chat` event stream: retrieve → re-rank → gate → prompt → stream → SSE.                                                                     |
-| `app/main.py`                                    | FastAPI app — `POST /chat` (SSE) + `GET /health` + `GET /usage` + rate-limit/size guard.                                                         |
-| `app/guardrails.py`                              | Weak-retrieval gate (deterministic refusal, no hallucination).                                                                                   |
-| `app/ratelimit.py`                               | Per-IP sliding-window rate limiter.                                                                                                              |
-| `sql/001_init.sql`                               | pgvector extension + the `documents` table (`vector(384)`).                                                                                      |
-| `evals/run_eval.py`                              | Retrieval hit-rate runner (`python -m evals.run_eval`).                                                                                          |
-| `evals/acceptance.py`                            | Black-box containment contract suite (`python -m evals.acceptance`).                                                                             |
-| `ragctl.py`                                      | The ops REPL — `status` / `up` / `down` / `doctor` / `model` / `english`.                                                                        |
-| `tests/`                                         | Pure-logic unit tests (chunking, content, config, prompts, retrieval, pipeline, llm, health, guardrails, ratelimit, scoring).                    |
-| `Dockerfile`                                     | The backend image (indexer + API; non-root, GPU not needed here).                                                                                |
-| [`../docker-compose.yml`](../docker-compose.yml) | The whole stack: db + ollama (GPU) + backend + optional public tunnel.                                                                           |
-| [`../Makefile`](../Makefile)                     | `make up` / `index` / `eval` / `up-public` / `down`.                                                                                             |
+| Path                                             | Role                                                                                                                                                                                                                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `app/config.py`                                  | Env-driven settings (one object for the whole service).                                                                                                                                                                                                |
+| `app/content.py`                                 | Loads the curated corpus into typed docs — `content/**/*.md` prose **and** curated source under `content/code/<project>/`.                                                                                                                             |
+| `app/chunking.py`                                | Markdown-aware chunking for prose; `chunk_code` splits source by function/class/method boundary (keeps decorators/attributes with the def, line-window fallback). Stable content hash per chunk; per-chunk `language` + `chunk_type` (prose\|code).    |
+| `app/embeddings.py`                              | In-process `bge-small-en-v1.5` embeddings via fastembed.                                                                                                                                                                                               |
+| `app/db.py`                                      | Postgres + pgvector access (asyncpg, raw SQL): dense cosine `search`, lexical `search_lexical` (`websearch_to_tsquery` + `ts_rank`), and `closest_prose` (explicit nearest prose chunk for the gate).                                                  |
+| `app/indexer.py`                                 | The offline indexer — `python -m app.indexer`.                                                                                                                                                                                                         |
+| `app/retrieval.py`                               | Hybrid retrieval: dense + lexical lists fused with Reciprocal Rank Fusion, hard per-project filter (fails open). `HYBRID_ENABLED=false` reverts to pure dense.                                                                                         |
+| `app/prompts.py`                                 | Grounded prompt assembly (the guardrail system prompt).                                                                                                                                                                                                |
+| `app/llm.py`                                     | Streaming chat client for the local Ollama model (OpenAI-compatible `/v1/chat/completions`), with the concurrency semaphore + `num_predict` cap.                                                                                                       |
+| `app/pipeline.py`                                | The `/chat` event stream: task gates → hybrid retrieve + filter → prose gate → prompt → stream → SSE.                                                                                                                                                  |
+| `app/main.py`                                    | FastAPI app — `POST /chat` (SSE) + `GET /health` + `GET /usage` + rate-limit/size guard.                                                                                                                                                               |
+| `app/guardrails.py`                              | Weak-retrieval gate (anchored on the best **prose**-chunk distance) + deterministic pre-retrieval task gates: `is_generative_request` (poem/story/song/joke) and `is_translation_request` (translate X to Y). Deterministic refusal, no hallucination. |
+| `app/ratelimit.py`                               | Per-IP sliding-window rate limiter.                                                                                                                                                                                                                    |
+| `sql/001_init.sql`                               | pgvector extension + the `documents` table (`vector(384)`).                                                                                                                                                                                            |
+| `sql/002_hybrid_retrieval.sql`                   | Adds `language` + `chunk_type` columns, a GENERATED `content_tsv` tsvector + GIN index (backfilled) — the lexical half of hybrid retrieval.                                                                                                            |
+| `evals/run_eval.py`                              | Retrieval hit-rate runner (`python -m evals.run_eval`).                                                                                                                                                                                                |
+| `evals/acceptance.py`                            | Black-box containment contract suite (`python -m evals.acceptance`).                                                                                                                                                                                   |
+| `ragctl.py`                                      | The ops REPL — `status` / `up` / `down` / `doctor` / `model` / `english`.                                                                                                                                                                              |
+| `tests/`                                         | Pure-logic unit tests (chunking, content, config, prompts, retrieval, pipeline, llm, health, guardrails, ratelimit, scoring).                                                                                                                          |
+| `Dockerfile`                                     | The backend image (indexer + API; non-root, GPU not needed here).                                                                                                                                                                                      |
+| [`../docker-compose.yml`](../docker-compose.yml) | The whole stack: db + ollama (GPU) + backend + optional public tunnel.                                                                                                                                                                                 |
+| [`../Makefile`](../Makefile)                     | `make up` / `index` / `eval` / `up-public` / `down`.                                                                                                                                                                                                   |
 
-The corpus itself lives in the repo-root [`content/`](../content/) folder
-(one markdown file per project, `cv.md`, and selected posts).
+The corpus itself lives in the repo-root [`content/`](../content/) folder:
+markdown prose (one file per project, `cv.md`, selected posts) **plus** curated
+source under `content/code/<project>/` — 55 architecture-defining files
+(`py`, `ts`, `tsx`, `js`, `cs`, `astro`, `sql`, `prisma`, + config) pulled from
+the sibling project repos so deep-code questions answer from real source. The
+indexer prose-chunks the markdown and code-chunks the source (function/class/
+method boundaries; line-window fallback). `content/code/` is corpus data, not
+site code, so it's excluded from `tsconfig`/`eslint`/`prettier`.
 
 ## Re-indexing
 
@@ -155,14 +168,26 @@ pipeline, in order:
    rejected with HTTP `400`; a Pydantic `max_length=4000` backstop returns `422`,
    and a `MAX_BODY_BYTES` (default 16384) byte cap is enforced in ASGI
    middleware before the body is even parsed.
-2. **Embed** the query (bge-small, asymmetric query prefix).
-3. **Retrieve** the top-`TOP_K` (default 6) cosine-nearest chunks from pgvector.
-4. **Project-aware re-rank** — if the query names a project, that project's
-   chunks float to the front (a soft boost, not a hard filter).
-5. **Weak-retrieval gate** — if the best cosine distance exceeds
-   `WEAK_RETRIEVAL_DISTANCE` (default 0.7), the request **short-circuits before
+2. **Pre-retrieval task gates** — deterministic refusals that run _before_ any
+   retrieval: `is_generative_request` declines "write me a poem/story/song/joke",
+   `is_translation_request` declines "translate X to Y". These are task requests
+   that often name on-corpus topics, which the small model would otherwise perform.
+3. **Embed** the query (bge-small, asymmetric query prefix).
+4. **Retrieve** the top-`TOP_K` (default 6) chunks via **hybrid** search — dense
+   pgvector cosine fused with lexical BM25-style full-text rank (RRF). A hard
+   per-project filter (`PROJECT_FILTER_STRICT`, default on) restricts to a
+   query-named project, failing **open** (if the named project returns nothing,
+   the gate still sees the true global best). `HYBRID_ENABLED=false` → pure dense.
+5. **Project-aware re-rank** — the soft fallback when the hard filter is off
+   (`PROJECT_FILTER_STRICT=false`): a named project's chunks float to the front
+   without dropping the rest.
+6. **Weak-retrieval gate** — anchored on the best **prose**-chunk distance
+   (code chunks lower off-topic distances, so gating on prose keeps off-topic
+   queries that only match stray code out; `db.closest_prose` fetches the nearest
+   prose explicitly when the top-k has none). If that distance exceeds
+   `WEAK_RETRIEVAL_DISTANCE` (default 0.45), the request **short-circuits before
    the LLM** and returns the fixed out-of-scope reply.
-6. **Grounded generation** — a hardened system prompt (answer only from the
+7. **Grounded generation** — a hardened system prompt (answer only from the
    retrieved context, `FORCE_ENGLISH`) feeds the local Ollama model, whose
    output is hard-capped at `LLM_NUM_PREDICT` (default 512) tokens.
 
@@ -188,9 +213,14 @@ sole line of defense:
 
 - **Input cap** — `INPUT_MAX_CHARS` (default 800; over → HTTP 400), the Pydantic
   `max_length=4000` backstop (422), and the `MAX_BODY_BYTES` ASGI byte cap.
+- **Task gates** — deterministic pre-retrieval refusals (`is_generative_request`,
+  `is_translation_request`) decline poem/story/song/joke and "translate X to Y"
+  before retrieval, since those are tasks that often name on-corpus topics.
 - **Relevance gate** — the pre-LLM weak-retrieval short-circuit
-  (`WEAK_RETRIEVAL_DISTANCE`); a clearly off-topic question never reaches the
-  model and so can't be answered from hallucinated content.
+  (`WEAK_RETRIEVAL_DISTANCE`, default 0.45), anchored on the best **prose**-chunk
+  distance so code chunks can't lower an off-topic query under the bar; a clearly
+  off-topic question never reaches the model and so can't be answered from
+  hallucinated content.
 - **Grounded generation** — the system prompt answers only from the retrieved
   CONTEXT and declines when it isn't there.
 - **Output cap** — `LLM_NUM_PREDICT` hard-caps `num_predict`, so no single
@@ -212,10 +242,11 @@ sole line of defense:
 
 ## Eval + acceptance harness
 
-**Retrieval eval.** `evals/eval_set.json` holds ~14 questions with the source(s)
+**Retrieval eval.** `evals/eval_set.json` holds 17 questions with the source(s)
 that must be retrieved (plus out-of-corpus questions that should be refused). The
 runner measures retrieval hit-rate and prints a PASS/FAIL table — the credibility
-metric for the RAG layer and the lever for tuning `WEAK_RETRIEVAL_DISTANCE`:
+metric for the RAG layer and the lever for tuning `WEAK_RETRIEVAL_DISTANCE`.
+Switching dense → hybrid retrieval moved measured hit-rate **+0.059** on this set.
 
 ```bash
 docker compose run --rm backend python -m app.indexer       # index first
@@ -226,9 +257,11 @@ docker compose run --rm backend python -m evals.run_eval --min-hit-rate 0.8
 **Acceptance harness.** `evals/acceptance.py` is a black-box **containment
 contract** suite — 9 cases run against a _running_ backend: injection no-dump,
 prompt-reveal blocked, off-topic poem + trivia declined, the input cap (400) and
-oversized body (422), and three grounded technical answers. The classifiers are
-anchored on the real refusal wording so a regression can't false-pass. Run it
-against a live stack:
+oversized body (422), and three grounded technical answers (now answered from the
+actual source under `content/code/`). Still **9/9** with the code-enriched corpus
+— containment held _and_ extended: off-topic code-chunk leaks, poem, and
+translate tasks all refuse. The classifiers are anchored on the real refusal
+wording so a regression can't false-pass. Run it against a live stack:
 
 ```bash
 make up                                                     # backend on :8000
@@ -240,21 +273,26 @@ python -m evals.acceptance                                  # hits http://localh
 All configuration is environment-driven and validated at startup; see
 [`.env.example`](.env.example) for the full list. Every knob below is an env var:
 
-| Env var                       | Default                         | Meaning                                                                      |
-| ----------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
-| `TOP_K`                       | `6`                             | How many cosine-nearest chunks retrieval pulls.                              |
-| `WEAK_RETRIEVAL_DISTANCE`     | `0.7`                           | Best-distance threshold for the pre-LLM out-of-scope gate.                   |
-| `LLM_NUM_PREDICT`             | `512`                           | Hard `num_predict` cap on generated tokens (output cap).                     |
-| `INPUT_MAX_CHARS`             | `800`                           | Max `message` length; over → HTTP 400.                                       |
-| `LLM_MAX_CONCURRENCY`         | `2`                             | Semaphore permits around Ollama generation.                                  |
-| `LLM_ACQUIRE_TIMEOUT_SECONDS` | (must be `> 0`)                 | Bounded wait for a permit; on timeout the request is shed with a busy reply. |
-| `RAG_LOG_FILE`                | (empty)                         | Path for per-request JSON score log; empty disables it.                      |
-| `MAX_BODY_BYTES`              | `16384`                         | ASGI request-body byte cap (oversized → rejected before parse).              |
-| `RATE_LIMIT_REQUESTS`         | `30`                            | Requests allowed per IP per window.                                          |
-| `RATE_LIMIT_WINDOW_SECONDS`   | `60`                            | Sliding-window length for the rate limiter.                                  |
-| `FORCE_ENGLISH`               | on                              | Force the model to answer in English regardless of query language.           |
-| `CORS_ALLOW_ORIGINS`          | —                               | Allowed origins for the browser fetch.                                       |
-| chunk-size knobs              | ~480 max / 100 min / 60 overlap | Token budget for markdown-block chunking (indexer side).                     |
+| Env var                       | Default                         | Meaning                                                                                                             |
+| ----------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `TOP_K`                       | `6`                             | How many chunks hybrid retrieval pulls.                                                                             |
+| `HYBRID_ENABLED`              | `true`                          | Hybrid dense+lexical retrieval; `false` reverts to pure dense cosine.                                               |
+| `RRF_K`                       | `60`                            | Reciprocal Rank Fusion constant (`weight / (RRF_K + rank)`).                                                        |
+| `RETRIEVAL_DENSE_WEIGHT`      | `1.0`                           | RRF weight on the dense (cosine) result list.                                                                       |
+| `RETRIEVAL_LEXICAL_WEIGHT`    | `1.0`                           | RRF weight on the lexical (BM25-style full-text) result list.                                                       |
+| `PROJECT_FILTER_STRICT`       | `true`                          | Hard per-project retrieval filter; fails **open** if the named project is empty.                                    |
+| `WEAK_RETRIEVAL_DISTANCE`     | `0.45`                          | Best **prose**-distance threshold for the pre-LLM out-of-scope gate.                                                |
+| `LLM_NUM_PREDICT`             | `512`                           | Hard `num_predict` cap on generated tokens (output cap).                                                            |
+| `INPUT_MAX_CHARS`             | `800`                           | Max `message` length; over → HTTP 400.                                                                              |
+| `LLM_MAX_CONCURRENCY`         | `2`                             | Semaphore permits around Ollama generation.                                                                         |
+| `LLM_ACQUIRE_TIMEOUT_SECONDS` | (must be `> 0`)                 | Bounded wait for a permit; on timeout the request is shed with a busy reply.                                        |
+| `RAG_LOG_FILE`                | (empty)                         | Path for per-request JSON score log; empty disables it.                                                             |
+| `MAX_BODY_BYTES`              | `16384`                         | ASGI request-body byte cap (oversized → rejected before parse).                                                     |
+| `RATE_LIMIT_REQUESTS`         | `30`                            | Requests allowed per IP per window.                                                                                 |
+| `RATE_LIMIT_WINDOW_SECONDS`   | `60`                            | Sliding-window length for the rate limiter.                                                                         |
+| `FORCE_ENGLISH`               | on                              | Force the model to answer in English regardless of query language.                                                  |
+| `CORS_ALLOW_ORIGINS`          | —                               | Allowed origins for the browser fetch.                                                                              |
+| chunk-size knobs              | ~480 max / 100 min / 60 overlap | Token budget for markdown-block chunking (indexer side); code is split on function/class/method boundaries instead. |
 
 The load-bearing invariant: the indexer and the query path must use the **same**
 `EMBEDDING_MODEL` / `EMBEDDING_DIM`, and that dimension must match the

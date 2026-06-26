@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from app.chunking import (
     Chunk,
+    chunk_code,
+    chunk_document,
     chunk_text,
     estimate_tokens,
     hash_chunk,
@@ -11,6 +13,7 @@ from app.chunking import (
 
 # Shared chunker parameters for the multi-chunk tests.
 PARAMS = {"max_tokens": 60, "min_tokens": 10, "overlap_tokens": 12}
+CODE_PARAMS = {"max_tokens": 40, "min_tokens": 5, "overlap_tokens": 6}
 
 
 def _para(word: str, n: int) -> str:
@@ -93,3 +96,83 @@ def test_code_fence_is_kept_whole() -> None:
 def test_returns_chunk_dataclass_instances() -> None:
     chunks = chunk_text("Hello world.", **PARAMS)
     assert all(isinstance(c, Chunk) for c in chunks)
+
+
+# --- code-aware chunking (Workstream B) ---
+
+_PY = (
+    "import os\n\n"
+    "def alpha():\n    x = 1\n    return x\n\n"
+    "def beta():\n    y = 2\n    return y\n\n"
+    "class Gamma:\n    def method_one(self):\n        return 1\n"
+)
+
+
+def test_chunk_code_python_never_splits_a_function_body() -> None:
+    joined = "\n===\n".join(c.text for c in chunk_code(_PY, "python", **CODE_PARAMS))
+    # Each whole function body survives intact in some chunk.
+    assert "def alpha():\n    x = 1\n    return x" in joined
+    assert "def beta():\n    y = 2\n    return y" in joined
+
+
+def test_chunk_code_typescript_boundaries() -> None:
+    ts = (
+        'import {x} from "y";\n\n'
+        "export function load() {\n  return 1;\n}\n\n"
+        "export class Store {\n  get() { return 2; }\n}\n\n"
+        "const helper = (a) => a + 1;\n"
+    )
+    joined = "\n===\n".join(c.text for c in chunk_code(ts, "typescript", **CODE_PARAMS))
+    assert "export function load() {\n  return 1;\n}" in joined
+    assert "export class Store {" in joined
+
+
+def test_chunk_code_csharp_boundaries() -> None:
+    cs = (
+        "public class ReadLogService\n{\n"
+        "    public async Task<int> FindOrCreate(string key)\n    {\n"
+        "        return 1;\n    }\n}\n"
+    )
+    chunks = chunk_code(cs, "csharp", **CODE_PARAMS)
+    assert any("FindOrCreate" in c.text for c in chunks)
+
+
+def test_chunk_code_unknown_language_line_windows() -> None:
+    # No boundary pattern for json: falls back to whole-line windows, never crashes.
+    chunks = chunk_code('{\n  "a": 1,\n  "b": 2\n}', "json", **CODE_PARAMS)
+    assert chunks
+    assert all(isinstance(c, Chunk) for c in chunks)
+
+
+def test_chunk_document_dispatches_prose_vs_code() -> None:
+    prose = chunk_document(
+        "# Heading\n\nA paragraph.", is_code=False, language=None, **CODE_PARAMS
+    )
+    code = chunk_document(_PY, is_code=True, language="python", **CODE_PARAMS)
+    assert prose and code
+    assert all(isinstance(c, Chunk) for c in prose + code)
+
+
+def test_chunk_code_keeps_python_decorators_with_their_def() -> None:
+    py = (
+        "import x\n\n"
+        "@dataclass\n@final\nclass Foo:\n    pass\n\n"
+        "@staticmethod\ndef bar():\n    return 1\n"
+    )
+    chunks = chunk_code(py, "python", **CODE_PARAMS)
+    for c in chunks:
+        if "class Foo" in c.text:
+            assert "@dataclass" in c.text and "@final" in c.text
+        if "def bar" in c.text:
+            assert "@staticmethod" in c.text
+
+
+def test_chunk_code_keeps_csharp_attribute_with_its_method() -> None:
+    cs = (
+        "public class C\n{\n"
+        '    [HttpGet("/x")]\n    public int Get() { return 1; }\n}\n'
+    )
+    chunks = chunk_code(cs, "csharp", **CODE_PARAMS)
+    for c in chunks:
+        if "public int Get" in c.text:
+            assert "[HttpGet" in c.text

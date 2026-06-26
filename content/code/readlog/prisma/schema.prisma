@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// NextAuth models — prefixed to avoid conflicts with other apps sharing the database
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("readlog_account")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("readlog_session")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("readlog_verification_token")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  readEntries ReadEntry[]
+
+  @@map("readlog_user")
+}
+
+// App models
+model Book {
+  id               String   @id @default(cuid())
+  title            String
+  author           String?
+  coverUrl         String?
+  openLibraryId    String?  @unique
+  pageCount        Int?
+  firstPublishYear Int?
+  createdAt        DateTime @default(now())
+
+  readEntries ReadEntry[]
+
+  @@index([title])
+  @@map("readlog_book")
+}
+
+model ReadEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  bookId     String
+  format     Format   @default(BOOK)
+  finishedAt DateTime @default(now())
+  rating     Int?
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId, finishedAt])
+  @@index([userId])
+  @@index([finishedAt])
+  @@map("readlog_entry")
+}
+
+enum Format {
+  BOOK
+  AUDIOBOOK
+  EBOOK
+
+  @@map("readlog_format")
+}

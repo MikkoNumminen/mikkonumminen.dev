@@ -62,6 +62,21 @@
       "note": "hardware retail, Kasvu Labs"
     },
     {
+      "question": "Which project uses the Phaser game engine?",
+      "expected_sources": ["projects/spacepotatis.md"],
+      "note": "exact identifier (Phaser 3) — the case lexical retrieval helps"
+    },
+    {
+      "question": "What TTS engines does AudiobookMaker support?",
+      "expected_sources": ["projects/audiobookmaker.md"],
+      "note": "exact identifiers: Edge-TTS, Piper, Chatterbox"
+    },
+    {
+      "question": "Which project is built with ASP.NET Core?",
+      "expected_sources": ["projects/readlog-dotnet.md"],
+      "note": "exact identifier: ASP.NET Core"
+    },
+    {
       "question": "What's the weather in Tokyo today?",
       "expected_sources": [],
       "note": "out of corpus — should refuse"

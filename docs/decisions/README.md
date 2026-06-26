@@ -16,6 +16,7 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0008](0008-testing-strategy.md)                  | Layered testing strategy (unit + Playwright scene boot-smoke + coverage ratchet + CodeQL); per-frame visual regression rejected                                                   | Accepted                                 |
 | [0009](0009-rag-chat-backend.md)                  | Local RAG chat as a separate, optional backend service — site stays static (builds on 0002), no hosted model/DB                                                                   | Accepted                                 |
 | [0010](0010-rag-containment.md)                   | Layered architectural containment for the RAG chat (builds on 0009) — input/output caps, pre-LLM relevance gate, grounded prompting, concurrency/rate limits, acceptance contract | Accepted                                 |
+| [0011](0011-hybrid-retrieval-and-code-corpus.md)  | Hybrid dense+BM25 retrieval (RRF) over a code-enriched corpus for the RAG chat (builds on 0009/0010) — code-aware chunking, language/chunk_type metadata, hard per-project filter | Accepted                                 |
 
 ## Writing a new one
 

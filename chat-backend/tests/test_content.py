@@ -103,3 +103,49 @@ def test_front_matter_without_trailing_newline_parses() -> None:
     fields, body = parse_front_matter(raw)
     assert fields == {"title": "Hi", "url": "https://e.com"}
     assert body == ""
+
+
+# --- source/config ingestion (Workstream B) ---
+
+
+def test_load_docs_ingests_code_with_language_and_project(tmp_path: Path) -> None:
+    from app.content import is_code_doc
+
+    (tmp_path / "projects").mkdir()
+    (tmp_path / "projects" / "hrm.md").write_text(
+        "---\ntitle: HRM\nproject: hrm\n---\n# HRM\n\nbody", encoding="utf-8"
+    )
+    (tmp_path / "code" / "audiobookmaker").mkdir(parents=True)
+    (tmp_path / "code" / "audiobookmaker" / "norm.py").write_text(
+        "def f():\n    return 1\n", encoding="utf-8"
+    )
+    docs = {d.source: d for d in load_docs(tmp_path)}
+
+    md = docs["projects/hrm.md"]
+    assert md.language is None and md.kind == "project" and not is_code_doc(md)
+
+    py = docs["code/audiobookmaker/norm.py"]
+    assert py.language == "python"
+    assert py.kind == "code"
+    assert py.project == "audiobookmaker"
+    assert is_code_doc(py)
+
+
+def test_load_docs_skips_unknown_extensions_under_code(tmp_path: Path) -> None:
+    (tmp_path / "code" / "x").mkdir(parents=True)
+    (tmp_path / "code" / "x" / "data.bin").write_text("x", encoding="utf-8")
+    (tmp_path / "code" / "x" / "app.ts").write_text(
+        "export const a = 1;\n", encoding="utf-8"
+    )
+    sources = {d.source for d in load_docs(tmp_path)}
+    assert "code/x/app.ts" in sources
+    assert "code/x/data.bin" not in sources
+
+
+def test_config_files_are_kind_config(tmp_path: Path) -> None:
+    (tmp_path / "code" / "p").mkdir(parents=True)
+    (tmp_path / "code" / "p" / "tsconfig.json").write_text("{}\n", encoding="utf-8")
+    docs = {d.source: d for d in load_docs(tmp_path)}
+    cfg = docs["code/p/tsconfig.json"]
+    assert cfg.kind == "config"
+    assert cfg.language == "json"

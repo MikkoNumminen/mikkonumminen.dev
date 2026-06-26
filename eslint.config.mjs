@@ -7,7 +7,19 @@ export default [
   // `.claude/` holds local agent scratch (worktrees, etc.) — gitignored,
   // never reaches CI. Listing it here keeps `npm run lint` locally honest
   // about what the codebase actually contains.
-  { ignores: ['dist/', '.astro/', 'node_modules/', '.vercel/', '.claude/'] },
+  // `content/code/` is curated third-party project source indexed by the RAG
+  // backend — it is corpus data, not this site's code, so it is excluded from
+  // lint/format/typecheck (it has its own repos' deps, styles, and rules).
+  {
+    ignores: [
+      'dist/',
+      '.astro/',
+      'node_modules/',
+      '.vercel/',
+      '.claude/',
+      'content/code/',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...astro.configs.recommended,

@@ -27,7 +27,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .config import Settings
-from .db import SQL_PATH, Database, apply_schema
+from .db import Database, apply_schema
 from .embeddings import Embedder
 from .health import health_payload
 from .llm import LLMClient
@@ -78,7 +78,7 @@ def create_app() -> FastAPI:
         # Apply the schema on startup so an un-indexed deployment still answers
         # (empty corpus -> graceful "nothing on that") rather than 500-ing; the
         # indexer fills it offline.
-        await apply_schema(settings.database_url, SQL_PATH)
+        await apply_schema(settings.database_url)
         db = await Database.connect(settings.database_url)
         app.state.settings = settings
         app.state.db = db
@@ -182,6 +182,11 @@ def create_app() -> FastAPI:
             top_k=settings.retrieval_top_k,
             weak_retrieval_distance=settings.weak_retrieval_distance,
             force_english=settings.force_english,
+            hybrid=settings.hybrid_enabled,
+            rrf_k=settings.rrf_k,
+            dense_weight=settings.retrieval_dense_weight,
+            lexical_weight=settings.retrieval_lexical_weight,
+            project_filter_strict=settings.project_filter_strict,
             on_complete=record,
             semaphore=app.state.llm_semaphore,
             acquire_timeout=settings.llm_acquire_timeout_seconds,

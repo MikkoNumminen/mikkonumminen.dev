@@ -27,12 +27,22 @@ from .usage import UsageByModel, UsageSummary
 # The migration SQL lives in sql/ beside the app/ package. Kept here — the
 # schema/DB concern — so both the API and the offline indexer reach it via `db`
 # without the query path importing the batch-indexer module.
-SQL_PATH = Path(__file__).resolve().parent.parent / "sql" / "001_init.sql"
+SQL_DIR = Path(__file__).resolve().parent.parent / "sql"
+# Back-compat alias for callers/tests that name the first migration directly;
+# apply_schema(dsn) now applies every file in SQL_DIR in order.
+SQL_PATH = SQL_DIR / "001_init.sql"
 
 
 @dataclass(frozen=True)
 class DocumentRow:
-    """One chunk row, embedding included, ready to persist."""
+    """One chunk row, embedding included, ready to persist.
+
+    `language` and `chunk_type` (added in migration 002) carry the Workstream-B
+    metadata: source chunks are `chunk_type='code'` with a `language`, markdown
+    is `chunk_type='prose'` with `language=None`. Both default so a caller that
+    predates the columns still constructs a valid prose row. `content_tsv` is NOT
+    here — it is a GENERATED column the database derives from `content`.
+    """
 
     source: str
     project: str | None
@@ -42,19 +52,25 @@ class DocumentRow:
     content: str
     content_hash: str
     embedding: list[float]
+    language: str | None = None
+    chunk_type: str = "prose"
 
 
-async def apply_schema(dsn: str, sql_path: str | Path) -> None:
+async def apply_schema(dsn: str, sql_path: str | Path | None = None) -> None:
     """Run the migration SQL on a single throwaway connection.
 
-    Idempotent (the SQL is all `IF NOT EXISTS`). Runs before any pooled
-    connection is opened because the pool's initializer registers the `vector`
-    type, which the `CREATE EXTENSION` here is what brings into existence.
+    With `sql_path` omitted, every `sql/*.sql` file is applied in sorted filename
+    order (001 before 002, ...) so additive migrations layer correctly; a
+    specific file may still be passed. Idempotent (the SQL is all `IF NOT
+    EXISTS` / `ADD COLUMN IF NOT EXISTS`). Runs before any pooled connection is
+    opened because the pool's initializer registers the `vector` type, which the
+    `CREATE EXTENSION` in 001 is what brings into existence.
     """
-    sql = Path(sql_path).read_text(encoding="utf-8")
+    paths = sorted(SQL_DIR.glob("*.sql")) if sql_path is None else [Path(sql_path)]
     conn = await asyncpg.connect(dsn)
     try:
-        await conn.execute(sql)
+        for path in paths:
+            await conn.execute(path.read_text(encoding="utf-8"))
     finally:
         await conn.close()
 
@@ -107,15 +123,17 @@ class Database:
                         """
                         INSERT INTO documents
                             (source, project, title, kind, chunk_index,
-                             content, content_hash, embedding)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                             content, content_hash, embedding, language, chunk_type)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                         ON CONFLICT (source, chunk_index) DO UPDATE SET
                             project = EXCLUDED.project,
                             title = EXCLUDED.title,
                             kind = EXCLUDED.kind,
                             content = EXCLUDED.content,
                             content_hash = EXCLUDED.content_hash,
-                            embedding = EXCLUDED.embedding
+                            embedding = EXCLUDED.embedding,
+                            language = EXCLUDED.language,
+                            chunk_type = EXCLUDED.chunk_type
                         """,
                         row.source,
                         row.project,
@@ -125,6 +143,8 @@ class Database:
                         row.content,
                         row.content_hash,
                         row.embedding,
+                        row.language,
+                        row.chunk_type,
                     )
         return len(rows)
 
@@ -217,17 +237,41 @@ class Database:
             ],
         )
 
-    async def search(self, embedding: list[float], top_k: int) -> list[asyncpg.Record]:
-        """Return the `top_k` chunks nearest the query embedding.
+    async def search(
+        self,
+        embedding: list[float],
+        top_k: int,
+        projects: Sequence[str] | None = None,
+    ) -> list[asyncpg.Record]:
+        """Return the `top_k` chunks nearest the query embedding (dense).
 
         `<=>` is pgvector's cosine-distance operator (per the locked decision to
         use raw SQL, not an ORM's vector support); smaller distance = more
         similar. The same `<=>` ordering lets the HNSW cosine index serve the
         query. The query vector is parameterized — never string-interpolated.
+
+        When `projects` is given, the search is HARD-restricted to those projects
+        (`project = ANY($3)`) — the strict per-project filter for queries that
+        name a project. Omitted ⇒ search the whole corpus.
         """
-        rows: list[asyncpg.Record] = await self._pool.fetch(
+        if projects:
+            rows: list[asyncpg.Record] = await self._pool.fetch(
+                """
+                SELECT source, project, title, kind, chunk_index, content, chunk_type,
+                       embedding <=> $1 AS distance
+                FROM documents
+                WHERE project = ANY($3::text[])
+                ORDER BY embedding <=> $1
+                LIMIT $2
+                """,
+                embedding,
+                top_k,
+                list(projects),
+            )
+            return rows
+        rows = await self._pool.fetch(
             """
-            SELECT source, project, title, kind, chunk_index, content,
+            SELECT source, project, title, kind, chunk_index, content, chunk_type,
                    embedding <=> $1 AS distance
             FROM documents
             ORDER BY embedding <=> $1
@@ -237,3 +281,73 @@ class Database:
             top_k,
         )
         return rows
+
+    async def search_lexical(
+        self,
+        query: str,
+        top_k: int,
+        projects: Sequence[str] | None = None,
+    ) -> list[asyncpg.Record]:
+        """Return the `top_k` chunks ranked by full-text (lexical) relevance.
+
+        The lexical half of hybrid retrieval: `websearch_to_tsquery` parses the
+        raw user question forgivingly (no syntax errors on arbitrary punctuation
+        or quotes), matched against the GENERATED `content_tsv` via `@@` and
+        ordered by `ts_rank`. This catches exact identifiers — class/engine names,
+        file paths — that dense embeddings blur. `projects` applies the same hard
+        per-project filter as the dense `search`. The query text is parameterized.
+        """
+        if projects:
+            rows: list[asyncpg.Record] = await self._pool.fetch(
+                """
+                SELECT source, project, title, kind, chunk_index, content, chunk_type,
+                       ts_rank(content_tsv, websearch_to_tsquery('english', $1))
+                           AS rank
+                FROM documents
+                WHERE content_tsv @@ websearch_to_tsquery('english', $1)
+                  AND project = ANY($3::text[])
+                ORDER BY rank DESC
+                LIMIT $2
+                """,
+                query,
+                top_k,
+                list(projects),
+            )
+            return rows
+        rows = await self._pool.fetch(
+            """
+            SELECT source, project, title, kind, chunk_index, content, chunk_type,
+                   ts_rank(content_tsv, websearch_to_tsquery('english', $1)) AS rank
+            FROM documents
+            WHERE content_tsv @@ websearch_to_tsquery('english', $1)
+            ORDER BY rank DESC
+            LIMIT $2
+            """,
+            query,
+            top_k,
+        )
+        return rows
+
+    async def closest_prose(self, embedding: list[float]) -> asyncpg.Record | None:
+        """The single PROSE chunk nearest the query embedding, or None.
+
+        The weak-retrieval gate keys on prose distance, but an off-topic query
+        ("translate hello to spanish") can retrieve ONLY code chunks (coincidental
+        token overlap) with no prose in the top-k — leaving the gate nothing prose
+        to judge. This fetches the corpus's closest prose chunk explicitly so the
+        gate always has the honest relevance signal: far prose ⇒ refuse, near
+        prose ⇒ a real description grounds the answer. Returns None for a corpus
+        with no prose at all (the gate then falls back to all chunks).
+        """
+        row = await self._pool.fetchrow(
+            """
+            SELECT source, project, title, kind, chunk_index, content, chunk_type,
+                   embedding <=> $1 AS distance
+            FROM documents
+            WHERE chunk_type = 'prose'
+            ORDER BY embedding <=> $1
+            LIMIT 1
+            """,
+            embedding,
+        )
+        return row

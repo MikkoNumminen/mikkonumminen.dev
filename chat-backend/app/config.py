@@ -117,6 +117,19 @@ class Settings:
 
     # --- retrieval + API surface ---
     retrieval_top_k: int
+    # --- hybrid retrieval (Workstream B) ---
+    # Combine a lexical (BM25-style) search with the dense vector search via
+    # reciprocal rank fusion, so exact identifiers (class/engine names, file
+    # paths) the embeddings blur are still surfaced. Fully reversible:
+    # HYBRID_ENABLED off restores pure dense retrieval. The weights bias the
+    # fusion (per ranked list); RRF_K is the standard rank-fusion constant.
+    # PROJECT_FILTER_STRICT hard-restricts retrieval to a named project rather
+    # than soft-boosting it.
+    hybrid_enabled: bool
+    rrf_k: int
+    retrieval_dense_weight: float
+    retrieval_lexical_weight: float
+    project_filter_strict: bool
     cors_allow_origins: list[str]
 
     # --- guardrails (Phase 4) ---
@@ -166,8 +179,13 @@ class Settings:
             llm_num_predict=_get_int("LLM_NUM_PREDICT", 512),
             force_english=_get_bool("FORCE_ENGLISH", True),
             retrieval_top_k=_get_int("TOP_K", 6),
+            hybrid_enabled=_get_bool("HYBRID_ENABLED", True),
+            rrf_k=_get_int("RRF_K", 60),
+            retrieval_dense_weight=_get_float("RETRIEVAL_DENSE_WEIGHT", 1.0),
+            retrieval_lexical_weight=_get_float("RETRIEVAL_LEXICAL_WEIGHT", 1.0),
+            project_filter_strict=_get_bool("PROJECT_FILTER_STRICT", True),
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
-            weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.7),
+            weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.45),
             rate_limit_requests=_get_int("RATE_LIMIT_REQUESTS", 30),
             rate_limit_window_seconds=_get_float("RATE_LIMIT_WINDOW_SECONDS", 60.0),
             max_body_bytes=_get_int("MAX_BODY_BYTES", 16384),
@@ -209,6 +227,18 @@ class Settings:
             )
         if self.retrieval_top_k <= 0:
             raise ValueError(f"TOP_K must be positive, got {self.retrieval_top_k}")
+        if self.rrf_k <= 0:
+            raise ValueError(f"RRF_K must be positive, got {self.rrf_k}")
+        if self.retrieval_dense_weight < 0:
+            raise ValueError(
+                "RETRIEVAL_DENSE_WEIGHT must be non-negative, got "
+                f"{self.retrieval_dense_weight}"
+            )
+        if self.retrieval_lexical_weight < 0:
+            raise ValueError(
+                "RETRIEVAL_LEXICAL_WEIGHT must be non-negative, got "
+                f"{self.retrieval_lexical_weight}"
+            )
         if self.weak_retrieval_distance <= 0:
             raise ValueError(
                 "WEAK_RETRIEVAL_DISTANCE must be positive, got "

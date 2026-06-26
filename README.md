@@ -74,8 +74,14 @@ prompt:
 - **Grounded-only generation.** The system prompt answers strictly from the
   retrieved CONTEXT and declines when the answer isn't there.
 - **Pre-LLM relevance gate.** If the best retrieval is too weak
-  (`WEAK_RETRIEVAL_DISTANCE`), the request short-circuits to a fixed
-  out-of-scope reply _before_ the model ever runs.
+  (`WEAK_RETRIEVAL_DISTANCE`, default 0.45), the request short-circuits to a
+  fixed out-of-scope reply _before_ the model ever runs. The gate anchors on the
+  closest _prose_ chunk, so off-topic queries that only graze a stray code chunk
+  still get declined.
+- **Deterministic task gates.** Two pre-retrieval gates decline on-corpus-sounding
+  _task_ requests the small model would otherwise just perform: generative asks
+  ("write me a poem/story/song/joke…") and translation asks
+  ("translate <text> to <language>").
 - **Hard output cap.** `LLM_NUM_PREDICT` (default 512) bounds generation, so no
   single answer can dump a whole document regardless of the prompt.
 - **Input cap.** `INPUT_MAX_CHARS` (default 800; over-length → HTTP 400) plus a Pydantic length
@@ -90,9 +96,26 @@ prompt:
   grounded technical answers) so the containment is regression-tested, not
   assumed.
 
-Full pipeline, every config knob, and the threat model are in
-[`docs/rag-chat.md`](docs/rag-chat.md). Code-aware chunking, source-code
-indexing, and hybrid (BM25 + dense) retrieval are on the roadmap, not yet built.
+The indexer covers more than prose: alongside `content/**/*.md` it now ingests
+55 architecture-defining source files curated under `content/code/<project>/`
+(Python, TypeScript/TSX, JS, C#, Astro, SQL, Prisma, + config). **Code-aware
+chunking** splits those by function/class/method boundaries — decorators and
+attributes stay with their definition, with a line-window fallback — while prose
+stays markdown-block chunked; each chunk carries `language` + `chunk_type`
+metadata. Retrieval is **hybrid**: dense pgvector cosine fused with lexical
+BM25-style full-text search (`websearch_to_tsquery` + `ts_rank`) via reciprocal
+rank fusion, with a hard per-project filter that fails open when a named project
+has no hits. Hybrid lifted the measured retrieval hit-rate over pure dense, and
+the acceptance harness still passes 9/9 — containment held while deep-code
+questions now answer from the actual source.
+
+Full pipeline, every config knob (`HYBRID_ENABLED`, `RRF_K`, the dense/lexical
+weights, `PROJECT_FILTER_STRICT`, …), and the threat model are in
+[`docs/rag-chat.md`](docs/rag-chat.md); the design rationale is in
+[ADR 0009](docs/decisions/0009-rag-chat-backend.md) and
+[ADR 0010](docs/decisions/0010-rag-containment.md). Still on the roadmap, not yet
+built: cross-encoder re-ranking, automatic per-project summary generation, and
+query expansion.
 
 The backend lives in [`chat-backend/`](chat-backend/) with its own README. The
 Docker stack (`docker-compose.yml`) and `Makefile` bring everything up with

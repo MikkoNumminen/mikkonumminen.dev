@@ -35,7 +35,13 @@ LLM_BUSY_REPLY = (
 # client contract unchanged and is safe under concurrent requests — no shared
 # per-client usage state to race on while friends hit the chat at once.
 UsageRecorder = Callable[[int, int], Awaitable[None]]
-from .guardrails import WEAK_RETRIEVAL_REPLY, is_weak_retrieval
+from .guardrails import (
+    GENERATIVE_REPLY,
+    WEAK_RETRIEVAL_REPLY,
+    is_generative_request,
+    is_translation_request,
+    is_weak_retrieval,
+)
 from .prompts import build_messages
 from .request_log import RequestLogger
 from .retrieval import (
@@ -71,18 +77,51 @@ async def chat_event_stream(
     top_k: int,
     weak_retrieval_distance: float,
     force_english: bool = True,
+    hybrid: bool = False,
+    rrf_k: int = 60,
+    dense_weight: float = 1.0,
+    lexical_weight: float = 1.0,
+    project_filter_strict: bool = False,
     on_complete: UsageRecorder | None = None,
     semaphore: asyncio.Semaphore | None = None,
     acquire_timeout: float = 0.5,
     log_request: RequestLogger | None = None,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
+
+    # Generative-intent gate: a request to WRITE creative/generic content (poem,
+    # story, song, ...) is out of scope. When it names an on-corpus topic it slips
+    # past the retrieval gate below, and a small local model won't reliably refuse
+    # it from the prompt alone — so decline deterministically before any retrieval
+    # or generation. No GPU touched, no sources cited.
+    if is_generative_request(query) or is_translation_request(query):
+        if log_request is not None:
+            log_request(query, [], True, len(GENERATIVE_REPLY))
+        yield sse.sse_sources([])
+        yield sse.sse_token(GENERATIVE_REPLY)
+        yield sse.sse_done()
+        return
+
     try:
-        chunks = await retrieve(embedder, db, query, top_k)
+        chunks = await retrieve(
+            embedder,
+            db,
+            query,
+            top_k,
+            hybrid=hybrid,
+            rrf_k=rrf_k,
+            dense_weight=dense_weight,
+            lexical_weight=lexical_weight,
+            project_filter_strict=project_filter_strict,
+        )
     except Exception:
         yield sse.sse_error("retrieval unavailable")
         return
 
+    # `chunks` may include a prose anchor appended by retrieve() when the top-k is
+    # all code (see retrieval._with_prose_anchor). It both feeds the prose-anchored
+    # gate below AND, when the gate passes, intentionally grounds the answer — so a
+    # deep-code answer is backed by the project's own description and cites it.
     distances = [chunk.distance for chunk in chunks]
 
     # Guardrail: when retrieval is empty or every chunk is too far to be

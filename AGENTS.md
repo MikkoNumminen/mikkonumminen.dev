@@ -73,7 +73,7 @@ docs/
   audits/         dated audit & review reports
 scripts/          build/data tooling (og images, skills registry, audit PDFs)
 chat-backend/     FastAPI RAG service (Python 3.12; Postgres+pgvector, in-process bge-small-en-v1.5, local Ollama)
-content/          Curated markdown corpus the indexer embeds (projects, cv, posts)
+content/          Curated corpus the indexer embeds: markdown (projects, cv, posts) + code/<project>/ source (excluded from tsconfig/eslint/prettier)
 docker-compose.yml + Makefile  One-command local stack (`make up` / `make index` / `make down`)
 ```
 
@@ -119,18 +119,20 @@ in mind before you edit the service.
 
 The `/chat` pipeline runs in a fixed order. Do not reorder it:
 
-1. Embed the query (fastembed `BAAI/bge-small-en-v1.5`, 384-dim, asymmetric query/passage prefixes).
-2. pgvector cosine top-k (`TOP_K`, default 6).
-3. Project-aware re-rank (a detected named project floats its chunks first — a soft boost, not a hard filter).
-4. **Weak-retrieval gate** (`guardrails.is_weak_retrieval`): if the best cosine distance exceeds `WEAK_RETRIEVAL_DISTANCE` (default 0.7), short-circuit **before** the LLM and return the fixed out-of-scope reply.
-5. Grounded system prompt (answer ONLY from retrieved CONTEXT) + `FORCE_ENGLISH`.
-6. Ollama streamed generation (local, OpenAI-compatible `/v1`), capped, surfaced as SSE (`sources`/`token`/`done`/`error`).
+1. **Pre-retrieval task gates** (deterministic, before any embedding): `is_generative_request` declines "write me a poem/story/song/joke/…" and `is_translation_request` declines "translate &lt;text&gt; to &lt;language&gt;". These are TASK requests that often name on-corpus topics, so the small model would otherwise perform them — they must run before retrieval, not in the prompt.
+2. Embed the query (fastembed `BAAI/bge-small-en-v1.5`, 384-dim, asymmetric query/passage prefixes).
+3. **Hybrid retrieval** (`HYBRID_ENABLED`, default true; false reverts to pure dense): dense pgvector cosine top-k (`TOP_K`, default 6) fused with lexical BM25-style full-text (`websearch_to_tsquery` + `ts_rank` over the generated `content_tsv`) via **reciprocal rank fusion** — `score = sum(weight / (RRF_K + rank))` across both lists, `RRF_K` default 60, `RETRIEVAL_DENSE_WEIGHT` / `RETRIEVAL_LEXICAL_WEIGHT` default 1.0 each.
+4. **Hard per-project filter** (`PROJECT_FILTER_STRICT`, default true): a detected named project restricts retrieval to its chunks, **failing open** for the gate — if the named project returns nothing, it falls back so the gate sees the true global best. (This replaces the old soft re-rank boost.)
+5. **Weak-retrieval gate** (`guardrails.is_weak_retrieval`): anchored on the best **prose-chunk** distance (code chunks lower off-topic distances, so gating on prose keeps off-topic queries that only match stray code out; the closest prose is fetched explicitly via `db.closest_prose` when the top-k has none). If it exceeds `WEAK_RETRIEVAL_DISTANCE` (default 0.45, lowered for the code-enriched corpus), short-circuit **before** the LLM and return the fixed out-of-scope reply.
+6. Grounded system prompt (answer ONLY from retrieved CONTEXT) + `FORCE_ENGLISH`.
+7. Ollama streamed generation (local, OpenAI-compatible `/v1`), capped, surfaced as SSE (`sources`/`token`/`done`/`error`).
 
 **Containment must stay architectural — never weaken a layer to prompt-wording-only.**
 These are defense in depth and several do not depend on the model obeying the prompt:
 
 - **Input cap** — `INPUT_MAX_CHARS` (default 800) in the handler (HTTP 400), a Pydantic `max_length=4000` backstop (422), and `MAX_BODY_BYTES` (default 16384) byte cap in ASGI middleware.
-- **Relevance gate** — the pre-LLM short-circuit above. Keep it before generation; do not move it into the prompt.
+- **Relevance gate** — the pre-LLM short-circuit above, anchored on the closest **prose** chunk. Keep it before generation; do not move it into the prompt.
+- **Pre-retrieval task gates** — `is_generative_request` and `is_translation_request` decline poem/translate-style TASK requests deterministically, before retrieval. They mitigate (not cure) the model performing a literal on-corpus task; keep them as code, not prompt wording.
 - **Output cap** — `LLM_NUM_PREDICT` (default 512) hard `num_predict`, so no single answer can dump a document regardless of prompt content.
 - **Concurrency** — an `asyncio.Semaphore` (`LLM_MAX_CONCURRENCY`, default 2) around generation, acquired with a bounded wait (`LLM_ACQUIRE_TIMEOUT_SECONDS`, must be > 0); excess load is shed with a short busy reply, never queued. The permit must release on every exit path (including mid-stream client disconnect) — preserve that if you touch the streaming code.
 - **Rate limiting** — per-IP sliding window (`RATE_LIMIT_REQUESTS` default 30 / `RATE_LIMIT_WINDOW_SECONDS` default 60).
@@ -140,19 +142,35 @@ These are defense in depth and several do not depend on the model obeying the pr
 Every knob is a validated env var: `TOP_K`, `WEAK_RETRIEVAL_DISTANCE`, `LLM_NUM_PREDICT`,
 `INPUT_MAX_CHARS`, `LLM_MAX_CONCURRENCY`, `LLM_ACQUIRE_TIMEOUT_SECONDS`, `RAG_LOG_FILE`,
 `MAX_BODY_BYTES`, `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`, `FORCE_ENGLISH`,
-`CORS_ALLOW_ORIGINS`, plus the chunk-size knobs. Touch behavior through config and tests,
-not by hardcoding.
+`CORS_ALLOW_ORIGINS`, the hybrid-retrieval knobs (`HYBRID_ENABLED`, `RRF_K` default 60,
+`RETRIEVAL_DENSE_WEIGHT` / `RETRIEVAL_LEXICAL_WEIGHT` default 1.0, `PROJECT_FILTER_STRICT`
+default true), plus the chunk-size knobs. Touch behavior through config and tests, not by
+hardcoding.
 
-Code-aware chunking, source/config indexing, language + `chunk_type` metadata, and hybrid
-BM25 + dense retrieval (reciprocal rank fusion) with a hard per-project filter are **roadmap
-(Workstream B), not built**. Today retrieval is dense-only with the soft project boost — do
-not document or rely on them as if they exist.
+**Indexing & hybrid retrieval (as-built).** The indexer embeds the curated markdown corpus
+under `content/**/*.md` **and** curated source under `content/code/<project>/` (`py`, `ts`,
+`tsx`, `js`, `cs`, `astro`, `sql`, `prisma`, + config) — 55 architecture-defining files
+curated from the sibling project repos. Chunking is **code-aware**: source splits on
+function/class/method boundaries (python/typescript/javascript/csharp), keeps
+decorators/attributes with their definition, falls back to a line window; prose stays
+markdown-block chunked. Each chunk carries `language` + `chunk_type` (`prose` | `code`)
+metadata. Schema migration `sql/002` added `language`, `chunk_type` (default `prose`), and a
+GENERATED `content_tsv` tsvector behind a GIN index (backfilled) — the lexical leg of the
+hybrid fusion above. Off-topic queries that match only stray code are still contained: the
+weak-retrieval gate anchors on prose distance, and the two pre-retrieval task gates refuse
+poem/translate-style on-corpus tasks. The deep-code questions that this corpus enables now
+answer from actual source. `content/code/` is corpus data, not site code — it is excluded
+from `tsconfig` / `eslint` / `prettier`. See [`docs/rag-chat.md`](docs/rag-chat.md) for the
+full design.
+
+Still **roadmap (not built)** — do not document or rely on them as if they exist:
+cross-encoder re-ranking, automatic per-project summary generation, query expansion.
 
 **Validate before you push** (run from `chat-backend/`):
 
 ```bash
 python -m pytest              # backend unit suite (chunking, guardrails, pipeline, middleware, rate limit, ...)
-python -m evals.acceptance    # 9 black-box containment contract cases (injection no-dump, prompt-reveal blocked, off-topic declined, input caps, grounded answers)
+python -m evals.acceptance    # 9 black-box containment contract cases (injection no-dump, prompt-reveal blocked, off-topic declined incl. stray-code leaks, poem/translate task gates refuse, input caps, grounded deep-code answers)
 ```
 
 The acceptance harness classifiers are anchored on the real refusal wording so they cannot

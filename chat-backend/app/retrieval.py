@@ -23,26 +23,56 @@ class SupportsEmbedQuery(Protocol):
 
 class SupportsSearch(Protocol):
     async def search(
-        self, embedding: list[float], top_k: int
+        self,
+        embedding: list[float],
+        top_k: int,
+        projects: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
+
+    async def search_lexical(
+        self,
+        query: str,
+        top_k: int,
+        projects: Sequence[str] | None = None,
+    ) -> Sequence[Mapping[str, Any]]: ...
+
+    async def closest_prose(
+        self, embedding: list[float]
+    ) -> Mapping[str, Any] | None: ...
 
 
 @dataclass(frozen=True)
 class RetrievedChunk:
-    """One retrieved chunk plus its cosine distance (smaller = more similar)."""
+    """One retrieved chunk plus its cosine distance (smaller = more similar).
+
+    `distance` is always the DENSE cosine distance — that is what the
+    weak-retrieval gate keys on, so hybrid fusion must never overwrite it. A
+    chunk surfaced by the lexical search but absent from the dense candidates
+    carries `_LEXICAL_ONLY_DISTANCE` (the cosine maximum) so it can be ranked
+    without ever, on its own, making the dense-based gate judge the query
+    relevant. `chunk_index` is the fusion identity (a source has many chunks).
+    `chunk_type` ('prose' | 'code') lets the weak-retrieval gate anchor on prose
+    distances — a stray nearby code chunk must not make an off-topic query look
+    relevant.
+    """
 
     source: str
     title: str
     project: str | None
     content: str
     distance: float
+    chunk_index: int = 0
+    chunk_type: str = "prose"
 
 
-# When the query names a project, pull this many * top_k candidates so that
-# project's chunks are present to float up; capped so a large top_k can't end up
-# scanning a big slice of the table.
+# When the query names a project, or hybrid fusion is on, pull this many * top_k
+# candidates so the right chunks are present to fuse/float up; capped so a large
+# top_k can't end up scanning a big slice of the table.
 _CANDIDATE_MULTIPLIER = 4
 _CANDIDATE_CAP = 50
+# pgvector cosine distance is in [0, 2]; a lexical-only chunk gets the maximum so
+# it never lowers the gate's "is anything relevant?" minimum on its own.
+_LEXICAL_ONLY_DISTANCE = 2.0
 
 
 def _to_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
@@ -52,7 +82,127 @@ def _to_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         project=(None if row["project"] is None else str(row["project"])),
         content=str(row["content"]),
         distance=float(row["distance"]),
+        chunk_index=int(row["chunk_index"]),
+        chunk_type=str(row["chunk_type"]),
     )
+
+
+def _to_lexical_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
+    """A lexical-search row as a RetrievedChunk with a sentinel dense distance."""
+    return RetrievedChunk(
+        source=str(row["source"]),
+        title=str(row["title"]),
+        project=(None if row["project"] is None else str(row["project"])),
+        content=str(row["content"]),
+        distance=_LEXICAL_ONLY_DISTANCE,
+        chunk_index=int(row["chunk_index"]),
+        chunk_type=str(row["chunk_type"]),
+    )
+
+
+def _key(chunk: RetrievedChunk) -> tuple[str, int]:
+    return (chunk.source, chunk.chunk_index)
+
+
+def _project_boost(
+    chunks: list[RetrievedChunk], wanted: set[str]
+) -> list[RetrievedChunk]:
+    """Stable-partition the named project's chunks to the front (soft boost).
+
+    Preserves the incoming order within each group, so the most-relevant chunk
+    still leads — only the named project's chunks are lifted above the rest.
+    """
+    matched = [c for c in chunks if c.project in wanted]
+    others = [c for c in chunks if c.project not in wanted]
+    return matched + others
+
+
+def _rrf_fuse(
+    dense: list[RetrievedChunk],
+    lexical_rows: Sequence[Mapping[str, Any]],
+    *,
+    rrf_k: int,
+    dense_weight: float,
+    lexical_weight: float,
+) -> list[RetrievedChunk]:
+    """Fuse the dense and lexical rankings with reciprocal rank fusion.
+
+    RRF scores each chunk by Σ weight_list / (rrf_k + rank_in_list), summed over
+    the lists it appears in (rank starting at 1). It needs only the ORDER of each
+    list, not comparable raw scores — which is why it combines cosine distance and
+    ts_rank cleanly. Ties break toward the smaller dense distance, so a chunk
+    strong in both beats a lexical-only one. Dense chunks keep their real
+    distance; lexical-only chunks carry the sentinel (see RetrievedChunk).
+    """
+    scores: dict[tuple[str, int], float] = {}
+    chunks: dict[tuple[str, int], RetrievedChunk] = {}
+
+    for rank, chunk in enumerate(dense, start=1):
+        k = _key(chunk)
+        scores[k] = scores.get(k, 0.0) + dense_weight / (rrf_k + rank)
+        chunks[k] = chunk
+    for rank, row in enumerate(lexical_rows, start=1):
+        chunk = _to_lexical_chunk(row)
+        k = _key(chunk)
+        scores[k] = scores.get(k, 0.0) + lexical_weight / (rrf_k + rank)
+        chunks.setdefault(k, chunk)  # keep the dense copy (real distance) if present
+
+    return sorted(
+        chunks.values(),
+        key=lambda c: (-scores[_key(c)], c.distance),
+    )
+
+
+def _ensure_gate_anchor(
+    result: list[RetrievedChunk], dense: list[RetrievedChunk], top_k: int
+) -> list[RetrievedChunk]:
+    """Guarantee the single closest dense chunk is in the returned top_k.
+
+    The weak-retrieval gate refuses when the BEST dense distance in the returned
+    chunks exceeds the threshold. Fusion could, in principle, rank that closest
+    chunk just out of the top_k; prepending it (and re-truncating) keeps the gate
+    anchored on the true closest distance so a relevant query is never refused
+    for a fusion-ordering accident. A no-op in the overwhelmingly common case
+    where the closest chunk already ranks highly.
+    """
+    if not dense:
+        return result
+    best = min(dense, key=lambda c: c.distance)
+    if any(_key(c) == _key(best) for c in result):
+        return result
+    return ([best] + result)[:top_k]
+
+
+async def _with_prose_anchor(
+    result: list[RetrievedChunk],
+    db: SupportsSearch,
+    vector: list[float],
+) -> list[RetrievedChunk]:
+    """Give the prose-anchored weak-retrieval gate a prose distance to judge.
+
+    Off-topic queries ("translate hello to spanish", "what time is it in New
+    York") can retrieve ONLY code chunks — coincidental token overlap with the
+    source — leaving no prose in the result for the gate to key on, so a near code
+    chunk would falsely pass. When the result has no prose, append the corpus's
+    closest prose chunk: far prose ⇒ the gate refuses (off-topic), near prose ⇒
+    a real description grounds a legitimate deep-code answer. No-op when the result
+    already holds prose, or when the corpus has no prose at all (code-only works).
+
+    INTENTIONAL: the appended chunk is more than a gate probe — when the gate
+    passes (near prose ≤ threshold, genuinely relevant) it stays in the returned
+    list and so feeds the answer's context and `sources` (a +1 source on an
+    all-code top-k). That extra grounding — the project's own description
+    alongside its code — is desirable, so it is deliberately NOT stripped before
+    the answer.
+    """
+    # Empty retrieval already refuses (is_weak_retrieval([]) is True), and prose
+    # already in the result means the gate has its signal — neither needs a fetch.
+    if not result or any(c.chunk_type == "prose" for c in result):
+        return result
+    prose_row = await db.closest_prose(vector)
+    if prose_row is None:
+        return result
+    return result + [_to_chunk(prose_row)]
 
 
 async def retrieve(
@@ -60,31 +210,82 @@ async def retrieve(
     db: SupportsSearch,
     query: str,
     top_k: int,
+    *,
+    hybrid: bool = False,
+    rrf_k: int = 60,
+    dense_weight: float = 1.0,
+    lexical_weight: float = 1.0,
+    project_filter_strict: bool = False,
 ) -> list[RetrievedChunk]:
-    """Embed `query` and return its `top_k` nearest corpus chunks.
+    """Embed `query` and return its `top_k` most relevant corpus chunks.
 
-    When the query NAMES a project (see `query_projects.detect_projects`), pull a
-    wider candidate set and float that project's chunks to the front before
-    truncating to `top_k` — so a semantically-similar passage from a DIFFERENT
-    project can't outrank the named project's own chunks (the cross-project
-    contamination bug). When no project is named, this is byte-for-byte a plain
-    `top_k` cosine search.
+    Dense cosine search is always run (its closest distance anchors the
+    weak-retrieval gate). With `hybrid`, a lexical (BM25-style) search is run too
+    and the two rankings are fused with RRF, so exact identifiers the embeddings
+    blur are still surfaced. When the query NAMES a project: `project_filter_strict`
+    HARD-restricts both searches to those projects; otherwise the named project's
+    chunks are soft-boosted to the front (the cross-project contamination fix).
+    With `hybrid=False` and no project named this is byte-for-byte a plain `top_k`
+    cosine search — the feature is fully reversible from config.
     """
     vector = embedder.embed_query(query)
     wanted = detect_projects(query)
-    if not wanted:
-        rows = await db.search(vector, top_k)
-        return [_to_chunk(row) for row in rows]
+    strict = bool(wanted) and project_filter_strict
+    project_filter: list[str] | None = sorted(wanted) if strict else None
 
-    candidate_k = min(top_k * _CANDIDATE_MULTIPLIER, _CANDIDATE_CAP)
-    rows = await db.search(vector, candidate_k)
-    chunks = [_to_chunk(row) for row in rows]
-    # Stable partition: db rows arrive in ascending cosine distance and list
-    # comprehensions preserve that order, so within each group the most-similar
-    # chunk still leads — we only lift the named project's chunks above the rest.
-    matched = [c for c in chunks if c.project in wanted]
-    others = [c for c in chunks if c.project not in wanted]
-    return (matched + others)[:top_k]
+    widen = hybrid or (bool(wanted) and not strict)
+    candidate_k = min(top_k * _CANDIDATE_MULTIPLIER, _CANDIDATE_CAP) if widen else top_k
+
+    if project_filter is not None:
+        dense_rows = await db.search(vector, candidate_k, project_filter)
+        if not dense_rows:
+            # Fail open for the gate: the named project has no surfacing chunk, so
+            # a hard filter would starve the weak-retrieval gate into a false
+            # refusal. Drop strict and re-run unfiltered so the gate sees the true
+            # global best distance (any of the named project's chunks that do
+            # surface are still soft-boosted below).
+            strict = False
+            project_filter = None
+            dense_rows = await db.search(vector, candidate_k)
+    else:
+        dense_rows = await db.search(vector, candidate_k)
+    dense_chunks = [_to_chunk(row) for row in dense_rows]
+    # Gate-anchor pool: when soft-boosting a NAMED project, anchor on that
+    # project's closest chunk so the gate isn't starved by the boost — but never
+    # force a wrong-project chunk back in, which would undo the cross-project
+    # contamination fix. Otherwise anchor on the closest chunk overall.
+    anchor_pool = (
+        [c for c in dense_chunks if c.project in wanted]
+        if (wanted and not strict)
+        else dense_chunks
+    )
+
+    if not hybrid:
+        result = dense_chunks
+        if wanted and not strict:
+            result = _project_boost(result, wanted)
+        # Anchor on EVERY path: fusion or the boost can push the gate's closest
+        # eligible chunk out of top_k, starving the weak-retrieval gate into a
+        # false refusal. (No-op when that chunk already ranks in.)
+        anchored = _ensure_gate_anchor(result[:top_k], anchor_pool, top_k)
+        return await _with_prose_anchor(anchored, db, vector)
+
+    if project_filter is not None:
+        lexical_rows = await db.search_lexical(query, candidate_k, project_filter)
+    else:
+        lexical_rows = await db.search_lexical(query, candidate_k)
+
+    fused = _rrf_fuse(
+        dense_chunks,
+        lexical_rows,
+        rrf_k=rrf_k,
+        dense_weight=dense_weight,
+        lexical_weight=lexical_weight,
+    )
+    if wanted and not strict:
+        fused = _project_boost(fused, wanted)
+    result = _ensure_gate_anchor(fused[:top_k], anchor_pool, top_k)
+    return await _with_prose_anchor(result, db, vector)
 
 
 def to_context(chunks: Sequence[RetrievedChunk]) -> list[ContextChunk]:

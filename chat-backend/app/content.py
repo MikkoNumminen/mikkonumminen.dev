@@ -37,6 +37,37 @@ _H1_RE = re.compile(r"^#[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 
 _KNOWN_KINDS = {"project", "cv", "post"}
 
+# Source/config files (under content/code/<project>/) the indexer ingests
+# alongside markdown, so the corpus carries real technical substance, not just
+# README-level prose. Extension -> language; the config formats are tagged
+# kind='config', the rest kind='code'.
+_LANG_BY_EXT = {
+    ".py": "python",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".cs": "csharp",
+    ".astro": "astro",
+    ".sql": "sql",
+    ".prisma": "prisma",
+    ".json": "json",
+    ".toml": "toml",
+    ".yml": "yaml",
+    ".yaml": "yaml",
+}
+_CONFIG_LANGS = {"json", "toml", "yaml"}
+# Skip a source file larger than this (bytes): a single huge or generated file
+# would explode into noise chunks and isn't the technical substance we want.
+_MAX_CODE_FILE_BYTES = 100_000
+# Subtree under the content dir holding source/config (everything else is prose).
+_CODE_SUBDIR = "code"
+
+
+def is_code_doc(doc: "ContentDoc") -> bool:
+    """True for source/config docs (chunk_type 'code'), False for markdown prose."""
+    return doc.kind in {"code", "config"}
+
 
 @dataclass(frozen=True)
 class ContentDoc:
@@ -49,6 +80,9 @@ class ContentDoc:
     kind: str
     project: str | None
     url: str | None
+    language: str | None = None
+    """Programming/markup language for `kind in {code, config}` docs; None for
+    markdown prose. Drives code-aware chunking and the `language` column."""
 
 
 def parse_front_matter(raw: str) -> tuple[dict[str, str], str]:
@@ -131,16 +165,83 @@ def load_doc(path: Path, content_dir: Path) -> ContentDoc:
     )
 
 
-def load_docs(content_dir: str | Path) -> list[ContentDoc]:
-    """Load every `*.md` under `content_dir`, sorted by source path.
+def load_code_doc(path: Path, content_dir: Path) -> ContentDoc | None:
+    """Parse one source/config file (under content/code/) into a `ContentDoc`.
 
-    Sorting makes the indexer's output order deterministic across machines.
-    Returns an empty list when the directory does not exist or holds no
-    markdown — the caller decides whether that is an error (the indexer treats
-    it as a no-op with a warning).
+    Source files carry no front-matter, so everything is derived from the path:
+    `source`/`title` are the content-relative path, `language` from the
+    extension, `kind` is 'config' for data formats else 'code', and `project` is
+    the first segment under `code/` (content/code/<project>/...). Returns None —
+    skipping the file — for an unindexable type (unknown extension), a file that
+    can't be read as UTF-8 (binary), or a file directly under code/ with no
+    <project> segment to attribute it to.
+    """
+    language = _LANG_BY_EXT.get(path.suffix.lower())
+    if language is None:
+        return None
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return None
+    rel_path = path.relative_to(content_dir)
+    source = rel_path.as_posix()
+    # parts == ('code', '<project>', ...); the project is the segment after code/.
+    # A file directly under code/ (no <project> segment) can't be attributed, so
+    # skip it loudly rather than indexing a project-less chunk that pollutes the
+    # per-project filter and citations.
+    parts = rel_path.parts
+    if len(parts) < 3:
+        print(f"[content] skipping {source}: no <project> segment under code/")
+        return None
+    project = parts[1]
+    kind = "config" if language in _CONFIG_LANGS else "code"
+    return ContentDoc(
+        source=source,
+        title=source,
+        body=raw.strip(),
+        kind=kind,
+        project=project,
+        url=None,
+        language=language,
+    )
+
+
+def load_docs(content_dir: str | Path) -> list[ContentDoc]:
+    """Load every markdown doc plus every source/config file, by source path.
+
+    Markdown is loaded from anywhere under `content_dir` EXCEPT the `code/`
+    subtree; source and config files are loaded from `content/code/<project>/`
+    (skipping unknown extensions, unreadable/binary files, and anything over the
+    size cap). Sorting by source makes the indexer's output order deterministic
+    across machines. Returns an empty list when the directory does not exist or
+    holds nothing indexable — the indexer treats that as a no-op with a warning.
     """
     root = Path(content_dir)
     if not root.is_dir():
         return []
-    docs = [load_doc(path, root) for path in sorted(root.rglob("*.md"))]
-    return docs
+
+    code_root = root / _CODE_SUBDIR
+    docs: list[ContentDoc] = []
+
+    # Markdown prose — everything except the code/ subtree (a .md under code/, if
+    # any, is treated as source-adjacent and skipped here to avoid double-loading).
+    for path in root.rglob("*.md"):
+        if code_root in path.parents:
+            continue
+        docs.append(load_doc(path, root))
+
+    # Source + config under code/.
+    if code_root.is_dir():
+        for path in code_root.rglob("*"):
+            if not path.is_file():
+                continue
+            try:
+                if path.stat().st_size > _MAX_CODE_FILE_BYTES:
+                    continue
+            except OSError:
+                continue
+            doc = load_code_doc(path, root)
+            if doc is not None:
+                docs.append(doc)
+
+    return sorted(docs, key=lambda d: d.source)
