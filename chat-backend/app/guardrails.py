@@ -58,23 +58,33 @@ GENERATIVE_REPLY = (
     "or translate content like that."
 )
 
+# Creative ARTEFACT group, shared by both shapes below.
+_ARTEFACT = (
+    r"poems?|haikus?|limericks?|sonnets?|verses?|rhymes?|songs?|lyrics|raps?|"
+    r"jokes?|riddles?|essays?|screenplays?|novels?|poetry|stor(?:y|ies)|tales?"
+)
+
 # A request like "write me a poem about Helsinki" names an on-corpus topic, so it
 # retrieves real content and slips past is_weak_retrieval; and a small local model
 # does not reliably refuse it from the system prompt alone (especially once the
-# corpus holds source code, which lowers off-topic distances). Match a producing
-# VERB, then a PRODUCING DETERMINER (a/an/some/another/one/your — deliberately NOT
-# "the"/"of the"), then 0-2 adjectives, then a creative ARTEFACT. The determiner
-# anchor is what keeps legitimate questions out: "the story behind ReadLog", "an
-# overview of the songs feature", "a summary of the essays project" don't match
-# (no producing determiner immediately before the artefact), while "a story" /
-# "a joke" / "me a funny poem" do.
+# corpus holds source code, which lowers off-topic distances). Two shapes, both
+# requiring a PRODUCING DETERMINER (a/an/some/another/one/your — NOT "the"/"of
+# the") then 0-2 adjectives then the artefact:
+#   - VERB-based: a producing verb then the determiner+artefact.
+#   - VERB-LESS: anchored at the START ("a haiku about ReadLog please", "I want a
+#     poem") so a mid-sentence topic noun ("a question about the songs feature",
+#     "an overview of the audio bus") does NOT trip it.
+# The determiner anchor is what keeps legitimate questions out ("the story behind
+# ReadLog", "an overview of the songs feature" — no producing determiner before
+# the artefact).
 _GENERATIVE_RE = re.compile(
+    r"(?:"
     r"\b(?:come up with|make up|write|compose|create|generate|draft|pen|recite|"
-    r"sing|tell|make|give)\b\s+"
-    r"(?:me\s+|us\s+)?(?:a|an|some|another|one|your)\s+"
-    r"(?:\w+\s+){0,2}"
-    r"(?:poems?|haikus?|limericks?|sonnets?|verses?|rhymes?|songs?|lyrics|raps?|"
-    r"jokes?|riddles?|essays?|screenplays?|novels?|poetry|stor(?:y|ies)|tales?)\b",
+    r"sing|tell|make|give)\b\s+(?:me\s+|us\s+)?(?:a|an|some|another|one|your)\s+"
+    r"(?:\w+\s+){0,2}(?:" + _ARTEFACT + r")\b"
+    r"|^(?:i\s+want|i'?d\s+like|can\s+i\s+(?:get|have)|i\s+need|gimme|give me)?\s*"
+    r"(?:a|an|some|another|one|your)\s+(?:\w+\s+){0,2}(?:" + _ARTEFACT + r")\b"
+    r")",
     re.IGNORECASE,
 )
 

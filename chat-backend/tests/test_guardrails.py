@@ -85,6 +85,11 @@ def test_generative_requests_are_declined() -> None:
         "recite a limerick",
         # adjectives between the determiner and the artefact
         "write me a funny poem",
+        # VERB-LESS artefact requests (live: a real haiku was written)
+        "a haiku about ReadLog please",
+        "I want a poem about X",
+        "can I get a poem about Mikko's work",
+        "I'd like a limerick",
     ):
         assert is_generative_request(q) is True, q
 
@@ -104,6 +109,10 @@ def test_real_questions_are_not_generative() -> None:
         "give a summary of the essays project",
         "how would you describe Spacepotatis",
         "tell me about the songs feature",
+        # leading determiner + topic noun (NOT an artefact) — verb-less guard
+        "a question about the songs feature",
+        "an overview of the audio bus",
+        "how does the normalizer work",
     ):
         assert is_generative_request(q) is False, q
 
