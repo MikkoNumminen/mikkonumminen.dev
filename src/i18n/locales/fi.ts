@@ -167,8 +167,8 @@ export const fi: Translations = {
     hrm: {
       tagline: 'Full-stack-henkilöstöhallintajärjestelmä',
       description:
-        'Tuotantovalmis HR-järjestelmä portfoliotasoisella toteutuksella. Kaksi tietokantaa (PostgreSQL rakenteelliselle datalle, MongoDB muuttumattomalle, hajautusketjutetulle auditlokille), 34 käyttöoikeutta käyttäjäkohtaisilla poikkeuksilla, TOTP-kaksivaiheinen tunnistautuminen, palvelinpuolen nopeusrajoitus, OpenTelemetry-jäljitys, 18 kieltä ja reaaliaikaiset toimintailmoitukset SSE:llä (polling-varavaihtoehdolla).',
-      highlights: ['1828+ testiä', '91,9 % rivikattavuus', 'PostgreSQL + MongoDB'],
+        'Tuotantovalmis HR-järjestelmä portfoliotasoisella toteutuksella. Kaksi tietokantaa (PostgreSQL rakenteelliselle datalle, MongoDB muuttumattomalle, hajautusketjutetulle auditlokille), 38 käyttöoikeutta käyttäjäkohtaisilla poikkeuksilla, TOTP-kaksivaiheinen tunnistautuminen, palvelinpuolen nopeusrajoitus, OpenTelemetry-jäljitys, 18 kieltä ja reaaliaikaiset toimintailmoitukset SSE:llä (polling-varavaihtoehdolla).',
+      highlights: ['2906+ testiä', '92,2 % rivikattavuus', 'PostgreSQL + MongoDB'],
     },
     platform: {
       tagline: 'Yhteisöalusta HRM:n päälle rakennettuna',
@@ -184,7 +184,7 @@ export const fi: Translations = {
     readlog: {
       tagline: 'Pidä kirjaa jokaisesta lukemastasi kirjasta',
       description:
-        'Henkilökohtainen lukupäiväkirja. Hakee kirjatiedot Google Booksista ja Open Librarysta samanaikaisesti, joten kirjan lisääminen on nopeaa — valitset vain formaatin (paperi, e-kirja tai äänikirja) ja milloin luit sen. Etusivulla näkyy mitä muut ovat lukeneet viime aikoina.',
+        'Henkilökohtainen lukupäiväkirja. Hakee kirjatiedot Google Booksista ja Open Librarysta samanaikaisesti, joten kirjan lisääminen on nopeaa — valitset vain formaatin (paperi, e-kirja tai äänikirja), 0–5 tähden arvion ja milloin luit sen. Etusivulla näkyy mitä muut ovat lukeneet viime aikoina.',
       highlights: ['90 testiä', 'Monilähde-haku'],
     },
     'readlog-dotnet': {
@@ -200,10 +200,10 @@ export const fi: Translations = {
     audiobookmaker: {
       tagline: 'PDF → äänikirja',
       description:
-        'Työpöytäsovellus joka muuntaa PDF-, EPUB- ja tekstitiedostot äänikirjoiksi; skannatut PDF:t ajetaan ensin Tesseract-OCR:n läpi. Neljä puhesynteesimoottoria: Edge-TTS (pilvi, 30+ ääntä kuudella kielellä), Piper (offline, ei vaadi GPU:ta), Chatterbox "Grandmom"-äänellä äänen kloonaukseen referenssinäytteestä ja VoxCPM2 zero-shot-äänenkloonaukseen ja -suunnitteluun tekstistä (vaatii NVIDIA-näytönohjaimen, vain kehittäjäasennus). Sama Chatterbox-moottori ääninäyttelee Spacepotatiksen pelin sisäisen tarinan. Englannin puhesynteesi toimii jo hyvin; suomi on vaikeampi syntetisoida käytettävissä olevilla resursseilla, joten sitä varten on rakennettu 16-vaiheinen normalisointiputki joka hoitaa numeroiden kontekstitaivutuksen, lyhenteiden purkamisen, yksikkösymbolien käsittelyn ja vierassanojen ääntämiskorjaukset — laatu paranee joka julkaisun myötä. Jaetaan Windows-asennusohjelmana automaattipäivityksillä ja 2400+ testillä.',
+        'Työpöytäsovellus joka muuntaa PDF-, EPUB-, Word/DOCX- ja tekstitiedostot äänikirjoiksi; skannatut PDF:t ajetaan ensin Tesseract-OCR:n läpi. Neljä puhesynteesimoottoria: Edge-TTS (pilvi, 30+ ääntä kuudella kielellä), Piper (offline, ei vaadi GPU:ta), Chatterbox "Grandmom"-äänellä äänen kloonaukseen referenssinäytteestä ja VoxCPM2 zero-shot-äänenkloonaukseen ja -suunnitteluun tekstistä (vaatii NVIDIA-näytönohjaimen, vain kehittäjäasennus). Sama Chatterbox-moottori ääninäyttelee Spacepotatiksen pelin sisäisen tarinan. Englannin puhesynteesi toimii jo hyvin; suomi on vaikeampi syntetisoida käytettävissä olevilla resursseilla, joten sitä varten on rakennettu 19-vaiheinen normalisointiputki joka hoitaa numeroiden kontekstitaivutuksen, lyhenteiden purkamisen, yksikkösymbolien käsittelyn ja vierassanojen ääntämiskorjaukset — laatu paranee joka julkaisun myötä. Jaetaan Windows-asennusohjelmana automaattipäivityksillä ja 3000+ testillä.',
       highlights: [
         'Chatterbox-ääniklooni Grandmom-äänellä',
-        '16-vaiheinen suomen kielen normalisointi, 2400+ testiä',
+        '19-vaiheinen suomen kielen normalisointi, 3000+ testiä',
         'Antaa äänen Spacepotatiksen tarinalle',
       ],
     },
