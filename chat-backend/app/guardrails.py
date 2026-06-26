@@ -50,12 +50,12 @@ def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> 
     return best > max_distance
 
 
-# Out-of-scope reply for requests to WRITE creative/generic content. Distinct
-# from WEAK_RETRIEVAL_REPLY because these are declined on the QUERY pattern, not
-# on retrieval strength.
+# Out-of-scope reply for QUERY-pattern declines — both "write me a poem" and
+# "translate X into French". Distinct from WEAK_RETRIEVAL_REPLY because these are
+# declined on the request pattern, not on retrieval strength.
 GENERATIVE_REPLY = (
     "I only answer questions about Mikko's projects and work — I don't write "
-    "poems, stories, or other content like that."
+    "or translate content like that."
 )
 
 # A request like "write me a poem about Helsinki" names an on-corpus topic, so it
@@ -90,27 +90,44 @@ def is_generative_request(query: str) -> bool:
     return bool(_GENERATIVE_RE.search(query))
 
 
+# Target-language group, shared by every translation-request shape below.
+_LANG = (
+    r"spanish|french|german|finnish|swedish|english|italian|portuguese|dutch|"
+    r"russian|chinese|mandarin|japanese|korean|arabic|hindi|polish|norwegian|"
+    r"danish|greek|turkish|hebrew|latin|czech|romanian|hungarian|ukrainian"
+)
+
 # Translating text into a named language is a TASK, not a question about Mikko —
 # and because the portfolio itself is multilingual (EN/FI/SV i18n), a prose chunk
 # stays close enough that the retrieval gate passes, so a small model just does
-# the translation. Anchor on a LEADING "translate" (optionally after a politeness
-# marker) followed by a target language, so "how does the site translate to
-# Finnish" (a real question about the i18n) is NOT caught.
+# the translation. Match four imperative shapes, each anchored so genuine i18n
+# questions ("how does the site translate to Finnish", "is the portfolio
+# available in Finnish", "what is the project in the Finnish locale about") are
+# NOT caught — deliberately omitting the bare "what is X in LANG" form, which
+# over-gates those.
 _TRANSLATE_RE = re.compile(
+    r"(?:"
+    # 1. leading "translate ... (in)to LANG"
     r"^(?:please\s+|can you\s+|could you\s+|pls\s+|hey,?\s+)?translate\b"
-    r"[^.?!]{1,60}?\b(?:in)?to\b\s+"
-    r"(spanish|french|german|finnish|swedish|english|italian|portuguese|dutch|"
-    r"russian|chinese|mandarin|japanese|korean|arabic|hindi|polish|norwegian|"
-    r"danish|greek|turkish|hebrew|latin|czech|romanian|hungarian|ukrainian)\b",
+    r"[^.?!]{1,60}?\b(?:in)?to\b\s+\b(?:" + _LANG + r")\b"
+    # 2. "how do you / how to / how would you / how can i say ... in LANG"
+    r"|\bhow\s+(?:do\s+you|to|would\s+you|can\s+i)\s+say\b"
+    r"[^.?!]{0,40}?\bin\s+\b(?:" + _LANG + r")\b"
+    # 3. leading "say ... in LANG"
+    r"|^say\b[^.?!]{1,40}?\bin\s+\b(?:" + _LANG + r")\b"
+    # 4. "LANG (word|phrase|translation|equivalent) for ..."
+    r"|\b(?:" + _LANG + r")\s+(?:word|phrase|translation|equivalent)\s+for\b"
+    r")",
     re.IGNORECASE,
 )
 
 
 def is_translation_request(query: str) -> bool:
-    """True when the message is an imperative request to translate text into a
-    named language — a task, not a question about Mikko's work.
+    """True when the message asks to translate text into a named language — a
+    task, not a question about Mikko's work.
 
-    Anchored on a LEADING "translate" so "how does the site translate to Finnish"
-    (a genuine question about the portfolio's i18n) is not caught.
+    Catches four shapes ("translate X to LANG", "how do you say X in LANG", "say
+    X in LANG", "LANG word for X"), each anchored so genuine i18n questions about
+    the portfolio's own multilingual content are not caught.
     """
     return bool(_TRANSLATE_RE.search(query.strip()))

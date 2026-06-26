@@ -120,6 +120,12 @@ def test_translation_tasks_are_declined() -> None:
         "Translate this to Finnish",
         "please translate good morning into french",
         "can you translate the readme to german",
+        # paraphrases the leading-"translate" form missed (live leaks)
+        "say good morning in finnish",
+        "spanish word for hello",
+        "how do you say hello in spanish",
+        "french phrase for thank you",
+        "how to say thanks in german",
     ):
         assert is_translation_request(q) is True, q
 
@@ -131,5 +137,8 @@ def test_translation_questions_are_not_declined() -> None:
         "what languages does the portfolio support",
         "does ReadLog translate book titles",
         "how is the translation pipeline built",
+        # the reviewer's over-gating guards (bare "what is X in LANG" not added)
+        "is the portfolio available in finnish",
+        "what is the project in finnish locale about",
     ):
         assert is_translation_request(q) is False, q
