@@ -615,11 +615,15 @@ def cmd_prune() -> int:
         if rc == 127:
             print(_c("  ✗ docker not found on PATH", "31"))
             return 1
+        # `builder prune` reports "Total: <size>"; `container`/`image prune`
+        # report "Total reclaimed space: <size>". Match either Total line and take
+        # the size after the last colon — keying only on "reclaimed space:" would
+        # mis-report the build-cache stage (usually the biggest reclaim) as 0B.
         reclaimed = next(
             (
-                ln.split("reclaimed space:", 1)[1].strip()
+                ln.rsplit(":", 1)[1].strip()
                 for ln in out.splitlines()
-                if "reclaimed space:" in ln.lower()
+                if ln.lower().startswith("total") and ":" in ln
             ),
             "0B",
         )
