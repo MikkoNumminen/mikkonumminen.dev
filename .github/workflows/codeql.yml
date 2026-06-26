@@ -31,4 +31,11 @@ jobs:
           # extended security set and maintainability/quality checks. Worth the
           # extra analysis time on a small surface to catch more before merge.
           queries: security-and-quality
+          # `content/code/` is curated third-party project source the RAG backend
+          # indexes — corpus data, not this site's code. Exclude it from analysis
+          # (mirrors the tsconfig/eslint/prettier excludes) so findings in other
+          # repos' code don't gate this repo's PRs.
+          config: |
+            paths-ignore:
+              - content/code
       - uses: github/codeql-action/analyze@v4
