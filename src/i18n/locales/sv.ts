@@ -168,8 +168,8 @@ export const sv: Translations = {
     hrm: {
       tagline: 'Full-stack-system för personalhantering',
       description:
-        'Produktionsklart HR-system byggt enligt portföljstandard. Två databaser (PostgreSQL för strukturerad data, MongoDB för en oföränderlig hash-kedjad granskningslogg), 34 finkorniga behörigheter med användarspecifika undantag, TOTP-tvåfaktorsautentisering, hastighetsbegränsning på serversidan, OpenTelemetry-spårning, 18 språk och realtidsaktivitetsnotiser via SSE (med pollning som reserv).',
-      highlights: ['1828+ tester', '91,9 % radtäckning', 'PostgreSQL + MongoDB'],
+        'Produktionsklart HR-system byggt enligt portföljstandard. Två databaser (PostgreSQL för strukturerad data, MongoDB för en oföränderlig hash-kedjad granskningslogg), 38 finkorniga behörigheter med användarspecifika undantag, TOTP-tvåfaktorsautentisering, hastighetsbegränsning på serversidan, OpenTelemetry-spårning, 18 språk och realtidsaktivitetsnotiser via SSE (med pollning som reserv).',
+      highlights: ['2906+ tester', '92,2 % radtäckning', 'PostgreSQL + MongoDB'],
     },
     platform: {
       tagline: 'Communityplattform byggd ovanpå HRM',
@@ -185,7 +185,7 @@ export const sv: Translations = {
     readlog: {
       tagline: 'Spåra varje bok du läst',
       description:
-        'Personlig läsdagbok. Söker i Open Library och Google Books parallellt och avduplicerar resultat, sedan kan du logga böcker med format (papper / e-bok / ljudbok) och slutdatum. Publikt anonymt flöde av nyligen loggade böcker på startsidan.',
+        'Personlig läsdagbok. Söker i Open Library och Google Books parallellt och avduplicerar resultat, sedan kan du logga böcker med format (papper / e-bok / ljudbok), ett 0–5-stjärnbetyg och slutdatum. Publikt anonymt flöde av nyligen loggade böcker på startsidan.',
       highlights: ['90 tester', 'Sökning från flera källor'],
     },
     'readlog-dotnet': {
@@ -201,10 +201,10 @@ export const sv: Translations = {
     audiobookmaker: {
       tagline: 'PDF → ljudbok',
       description:
-        'Skrivbordsapp som omvandlar PDF-, EPUB- och textfiler till ljudböcker; skannade PDF:er körs först genom Tesseract-OCR. Fyra TTS-motorer: Edge-TTS (moln, 30+ röster på sex språk), Piper (offline, ingen GPU krävs), Chatterbox med "Grandmom"-rösten för röstkloning från ett kort referensklipp och VoxCPM2 för zero-shot röstkloning och röstdesign från text (kräver NVIDIA-GPU, endast utvecklarinstallation). Samma Chatterbox-motor ger rösten åt berättelsen i Spacepotatis. Engelsk talsyntes fungerar redan bra; finska är svårare att syntetisera med tillgängliga resurser, så den har en dedikerad 16-stegs textnormaliseringspipeline som hanterar kontextbaserad nummerböjning, förkortningsexpansion, enhetsavtal och lånordsuttalskorrigeringar — kvaliteten förbättras med varje release. Levereras som en Windows-installerare med automatiska uppdateringar och 2400+ tester.',
+        'Skrivbordsapp som omvandlar PDF-, EPUB-, Word/DOCX- och textfiler till ljudböcker; skannade PDF:er körs först genom Tesseract-OCR. Fyra TTS-motorer: Edge-TTS (moln, 30+ röster på sex språk), Piper (offline, ingen GPU krävs), Chatterbox med "Grandmom"-rösten för röstkloning från ett kort referensklipp och VoxCPM2 för zero-shot röstkloning och röstdesign från text (kräver NVIDIA-GPU, endast utvecklarinstallation). Samma Chatterbox-motor ger rösten åt berättelsen i Spacepotatis. Engelsk talsyntes fungerar redan bra; finska är svårare att syntetisera med tillgängliga resurser, så den har en dedikerad 19-stegs textnormaliseringspipeline som hanterar kontextbaserad nummerböjning, förkortningsexpansion, enhetsavtal och lånordsuttalskorrigeringar — kvaliteten förbättras med varje release. Levereras som en Windows-installerare med automatiska uppdateringar och 3000+ tester.',
       highlights: [
         'Chatterbox röstkloning med Grandmom-rösten',
-        '16-stegs finsk textnormalisering, 2400+ tester',
+        '19-stegs finsk textnormalisering, 3000+ tester',
         'Ger rösten åt berättelsen i Spacepotatis',
       ],
     },

@@ -170,8 +170,8 @@ export const en: Translations = {
     hrm: {
       tagline: 'Full-stack HR management system',
       description:
-        'Production-ready HR system built to portfolio standards. Two databases (PostgreSQL for structured data, MongoDB for an immutable, hash-chained audit log), 34 granular permissions with per-user overrides, TOTP 2FA, server-side rate limiting, OpenTelemetry tracing, 18 languages, and real-time activity notifications over SSE (with polling fallback).',
-      highlights: ['1828+ tests', '91.9% coverage', 'PostgreSQL + MongoDB'],
+        'Production-ready HR system built to portfolio standards. Two databases (PostgreSQL for structured data, MongoDB for an immutable, hash-chained audit log), 38 granular permissions with per-user overrides, TOTP 2FA, server-side rate limiting, OpenTelemetry tracing, 18 languages, and real-time activity notifications over SSE (with polling fallback).',
+      highlights: ['2906+ tests', '92.2% coverage', 'PostgreSQL + MongoDB'],
     },
     platform: {
       tagline: 'Community platform built on HRM',
@@ -187,7 +187,7 @@ export const en: Translations = {
     readlog: {
       tagline: "Track every book you've read",
       description:
-        'Personal reading tracker. Searches Open Library and Google Books in parallel and deduplicates results, then lets you log books with format (paper / e-book / audiobook) and finish date. Public anonymous feed of recently logged books on the homepage.',
+        'Personal reading tracker. Searches Open Library and Google Books in parallel and deduplicates results, then lets you log books with format (paper / e-book / audiobook), a 0–5 star rating, and finish date. Public anonymous feed of recently logged books on the homepage.',
       highlights: ['90 tests', 'Multi-source search'],
     },
     'readlog-dotnet': {
@@ -203,10 +203,10 @@ export const en: Translations = {
     audiobookmaker: {
       tagline: 'PDF → audiobook',
       description:
-        'Desktop app that turns PDF, EPUB, or plain text files into audiobooks; scanned PDFs are run through Tesseract OCR first. Four TTS engines: Edge-TTS (cloud, 30+ voices in 6 languages), Piper (offline, no GPU needed), Chatterbox with the "Grandmom" voice for voice cloning from a short reference clip, and VoxCPM2 for zero-shot voice cloning and voice design from text (NVIDIA GPU, developer setup only). The same Chatterbox engine voices the in-game story of Spacepotatis. English output quality is already strong; Finnish is harder to synthesize with available resources, so it gets a dedicated 16-pass text normalization pipeline that handles governor-word number inflection, abbreviation expansion, unit agreement, and loanword respelling — advancing with every release. Ships as a Windows installer with auto-updates and 2400+ tests.',
+        'Desktop app that turns PDF, EPUB, Word/DOCX, or plain text files into audiobooks; scanned PDFs are run through Tesseract OCR first. Four TTS engines: Edge-TTS (cloud, 30+ voices in 6 languages), Piper (offline, no GPU needed), Chatterbox with the "Grandmom" voice for voice cloning from a short reference clip, and VoxCPM2 for zero-shot voice cloning and voice design from text (NVIDIA GPU, developer setup only). The same Chatterbox engine voices the in-game story of Spacepotatis. English output quality is already strong; Finnish is harder to synthesize with available resources, so it gets a dedicated 19-pass text normalization pipeline that handles governor-word number inflection, abbreviation expansion, unit agreement, and loanword respelling — advancing with every release. Ships as a Windows installer with auto-updates and 3000+ tests.',
       highlights: [
         'Chatterbox voice cloning with the Grandmom voice',
-        '16-pass Finnish text normalization, 2400+ tests',
+        '19-pass Finnish text normalization, 3000+ tests',
         'Voices the in-game story of Spacepotatis',
       ],
     },
