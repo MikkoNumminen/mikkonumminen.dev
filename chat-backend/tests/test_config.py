@@ -23,6 +23,11 @@ _CONFIG_ENV_VARS = [
     "LLM_NUM_PREDICT",
     "FORCE_ENGLISH",
     "TOP_K",
+    "HYBRID_ENABLED",
+    "RRF_K",
+    "RETRIEVAL_DENSE_WEIGHT",
+    "RETRIEVAL_LEXICAL_WEIGHT",
+    "PROJECT_FILTER_STRICT",
     "CORS_ALLOW_ORIGINS",
     "WEAK_RETRIEVAL_DISTANCE",
     "RATE_LIMIT_REQUESTS",
@@ -74,6 +79,39 @@ def test_bad_input_max_chars_raises(
 ) -> None:
     monkeypatch.setenv("INPUT_MAX_CHARS", "0")
     with pytest.raises(ValueError, match="INPUT_MAX_CHARS must be positive"):
+        Settings.from_env()
+
+
+def test_hybrid_retrieval_defaults(clean_env: None) -> None:
+    settings = Settings.from_env()
+    assert settings.hybrid_enabled is True
+    assert settings.rrf_k == 60
+    assert settings.retrieval_dense_weight == 1.0
+    assert settings.retrieval_lexical_weight == 1.0
+    assert settings.project_filter_strict is True
+
+
+def test_hybrid_can_be_disabled(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HYBRID_ENABLED", "false")
+    monkeypatch.setenv("PROJECT_FILTER_STRICT", "off")
+    settings = Settings.from_env()
+    assert settings.hybrid_enabled is False
+    assert settings.project_filter_strict is False
+
+
+def test_bad_rrf_k_raises(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RRF_K", "0")
+    with pytest.raises(ValueError, match="RRF_K must be positive"):
+        Settings.from_env()
+
+
+def test_negative_fusion_weight_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RETRIEVAL_LEXICAL_WEIGHT", "-0.5")
+    with pytest.raises(ValueError, match="RETRIEVAL_LEXICAL_WEIGHT must be non-negative"):
         Settings.from_env()
 
 

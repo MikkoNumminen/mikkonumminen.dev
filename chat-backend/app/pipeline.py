@@ -71,6 +71,11 @@ async def chat_event_stream(
     top_k: int,
     weak_retrieval_distance: float,
     force_english: bool = True,
+    hybrid: bool = False,
+    rrf_k: int = 60,
+    dense_weight: float = 1.0,
+    lexical_weight: float = 1.0,
+    project_filter_strict: bool = False,
     on_complete: UsageRecorder | None = None,
     semaphore: asyncio.Semaphore | None = None,
     acquire_timeout: float = 0.5,
@@ -78,7 +83,17 @@ async def chat_event_stream(
 ) -> AsyncIterator[str]:
     start = time.monotonic()
     try:
-        chunks = await retrieve(embedder, db, query, top_k)
+        chunks = await retrieve(
+            embedder,
+            db,
+            query,
+            top_k,
+            hybrid=hybrid,
+            rrf_k=rrf_k,
+            dense_weight=dense_weight,
+            lexical_weight=lexical_weight,
+            project_filter_strict=project_filter_strict,
+        )
     except Exception:
         yield sse.sse_error("retrieval unavailable")
         return
