@@ -249,6 +249,17 @@ _CODE_BOUNDARY_RES: dict[str, re.Pattern[str]] = {
 # javascript/jsx reuse the typescript pattern (same declaration surface here).
 _CODE_BOUNDARY_RES["javascript"] = _CODE_BOUNDARY_RES["typescript"]
 
+# Line-start patterns for a CONTINUATION line that belongs to the definition
+# BELOW it — a decorator (@classmethod, @Component(...)) or a C# attribute on its
+# own line ([HttpGet]). Contiguous runs of these immediately above a boundary are
+# pulled into that definition's unit so they are never split off from it.
+_CODE_DECORATOR_RES: dict[str, re.Pattern[str]] = {
+    "python": re.compile(r"^[ \t]*@\w"),
+    "typescript": re.compile(r"^[ \t]*@\w"),
+    "javascript": re.compile(r"^[ \t]*@\w"),
+    "csharp": re.compile(r"^[ \t]*\[[^\]]*\][ \t]*$"),
+}
+
 
 def _line_window_units(text: str, max_tokens: int) -> list[str]:
     """Split `text` into contiguous line windows each under `max_tokens`.
@@ -291,13 +302,27 @@ def _split_code_units(text: str, language: str) -> list[str] | None:
         whole = "\n".join(lines).strip()
         return [whole] if whole else []
 
+    # Pull contiguous decorator/attribute lines immediately above each boundary
+    # into that definition's unit, so '@decorator' / '[Attribute]' is never
+    # stranded in the preceding unit. Floored at the previous boundary so a
+    # decorator can't be claimed across a definition.
+    deco = _CODE_DECORATOR_RES.get(language)
+    starts: list[int] = []
+    for j, b in enumerate(boundaries):
+        floor = boundaries[j - 1] + 1 if j > 0 else 0
+        start = b
+        if deco is not None:
+            while start > floor and deco.match(lines[start - 1]):
+                start -= 1
+        starts.append(start)
+
     units: list[str] = []
-    if boundaries[0] > 0:
-        preamble = "\n".join(lines[: boundaries[0]]).strip()
+    if starts[0] > 0:
+        preamble = "\n".join(lines[: starts[0]]).strip()
         if preamble:
             units.append(preamble)
-    for j, start in enumerate(boundaries):
-        end = boundaries[j + 1] if j + 1 < len(boundaries) else len(lines)
+    for j, start in enumerate(starts):
+        end = starts[j + 1] if j + 1 < len(starts) else len(lines)
         unit = "\n".join(lines[start:end]).strip("\n")
         if unit.strip():
             units.append(unit)

@@ -151,3 +151,28 @@ def test_chunk_document_dispatches_prose_vs_code() -> None:
     code = chunk_document(_PY, is_code=True, language="python", **CODE_PARAMS)
     assert prose and code
     assert all(isinstance(c, Chunk) for c in prose + code)
+
+
+def test_chunk_code_keeps_python_decorators_with_their_def() -> None:
+    py = (
+        "import x\n\n"
+        "@dataclass\n@final\nclass Foo:\n    pass\n\n"
+        "@staticmethod\ndef bar():\n    return 1\n"
+    )
+    chunks = chunk_code(py, "python", **CODE_PARAMS)
+    for c in chunks:
+        if "class Foo" in c.text:
+            assert "@dataclass" in c.text and "@final" in c.text
+        if "def bar" in c.text:
+            assert "@staticmethod" in c.text
+
+
+def test_chunk_code_keeps_csharp_attribute_with_its_method() -> None:
+    cs = (
+        "public class C\n{\n"
+        '    [HttpGet("/x")]\n    public int Get() { return 1; }\n}\n'
+    )
+    chunks = chunk_code(cs, "csharp", **CODE_PARAMS)
+    for c in chunks:
+        if "public int Get" in c.text:
+            assert "[HttpGet" in c.text
