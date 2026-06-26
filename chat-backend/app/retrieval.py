@@ -187,6 +187,13 @@ async def _with_prose_anchor(
     closest prose chunk: far prose ⇒ the gate refuses (off-topic), near prose ⇒
     a real description grounds a legitimate deep-code answer. No-op when the result
     already holds prose, or when the corpus has no prose at all (code-only works).
+
+    INTENTIONAL: the appended chunk is more than a gate probe — when the gate
+    passes (near prose ≤ threshold, genuinely relevant) it stays in the returned
+    list and so feeds the answer's context and `sources` (a +1 source on an
+    all-code top-k). That extra grounding — the project's own description
+    alongside its code — is desirable, so it is deliberately NOT stripped before
+    the answer.
     """
     # Empty retrieval already refuses (is_weak_retrieval([]) is True), and prose
     # already in the result means the gate has its signal — neither needs a fetch.

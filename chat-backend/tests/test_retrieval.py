@@ -339,3 +339,17 @@ def test_code_only_corpus_falls_back_to_all_chunks() -> None:
     db = FakeDB(code, lexical_rows=code, prose_row=None)
     result = asyncio.run(retrieve(FakeEmbedder(), db, "q", top_k=3, hybrid=True))
     assert is_weak_retrieval(result, max_distance=0.45) is False
+
+
+def test_prose_anchor_is_in_sources_when_the_answer_goes_through() -> None:
+    # Pins MINOR-3 as intentional: on an all-code top-k where the gate passes
+    # (near prose), the injected prose chunk grounds the answer and appears in the
+    # cited sources (+1), not just as a hidden gate probe.
+    code = [_row("code/audiobookmaker/src/tts.py", 0.20, chunk_type="code")]
+    near_prose = _row("projects/audiobookmaker.md", 0.30, chunk_type="prose")
+    db = FakeDB(code, lexical_rows=code, prose_row=near_prose)
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "how does the tts pipeline work", top_k=3, hybrid=True)
+    )
+    sources = [r["source"] for r in to_source_refs(result)]
+    assert "projects/audiobookmaker.md" in sources

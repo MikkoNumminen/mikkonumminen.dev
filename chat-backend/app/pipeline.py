@@ -118,6 +118,10 @@ async def chat_event_stream(
         yield sse.sse_error("retrieval unavailable")
         return
 
+    # `chunks` may include a prose anchor appended by retrieve() when the top-k is
+    # all code (see retrieval._with_prose_anchor). It both feeds the prose-anchored
+    # gate below AND, when the gate passes, intentionally grounds the answer — so a
+    # deep-code answer is backed by the project's own description and cites it.
     distances = [chunk.distance for chunk in chunks]
 
     # Guardrail: when retrieval is empty or every chunk is too far to be
