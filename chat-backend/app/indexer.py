@@ -27,9 +27,9 @@ import dataclasses
 import sys
 from dataclasses import dataclass
 
-from .chunking import Chunk, chunk_text, estimate_tokens
+from .chunking import Chunk, chunk_document, estimate_tokens
 from .config import Settings
-from .content import ContentDoc, load_docs
+from .content import ContentDoc, is_code_doc, load_docs
 
 
 @dataclass(frozen=True)
@@ -56,8 +56,10 @@ def plan(settings: Settings) -> list[FilePlan]:
     return [
         FilePlan(
             doc=doc,
-            chunks=chunk_text(
+            chunks=chunk_document(
                 doc.body,
+                is_code=is_code_doc(doc),
+                language=doc.language,
                 max_tokens=settings.chunk_max_tokens,
                 min_tokens=settings.chunk_min_tokens,
                 overlap_tokens=settings.chunk_overlap_tokens,
@@ -116,6 +118,7 @@ async def reindex(
                 if embedder is None:
                     embedder = Embedder(settings.embedding_model, settings.embedding_dim)
                 vectors = embedder.embed_passages([c.text for c in to_embed])
+                chunk_type = "code" if is_code_doc(doc) else "prose"
                 rows = [
                     DocumentRow(
                         source=doc.source,
@@ -126,6 +129,8 @@ async def reindex(
                         content=c.text,
                         content_hash=c.content_hash,
                         embedding=vec,
+                        language=doc.language,
+                        chunk_type=chunk_type,
                     )
                     for c, vec in zip(to_embed, vectors, strict=True)
                 ]
