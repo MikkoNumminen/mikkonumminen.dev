@@ -142,6 +142,51 @@ def _bounded_overlap(prev: str, block: str, overlap_tokens: int, max_tokens: int
     return ""
 
 
+def _pack_blocks(
+    blocks: list[str], max_tokens: int, min_tokens: int, overlap_tokens: int
+) -> list[str]:
+    """Greedily pack already-sub-budget blocks into chunk texts of <=`max_tokens`.
+
+    Shared by the prose chunker (markdown blocks) and the code chunker (function
+    /class units): each reduces its input to a list of units that already fit the
+    budget, then packs them identically — accumulate whole units until the next
+    would overflow, flush, and seed the next chunk with an overlap tail so a fact
+    (or a signature) spanning a boundary stays retrievable from either side. A
+    too-small trailing chunk is merged back into its predecessor when that stays
+    under budget, so a one-line tail isn't stranded.
+    """
+    chunks: list[str] = []
+    current = ""
+
+    def flush() -> None:
+        nonlocal current
+        if current.strip():
+            chunks.append(current.strip())
+        current = ""
+
+    for block in blocks:
+        candidate = f"{current}\n\n{block}" if current else block
+        if current and estimate_tokens(candidate) > max_tokens:
+            prev = current
+            flush()
+            tail = _bounded_overlap(prev, block, overlap_tokens, max_tokens)
+            current = f"{tail}\n\n{block}" if tail else block
+        else:
+            current = candidate
+
+    flush()
+
+    if (
+        len(chunks) >= 2
+        and estimate_tokens(chunks[-1]) < min_tokens
+        and estimate_tokens(chunks[-2] + "\n\n" + chunks[-1]) <= max_tokens
+    ):
+        merged = chunks[-2] + "\n\n" + chunks[-1]
+        chunks = chunks[:-2] + [merged]
+
+    return chunks
+
+
 def chunk_text(
     text: str,
     *,
@@ -174,38 +219,157 @@ def chunk_text(
         else:
             blocks.append(block)
 
-    chunks: list[str] = []
-    current = ""
-
-    def flush() -> None:
-        nonlocal current
-        if current.strip():
-            chunks.append(current.strip())
-        current = ""
-
-    for block in blocks:
-        candidate = f"{current}\n\n{block}" if current else block
-        if current and estimate_tokens(candidate) > max_tokens:
-            prev = current
-            flush()
-            tail = _bounded_overlap(prev, block, overlap_tokens, max_tokens)
-            current = f"{tail}\n\n{block}" if tail else block
-        else:
-            current = candidate
-
-    flush()
-
-    # Merge a too-small trailing chunk back into its predecessor when doing so
-    # stays under budget — avoids stranding a one-line final chunk.
-    if (
-        len(chunks) >= 2
-        and estimate_tokens(chunks[-1]) < min_tokens
-        and estimate_tokens(chunks[-2] + "\n\n" + chunks[-1]) <= max_tokens
-    ):
-        merged = chunks[-2] + "\n\n" + chunks[-1]
-        chunks = chunks[:-2] + [merged]
-
+    texts = _pack_blocks(blocks, max_tokens, min_tokens, overlap_tokens)
     return [
         Chunk(index=i, text=text, content_hash=hash_chunk(text))
-        for i, text in enumerate(chunks)
+        for i, text in enumerate(texts)
     ]
+
+
+# Line-start patterns for a top-level/member DEFINITION in each language. They
+# only need to find SAFE split points: over-identifying (e.g. matching a C# field
+# as well as a method) is fine because `_pack_blocks` re-groups small adjacent
+# units up to the budget — the hard requirement is never to split *inside* a
+# definition. ts/tsx share one pattern, as do js/jsx. A language absent here has
+# no boundary support and falls back to line-window chunking.
+_CODE_BOUNDARY_RES: dict[str, re.Pattern[str]] = {
+    "python": re.compile(r"^[ \t]*(async[ \t]+def|def|class)[ \t]"),
+    "typescript": re.compile(
+        r"^[ \t]*(export[ \t]+)?(default[ \t]+)?(abstract[ \t]+)?(async[ \t]+)?"
+        r"(function\b|class\b|interface\b|enum\b|namespace\b"
+        r"|type[ \t]+\w+|const[ \t]+\w+|let[ \t]+\w+|var[ \t]+\w+)"
+    ),
+    "csharp": re.compile(
+        r"^[ \t]*(\[[^\]]*\][ \t]*)?"  # optional leading attribute, e.g. [HttpGet]
+        r"((public|private|protected|internal|static|virtual|override|sealed"
+        r"|abstract|partial|async|readonly|const|record|class|struct|interface"
+        r"|enum|void)[ \t]+)+"
+    ),
+}
+# javascript/jsx reuse the typescript pattern (same declaration surface here).
+_CODE_BOUNDARY_RES["javascript"] = _CODE_BOUNDARY_RES["typescript"]
+
+
+def _line_window_units(text: str, max_tokens: int) -> list[str]:
+    """Split `text` into contiguous line windows each under `max_tokens`.
+
+    The boundary-agnostic fallback: used for languages without a definition
+    pattern (config, unknown) and for a single definition that is itself larger
+    than the budget. Splits only on whole-line boundaries so indentation and line
+    structure survive — never mid-line.
+    """
+    units: list[str] = []
+    current: list[str] = []
+    for line in text.split("\n"):
+        candidate = current + [line]
+        if current and estimate_tokens("\n".join(candidate)) > max_tokens:
+            units.append("\n".join(current))
+            current = [line]
+        else:
+            current = candidate
+    if current and "\n".join(current).strip():
+        units.append("\n".join(current))
+    return [u for u in units if u.strip()]
+
+
+def _split_code_units(text: str, language: str) -> list[str] | None:
+    """Split source into units that each hold one whole definition.
+
+    Returns one unit per top-level/member definition (the span from one boundary
+    line up to the next), with any leading imports/preamble as the first unit, so
+    `_pack_blocks` can regroup them without ever cutting a function in half.
+    Returns None when the language has no boundary pattern, signalling the caller
+    to fall back to `_line_window_units`.
+    """
+    pattern = _CODE_BOUNDARY_RES.get(language)
+    if pattern is None:
+        return None
+
+    lines = text.split("\n")
+    boundaries = [i for i, line in enumerate(lines) if pattern.match(line)]
+    if not boundaries:
+        whole = "\n".join(lines).strip()
+        return [whole] if whole else []
+
+    units: list[str] = []
+    if boundaries[0] > 0:
+        preamble = "\n".join(lines[: boundaries[0]]).strip()
+        if preamble:
+            units.append(preamble)
+    for j, start in enumerate(boundaries):
+        end = boundaries[j + 1] if j + 1 < len(boundaries) else len(lines)
+        unit = "\n".join(lines[start:end]).strip("\n")
+        if unit.strip():
+            units.append(unit)
+    return units
+
+
+def chunk_code(
+    text: str,
+    language: str,
+    *,
+    max_tokens: int,
+    min_tokens: int,
+    overlap_tokens: int,
+) -> list[Chunk]:
+    """Chunk source code on definition boundaries, never mid-function.
+
+    Splits into one unit per function/class/member (or line windows for a
+    language without a boundary pattern), then packs units with the SAME greedy
+    packer the prose chunker uses, so adjacent small definitions share a chunk
+    while a large one keeps a chunk to itself. A single definition over the budget
+    is line-windowed (preserving indentation) rather than word-split, so its code
+    stays readable.
+    """
+    normalized = _normalize(text)
+    if not normalized:
+        return []
+
+    effective_max = max_tokens - overlap_tokens
+    units = _split_code_units(normalized, language)
+    if units is None:
+        units = _line_window_units(normalized, effective_max)
+
+    blocks: list[str] = []
+    for unit in units:
+        if estimate_tokens(unit) > max_tokens:
+            blocks.extend(_line_window_units(unit, effective_max))
+        else:
+            blocks.append(unit)
+
+    texts = _pack_blocks(blocks, max_tokens, min_tokens, overlap_tokens)
+    return [
+        Chunk(index=i, text=text, content_hash=hash_chunk(text))
+        for i, text in enumerate(texts)
+    ]
+
+
+def chunk_document(
+    text: str,
+    *,
+    is_code: bool,
+    language: str | None,
+    max_tokens: int,
+    min_tokens: int,
+    overlap_tokens: int,
+) -> list[Chunk]:
+    """Dispatch to the code- or prose-aware chunker for one document.
+
+    The indexer calls this per document: source/config files (`is_code`) go
+    through `chunk_code` with their detected `language`; markdown goes through the
+    block-based `chunk_text` unchanged.
+    """
+    if is_code:
+        return chunk_code(
+            text,
+            language or "",
+            max_tokens=max_tokens,
+            min_tokens=min_tokens,
+            overlap_tokens=overlap_tokens,
+        )
+    return chunk_text(
+        text,
+        max_tokens=max_tokens,
+        min_tokens=min_tokens,
+        overlap_tokens=overlap_tokens,
+    )
