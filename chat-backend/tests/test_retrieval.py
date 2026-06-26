@@ -227,3 +227,32 @@ def test_soft_boost_when_strict_filter_off() -> None:
     # Soft boost keeps the other project present but floats readlog-dotnet first.
     assert result[0].project == "readlog-dotnet"
     assert any(c.project == "platform" for c in result)
+
+
+def test_soft_boost_anchor_does_not_reintroduce_contamination() -> None:
+    # Non-hybrid soft boost, top_k=1: platform (0.05) is closest but the WRONG
+    # project; readlog (0.10) is the named one. The gate anchor must NOT pull the
+    # closer wrong-project chunk back in — it anchors on the named project's
+    # closest chunk, so the cross-project contamination fix stays intact.
+    rows = [
+        _row("projects/platform.md", 0.05, project="platform"),
+        _row("projects/readlog-dotnet.md", 0.10, project="readlog-dotnet"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "ReadLog .NET race", top_k=1, hybrid=False)
+    )
+    assert [c.project for c in result] == ["readlog-dotnet"]
+
+
+def test_hybrid_anchor_retains_closest_when_fusion_pushes_it_out() -> None:
+    # No project named. Fusion ranks B first (strong in both lists), pushing the
+    # closest dense chunk A (0.1, weak lexically) out of top_k=1. The anchor must
+    # bring A back so the gate sees the true 0.1 (else a false refusal).
+    dense = [_row("a.md", 0.10), _row("b.md", 0.50)]
+    lexical = [_row("b.md", 0.0), _row("c.md", 0.0), _row("a.md", 0.10)]
+    db = FakeDB(dense, lexical_rows=lexical)
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "keyword query", top_k=1, hybrid=True)
+    )
+    assert min(c.distance for c in result) == 0.10

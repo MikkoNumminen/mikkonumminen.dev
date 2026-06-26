@@ -205,12 +205,24 @@ async def retrieve(
     else:
         dense_rows = await db.search(vector, candidate_k)
     dense_chunks = [_to_chunk(row) for row in dense_rows]
+    # Gate-anchor pool: when soft-boosting a NAMED project, anchor on that
+    # project's closest chunk so the gate isn't starved by the boost — but never
+    # force a wrong-project chunk back in, which would undo the cross-project
+    # contamination fix. Otherwise anchor on the closest chunk overall.
+    anchor_pool = (
+        [c for c in dense_chunks if c.project in wanted]
+        if (wanted and not strict)
+        else dense_chunks
+    )
 
     if not hybrid:
         result = dense_chunks
         if wanted and not strict:
             result = _project_boost(result, wanted)
-        return result[:top_k]
+        # Anchor on EVERY path: fusion or the boost can push the gate's closest
+        # eligible chunk out of top_k, starving the weak-retrieval gate into a
+        # false refusal. (No-op when that chunk already ranks in.)
+        return _ensure_gate_anchor(result[:top_k], anchor_pool, top_k)
 
     if project_filter is not None:
         lexical_rows = await db.search_lexical(query, candidate_k, project_filter)
@@ -227,7 +239,7 @@ async def retrieve(
     if wanted and not strict:
         fused = _project_boost(fused, wanted)
     result = fused[:top_k]
-    return _ensure_gate_anchor(result, dense_chunks, top_k)
+    return _ensure_gate_anchor(result, anchor_pool, top_k)
 
 
 def to_context(chunks: Sequence[RetrievedChunk]) -> list[ContextChunk]:
