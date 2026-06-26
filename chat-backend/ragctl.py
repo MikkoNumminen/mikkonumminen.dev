@@ -599,6 +599,39 @@ def cmd_down() -> int:
     return 0
 
 
+def cmd_prune() -> int:
+    """Reclaim Docker disk left by rebuilds — build cache, stopped containers, and
+    dangling images. Disk only: the running stack, the named volumes (Postgres
+    data + the pulled model), and the warm model are never touched, so the live
+    chat keeps serving throughout. (`down` first if you also want the RAM back.)"""
+    print(_c("\n  reclaiming docker disk …", "1"))
+    for label, cmd in (
+        ("build cache", ["docker", "builder", "prune", "-f"]),
+        ("stopped containers", ["docker", "container", "prune", "-f"]),
+        ("dangling images", ["docker", "image", "prune", "-f"]),
+    ):
+        print(f"  ◐ {label} …")
+        rc, out = run(cmd, timeout=300)
+        if rc == 127:
+            print(_c("  ✗ docker not found on PATH", "31"))
+            return 1
+        # `builder prune` reports "Total: <size>"; `container`/`image prune`
+        # report "Total reclaimed space: <size>". Match either Total line and take
+        # the size after the last colon — keying only on "reclaimed space:" would
+        # mis-report the build-cache stage (usually the biggest reclaim) as 0B.
+        reclaimed = next(
+            (
+                ln.rsplit(":", 1)[1].strip()
+                for ln in out.splitlines()
+                if ln.lower().startswith("total") and ":" in ln
+            ),
+            "0B",
+        )
+        print(f"     reclaimed {reclaimed}")
+    print(_c("  ● done — disk reclaimed; the running stack + warm model untouched.", "32"))
+    return 0
+
+
 def cmd_test(question: str) -> int:
     """Doctor the live model with one real query: stream it, time it, show it."""
     payload = json.dumps({"message": question, "history": []}).encode()
@@ -792,13 +825,14 @@ _MENU: list[tuple[str, str]] = [
     ("model NAME", "switch model (--effort, --context)"),
     ("english on|off", "force English across all models"),
     ("usage [--hours N]", "how much the model's been used (24h)"),
+    ("prune", "reclaim docker disk (rebuild cache, stopped containers)"),
     ("exit", "leave ragctl"),
 ]
 
 # Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
 _VERBS = [
     "status", "watch", "doctor", "up", "down", "test", "model", "english",
-    "usage", "exit", "quit",
+    "usage", "prune", "exit", "quit",
 ]
 
 
@@ -845,6 +879,10 @@ def _build_parser() -> argparse.ArgumentParser:
     usg.add_argument(
         "--hours", type=int, default=24, help="window in hours (1-168, default 24)"
     )
+    sub.add_parser(
+        "prune",
+        help="reclaim docker disk: build cache + stopped containers + dangling images",
+    )
     return p
 
 
@@ -871,6 +909,8 @@ def dispatch(argv: list[str]) -> int:
         return cmd_english(args.state)
     if args.cmd == "usage":
         return cmd_usage(args.hours)
+    if args.cmd == "prune":
+        return cmd_prune()
     p.print_help()
     return 0
 
