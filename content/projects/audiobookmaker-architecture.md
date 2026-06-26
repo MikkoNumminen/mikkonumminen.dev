@@ -5,16 +5,16 @@ project: audiobookmaker
 
 # AudiobookMaker — Architecture & Design
 
-AudiobookMaker converts PDFs, EPUBs, and scanned books into MP3 audiobooks. It targets Finnish and English, ships as a Windows installer for end users, and exposes the same synthesis pipeline through a built-in CLI for batch and headless use.
+AudiobookMaker converts PDFs, EPUBs, Word documents, and scanned books into MP3 audiobooks. It targets Finnish and English, ships as a Windows installer for end users, and exposes the same synthesis pipeline through a built-in CLI for batch and headless use.
 
 ## Overview & High-Level Architecture
 
 The system is a single Python application (`pyproject.toml` declares `requires-python = ">=3.11"`) with two entry surfaces — a CustomTkinter GUI (`src/gui_unified.py`) and a CLI (`src/cli/`) — that share the same backend modules.
 
 ```
-User input (PDF / EPUB / TXT)
+User input (PDF / EPUB / DOCX / TXT)
   → Text extraction layer  (pdf_parser, epub_parser, OCR fallback)
-  → Text normalization     (16-pass Finnish or multi-pass English)
+  → Text normalization     (19-pass Finnish or multi-pass English)
   → Chunking               (sentence-aware splits)
   → TTS engine registry    (Edge-TTS / Piper / Chatterbox / VoxCPM2 / Qwen VoiceDesign POC)
   → ffmpeg audio assembly  (pydub + bundled ffmpeg)
@@ -41,7 +41,7 @@ Chatterbox is the one engine that cannot run in-process. Its PyTorch + CUDA depe
 | GPU TTS (dev POC) | Qwen3-TTS VoiceDesign | Natural-language voice description; developer-only, not in the end-user installer |
 | Audio assembly | pydub + ffmpeg | Chunk concatenation and silence trimming |
 | GUI | CustomTkinter | Modern Tk theme (Cold Forge design tokens in `src/gui_style.py`, loaded from `assets/themes/cold_forge.json`) |
-| Finnish normalization | num2words + custom 16-pass pipeline | num2words alone cannot handle Finnish grammatical case, abbreviations, or loanwords reliably |
+| Finnish normalization | num2words + custom 19-pass pipeline | num2words alone cannot handle Finnish grammatical case, abbreviations, or loanwords reliably |
 | Packaging | PyInstaller + Inno Setup | Self-contained Windows installer; ffmpeg and Tesseract bundled; no Python required on end-user machine |
 
 Edge-TTS is the default. Piper is the offline fallback. Chatterbox's ML dependencies are kept out of the main bundle to hold the installer below ~200 MB; the Chatterbox venv installs on demand via the in-app **Install engines…** modal.
@@ -85,7 +85,7 @@ A dedicated credential-and-identity audit (2026-05-10) verified the following de
 
 **Chatterbox venv isolation.** Keeping Chatterbox's PyTorch and CUDA dependencies in a separate venv prevents them from inflating the main bundle and from interfering with the main app's dependency set. The isolation also enabled the venv-integrity hardening (see Engineering Challenges below): the subprocess boundary makes provenance and environment state observable.
 
-**Finnish text normalizer as a first-class module.** Finnish TTS pronunciation degrades in predictable ways (abbreviations, grammatical case on number words, loanwords, compound-word seam splitting). The 16-pass normalizer (`tts_normalizer_fi.py`) runs before chunking so the chunker splits on fully expanded sentences. The English normalizer runs a comparable multi-pass pipeline covering Roman numerals, abbreviations, dates, currency, units, time, telephone numbers, URLs, and acronyms; heavy passes live in standalone `src/_en_pass_*.py` modules for isolated unit testing.
+**Finnish text normalizer as a first-class module.** Finnish TTS pronunciation degrades in predictable ways (abbreviations, grammatical case on number words, loanwords, compound-word seam splitting). The 19-pass normalizer (`tts_normalizer_fi.py`) runs before chunking so the chunker splits on fully expanded sentences. The English normalizer runs a comparable multi-pass pipeline covering Roman numerals, abbreviations, dates, currency, units, time, telephone numbers, URLs, and acronyms; heavy passes live in standalone `src/_en_pass_*.py` modules for isolated unit testing.
 
 **Generated CLI documentation.** `docs/CLI.md` is produced by `scripts/render_cli_help.py` from the argparse definitions in `src/cli/`. A pre-commit hook checks it is in sync. This prevents the reference from drifting from the actual flags.
 
