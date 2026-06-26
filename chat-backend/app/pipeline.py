@@ -35,7 +35,12 @@ LLM_BUSY_REPLY = (
 # client contract unchanged and is safe under concurrent requests — no shared
 # per-client usage state to race on while friends hit the chat at once.
 UsageRecorder = Callable[[int, int], Awaitable[None]]
-from .guardrails import WEAK_RETRIEVAL_REPLY, is_weak_retrieval
+from .guardrails import (
+    GENERATIVE_REPLY,
+    WEAK_RETRIEVAL_REPLY,
+    is_generative_request,
+    is_weak_retrieval,
+)
 from .prompts import build_messages
 from .request_log import RequestLogger
 from .retrieval import (
@@ -82,6 +87,20 @@ async def chat_event_stream(
     log_request: RequestLogger | None = None,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
+
+    # Generative-intent gate: a request to WRITE creative/generic content (poem,
+    # story, song, ...) is out of scope. When it names an on-corpus topic it slips
+    # past the retrieval gate below, and a small local model won't reliably refuse
+    # it from the prompt alone — so decline deterministically before any retrieval
+    # or generation. No GPU touched, no sources cited.
+    if is_generative_request(query):
+        if log_request is not None:
+            log_request(query, [], True, len(GENERATIVE_REPLY))
+        yield sse.sse_sources([])
+        yield sse.sse_token(GENERATIVE_REPLY)
+        yield sse.sse_done()
+        return
+
     try:
         chunks = await retrieve(
             embedder,

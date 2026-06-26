@@ -185,7 +185,7 @@ class Settings:
             retrieval_lexical_weight=_get_float("RETRIEVAL_LEXICAL_WEIGHT", 1.0),
             project_filter_strict=_get_bool("PROJECT_FILTER_STRICT", True),
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
-            weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.7),
+            weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.45),
             rate_limit_requests=_get_int("RATE_LIMIT_REQUESTS", 30),
             rate_limit_window_seconds=_get_float("RATE_LIMIT_WINDOW_SECONDS", 60.0),
             max_body_bytes=_get_int("MAX_BODY_BYTES", 16384),
