@@ -23,7 +23,7 @@ from dataclasses import dataclass
 _DEFAULT_DATABASE_URL = "postgresql://rag:rag@localhost:5432/rag"
 _DEFAULT_EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 _DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434/v1"
-_DEFAULT_LLM_MODEL = "gemma4:e4b"
+_DEFAULT_LLM_MODEL = "qwen2.5:7b"
 
 
 def _get_str(name: str, default: str) -> str:

@@ -1,4 +1,4 @@
-"""Chat LLM client — local Gemma via Ollama's OpenAI-compatible endpoint.
+"""Chat LLM client — local model via Ollama's OpenAI-compatible endpoint.
 
 Streams tokens from `POST {base}/chat/completions` (stream=true) and exposes a
 health check that confirms the model actually *generates* (a 1-token completion),

@@ -1,7 +1,8 @@
 # One-command stack for the portfolio RAG chat (build brief Phase 5 + ADR 0009).
 # Brings up the whole backend on Mikko's own machine: a local Postgres+pgvector,
-# a GPU-accelerated Ollama serving the local Gemma, the FastAPI backend, and an
-# OPTIONAL Cloudflare Tunnel (behind the `tunnel` profile) to publish it.
+# a GPU-accelerated Ollama serving the local model (qwen2.5:7b by default), the
+# FastAPI backend, and an OPTIONAL Cloudflare Tunnel (behind the `tunnel`
+# profile) to publish it.
 #
 #   make up            # db + ollama (+ pull model) + backend
 #   make index         # one-time: embed the content corpus
@@ -28,9 +29,9 @@ services:
     restart: unless-stopped
 
   ollama:
-    # Pinned to :latest deliberately — gemma4:e4b is a recent model that needs a
-    # current Ollama; an old pin could lack support. Pin a digest once a
-    # known-good version is established if strict reproducibility is wanted.
+    # Pinned to :latest deliberately — keep Ollama current so recent models (the
+    # default qwen2.5:7b, or a newer one swapped in) stay supported. Pin a digest
+    # once a known-good version is established if strict reproducibility is wanted.
     image: ollama/ollama:latest
     environment:
       # Served context window. The ragctl CLI sets this via the repo .env to
@@ -66,7 +67,7 @@ services:
     image: ollama/ollama:latest
     environment:
       OLLAMA_HOST: http://ollama:11434
-    command: ['pull', '${LLM_MODEL:-gemma4:e4b}']
+    command: ['pull', '${LLM_MODEL:-qwen2.5:7b}']
     depends_on:
       ollama:
         condition: service_healthy
@@ -77,11 +78,15 @@ services:
     environment:
       DATABASE_URL: postgresql://rag:rag@db:5432/rag
       OLLAMA_BASE_URL: http://ollama:11434/v1
-      LLM_MODEL: ${LLM_MODEL:-gemma4:e4b}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
       # The indexer reads the version-controlled corpus mounted read-only below.
       CONTENT_DIR: /content
       # In prod set this to the site origin(s), e.g. https://mikkonumminen.dev
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-*}
+      # Force every answer into English regardless of the question's language.
+      # Read by app/config.py; `ragctl english on|off` flips it via the repo .env.
+      # Default on — without this line the container can't see the toggle at all.
+      FORCE_ENGLISH: ${FORCE_ENGLISH:-1}
     volumes:
       - ./content:/content:ro
       # Persist the fastembed ONNX weights (downloaded on first use). The image

@@ -39,7 +39,7 @@ These are non-negotiable. A change that violates one is wrong even if it builds.
   default — including all CI builds) means the terminal is byte-for-byte identical to today:
   no chat affordance, no chat hint, no error shown. When the var is set at build time, the
   page probes `GET /health` once on load and shows the chat affordance only if `checks.llm`
-  is `true` — i.e. the backend **and** its local Gemma are both answering. Anything down or
+  is `true` — i.e. the backend **and** its local model are both answering. Anything down or
   unreachable degrades silently to scripted-only. See
   [`docs/decisions/0009-rag-chat-backend.md`](docs/decisions/0009-rag-chat-backend.md) and
   [`chat-backend/README.md`](chat-backend/README.md).

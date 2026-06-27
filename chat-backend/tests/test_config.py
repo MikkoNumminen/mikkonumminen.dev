@@ -52,7 +52,7 @@ def test_defaults(clean_env: None) -> None:
     assert settings.embedding_dim == 384
     assert settings.content_dir == "content"
     assert settings.chunk_max_tokens == 480
-    assert settings.llm_model == "gemma4:e4b"
+    assert settings.llm_model == "qwen2.5:7b"
     assert settings.ollama_base_url.endswith("/v1")
 
 
@@ -237,11 +237,11 @@ def test_non_numeric_weak_distance_raises(
 def test_env_overrides(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("EMBEDDING_DIM", "768")
     monkeypatch.setenv("CONTENT_DIR", "/tmp/corpus")
-    monkeypatch.setenv("LLM_MODEL", "gemma4:e4b-q8")
+    monkeypatch.setenv("LLM_MODEL", "qwen2.5:14b")
     settings = Settings.from_env()
     assert settings.embedding_dim == 768
     assert settings.content_dir == "/tmp/corpus"
-    assert settings.llm_model == "gemma4:e4b-q8"
+    assert settings.llm_model == "qwen2.5:14b"
 
 
 def test_empty_string_falls_back_to_default(

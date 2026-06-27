@@ -1,7 +1,7 @@
 # One-command wrapper around docker-compose.yml for the RAG chat stack
 # (build brief Phase 5). Run from WSL2 on Windows (bash + docker compose).
 
-LLM_MODEL ?= gemma4:e4b
+LLM_MODEL ?= qwen2.5:7b
 SHELL := bash
 
 .DEFAULT_GOAL := help

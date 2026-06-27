@@ -141,7 +141,7 @@ def configured_model() -> str:
         for line in env.read_text(encoding="utf-8", errors="ignore").splitlines():
             if line.startswith("LLM_MODEL="):
                 return line.split("=", 1)[1].strip()
-    return "gemma4:e4b"
+    return "qwen2.5:7b"
 
 
 def configured_force_english() -> bool:
