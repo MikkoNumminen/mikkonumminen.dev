@@ -214,11 +214,16 @@ def ensure_request_log() -> None:
     writable by the backend's uid 10001, and point RAG_LOG_FILE at the mounted
     path if it isn't set. Logging stays opt-in in the repo; RAG Control is what
     turns it on."""
+    # 0o777 is deliberate: the backend writes the log as the non-root uid 10001,
+    # so the bind-mounted host dir must be writable by a different uid; this host
+    # is single-operator-local, so world-write is tolerated. (On a Windows Docker
+    # Desktop host the chmod is a near no-op — writability comes from the mount
+    # translation — but it is correct + necessary when ragctl runs on Linux.)
     try:
         RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
-        os.chmod(RAG_LOG_DIR, 0o777)  # backend writes as the non-root uid 10001
-    except OSError:
-        pass
+        os.chmod(RAG_LOG_DIR, 0o777)
+    except OSError as exc:
+        print(_c(f"  ⚠ could not prepare rag-logs/ ({exc}); logging may stay off", "33"))
     if not configured_rag_log():
         set_env_vars({"RAG_LOG_FILE": RAG_LOG_CONTAINER_FILE})
         print(_c("  ◐ request log on -> rag-logs/requests.jsonl", "36"))
@@ -1031,7 +1036,8 @@ def cmd_logs(n: int) -> int:
         print(_c("\n  no request log yet — bring the rag up and ask it something.\n", "33"))
         return 0
     lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
-    shown = [ln for ln in lines if ln.strip()][-n:]
+    kept = [ln for ln in lines if ln.strip()]
+    shown = kept[-n:] if n > 0 else []
     print(_c(f"\n  last {len(shown)} request(s):\n", "1"))
     for ln in shown:
         ts, brace, rest = ln.partition("{")

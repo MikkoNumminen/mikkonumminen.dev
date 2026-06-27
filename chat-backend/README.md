@@ -237,8 +237,11 @@ sole line of defense:
 - **Rate limiting** — a per-IP sliding window (`RATE_LIMIT_REQUESTS` /
   `RATE_LIMIT_WINDOW_SECONDS`).
 - **Score logging** — opt-in via `RAG_LOG_FILE` (empty = disabled): one JSON
-  line per request with the truncated query, the top cosine distances, the gate
-  decision, and the response length — for tuning the threshold.
+  line per request with the query, the top cosine distances, the gate decision,
+  and the full answer text — the only place question + answer are written.
+  The file is host-persisted (`rag-logs/requests.jsonl`), grows unbounded (delete
+  to clear: `rm rag-logs/requests.jsonl`), never served by an endpoint, and
+  `.gitignore`d. `ragctl up` enables it; `ragctl logs` reads it back.
 
 ## Eval + acceptance harness
 

@@ -227,6 +227,45 @@ def test_busy_when_no_generation_slot_is_free() -> None:
     assert llm.called is False
 
 
+def test_busy_shed_calls_log_request() -> None:
+    # When the semaphore is exhausted, log_request must be called with the busy
+    # reply so the request log has a record of the shed (gated=True).
+    llm = FakeLLM(["should not be used"])
+    log_calls: list[tuple] = []
+
+    def capture_log(query: str, distances: list, gated: bool, response: str) -> None:
+        log_calls.append((query, distances, gated, response))
+
+    async def run() -> list[str]:
+        sem = asyncio.Semaphore(1)
+        await sem.acquire()  # exhaust the only permit
+        gen = chat_event_stream(
+            "what is hrm",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            semaphore=sem,
+            acquire_timeout=0.01,
+            log_request=capture_log,
+        )
+        return [frame async for frame in gen]
+
+    frames = asyncio.run(run())
+    assert _events(frames) == ["sources", "token", "done"]
+    assert _token_text(frames) == LLM_BUSY_REPLY
+    assert llm.called is False
+    assert len(log_calls) == 1
+    query_logged, distances_logged, gated_logged, response_logged = log_calls[0]
+    assert query_logged == "what is hrm"
+    assert gated_logged is True
+    assert response_logged == LLM_BUSY_REPLY
+    # distances are computed from the retrieved chunks before the semaphore wait
+    assert isinstance(distances_logged, list)
+
+
 def test_generation_permit_is_released_after_a_successful_answer() -> None:
     # After a normal answer the permit must return so the next request can
     # generate — a leaked permit would wedge the gate at "busy" forever.

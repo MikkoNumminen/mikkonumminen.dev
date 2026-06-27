@@ -148,6 +148,8 @@ async def chat_event_stream(
             await asyncio.wait_for(semaphore.acquire(), timeout=acquire_timeout)
             acquired = True
         except TimeoutError:
+            if log_request is not None:
+                log_request(query, distances, True, LLM_BUSY_REPLY)
             yield sse.sse_sources([])
             yield sse.sse_token(LLM_BUSY_REPLY)
             yield sse.sse_done()

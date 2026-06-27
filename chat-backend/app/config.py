@@ -161,8 +161,8 @@ class Settings:
     llm_acquire_timeout_seconds: float
     # Opt-in local request log (empty = off). When set to a path, every /chat
     # request appends one JSON line — query, retrieval distances, gate decision,
-    # response length — for tuning WEAK_RETRIEVAL_DISTANCE and spotting probes.
-    # The ONLY place question text is written, so keep the file local.
+    # and the full answer text. This is the ONLY place both question and answer
+    # are written; keep the file local and never commit it.
     rag_log_file: str
 
     @staticmethod
