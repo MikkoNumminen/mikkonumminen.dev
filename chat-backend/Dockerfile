@@ -13,10 +13,32 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /srv
 
-# Install with `-e` (editable) on purpose: it installs the dependencies and
-# makes `app` importable while leaving the source tree in place, so the runtime
-# lookup of `sql/` beside `app/` (see db.SQL_PATH) resolves the same way it
-# does when run from a source checkout. A plain `pip install .` would copy
+# Install fastembed and bake the embedding model FIRST, from layers that depend
+# only on the explicit version below — NOT on pyproject or app source — so
+# neither a dependency bump nor an app edit re-triggers the ~130MB model download
+# on rebuild (the dev loop rebuilds the backend often). Keep this version in sync
+# with the fastembed pin in pyproject.toml.
+#
+# The model is baked so the container never fetches it from the HF Hub on
+# startup: that runtime fetch intermittently hung (HF latency / local TLS
+# scanning), wedging the backend at "Waiting for application startup" and
+# 502-ing the funnel. The download happens once here, where a hang is a retried
+# build step rather than a dead service. This model name MUST match
+# _DEFAULT_EMBEDDING_MODEL in app/config.py. NOTE: this step needs network at
+# build time (it fails if the HF Hub is unreachable).
+RUN pip install "fastembed==0.8.0"
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')"
+
+# After the model is baked, force the runtime fully offline for HF so a startup
+# load reads ONLY the baked cache and never touches the network. HF_HUB_OFFLINE=1
+# also means a runtime EMBEDDING_MODEL override (to a non-baked model) crashes at
+# startup. (Setting this BEFORE the bake would break the download above.)
+ENV HF_HUB_OFFLINE=1
+
+# Install with `-e` (editable) on purpose: it installs the remaining dependencies
+# and makes `app` importable while leaving the source tree in place, so the
+# runtime lookup of `sql/` beside `app/` (see db.SQL_PATH) resolves the same way
+# it does when run from a source checkout. A plain `pip install .` would copy
 # `app` into site-packages and orphan the sibling `sql/` directory.
 COPY pyproject.toml ./
 COPY app ./app
@@ -26,24 +48,6 @@ COPY sql ./sql
 # `chown -R /srv` then makes it readable by the non-root user).
 COPY evals ./evals
 RUN pip install -e .
-
-# Bake the embedding model into the image at build time so the container never
-# fetches it from the HF Hub on startup. That runtime fetch intermittently hung
-# (HF latency / local TLS scanning), wedging the backend at "Waiting for
-# application startup" and 502-ing the funnel. The download happens once here,
-# where a hang is a retried build step rather than a dead service.
-#
-# This model name MUST match _DEFAULT_EMBEDDING_MODEL in app/config.py: only the
-# baked model is available at runtime, because HF_HUB_OFFLINE=1 (below) blocks any
-# fetch — so a runtime EMBEDDING_MODEL override would crash at startup. Changing
-# the model means editing both and rebuilding. NOTE: this step needs network at
-# build time (it fails if the HF Hub is unreachable).
-RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')"
-
-# After the model is baked, force the runtime fully offline for HF so a startup
-# load reads ONLY the baked cache and never touches the network. (Setting this
-# BEFORE the bake would break the download above.)
-ENV HF_HUB_OFFLINE=1
 
 # Run unprivileged. The model cache is baked into the image (no volume now), so
 # chown /srv to the fixed UID makes it readable by the non-root runtime user.
