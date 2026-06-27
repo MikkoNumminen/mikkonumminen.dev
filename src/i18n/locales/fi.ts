@@ -390,7 +390,7 @@ export const fi: Translations = {
     cmdHelpDesc: 'listaa käytettävissä olevat komennot',
     cmdHelpAvailable: 'käytettävissä olevat komennot:',
     cmdHelpTip:
-      'vinkki: kokeile `whoami`, `contact --email`, `skills` tai `download --skills`.',
+      'vinkki: kokeile `whoami`, `contact --email`, `skills` tai `download --research`.',
     cmdWhoamiDesc: 'lyhyt esittely',
     cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack-kehittäjä · suomi',
@@ -413,27 +413,30 @@ export const fi: Translations = {
     cmdLinksDesc: 'näytä verkkoprofiilit',
     cmdLinksUsage: 'käyttö: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'tuntematon valitsin:',
-    cmdDownloadDesc: 'cv:ni, mitatut skillini tai koko katalogi ja menetelmä (pdf)',
+    cmdDownloadDesc:
+      'cv:ni tai skillitutkimus — katalogi, tutkimukset ja uusin kalibrointi (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--skills|--research]; --research lists [--catalog|--study|--replicates|--results]',
+      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration]',
     cmdDownloadIntro: 'valitse mitä haluat napata:',
     cmdDownloadOptionCv: 'cv:ni — pdf, koko ansioluettelo',
     cmdDownloadOptionSkills:
-      '16 skilliäni, kylmä-vs-skilli A/B kolmella mallilla — nykyinen kierros · kesäkuu 2026 — pdf',
+      'kesäkuu 2026 · uusin + laajin — 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
     cmdDownloadOptionResearch:
-      'listaa 4 lisää pdf:ää — koko katalogi + miten luvut tehtiin (ei lataus)',
-    cmdDownloadResearchIntro: 'katalogi + menetelmä — kukin pdf:nä:',
+      'skillitutkimus — 5 pdf:ää, inventaariosta uusimpaan ajoon (ei lataus)',
+    cmdDownloadResearchIntro: 'katalogi + tutkimukset, vanhimmasta uusimpaan:',
     cmdDownloadOptionCatalog:
-      'jokainen skilli kaikista 4 reposta — koko portfolion inventaario',
-    cmdDownloadOptionStudy: 'optimointi — 5 kierrosta ennen/jälkeen yhdellä SKILL.md:llä',
+      'jokainen skilli kaikista 4 reposta — inventaario, kustannukset mitattu (ei arvattu)',
+    cmdDownloadOptionStudy:
+      'toukokuu 2026 · optimointi — 5 kierrosta ennen/jälkeen yhdellä SKILL.md:llä; 3 kustannusansaa löydetty + korjattu',
     cmdDownloadOptionReplicates:
-      'kierros 6 — meluisimmat solut mitattuna uudelleen syvemmin',
-    cmdDownloadOptionResults: 'synteesi — mitä kaksi skilliauditoijaa maksoi ja korjasi',
+      'kierros 6 · meluisimmat solut mitattu uudelleen syvemmin — N=1-sattuma kumottu, ~+76 % vahvistettu',
+    cmdDownloadOptionResults:
+      'synteesi — mitä kaksi skilliauditoijaa maksoivat (~36 % halvempi ajaa) ja mitkä ansat ne paljastivat',
     cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
-      'kokeile `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates` tai `download --results`.',
+      'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results` tai `download --calibration`.',
     cmdDownloadAmbiguous:
-      'anna vain yksi seuraavista: --cv, --skills, --catalog, --study, --replicates tai --results.',
+      'anna vain yksi seuraavista: --cv, --catalog, --study, --replicates, --results tai --calibration.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla — vielä viimeistelyssä.',
     cmdDownloadSkillsNotAvailable:
