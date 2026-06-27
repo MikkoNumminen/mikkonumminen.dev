@@ -18,7 +18,7 @@ run the stack.
 | Windows with WSL2 | `make`, `docker compose`, and GPU passthrough all depend on WSL2. Run every command in this guide from a WSL2 shell, not PowerShell. |
 | Docker Desktop (WSL2 backend enabled) | The whole stack is Docker Compose. |
 | `nvidia-container-toolkit` installed **inside WSL2** | The `ollama` container needs GPU access. Without it the model is unreachable and the health check never passes. [Installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) |
-| An NVIDIA GPU (RTX class recommended) | Gemma 4 E4B needs VRAM. The stack starts without a GPU but generation will be unusably slow. |
+| An NVIDIA GPU (RTX class recommended) | The local model needs VRAM. The stack starts without a GPU but generation will be unusably slow. |
 | A Cloudflare account (free tier is fine) | You need one named tunnel to publish the backend over a stable HTTPS hostname. |
 
 ---
@@ -78,7 +78,7 @@ CORS_ALLOW_ORIGINS=https://mikkonumminen.dev
 
 `CORS_ALLOW_ORIGINS` tells the backend which origin browsers are allowed to
 call it from. Setting it to the real site URL prevents cross-origin request
-blocks. Leave `LLM_MODEL` at its default (`gemma4:e4b`) — do not change it.
+blocks. Leave `LLM_MODEL` at its default (`qwen2.5:7b`) — do not change it.
 
 > **These are secrets. `.env` is gitignored. Never commit it.**
 
@@ -95,7 +95,7 @@ make up
 ```
 
 This starts three things in order: Postgres + pgvector, Ollama (with GPU), and
-a one-shot `ollama-pull` service that downloads `gemma4:e4b` into a named
+a one-shot `ollama-pull` service that downloads `qwen2.5:7b` into a named
 Docker volume. The FastAPI backend only starts after the model pull completes,
 so you cannot end up with a half-ready stack. **The first run downloads several
 GB**; subsequent starts are fast because the model lives in the `ollama` named
@@ -155,7 +155,7 @@ curl https://THE-TUNNEL-HOST/health
 Expected response:
 
 ```json
-{ "status": "ok", "checks": { "db": true, "llm": true }, "model": "gemma4:e4b" }
+{ "status": "ok", "checks": { "db": true, "llm": true }, "model": "qwen2.5:7b" }
 ```
 
 `checks.llm` must be `true`. The LLM check sends a real 1-token completion, so
@@ -166,7 +166,7 @@ seconds and retry.
 **Live site check:** open `/contact` in a browser. The terminal fires one
 `/health` probe in the background on page load. When `checks.llm` is `true`,
 the terminal quietly unlocks free-form chat for the rest of that session. Type
-a question and the local Gemma answers it. There is no loading indicator for
+a question and the local model answers it. There is no loading indicator for
 the unlock itself — the terminal just starts accepting questions.
 
 ---
