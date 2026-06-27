@@ -78,7 +78,7 @@ CORS_ALLOW_ORIGINS=https://mikkonumminen.dev
 
 `CORS_ALLOW_ORIGINS` tells the backend which origin browsers are allowed to
 call it from. Setting it to the real site URL prevents cross-origin request
-blocks. Leave `LLM_MODEL` at its default (`qwen2.5:7b`) — do not change it.
+blocks. You can leave `LLM_MODEL` at its default (`qwen2.5:7b`) or switch models any time with `ragctl model`.
 
 > **These are secrets. `.env` is gitignored. Never commit it.**
 

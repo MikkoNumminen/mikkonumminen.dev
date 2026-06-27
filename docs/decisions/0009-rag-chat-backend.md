@@ -4,6 +4,8 @@
 **Date:** 2026-06-18
 **Decided by:** repo owner
 
+> **Update (2026-06-27):** the default generation model is now **`qwen2.5:7b`** (switchable via `ragctl model`), changed for more reliable English-only answers — see PR #310. The decision below is unchanged: generation is still a **local** model served by Ollama over its OpenAI-compatible endpoint, nothing hosted and nothing per query. The original choice (Gemma 4 E4B) is kept verbatim in the Decision section as the historical record.
+
 ## Context
 
 The contact page hosts an interactive fake-shell terminal
