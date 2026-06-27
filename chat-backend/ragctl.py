@@ -44,6 +44,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 COMPOSE = ["docker", "compose"]
+# Per-request log (query + answer). The compose backend bind-mounts the host dir
+# below to this container path; `ragctl up` enables it. Host file == REPO/rag-logs.
+RAG_LOG_DIR = REPO / "rag-logs"
+RAG_LOG_CONTAINER_FILE = "/srv/rag-logs/requests.jsonl"
 BACKEND_HEALTH = "http://localhost:8000/health"
 BACKEND_CHAT = "http://localhost:8000/chat"
 BACKEND_USAGE = "http://localhost:8000/usage"
@@ -192,6 +196,32 @@ def set_env_vars(updates: dict[str, str]) -> None:
         if key not in seen:
             out.append(f"{key}={val}")
     env.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+def configured_rag_log() -> str:
+    """Read RAG_LOG_FILE from the repo .env (empty/unset -> logging off)."""
+    env = REPO / ".env"
+    if env.exists():
+        for line in env.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if line.startswith("RAG_LOG_FILE="):
+                return line.split("=", 1)[1].strip()
+    return ""
+
+
+def ensure_request_log() -> None:
+    """Make sure the per-request log (query + answer) is on and persisted before
+    the stack comes up: create the host dir the compose file bind-mounts, make it
+    writable by the backend's uid 10001, and point RAG_LOG_FILE at the mounted
+    path if it isn't set. Logging stays opt-in in the repo; RAG Control is what
+    turns it on."""
+    try:
+        RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        os.chmod(RAG_LOG_DIR, 0o777)  # backend writes as the non-root uid 10001
+    except OSError:
+        pass
+    if not configured_rag_log():
+        set_env_vars({"RAG_LOG_FILE": RAG_LOG_CONTAINER_FILE})
+        print(_c("  ◐ request log on -> rag-logs/requests.jsonl", "36"))
 
 
 # --- component checks (each returns (state, detail)) -----------------------
@@ -566,6 +596,7 @@ def cmd_up(keep: bool) -> int:
     print(_c("\n  bringing the rag up …\n", "1"))
     if not ensure_docker():
         return 1
+    ensure_request_log()
     ensure_funnel()
     print("  ◐ starting the stack …  (watch it come online below)")
     run(COMPOSE + ["up", "-d", "backend"], cwd=REPO, timeout=180)
@@ -825,6 +856,7 @@ _MENU: list[tuple[str, str]] = [
     ("model NAME", "switch model (--effort, --context)"),
     ("english on|off", "force English across all models"),
     ("usage [--hours N]", "how much the model's been used (24h)"),
+    ("logs", "show recent questions + answers (request log)"),
     ("prune", "reclaim docker disk (rebuild cache, stopped containers)"),
     ("exit", "leave ragctl"),
 ]
@@ -832,7 +864,7 @@ _MENU: list[tuple[str, str]] = [
 # Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
 _VERBS = [
     "status", "watch", "doctor", "up", "down", "test", "model", "english",
-    "usage", "prune", "exit", "quit",
+    "usage", "logs", "prune", "exit", "quit",
 ]
 
 
@@ -879,6 +911,8 @@ def _build_parser() -> argparse.ArgumentParser:
     usg.add_argument(
         "--hours", type=int, default=24, help="window in hours (1-168, default 24)"
     )
+    lg = sub.add_parser("logs", help="show recent questions + answers")
+    lg.add_argument("-n", type=int, default=20, help="how many to show (default 20)")
     sub.add_parser(
         "prune",
         help="reclaim docker disk: build cache + stopped containers + dangling images",
@@ -909,6 +943,8 @@ def dispatch(argv: list[str]) -> int:
         return cmd_english(args.state)
     if args.cmd == "usage":
         return cmd_usage(args.hours)
+    if args.cmd == "logs":
+        return cmd_logs(args.n)
     if args.cmd == "prune":
         return cmd_prune()
     p.print_help()
@@ -985,6 +1021,31 @@ def repl() -> int:
             print(f"  ✗ {exc}")
         print_menu()
     print("  bye.")
+    return 0
+
+
+def cmd_logs(n: int) -> int:
+    """Show the last N logged questions + answers from the request log."""
+    log = RAG_LOG_DIR / "requests.jsonl"
+    if not log.exists() or not log.stat().st_size:
+        print(_c("\n  no request log yet — bring the rag up and ask it something.\n", "33"))
+        return 0
+    lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
+    shown = [ln for ln in lines if ln.strip()][-n:]
+    print(_c(f"\n  last {len(shown)} request(s):\n", "1"))
+    for ln in shown:
+        ts, brace, rest = ln.partition("{")
+        if not brace:
+            continue
+        try:
+            rec = json.loads(brace + rest)
+        except Exception:
+            continue
+        tag = _c("gated", "31") if rec.get("gated") else _c("answered", "32")
+        print(_c(ts.strip(), "90") + f"  [{tag}]")
+        print("  Q: " + str(rec.get("query", "")))
+        print("  A: " + str(rec.get("response", "")))
+        print()
     return 0
 
 

@@ -95,3 +95,6 @@ NOTES.md
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Local RAG request log (query + answer) — never commit visitor data.
+/rag-logs/
