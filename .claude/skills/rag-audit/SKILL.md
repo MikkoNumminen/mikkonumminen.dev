@@ -19,6 +19,7 @@ Rebuild for **any** `app/` change (it's baked into the image); re-index **only**
 cp -a <worktree>/chat-backend/app/. ~/mikkonumminen.dev/chat-backend/app/
 cd ~/mikkonumminen.dev
 docker compose build backend                              # app/ is baked → rebuild
+# NOTE: a cold-cache rebuild re-runs the embed-model bake (Dockerfile) and needs HF Hub reachable.
 docker compose run --rm backend python -m app.indexer     # re-index ONLY if corpus/chunking changed (NOT `make index`)
 docker compose up -d backend
 # wait for /health checks.llm:true, then run the batteries:

@@ -21,6 +21,9 @@ from dataclasses import dataclass
 # Running the indexer or tests on the host without overrides falls back to
 # localhost so a developer poking at it outside compose still connects.
 _DEFAULT_DATABASE_URL = "postgresql://rag:rag@localhost:5432/rag"
+# MUST match the model baked into the image at build time (chat-backend/Dockerfile):
+# the runtime sets HF_HUB_OFFLINE=1, so ONLY the baked model can load — overriding
+# EMBEDDING_MODEL at runtime to anything else would crash the container at startup.
 _DEFAULT_EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 _DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434/v1"
 _DEFAULT_LLM_MODEL = "qwen2.5:7b"

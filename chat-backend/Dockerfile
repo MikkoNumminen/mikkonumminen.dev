@@ -7,17 +7,38 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    # fastembed downloads the ONNX weights on first use; pin the cache to a
-    # stable path so a mounted volume can persist it across container restarts
-    # (wired up in the compose file) instead of re-downloading every boot.
+    # fastembed cache path; the ONNX weights are baked here at build time (below)
+    # so startup loads them from the image, never from the network.
     FASTEMBED_CACHE_DIR=/srv/.fastembed-cache
 
 WORKDIR /srv
 
-# Install with `-e` (editable) on purpose: it installs the dependencies and
-# makes `app` importable while leaving the source tree in place, so the runtime
-# lookup of `sql/` beside `app/` (see db.SQL_PATH) resolves the same way it
-# does when run from a source checkout. A plain `pip install .` would copy
+# Install fastembed and bake the embedding model FIRST, from layers that depend
+# only on the explicit version below — NOT on pyproject or app source — so
+# neither a dependency bump nor an app edit re-triggers the ~130MB model download
+# on rebuild (the dev loop rebuilds the backend often). Keep this version in sync
+# with the fastembed pin in pyproject.toml.
+#
+# The model is baked so the container never fetches it from the HF Hub on
+# startup: that runtime fetch intermittently hung (HF latency / local TLS
+# scanning), wedging the backend at "Waiting for application startup" and
+# 502-ing the funnel. The download happens once here, where a hang is a retried
+# build step rather than a dead service. This model name MUST match
+# _DEFAULT_EMBEDDING_MODEL in app/config.py. NOTE: this step needs network at
+# build time (it fails if the HF Hub is unreachable).
+RUN pip install "fastembed==0.8.0"
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')"
+
+# After the model is baked, force the runtime fully offline for HF so a startup
+# load reads ONLY the baked cache and never touches the network. HF_HUB_OFFLINE=1
+# also means a runtime EMBEDDING_MODEL override (to a non-baked model) crashes at
+# startup. (Setting this BEFORE the bake would break the download above.)
+ENV HF_HUB_OFFLINE=1
+
+# Install with `-e` (editable) on purpose: it installs the remaining dependencies
+# and makes `app` importable while leaving the source tree in place, so the
+# runtime lookup of `sql/` beside `app/` (see db.SQL_PATH) resolves the same way
+# it does when run from a source checkout. A plain `pip install .` would copy
 # `app` into site-packages and orphan the sibling `sql/` directory.
 COPY pyproject.toml ./
 COPY app ./app
@@ -28,13 +49,9 @@ COPY sql ./sql
 COPY evals ./evals
 RUN pip install -e .
 
-# Run unprivileged. Pin a fixed UID so a mounted fastembed-cache volume's
-# ownership is predictable across hosts, and pre-create + own the cache dir so
-# the first-use ONNX download succeeds as the non-root user. When Phase 5 wires
-# the cache as a volume, a host bind-mount target must be owned by UID 10001 (a
-# Docker named volume inherits this image-path ownership automatically).
+# Run unprivileged. The model cache is baked into the image (no volume now), so
+# chown /srv to the fixed UID makes it readable by the non-root runtime user.
 RUN useradd --create-home --uid 10001 appuser \
-    && mkdir -p "$FASTEMBED_CACHE_DIR" \
     && chown -R appuser:appuser /srv
 USER appuser
 
