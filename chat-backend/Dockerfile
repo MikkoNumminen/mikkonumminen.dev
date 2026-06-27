@@ -32,6 +32,12 @@ RUN pip install -e .
 # (HF latency / local TLS scanning), wedging the backend at "Waiting for
 # application startup" and 502-ing the funnel. The download happens once here,
 # where a hang is a retried build step rather than a dead service.
+#
+# This model name MUST match _DEFAULT_EMBEDDING_MODEL in app/config.py: only the
+# baked model is available at runtime, because HF_HUB_OFFLINE=1 (below) blocks any
+# fetch — so a runtime EMBEDDING_MODEL override would crash at startup. Changing
+# the model means editing both and rebuilding. NOTE: this step needs network at
+# build time (it fails if the HF Hub is unreachable).
 RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')"
 
 # After the model is baked, force the runtime fully offline for HF so a startup

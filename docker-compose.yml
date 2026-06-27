@@ -138,3 +138,7 @@ services:
 volumes:
   pgdata:
   ollama:
+  # The former `fastembed` cache volume was removed — the ONNX weights are baked
+  # into the backend image now. An existing host may still have an orphaned
+  # `<project>_fastembed` volume; it holds only model weights and is safe to
+  # `docker volume rm`.
