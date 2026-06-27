@@ -414,21 +414,24 @@ export const sv: Translations = {
     cmdLinksUsage: 'användning: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'okänd flagga:',
     cmdDownloadDesc:
-      'mitt cv, mina uppmätta skills eller hela katalogen och metoden (pdf)',
+      'mitt cv, eller skills-forskningen — katalog, studier och den senaste kalibreringen (pdf)',
     cmdDownloadUsage:
       'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration]',
     cmdDownloadIntro: 'välj vad du vill hämta:',
     cmdDownloadOptionCv: 'mitt cv — pdf, fullständig meritförteckning',
     cmdDownloadOptionSkills:
-      '16 av mina skills, kall-vs-skill A/B över 3 modeller — den aktuella omgången · juni 2026 — pdf',
+      'juni 2026 · senaste + bredaste — 16 skills, kall-vs-skill A/B över 3 modeller; den aktuella ögonblicksbilden',
     cmdDownloadOptionResearch:
-      'listar 4 pdf:er till — hela katalogen + hur siffrorna togs fram (ingen nedladdning)',
-    cmdDownloadResearchIntro: 'katalogen + metoden — var och en som pdf:',
-    cmdDownloadOptionCatalog: 'varje skill i alla 4 repor — hela portföljinventeringen',
-    cmdDownloadOptionStudy: 'optimeringen — 5 omgångar före/efter på en SKILL.md',
-    cmdDownloadOptionReplicates: 'omgång 6 — de brusigaste cellerna ommätta på djupet',
+      'skills-forskningen — 5 pdf:er, från inventering → senaste körningen (ingen nedladdning)',
+    cmdDownloadResearchIntro: 'katalogen + studierna, äldst → nyast:',
+    cmdDownloadOptionCatalog:
+      'varje skill i alla 4 repor — inventeringen, med uppmätta (inte gissade) kostnader',
+    cmdDownloadOptionStudy:
+      'maj 2026 · optimeringen — 5 omgångar före/efter på en SKILL.md; 3 kostnadsfällor hittade + fixade',
+    cmdDownloadOptionReplicates:
+      'omgång 6 · de brusigaste cellerna ommätta på djupet — en N=1-slump motbevisad, ~+76 % bekräftat',
     cmdDownloadOptionResults:
-      'syntesen — vad de två skill-granskarna kostade och åtgärdade',
+      'syntesen — vad de två skill-granskarna kostade (~36 % billigare att köra) och fällorna de avslöjade',
     cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
       'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results` eller `download --calibration`.',
