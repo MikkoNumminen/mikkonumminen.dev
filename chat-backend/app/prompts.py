@@ -73,9 +73,10 @@ _SYSTEM_PROMPT_RULES = (
     "- Refer to Mikko in the third person."
 )
 
-# Prepended to the user turn — the last thing the model reads before it answers
-# — when FORCE_ENGLISH is on. An instruction in the user message is far more
-# reliable than the system rule alone for keeping small models in English.
+# Prepended at the START of the user turn when FORCE_ENGLISH is on. A belt to the
+# braces of _CLOSING_ENGLISH (appended after the question), which is the true
+# recency anchor; this prepend adds safety for medium-length contexts. Both beat
+# the system rule alone for keeping a small model in English.
 _ENGLISH_USER_DIRECTIVE = (
     "Respond ONLY in English, regardless of the language of the question.\n\n"
 )
