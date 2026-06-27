@@ -390,7 +390,7 @@ export const fi: Translations = {
     cmdHelpDesc: 'listaa käytettävissä olevat komennot',
     cmdHelpAvailable: 'käytettävissä olevat komennot:',
     cmdHelpTip:
-      'vinkki: kokeile `whoami`, `contact --email`, `skills` tai `download --skills`.',
+      'vinkki: kokeile `whoami`, `contact --email`, `skills` tai `download --research`.',
     cmdWhoamiDesc: 'lyhyt esittely',
     cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack-kehittäjä · suomi',
@@ -415,7 +415,7 @@ export const fi: Translations = {
     cmdLinksUnknownFlag: 'tuntematon valitsin:',
     cmdDownloadDesc: 'cv:ni, mitatut skillini tai koko katalogi ja menetelmä (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--skills|--research]; --research lists [--catalog|--study|--replicates|--results]',
+      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration]',
     cmdDownloadIntro: 'valitse mitä haluat napata:',
     cmdDownloadOptionCv: 'cv:ni — pdf, koko ansioluettelo',
     cmdDownloadOptionSkills:
@@ -431,9 +431,9 @@ export const fi: Translations = {
     cmdDownloadOptionResults: 'synteesi — mitä kaksi skilliauditoijaa maksoi ja korjasi',
     cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
-      'kokeile `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates` tai `download --results`.',
+      'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results` tai `download --calibration`.',
     cmdDownloadAmbiguous:
-      'anna vain yksi seuraavista: --cv, --skills, --catalog, --study, --replicates tai --results.',
+      'anna vain yksi seuraavista: --cv, --catalog, --study, --replicates, --results tai --calibration.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla — vielä viimeistelyssä.',
     cmdDownloadSkillsNotAvailable:

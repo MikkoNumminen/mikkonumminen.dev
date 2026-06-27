@@ -390,7 +390,8 @@ export const en: Translations = {
     copyFallback: 'press ctrl+c',
     cmdHelpDesc: 'list available commands',
     cmdHelpAvailable: 'available commands:',
-    cmdHelpTip: 'tip: try `whoami`, `contact --email`, `skills`, or `download --skills`.',
+    cmdHelpTip:
+      'tip: try `whoami`, `contact --email`, `skills`, or `download --research`.',
     cmdWhoamiDesc: 'short bio',
     cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack developer · finland',
@@ -413,27 +414,29 @@ export const en: Translations = {
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc:
-      'my cv, my measured skills, or the full catalog and methodology (pdf)',
+      'my cv, or the skills research — catalog, studies, and the latest calibration (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--skills|--research]; --research lists [--catalog|--study|--replicates|--results]',
+      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
-      '16 of my skills, cold-vs-skill A/B across 3 models — the current round · jun 2026 — pdf',
+      'jun 2026 · latest + broadest — 16 skills, cold-vs-skill A/B across 3 models; the current snapshot',
     cmdDownloadOptionResearch:
-      'lists 4 more pdfs — the full catalog + how the numbers were made (not a download)',
-    cmdDownloadResearchIntro: 'the catalog + the methodology — each a pdf:',
+      'the skills research — 5 pdfs, inventory → latest run (not a download)',
+    cmdDownloadResearchIntro: 'the catalog + the studies, oldest → newest:',
     cmdDownloadOptionCatalog:
-      'every skill across all 4 repos — the full portfolio inventory',
-    cmdDownloadOptionStudy: 'the optimization — 5 rounds of before/after on a SKILL.md',
-    cmdDownloadOptionReplicates: 'round 6 — the noisiest cells re-measured at depth',
+      'every skill across all 4 repos — the inventory, with measured (not guessed) costs',
+    cmdDownloadOptionStudy:
+      'may 2026 · the optimization — 5 rounds of before/after on a SKILL.md; 3 cost-traps found + fixed',
+    cmdDownloadOptionReplicates:
+      'round 6 · the noisiest cells re-measured at depth — an N=1 fluke overturned, ~+76% confirmed',
     cmdDownloadOptionResults:
-      'the synthesis — what the two skill-auditors cost and fixed',
+      'the synthesis — what the two skill-auditors cost (~36% cheaper to run) and the traps they exposed',
     cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates`, or `download --results`.',
+      'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, or `download --calibration`.',
     cmdDownloadAmbiguous:
-      'specify only one of --cv, --skills, --catalog, --study, --replicates, or --results.',
+      'specify only one of --cv, --catalog, --study, --replicates, --results, or --calibration.',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet — still being polished.',
     cmdDownloadSkillsNotAvailable:

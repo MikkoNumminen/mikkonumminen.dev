@@ -58,4 +58,14 @@ A few principles I applied when writing up these results:
 
 **N = 1 per cell.** Every result here is a single data point per cell. Direction and rough magnitude only; re-running yields different absolute numbers. Round 6 of the optimization study re-measured the noisiest cells at N=5/arm for confirmation; the others remain N=1.
 
-The full calibration data, per-skill tables, and the methodology behind the savings estimates are downloadable from the contact terminal at mikkonumminen.dev (`download --skills`, `download --catalog`, `download --study`, `download --replicates`, `download --results`).
+## Download the full research
+
+Every artifact below is a PDF you can pull from the contact terminal at mikkonumminen.dev — run `download --research` to list them, then grab any directly. In the order the research unfolded, oldest to newest:
+
+- **`download --catalog`** — the inventory: every skill across all four repos, with measured (not guessed) per-skill costs and the calibration-honesty chart.
+- **`download --study`** — the optimization study (May 2026): five rounds of before/after on a SKILL.md that traced *why* procedural prose costs tokens, surfacing three fixable cost-traps.
+- **`download --replicates`** — round 6: the noisiest cells re-measured at depth (N=5), which overturned an N=1 fluke and confirmed ~+76% savings on the two auditor skills.
+- **`download --results`** — the synthesis: what the two skill-auditors cost to run (~36% cheaper) and the cost-traps they exposed.
+- **`download --calibration`** — the latest and broadest run (June 2026): 16 skills, cold-vs-skill A/B across all three models — the current portfolio snapshot.
+
+The arc runs from "skills save roughly 3× what they cost" (a guess) to a measured, model-by-model picture: savings concentrate in script-backed skills, while prose audits wash against a capable cold model.

@@ -390,7 +390,7 @@ export const sv: Translations = {
     cmdHelpDesc: 'lista tillgängliga kommandon',
     cmdHelpAvailable: 'tillgängliga kommandon:',
     cmdHelpTip:
-      'tips: prova `whoami`, `contact --email`, `skills` eller `download --skills`.',
+      'tips: prova `whoami`, `contact --email`, `skills` eller `download --research`.',
     cmdWhoamiDesc: 'kort bio',
     cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack-utvecklare · finland',
@@ -416,7 +416,7 @@ export const sv: Translations = {
     cmdDownloadDesc:
       'mitt cv, mina uppmätta skills eller hela katalogen och metoden (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--skills|--research]; --research lists [--catalog|--study|--replicates|--results]',
+      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration]',
     cmdDownloadIntro: 'välj vad du vill hämta:',
     cmdDownloadOptionCv: 'mitt cv — pdf, fullständig meritförteckning',
     cmdDownloadOptionSkills:
@@ -431,9 +431,9 @@ export const sv: Translations = {
       'syntesen — vad de två skill-granskarna kostade och åtgärdade',
     cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
-      'prova `download --cv`, `download --skills`, `download --catalog`, `download --study`, `download --replicates` eller `download --results`.',
+      'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results` eller `download --calibration`.',
     cmdDownloadAmbiguous:
-      'ange endast en av --cv, --skills, --catalog, --study, --replicates eller --results.',
+      'ange endast en av --cv, --catalog, --study, --replicates, --results eller --calibration.',
     cmdDownloadPreparing: 'förbereder nedladdning...',
     cmdDownloadNotAvailable: 'cv inte tillgänglig än — fortfarande under finputsning.',
     cmdDownloadSkillsNotAvailable:
