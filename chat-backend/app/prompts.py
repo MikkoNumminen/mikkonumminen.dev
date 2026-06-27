@@ -80,6 +80,24 @@ _ENGLISH_USER_DIRECTIVE = (
     "Respond ONLY in English, regardless of the language of the question.\n\n"
 )
 
+# Appended AFTER the context AND the question — the LAST thing the model reads
+# before it answers. A small local model obeys a rule placed here (recency) far
+# more reliably than the same rule in the system prompt or prepended ahead of the
+# context: prepended, the grounding/English rules get buried before a long (often
+# code-heavy) context block and the question's own language wins. Verified live —
+# a Finnish question that answered in Finnish AND padded with general knowledge
+# flips to a grounded English answer once this closing reminder is present. The
+# grounding half is unconditional; the English half rides on force_english.
+_CLOSING_GROUNDING = (
+    "\n\nBefore answering: use ONLY the context above, and only about Mikko and "
+    "his work. Do not add general knowledge or explain a concept in the abstract; "
+    "if the context does not specifically cover the question, say you don't have "
+    "anything on that."
+)
+_CLOSING_ENGLISH = (
+    " Write your entire reply in English, whatever language the question is in."
+)
+
 
 def build_system_prompt(force_english: bool) -> str:
     """The system prompt, carrying the English-only rule only when forced."""
@@ -125,11 +143,13 @@ def build_messages(
     instruction and the final grounded question so multi-turn callers keep
     context; the single-turn terminal passes none.
 
-    When `force_english` is on, the system prompt carries the English-only rule
-    AND the final user turn is prefixed with an explicit English directive — a
-    belt-and-braces pair, because small models honour a lone system rule
-    unreliably. When off, neither is added and the model may reply in the
-    question's language.
+    Grounding/English are reinforced at BOTH ends of the user turn: prepended
+    (when `force_english`) and — more importantly — in a closing reminder after
+    the question, which a small model obeys far more reliably (recency) than the
+    system rule or the prepend alone once a long context block sits in between.
+    The closing grounding reminder is unconditional; the closing English line and
+    the prepend ride on `force_english`. When off, no English text is added and
+    the model may reply in the question's language.
     """
     system = build_system_prompt(force_english)
     messages: list[dict[str, str]] = [{"role": "system", "content": system}]
@@ -142,5 +162,8 @@ def build_messages(
     user_content = f"Context:\n{context}\n\nQuestion: {query}"
     if force_english:
         user_content = _ENGLISH_USER_DIRECTIVE + user_content
+    user_content += _CLOSING_GROUNDING
+    if force_english:
+        user_content += _CLOSING_ENGLISH
     messages.append({"role": "user", "content": user_content})
     return messages

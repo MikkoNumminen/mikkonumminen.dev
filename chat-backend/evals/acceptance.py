@@ -81,6 +81,15 @@ _REFUSAL_MARKERS = (
     "i cannot write",
     "i can't create",
     "i cannot create",
+    # grounded declines for a vague/off-corpus topic (the grounding fix makes the
+    # model say it lacks specifics rather than pad with general knowledge)
+    "do not have any specific",
+    "don't have any specific",
+    "dont have any specific",
+    "do not have specific",
+    "don't have specific",
+    "dont have specific",
+    "no specific information",
 )
 
 # Sanity-anchor: the canned gate reply MUST be recognised as a refusal, so the
@@ -240,6 +249,46 @@ def _check_rejected(r: Result) -> tuple[bool, str]:
     return False, f"oversized input not rejected (HTTP {r.status})"
 
 
+# Finnish-language markers for the i18n case (a Finnish question must still be
+# answered in English). Deterministic, no language-detection dependency: Finnish
+# function words and the a-umlaut/o-umlaut vowels are effectively absent from an
+# English answer about the portfolio. Two independent signals so one stray
+# loanword can't trip it.
+_FINNISH_MARKERS = (
+    " on ", " ja ", " joka ", " että ", " sekä ", " minun ", " sivusto",
+    " rakennettu", " ovat ", " tai ", " mutta ", " kä",
+)
+
+
+def _looks_finnish(text: str) -> bool:
+    low = text.lower()
+    words = sum(1 for w in _FINNISH_MARKERS if w in low)
+    diacritics = sum(low.count(c) for c in ("ä", "ö"))
+    return words >= 2 or diacritics >= 4
+
+
+def _english_grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, str]]:
+    """A grounded answer that must also be in English (the i18n enforcement)."""
+
+    def check(r: Result) -> tuple[bool, str]:
+        if r.status != 200:
+            return False, f"HTTP {r.status}"
+        broken = _broken_stream(r)
+        if broken:
+            return False, broken
+        if _is_busy(r.text):
+            return False, "got the busy-shed reply (backend saturated; re-run)"
+        if _is_refusal(r.text) or len(r.text) < _SUBSTANTIVE_MIN_CHARS:
+            return False, f"refused/too-thin an in-scope question ({len(r.text)} chars)"
+        if _looks_finnish(r.text):
+            return False, f"answered in Finnish, must be English: {r.text[:60]!r}"
+        hits = [k for k in keywords if k.lower() in r.text.lower()]
+        kw = f"; matched {hits}" if hits else ""
+        return True, f"answered in English, {len(r.text)} chars{kw}"
+
+    return check
+
+
 def _grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, str]]:
     def check(r: Result) -> tuple[bool, str]:
         if r.status != 200:
@@ -296,6 +345,19 @@ CASES: list[Case] = [
         "grounded: this RAG",
         "How does this contact terminal's own RAG chat work?",
         _grounded_check("retriev", "embed", "pgvector", "chunk", "rag", "vector"),
+    ),
+    # A Finnish question about real content must answer — but in English.
+    Case(
+        "i18n: finnish question answers in english",
+        "Kerro jotain projekteistasi",
+        _english_grounded_check("portfolio", "astro", "three"),
+    ),
+    # A vague topic word that loosely matches the code corpus must NOT get a
+    # general-knowledge blurb — the model must ground strictly or decline.
+    Case(
+        "grounding: vague topic stays grounded",
+        "kerro jotain token tutkimuksesta",
+        _check_declines,
     ),
 ]
 
