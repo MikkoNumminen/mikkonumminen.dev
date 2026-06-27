@@ -96,7 +96,7 @@ async def chat_event_stream(
     # or generation. No GPU touched, no sources cited.
     if is_generative_request(query) or is_translation_request(query):
         if log_request is not None:
-            log_request(query, [], True, len(GENERATIVE_REPLY))
+            log_request(query, [], True, GENERATIVE_REPLY)
         yield sse.sse_sources([])
         yield sse.sse_token(GENERATIVE_REPLY)
         yield sse.sse_done()
@@ -130,7 +130,7 @@ async def chat_event_stream(
     # sources are cited because none were relevant.
     if is_weak_retrieval(chunks, weak_retrieval_distance):
         if log_request is not None:
-            log_request(query, distances, True, len(WEAK_RETRIEVAL_REPLY))
+            log_request(query, distances, True, WEAK_RETRIEVAL_REPLY)
         yield sse.sse_sources([])
         yield sse.sse_token(WEAK_RETRIEVAL_REPLY)
         yield sse.sse_done()
@@ -148,6 +148,8 @@ async def chat_event_stream(
             await asyncio.wait_for(semaphore.acquire(), timeout=acquire_timeout)
             acquired = True
         except TimeoutError:
+            if log_request is not None:
+                log_request(query, distances, True, LLM_BUSY_REPLY)
             yield sse.sse_sources([])
             yield sse.sse_token(LLM_BUSY_REPLY)
             yield sse.sse_done()
@@ -161,13 +163,13 @@ async def chat_event_stream(
             query, to_context(chunks), history, force_english=force_english
         )
         tokens = 0
-        response_chars = 0
+        response_parts: list[str] = []
         try:
             async for token in llm.stream_chat(messages):
                 cleaned = _strip_markup(token)
                 if cleaned:
                     tokens += 1
-                    response_chars += len(cleaned)
+                    response_parts.append(cleaned)
                     yield sse.sse_token(cleaned)
         except Exception:
             yield sse.sse_error("generation unavailable")
@@ -175,12 +177,12 @@ async def chat_event_stream(
 
         yield sse.sse_done()
 
-        # The request log records a real answer (gated=False) with its length —
-        # paired with the gate-fired line above, this is the tuning signal for
-        # WEAK_RETRIEVAL_DISTANCE (how often relevant retrieval is refused vs
-        # answered) and a record of response sizes under the output cap.
+        # The request log records a real answer (gated=False) with its full text —
+        # paired with the gate-fired lines above, this tunes WEAK_RETRIEVAL_DISTANCE
+        # (how often relevant retrieval is refused vs answered) and is a readable
+        # record of what was asked and how the model answered.
         if log_request is not None:
-            log_request(query, distances, False, response_chars)
+            log_request(query, distances, False, "".join(response_parts))
 
         # Record usage only on a real, fully-streamed generation — the
         # weak-retrieval refusal above never reaches here (the model wasn't

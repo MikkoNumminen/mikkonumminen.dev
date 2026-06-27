@@ -87,10 +87,17 @@ services:
       # Read by app/config.py; `ragctl english on|off` flips it via the repo .env.
       # Default on — without this line the container can't see the toggle at all.
       FORCE_ENGLISH: ${FORCE_ENGLISH:-1}
+      # Opt-in per-request log (query + answer + retrieval scores). Empty = off
+      # (repo default); `ragctl up` sets it to the bind-mounted path below, so
+      # RAG Control records the chat. See chat-backend/app/request_log.py.
+      RAG_LOG_FILE: ${RAG_LOG_FILE:-}
     volumes:
       # The fastembed ONNX weights are baked into the image (see chat-backend/
       # Dockerfile), so no cache volume is needed.
       - ./content:/content:ro
+      # Persist the request log on the host so it survives container rebuilds.
+      # ragctl creates + world-writes this dir (the backend writes as uid 10001).
+      - ${RAG_LOG_DIR:-./rag-logs}:/srv/rag-logs
     depends_on:
       db:
         condition: service_healthy
