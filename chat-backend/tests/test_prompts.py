@@ -98,3 +98,18 @@ def test_system_prompt_declines_generative_off_task_requests() -> None:
     for prompt in (build_system_prompt(True), build_system_prompt(False)):
         assert "WRITE or GENERATE" in prompt
         assert "decline as " in prompt
+
+
+def test_closing_reminder_grounding_always_english_when_forced() -> None:
+    # Recency fix: the grounding reminder is appended AFTER the question
+    # (unconditional), and the English closing line is the very last thing when
+    # force_english is on. This is what makes a small model obey under a long
+    # grounded context.
+    chunks = [ContextChunk(source="cv.md", title="CV", content="ships apps.")]
+    on = build_messages("kuka on mikko?", chunks, force_english=True)[-1]["content"]
+    off = build_messages("kuka on mikko?", chunks, force_english=False)[-1]["content"]
+    assert "use ONLY the context above" in on
+    assert "use ONLY the context above" in off  # grounding is unconditional
+    assert on.index("use ONLY the context above") > on.index("kuka on mikko?")
+    assert on.rstrip().endswith("whatever language the question is in.")
+    assert "Write your entire reply in English" not in off
