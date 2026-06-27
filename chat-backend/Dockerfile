@@ -7,9 +7,8 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    # fastembed downloads the ONNX weights on first use; pin the cache to a
-    # stable path so a mounted volume can persist it across container restarts
-    # (wired up in the compose file) instead of re-downloading every boot.
+    # fastembed cache path; the ONNX weights are baked here at build time (below)
+    # so startup loads them from the image, never from the network.
     FASTEMBED_CACHE_DIR=/srv/.fastembed-cache
 
 WORKDIR /srv
@@ -28,13 +27,21 @@ COPY sql ./sql
 COPY evals ./evals
 RUN pip install -e .
 
-# Run unprivileged. Pin a fixed UID so a mounted fastembed-cache volume's
-# ownership is predictable across hosts, and pre-create + own the cache dir so
-# the first-use ONNX download succeeds as the non-root user. When Phase 5 wires
-# the cache as a volume, a host bind-mount target must be owned by UID 10001 (a
-# Docker named volume inherits this image-path ownership automatically).
+# Bake the embedding model into the image at build time so the container never
+# fetches it from the HF Hub on startup. That runtime fetch intermittently hung
+# (HF latency / local TLS scanning), wedging the backend at "Waiting for
+# application startup" and 502-ing the funnel. The download happens once here,
+# where a hang is a retried build step rather than a dead service.
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')"
+
+# After the model is baked, force the runtime fully offline for HF so a startup
+# load reads ONLY the baked cache and never touches the network. (Setting this
+# BEFORE the bake would break the download above.)
+ENV HF_HUB_OFFLINE=1
+
+# Run unprivileged. The model cache is baked into the image (no volume now), so
+# chown /srv to the fixed UID makes it readable by the non-root runtime user.
 RUN useradd --create-home --uid 10001 appuser \
-    && mkdir -p "$FASTEMBED_CACHE_DIR" \
     && chown -R appuser:appuser /srv
 USER appuser
 

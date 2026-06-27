@@ -88,10 +88,9 @@ services:
       # Default on — without this line the container can't see the toggle at all.
       FORCE_ENGLISH: ${FORCE_ENGLISH:-1}
     volumes:
+      # The fastembed ONNX weights are baked into the image (see chat-backend/
+      # Dockerfile), so no cache volume is needed.
       - ./content:/content:ro
-      # Persist the fastembed ONNX weights (downloaded on first use). The image
-      # pre-owns this path as uid 10001, which a named volume inherits.
-      - fastembed:/srv/.fastembed-cache
     depends_on:
       db:
         condition: service_healthy
@@ -139,4 +138,3 @@ services:
 volumes:
   pgdata:
   ollama:
-  fastembed:
