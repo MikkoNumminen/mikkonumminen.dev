@@ -26,7 +26,37 @@ const prompt = 'guest@mikkonumminen:~$';
         <span class="terminal__dot terminal__dot--green"></span>
       </div>
       <div class="terminal__title">{t.contactPage.windowTitle}</div>
-      <div class="terminal__chrome-spacer"></div>
+      <!-- Context-window donut — hidden until the first `context` SSE frame
+           arrives. terminal.ts writes stroke-dasharray + label via JS only;
+           it is never visible in the static build or when no backend is up. -->
+      <div class="terminal__ctx" hidden id="terminal-ctx" aria-hidden="true">
+        <svg
+          class="terminal__ctx-ring"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          aria-hidden="true"
+        >
+          <circle
+            class="terminal__ctx-bg"
+            cx="10"
+            cy="10"
+            r="7"
+            fill="none"
+            stroke-width="2.5"></circle>
+          <circle
+            class="terminal__ctx-arc"
+            cx="10"
+            cy="10"
+            r="7"
+            fill="none"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            transform="rotate(-90 10 10)"
+            id="terminal-ctx-arc"></circle>
+        </svg>
+        <span class="terminal__ctx-label" id="terminal-ctx-label"></span>
+      </div>
     </header>
 
     <div class="terminal__screen">

@@ -49,7 +49,9 @@ export async function initTerminal(
   // Read the active locale from <html lang="..."> set by BaseLayout.
   const locale = asLocale(document.documentElement.lang);
   const t = getTranslations(locale);
-  const commands = buildCommands(t);
+  const commands = buildCommands(t, {
+    onAfterClear: () => clearContextBar(root),
+  });
   // Key the lookup map by lowercased name so the CLI is case-insensitive on the
   // Enter path, matching tab-completion (which lowercases the partial). Command
   // names are already lowercase, but lowercasing here keeps both paths aligned
@@ -60,6 +62,14 @@ export async function initTerminal(
   // backend is configured AND its LLM responds (see chat.ts) — so creating it
   // unconditionally is safe and changes nothing when chat is unavailable.
   const chat = createChatRouter();
+
+  // Wire the context-window donut. The router stores this callback and passes
+  // it to askChat on every turn; the donut updates only from real `context`
+  // SSE frames, never from client-side guesses.
+  chat.setContextCallback((used, limit) => {
+    if (signal.aborted) return;
+    updateContextBar(root, used, limit);
+  });
 
   const elements: TerminalElements = { output, form, input, cursor };
   const ctx = makeContext(elements);
@@ -154,6 +164,8 @@ export async function initTerminal(
         e.preventDefault();
         if (busy) return;
         ctx.clear();
+        clearContextBar(root);
+        void chat.reset();
       } else if (e.key === 'c' && e.ctrlKey) {
         // Ignored while busy for the same reason — an in-flight handler keeps
         // writing after the ^C echo, so the interrupt would be a visual lie.
@@ -323,4 +335,57 @@ function revealStarters(
 function hideStarters(root: ParentNode): void {
   const box = root.querySelector<HTMLElement>('.terminal__starters');
   if (box) box.replaceChildren();
+}
+
+// Context-window donut ---------------------------------------------------
+
+// The SVG circle has r=7; 2π×7 ≈ 43.98. We keep this as a constant so the
+// JS update and the SVG markup share one source of truth.
+const CTX_CIRCUMFERENCE = 2 * Math.PI * 7;
+
+/**
+ * Update the context-window donut with new usage numbers from the backend's
+ * `context` SSE frame. The fraction is clamped to [0,1] so a used>limit value
+ * (which the backend should never emit, but defensive) shows 100%, not overflow.
+ * Color steps: green (< 80%), amber (80–95%), red (> 95%) to match terminal tone.
+ */
+function updateContextBar(root: ParentNode, used: number, limit: number): void {
+  const container = root.querySelector<HTMLElement>('#terminal-ctx');
+  const arc = root.querySelector<SVGCircleElement>('#terminal-ctx-arc');
+  const label = root.querySelector<HTMLElement>('#terminal-ctx-label');
+  if (!container || !arc || !label) return;
+
+  const fraction = Math.min(1, used / limit);
+  arc.style.strokeDasharray = `${(fraction * CTX_CIRCUMFERENCE).toFixed(2)} ${CTX_CIRCUMFERENCE.toFixed(2)}`;
+
+  // Amber and red are literals here — CSS variables for those CRT tones are not
+  // defined globally, so we inline them to match the dot colors in the chrome.
+  if (fraction > 0.95) {
+    arc.style.stroke = '#ff5f57'; // red — matches .terminal__dot--red
+  } else if (fraction > 0.8) {
+    arc.style.stroke = '#febc2e'; // amber — matches .terminal__dot--amber
+  } else {
+    arc.style.stroke = 'var(--color-term-green)';
+  }
+
+  // textContent only — `used` and `limit` are integers from the backend, never
+  // an HTML sink. Percentage is shown rounded so 4095/4096 shows as 100%, not 99%.
+  label.textContent = `${Math.round(fraction * 100)}%`;
+  container.hidden = false;
+}
+
+/**
+ * Hide the donut and reset its arc to empty. Called by `clear` and Ctrl+L so
+ * the donut doesn't show stale numbers after a session reset.
+ */
+function clearContextBar(root: ParentNode): void {
+  const container = root.querySelector<HTMLElement>('#terminal-ctx');
+  const arc = root.querySelector<SVGCircleElement>('#terminal-ctx-arc');
+  const label = root.querySelector<HTMLElement>('#terminal-ctx-label');
+  if (!container || !arc || !label) return;
+
+  arc.style.strokeDasharray = `0 ${CTX_CIRCUMFERENCE.toFixed(2)}`;
+  arc.style.stroke = 'var(--color-term-green)';
+  label.textContent = '';
+  container.hidden = true;
 }

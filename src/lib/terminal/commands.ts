@@ -3,6 +3,7 @@ import { escapeHtml as escape } from '../utils/escapeHtml';
 import { runSkillsCommand } from './skills';
 import type { CommandContext, CommandSpec } from './types';
 import { localizeProjects, type LocalizedProject } from '../../data/projects';
+import { resetChatSession } from './chat';
 
 const EMAIL = 'numminen.mikko.petteri@gmail.com';
 const GITHUB = 'https://github.com/MikkoNumminen';
@@ -62,8 +63,15 @@ function printCv(ctx: CommandContext, tt: Translations['terminal']): void {
  * `--cv`) are intentionally NOT translated — they are part of the CLI
  * surface and stay in English across all locales. Only the descriptions,
  * output text, and error messages are localized.
+ *
+ * `callbacks.onAfterClear` is called by the `clear` handler after wiping the
+ * output and resetting the chat session — Terminal.astro uses it to hide and
+ * reset the context donut.
  */
-export function buildCommands(t: Translations): CommandSpec[] {
+export function buildCommands(
+  t: Translations,
+  callbacks?: { onAfterClear?: () => void | Promise<void> },
+): CommandSpec[] {
   const tt = t.terminal;
   const localized = localizeProjects(t);
 
@@ -379,8 +387,10 @@ export function buildCommands(t: Translations): CommandSpec[] {
     {
       name: 'clear',
       description: tt.cmdClearDesc,
-      handler: (_, ctx) => {
+      handler: async (_, ctx) => {
         ctx.clear();
+        await resetChatSession();
+        if (callbacks?.onAfterClear) await callbacks.onAfterClear();
       },
     },
     {

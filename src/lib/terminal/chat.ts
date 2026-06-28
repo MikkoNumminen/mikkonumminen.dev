@@ -22,6 +22,8 @@
  *                   event: token    data: {"text":"..."}        (repeated)
  *                   event: done     data: {}
  *                   event: error    data: {"message":"..."}
+ *                   event: context  data: {"used":<int>,"limit":<int>}
+ *   POST /session/reset -> { ok: true }  (Phase 4 session memory endpoint)
  */
 
 import type { getTranslations } from '../../i18n';
@@ -47,6 +49,8 @@ export interface ChatHandlers {
   onToken: (text: string) => void;
   onDone?: () => void;
   onError?: (message: string) => void;
+  /** Called once per /chat response with the session context usage from the backend. */
+  onContext?: (used: number, limit: number) => void;
 }
 
 interface FetchOpts {
@@ -100,12 +104,31 @@ let conversationHistory: ChatHistoryItem[] = [];
 // the rest of the session regardless of any later probe.
 let sessionDisabled = false;
 
+// Per-session identity sent with every /chat POST so the backend's Phase 4
+// memory layer can thread turns without the frontend re-sending full history.
+// Regenerated on reset/disable so the new session starts memory-clean.
+function newSessionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments where crypto.randomUUID is not available.
+  return `rag-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+let sessionId = newSessionId();
+
+/** The session id included in every /chat POST body. Useful for tests. */
+export function getSessionId(): string {
+  return sessionId;
+}
+
 /** Force scripted-only for the rest of the session after a mid-session failure. */
 export function disableChatForSession(): void {
   sessionDisabled = true;
   lastKnownAvailable = false;
   lastKnownModel = null;
   conversationHistory = [];
+  sessionId = newSessionId();
 }
 
 /** Test seam: clear the memoized probe + live state + disabled latch + history. */
@@ -115,6 +138,34 @@ export function resetChatStateForTests(): void {
   lastKnownModel = null;
   conversationHistory = [];
   sessionDisabled = false;
+  sessionId = newSessionId();
+}
+
+/**
+ * Best-effort POST to /session/reset to clear the backend's conversation memory
+ * for the current session, then regenerate the session id so the next turn
+ * starts fresh. All errors are swallowed — if the backend is unreachable the
+ * local state is still cleared, which is the important invariant.
+ */
+export async function resetChatSession(opts?: {
+  fetchImpl?: typeof fetch;
+}): Promise<void> {
+  const base = getChatBaseUrl();
+  if (base) {
+    const f = opts?.fetchImpl ?? fetch;
+    try {
+      await f(`${base}/session/reset`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+        cache: 'no-store',
+      });
+    } catch {
+      // Best-effort: a down backend shouldn't block the local clear.
+    }
+  }
+  sessionId = newSessionId();
+  conversationHistory = [];
 }
 
 /** The `/health` fields the terminal cares about: is the LLM answering, and which model. */
@@ -381,6 +432,12 @@ function dispatchSSE(ev: SSEEvent, handlers: ChatHandlers): void {
     case 'error':
       handlers.onError?.(safeParseText(ev.data) ?? 'unknown error');
       break;
+    case 'context': {
+      const ctxFrame = safeParseContext(ev.data);
+      if (ctxFrame && handlers.onContext)
+        handlers.onContext(ctxFrame.used, ctxFrame.limit);
+      break;
+    }
   }
 }
 
@@ -428,6 +485,34 @@ function safeParseText(data: string): string | null {
 }
 
 /**
+ * Parse a `context` SSE frame. Returns null when the payload is missing, not
+ * valid JSON, or the numbers are out of range (non-finite, negative used, or
+ * non-positive limit). The donut is only updated on valid frames.
+ */
+export function safeParseContext(data: string): { used: number; limit: number } | null {
+  try {
+    const parsed: unknown = JSON.parse(data);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const obj = parsed as Record<string, unknown>;
+    const used = obj['used'];
+    const limit = obj['limit'];
+    if (
+      typeof used !== 'number' ||
+      typeof limit !== 'number' ||
+      !isFinite(used) ||
+      !isFinite(limit) ||
+      used < 0 ||
+      limit <= 0
+    ) {
+      return null;
+    }
+    return { used, limit };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * POST `${baseUrl}/chat` and drive `handlers` from the SSE response.
  *
  * Throws if the request itself fails (non-2xx, no body, network error) so the
@@ -445,7 +530,9 @@ export async function streamChat(
   const res = await fetchImpl(`${baseUrl}/chat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ message, history }),
+    // session_id lets the backend's Phase 4 memory thread turns server-side;
+    // history is kept for back-compat with backends that predate Phase 4.
+    body: JSON.stringify({ message, history, session_id: sessionId }),
     cache: 'no-store',
     signal,
   });
@@ -555,6 +642,10 @@ function appendSourceCitation(output: HTMLElement, source: ChatSource): void {
  * `output` is the raw output element (not `ctx`) because the answer streams
  * token-by-token into a single line node via `textContent` — append-as-you-go
  * rather than one finished `print`.
+ *
+ * `onContext` receives the context usage numbers from the `context` SSE frame
+ * that the backend emits after the answer. The donut updates ONLY from this
+ * real frame, never from a guess.
  */
 export async function askChat(
   message: string,
@@ -562,6 +653,7 @@ export async function askChat(
   output: HTMLElement,
   t: Translations,
   opts: FetchOpts = {},
+  onContext?: (used: number, limit: number) => void,
 ): Promise<void> {
   const base = getChatBaseUrl();
   if (!base) return; // gated by the caller; defensive.
@@ -597,6 +689,7 @@ export async function askChat(
       // is shown below. We only need to mark the turn failed.
       failed = true;
     },
+    onContext,
   };
 
   try {
@@ -644,6 +737,10 @@ export async function askChat(
  * unrecognized input / `ask` reaches the model; `ask` runs one turn. Kept as an
  * interface so the dispatcher is testable with a fake router and the real one
  * (which touches `fetch` + the DOM) is wired only in `initTerminal`.
+ *
+ * `reset` clears the backend session and local history (called by `clear`).
+ * `setContextCallback` wires the donut: Terminal.astro calls this once after
+ * creating the router so every `ask` turn updates the context bar automatically.
  */
 export interface ChatRouter {
   isAvailable: () => Promise<boolean>;
@@ -653,12 +750,19 @@ export interface ChatRouter {
     output: HTMLElement,
     t: Translations,
   ) => Promise<void>;
+  reset: () => Promise<void>;
+  setContextCallback: (fn: (used: number, limit: number) => void) => void;
 }
 
 /** The production chat router: session-memoized availability + streamed answers. */
 export function createChatRouter(): ChatRouter {
+  let contextCb: ((used: number, limit: number) => void) | undefined;
   return {
     isAvailable: isChatAvailable,
-    ask: (message, ctx, output, t) => askChat(message, ctx, output, t),
+    ask: (message, ctx, output, t) => askChat(message, ctx, output, t, {}, contextCb),
+    reset: () => resetChatSession(),
+    setContextCallback: (fn) => {
+      contextCb = fn;
+    },
   };
 }

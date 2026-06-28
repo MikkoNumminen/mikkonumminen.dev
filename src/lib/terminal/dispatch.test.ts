@@ -37,6 +37,8 @@ function fakeChat(available: boolean): { router: ChatRouter; asked: string[] } {
       ask: async (message) => {
         asked.push(message);
       },
+      reset: async () => {},
+      setContextCallback: () => {},
     },
   };
 }

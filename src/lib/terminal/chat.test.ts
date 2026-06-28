@@ -7,9 +7,12 @@ import {
   disableChatForSession,
   formatSourceRef,
   getChatBaseUrl,
+  getSessionId,
   isChatAvailable,
   probeAvailability,
+  resetChatSession,
   resetChatStateForTests,
+  safeParseContext,
   startChatAvailabilityPolling,
   streamChat,
   type ChatHandlers,
@@ -541,5 +544,149 @@ describe('startChatAvailabilityPolling', () => {
     );
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 6: context frame, session id, resetChatSession
+// ---------------------------------------------------------------------------
+
+describe('safeParseContext', () => {
+  it('parses a well-formed context frame', () => {
+    expect(safeParseContext('{"used":1024,"limit":4096}')).toEqual({
+      used: 1024,
+      limit: 4096,
+    });
+  });
+
+  it('allows used === 0', () => {
+    expect(safeParseContext('{"used":0,"limit":4096}')).toEqual({ used: 0, limit: 4096 });
+  });
+
+  it('returns null when limit is zero (not positive)', () => {
+    expect(safeParseContext('{"used":0,"limit":0}')).toBeNull();
+  });
+
+  it('returns null when limit is negative', () => {
+    expect(safeParseContext('{"used":100,"limit":-1}')).toBeNull();
+  });
+
+  it('returns null when used is negative', () => {
+    expect(safeParseContext('{"used":-1,"limit":4096}')).toBeNull();
+  });
+
+  it('returns null when limit is missing', () => {
+    expect(safeParseContext('{"used":100}')).toBeNull();
+  });
+
+  it('returns null when used is missing', () => {
+    expect(safeParseContext('{"limit":4096}')).toBeNull();
+  });
+
+  it('returns null when fields are not numbers', () => {
+    expect(safeParseContext('{"used":"100","limit":4096}')).toBeNull();
+  });
+
+  it('returns null for non-JSON input', () => {
+    expect(safeParseContext('not json')).toBeNull();
+  });
+
+  it('returns null when limit is Infinity', () => {
+    // JSON.parse('{"used":0,"limit":Infinity}') fails (Infinity is not valid
+    // JSON), but the guard also catches non-finite numbers from other paths.
+    expect(safeParseContext('{"used":0,"limit":null}')).toBeNull();
+  });
+});
+
+describe('streamChat — context frame routing', () => {
+  it('routes a well-formed context frame to onContext', async () => {
+    const fetchImpl = async () =>
+      sseResponse([
+        'event: context\ndata: {"used":1024,"limit":4096}\n\n',
+        'event: done\ndata: {}\n\n',
+      ]);
+    let contextResult: { used: number; limit: number } | undefined;
+    const handlers: ChatHandlers = {
+      onToken: () => {},
+      onContext: (used, limit) => {
+        contextResult = { used, limit };
+      },
+    };
+    await streamChat('https://x', 'hi', [], handlers, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    expect(contextResult).toEqual({ used: 1024, limit: 4096 });
+  });
+
+  it('ignores a malformed context frame (negative limit) — onContext not called', async () => {
+    const fetchImpl = async () =>
+      sseResponse([
+        'event: context\ndata: {"used":100,"limit":-1}\n\n',
+        'event: done\ndata: {}\n\n',
+      ]);
+    const onContext = vi.fn();
+    await streamChat(
+      'https://x',
+      'hi',
+      [],
+      { onToken: () => {}, onContext },
+      { fetchImpl: fetchImpl as unknown as typeof fetch },
+    );
+    expect(onContext).not.toHaveBeenCalled();
+  });
+
+  it('includes a session_id in the /chat POST body', async () => {
+    let capturedBody = '';
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      capturedBody = String(init.body);
+      return sseResponse(['event: done\ndata: {}\n\n']);
+    }) as unknown as typeof fetch;
+    await streamChat('https://x', 'question', [], { onToken: () => {} }, { fetchImpl });
+    const body = JSON.parse(capturedBody) as Record<string, unknown>;
+    expect(typeof body['session_id']).toBe('string');
+    expect((body['session_id'] as string).length).toBeGreaterThan(0);
+  });
+});
+
+describe('resetChatSession', () => {
+  it('posts to /session/reset with the current session id, then regenerates it', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const idBefore = getSessionId();
+    let postedUrl = '';
+    let postedBody = '';
+    const fetchImpl = (async (url: string, init: RequestInit) => {
+      postedUrl = String(url);
+      postedBody = String(init.body);
+      return jsonResponse(true, { ok: true });
+    }) as unknown as typeof fetch;
+    await resetChatSession({ fetchImpl });
+    expect(postedUrl).toBe('https://x/session/reset');
+    expect((JSON.parse(postedBody) as Record<string, unknown>)['session_id']).toBe(
+      idBefore,
+    );
+    // Session id must be regenerated.
+    expect(getSessionId()).not.toBe(idBefore);
+  });
+
+  it('does not fetch and does not throw when no backend is configured', async () => {
+    // PUBLIC_CHAT_API_URL is unset (reset in beforeEach).
+    const fetchImpl = vi.fn();
+    await expect(
+      resetChatSession({ fetchImpl: fetchImpl as unknown as typeof fetch }),
+    ).resolves.toBeUndefined();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('swallows a network error from /session/reset and still regenerates the session id', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const idBefore = getSessionId();
+    const fetchImpl = async () => {
+      throw new Error('network down');
+    };
+    await expect(
+      resetChatSession({ fetchImpl: fetchImpl as unknown as typeof fetch }),
+    ).resolves.toBeUndefined();
+    // Session id is still regenerated even when the POST failed.
+    expect(getSessionId()).not.toBe(idBefore);
   });
 });

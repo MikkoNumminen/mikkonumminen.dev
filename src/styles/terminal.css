@@ -138,8 +138,41 @@
   text-align: center;
 }
 
-.terminal__chrome-spacer {
-  width: 1px;
+/* Context-window donut — shown only when the backend emits a `context` frame.
+   Hidden by the `hidden` attribute by default so a no-backend terminal is
+   pixel-identical to today. */
+.terminal__ctx {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35ch;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-term-dim);
+  white-space: nowrap;
+}
+
+.terminal__ctx[hidden] {
+  display: none;
+}
+
+.terminal__ctx-ring {
+  flex: none;
+}
+
+.terminal__ctx-bg {
+  stroke: rgba(74, 222, 128, 0.13);
+}
+
+.terminal__ctx-arc {
+  stroke: var(--color-term-green);
+  /* stroke-dasharray is set entirely by JS — no initial value needed because
+     the container is hidden until the first context frame arrives. */
+  transition: stroke-dasharray 0.35s ease;
+}
+
+.terminal__ctx-label {
+  color: var(--color-term-dim);
 }
 
 .terminal__screen {
