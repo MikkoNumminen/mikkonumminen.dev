@@ -17,12 +17,18 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 
-# (query, distances, gated, response) -> None. `distances` are the cosine
-# distances of the retrieved chunks; `gated` is True when a guardrail refused
-# without calling the model (the canned refusal is then the `response`).
-RequestLogger = Callable[[str, Sequence[float], bool, str], None]
+# (query, distances, gated, response, role, classifications) -> None. `distances`
+# are the cosine distances of the retrieved chunks; `gated` is True when a
+# guardrail refused without calling the model (the canned refusal is then the
+# `response`). `role` is the requester's (server-determined) GDPR role and
+# `classifications` is the per-classification count of the chunks that surfaced —
+# together the Phase 2 compliance audit trail (who asked, what classes of data
+# the retrieval touched, and whether it was gated).
+RequestLogger = Callable[
+    [str, Sequence[float], bool, str, str, Mapping[str, int]], None
+]
 
 # The question text is truncated (privacy: don't retain every question up to
 # INPUT_MAX_CHARS verbatim). The answer is the model's own output, already bounded
@@ -35,7 +41,12 @@ _internal = logging.getLogger("chat")
 
 
 def format_log_record(
-    query: str, distances: Sequence[float], gated: bool, response: str
+    query: str,
+    distances: Sequence[float],
+    gated: bool,
+    response: str,
+    role: str = "public",
+    classifications: Mapping[str, int] | None = None,
 ) -> str:
     """One compact JSON line for the request log.
 
@@ -43,8 +54,10 @@ def format_log_record(
     the answer to `_MAX_LOGGED_RESPONSE_CHARS`. Distances are sorted ascending
     (closest first) and rounded so a glance shows retrieval strength;
     `best_distance` surfaces the single closest match, the value the
-    weak-retrieval threshold is compared against. `ensure_ascii` is off so a
-    non-ASCII query/answer is stored readably rather than escaped.
+    weak-retrieval threshold is compared against. `role` and `classifications`
+    (the per-classification count of the retrieved chunks) are the Phase 2 audit
+    fields. `ensure_ascii` is off so a non-ASCII query/answer is stored readably
+    rather than escaped.
     """
     ordered = sorted(distances)
     return json.dumps(
@@ -53,6 +66,8 @@ def format_log_record(
             "distances": [round(d, 4) for d in ordered],
             "best_distance": round(ordered[0], 4) if ordered else None,
             "gated": gated,
+            "role": role,
+            "classifications": dict(classifications or {}),
             "response": response[:_MAX_LOGGED_RESPONSE_CHARS],
             "response_chars": len(response),
         },
@@ -91,10 +106,19 @@ def build_request_logger(log_file: str) -> RequestLogger | None:
     logger.addHandler(handler)
 
     def log(
-        query: str, distances: Sequence[float], gated: bool, response: str
+        query: str,
+        distances: Sequence[float],
+        gated: bool,
+        response: str,
+        role: str = "public",
+        classifications: Mapping[str, int] | None = None,
     ) -> None:
         try:
-            logger.info(format_log_record(query, distances, gated, response))
+            logger.info(
+                format_log_record(
+                    query, distances, gated, response, role, classifications
+                )
+            )
         except Exception:
             pass
 

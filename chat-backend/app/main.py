@@ -191,6 +191,14 @@ def create_app() -> FastAPI:
             semaphore=app.state.llm_semaphore,
             acquire_timeout=settings.llm_acquire_timeout_seconds,
             log_request=request_logger,
+            # The role is SERVER-determined — a public endpoint must never trust a
+            # client-claimed role. The public chat runs as the policy's default
+            # (least-privilege) role, which gates retrieval to its permitted
+            # classifications before anything reaches the model.
+            role=settings.gdpr_policy.default_role,
+            allowed_classifications=settings.gdpr_policy.allowed_classifications(
+                settings.gdpr_policy.default_role
+            ),
         )
         return StreamingResponse(
             stream,
