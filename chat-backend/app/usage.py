@@ -38,7 +38,7 @@ class UsageSummary:
     by_model: list[UsageByModel]
 
 
-def usage_payload(summary: UsageSummary) -> dict:
+def usage_payload(summary: UsageSummary) -> dict[str, object]:
     """The JSON body `GET /usage` returns — totals plus a per-model breakdown.
 
     `since` is rendered ISO-8601 (or null); counts only, never any question text.
