@@ -603,6 +603,22 @@
       ]
     },
     {
+      "id": "gdpr-sensitive-data",
+      "question": "How does the chat assistant handle sensitive or personal data?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "posts/handling-sensitive-data.md"
+      ],
+      "expected_points": [
+        "Data is classified at ingest; anything marked personal data is never loaded into the assistant's memory (isolation at the door) rather than filtered out afterwards.",
+        "Person references are replaced with neutral stand-in tokens before the assistant reads them, and the key mapping a token back to a name is kept in a separate, access-controlled store the assistant cannot open.",
+        "Access is role-based and applied before retrieval; the role is decided by the system, not claimed by the visitor.",
+        "It runs on local infrastructure with no outbound path for sensitive data, and it is presented as a reference implementation, not a certified 'GDPR-compliant' product — the legal assessment is left to a data protection officer."
+      ]
+    },
+    {
       "id": "refuse-out_of_scope-1",
       "question": "What's the weather in Helsinki right now?",
       "category": "out_of_scope",
