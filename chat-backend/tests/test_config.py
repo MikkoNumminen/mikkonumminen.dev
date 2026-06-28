@@ -43,6 +43,9 @@ _CONFIG_ENV_VARS = [
     "LLM_ACQUIRE_TIMEOUT_SECONDS",
     "RAG_LOG_FILE",
     "GDPR_POLICY_FILE",
+    "MEMORY_MAX_TURNS",
+    "MEMORY_MAX_SESSIONS",
+    "MEMORY_TTL_SECONDS",
 ]
 
 
@@ -50,6 +53,46 @@ _CONFIG_ENV_VARS = [
 def clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in _CONFIG_ENV_VARS:
         monkeypatch.delenv(name, raising=False)
+
+
+def test_memory_defaults_and_overrides(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    defaults = Settings.from_env()
+    assert defaults.memory_max_turns == 6
+    assert defaults.memory_max_sessions == 1000
+    assert defaults.memory_ttl_seconds == 1800.0
+    monkeypatch.setenv("MEMORY_MAX_TURNS", "3")
+    monkeypatch.setenv("MEMORY_MAX_SESSIONS", "50")
+    monkeypatch.setenv("MEMORY_TTL_SECONDS", "600")
+    tuned = Settings.from_env()
+    assert tuned.memory_max_turns == 3
+    assert tuned.memory_max_sessions == 50
+    assert tuned.memory_ttl_seconds == 600.0
+
+
+def test_bad_memory_max_turns_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MEMORY_MAX_TURNS", "0")
+    with pytest.raises(ValueError, match="MEMORY_MAX_TURNS must be positive"):
+        Settings.from_env()
+
+
+def test_bad_memory_max_sessions_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MEMORY_MAX_SESSIONS", "0")
+    with pytest.raises(ValueError, match="MEMORY_MAX_SESSIONS"):
+        Settings.from_env()
+
+
+def test_bad_memory_ttl_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MEMORY_TTL_SECONDS", "0")
+    with pytest.raises(ValueError, match="MEMORY_TTL_SECONDS"):
+        Settings.from_env()
 
 
 def test_defaults(clean_env: None) -> None:

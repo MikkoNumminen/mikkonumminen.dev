@@ -31,6 +31,7 @@ from .db import Database, apply_schema
 from .embeddings import Embedder
 from .health import health_payload
 from .llm import LLMClient
+from .memory import SessionMemory
 from .middleware import BodySizeLimitMiddleware
 from .pipeline import chat_event_stream
 from .ratelimit import RateLimiter, client_ip
@@ -55,6 +56,14 @@ class ChatRequest(BaseModel):
     # middleware caps raw bytes, and these cap the prompt that reaches the model
     # (a no-Content-Length request can't slip a huge history past Pydantic).
     history: list[Message] = Field(default_factory=list, max_length=20)
+    # Opt-in backend conversation memory: when set, the server threads this
+    # session's prior turns into the prompt and remembers this one. Absent => the
+    # single-turn path (the client may still pass its own `history` for back-compat).
+    session_id: str | None = Field(default=None, max_length=200)
+
+
+class ResetRequest(BaseModel):
+    session_id: str = Field(min_length=1, max_length=200)
 
 
 async def _db_ok(db: Database) -> bool:
@@ -93,6 +102,13 @@ def create_app() -> FastAPI:
         # One permit per concurrent generation the single local GPU can serve.
         # Created inside the lifespan so it binds to the running event loop.
         app.state.llm_semaphore = asyncio.Semaphore(settings.llm_max_concurrency)
+        # Bounded in-process conversation memory (Phase 4) — session-scoped,
+        # resettable, cleared on restart.
+        app.state.memory = SessionMemory(
+            settings.memory_max_turns,
+            settings.memory_max_sessions,
+            settings.memory_ttl_seconds,
+        )
         try:
             yield
         finally:
@@ -166,6 +182,7 @@ def create_app() -> FastAPI:
             )
 
         db = app.state.db
+        memory: SessionMemory = app.state.memory
 
         async def record(tokens: int, latency_ms: int) -> None:
             # The model that answered is the configured one; counts only, never
@@ -173,9 +190,24 @@ def create_app() -> FastAPI:
             # hiccup can't break an answer that has already streamed.
             await db.record_usage(settings.llm_model, tokens, latency_ms)
 
+        async def remember(query: str, answer: str) -> None:
+            # Record the completed turn into session memory (the pipeline fires this
+            # only on a real answer). No-op for the single-turn path (no session_id).
+            if req.session_id:
+                memory.record(req.session_id, query, answer, time.monotonic())
+
+        # Backend session memory is the source of truth for prior turns when a
+        # session_id is given; otherwise fall back to any client-managed history
+        # (back-compat with the single-turn terminal).
+        history = (
+            memory.history(req.session_id, time.monotonic())
+            if req.session_id
+            else [m.model_dump() for m in req.history]
+        )
+
         stream = chat_event_stream(
             req.message,
-            [m.model_dump() for m in req.history],
+            history,
             embedder=app.state.embedder,
             db=app.state.db,
             llm=app.state.llm,
@@ -188,6 +220,7 @@ def create_app() -> FastAPI:
             lexical_weight=settings.retrieval_lexical_weight,
             project_filter_strict=settings.project_filter_strict,
             on_complete=record,
+            on_answer=remember,
             semaphore=app.state.llm_semaphore,
             acquire_timeout=settings.llm_acquire_timeout_seconds,
             log_request=request_logger,
@@ -205,6 +238,14 @@ def create_app() -> FastAPI:
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
+
+    @app.post("/session/reset")
+    async def reset_session(req: ResetRequest) -> JSONResponse:
+        # Clear a session's conversation memory — the terminal's /clear (Phase 6's
+        # context bar empties alongside it). The body-size cap and per-IP rate limit
+        # already apply via the middleware; no new auth surface.
+        app.state.memory.reset(req.session_id)
+        return JSONResponse({"ok": True})
 
     @app.get("/usage")
     async def usage(hours: int = Query(default=24, ge=1, le=168)) -> JSONResponse:

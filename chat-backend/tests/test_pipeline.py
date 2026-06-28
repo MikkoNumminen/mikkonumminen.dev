@@ -45,9 +45,11 @@ class FakeLLM:
         self._tokens = tokens
         self._fail = fail
         self.called = False
+        self.messages: Sequence[dict[str, str]] = []
 
     async def stream_chat(self, messages: Sequence[dict[str, str]]) -> AsyncIterator[str]:
         self.called = True
+        self.messages = list(messages)
         if self._fail:
             raise RuntimeError("llm down")
         for token in self._tokens:
@@ -339,3 +341,146 @@ def test_generation_permit_is_released_on_early_client_disconnect() -> None:
 
     still_held = asyncio.run(run())
     assert still_held is False  # permit released despite the early disconnect
+
+
+# --- session-memory hook (Phase 4) ---
+
+
+def _run_with_on_answer(query: str, *, db: FakeDB, llm: FakeLLM) -> list[tuple[str, str]]:
+    calls: list[tuple[str, str]] = []
+
+    async def on_answer(q: str, a: str) -> None:
+        calls.append((q, a))
+
+    async def run() -> None:
+        gen = chat_event_stream(
+            query,
+            [],
+            embedder=FakeEmbedder(),
+            db=db,
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            on_answer=on_answer,
+        )
+        async for _frame in gen:
+            pass
+
+    asyncio.run(run())
+    return calls
+
+
+def test_on_answer_fires_with_query_and_answer_on_success() -> None:
+    calls = _run_with_on_answer(
+        "what is hrm",
+        db=FakeDB([_row("projects/hrm.md")]),
+        llm=FakeLLM(["HRM ", "rocks."]),
+    )
+    assert calls == [("what is hrm", "HRM rocks.")]
+
+
+def test_on_answer_not_fired_on_weak_retrieval_refusal() -> None:
+    # A canned refusal is not a remembered turn (the model was never called).
+    assert _run_with_on_answer("obscure", db=FakeDB([]), llm=FakeLLM(["x"])) == []
+
+
+def test_on_answer_not_fired_on_generative_decline() -> None:
+    calls = _run_with_on_answer(
+        "write me a poem about Helsinki",
+        db=FakeDB([_row("projects/hrm.md")]),
+        llm=FakeLLM(["x"]),
+    )
+    assert calls == []
+
+
+def test_on_answer_not_fired_on_generation_error() -> None:
+    # A mid-stream generation error returns before the memory hook.
+    calls = _run_with_on_answer(
+        "what is hrm",
+        db=FakeDB([_row("projects/hrm.md")]),
+        llm=FakeLLM([], fail=True),
+    )
+    assert calls == []
+
+
+def test_on_answer_not_fired_on_busy_shed() -> None:
+    # A saturated concurrency semaphore sheds the request with the busy reply
+    # before the model runs — not a remembered turn.
+    calls: list[tuple[str, str]] = []
+
+    async def on_answer(q: str, a: str) -> None:
+        calls.append((q, a))
+
+    async def run() -> None:
+        sem = asyncio.Semaphore(0)  # no permits -> the acquire times out
+        gen = chat_event_stream(
+            "what is hrm",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=FakeLLM(["HRM rocks."]),
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            on_answer=on_answer,
+            semaphore=sem,
+            acquire_timeout=0.01,
+        )
+        async for _frame in gen:
+            pass
+
+    asyncio.run(run())
+    assert calls == []
+
+
+def test_memory_loop_threads_a_recorded_turn() -> None:
+    # The full Phase-4 data flow at the seam main.py wires: a successful turn is
+    # recorded via on_answer, and the next turn reads it back as threaded history.
+    from app.memory import SessionMemory
+
+    mem = SessionMemory(max_turns=6, max_sessions=10, ttl_seconds=1000)
+
+    async def on_answer(q: str, a: str) -> None:
+        mem.record("s1", q, a, now=1.0)
+
+    async def run() -> None:
+        gen = chat_event_stream(
+            "what is hrm",
+            mem.history("s1", now=1.0),
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=FakeLLM(["HRM is an HR platform."]),
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            on_answer=on_answer,
+        )
+        async for _frame in gen:
+            pass
+
+    asyncio.run(run())
+    threaded = " ".join(m["content"] for m in mem.history("s1", now=1.0))
+    assert "what is hrm" in threaded and "HR platform" in threaded
+
+
+def test_history_is_threaded_into_the_prompt() -> None:
+    llm = FakeLLM(["ok"])
+    history = [
+        {"role": "user", "content": "tell me about hrm"},
+        {"role": "assistant", "content": "HRM is an HR platform."},
+    ]
+
+    async def run() -> None:
+        gen = chat_event_stream(
+            "tell me more",
+            history,
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+        )
+        async for _frame in gen:
+            pass
+
+    asyncio.run(run())
+    contents = [m["content"] for m in llm.messages]
+    assert any("HRM is an HR platform." in c for c in contents)
