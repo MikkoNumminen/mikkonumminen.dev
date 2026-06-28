@@ -7,7 +7,7 @@ import json
 from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 
-from app.guardrails import WEAK_RETRIEVAL_REPLY
+from app.guardrails import EXPANSION_OFFER, WEAK_RETRIEVAL_REPLY
 from app.pipeline import LLM_BUSY_REPLY, chat_event_stream
 
 
@@ -17,9 +17,17 @@ class FakeEmbedder:
 
 
 class FakeDB:
-    def __init__(self, rows: list[dict[str, Any]], fail: bool = False) -> None:
+    def __init__(
+        self,
+        rows: list[dict[str, Any]],
+        fail: bool = False,
+        narratives: list[dict[str, Any]] | None = None,
+        narrative_projects: Sequence[str] = (),
+    ) -> None:
         self._rows = rows
         self._fail = fail
+        self._narratives = narratives or []
+        self._narrative_projects = set(narrative_projects)
 
     async def search(
         self,
@@ -27,10 +35,21 @@ class FakeDB:
         top_k: int,
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
+        doc_types: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         if self._fail:
             raise RuntimeError("db down")
+        if doc_types and "narrative" in doc_types:
+            rows = self._narratives
+            if projects:
+                rows = [r for r in rows if r.get("project") in projects]
+            return rows[:top_k]
         return self._rows[:top_k]
+
+    async def has_narrative(
+        self, project: str, classifications: Sequence[str] | None = None
+    ) -> bool:
+        return project in self._narrative_projects
 
     async def closest_prose(
         self,
@@ -56,11 +75,13 @@ class FakeLLM:
             yield token
 
 
-def _row(source: str, distance: float = 0.1) -> dict[str, Any]:
+def _row(
+    source: str, distance: float = 0.1, project: str | None = None
+) -> dict[str, Any]:
     return {
         "source": source,
         "title": source.upper(),
-        "project": None,
+        "project": project,
         "content": f"about {source}",
         "distance": distance,
         "chunk_index": 0,
@@ -111,6 +132,87 @@ def test_happy_path_sources_then_tokens_then_done() -> None:
     assert sources_data["sources"][0]["source"] == "projects/hrm.md"
     assert _token_text(frames) == "HRM is great."
     assert llm.called is True
+
+
+# --- progressive disclosure (Phase 5) ---
+
+
+def _collect_with(
+    query: str,
+    history: list[dict[str, str]],
+    *,
+    db: FakeDB,
+    llm: FakeLLM,
+    disclosure_enabled: bool = True,
+) -> list[str]:
+    async def run() -> list[str]:
+        gen = chat_event_stream(
+            query,
+            history,
+            embedder=FakeEmbedder(),
+            db=db,
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            disclosure_enabled=disclosure_enabled,
+        )
+        return [frame async for frame in gen]
+
+    return asyncio.run(run())
+
+
+def test_expansion_reads_the_narrative_and_omits_the_offer() -> None:
+    # "tell me more" after a prior HRM turn expands into HRM's narrative; the deep
+    # answer is grounded in the narrative chunk and the offer is NOT re-appended.
+    history = [
+        {"role": "user", "content": "How does HRM handle multi-tenancy?"},
+        {"role": "assistant", "content": "HRM uses a sessionId column."},
+    ]
+    narrative = _row("narratives/hrm.md", project="hrm")
+    narrative["content"] = "HRM development arc: the sessionId multi-tenancy story."
+    db = FakeDB(
+        [_row("projects/hrm.md", project="hrm")],
+        narratives=[narrative],
+        narrative_projects=["hrm"],
+    )
+    llm = FakeLLM(["Deeper HRM answer."])
+    frames = _collect_with("tell me more", history, db=db, llm=llm)
+    assert "narratives/hrm.md" in frames[0]  # the narrative was the context
+    joined = " ".join(m["content"] for m in llm.messages)
+    assert "development arc" in joined  # the model saw the narrative
+    assert EXPANSION_OFFER not in _token_text(frames)  # no offer — this IS the depth
+
+
+def test_offer_appended_after_normal_answer_with_a_narrative() -> None:
+    db = FakeDB([_row("projects/hrm.md", project="hrm")], narrative_projects=["hrm"])
+    frames = _collect_with("how does hrm work", [], db=db, llm=FakeLLM(["HRM works."]))
+    assert _token_text(frames).endswith(EXPANSION_OFFER)
+
+
+def test_no_offer_when_the_project_has_no_narrative() -> None:
+    db = FakeDB([_row("projects/hrm.md", project="hrm")], narrative_projects=[])
+    frames = _collect_with("how does hrm work", [], db=db, llm=FakeLLM(["HRM works."]))
+    assert EXPANSION_OFFER not in _token_text(frames)
+
+
+def test_expansion_without_a_prior_topic_falls_through_to_normal() -> None:
+    # "tell me more" with no resolvable prior topic answers the literal query
+    # normally (no narrative, no crash, no offer).
+    db = FakeDB([_row("projects/hrm.md", project="hrm")], narrative_projects=["hrm"])
+    frames = _collect_with("tell me more", [], db=db, llm=FakeLLM(["A normal answer."]))
+    assert _token_text(frames) == "A normal answer."
+
+
+def test_disclosure_disabled_skips_offer_and_expansion() -> None:
+    db = FakeDB([_row("projects/hrm.md", project="hrm")], narrative_projects=["hrm"])
+    frames = _collect_with(
+        "how does hrm work",
+        [],
+        db=db,
+        llm=FakeLLM(["HRM works."]),
+        disclosure_enabled=False,
+    )
+    assert _token_text(frames) == "HRM works."
 
 
 def test_empty_retrieval_refuses_without_calling_the_model() -> None:

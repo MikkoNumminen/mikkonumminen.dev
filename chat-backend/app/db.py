@@ -92,6 +92,7 @@ def _filter_clause(
     params: list[object],
     projects: Sequence[str] | None,
     classifications: Sequence[str] | None,
+    doc_types: Sequence[str] | None = None,
     base: list[str] | None = None,
 ) -> str:
     """Build a parameterized WHERE for the optional project + classification
@@ -111,6 +112,12 @@ def _filter_clause(
     if classifications is not None:
         params.append(list(classifications))
         conditions.append(f"classification = ANY(${len(params)}::text[])")
+    # doc_type is a POSITIVE genre filter (retrieve ONLY these types, e.g.
+    # 'narrative'); unlike the role filter an empty/None list means "no genre
+    # restriction", so keying on truthiness is correct here.
+    if doc_types:
+        params.append(list(doc_types))
+        conditions.append(f"doc_type = ANY(${len(params)}::text[])")
     return ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
 
@@ -283,12 +290,34 @@ class Database:
             ],
         )
 
+    async def has_narrative(
+        self, project: str, classifications: Sequence[str] | None = None
+    ) -> bool:
+        """True when `project` has a precomputed narrative chunk THIS ROLE may see —
+        drives the progressive-disclosure offer (never offer to expand into a
+        narrative that doesn't exist or that the role can't retrieve, which would be
+        an offer the expansion then can't keep). The role filter mirrors `search`:
+        an empty allowed list matches nothing."""
+        params: list[object] = [project]
+        clause = ""
+        if classifications is not None:
+            params.append(list(classifications))
+            clause = f" AND classification = ANY(${len(params)}::text[])"
+        row = await self._pool.fetchrow(
+            "SELECT 1 FROM documents WHERE doc_type = 'narrative' AND project = $1"
+            + clause
+            + " LIMIT 1",
+            *params,
+        )
+        return row is not None
+
     async def search(
         self,
         embedding: list[float],
         top_k: int,
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
+        doc_types: Sequence[str] | None = None,
     ) -> list[asyncpg.Record]:
         """Return the `top_k` chunks nearest the query embedding (dense).
 
@@ -304,7 +333,7 @@ class Database:
         the placeholder INDEX is interpolated into the SQL, never any value.
         """
         params: list[object] = [embedding, top_k]
-        where = _filter_clause(params, projects, classifications)
+        where = _filter_clause(params, projects, classifications, doc_types)
         rows: list[asyncpg.Record] = await self._pool.fetch(
             f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
