@@ -13,8 +13,47 @@ from app.guardrails import (
     is_translation_request,
     is_weak_retrieval,
     looks_non_english,
+    smalltalk_route,
 )
 from app.retrieval import RetrievedChunk
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "hi",
+        "Hello!",
+        "hey there",
+        "moi",
+        "Good Morning",
+        "huomenta",
+        "what can you do",
+        "kuka olet",
+        "help",
+    ],
+)
+def test_smalltalk_route_greeting(query: str) -> None:
+    assert smalltalk_route(query) == "greeting"
+
+
+@pytest.mark.parametrize("query", ["thanks", "Thanks!", "thank you", "kiitos", "cheers"])
+def test_smalltalk_route_courtesy(query: str) -> None:
+    assert smalltalk_route(query) == "courtesy"
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "what is HRM",
+        "hi, how does your retrieval work",  # opens with a greeting, real question
+        "hi how does retrieval work",  # no comma — whole-message match, not prefix
+        "thanks, but how do I run the indexer",  # opens with thanks, real question
+        "tell me about hrm",
+        "moikka, mitä kuuluu projekteille",  # FI greeting + real question
+    ],
+)
+def test_smalltalk_route_none_for_real_questions(query: str) -> None:
+    assert smalltalk_route(query) is None
 
 
 @pytest.mark.parametrize("query", ["kerro lisää", "entä muut projektit", "berätta mer"])

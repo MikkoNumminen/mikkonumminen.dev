@@ -7,7 +7,12 @@ import json
 from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 
-from app.guardrails import EXPANSION_OFFER, WEAK_RETRIEVAL_REPLY
+from app.guardrails import (
+    COURTESY_REPLY,
+    EXPANSION_OFFER,
+    GREETING_REPLY,
+    WEAK_RETRIEVAL_REPLY,
+)
 from app.pipeline import LLM_BUSY_REPLY, chat_event_stream
 
 
@@ -418,21 +423,42 @@ def test_busy_when_no_generation_slot_is_free() -> None:
     assert llm.called is False
 
 
-def test_busy_shed_calls_log_request() -> None:
-    # When the semaphore is exhausted, log_request must be called with the busy
-    # reply so the request log has a record of the shed (gated=True).
-    llm = FakeLLM(["should not be used"])
-    log_calls: list[tuple] = []
-
+def _capture_log(sink: list[dict]):
     def capture_log(
         query: str,
         distances: list,
-        gated: bool,
+        route: str,
         response: str,
         role: str = "public",
         classifications: dict | None = None,
+        *,
+        model: str | None,
+        latency_ms: int,
+        prompt_eval_count: int | None = None,
+        eval_count: int | None = None,
     ) -> None:
-        log_calls.append((query, distances, gated, response, role, classifications))
+        sink.append(
+            {
+                "query": query,
+                "route": route,
+                "response": response,
+                "model": model,
+                "latency_ms": latency_ms,
+                "prompt_eval_count": prompt_eval_count,
+                "eval_count": eval_count,
+                "distances": list(distances),
+                "classifications": dict(classifications or {}),
+            }
+        )
+
+    return capture_log
+
+
+def test_busy_shed_calls_log_request() -> None:
+    # When the semaphore is exhausted, log_request records the shed with
+    # route="busy" (gated is derived) and no model/tokens (no inference ran).
+    llm = FakeLLM(["should not be used"])
+    log_calls: list[dict] = []
 
     async def run() -> list[str]:
         sem = asyncio.Semaphore(1)
@@ -447,7 +473,7 @@ def test_busy_shed_calls_log_request() -> None:
             weak_retrieval_distance=0.7,
             semaphore=sem,
             acquire_timeout=0.01,
-            log_request=capture_log,
+            log_request=_capture_log(log_calls),
         )
         return [frame async for frame in gen]
 
@@ -456,16 +482,113 @@ def test_busy_shed_calls_log_request() -> None:
     assert _token_text(frames) == LLM_BUSY_REPLY
     assert llm.called is False
     assert len(log_calls) == 1
-    query_logged, distances_logged, gated_logged, response_logged, role_logged, _cls = (
-        log_calls[0]
+    rec = log_calls[0]
+    assert rec["query"] == "what is hrm"
+    assert rec["route"] == "busy"
+    assert rec["response"] == LLM_BUSY_REPLY
+    assert rec["model"] is None
+    assert isinstance(rec["latency_ms"], int)
+    # The real distances + per-classification counts thread through to the shed row
+    # — a regression that logged [] / {} on a gate path would fail here.
+    assert rec["classifications"] == {"public": 1}
+    assert rec["distances"]
+
+
+# --- small-talk fast path + answered-row telemetry ---
+
+
+def _collect_logged(
+    query: str, *, db: FakeDB, llm: FakeLLM, log: list[dict]
+) -> list[str]:
+    async def run() -> list[str]:
+        gen = chat_event_stream(
+            query,
+            [],
+            embedder=FakeEmbedder(),
+            db=db,
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            log_request=_capture_log(log),
+            model_name="qwen2.5:7b",
+        )
+        return [frame async for frame in gen]
+
+    return asyncio.run(run())
+
+
+def test_greeting_fast_path_no_llm_no_retrieval() -> None:
+    # fail=True: if the greeting fell through to retrieval, db.search would raise —
+    # so getting GREETING_REPLY back proves retrieval never ran.
+    llm = FakeLLM(["should not run"])
+    log: list[dict] = []
+    frames = _collect_logged("hi", db=FakeDB([], fail=True), llm=llm, log=log)
+    assert _events(frames) == ["sources", "token", "done"]
+    assert _token_text(frames) == GREETING_REPLY
+    assert llm.called is False
+    assert log[0]["route"] == "greeting"
+    assert log[0]["model"] is None and log[0]["prompt_eval_count"] is None
+    assert json.loads(frames[0].split("data: ", 1)[1])["sources"] == []
+
+
+def test_courtesy_fast_path() -> None:
+    llm = FakeLLM(["nope"])
+    log: list[dict] = []
+    frames = _collect_logged("kiitos", db=FakeDB([], fail=True), llm=llm, log=log)
+    assert _token_text(frames) == COURTESY_REPLY
+    assert llm.called is False
+    assert log[0]["route"] == "courtesy"
+    assert log[0]["model"] is None
+    assert json.loads(frames[0].split("data: ", 1)[1])["sources"] == []
+
+
+def test_smalltalk_does_not_misfire_on_real_question() -> None:
+    # "hi, how does..." is NOT a standalone greeting -> the normal pipeline runs.
+    llm = FakeLLM(["HRM uses JWTs."])
+    log: list[dict] = []
+    frames = _collect_logged(
+        "hi, how does hrm work",
+        db=FakeDB([_row("projects/hrm.md")]),
+        llm=llm,
+        log=log,
     )
-    assert query_logged == "what is hrm"
-    assert gated_logged is True
-    assert response_logged == LLM_BUSY_REPLY
-    assert role_logged == "public"  # default role threads through to the audit log
-    assert _cls == {"public": 1}  # the audit log carries the retrieved classes
-    # distances are computed from the retrieved chunks before the semaphore wait
-    assert isinstance(distances_logged, list)
+    assert _token_text(frames) == "HRM uses JWTs."
+    assert llm.called is True
+    assert log[0]["route"] == "answered"
+
+
+def test_answered_row_logs_model_and_real_tokens() -> None:
+    llm = FakeLLM(["HRM is great."], usage={"prompt": 3600, "completion": 40})
+    log: list[dict] = []
+    _collect_logged("what is hrm", db=FakeDB([_row("projects/hrm.md")]), llm=llm, log=log)
+    rec = log[0]
+    assert rec["route"] == "answered"
+    assert rec["model"] == "qwen2.5:7b"
+    assert rec["prompt_eval_count"] == 3600
+    assert rec["eval_count"] == 40
+
+
+def test_generation_error_logs_error_route() -> None:
+    # A mid-stream generation failure still emits an operational row (route="error",
+    # model=None) so failed/slow requests show up in the latency/health log.
+    log: list[dict] = []
+    _collect_logged(
+        "what is hrm",
+        db=FakeDB([_row("projects/hrm.md")]),
+        llm=FakeLLM([], fail=True),
+        log=log,
+    )
+    assert log and log[0]["route"] == "error"
+    assert log[0]["model"] is None
+    assert log[0]["distances"]  # retrieval succeeded, so its distances are recorded
+
+
+def test_retrieval_error_logs_error_route() -> None:
+    # A retrieval failure (non-greeting query) likewise produces an error row.
+    log: list[dict] = []
+    _collect_logged("what is hrm", db=FakeDB([], fail=True), llm=FakeLLM(["x"]), log=log)
+    assert log and log[0]["route"] == "error"
+    assert log[0]["model"] is None
 
 
 def test_generation_permit_is_released_after_a_successful_answer() -> None:
@@ -574,6 +697,15 @@ def test_on_answer_not_fired_on_generative_decline() -> None:
         llm=FakeLLM(["x"]),
     )
     assert calls == []
+
+
+def test_on_answer_not_fired_on_smalltalk() -> None:
+    # A greeting/thanks is answered by template and returns before the memory hook,
+    # so it is never threaded into session memory — a later "tell me more" must not
+    # resolve to "hi".
+    db = FakeDB([_row("projects/hrm.md")])
+    assert _run_with_on_answer("hi", db=db, llm=FakeLLM(["x"])) == []
+    assert _run_with_on_answer("kiitos", db=db, llm=FakeLLM(["x"])) == []
 
 
 def test_on_answer_not_fired_on_generation_error() -> None:

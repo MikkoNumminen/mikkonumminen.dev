@@ -36,15 +36,18 @@ LLM_BUSY_REPLY = (
 # per-client usage state to race on while friends hit the chat at once.
 UsageRecorder = Callable[[int, int], Awaitable[None]]
 from .guardrails import (
+    COURTESY_REPLY,
     ENGLISH_ONLY_HINT,
     EXPANSION_OFFER,
     GENERATIVE_REPLY,
+    GREETING_REPLY,
     WEAK_RETRIEVAL_REPLY,
     is_expansion_request,
     is_generative_request,
     is_translation_request,
     is_weak_retrieval,
     looks_non_english,
+    smalltalk_route,
 )
 from .prompts import build_messages
 from .query_projects import detect_projects
@@ -128,17 +131,52 @@ async def chat_event_stream(
     context_window: int = 0,
     exclude_doc_types: Sequence[str] | None = None,
     diversify_max_per_project: int | None = None,
+    model_name: str = "",
 ) -> AsyncIterator[str]:
     start = time.monotonic()
+
+    # Small-talk fast path: a standalone greeting or thanks is ANSWERED by template
+    # with NO retrieval and NO model. Conservative whole-message match — a real
+    # question that merely opens with "hi"/"thanks" falls through to the pipeline.
+    # Logged with its route; model + token counts stay None (no inference ran).
+    st_route = smalltalk_route(query)
+    if st_route is not None:
+        reply = GREETING_REPLY if st_route == "greeting" else COURTESY_REPLY
+        if log_request is not None:
+            log_request(
+                query,
+                [],
+                st_route,
+                reply,
+                role,
+                {},
+                model=None,
+                latency_ms=int((time.monotonic() - start) * 1000),
+            )
+        yield sse.sse_sources([])
+        yield sse.sse_token(reply)
+        yield sse.sse_done()
+        return
 
     # Generative-intent gate: a request to WRITE creative/generic content (poem,
     # story, song, ...) is out of scope. When it names an on-corpus topic it slips
     # past the retrieval gate below, and a small local model won't reliably refuse
     # it from the prompt alone — so decline deterministically before any retrieval
     # or generation. No GPU touched, no sources cited.
-    if is_generative_request(query) or is_translation_request(query):
+    generative = is_generative_request(query)
+    if generative or is_translation_request(query):
+        route = "generative" if generative else "translation"
         if log_request is not None:
-            log_request(query, [], True, GENERATIVE_REPLY, role, {})
+            log_request(
+                query,
+                [],
+                route,
+                GENERATIVE_REPLY,
+                role,
+                {},
+                model=None,
+                latency_ms=int((time.monotonic() - start) * 1000),
+            )
         yield sse.sse_sources([])
         yield sse.sse_token(GENERATIVE_REPLY)
         if looks_non_english(query):
@@ -189,6 +227,22 @@ async def chat_event_stream(
                 diversify_max_per_project=diversify_max_per_project,
             )
     except Exception:
+        logger.exception("retrieval failed")
+        # Record the failure so the operational log counts error events (latency
+        # spent, no GPU touched) — a health/latency log that drops every error is
+        # blind to exactly the requests worth triaging. route="error" (not gated,
+        # not answered); no distances/classes since retrieval never returned.
+        if log_request is not None:
+            log_request(
+                query,
+                [],
+                "error",
+                "",
+                role,
+                {},
+                model=None,
+                latency_ms=int((time.monotonic() - start) * 1000),
+            )
         yield sse.sse_error("retrieval unavailable")
         return
 
@@ -202,9 +256,7 @@ async def chat_event_stream(
     # class this role cannot see, so these are only ever permitted classes.
     class_counts: dict[str, int] = {}
     for chunk in chunks:
-        class_counts[chunk.classification] = (
-            class_counts.get(chunk.classification, 0) + 1
-        )
+        class_counts[chunk.classification] = class_counts.get(chunk.classification, 0) + 1
 
     # Guardrail: when retrieval is empty or every chunk is too far to be
     # relevant, refuse deterministically WITHOUT calling the model — a clearly
@@ -213,7 +265,14 @@ async def chat_event_stream(
     if is_weak_retrieval(chunks, weak_retrieval_distance):
         if log_request is not None:
             log_request(
-                query, distances, True, WEAK_RETRIEVAL_REPLY, role, class_counts
+                query,
+                distances,
+                "weak_retrieval",
+                WEAK_RETRIEVAL_REPLY,
+                role,
+                class_counts,
+                model=None,
+                latency_ms=int((time.monotonic() - start) * 1000),
             )
         yield sse.sse_sources([])
         yield sse.sse_token(WEAK_RETRIEVAL_REPLY)
@@ -235,7 +294,16 @@ async def chat_event_stream(
             acquired = True
         except TimeoutError:
             if log_request is not None:
-                log_request(query, distances, True, LLM_BUSY_REPLY, role, class_counts)
+                log_request(
+                    query,
+                    distances,
+                    "busy",
+                    LLM_BUSY_REPLY,
+                    role,
+                    class_counts,
+                    model=None,
+                    latency_ms=int((time.monotonic() - start) * 1000),
+                )
             yield sse.sse_sources([])
             yield sse.sse_token(LLM_BUSY_REPLY)
             yield sse.sse_done()
@@ -259,6 +327,22 @@ async def chat_event_stream(
                     response_parts.append(cleaned)
                     yield sse.sse_token(cleaned)
         except Exception:
+            logger.exception("generation failed")
+            # A generation that died mid-stream consumed a GPU slot and latency;
+            # log it as an error event (model=None — no usable inference) with the
+            # distances/classes already computed, so failed generations show up in
+            # the latency/health log.
+            if log_request is not None:
+                log_request(
+                    query,
+                    distances,
+                    "error",
+                    "".join(response_parts),
+                    role,
+                    class_counts,
+                    model=None,
+                    latency_ms=int((time.monotonic() - start) * 1000),
+                )
             yield sse.sse_error("generation unavailable")
             return
 
@@ -295,7 +379,16 @@ async def chat_event_stream(
         # record of what was asked and how the model answered.
         if log_request is not None:
             log_request(
-                query, distances, False, "".join(response_parts), role, class_counts
+                query,
+                distances,
+                "answered",
+                "".join(response_parts),
+                role,
+                class_counts,
+                model=model_name,
+                latency_ms=int((time.monotonic() - start) * 1000),
+                prompt_eval_count=usage.get("prompt"),
+                eval_count=usage.get("completion"),
             )
 
         # Thread this completed turn into session memory so a follow-up ("tell me

@@ -72,9 +72,11 @@ pipeline order:
   mid-stream client disconnect).
 - **Rate limiting.** A per-IP sliding window (`RATE_LIMIT_REQUESTS` default 30 /
   `RATE_LIMIT_WINDOW_SECONDS` default 60).
-- **Score logging.** Opt-in via `RAG_LOG_FILE` (empty = disabled): one JSON line
-  per request with the truncated query, top cosine distances, gate decision, and
-  response length — for tuning the thresholds above against real traffic.
+- **Score logging.** On by default (`RAG_LOG_FILE` defaults to
+  `rag-logs/requests.jsonl`; set empty to disable): one JSONL line per request
+  with operational telemetry only — no PII. Set `RAG_LOG_TEXT=true` (off by
+  default) to additionally write the raw query + answer text — for local
+  debugging only.
 
 Every knob above is a validated env var, so the containment is tunable per
 deployment without code changes. The decision is enforced by an **executable
@@ -118,7 +120,7 @@ dependency that [ADR 0009](0009-rag-chat-backend.md) deliberately closed.
   catch a different failure, and a breach of one is bounded by the others.
 - **Tunable without code changes.** Every threshold is a validated env var, so a
   deployment can tighten or relax containment from config, informed by the
-  opt-in score log.
+  operational telemetry log.
 - **An executable contract.** `evals/acceptance.py` turns "the chat stays in
   scope" from a claim into a test, with classifiers anchored on the real refusal
   wording so the suite can't quietly pass on a regression.

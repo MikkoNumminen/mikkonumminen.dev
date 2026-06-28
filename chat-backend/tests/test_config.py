@@ -42,6 +42,7 @@ _CONFIG_ENV_VARS = [
     "LLM_MAX_CONCURRENCY",
     "LLM_ACQUIRE_TIMEOUT_SECONDS",
     "RAG_LOG_FILE",
+    "RAG_LOG_TEXT",
     "GDPR_POLICY_FILE",
     "MEMORY_MAX_TURNS",
     "MEMORY_MAX_SESSIONS",
@@ -91,9 +92,7 @@ def test_bad_memory_max_sessions_raises(
         Settings.from_env()
 
 
-def test_bad_memory_ttl_raises(
-    clean_env: None, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_bad_memory_ttl_raises(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MEMORY_TTL_SECONDS", "0")
     with pytest.raises(ValueError, match="MEMORY_TTL_SECONDS"):
         Settings.from_env()
@@ -191,9 +190,7 @@ def test_hybrid_retrieval_defaults(clean_env: None) -> None:
     assert settings.project_filter_strict is True
 
 
-def test_hybrid_can_be_disabled(
-    clean_env: None, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_hybrid_can_be_disabled(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HYBRID_ENABLED", "false")
     monkeypatch.setenv("PROJECT_FILTER_STRICT", "off")
     settings = Settings.from_env()
@@ -228,9 +225,7 @@ def test_concurrency_defaults_and_overrides(
     assert tuned.llm_acquire_timeout_seconds == 0.25
 
 
-def test_bad_concurrency_raises(
-    clean_env: None, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_bad_concurrency_raises(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LLM_MAX_CONCURRENCY", "0")
     with pytest.raises(ValueError, match="LLM_MAX_CONCURRENCY must be positive"):
         Settings.from_env()
@@ -242,18 +237,27 @@ def test_zero_acquire_timeout_raises(
     # 0 would wedge the gate: wait_for(acquire, timeout=0) always times out, so
     # every request would be shed as "busy" even with the GPU sitting idle.
     monkeypatch.setenv("LLM_ACQUIRE_TIMEOUT_SECONDS", "0")
-    with pytest.raises(
-        ValueError, match="LLM_ACQUIRE_TIMEOUT_SECONDS must be positive"
-    ):
+    with pytest.raises(ValueError, match="LLM_ACQUIRE_TIMEOUT_SECONDS must be positive"):
         Settings.from_env()
 
 
-def test_rag_log_file_default_off_and_override(
+def test_rag_log_file_on_by_default_and_override(
     clean_env: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    assert Settings.from_env().rag_log_file == ""  # off by default
+    # Operational log is ON by default (local + cheap); empty disables it.
+    assert Settings.from_env().rag_log_file == "rag-logs/requests.jsonl"
+    monkeypatch.setenv("RAG_LOG_FILE", "")
+    assert Settings.from_env().rag_log_file == ""
     monkeypatch.setenv("RAG_LOG_FILE", "/var/log/rag.log")
     assert Settings.from_env().rag_log_file == "/var/log/rag.log"
+
+
+def test_rag_log_text_off_by_default_and_override(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert Settings.from_env().rag_log_text is False  # no PII by default
+    monkeypatch.setenv("RAG_LOG_TEXT", "true")
+    assert Settings.from_env().rag_log_text is True
 
 
 def test_llm_tuning_defaults_and_overrides(
@@ -424,5 +428,7 @@ def test_retrieval_diversity_max_per_project_zero_raises(
     clean_env: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", "0")
-    with pytest.raises(ValueError, match="RETRIEVAL_DIVERSITY_MAX_PER_PROJECT must be positive"):
+    with pytest.raises(
+        ValueError, match="RETRIEVAL_DIVERSITY_MAX_PER_PROJECT must be positive"
+    ):
         Settings.from_env()

@@ -42,6 +42,103 @@ def looks_non_english(query: str) -> bool:
     return any(ch.isalpha() and ord(ch) > 127 for ch in query)
 
 
+# Templated replies for the no-LLM small-talk fast path. A greeting or a thanks is
+# ANSWERED here without retrieval or the model — distinct from the DECLINE gates,
+# which refuse out-of-scope requests.
+GREETING_REPLY = (
+    "Hi! I'm the assistant for Mikko Numminen's portfolio. Ask me about his "
+    "projects — HRM, AudiobookMaker, ReadLog .NET, Spacepotatis, and more — the "
+    "tech behind them, or his experience. Type `help` for the scripted commands."
+)
+COURTESY_REPLY = (
+    "You're welcome! Anything else you'd like to know about Mikko's projects or work?"
+)
+
+# Whole-message small talk. The matcher compares the WHOLE normalized message
+# against these sets — never a substring — so a real question that merely opens
+# with "hi" or "thanks" ("hi, how does retrieval work") falls through to the
+# normal pipeline. Greeting + capability phrasings share GREETING_REPLY; thanks is
+# its own COURTESY route. EN + FI.
+_GREETINGS = frozenset(
+    {
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "hi there",
+        "hello there",
+        "hey there",
+        "good morning",
+        "good evening",
+        "good afternoon",
+        "good day",
+        "sup",
+        "howdy",
+        "greetings",
+        "hei",
+        "moi",
+        "moikka",
+        "terve",
+        "morjens",
+        "moro",
+        "heippa",
+        "hei hei",
+        "huomenta",
+        "iltaa",
+        "hyvää huomenta",
+        "hyvää iltaa",
+        "what can you do",
+        "what do you do",
+        "what can i ask",
+        "who are you",
+        "help",
+        "mitä osaat",
+        "mitä sinä osaat",
+        "kuka olet",
+        "mitä voin kysyä",
+    }
+)
+_COURTESY = frozenset(
+    {
+        "thanks",
+        "thank you",
+        "thank u",
+        "thankyou",
+        "ty",
+        "thx",
+        "cheers",
+        "thanks a lot",
+        "thanks so much",
+        "thank you so much",
+        "kiitos",
+        "kiitti",
+        "kiitos paljon",
+        "kiitoksia",
+    }
+)
+
+
+def _normalize_smalltalk(query: str) -> str:
+    """Lowercase, strip surrounding whitespace + terminal punctuation, and collapse
+    inner whitespace — so 'Hi!  ' matches 'hi' while the comparison stays against
+    the WHOLE message (inner punctuation is kept, so 'hi, how...' will not match)."""
+    return " ".join(query.strip().lower().strip(".!?,").split())
+
+
+def smalltalk_route(query: str) -> str | None:
+    """'greeting', 'courtesy', or None — for a message that IS a standalone
+    greeting/thanks, answered by template with no retrieval and no model.
+
+    Conservative by design: only a whole-normalized-message match counts, so a real
+    question that opens with a greeting or thanks falls through to the pipeline."""
+    norm = _normalize_smalltalk(query)
+    if norm in _GREETINGS:
+        return "greeting"
+    if norm in _COURTESY:
+        return "courtesy"
+    return None
+
+
 def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> bool:
     """True when retrieval is too weak to ground an answer.
 

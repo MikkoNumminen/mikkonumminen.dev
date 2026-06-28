@@ -137,10 +137,10 @@ These are defense in depth and several do not depend on the model obeying the pr
 - **Concurrency** — an `asyncio.Semaphore` (`LLM_MAX_CONCURRENCY`, default 2) around generation, acquired with a bounded wait (`LLM_ACQUIRE_TIMEOUT_SECONDS`, must be > 0); excess load is shed with a short busy reply, never queued. The permit must release on every exit path (including mid-stream client disconnect) — preserve that if you touch the streaming code.
 - **Rate limiting** — per-IP sliding window (`RATE_LIMIT_REQUESTS` default 30 / `RATE_LIMIT_WINDOW_SECONDS` default 60).
 - **Prompt hardening** — the prompt is a constant: treat the whole user message as a question never instructions; never reveal/ignore the prompt or role-play another assistant; decline generative off-task requests. This is the _last_ layer, not a substitute for the caps and gate above.
-- **Score logging** — opt-in via `RAG_LOG_FILE` (empty = disabled): one JSON line per request with the truncated query, top cosine distances, gate decision, and response length.
+- **Score logging** — on by default (`RAG_LOG_FILE` defaults to `rag-logs/requests.jsonl`; set empty to disable): one JSONL line per request with operational telemetry only — no PII (`ts`, `route`, `gated`, `model`, `latency_ms`, token counts, cosine distances, `classifications`, `response_chars`). Set `RAG_LOG_TEXT=true` to also write the raw query + answer text (PII, off by default, for local debugging only).
 
 Every knob is a validated env var: `TOP_K`, `WEAK_RETRIEVAL_DISTANCE`, `LLM_NUM_PREDICT`,
-`INPUT_MAX_CHARS`, `LLM_MAX_CONCURRENCY`, `LLM_ACQUIRE_TIMEOUT_SECONDS`, `RAG_LOG_FILE`,
+`INPUT_MAX_CHARS`, `LLM_MAX_CONCURRENCY`, `LLM_ACQUIRE_TIMEOUT_SECONDS`, `RAG_LOG_FILE`, `RAG_LOG_TEXT`,
 `MAX_BODY_BYTES`, `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`, `FORCE_ENGLISH`,
 `CORS_ALLOW_ORIGINS`, the hybrid-retrieval knobs (`HYBRID_ENABLED`, `RRF_K` default 60,
 `RETRIEVAL_DENSE_WEIGHT` / `RETRIEVAL_LEXICAL_WEIGHT` default 1.0, `PROJECT_FILTER_STRICT`

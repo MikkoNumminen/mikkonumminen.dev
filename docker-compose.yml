@@ -93,10 +93,13 @@ services:
       # Read by app/config.py; `ragctl english on|off` flips it via the repo .env.
       # Default on — without this line the container can't see the toggle at all.
       FORCE_ENGLISH: ${FORCE_ENGLISH:-1}
-      # Opt-in per-request log (query + answer + retrieval scores). Empty = off
-      # (repo default); `ragctl up` sets it to the bind-mounted path below, so
-      # RAG Control records the chat. See chat-backend/app/request_log.py.
-      RAG_LOG_FILE: ${RAG_LOG_FILE:-}
+      # Per-request operational log — timestamp, route, latency, token counts, and
+      # retrieval distances; NO query/answer text, so no PII. On by default (set
+      # RAG_LOG_FILE empty to disable); `ragctl up` may override it with the
+      # bind-mounted path below. RAG_LOG_TEXT=true additionally logs the raw
+      # query+answer (PII, off by default). See chat-backend/app/request_log.py.
+      RAG_LOG_FILE: ${RAG_LOG_FILE:-/srv/rag-logs/requests.jsonl}
+      RAG_LOG_TEXT: ${RAG_LOG_TEXT:-}
       # Mirrors OLLAMA_CONTEXT_LENGTH so the backend can emit the real num_ctx
       # in the `context` SSE frame that drives the frontend context-window donut.
       CONTEXT_WINDOW: ${OLLAMA_CONTEXT_LENGTH:-4096}

@@ -186,11 +186,14 @@ class Settings:
     # behind a slow generation just stacks timeouts and risks an OOM.
     llm_max_concurrency: int
     llm_acquire_timeout_seconds: float
-    # Opt-in local request log (empty = off). When set to a path, every /chat
-    # request appends one JSON line — query, retrieval distances, gate decision,
-    # and the full answer text. This is the ONLY place both question and answer
-    # are written; keep the file local and never commit it.
+    # Local request log. ON by default with operational telemetry only (timestamp,
+    # route, latency, model + real token counts, retrieval distances) — no PII.
+    # Empty path disables it. See request_log.py.
     rag_log_file: str
+    # When True, the request log ALSO writes the raw query + answer text (the one
+    # place both are recorded). OFF by default; turn on for local debugging only —
+    # the public Tailscale Funnel deployment leaves it off.
+    rag_log_text: bool
 
     # --- GDPR-aware context control (Phase 2) ---
     # The validated policy: classification rules, the role -> permitted-classes
@@ -260,10 +263,12 @@ class Settings:
             max_body_bytes=_get_int("MAX_BODY_BYTES", 16384),
             input_max_chars=_get_int("INPUT_MAX_CHARS", 800),
             llm_max_concurrency=_get_int("LLM_MAX_CONCURRENCY", 2),
-            llm_acquire_timeout_seconds=_get_float(
-                "LLM_ACQUIRE_TIMEOUT_SECONDS", 0.5
-            ),
-            rag_log_file=_get_str("RAG_LOG_FILE", ""),
+            llm_acquire_timeout_seconds=_get_float("LLM_ACQUIRE_TIMEOUT_SECONDS", 0.5),
+            # A log FILE is the one config where an explicit empty value means OFF
+            # (the intuitive "turn it off"), so read it directly rather than via
+            # _get_str, which folds an empty value into the default.
+            rag_log_file=os.environ.get("RAG_LOG_FILE", "rag-logs/requests.jsonl"),
+            rag_log_text=_get_bool("RAG_LOG_TEXT", False),
             gdpr_policy=load_policy(_get_str("GDPR_POLICY_FILE", "") or None),
             memory_max_turns=_get_int("MEMORY_MAX_TURNS", 6),
             memory_max_sessions=_get_int("MEMORY_MAX_SESSIONS", 1000),
@@ -345,8 +350,7 @@ class Settings:
             )
         if self.llm_max_concurrency <= 0:
             raise ValueError(
-                "LLM_MAX_CONCURRENCY must be positive, got "
-                f"{self.llm_max_concurrency}"
+                f"LLM_MAX_CONCURRENCY must be positive, got {self.llm_max_concurrency}"
             )
         # Must be > 0, not >= 0: asyncio.wait_for(acquire, timeout=0) always
         # times out — even with a free permit — so a 0 here would wedge the gate
