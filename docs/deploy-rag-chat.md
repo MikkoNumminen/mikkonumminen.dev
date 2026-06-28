@@ -49,9 +49,9 @@ reflects the new HEAD before doing anything else:
 
 ```bash
 git -C /home/vandroy/mikkonumminen.dev rev-parse --short HEAD   # == the commit you pushed
-grep -rc "" chat-backend/app/pipeline.py >/dev/null            # sanity: file is readable
-grep -c sse_context chat-backend/app/pipeline.py               # expect a recent feature to be present
-ls content/narratives | wc -l                                  # expect the current narrative count
+git -C /home/vandroy/mikkonumminen.dev status -sb | head -1     # on master, not "behind"
+grep -c <symbol-from-your-change> chat-backend/app/pipeline.py  # a symbol you just added is present
+ls content/narratives | wc -l                                  # any corpus you added is on disk
 ```
 
 If these still show the old state, **wait a moment and re-check** (or open a fresh
@@ -60,7 +60,7 @@ shell) — do not proceed until they reflect the pushed commit.
 ### Rebuild + recreate (code changes)
 
 ```bash
-docker compose build backend
+docker compose -p mikkonumminendev build backend
 docker compose -p mikkonumminendev up -d --force-recreate backend
 ```
 
