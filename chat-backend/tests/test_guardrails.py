@@ -12,8 +12,21 @@ from app.guardrails import (
     is_generative_request,
     is_translation_request,
     is_weak_retrieval,
+    looks_non_english,
 )
 from app.retrieval import RetrievedChunk
+
+
+@pytest.mark.parametrize("query", ["kerro lisää", "entä muut projektit", "berätta mer"])
+def test_looks_non_english_true_for_finnish_swedish(query: str) -> None:
+    assert looks_non_english(query)
+
+
+@pytest.mark.parametrize(
+    "query", ["tell me more", "what is HRM?", "how does ReadLog .NET work"]
+)
+def test_looks_non_english_false_for_ascii_english(query: str) -> None:
+    assert not looks_non_english(query)
 
 
 @pytest.mark.parametrize(
