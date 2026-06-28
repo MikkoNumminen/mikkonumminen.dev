@@ -84,9 +84,10 @@ def test_reciprocal_rank_first_source_is_one() -> None:
     assert reciprocal_rank(["a"], ["a", "b"], 0.2, 0.7) == 1.0
 
 
-def test_reciprocal_rank_uses_earliest_expected_position() -> None:
-    # First EXPECTED source sits at rank 3 -> 1/3, even though another expected
-    # source appears later.
+def test_reciprocal_rank_uses_earliest_retrieved_expected() -> None:
+    # The earliest RETRIEVED chunk whose source is expected ("b" at rank 3) gives
+    # 1/3 — the rank keys on retrieved order, not on which `expected` entry it is
+    # ("x", expected[0], appears later at rank 4).
     assert reciprocal_rank(["x", "b"], ["a", "c", "b", "x"], 0.2, 0.7) == 1 / 3
 
 

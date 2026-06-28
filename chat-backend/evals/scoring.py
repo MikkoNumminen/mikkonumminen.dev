@@ -84,10 +84,12 @@ def reciprocal_rank(
     best_distance: float | None,
     weak_threshold: float,
 ) -> float:
-    """Reciprocal rank of the FIRST expected source in the retrieved ranking.
+    """Reciprocal rank of the earliest RETRIEVED source that is an expected one.
 
-    `1/rank` (rank counted from 1) of the earliest expected source that surfaced,
-    averaged across questions this gives MRR — a sharper retrieval signal than
+    `1/rank` (rank counted from 1) of the first chunk in the retrieved ranking
+    whose source is one of `expected` (standard MRR semantics — it keys on the
+    retrieved order, not on which `expected` entry it is). Averaged across
+    questions this gives MRR — a sharper retrieval signal than
     hit-rate because it rewards ranking the right chunk near the top, not merely
     somewhere in the top-k. Returns 0.0 when no expected source surfaced, or when
     the weak-retrieval gate would refuse (best distance beyond the threshold): the
@@ -170,5 +172,12 @@ def format_table(results: Sequence[QueryResult]) -> str:
     passed = sum(1 for r in scorable if r.hit)
     lines.append("-" * 78)
     rate = (passed / len(scorable) * 100) if scorable else 0.0
-    lines.append(f"pass-rate: {passed}/{len(scorable)} = {rate:.1f}%")
+    # This denominator mixes must_retrieve with the refusal classes — it is NOT
+    # the retrieval hit-rate (which the runner prints separately over the
+    # must_retrieve subset only). Label it so the two percentages aren't read as
+    # sharing a denominator.
+    lines.append(
+        f"pass-rate (retrieve + refuse, {len(scorable)} scorable): "
+        f"{passed}/{len(scorable)} = {rate:.1f}%"
+    )
     return "\n".join(lines)

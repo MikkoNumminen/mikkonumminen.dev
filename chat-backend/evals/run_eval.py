@@ -86,10 +86,13 @@ def _score_one(
         # Prompt-level + live-LLM containment — run_eval has no model. Covered by
         # `python -m evals.acceptance` against a running, indexed backend.
         return False, 0.0, False
-    # must_retrieve (and any unknown expectation defaults to it).
-    hit = score_query(expected, retrieved, best, weak_threshold)
-    rr = reciprocal_rank(expected, retrieved, best, weak_threshold)
-    return hit, rr, True
+    if expectation == MUST_RETRIEVE:
+        hit = score_query(expected, retrieved, best, weak_threshold)
+        rr = reciprocal_rank(expected, retrieved, best, weak_threshold)
+        return hit, rr, True
+    # Fail loudly on a typo'd/unknown expectation rather than silently scoring it
+    # down the must_retrieve path and folding it into the pass-rate.
+    raise ValueError(f"unknown expectation {expectation!r} for question {question!r}")
 
 
 async def _eval_mode(
