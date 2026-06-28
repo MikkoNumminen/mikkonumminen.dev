@@ -149,3 +149,99 @@ def test_config_files_are_kind_config(tmp_path: Path) -> None:
     cfg = docs["code/p/tsconfig.json"]
     assert cfg.kind == "config"
     assert cfg.language == "json"
+
+
+# --- doc_type / doc_date metadata + ADR ingestion (Phase 1) ---
+
+
+def test_prose_and_code_carry_doc_type(tmp_path: Path) -> None:
+    _write(tmp_path / "projects" / "hrm.md", "# HRM\n\nbody")
+    (tmp_path / "code" / "hrm").mkdir(parents=True)
+    (tmp_path / "code" / "hrm" / "a.py").write_text("def f():\n    return 1\n", "utf-8")
+    docs = {d.source: d for d in load_docs(tmp_path)}
+    assert docs["projects/hrm.md"].doc_type == "prose"
+    assert docs["projects/hrm.md"].doc_date is None
+    assert docs["code/hrm/a.py"].doc_type == "code"
+
+
+def test_load_doc_reads_type_and_date_from_front_matter(tmp_path: Path) -> None:
+    from datetime import date
+
+    _write(
+        tmp_path / "posts" / "x.md",
+        "---\ntype: changelog\ndate: 2026-06-01\n---\n# X\n\nbody",
+    )
+    doc = load_doc(tmp_path / "posts" / "x.md", tmp_path)
+    assert doc.doc_type == "changelog"
+    assert doc.doc_date == date(2026, 6, 1)
+
+
+def test_load_doc_ignores_malformed_date(tmp_path: Path) -> None:
+    _write(tmp_path / "posts" / "x.md", "---\ndate: someday\n---\n# X\n\nbody")
+    assert load_doc(tmp_path / "posts" / "x.md", tmp_path).doc_date is None
+
+
+def _adr(num: str, title: str, date_line: str = "**Date:** 2026-06-26\n") -> str:
+    return (
+        f"# ADR {num} — {title}\n\n**Status:** accepted\n{date_line}"
+        "\n## Context\n\nwhy.\n"
+    )
+
+
+def test_load_adr_doc_parses_title_date_type_and_source(tmp_path: Path) -> None:
+    from datetime import date
+
+    from app.content import load_adr_doc
+
+    p = tmp_path / "0010-rag-containment.md"
+    p.write_text(_adr("0010", "Layered containment"), encoding="utf-8")
+    doc = load_adr_doc(p, "portfolio")
+    assert doc is not None
+    assert doc.source == "decisions/0010-rag-containment.md"
+    assert doc.title == "ADR 0010 — Layered containment"
+    assert doc.doc_type == "adr"
+    assert doc.doc_date == date(2026, 6, 26)
+    assert doc.project == "portfolio"
+    assert doc.kind == "project"  # prose for the gate, not code
+
+
+def test_load_adr_doc_missing_date_is_none(tmp_path: Path) -> None:
+    from app.content import load_adr_doc
+
+    p = tmp_path / "0001-x.md"
+    p.write_text("# ADR 0001 — X\n\nno date line\n", encoding="utf-8")
+    doc = load_adr_doc(p, "portfolio")
+    assert doc is not None and doc.doc_date is None
+
+
+def test_load_docs_ingests_adr_dir_and_skips_non_adr_files(tmp_path: Path) -> None:
+    content = tmp_path / "content"
+    _write(content / "projects" / "hrm.md", "# HRM\n\nbody")
+    adr = tmp_path / "decisions"
+    adr.mkdir()
+    (adr / "0009-rag.md").write_text(_adr("0009", "RAG backend"), encoding="utf-8")
+    (adr / "0010-containment.md").write_text(
+        _adr("0010", "Containment"), encoding="utf-8"
+    )
+    (adr / "README.md").write_text("# index, not a decision\n", encoding="utf-8")
+    (adr / "TEMPLATE.md").write_text("# template\n", encoding="utf-8")
+
+    docs = {d.source: d for d in load_docs(content, adr_dir=adr, adr_project="portfolio")}
+
+    assert "decisions/0009-rag.md" in docs
+    assert docs["decisions/0009-rag.md"].doc_type == "adr"
+    assert docs["decisions/0009-rag.md"].project == "portfolio"
+    # The README / TEMPLATE in the ADR dir are not ADR-named, so they're skipped.
+    assert "decisions/README.md" not in docs
+    assert "decisions/TEMPLATE.md" not in docs
+    # The content corpus still loads alongside.
+    assert "projects/hrm.md" in docs
+
+
+def test_load_docs_adr_only_when_content_dir_missing(tmp_path: Path) -> None:
+    # ADRs are ingested even if the content dir doesn't exist (a separate source).
+    adr = tmp_path / "decisions"
+    adr.mkdir()
+    (adr / "0002-static.md").write_text(_adr("0002", "Static only"), encoding="utf-8")
+    docs = load_docs(tmp_path / "nope", adr_dir=adr)
+    assert [d.source for d in docs] == ["decisions/0002-static.md"]
