@@ -150,6 +150,12 @@ export function resetChatStateForTests(): void {
 export async function resetChatSession(opts?: {
   fetchImpl?: typeof fetch;
 }): Promise<void> {
+  // Roll the local session state SYNCHRONOUSLY, before any await: a fire-and-forget
+  // caller (Ctrl+L) lets the user submit the next turn immediately, and it must read
+  // the NEW id — never the one still being reset. The POST uses the captured old id.
+  const previous = sessionId;
+  sessionId = newSessionId();
+  conversationHistory = [];
   const base = getChatBaseUrl();
   if (base) {
     const f = opts?.fetchImpl ?? fetch;
@@ -157,15 +163,13 @@ export async function resetChatSession(opts?: {
       await f(`${base}/session/reset`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId }),
+        body: JSON.stringify({ session_id: previous }),
         cache: 'no-store',
       });
     } catch {
       // Best-effort: a down backend shouldn't block the local clear.
     }
   }
-  sessionId = newSessionId();
-  conversationHistory = [];
 }
 
 /** The `/health` fields the terminal cares about: is the LLM answering, and which model. */
