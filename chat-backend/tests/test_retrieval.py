@@ -39,12 +39,13 @@ class FakeDB:
         self,
         embedding: list[float],
         classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> Mapping[str, Any] | None:
         self.prose_calls += 1
         self.classification_args.append(classifications)
         if self._prose_row is None:
             return None
-        ok = self._filter([self._prose_row], None, classifications)
+        ok = self._filter([self._prose_row], None, classifications, exclude_doc_types)
         return ok[0] if ok else None
 
     @staticmethod
@@ -52,6 +53,7 @@ class FakeDB:
         rows: list[dict[str, Any]],
         projects: Sequence[str] | None,
         classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
         out = rows
         if projects is not None:
@@ -61,6 +63,8 @@ class FakeDB:
                 r for r in out
                 if r.get("classification", "public") in classifications
             ]
+        if exclude_doc_types:
+            out = [r for r in out if r.get("doc_type", "prose") not in exclude_doc_types]
         return out
 
     async def search(
@@ -69,10 +73,12 @@ class FakeDB:
         top_k: int,
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
+        doc_types: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         self.calls.append((embedding, top_k))
         self.classification_args.append(classifications)
-        return self._filter(self._rows, projects, classifications)[:top_k]
+        return self._filter(self._rows, projects, classifications, exclude_doc_types)[:top_k]
 
     async def search_lexical(
         self,
@@ -80,10 +86,11 @@ class FakeDB:
         top_k: int,
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         self.lexical_calls.append((query, top_k))
         self.classification_args.append(classifications)
-        return self._filter(self._lexical, projects, classifications)[:top_k]
+        return self._filter(self._lexical, projects, classifications, exclude_doc_types)[:top_k]
 
 
 def _row(
@@ -93,6 +100,7 @@ def _row(
     chunk_index: int = 0,
     chunk_type: str = "prose",
     classification: str = "public",
+    doc_type: str = "prose",
 ) -> dict[str, Any]:
     return {
         "source": source,
@@ -103,6 +111,7 @@ def _row(
         "chunk_index": chunk_index,
         "chunk_type": chunk_type,
         "classification": classification,
+        "doc_type": doc_type,
     }
 
 
@@ -476,3 +485,136 @@ def test_no_role_filter_forwards_none() -> None:
     db = FakeDB([_row("a.md", 0.1)])
     asyncio.run(retrieve(FakeEmbedder(), db, "q", top_k=2))
     assert db.classification_args == [None]
+
+
+# --- ADR exclusion + per-project diversity (Phase fix-retrieval-diversity) ---
+
+
+def test_adr_rows_excluded_from_retrieve() -> None:
+    # ADR chunks (doc_type='adr') must be filtered out so they don't crowd out
+    # showcased project chunks on generic "tell me about the projects" queries.
+    rows = [
+        _row("docs/decisions/001-stack.md", 0.10, project="portfolio", doc_type="adr"),
+        _row("projects/hrm.md", 0.15, project="hrm"),
+        _row("docs/decisions/002-db.md", 0.20, project="portfolio", doc_type="adr"),
+        _row("projects/audiobookmaker.md", 0.25, project="audiobookmaker"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "q", top_k=5, exclude_doc_types=("adr",))
+    )
+    sources = [c.source for c in result]
+    assert "docs/decisions/001-stack.md" not in sources
+    assert "docs/decisions/002-db.md" not in sources
+    assert "projects/hrm.md" in sources
+    assert "projects/audiobookmaker.md" in sources
+
+
+def test_adr_exclusion_also_covers_hybrid_and_lexical_path() -> None:
+    # Both the dense and lexical branches must honour exclude_doc_types so ADRs
+    # can't slip through the lexical search even when filtered out by dense.
+    adr = _row("docs/decisions/001-stack.md", 0.05, project="portfolio", doc_type="adr")
+    proj = _row("projects/hrm.md", 0.20, project="hrm")
+    db = FakeDB([adr, proj], lexical_rows=[adr, proj])
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "q",
+            top_k=5,
+            hybrid=True,
+            exclude_doc_types=("adr",),
+        )
+    )
+    assert all(c.source != "docs/decisions/001-stack.md" for c in result)
+    assert any(c.source == "projects/hrm.md" for c in result)
+
+
+def test_generic_query_diversity_caps_per_project() -> None:
+    # A generic query (no project named) with diversify_max_per_project=2 must
+    # allow at most 2 chunks from any single project so multiple projects spread
+    # across the top_k instead of one project monopolising all slots.
+    rows = [
+        _row("projects/hrm-a.md", 0.10, project="hrm"),
+        _row("projects/hrm-b.md", 0.11, project="hrm"),
+        _row("projects/hrm-c.md", 0.12, project="hrm"),
+        _row("projects/platform-a.md", 0.15, project="platform"),
+        _row("projects/platform-b.md", 0.16, project="platform"),
+        _row("projects/audiobookmaker.md", 0.20, project="audiobookmaker"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            # query must NOT name a project — "q" safely matches nothing
+            "q",
+            top_k=5,
+            diversify_max_per_project=2,
+        )
+    )
+    from collections import Counter
+
+    counts = Counter(c.project for c in result)
+    assert counts["hrm"] <= 2
+    assert counts["platform"] <= 2
+    # Multiple distinct projects surface
+    assert len(counts) >= 2
+
+
+def test_diversity_preserves_rank_order_within_project_budget() -> None:
+    # Within a project's capped slots, the MOST relevant chunks must still lead
+    # (rank order is preserved, not scrambled by the diversity walk).
+    rows = [
+        _row("projects/hrm-best.md", 0.05, project="hrm"),
+        _row("projects/hrm-second.md", 0.10, project="hrm"),
+        _row("projects/hrm-third.md", 0.15, project="hrm"),  # over cap, must be dropped
+        _row("projects/platform.md", 0.20, project="platform"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "q", top_k=4, diversify_max_per_project=2)
+    )
+    hrm_chunks = [c for c in result if c.project == "hrm"]
+    assert len(hrm_chunks) == 2
+    assert hrm_chunks[0].source == "projects/hrm-best.md"
+    assert hrm_chunks[1].source == "projects/hrm-second.md"
+
+
+def test_named_project_query_is_not_diversified() -> None:
+    # When the query names a project, diversity must NOT cap its chunks — the user
+    # asked about a specific project and deserves its full relevant context.
+    rows = [
+        _row("projects/hrm-a.md", 0.10, project="hrm"),
+        _row("projects/hrm-b.md", 0.11, project="hrm"),
+        _row("projects/hrm-c.md", 0.12, project="hrm"),
+        _row("projects/platform.md", 0.20, project="platform"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "how does HRM handle JWT permissions",
+            top_k=4,
+            diversify_max_per_project=1,  # would cap to 1 if diversity fired
+            project_filter_strict=False,
+        )
+    )
+    hrm_chunks = [c for c in result if c.project == "hrm"]
+    # diversity must NOT have fired — hrm should contribute more than 1 chunk
+    assert len(hrm_chunks) > 1
+
+
+def test_no_diversity_when_diversify_max_is_none() -> None:
+    # Default (diversify_max_per_project=None): byte-identical to pre-change behaviour —
+    # all chunks from the closest project fill the top_k slots if they rank highest.
+    rows = [
+        _row("projects/hrm-a.md", 0.10, project="hrm"),
+        _row("projects/hrm-b.md", 0.11, project="hrm"),
+        _row("projects/hrm-c.md", 0.12, project="hrm"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(retrieve(FakeEmbedder(), db, "q", top_k=3))
+    assert len(result) == 3
+    assert all(c.project == "hrm" for c in result)

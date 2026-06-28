@@ -124,6 +124,8 @@ async def chat_event_stream(
     allowed_classifications: Sequence[str] | None = None,
     disclosure_enabled: bool = True,
     context_window: int = 0,
+    exclude_doc_types: Sequence[str] | None = None,
+    diversify_max_per_project: int | None = None,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
 
@@ -179,6 +181,8 @@ async def chat_event_stream(
                 lexical_weight=lexical_weight,
                 project_filter_strict=project_filter_strict,
                 allowed_classifications=allowed_classifications,
+                exclude_doc_types=exclude_doc_types,
+                diversify_max_per_project=diversify_max_per_project,
             )
     except Exception:
         yield sse.sse_error("retrieval unavailable")

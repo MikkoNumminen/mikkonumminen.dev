@@ -151,6 +151,16 @@ class Settings:
     retrieval_lexical_weight: float
     project_filter_strict: bool
     cors_allow_origins: list[str]
+    # --- retrieval diversity + doc_type filtering ---
+    # Comma-separated doc_types to hide from visitor retrieval (e.g. 'adr' to
+    # suppress architecture decision records from project-overview answers). Empty
+    # tuple disables the filter. Toggle via RETRIEVAL_EXCLUDE_DOC_TYPES.
+    retrieval_exclude_doc_types: tuple[str, ...]
+    # Per-project chunk cap for GENERIC queries (no project named). When a visitor
+    # asks "tell me about the projects", at most this many chunks from any single
+    # project appear in the top_k so showcased projects spread across the answer.
+    # Named-project queries are never capped. Set via RETRIEVAL_DIVERSITY_MAX_PER_PROJECT.
+    retrieval_diversity_max_per_project: int
 
     # --- guardrails (Phase 4) ---
     # Cosine distance above which even the closest chunk is treated as
@@ -202,6 +212,17 @@ class Settings:
 
     @staticmethod
     def from_env() -> Settings:
+        # RETRIEVAL_EXCLUDE_DOC_TYPES: default "adr"; empty string -> empty tuple
+        # (opt-out the filter entirely). Handled inline because _get_list treats ""
+        # as unset and falls back to the default — we need "" to mean "no filter".
+        _raw_exclude = os.environ.get("RETRIEVAL_EXCLUDE_DOC_TYPES")
+        if _raw_exclude is None:
+            _exclude_doc_types: tuple[str, ...] = ("adr",)
+        else:
+            _exclude_doc_types = tuple(
+                p.strip() for p in _raw_exclude.split(",") if p.strip()
+            )
+
         settings = Settings(
             database_url=_get_str("DATABASE_URL", _DEFAULT_DATABASE_URL),
             content_dir=_get_str("CONTENT_DIR", "content"),
@@ -229,6 +250,10 @@ class Settings:
             retrieval_lexical_weight=_get_float("RETRIEVAL_LEXICAL_WEIGHT", 1.0),
             project_filter_strict=_get_bool("PROJECT_FILTER_STRICT", True),
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
+            retrieval_exclude_doc_types=_exclude_doc_types,
+            retrieval_diversity_max_per_project=_get_int(
+                "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", 1
+            ),
             weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.45),
             rate_limit_requests=_get_int("RATE_LIMIT_REQUESTS", 30),
             rate_limit_window_seconds=_get_float("RATE_LIMIT_WINDOW_SECONDS", 60.0),
@@ -279,6 +304,11 @@ class Settings:
             )
         if self.retrieval_top_k <= 0:
             raise ValueError(f"TOP_K must be positive, got {self.retrieval_top_k}")
+        if self.retrieval_diversity_max_per_project <= 0:
+            raise ValueError(
+                "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT must be positive, got "
+                f"{self.retrieval_diversity_max_per_project}"
+            )
         if self.rrf_k <= 0:
             raise ValueError(f"RRF_K must be positive, got {self.rrf_k}")
         if self.retrieval_dense_weight < 0:
