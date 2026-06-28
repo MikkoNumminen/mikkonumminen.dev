@@ -48,6 +48,8 @@ _CONFIG_ENV_VARS = [
     "MEMORY_TTL_SECONDS",
     "PROGRESSIVE_DISCLOSURE_ENABLED",
     "CONTEXT_WINDOW",
+    "RETRIEVAL_EXCLUDE_DOC_TYPES",
+    "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT",
 ]
 
 
@@ -378,4 +380,49 @@ def test_overlap_must_be_below_max(
 def test_zero_dim_raises(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("EMBEDDING_DIM", "0")
     with pytest.raises(ValueError, match="EMBEDDING_DIM must be positive"):
+        Settings.from_env()
+
+
+# --- retrieval diversity + doc_type filtering (Phase fix-retrieval-diversity) ---
+
+
+def test_retrieval_exclude_doc_types_default(clean_env: None) -> None:
+    # Default: exclude ADRs so they don't crowd out showcased project chunks.
+    settings = Settings.from_env()
+    assert settings.retrieval_exclude_doc_types == ("adr",)
+
+
+def test_retrieval_exclude_doc_types_override(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RETRIEVAL_EXCLUDE_DOC_TYPES", "adr, narrative")
+    settings = Settings.from_env()
+    assert settings.retrieval_exclude_doc_types == ("adr", "narrative")
+
+
+def test_retrieval_exclude_doc_types_empty_disables_filter(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # An explicit empty string disables the filter entirely (opt-out).
+    monkeypatch.setenv("RETRIEVAL_EXCLUDE_DOC_TYPES", "")
+    settings = Settings.from_env()
+    assert settings.retrieval_exclude_doc_types == ()
+
+
+def test_retrieval_diversity_max_per_project_default(clean_env: None) -> None:
+    assert Settings.from_env().retrieval_diversity_max_per_project == 1
+
+
+def test_retrieval_diversity_max_per_project_override(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", "3")
+    assert Settings.from_env().retrieval_diversity_max_per_project == 3
+
+
+def test_retrieval_diversity_max_per_project_zero_raises(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", "0")
+    with pytest.raises(ValueError, match="RETRIEVAL_DIVERSITY_MAX_PER_PROJECT must be positive"):
         Settings.from_env()

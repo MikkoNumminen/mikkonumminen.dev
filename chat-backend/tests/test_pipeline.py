@@ -36,6 +36,7 @@ class FakeDB:
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
         doc_types: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         if self._fail:
             raise RuntimeError("db down")
@@ -51,10 +52,23 @@ class FakeDB:
     ) -> bool:
         return project in self._narrative_projects
 
+    async def search_lexical(
+        self,
+        query: str,
+        top_k: int,
+        projects: Sequence[str] | None = None,
+        classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
+    ) -> Sequence[Mapping[str, Any]]:
+        if self._fail:
+            raise RuntimeError("db down")
+        return self._rows[:top_k]
+
     async def closest_prose(
         self,
         embedding: list[float],
         classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> Mapping[str, Any] | None:
         return next((r for r in self._rows if r.get("chunk_type") == "prose"), None)
 
