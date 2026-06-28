@@ -36,6 +36,7 @@ LLM_BUSY_REPLY = (
 # per-client usage state to race on while friends hit the chat at once.
 UsageRecorder = Callable[[int, int], Awaitable[None]]
 from .guardrails import (
+    ENGLISH_ONLY_HINT,
     EXPANSION_OFFER,
     GENERATIVE_REPLY,
     WEAK_RETRIEVAL_REPLY,
@@ -43,6 +44,7 @@ from .guardrails import (
     is_generative_request,
     is_translation_request,
     is_weak_retrieval,
+    looks_non_english,
 )
 from .prompts import build_messages
 from .query_projects import detect_projects
@@ -139,6 +141,8 @@ async def chat_event_stream(
             log_request(query, [], True, GENERATIVE_REPLY, role, {})
         yield sse.sse_sources([])
         yield sse.sse_token(GENERATIVE_REPLY)
+        if looks_non_english(query):
+            yield sse.sse_token(ENGLISH_ONLY_HINT)
         yield sse.sse_done()
         return
 
@@ -213,6 +217,8 @@ async def chat_event_stream(
             )
         yield sse.sse_sources([])
         yield sse.sse_token(WEAK_RETRIEVAL_REPLY)
+        if looks_non_english(query):
+            yield sse.sse_token(ENGLISH_ONLY_HINT)
         yield sse.sse_done()
         return
 

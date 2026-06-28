@@ -28,6 +28,19 @@ WEAK_RETRIEVAL_REPLY = (
     "about Mikko's projects."
 )
 
+# Appended to a REFUSAL only when the question looks non-English. The corpus and
+# answers are English-only, and the English embedder penalises Finnish/Swedish, so
+# a borderline non-English question can get gated — this nudges the visitor to
+# rephrase rather than leaving a bare refusal. Never shown on a successful answer.
+ENGLISH_ONLY_HINT = "\n\nTip: I answer in English — try asking in English."
+
+
+def looks_non_english(query: str) -> bool:
+    """Cheap heuristic: the query carries a non-ASCII letter (e.g. Finnish/Swedish
+    ä/ö/å). ASCII-only English queries never trip it; a rare accented English word
+    only adds a harmless hint to an already-refused answer."""
+    return any(ch.isalpha() and ord(ch) > 127 for ch in query)
+
 
 def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> bool:
     """True when retrieval is too weak to ground an answer.

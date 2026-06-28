@@ -193,6 +193,25 @@ def test_no_context_event_without_a_window() -> None:
     assert not any(f.startswith("event: context") for f in frames)
 
 
+# --- English-only hint on refusals ---
+
+
+def test_non_english_refusal_gets_an_english_hint() -> None:
+    # A Finnish question with nothing to retrieve is refused; the bare refusal
+    # gets a nudge to ask in English (corpus + answers are English-only).
+    frames = _collect("kerro lisää projekteista", db=FakeDB([]), llm=FakeLLM([]))
+    text = _token_text(frames)
+    assert "I don't have anything on that" in text
+    assert "answer in English" in text
+
+
+def test_english_refusal_has_no_hint() -> None:
+    frames = _collect("what is the airspeed of a swallow", db=FakeDB([]), llm=FakeLLM([]))
+    text = _token_text(frames)
+    assert "I don't have anything on that" in text
+    assert "answer in English" not in text
+
+
 # --- progressive disclosure (Phase 5) ---
 
 
