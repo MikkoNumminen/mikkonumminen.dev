@@ -1,8 +1,19 @@
-"""Tests for eval scoring (retrieval hit-rate)."""
+"""Tests for eval scoring (retrieval hit-rate, MRR, coverage)."""
 
 from __future__ import annotations
 
-from evals.scoring import QueryResult, format_table, hit_rate, score_query
+from evals.scoring import (
+    MUST_REFUSE_OFFCORPUS,
+    MUST_RETRIEVE,
+    QueryResult,
+    format_table,
+    hit_rate,
+    mean_reciprocal_rank,
+    reciprocal_rank,
+    retrieval_hit_rate,
+    score_query,
+    source_coverage,
+)
 
 
 def test_in_corpus_hit_when_expected_source_retrieved() -> None:
@@ -64,3 +75,86 @@ def test_format_table_marks_pass_and_fail_and_rate() -> None:
     assert "PASS" in table and "FAIL" in table
     assert "good" in table and "bad" in table
     assert "1/2" in table and "50.0%" in table
+
+
+# --- reciprocal rank / MRR / coverage (golden-set retrieval metrics) ---
+
+
+def test_reciprocal_rank_first_source_is_one() -> None:
+    assert reciprocal_rank(["a"], ["a", "b"], 0.2, 0.7) == 1.0
+
+
+def test_reciprocal_rank_uses_earliest_expected_position() -> None:
+    # First EXPECTED source sits at rank 3 -> 1/3, even though another expected
+    # source appears later.
+    assert reciprocal_rank(["x", "b"], ["a", "c", "b", "x"], 0.2, 0.7) == 1 / 3
+
+
+def test_reciprocal_rank_zero_when_no_expected_source_retrieved() -> None:
+    assert reciprocal_rank(["a"], ["b", "c"], 0.2, 0.7) == 0.0
+
+
+def test_reciprocal_rank_zero_when_gate_would_refuse() -> None:
+    # Expected source IS retrieved, but the closest chunk is beyond the threshold:
+    # the pipeline refuses, so the rank is moot.
+    assert reciprocal_rank(["a"], ["a"], 0.9, 0.7) == 0.0
+
+
+def test_reciprocal_rank_zero_for_out_of_corpus() -> None:
+    assert reciprocal_rank([], ["a"], 0.2, 0.7) == 0.0
+
+
+def test_retrieval_hit_rate_ignores_refuse_questions() -> None:
+    results = [
+        QueryResult("r1", ["a"], ["a"], 0.2, True, expectation=MUST_RETRIEVE, rr=1.0),
+        QueryResult("r2", ["b"], ["c"], 0.2, False, expectation=MUST_RETRIEVE, rr=0.0),
+        # A refusal question has no expected source; it must not dilute the
+        # retrieval hit-rate.
+        QueryResult("o1", [], [], None, True, expectation=MUST_REFUSE_OFFCORPUS),
+    ]
+    assert retrieval_hit_rate(results) == 0.5
+    assert retrieval_hit_rate([]) == 0.0
+
+
+def test_mean_reciprocal_rank_over_retrieve_subset() -> None:
+    results = [
+        QueryResult("r1", ["a"], ["a"], 0.2, True, expectation=MUST_RETRIEVE, rr=1.0),
+        QueryResult(
+            "r2", ["b"], ["x", "b"], 0.2, True, expectation=MUST_RETRIEVE, rr=0.5
+        ),
+        QueryResult("o1", [], [], None, True, expectation=MUST_REFUSE_OFFCORPUS, rr=0.0),
+    ]
+    assert mean_reciprocal_rank(results) == 0.75
+    assert mean_reciprocal_rank([]) == 0.0
+
+
+def test_source_coverage_counts_any_expected_source() -> None:
+    results = [
+        QueryResult("r1", ["a"], ["a"], 0.2, True, expectation=MUST_RETRIEVE, rr=1.0),
+        # All-source MISS (hit False) but one expected source surfaced (rr>0).
+        QueryResult(
+            "r2", ["b", "c"], ["b"], 0.2, False, expectation=MUST_RETRIEVE, rr=1.0
+        ),
+        QueryResult("r3", ["d"], ["e"], 0.2, False, expectation=MUST_RETRIEVE, rr=0.0),
+    ]
+    assert source_coverage(results) == 2 / 3
+    assert source_coverage([]) == 0.0
+
+
+def test_format_table_marks_non_scorable_na() -> None:
+    results = [
+        QueryResult(
+            "inj",
+            [],
+            [],
+            0.3,
+            False,
+            category="injection",
+            expectation="must_refuse_injection",
+            scorable=False,
+        ),
+    ]
+    table = format_table(results)
+    assert "NA" in table
+    # A non-scorable row is excluded from the pass-rate denominator.
+    assert "0/0" in table
