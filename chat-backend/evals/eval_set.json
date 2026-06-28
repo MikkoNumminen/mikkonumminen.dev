@@ -539,6 +539,70 @@
       ]
     },
     {
+      "id": "adr-static-only",
+      "question": "Why does mikkonumminen.dev use Astro's static output mode instead of hybrid or server-side rendering, and what concrete constraints enforce that choice?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "decisions/0002-static-output-only.md"
+      ],
+      "expected_points": [
+        "Portability is a deliberate requirement: static output prevents lock-in to any one provider's proprietary runtime and avoids introducing a billing surface tied to compute.",
+        "Hybrid mode was rejected because it introduces a Node.js / edge function runtime as a deployment dependency, eliminating the 'config swap' portability guarantee.",
+        "A nonce-based CSP would require a per-request nonce plumbed through every inline tag, which is incompatible with fully static output.",
+        "Locale negotiation is performed at build time (separate HTML trees per locale) and at load time in the browser; no Accept-Language middleware runs at the CDN or server layer."
+      ]
+    },
+    {
+      "id": "adr-rag-separate",
+      "question": "Why is the RAG chat backend implemented as a separate service rather than as an SSR route or edge function on the Astro site itself?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "decisions/0009-rag-chat-backend.md"
+      ],
+      "expected_points": [
+        "An SSR or edge function approach was rejected because it directly contradicts ADR 0002, binds the deployment to a runtime, and re-opens the server-side surfaces ADR 0002 deliberately closed.",
+        "A hosted LLM or cloud vector DB was rejected because it introduces a per-token cost and a per-request billing surface; the locked decision is that nothing costs anything per query.",
+        "The chat is progressive enhancement, never a regression: if the backend or model is unreachable, the terminal stays in its scripted-only mode with no visual difference.",
+        "Both the embedding model and the generation model are local; the database is a local container with a named volume — no hosted model, no paid API, no cloud database."
+      ]
+    },
+    {
+      "id": "adr-containment",
+      "question": "Why does the RAG chat use layered architectural defenses instead of relying solely on a hardened system prompt to keep the model on-topic?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "decisions/0010-rag-containment.md"
+      ],
+      "expected_points": [
+        "The weights are fixed and public; a determined user can out-argue any wording, so prompt instructions are a real layer but cannot be the only line of defense for a publicly exposed endpoint.",
+        "The design uses controls that sit in code around the model rather than relying on prompt wording alone, so a breach of any one layer is caught by another (defense in depth).",
+        "Two deterministic pre-retrieval task gates (is_generative_request and is_translation_request) decline requests before retrieval, because these task requests often name an on-corpus topic so retrieval alone would not catch them.",
+        "LLM_NUM_PREDICT (default 512) is a hard num_predict cap, so no single answer can dump a large document regardless of what the prompt is talked into."
+      ]
+    },
+    {
+      "id": "adr-hybrid",
+      "question": "Why did the RAG chat move from pure dense vector retrieval to a hybrid dense-plus-lexical approach, and what measured improvement justified the change?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "decisions/0011-hybrid-retrieval-and-code-corpus.md"
+      ],
+      "expected_points": [
+        "Dense embeddings miss exact identifiers: cosine similarity over bge-small-en-v1.5 is strong on paraphrase but weak on the literal token, so a query naming an exact string does not reliably pull the chunk containing it.",
+        "The original corpus was README-level prose only, so deep technical questions had no grounded answer because the implementing source was never indexed.",
+        "Dense pgvector cosine and lexical BM25-style full-text (websearch_to_tsquery + ts_rank) run as two ranked lists fused with reciprocal rank fusion: score = sum of weight / (RRF_K + rank) across both lists.",
+        "Retrieval hit-rate improved +0.059 (dense to hybrid) on the run_eval question set — the lexical channel recovers the exact-identifier queries dense alone missed."
+      ]
+    },
+    {
       "id": "refuse-out_of_scope-1",
       "question": "What's the weather in Helsinki right now?",
       "category": "out_of_scope",

@@ -94,6 +94,13 @@ class Settings:
     # --- storage / retrieval ---
     database_url: str
     content_dir: str
+    # Optional extra prose source (Phase 1): a directory of ADR / design-note
+    # markdown ingested as doc_type='adr' prose, attributed to `adr_project`.
+    # Empty = off (a bare indexer run and the unit tests stay corpus-only); the
+    # compose sets ADR_DIR to the bind-mounted decisions dir. Only ADR-named files
+    # (NNNN-*.md) are taken, so a README / TEMPLATE alongside them is skipped.
+    adr_dir: str
+    adr_project: str
     embedding_model: str
     embedding_dim: int
 
@@ -170,6 +177,8 @@ class Settings:
         settings = Settings(
             database_url=_get_str("DATABASE_URL", _DEFAULT_DATABASE_URL),
             content_dir=_get_str("CONTENT_DIR", "content"),
+            adr_dir=_get_str("ADR_DIR", ""),
+            adr_project=_get_str("ADR_PROJECT", "portfolio"),
             embedding_model=_get_str("EMBEDDING_MODEL", _DEFAULT_EMBEDDING_MODEL),
             embedding_dim=_get_int("EMBEDDING_DIM", 384),
             chunk_max_tokens=_get_int("CHUNK_MAX_TOKENS", 480),

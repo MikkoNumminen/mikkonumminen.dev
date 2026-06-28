@@ -11,6 +11,8 @@ from app.config import Settings
 _CONFIG_ENV_VARS = [
     "DATABASE_URL",
     "CONTENT_DIR",
+    "ADR_DIR",
+    "ADR_PROJECT",
     "EMBEDDING_MODEL",
     "EMBEDDING_DIM",
     "CHUNK_MAX_TOKENS",
@@ -54,6 +56,19 @@ def test_defaults(clean_env: None) -> None:
     assert settings.chunk_max_tokens == 480
     assert settings.llm_model == "qwen2.5:7b"
     assert settings.ollama_base_url.endswith("/v1")
+
+
+def test_adr_source_defaults_and_override(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    defaults = Settings.from_env()
+    assert defaults.adr_dir == ""  # off by default; the compose sets it
+    assert defaults.adr_project == "portfolio"
+    monkeypatch.setenv("ADR_DIR", "/adr")
+    monkeypatch.setenv("ADR_PROJECT", "demo")
+    tuned = Settings.from_env()
+    assert tuned.adr_dir == "/adr"
+    assert tuned.adr_project == "demo"
 
 
 def test_phase4_defaults(clean_env: None) -> None:

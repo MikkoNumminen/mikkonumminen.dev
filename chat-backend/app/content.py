@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 # The closing `---` may be followed by a newline or end-of-file, so a file that
@@ -63,8 +64,32 @@ _MAX_CODE_FILE_BYTES = 100_000
 # Subtree under the content dir holding source/config (everything else is prose).
 _CODE_SUBDIR = "code"
 
+# ADR ingestion (Phase 1). Only files named like an ADR (`0009-foo.md`) are taken
+# from the configured ADR dir, so a README.md / TEMPLATE.md alongside them is
+# skipped. The title is the H1; the date is the `**Date:** YYYY-MM-DD` line ADRs
+# carry in their header.
+_ADR_NAME_RE = re.compile(r"^\d{4}-.*\.md$")
+_ADR_DATE_RE = re.compile(r"^\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
-def is_code_doc(doc: "ContentDoc") -> bool:
+
+def _parse_iso_date(value: str | None) -> date | None:
+    """Parse a `YYYY-MM-DD` string to a `date`, or None if absent/malformed.
+
+    The regex fixes the shape; `fromisoformat` is still wrapped because a
+    shape-valid but impossible date (e.g. `2026-13-01`) raises ValueError — a bad
+    date in one ADR or front-matter must skip gracefully, never crash the whole
+    indexer run.
+    """
+    if not value or not _ISO_DATE_RE.match(value.strip()):
+        return None
+    try:
+        return date.fromisoformat(value.strip())
+    except ValueError:
+        return None
+
+
+def is_code_doc(doc: ContentDoc) -> bool:
     """True for source/config docs (chunk_type 'code'), False for markdown prose."""
     return doc.kind in {"code", "config"}
 
@@ -83,6 +108,13 @@ class ContentDoc:
     language: str | None = None
     """Programming/markup language for `kind in {code, config}` docs; None for
     markdown prose. Drives code-aware chunking and the `language` column."""
+    doc_type: str = "prose"
+    """Source genre for the `doc_type` column: 'prose' | 'code' | 'adr' (Phase 1
+    adds 'adr'; later phases add 'pr' | 'commit' | 'narrative'). Distinct from the
+    chunk_type the gate anchors on — an ADR is chunk_type='prose', doc_type='adr'."""
+    doc_date: date | None = None
+    """The source's date where one exists (ADRs carry an explicit Date line); None
+    for prose/code without one. Stored in the nullable `doc_date` column."""
 
 
 def parse_front_matter(raw: str) -> tuple[dict[str, str], str]:
@@ -162,6 +194,10 @@ def load_doc(path: Path, content_dir: Path) -> ContentDoc:
         kind=kind,
         project=project,
         url=fields.get("url") or None,
+        # A prose doc may declare a finer genre / date in front-matter; default to
+        # plain prose with no date.
+        doc_type=fields.get("type") or "prose",
+        doc_date=_parse_iso_date(fields.get("date")),
     )
 
 
@@ -203,45 +239,97 @@ def load_code_doc(path: Path, content_dir: Path) -> ContentDoc | None:
         project=project,
         url=None,
         language=language,
+        doc_type="code",
     )
 
 
-def load_docs(content_dir: str | Path) -> list[ContentDoc]:
-    """Load every markdown doc plus every source/config file, by source path.
+def load_adr_doc(path: Path, project: str) -> ContentDoc | None:
+    """Parse one ADR / design-note markdown file into a `ContentDoc`.
 
-    Markdown is loaded from anywhere under `content_dir` EXCEPT the `code/`
-    subtree; source and config files are loaded from `content/code/<project>/`
-    (skipping unknown extensions, unreadable/binary files, and anything over the
-    size cap). Sorting by source makes the indexer's output order deterministic
-    across machines. Returns an empty list when the directory does not exist or
-    holds nothing indexable — the indexer treats that as a no-op with a warning.
+    ADRs live outside the content tree (a separate, bind-mounted decisions dir),
+    carry no front-matter, and follow a fixed header (`# ADR NNNN — Title`, then a
+    `**Date:** YYYY-MM-DD` line). The title is the H1; the date is parsed from that
+    line; `source` is namespaced `decisions/<filename>` so it never collides with a
+    content-tree path. Ingested as prose (kind='project', so the weak-retrieval gate
+    treats it as prose) tagged doc_type='adr' and attributed to `project`. Returns
+    None for an unreadable file.
     """
-    root = Path(content_dir)
-    if not root.is_dir():
-        return []
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return None
+    h1 = _H1_RE.search(raw)
+    title = h1.group(1).strip() if h1 else path.stem.replace("-", " ")
+    date_match = _ADR_DATE_RE.search(raw)
+    doc_date = _parse_iso_date(date_match.group(1)) if date_match else None
+    return ContentDoc(
+        source=f"decisions/{path.name}",
+        title=title,
+        body=raw.strip(),
+        kind="project",
+        project=project,
+        url=None,
+        doc_type="adr",
+        doc_date=doc_date,
+    )
 
-    code_root = root / _CODE_SUBDIR
+
+def load_docs(
+    content_dir: str | Path,
+    *,
+    adr_dir: str | Path | None = None,
+    adr_project: str = "portfolio",
+) -> list[ContentDoc]:
+    """Load every markdown doc, source/config file, and (optionally) ADR, by source.
+
+    Markdown prose is loaded from anywhere under `content_dir` EXCEPT the `code/`
+    subtree; source and config files from `content/code/<project>/` (skipping
+    unknown extensions, unreadable/binary files, and anything over the size cap).
+    When `adr_dir` is given, the ADR-named markdown there (`NNNN-*.md`) is also
+    ingested as doc_type='adr' prose attributed to `adr_project` — a README /
+    TEMPLATE in that dir is skipped by the name filter. Sorting by source keeps the
+    indexer's output order deterministic. Returns an empty list only when nothing
+    indexable was found anywhere.
+    """
     docs: list[ContentDoc] = []
 
-    # Markdown prose — everything except the code/ subtree (a .md under code/, if
-    # any, is treated as source-adjacent and skipped here to avoid double-loading).
-    for path in root.rglob("*.md"):
-        if code_root in path.parents:
-            continue
-        docs.append(load_doc(path, root))
+    root = Path(content_dir)
+    if root.is_dir():
+        code_root = root / _CODE_SUBDIR
+        # Markdown prose — everything except the code/ subtree (a .md under code/,
+        # if any, is source-adjacent and skipped here to avoid double-loading).
+        for path in root.rglob("*.md"):
+            if code_root in path.parents:
+                continue
+            docs.append(load_doc(path, root))
 
-    # Source + config under code/.
-    if code_root.is_dir():
-        for path in code_root.rglob("*"):
-            if not path.is_file():
-                continue
-            try:
-                if path.stat().st_size > _MAX_CODE_FILE_BYTES:
+        # Source + config under code/.
+        if code_root.is_dir():
+            for path in code_root.rglob("*"):
+                if not path.is_file():
                     continue
-            except OSError:
-                continue
-            doc = load_code_doc(path, root)
-            if doc is not None:
-                docs.append(doc)
+                try:
+                    if path.stat().st_size > _MAX_CODE_FILE_BYTES:
+                        continue
+                except OSError:
+                    continue
+                doc = load_code_doc(path, root)
+                if doc is not None:
+                    docs.append(doc)
+
+    # Optional ADR / design-note source — a directory outside the content tree.
+    if adr_dir:
+        adr_root = Path(adr_dir)
+        if adr_root.is_dir():
+            for path in sorted(adr_root.glob("*.md")):
+                if not _ADR_NAME_RE.match(path.name):
+                    continue
+                doc = load_adr_doc(path, adr_project)
+                if doc is not None:
+                    docs.append(doc)
+        else:
+            # Configured but absent (e.g. ADR_DIR set without the bind-mount):
+            # warn rather than silently ingesting no design notes.
+            print(f"[content] ADR_DIR {str(adr_dir)!r} is not a directory - skipped")
 
     return sorted(docs, key=lambda d: d.source)

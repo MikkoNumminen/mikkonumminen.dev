@@ -52,7 +52,11 @@ class IndexStats:
 
 def plan(settings: Settings) -> list[FilePlan]:
     """Load and chunk the corpus without embedding or persisting anything."""
-    docs = load_docs(settings.content_dir)
+    docs = load_docs(
+        settings.content_dir,
+        adr_dir=settings.adr_dir or None,
+        adr_project=settings.adr_project,
+    )
     return [
         FilePlan(
             doc=doc,
@@ -131,6 +135,8 @@ async def reindex(
                         embedding=vec,
                         language=doc.language,
                         chunk_type=chunk_type,
+                        doc_type=doc.doc_type,
+                        doc_date=doc.doc_date,
                     )
                     for c, vec in zip(to_embed, vectors, strict=True)
                 ]
