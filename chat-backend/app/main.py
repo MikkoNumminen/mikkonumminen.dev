@@ -234,6 +234,8 @@ def create_app() -> FastAPI:
             ),
             disclosure_enabled=settings.progressive_disclosure_enabled,
             context_window=settings.context_window,
+            exclude_doc_types=settings.retrieval_exclude_doc_types or None,
+            diversify_max_per_project=settings.retrieval_diversity_max_per_project,
         )
         return StreamingResponse(
             stream,

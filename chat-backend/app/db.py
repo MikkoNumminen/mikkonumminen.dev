@@ -93,6 +93,7 @@ def _filter_clause(
     projects: Sequence[str] | None,
     classifications: Sequence[str] | None,
     doc_types: Sequence[str] | None = None,
+    exclude_doc_types: Sequence[str] | None = None,
     base: list[str] | None = None,
 ) -> str:
     """Build a parameterized WHERE for the optional project + classification
@@ -118,6 +119,15 @@ def _filter_clause(
     if doc_types:
         params.append(list(doc_types))
         conditions.append(f"doc_type = ANY(${len(params)}::text[])")
+    # exclude_doc_types is a NEGATIVE genre filter (hide these types, e.g. 'adr',
+    # from visitor retrieval so self-documentation doesn't crowd out project chunks).
+    # NULL doc_type rows are kept — the NULL guard prevents them being accidentally
+    # excluded when the column predates the doc_type migration.
+    if exclude_doc_types:
+        params.append(list(exclude_doc_types))
+        conditions.append(
+            f"(doc_type IS NULL OR doc_type <> ALL(${len(params)}::text[]))"
+        )
     return ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
 
@@ -318,6 +328,7 @@ class Database:
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
         doc_types: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> list[asyncpg.Record]:
         """Return the `top_k` chunks nearest the query embedding (dense).
 
@@ -329,11 +340,14 @@ class Database:
         `projects` HARD-restricts to those projects (the strict per-project
         filter). `classifications` is the GDPR role filter — when given, only rows
         in those classes are eligible, applied IN SQL so restricted data is never
-        even fetched. Both filters are built from parameterized placeholders; only
-        the placeholder INDEX is interpolated into the SQL, never any value.
+        even fetched. `exclude_doc_types` hides specific genres (e.g. 'adr') from
+        visitor retrieval. All filters are built from parameterized placeholders;
+        only the placeholder INDEX is interpolated into the SQL, never any value.
         """
         params: list[object] = [embedding, top_k]
-        where = _filter_clause(params, projects, classifications, doc_types)
+        where = _filter_clause(
+            params, projects, classifications, doc_types, exclude_doc_types
+        )
         rows: list[asyncpg.Record] = await self._pool.fetch(
             f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
@@ -353,6 +367,7 @@ class Database:
         top_k: int,
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> list[asyncpg.Record]:
         """Return the `top_k` chunks ranked by full-text (lexical) relevance.
 
@@ -360,14 +375,20 @@ class Database:
         raw user question forgivingly (no syntax errors on arbitrary punctuation
         or quotes), matched against the GENERATED `content_tsv` via `@@` and
         ordered by `ts_rank`. This catches exact identifiers — class/engine names,
-        file paths — that dense embeddings blur. `projects` and `classifications`
-        apply the same hard filters as the dense `search` (the role filter must
-        gate the lexical path too, or restricted data would leak through it). The
-        query text is parameterized.
+        file paths — that dense embeddings blur. `projects`, `classifications`, and
+        `exclude_doc_types` apply the same filters as the dense `search` (the role
+        filter must gate the lexical path too, or restricted data would leak through
+        it). The query text is parameterized.
         """
         params: list[object] = [query, top_k]
         match = "content_tsv @@ websearch_to_tsquery('english', $1)"
-        where = _filter_clause(params, projects, classifications, base=[match])
+        where = _filter_clause(
+            params,
+            projects,
+            classifications,
+            exclude_doc_types=exclude_doc_types,
+            base=[match],
+        )
         rows: list[asyncpg.Record] = await self._pool.fetch(
             f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
@@ -386,6 +407,7 @@ class Database:
         self,
         embedding: list[float],
         classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> asyncpg.Record | None:
         """The single PROSE chunk nearest the query embedding, or None.
 
@@ -396,12 +418,17 @@ class Database:
         gate always has the honest relevance signal: far prose ⇒ refuse, near
         prose ⇒ a real description grounds the answer. Returns None for a corpus
         with no prose at all (the gate then falls back to all chunks). The role
-        filter (`classifications`) applies here too — the prose anchor feeds the
-        answer's context, so it must never surface a class the role can't see.
+        filter (`classifications`) and `exclude_doc_types` apply here too — the
+        prose anchor feeds the answer's context, so it must never surface a class
+        the role can't see or a genre that's hidden from the main retrieval path.
         """
         params: list[object] = [embedding]
         where = _filter_clause(
-            params, None, classifications, base=["chunk_type = 'prose'"]
+            params,
+            None,
+            classifications,
+            exclude_doc_types=exclude_doc_types,
+            base=["chunk_type = 'prose'"],
         )
         row = await self._pool.fetchrow(
             f"""

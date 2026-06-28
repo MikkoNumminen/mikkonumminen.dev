@@ -29,6 +29,7 @@ class SupportsSearch(Protocol):
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
         doc_types: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
 
     async def has_narrative(
@@ -41,12 +42,14 @@ class SupportsSearch(Protocol):
         top_k: int,
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
 
     async def closest_prose(
         self,
         embedding: list[float],
         classifications: Sequence[str] | None = None,
+        exclude_doc_types: Sequence[str] | None = None,
     ) -> Mapping[str, Any] | None: ...
 
 
@@ -132,6 +135,29 @@ def _project_boost(
     return matched + others
 
 
+def _diversify(
+    chunks: list[RetrievedChunk], max_per_project: int, top_k: int
+) -> list[RetrievedChunk]:
+    """Walk rank-ordered chunks, keeping at most max_per_project per group.
+
+    The group key is chunk.project when set, else chunk.source (unprojectted
+    chunks each form their own singleton group). Preserves rank order within the
+    budget; stops once top_k chunks are selected. Applied ONLY on generic queries
+    (no project named) so showcased projects spread across the returned top_k
+    instead of one project monopolising all slots.
+    """
+    counts: dict[str, int] = {}
+    result: list[RetrievedChunk] = []
+    for chunk in chunks:
+        if len(result) >= top_k:
+            break
+        key = chunk.project if chunk.project is not None else chunk.source
+        if counts.get(key, 0) < max_per_project:
+            result.append(chunk)
+            counts[key] = counts.get(key, 0) + 1
+    return result
+
+
 def _rrf_fuse(
     dense: list[RetrievedChunk],
     lexical_rows: Sequence[Mapping[str, Any]],
@@ -193,6 +219,7 @@ async def _with_prose_anchor(
     db: SupportsSearch,
     vector: list[float],
     allowed_classifications: Sequence[str] | None = None,
+    exclude_doc_types: Sequence[str] | None = None,
 ) -> list[RetrievedChunk]:
     """Give the prose-anchored weak-retrieval gate a prose distance to judge.
 
@@ -215,7 +242,11 @@ async def _with_prose_anchor(
     # already in the result means the gate has its signal — neither needs a fetch.
     if not result or any(c.chunk_type == "prose" for c in result):
         return result
-    prose_row = await db.closest_prose(vector, classifications=allowed_classifications)
+    prose_row = await db.closest_prose(
+        vector,
+        classifications=allowed_classifications,
+        exclude_doc_types=exclude_doc_types,
+    )
     if prose_row is None:
         return result
     return result + [_to_chunk(prose_row)]
@@ -233,6 +264,8 @@ async def retrieve(
     lexical_weight: float = 1.0,
     project_filter_strict: bool = False,
     allowed_classifications: Sequence[str] | None = None,
+    exclude_doc_types: Sequence[str] | None = None,
+    diversify_max_per_project: int | None = None,
 ) -> list[RetrievedChunk]:
     """Embed `query` and return its `top_k` most relevant corpus chunks.
 
@@ -244,18 +277,34 @@ async def retrieve(
     chunks are soft-boosted to the front (the cross-project contamination fix).
     With `hybrid=False` and no project named this is byte-for-byte a plain `top_k`
     cosine search — the feature is fully reversible from config.
+
+    `exclude_doc_types` hides specific genres (e.g. 'adr') from every search path
+    including the prose anchor, so self-documentation doesn't crowd out project
+    chunks. `diversify_max_per_project` caps how many chunks any single project
+    contributes when the query is GENERIC (no project named); named-project and
+    soft-boost queries are never diversified so they can still surface all their
+    relevant chunks.
     """
     vector = embedder.embed_query(query)
     wanted = detect_projects(query)
     strict = bool(wanted) and project_filter_strict
     project_filter: list[str] | None = sorted(wanted) if strict else None
 
-    widen = hybrid or (bool(wanted) and not strict)
+    # Diversity applies only on generic queries (no project named). Named-project
+    # and soft-boost queries must never be capped — the user asked about a specific
+    # project and deserves its full relevant context.
+    diversify = diversify_max_per_project is not None and not wanted
+
+    widen = hybrid or (bool(wanted) and not strict) or diversify
     candidate_k = min(top_k * _CANDIDATE_MULTIPLIER, _CANDIDATE_CAP) if widen else top_k
 
     if project_filter is not None:
         dense_rows = await db.search(
-            vector, candidate_k, project_filter, classifications=allowed_classifications
+            vector,
+            candidate_k,
+            project_filter,
+            classifications=allowed_classifications,
+            exclude_doc_types=exclude_doc_types,
         )
         if not dense_rows:
             # Fail open for the gate: the named project has no surfacing chunk, so
@@ -267,11 +316,17 @@ async def retrieve(
             strict = False
             project_filter = None
             dense_rows = await db.search(
-                vector, candidate_k, classifications=allowed_classifications
+                vector,
+                candidate_k,
+                classifications=allowed_classifications,
+                exclude_doc_types=exclude_doc_types,
             )
     else:
         dense_rows = await db.search(
-            vector, candidate_k, classifications=allowed_classifications
+            vector,
+            candidate_k,
+            classifications=allowed_classifications,
+            exclude_doc_types=exclude_doc_types,
         )
     dense_chunks = [_to_chunk(row) for row in dense_rows]
     # Gate-anchor pool: when soft-boosting a NAMED project, anchor on that
@@ -288,19 +343,33 @@ async def retrieve(
         result = dense_chunks
         if wanted and not strict:
             result = _project_boost(result, wanted)
-        # Anchor on EVERY path: fusion or the boost can push the gate's closest
-        # eligible chunk out of top_k, starving the weak-retrieval gate into a
-        # false refusal. (No-op when that chunk already ranks in.)
-        anchored = _ensure_gate_anchor(result[:top_k], anchor_pool, top_k)
-        return await _with_prose_anchor(anchored, db, vector, allowed_classifications)
+        # Apply per-project diversity cap on generic queries, plain slice otherwise.
+        # Anchor runs AFTER so the gate's closest eligible chunk is guaranteed present.
+        # (No-op when that chunk already ranks in.)
+        if diversify:
+            assert diversify_max_per_project is not None  # narrowed above
+            sliced = _diversify(result, diversify_max_per_project, top_k)
+        else:
+            sliced = result[:top_k]
+        anchored = _ensure_gate_anchor(sliced, anchor_pool, top_k)
+        return await _with_prose_anchor(
+            anchored, db, vector, allowed_classifications, exclude_doc_types
+        )
 
     if project_filter is not None:
         lexical_rows = await db.search_lexical(
-            query, candidate_k, project_filter, classifications=allowed_classifications
+            query,
+            candidate_k,
+            project_filter,
+            classifications=allowed_classifications,
+            exclude_doc_types=exclude_doc_types,
         )
     else:
         lexical_rows = await db.search_lexical(
-            query, candidate_k, classifications=allowed_classifications
+            query,
+            candidate_k,
+            classifications=allowed_classifications,
+            exclude_doc_types=exclude_doc_types,
         )
 
     fused = _rrf_fuse(
@@ -312,8 +381,15 @@ async def retrieve(
     )
     if wanted and not strict:
         fused = _project_boost(fused, wanted)
-    result = _ensure_gate_anchor(fused[:top_k], anchor_pool, top_k)
-    return await _with_prose_anchor(result, db, vector, allowed_classifications)
+    if diversify:
+        assert diversify_max_per_project is not None  # narrowed above
+        sliced = _diversify(fused, diversify_max_per_project, top_k)
+    else:
+        sliced = fused[:top_k]
+    result = _ensure_gate_anchor(sliced, anchor_pool, top_k)
+    return await _with_prose_anchor(
+        result, db, vector, allowed_classifications, exclude_doc_types
+    )
 
 
 async def retrieve_narrative(
