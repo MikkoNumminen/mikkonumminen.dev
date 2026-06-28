@@ -2,14 +2,55 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.guardrails import (
+    EXPANSION_OFFER,
     GENERATIVE_REPLY,
     WEAK_RETRIEVAL_REPLY,
+    is_expansion_request,
     is_generative_request,
     is_translation_request,
     is_weak_retrieval,
 )
 from app.retrieval import RetrievedChunk
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "yes",
+        "yes please",
+        "tell me more",
+        "more",
+        "go deeper",
+        "go on",
+        "continue",
+        "elaborate",
+        "Tell me more.",
+        "and?",
+    ],
+)
+def test_is_expansion_request_matches_topic_less_followups(query: str) -> None:
+    assert is_expansion_request(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "tell me more about HRM",  # carries a NEW topic -> a normal question
+        "what is HRM",
+        "how does the Finnish normalizer work",
+        "more tests in HRM",
+        "explain the SERIALIZABLE transaction",
+    ],
+)
+def test_is_expansion_request_ignores_topic_bearing_questions(query: str) -> None:
+    assert not is_expansion_request(query)
+
+
+def test_expansion_offer_is_a_nonempty_string() -> None:
+    assert isinstance(EXPANSION_OFFER, str) and EXPANSION_OFFER.strip()
 
 
 def _chunk(distance: float, chunk_type: str = "prose") -> RetrievedChunk:
