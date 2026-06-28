@@ -46,6 +46,8 @@ _CONFIG_ENV_VARS = [
     "MEMORY_MAX_TURNS",
     "MEMORY_MAX_SESSIONS",
     "MEMORY_TTL_SECONDS",
+    "PROGRESSIVE_DISCLOSURE_ENABLED",
+    "CONTEXT_WINDOW",
 ]
 
 
@@ -92,6 +94,17 @@ def test_bad_memory_ttl_raises(
 ) -> None:
     monkeypatch.setenv("MEMORY_TTL_SECONDS", "0")
     with pytest.raises(ValueError, match="MEMORY_TTL_SECONDS"):
+        Settings.from_env()
+
+
+def test_context_window_default_and_validation(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert Settings.from_env().context_window == 4096
+    monkeypatch.setenv("CONTEXT_WINDOW", "8192")
+    assert Settings.from_env().context_window == 8192
+    monkeypatch.setenv("CONTEXT_WINDOW", "0")
+    with pytest.raises(ValueError, match="CONTEXT_WINDOW must be positive"):
         Settings.from_env()
 
 
