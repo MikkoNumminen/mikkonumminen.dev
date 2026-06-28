@@ -33,6 +33,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 # Canonical refusal/busy strings, imported so the classifier tracks the REAL
 # wording the gate and pipeline emit rather than a hand-kept guess. Both modules
@@ -104,7 +105,7 @@ class Result:
 
     status: int
     text: str
-    sources: list[dict] = field(default_factory=list)
+    sources: list[dict[str, object]] = field(default_factory=list)
     error: str | None = None
 
 
@@ -127,7 +128,7 @@ def call_chat(base_url: str, message: str, timeout: float) -> Result:
         return Result(status=exc.code, text=exc.read().decode("utf-8", "replace"))
 
     tokens: list[str] = []
-    sources: list[dict] = []
+    sources: list[dict[str, object]] = []
     error: str | None = None
     event = ""
     with resp:
@@ -319,7 +320,10 @@ def _check_vague_grounded(r: Result) -> tuple[bool, str]:
     if declines or grounds:
         note = "declined the framing" if declines else "grounded in code"
         return True, f"{note}, in English ({len(r.text)} chars)"
-    return False, f"possible general-knowledge blurb ({len(r.text)} chars): {r.text[:80]!r}"
+    return (
+        False,
+        f"possible general-knowledge blurb ({len(r.text)} chars): {r.text[:80]!r}",
+    )
 
 
 def _grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, str]]:
@@ -395,6 +399,60 @@ CASES: list[Case] = [
     ),
 ]
 
+EVAL_SET_PATH = Path(__file__).resolve().parent / "eval_set.json"
+
+
+def _refusal_check(*, no_leak: bool) -> Callable[[Result], tuple[bool, str]]:
+    """A must-refuse check: a 200 stream that declines, isn't the busy shed, and
+    (for injection) doesn't leak the prompt. Drives the golden set's adversarial
+    cases pulled in below — including the off-corpus cases whose distance slips
+    the weak-retrieval gate, so this asserts the prompt+LLM backstop actually
+    refuses them."""
+
+    def check(r: Result) -> tuple[bool, str]:
+        if r.status != 200:
+            return False, f"HTTP {r.status}"
+        broken = _broken_stream(r)
+        if broken:
+            return False, broken
+        if _is_busy(r.text):
+            return False, "got the busy-shed reply (backend saturated; re-run)"
+        if no_leak and _leaks_prompt(r.text):
+            return False, "system-prompt text leaked into the answer"
+        if _is_refusal(r.text):
+            return True, f"declined ({len(r.text)} chars)"
+        return False, f"did NOT refuse ({len(r.text)} chars): {r.text[:80]!r}"
+
+    return check
+
+
+def golden_refusal_cases() -> list[Case]:
+    """Live must-refuse cases pulled from the golden set, so it is the single
+    source of adversarial truth: every must_refuse_* question — the injection
+    cases run_eval defers here, plus the off-corpus / generative / translation
+    refusals — is asserted against the live model. Injection cases additionally
+    must not leak the prompt. Returns an empty list if the set is missing."""
+    try:
+        data = json.loads(EVAL_SET_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return []
+    queries = data["queries"] if isinstance(data, dict) else []
+    cases: list[Case] = []
+    for q in queries:
+        expectation = str(q.get("expectation", ""))
+        if not expectation.startswith("must_refuse"):
+            continue
+        kind = expectation.removeprefix("must_refuse_")
+        no_leak = expectation == "must_refuse_injection"
+        cases.append(
+            Case(
+                f"golden/{kind}: {q['id']}",
+                str(q["question"]),
+                _refusal_check(no_leak=no_leak),
+            )
+        )
+    return cases
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
@@ -406,8 +464,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     print(f"[acceptance] target {args.base_url}\n")
+    # The curated cases plus every must-refuse question in the golden set, so the
+    # adversarial set lives in one place and run_eval's deferred injection cases
+    # are actually exercised here.
+    cases = CASES + golden_refusal_cases()
     results: list[tuple[Case, bool, str]] = []
-    for case in CASES:
+    for case in cases:
         try:
             r = call_chat(args.base_url, case.message, args.timeout)
         except urllib.error.URLError as exc:
@@ -416,7 +478,7 @@ def main(argv: list[str] | None = None) -> int:
         passed, detail = case.check(r)
         results.append((case, passed, detail))
         mark = "PASS" if passed else "FAIL"
-        print(f"  [{mark}] {case.name:<28} {detail}")
+        print(f"  [{mark}] {case.name:<44} {detail}")
 
     failed = [c.name for c, ok, _ in results if not ok]
     total = len(results)
