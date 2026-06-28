@@ -20,7 +20,9 @@ def _chunk(index: int, text: str) -> Chunk:
 
 @pytest.fixture
 def settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Settings:
-    for name in ("CONTENT_DIR", "CHUNK_MAX_TOKENS", "CHUNK_MIN_TOKENS"):
+    # ADR_DIR is cleared too: the live container sets it to /adr, which would leak
+    # real ADR files into the "empty corpus" fixture and make plan() non-empty.
+    for name in ("CONTENT_DIR", "ADR_DIR", "CHUNK_MAX_TOKENS", "CHUNK_MIN_TOKENS"):
         monkeypatch.delenv(name, raising=False)
     base = Settings.from_env()
     return dataclasses.replace(base, content_dir=str(tmp_path))
