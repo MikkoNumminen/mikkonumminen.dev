@@ -39,6 +39,12 @@ cd /home/vandroy/mikkonumminen.dev
 git pull --ff-only origin master
 ```
 
+> GitHub is the **sync + record** path here, not a runtime dependency — the stack
+> builds and runs entirely from local files. For a quick local-only test you can
+> skip the round-trip and copy `chat-backend/` straight into the clone (or build
+> from your worktree). Routing through `master` is what keeps the clone, your other
+> checkout, and the record all in agreement on "what's deployed".
+
 ### ⚠️ Pre-flight — confirm the working tree actually updated
 
 WSL's 9p filesystem can serve **stale cached files for a while after a `git
@@ -102,6 +108,27 @@ A full end-to-end check posts to `/chat` and confirms the cited `sources`, the
 progressive-disclosure offer ("Would you like me to tell you more?"), and the
 `context` frame (`{used, limit}`). The `rag-audit` skill carries the acceptance
 battery (containment + retrieval cases).
+
+### A clean corpus does not prove good *retrieval*
+
+A healthy `doc_type` table — every project indexed, all `public` — can still hide
+a broken chat. Meta-content (the site's own `portfolio` self-docs, and the ADRs)
+can dominate *generic* questions and crowd out the showcased projects, so the chat
+describes mikkonumminen.dev's own pages instead of HRM / AudiobookMaker / etc.
+(this regression shipped once). So after any re-index — especially one that adds
+meta-content like ADRs — post a **generic** project question to `/chat` ("tell me
+about the projects", "which project is the most complex") and confirm the answer
+names *several distinct showcased projects*, not just the portfolio site and with
+no `decisions/` sources.
+
+If it collapses onto the site, two config knobs tune the default retrieval (no code
+change — set the env var, then recreate the backend):
+
+- `RETRIEVAL_EXCLUDE_DOC_TYPES` (default `adr`) — doc types kept out of visitor
+  retrieval, so engineering ADRs never reach an answer.
+- `RETRIEVAL_DIVERSITY_MAX_PER_PROJECT` (default `1`) — max chunks per project on
+  generic queries, so the showcased work spreads across the answer. Named-project
+  questions are never capped.
 
 ## Recovery — a stale re-index pruned the corpus
 
