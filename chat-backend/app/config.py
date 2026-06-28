@@ -17,6 +17,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from .gdpr import GdprPolicy, load_policy
+
 # Defaults target the local Docker stack (service hostnames `db` / `ollama`).
 # Running the indexer or tests on the host without overrides falls back to
 # localhost so a developer poking at it outside compose still connects.
@@ -172,6 +174,14 @@ class Settings:
     # are written; keep the file local and never commit it.
     rag_log_file: str
 
+    # --- GDPR-aware context control (Phase 2) ---
+    # The validated policy: classification rules, the role -> permitted-classes
+    # ladder, pseudonymisation patterns, and the data-residency flag. Loaded once
+    # from GDPR_POLICY_FILE (or the benign default — everything public, one public
+    # role, no pseudonymisation) and validated, so a malformed policy fails startup
+    # rather than silently widening access.
+    gdpr_policy: GdprPolicy
+
     @staticmethod
     def from_env() -> Settings:
         settings = Settings(
@@ -207,6 +217,7 @@ class Settings:
                 "LLM_ACQUIRE_TIMEOUT_SECONDS", 0.5
             ),
             rag_log_file=_get_str("RAG_LOG_FILE", ""),
+            gdpr_policy=load_policy(_get_str("GDPR_POLICY_FILE", "") or None),
         )
         settings.validate()
         return settings

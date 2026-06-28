@@ -31,38 +31,59 @@ class FakeDB:
         self.calls: list[tuple[list[float], int]] = []
         self.lexical_calls: list[tuple[str, int]] = []
         self.prose_calls = 0
+        # Every classifications arg the search paths received — lets a test assert
+        # the role filter reached the dense, lexical, AND prose-anchor SQL.
+        self.classification_args: list[Sequence[str] | None] = []
 
     async def closest_prose(
-        self, embedding: list[float]
+        self,
+        embedding: list[float],
+        classifications: Sequence[str] | None = None,
     ) -> Mapping[str, Any] | None:
         self.prose_calls += 1
-        return self._prose_row
+        self.classification_args.append(classifications)
+        if self._prose_row is None:
+            return None
+        ok = self._filter([self._prose_row], None, classifications)
+        return ok[0] if ok else None
 
     @staticmethod
     def _filter(
-        rows: list[dict[str, Any]], projects: Sequence[str] | None
+        rows: list[dict[str, Any]],
+        projects: Sequence[str] | None,
+        classifications: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
-        if projects is None:
-            return rows
-        return [r for r in rows if r["project"] in projects]
+        out = rows
+        if projects is not None:
+            out = [r for r in out if r["project"] in projects]
+        if classifications is not None:
+            out = [
+                r for r in out
+                if r.get("classification", "public") in classifications
+            ]
+        return out
 
     async def search(
         self,
         embedding: list[float],
         top_k: int,
         projects: Sequence[str] | None = None,
+        classifications: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         self.calls.append((embedding, top_k))
-        return self._filter(self._rows, projects)[:top_k]
+        self.classification_args.append(classifications)
+        return self._filter(self._rows, projects, classifications)[:top_k]
 
     async def search_lexical(
         self,
         query: str,
         top_k: int,
         projects: Sequence[str] | None = None,
+        classifications: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         self.lexical_calls.append((query, top_k))
-        return self._filter(self._lexical, projects)[:top_k]
+        self.classification_args.append(classifications)
+        return self._filter(self._lexical, projects, classifications)[:top_k]
 
 
 def _row(
@@ -71,6 +92,7 @@ def _row(
     project: str | None = "p",
     chunk_index: int = 0,
     chunk_type: str = "prose",
+    classification: str = "public",
 ) -> dict[str, Any]:
     return {
         "source": source,
@@ -80,6 +102,7 @@ def _row(
         "distance": distance,
         "chunk_index": chunk_index,
         "chunk_type": chunk_type,
+        "classification": classification,
     }
 
 
@@ -315,7 +338,11 @@ def test_all_code_topk_with_near_prose_still_answers() -> None:
     db = FakeDB(code, lexical_rows=code, prose_row=near_prose)
     result = asyncio.run(
         retrieve(
-            FakeEmbedder(), db, "how does salvageRemovedWeapons work", top_k=3, hybrid=True
+            FakeEmbedder(),
+            db,
+            "how does salvageRemovedWeapons work",
+            top_k=3,
+            hybrid=True,
         )
     )
     assert is_weak_retrieval(result, max_distance=0.45) is False
@@ -327,7 +354,9 @@ def test_prose_anchor_skipped_when_topk_already_has_prose() -> None:
         _row("code/a/x.py", 0.30, chunk_type="code"),
     ]
     db = FakeDB(rows, lexical_rows=rows, prose_row=_row("projects/z.md", 0.9))
-    result = asyncio.run(retrieve(FakeEmbedder(), db, "tell me about A", top_k=3, hybrid=True))
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "tell me about A", top_k=3, hybrid=True)
+    )
     assert db.prose_calls == 0  # no extra fetch when prose already present
     assert all(c.source != "projects/z.md" for c in result)
 
@@ -349,7 +378,101 @@ def test_prose_anchor_is_in_sources_when_the_answer_goes_through() -> None:
     near_prose = _row("projects/audiobookmaker.md", 0.30, chunk_type="prose")
     db = FakeDB(code, lexical_rows=code, prose_row=near_prose)
     result = asyncio.run(
-        retrieve(FakeEmbedder(), db, "how does the tts pipeline work", top_k=3, hybrid=True)
+        retrieve(
+            FakeEmbedder(), db, "how does the tts pipeline work", top_k=3, hybrid=True
+        )
     )
     sources = [r["source"] for r in to_source_refs(result)]
     assert "projects/audiobookmaker.md" in sources
+
+
+# --- GDPR role-based retrieval filter (Phase 2) ---
+
+
+def test_role_filter_gates_restricted_on_every_search_path() -> None:
+    # A public role (allowed=[public]) must never receive a restricted chunk —
+    # the filter is applied IN SQL (the fake honours it) on the dense, lexical,
+    # and prose-anchor paths, so restricted data is excluded pre-model, not after.
+    rows = [
+        _row("projects/a.md", 0.10, classification="public"),
+        _row("restricted/secret.md", 0.05, classification="restricted"),
+    ]
+    db = FakeDB(rows, lexical_rows=rows, prose_row=rows[1])
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "q",
+            top_k=5,
+            hybrid=True,
+            allowed_classifications=["public"],
+        )
+    )
+    assert result  # the public chunk still answers
+    assert all(c.classification == "public" for c in result)
+    assert all(c.source != "restricted/secret.md" for c in result)
+    # the allowed list reached the db on every path that was exercised
+    assert db.classification_args
+    assert all(arg == ["public"] for arg in db.classification_args)
+
+
+def test_role_filter_gates_the_prose_anchor_on_code_only_topk() -> None:
+    # When the top-k is all CODE chunks, retrieve() fetches the closest PROSE chunk
+    # for the weak-retrieval gate — that anchor feeds the answer's context, so it
+    # MUST be role-filtered too. A regression dropping the classifications arg from
+    # the closest_prose call would leak restricted prose to a public role on a
+    # code-only query; this test exercises that exact path.
+    code_rows = [_row("code/p/a.py", 0.10, chunk_type="code", classification="public")]
+    restricted_prose = _row("restricted/secret.md", 0.02, classification="restricted")
+    db = FakeDB(code_rows, lexical_rows=code_rows, prose_row=restricted_prose)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "q",
+            top_k=5,
+            hybrid=True,
+            allowed_classifications=["public"],
+        )
+    )
+    assert db.prose_calls == 1  # the prose-anchor path WAS exercised
+    assert ["public"] in db.classification_args  # ... and carried the role filter
+    assert all(c.source != "restricted/secret.md" for c in result)
+    assert all(c.classification == "public" for c in result)
+
+
+def test_filter_clause_empty_classifications_matches_nothing() -> None:
+    # The SQL builder must treat None and [] differently: None = no role filter
+    # (feature off), [] = the role may see NOTHING (an ANY('{}') that matches no
+    # row). Keying on truthiness would fail OPEN on [] and return every class.
+    from app.db import _filter_clause
+
+    assert "classification" not in _filter_clause(["e", 5], None, None)
+    params: list[object] = ["e", 5]
+    where = _filter_clause(params, None, [])
+    assert "classification = ANY" in where
+    assert params[-1] == []
+
+
+def test_permitted_role_sees_restricted() -> None:
+    rows = [_row("restricted/secret.md", 0.05, classification="restricted")]
+    db = FakeDB(rows, lexical_rows=rows)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "q",
+            top_k=5,
+            hybrid=True,
+            allowed_classifications=["public", "internal", "restricted"],
+        )
+    )
+    assert any(c.source == "restricted/secret.md" for c in result)
+
+
+def test_no_role_filter_forwards_none() -> None:
+    # Default (no allowed_classifications): the filter is None everywhere, so the
+    # behaviour is byte-identical to the pre-Phase-2 path.
+    db = FakeDB([_row("a.md", 0.1)])
+    asyncio.run(retrieve(FakeEmbedder(), db, "q", top_k=2))
+    assert db.classification_args == [None]

@@ -15,7 +15,7 @@ not in the fast unit suite.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -62,6 +62,11 @@ class DocumentRow:
     # builds a valid row.
     doc_type: str = "prose"
     doc_date: date | None = None
+    # Data classification (migration 004): public | internal | restricted. `pii`
+    # never reaches a row — it is dropped at ingest, never embedded. The
+    # role-based retrieval filter gates on this; defaults public so a pre-004
+    # caller still builds a valid row.
+    classification: str = "public"
 
 
 async def apply_schema(dsn: str, sql_path: str | Path | None = None) -> None:
@@ -81,6 +86,32 @@ async def apply_schema(dsn: str, sql_path: str | Path | None = None) -> None:
             await conn.execute(path.read_text(encoding="utf-8"))
     finally:
         await conn.close()
+
+
+def _filter_clause(
+    params: list[object],
+    projects: Sequence[str] | None,
+    classifications: Sequence[str] | None,
+    base: list[str] | None = None,
+) -> str:
+    """Build a parameterized WHERE for the optional project + classification
+    filters, appending each array to `params`. Only the placeholder INDEX is
+    interpolated into the SQL — values are always bound, never string-formatted.
+    `base` carries conditions already keyed to existing placeholders (e.g. the
+    lexical `@@` match on $1)."""
+    conditions = list(base or [])
+    if projects:
+        params.append(list(projects))
+        conditions.append(f"project = ANY(${len(params)}::text[])")
+    # `classifications is None` means "no role filter" (the feature off). An EMPTY
+    # list means "this role may see NOTHING" and MUST match no rows —
+    # `classification = ANY('{}')` is always false. Keying on truthiness here would
+    # collapse [] onto the no-filter branch and FAIL OPEN, silently returning every
+    # class to a role with no permissions (a privilege-escalation inversion).
+    if classifications is not None:
+        params.append(list(classifications))
+        conditions.append(f"classification = ANY(${len(params)}::text[])")
+    return ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
 
 class Database:
@@ -132,8 +163,8 @@ class Database:
                         INSERT INTO documents
                             (source, project, title, kind, chunk_index,
                              content, content_hash, embedding, language, chunk_type,
-                             doc_type, doc_date)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                             doc_type, doc_date, classification)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                         ON CONFLICT (source, chunk_index) DO UPDATE SET
                             project = EXCLUDED.project,
                             title = EXCLUDED.title,
@@ -144,7 +175,8 @@ class Database:
                             language = EXCLUDED.language,
                             chunk_type = EXCLUDED.chunk_type,
                             doc_type = EXCLUDED.doc_type,
-                            doc_date = EXCLUDED.doc_date
+                            doc_date = EXCLUDED.doc_date,
+                            classification = EXCLUDED.classification
                         """,
                         row.source,
                         row.project,
@@ -158,6 +190,7 @@ class Database:
                         row.chunk_type,
                         row.doc_type,
                         row.doc_date,
+                        row.classification,
                     )
         return len(rows)
 
@@ -255,6 +288,7 @@ class Database:
         embedding: list[float],
         top_k: int,
         projects: Sequence[str] | None = None,
+        classifications: Sequence[str] | None = None,
     ) -> list[asyncpg.Record]:
         """Return the `top_k` chunks nearest the query embedding (dense).
 
@@ -263,35 +297,24 @@ class Database:
         similar. The same `<=>` ordering lets the HNSW cosine index serve the
         query. The query vector is parameterized — never string-interpolated.
 
-        When `projects` is given, the search is HARD-restricted to those projects
-        (`project = ANY($3)`) — the strict per-project filter for queries that
-        name a project. Omitted ⇒ search the whole corpus.
+        `projects` HARD-restricts to those projects (the strict per-project
+        filter). `classifications` is the GDPR role filter — when given, only rows
+        in those classes are eligible, applied IN SQL so restricted data is never
+        even fetched. Both filters are built from parameterized placeholders; only
+        the placeholder INDEX is interpolated into the SQL, never any value.
         """
-        if projects:
-            rows: list[asyncpg.Record] = await self._pool.fetch(
-                """
-                SELECT source, project, title, kind, chunk_index, content, chunk_type,
-                       embedding <=> $1 AS distance
-                FROM documents
-                WHERE project = ANY($3::text[])
-                ORDER BY embedding <=> $1
-                LIMIT $2
-                """,
-                embedding,
-                top_k,
-                list(projects),
-            )
-            return rows
-        rows = await self._pool.fetch(
-            """
+        params: list[object] = [embedding, top_k]
+        where = _filter_clause(params, projects, classifications)
+        rows: list[asyncpg.Record] = await self._pool.fetch(
+            f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
-                   embedding <=> $1 AS distance
+                   classification, embedding <=> $1 AS distance
             FROM documents
+            {where}
             ORDER BY embedding <=> $1
             LIMIT $2
             """,
-            embedding,
-            top_k,
+            *params,
         )
         return rows
 
@@ -300,6 +323,7 @@ class Database:
         query: str,
         top_k: int,
         projects: Sequence[str] | None = None,
+        classifications: Sequence[str] | None = None,
     ) -> list[asyncpg.Record]:
         """Return the `top_k` chunks ranked by full-text (lexical) relevance.
 
@@ -307,41 +331,33 @@ class Database:
         raw user question forgivingly (no syntax errors on arbitrary punctuation
         or quotes), matched against the GENERATED `content_tsv` via `@@` and
         ordered by `ts_rank`. This catches exact identifiers — class/engine names,
-        file paths — that dense embeddings blur. `projects` applies the same hard
-        per-project filter as the dense `search`. The query text is parameterized.
+        file paths — that dense embeddings blur. `projects` and `classifications`
+        apply the same hard filters as the dense `search` (the role filter must
+        gate the lexical path too, or restricted data would leak through it). The
+        query text is parameterized.
         """
-        if projects:
-            rows: list[asyncpg.Record] = await self._pool.fetch(
-                """
-                SELECT source, project, title, kind, chunk_index, content, chunk_type,
-                       ts_rank(content_tsv, websearch_to_tsquery('english', $1))
-                           AS rank
-                FROM documents
-                WHERE content_tsv @@ websearch_to_tsquery('english', $1)
-                  AND project = ANY($3::text[])
-                ORDER BY rank DESC
-                LIMIT $2
-                """,
-                query,
-                top_k,
-                list(projects),
-            )
-            return rows
-        rows = await self._pool.fetch(
-            """
+        params: list[object] = [query, top_k]
+        match = "content_tsv @@ websearch_to_tsquery('english', $1)"
+        where = _filter_clause(params, projects, classifications, base=[match])
+        rows: list[asyncpg.Record] = await self._pool.fetch(
+            f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
+                   classification,
                    ts_rank(content_tsv, websearch_to_tsquery('english', $1)) AS rank
             FROM documents
-            WHERE content_tsv @@ websearch_to_tsquery('english', $1)
+            {where}
             ORDER BY rank DESC
             LIMIT $2
             """,
-            query,
-            top_k,
+            *params,
         )
         return rows
 
-    async def closest_prose(self, embedding: list[float]) -> asyncpg.Record | None:
+    async def closest_prose(
+        self,
+        embedding: list[float],
+        classifications: Sequence[str] | None = None,
+    ) -> asyncpg.Record | None:
         """The single PROSE chunk nearest the query embedding, or None.
 
         The weak-retrieval gate keys on prose distance, but an off-topic query
@@ -350,17 +366,59 @@ class Database:
         to judge. This fetches the corpus's closest prose chunk explicitly so the
         gate always has the honest relevance signal: far prose ⇒ refuse, near
         prose ⇒ a real description grounds the answer. Returns None for a corpus
-        with no prose at all (the gate then falls back to all chunks).
+        with no prose at all (the gate then falls back to all chunks). The role
+        filter (`classifications`) applies here too — the prose anchor feeds the
+        answer's context, so it must never surface a class the role can't see.
         """
+        params: list[object] = [embedding]
+        where = _filter_clause(
+            params, None, classifications, base=["chunk_type = 'prose'"]
+        )
         row = await self._pool.fetchrow(
-            """
+            f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
-                   embedding <=> $1 AS distance
+                   classification, embedding <=> $1 AS distance
             FROM documents
-            WHERE chunk_type = 'prose'
+            {where}
             ORDER BY embedding <=> $1
             LIMIT 1
             """,
-            embedding,
+            *params,
         )
         return row
+
+    async def upsert_pseudonyms(self, mapping: Mapping[str, str]) -> int:
+        """Persist `{token: original}` pairs into the separate, access-controlled
+        reverse store. Idempotent on the token PK. The retrieval path and the model
+        never read this table — only an out-of-band resolver does — so the raw
+        value is never reconstructable through the chat. Returns the pair count.
+        """
+        if not mapping:
+            return 0
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                for token, value in mapping.items():
+                    await conn.execute(
+                        """
+                        INSERT INTO pseudonym_map (token, value)
+                        VALUES ($1, $2)
+                        ON CONFLICT (token) DO UPDATE SET value = EXCLUDED.value
+                        """,
+                        token,
+                        value,
+                    )
+        return len(mapping)
+
+    async def resolve_pseudonyms(self, tokens: Sequence[str]) -> dict[str, str]:
+        """Resolve tokens back to originals — the out-of-band lookup, NEVER called
+        from retrieval or the pipeline. This is the only path back from a token to
+        a name; it lives behind whatever access control the operator puts in front
+        of it, deliberately separate from the model's reach.
+        """
+        if not tokens:
+            return {}
+        rows = await self._pool.fetch(
+            "SELECT token, value FROM pseudonym_map WHERE token = ANY($1::text[])",
+            list(tokens),
+        )
+        return {row["token"]: row["value"] for row in rows}

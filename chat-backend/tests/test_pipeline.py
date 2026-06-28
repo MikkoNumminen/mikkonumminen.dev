@@ -22,14 +22,20 @@ class FakeDB:
         self._fail = fail
 
     async def search(
-        self, embedding: list[float], top_k: int
+        self,
+        embedding: list[float],
+        top_k: int,
+        projects: Sequence[str] | None = None,
+        classifications: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         if self._fail:
             raise RuntimeError("db down")
         return self._rows[:top_k]
 
     async def closest_prose(
-        self, embedding: list[float]
+        self,
+        embedding: list[float],
+        classifications: Sequence[str] | None = None,
     ) -> Mapping[str, Any] | None:
         return next((r for r in self._rows if r.get("chunk_type") == "prose"), None)
 
@@ -233,8 +239,15 @@ def test_busy_shed_calls_log_request() -> None:
     llm = FakeLLM(["should not be used"])
     log_calls: list[tuple] = []
 
-    def capture_log(query: str, distances: list, gated: bool, response: str) -> None:
-        log_calls.append((query, distances, gated, response))
+    def capture_log(
+        query: str,
+        distances: list,
+        gated: bool,
+        response: str,
+        role: str = "public",
+        classifications: dict | None = None,
+    ) -> None:
+        log_calls.append((query, distances, gated, response, role, classifications))
 
     async def run() -> list[str]:
         sem = asyncio.Semaphore(1)
@@ -258,10 +271,14 @@ def test_busy_shed_calls_log_request() -> None:
     assert _token_text(frames) == LLM_BUSY_REPLY
     assert llm.called is False
     assert len(log_calls) == 1
-    query_logged, distances_logged, gated_logged, response_logged = log_calls[0]
+    query_logged, distances_logged, gated_logged, response_logged, role_logged, _cls = (
+        log_calls[0]
+    )
     assert query_logged == "what is hrm"
     assert gated_logged is True
     assert response_logged == LLM_BUSY_REPLY
+    assert role_logged == "public"  # default role threads through to the audit log
+    assert _cls == {"public": 1}  # the audit log carries the retrieved classes
     # distances are computed from the retrieved chunks before the semaphore wait
     assert isinstance(distances_logged, list)
 

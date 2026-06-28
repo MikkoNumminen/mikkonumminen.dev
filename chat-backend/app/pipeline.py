@@ -86,6 +86,8 @@ async def chat_event_stream(
     semaphore: asyncio.Semaphore | None = None,
     acquire_timeout: float = 0.5,
     log_request: RequestLogger | None = None,
+    role: str = "public",
+    allowed_classifications: Sequence[str] | None = None,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
 
@@ -96,7 +98,7 @@ async def chat_event_stream(
     # or generation. No GPU touched, no sources cited.
     if is_generative_request(query) or is_translation_request(query):
         if log_request is not None:
-            log_request(query, [], True, GENERATIVE_REPLY)
+            log_request(query, [], True, GENERATIVE_REPLY, role, {})
         yield sse.sse_sources([])
         yield sse.sse_token(GENERATIVE_REPLY)
         yield sse.sse_done()
@@ -113,6 +115,7 @@ async def chat_event_stream(
             dense_weight=dense_weight,
             lexical_weight=lexical_weight,
             project_filter_strict=project_filter_strict,
+            allowed_classifications=allowed_classifications,
         )
     except Exception:
         yield sse.sse_error("retrieval unavailable")
@@ -123,6 +126,14 @@ async def chat_event_stream(
     # gate below AND, when the gate passes, intentionally grounds the answer — so a
     # deep-code answer is backed by the project's own description and cites it.
     distances = [chunk.distance for chunk in chunks]
+    # Per-classification counts of what surfaced — the audit trail's "which classes
+    # of data did this retrieval touch". The role filter has already excluded any
+    # class this role cannot see, so these are only ever permitted classes.
+    class_counts: dict[str, int] = {}
+    for chunk in chunks:
+        class_counts[chunk.classification] = (
+            class_counts.get(chunk.classification, 0) + 1
+        )
 
     # Guardrail: when retrieval is empty or every chunk is too far to be
     # relevant, refuse deterministically WITHOUT calling the model — a clearly
@@ -130,7 +141,9 @@ async def chat_event_stream(
     # sources are cited because none were relevant.
     if is_weak_retrieval(chunks, weak_retrieval_distance):
         if log_request is not None:
-            log_request(query, distances, True, WEAK_RETRIEVAL_REPLY)
+            log_request(
+                query, distances, True, WEAK_RETRIEVAL_REPLY, role, class_counts
+            )
         yield sse.sse_sources([])
         yield sse.sse_token(WEAK_RETRIEVAL_REPLY)
         yield sse.sse_done()
@@ -149,7 +162,7 @@ async def chat_event_stream(
             acquired = True
         except TimeoutError:
             if log_request is not None:
-                log_request(query, distances, True, LLM_BUSY_REPLY)
+                log_request(query, distances, True, LLM_BUSY_REPLY, role, class_counts)
             yield sse.sse_sources([])
             yield sse.sse_token(LLM_BUSY_REPLY)
             yield sse.sse_done()
@@ -182,7 +195,9 @@ async def chat_event_stream(
         # (how often relevant retrieval is refused vs answered) and is a readable
         # record of what was asked and how the model answered.
         if log_request is not None:
-            log_request(query, distances, False, "".join(response_parts))
+            log_request(
+                query, distances, False, "".join(response_parts), role, class_counts
+            )
 
         # Record usage only on a real, fully-streamed generation — the
         # weak-retrieval refusal above never reaches here (the model wasn't
@@ -199,5 +214,7 @@ async def chat_event_stream(
         # Release on every exit — normal completion, the generation-error early
         # return, or the consumer closing the stream early (GeneratorExit runs
         # this finally) — so a permit can never leak and wedge the gate.
-        if acquired:
+        # `acquired` is only set under `semaphore is not None`; the explicit check
+        # keeps that invariant legible to the type checker too.
+        if acquired and semaphore is not None:
             semaphore.release()

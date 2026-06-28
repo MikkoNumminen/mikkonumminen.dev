@@ -27,6 +27,7 @@ class SupportsSearch(Protocol):
         embedding: list[float],
         top_k: int,
         projects: Sequence[str] | None = None,
+        classifications: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
 
     async def search_lexical(
@@ -34,10 +35,13 @@ class SupportsSearch(Protocol):
         query: str,
         top_k: int,
         projects: Sequence[str] | None = None,
+        classifications: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
 
     async def closest_prose(
-        self, embedding: list[float]
+        self,
+        embedding: list[float],
+        classifications: Sequence[str] | None = None,
     ) -> Mapping[str, Any] | None: ...
 
 
@@ -63,6 +67,10 @@ class RetrievedChunk:
     distance: float
     chunk_index: int = 0
     chunk_type: str = "prose"
+    # GDPR classification of the source (public | internal | restricted). Carried
+    # so the pipeline can audit-log what classes a retrieval touched; the
+    # role-based gate has already filtered out classes the role can't see in SQL.
+    classification: str = "public"
 
 
 # When the query names a project, or hybrid fusion is on, pull this many * top_k
@@ -84,6 +92,7 @@ def _to_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         distance=float(row["distance"]),
         chunk_index=int(row["chunk_index"]),
         chunk_type=str(row["chunk_type"]),
+        classification=str(row.get("classification", "public")),
     )
 
 
@@ -97,6 +106,7 @@ def _to_lexical_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         distance=_LEXICAL_ONLY_DISTANCE,
         chunk_index=int(row["chunk_index"]),
         chunk_type=str(row["chunk_type"]),
+        classification=str(row.get("classification", "public")),
     )
 
 
@@ -177,6 +187,7 @@ async def _with_prose_anchor(
     result: list[RetrievedChunk],
     db: SupportsSearch,
     vector: list[float],
+    allowed_classifications: Sequence[str] | None = None,
 ) -> list[RetrievedChunk]:
     """Give the prose-anchored weak-retrieval gate a prose distance to judge.
 
@@ -199,7 +210,7 @@ async def _with_prose_anchor(
     # already in the result means the gate has its signal — neither needs a fetch.
     if not result or any(c.chunk_type == "prose" for c in result):
         return result
-    prose_row = await db.closest_prose(vector)
+    prose_row = await db.closest_prose(vector, classifications=allowed_classifications)
     if prose_row is None:
         return result
     return result + [_to_chunk(prose_row)]
@@ -216,6 +227,7 @@ async def retrieve(
     dense_weight: float = 1.0,
     lexical_weight: float = 1.0,
     project_filter_strict: bool = False,
+    allowed_classifications: Sequence[str] | None = None,
 ) -> list[RetrievedChunk]:
     """Embed `query` and return its `top_k` most relevant corpus chunks.
 
@@ -237,18 +249,25 @@ async def retrieve(
     candidate_k = min(top_k * _CANDIDATE_MULTIPLIER, _CANDIDATE_CAP) if widen else top_k
 
     if project_filter is not None:
-        dense_rows = await db.search(vector, candidate_k, project_filter)
+        dense_rows = await db.search(
+            vector, candidate_k, project_filter, classifications=allowed_classifications
+        )
         if not dense_rows:
             # Fail open for the gate: the named project has no surfacing chunk, so
             # a hard filter would starve the weak-retrieval gate into a false
             # refusal. Drop strict and re-run unfiltered so the gate sees the true
             # global best distance (any of the named project's chunks that do
-            # surface are still soft-boosted below).
+            # surface are still soft-boosted below). The classification filter is
+            # NOT dropped — failing open on PROJECT must never widen data access.
             strict = False
             project_filter = None
-            dense_rows = await db.search(vector, candidate_k)
+            dense_rows = await db.search(
+                vector, candidate_k, classifications=allowed_classifications
+            )
     else:
-        dense_rows = await db.search(vector, candidate_k)
+        dense_rows = await db.search(
+            vector, candidate_k, classifications=allowed_classifications
+        )
     dense_chunks = [_to_chunk(row) for row in dense_rows]
     # Gate-anchor pool: when soft-boosting a NAMED project, anchor on that
     # project's closest chunk so the gate isn't starved by the boost — but never
@@ -268,12 +287,16 @@ async def retrieve(
         # eligible chunk out of top_k, starving the weak-retrieval gate into a
         # false refusal. (No-op when that chunk already ranks in.)
         anchored = _ensure_gate_anchor(result[:top_k], anchor_pool, top_k)
-        return await _with_prose_anchor(anchored, db, vector)
+        return await _with_prose_anchor(anchored, db, vector, allowed_classifications)
 
     if project_filter is not None:
-        lexical_rows = await db.search_lexical(query, candidate_k, project_filter)
+        lexical_rows = await db.search_lexical(
+            query, candidate_k, project_filter, classifications=allowed_classifications
+        )
     else:
-        lexical_rows = await db.search_lexical(query, candidate_k)
+        lexical_rows = await db.search_lexical(
+            query, candidate_k, classifications=allowed_classifications
+        )
 
     fused = _rrf_fuse(
         dense_chunks,
@@ -285,7 +308,7 @@ async def retrieve(
     if wanted and not strict:
         fused = _project_boost(fused, wanted)
     result = _ensure_gate_anchor(fused[:top_k], anchor_pool, top_k)
-    return await _with_prose_anchor(result, db, vector)
+    return await _with_prose_anchor(result, db, vector, allowed_classifications)
 
 
 def to_context(chunks: Sequence[RetrievedChunk]) -> list[ContextChunk]:
