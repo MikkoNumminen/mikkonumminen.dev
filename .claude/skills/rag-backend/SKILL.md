@@ -63,4 +63,4 @@ Input cap (`INPUT_MAX_CHARS` handler-400 + Pydantic 4000 backstop + `MAX_BODY_BY
 - `ragctl` (`chat-backend/ragctl.py`) is the ops CLI: `status`/`up`/`down`/`doctor`/`model`/`english`/`usage`/`prune`.
 - Rebuilds pile up docker build cache → `ragctl prune` (disk only, leaves the stack + warm model).
 - The model stays warm (`OLLAMA_KEEP_ALIVE=-1`, ~8.6 GiB RAM) for instant replies; `ragctl down` frees it.
-- **Residual:** the `qwen2.5:7b` reasoning ceiling — literal-task tendency, pedantic framing. A model upgrade (`qwen2.5:14b`) is the deeper fix; the task gates only mitigate the common cases.
+- **Model:** `qwen2.5:7b` with `OLLAMA_CONTEXT_LENGTH=16384` (set in the WSL clone `.env`). A 2026-06 A/B against `qwen2.5:14b` was REVERTED — once retrieval/grounding were fixed (per-project filter, ADR exclusion, diversity, grounded prompt), 7b answers as well, and it frees ~5 GB so the bigger context fits 100% on the 12 GB GPU (the context-bar donut sits ~25-31%, not 100%). Don't pair 16k with a 14b model — it OOMs the card.

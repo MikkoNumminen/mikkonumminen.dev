@@ -423,10 +423,12 @@ shipped (detailed in [§4](#a-live-chat-turn) and [§7](#the-layers)):
 - **Automatic per-project summary generation** for retrieval anchoring.
 - **Query expansion** before retrieval.
 
-There is also a **residual** worth naming: the `qwen2.5:7b` reasoning ceiling.
-The deterministic task gates mitigate it — the small model will still perform a
-literal task when on-corpus content is only loosely related — but a **model
-upgrade** is the deeper fix.
+On the **model**: `qwen2.5:7b` is the served default, run with a 16k context
+window (`OLLAMA_CONTEXT_LENGTH=16384` in the WSL clone `.env`). A 2026-06 A/B
+against `qwen2.5:14b` was reverted — once retrieval and grounding were fixed
+(per-project filter, ADR exclusion, generic-query diversity, the grounded prompt),
+7b answers just as well, and staying on 7b frees enough VRAM for the larger
+context to fit fully on the GPU.
 
 ---
 
