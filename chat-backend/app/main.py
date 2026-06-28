@@ -78,9 +78,12 @@ async def _db_ok(db: Database) -> bool:
 
 def create_app() -> FastAPI:
     settings = Settings.from_env()
-    # Opt-in local request log (off unless RAG_LOG_FILE is set). None when off,
-    # in which case the pipeline skips logging entirely.
-    request_logger = build_request_logger(settings.rag_log_file)
+    # Local request log — operational telemetry on by default; None only when
+    # RAG_LOG_FILE is explicitly emptied, in which case the pipeline skips logging.
+    # RAG_LOG_TEXT (off by default) gates the raw query/answer text.
+    request_logger = build_request_logger(
+        settings.rag_log_file, log_text=settings.rag_log_text
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -236,6 +239,7 @@ def create_app() -> FastAPI:
             context_window=settings.context_window,
             exclude_doc_types=settings.retrieval_exclude_doc_types or None,
             diversify_max_per_project=settings.retrieval_diversity_max_per_project,
+            model_name=settings.llm_model,
         )
         return StreamingResponse(
             stream,
