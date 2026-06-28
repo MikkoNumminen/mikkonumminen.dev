@@ -74,10 +74,19 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _parse_iso_date(value: str | None) -> date | None:
-    """Parse a `YYYY-MM-DD` string to a `date`, or None if absent/malformed."""
+    """Parse a `YYYY-MM-DD` string to a `date`, or None if absent/malformed.
+
+    The regex fixes the shape; `fromisoformat` is still wrapped because a
+    shape-valid but impossible date (e.g. `2026-13-01`) raises ValueError — a bad
+    date in one ADR or front-matter must skip gracefully, never crash the whole
+    indexer run.
+    """
     if not value or not _ISO_DATE_RE.match(value.strip()):
         return None
-    return date.fromisoformat(value.strip())
+    try:
+        return date.fromisoformat(value.strip())
+    except ValueError:
+        return None
 
 
 def is_code_doc(doc: ContentDoc) -> bool:
@@ -318,5 +327,9 @@ def load_docs(
                 doc = load_adr_doc(path, adr_project)
                 if doc is not None:
                     docs.append(doc)
+        else:
+            # Configured but absent (e.g. ADR_DIR set without the bind-mount):
+            # warn rather than silently ingesting no design notes.
+            print(f"[content] ADR_DIR {str(adr_dir)!r} is not a directory - skipped")
 
     return sorted(docs, key=lambda d: d.source)

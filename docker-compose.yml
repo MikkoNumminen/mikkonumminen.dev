@@ -82,9 +82,11 @@ services:
       # The indexer reads the version-controlled corpus mounted read-only below.
       CONTENT_DIR: /content
       # Phase 1: also ingest the repo's ADRs / design notes (bind-mounted below)
-      # as doc_type='adr' prose, attributed to the portfolio project. Empty would
-      # turn it off; the indexer reads it, the runtime backend never does.
-      ADR_DIR: ${ADR_DIR:-/adr}
+      # as doc_type='adr' prose, attributed to the portfolio project. Plain-dash
+      # (not :-) so `ADR_DIR=` in the env passes an empty value through and the
+      # indexer skips ADR ingestion (the bind-mount below is then just unused,
+      # harmless). The indexer reads this; the runtime backend never does.
+      ADR_DIR: ${ADR_DIR-/adr}
       # In prod set this to the site origin(s), e.g. https://mikkonumminen.dev
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-*}
       # Force every answer into English regardless of the question's language.

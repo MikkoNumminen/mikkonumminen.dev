@@ -181,6 +181,13 @@ def test_load_doc_ignores_malformed_date(tmp_path: Path) -> None:
     assert load_doc(tmp_path / "posts" / "x.md", tmp_path).doc_date is None
 
 
+def test_load_doc_ignores_impossible_date(tmp_path: Path) -> None:
+    # Shape-valid (YYYY-MM-DD) but impossible (month 13): must skip gracefully,
+    # not crash the indexer with a raw ValueError from date.fromisoformat.
+    _write(tmp_path / "posts" / "x.md", "---\ndate: 2026-13-01\n---\n# X\n\nbody")
+    assert load_doc(tmp_path / "posts" / "x.md", tmp_path).doc_date is None
+
+
 def _adr(num: str, title: str, date_line: str = "**Date:** 2026-06-26\n") -> str:
     return (
         f"# ADR {num} — {title}\n\n**Status:** accepted\n{date_line}"
