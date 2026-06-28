@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from app.config import Settings
@@ -39,6 +42,7 @@ _CONFIG_ENV_VARS = [
     "LLM_MAX_CONCURRENCY",
     "LLM_ACQUIRE_TIMEOUT_SECONDS",
     "RAG_LOG_FILE",
+    "GDPR_POLICY_FILE",
 ]
 
 
@@ -56,6 +60,29 @@ def test_defaults(clean_env: None) -> None:
     assert settings.chunk_max_tokens == 480
     assert settings.llm_model == "qwen2.5:7b"
     assert settings.ollama_base_url.endswith("/v1")
+
+
+def test_gdpr_policy_defaults_to_benign(clean_env: None) -> None:
+    from app.gdpr import DEFAULT_POLICY
+
+    # No GDPR_POLICY_FILE -> the benign default (everything public, public role).
+    assert Settings.from_env().gdpr_policy is DEFAULT_POLICY
+
+
+def test_gdpr_policy_loads_from_file(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    policy_path = tmp_path / "policy.json"
+    policy_path.write_text(
+        json.dumps({"role_policy": {"public": ["public", "internal"]}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("GDPR_POLICY_FILE", str(policy_path))
+    settings = Settings.from_env()
+    assert settings.gdpr_policy.allowed_classifications("public") == (
+        "public",
+        "internal",
+    )
 
 
 def test_adr_source_defaults_and_override(

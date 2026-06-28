@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import dataclasses
+import re
 from pathlib import Path
 
 import pytest
 
 from app.chunking import Chunk, hash_chunk
 from app.config import Settings
+from app.gdpr import PII, ClassificationRule, GdprPolicy, token_for
 from app.indexer import plan, select_chunks_to_embed
 
 
@@ -69,3 +71,43 @@ def test_select_chunks_to_embed_keeps_identical_text_at_distinct_indices() -> No
     # (source, chunk_index) identity that replaced the old content-hash key.
     chunks = [_chunk(0, "same text"), _chunk(1, "same text")]
     assert select_chunks_to_embed(chunks, {}) == chunks
+
+
+# --- GDPR ingest-time isolation (Phase 2) ---
+
+
+def test_plan_pii_doc_is_classified_and_never_chunked(
+    settings: Settings, tmp_path: Path
+) -> None:
+    (tmp_path / "projects").mkdir()
+    (tmp_path / "projects" / "hr.md").write_text(
+        "# HR\n\nEmployee SSN 123456-7890 on file.", encoding="utf-8"
+    )
+    policy = GdprPolicy(
+        classification_rules=(
+            ClassificationRule(classification=PII, content_pattern=re.compile("SSN")),
+        )
+    )
+    plans = plan(dataclasses.replace(settings, gdpr_policy=policy))
+    fp = next(fp for fp in plans if fp.doc.source == "projects/hr.md")
+    assert fp.classification == PII
+    assert fp.chunks == []  # pii is NEVER chunked or embedded
+
+
+def test_plan_pseudonymizes_before_chunking(
+    settings: Settings, tmp_path: Path
+) -> None:
+    name = "Dr. Jane Doe"
+    (tmp_path / "projects").mkdir()
+    (tmp_path / "projects" / "contract.md").write_text(
+        f"# Contract\n\nSigned by {name} for the engagement.", encoding="utf-8"
+    )
+    policy = GdprPolicy(
+        pseudonymize_patterns=(re.compile(r"Dr\. [A-Z][a-z]+ [A-Z][a-z]+"),)
+    )
+    plans = plan(dataclasses.replace(settings, gdpr_policy=policy))
+    fp = next(fp for fp in plans if fp.doc.source == "projects/contract.md")
+    body = "\n".join(c.text for c in fp.chunks)
+    assert name not in body  # the raw name never reaches embedding
+    assert token_for(name) in body
+    assert fp.pseudonyms == {token_for(name): name}

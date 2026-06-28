@@ -9,7 +9,9 @@ from app.request_log import build_request_logger, format_log_record
 
 
 def test_format_sorts_and_rounds_distances() -> None:
-    line = format_log_record("what is hrm", [0.42135, 0.1, 0.31119], False, "HRM is a system.")
+    line = format_log_record(
+        "what is hrm", [0.42135, 0.1, 0.31119], False, "HRM is a system."
+    )
     record = json.loads(line)
     assert record["query"] == "what is hrm"
     assert record["distances"] == [0.1, 0.3112, 0.4214]  # ascending + rounded
@@ -28,9 +30,29 @@ def test_format_handles_empty_retrieval() -> None:
     assert record["response_chars"] == len("Sorry, I can't help.")
 
 
+def test_format_includes_role_and_classifications() -> None:
+    # The Phase 2 audit fields: requester role + per-classification counts of the
+    # chunks that surfaced.
+    record = json.loads(
+        format_log_record(
+            "q", [0.2], False, "answer", "internal", {"public": 2, "internal": 1}
+        )
+    )
+    assert record["role"] == "internal"
+    assert record["classifications"] == {"public": 2, "internal": 1}
+
+
+def test_format_defaults_role_public_and_empty_classifications() -> None:
+    record = json.loads(format_log_record("q", [0.2], False, "answer"))
+    assert record["role"] == "public"
+    assert record["classifications"] == {}
+
+
 def test_format_preserves_non_ascii_query() -> None:
     # ensure_ascii is off: a Finnish question is stored readably, not escaped.
-    record = json.loads(format_log_record("Mikä on HRM-järjestelmä?", [0.2], False, "vastaus"))
+    record = json.loads(
+        format_log_record("Mikä on HRM-järjestelmä?", [0.2], False, "vastaus")
+    )
     assert record["query"] == "Mikä on HRM-järjestelmä?"
 
 
@@ -63,7 +85,7 @@ def test_build_writes_one_json_line_per_call(tmp_path: Path) -> None:
     log_file = tmp_path / "rag.log"
     log = build_request_logger(str(log_file))
     assert log is not None
-    log("first query", [0.2, 0.5], False, "The answer is 42.")
+    log("first query", [0.2, 0.5], False, "The answer is 42.", "admin", {"public": 2})
     log("second query", [], True, "I cannot answer that.")
 
     lines = log_file.read_text(encoding="utf-8").strip().splitlines()
@@ -73,7 +95,13 @@ def test_build_writes_one_json_line_per_call(tmp_path: Path) -> None:
     assert first["query"] == "first query"
     assert first["gated"] is False
     assert first["response"] == "The answer is 42."
+    # The audit fields survive the write round-trip, not just format_log_record.
+    assert first["role"] == "admin"
+    assert first["classifications"] == {"public": 2}
     second = json.loads(lines[1][lines[1].index("{") :])
     assert second["query"] == "second query"
     assert second["gated"] is True
     assert second["response"] == "I cannot answer that."
+    # The second call defaulted the audit fields (server-set role, no chunks).
+    assert second["role"] == "public"
+    assert second["classifications"] == {}
