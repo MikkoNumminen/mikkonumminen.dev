@@ -96,11 +96,16 @@ def _score_one(
 
 
 async def _eval_mode(
-    db: Database, embedder: Embedder, settings: Settings, *, hybrid: bool
+    db: Database,
+    embedder: Embedder,
+    settings: Settings,
+    eval_set_path: Path,
+    *,
+    hybrid: bool,
 ) -> list[QueryResult]:
     """Score every golden-set question under one retrieval mode (dense or hybrid)."""
     results: list[QueryResult] = []
-    for query in load_queries(EVAL_SET_PATH):
+    for query in load_queries(eval_set_path):
         question = str(query["question"])
         raw_expected = query.get("expected_sources", [])
         expected = (
@@ -154,18 +159,22 @@ async def _eval_mode(
     return results
 
 
-async def run(settings: Settings) -> tuple[list[QueryResult], list[QueryResult]]:
-    """Score the golden set under dense-only AND hybrid retrieval for comparison.
+async def run(
+    settings: Settings, eval_set_path: Path = EVAL_SET_PATH
+) -> tuple[list[QueryResult], list[QueryResult]]:
+    """Score the eval set under dense-only AND hybrid retrieval for comparison.
 
     Connects once and runs both modes over the same db/embedder, so the only
     variable is the retrieval strategy — the measurable case for hybrid.
+    `eval_set_path` selects which question set (the English golden set by default,
+    or the Finnish parallel subset via --eval-set).
     """
     await apply_schema(settings.database_url)
     db = await Database.connect(settings.database_url)
     embedder = Embedder(settings.embedding_model, settings.embedding_dim)
     try:
-        dense = await _eval_mode(db, embedder, settings, hybrid=False)
-        hybrid = await _eval_mode(db, embedder, settings, hybrid=True)
+        dense = await _eval_mode(db, embedder, settings, eval_set_path, hybrid=False)
+        hybrid = await _eval_mode(db, embedder, settings, eval_set_path, hybrid=True)
     finally:
         await db.close()
     return dense, hybrid
@@ -192,10 +201,17 @@ def main(argv: list[str] | None = None) -> int:
         default=0.0,
         help="Exit non-zero if the hybrid retrieval hit-rate falls below this (0.0-1.0).",
     )
+    parser.add_argument(
+        "--eval-set",
+        default=str(EVAL_SET_PATH),
+        help="Path to the eval-set JSON (default: the English golden set). Pass "
+        "evals/eval_set_fi.json to score the Finnish parallel subset.",
+    )
     args = parser.parse_args(argv)
 
     settings = Settings.from_env()
-    dense, hybrid = asyncio.run(run(settings))
+    print(f"[eval] eval set: {args.eval_set}")
+    dense, hybrid = asyncio.run(run(settings, Path(args.eval_set)))
 
     _print_mode("DENSE-ONLY", dense)
     _print_mode("HYBRID (BM25 + dense, reciprocal rank fusion)", hybrid)
