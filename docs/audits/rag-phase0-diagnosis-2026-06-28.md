@@ -101,7 +101,7 @@ file, so the golden set is the single source of adversarial truth.
 | --- | --- | --- | --- |
 | **Source coverage** (≥1 expected source surfaced) | 0.844 | 0.844 | retrieval finds *something* relevant for 27/32 |
 | **Hit-rate** (ALL expected sources in top-6) | 0.625 | 0.625 | the full multi-source set lands for 20/32 |
-| **MRR** (rank of first expected source) | 0.629 | 0.623 | the first relevant source sits ≈ rank 1.6 |
+| **MRR** (rank of first expected source) | 0.629 | 0.623 | a relevant source usually surfaces near the top (complete misses + below-rank-1 placements pull MRR under coverage) |
 | Scorable pass-rate (incl. refusals) | 70.5% | 70.5% | 31/44 |
 
 The **22-point gap between coverage (84%) and strict hit-rate (62%)** is the
