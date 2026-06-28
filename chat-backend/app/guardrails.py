@@ -50,6 +50,36 @@ def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> 
     return best > max_distance
 
 
+# Progressive disclosure (Phase 5): the explicit offer appended after a concise
+# answer when a deeper narrative exists. Deterministic text, never LLM-generated —
+# terminal discoverability is low, so the user is told they can go deeper.
+EXPANSION_OFFER = "Would you like me to tell you more?"
+
+# A topic-LESS follow-up asking to go deeper ("yes", "tell me more", "go on").
+# Matched against the WHOLE message so a request that carries a NEW topic ("tell me
+# more about HRM", "what is X") is NOT caught — that is a normal question whose
+# topic comes from the message, not from memory. The trailing group allows only
+# topic-less filler (please / more / about it|that|this), never a real noun.
+_EXPANSION_RE = re.compile(
+    r"^(?:"
+    r"yes(?:\s+please)?|yeah|yep|yup|sure|ok(?:ay)?|"
+    r"go\s+on|go\s+deeper|dig\s+deeper|continue|more|tell\s+me\s+more|"
+    r"(?:tell|say|explain|elaborate|expand)(?:\s+(?:me|on|it|that))?|"
+    r"i'?d?\s*(?:like|want)\s+to\s+(?:hear|know)\s+more|"
+    r"and"
+    r")"
+    r"(?:\s+(?:please|more|about\s+(?:it|that|this)|on\s+(?:it|that|this)))*"
+    r"\s*[.!?]*$",
+    re.IGNORECASE,
+)
+
+
+def is_expansion_request(query: str) -> bool:
+    """True when the message is a topic-less request to hear more — resolved
+    against the prior turn's topic (session memory), not the message itself."""
+    return bool(_EXPANSION_RE.match(query.strip()))
+
+
 # Out-of-scope reply for QUERY-pattern declines — both "write me a poem" and
 # "translate X into French". Distinct from WEAK_RETRIEVAL_REPLY because these are
 # declined on the request pattern, not on retrieval strength.

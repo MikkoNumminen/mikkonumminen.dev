@@ -36,21 +36,49 @@ LLM_BUSY_REPLY = (
 # per-client usage state to race on while friends hit the chat at once.
 UsageRecorder = Callable[[int, int], Awaitable[None]]
 from .guardrails import (
+    EXPANSION_OFFER,
     GENERATIVE_REPLY,
     WEAK_RETRIEVAL_REPLY,
+    is_expansion_request,
     is_generative_request,
     is_translation_request,
     is_weak_retrieval,
 )
 from .prompts import build_messages
+from .query_projects import detect_projects
 from .request_log import RequestLogger
 from .retrieval import (
     SupportsEmbedQuery,
     SupportsSearch,
     retrieve,
+    retrieve_narrative,
     to_context,
     to_source_refs,
 )
+
+# Fed to the model as the question on an EXPANSION turn: the prior topic comes from
+# the threaded memory; this directs the model to go deeper using ONLY the narrative.
+_EXPANSION_DIRECTIVE = (
+    "Tell me more about the previous topic, in more depth, using ONLY the "
+    "development narrative provided in the context above."
+)
+
+
+def _last_user_message(history: Sequence[Mapping[str, str]]) -> str | None:
+    """The most recent user turn in the threaded history, or None."""
+    for turn in reversed(history):
+        if turn.get("role") == "user" and turn.get("content"):
+            return turn.get("content")
+    return None
+
+
+def _sole_project(text: str | None) -> str | None:
+    """The single project a message names, or None when zero or several do — so
+    expansion and the offer only fire when the topic is unambiguous."""
+    if not text:
+        return None
+    projects = detect_projects(text)
+    return next(iter(projects)) if len(projects) == 1 else None
 
 
 class SupportsStreamChat(Protocol):
@@ -89,6 +117,7 @@ async def chat_event_stream(
     log_request: RequestLogger | None = None,
     role: str = "public",
     allowed_classifications: Sequence[str] | None = None,
+    disclosure_enabled: bool = True,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
 
@@ -105,19 +134,46 @@ async def chat_event_stream(
         yield sse.sse_done()
         return
 
+    # Progressive disclosure (Phase 5): a topic-less "tell me more" expands into the
+    # prior topic's precomputed narrative (the topic resolved via the threaded
+    # memory); every other question takes the normal concise-answer path.
+    # `effective_query` is what the model is asked — the expansion directive on an
+    # expansion turn, else the original question.
+    expansion = False
+    effective_query = query
     try:
-        chunks = await retrieve(
-            embedder,
-            db,
-            query,
-            top_k,
-            hybrid=hybrid,
-            rrf_k=rrf_k,
-            dense_weight=dense_weight,
-            lexical_weight=lexical_weight,
-            project_filter_strict=project_filter_strict,
-            allowed_classifications=allowed_classifications,
-        )
+        if disclosure_enabled and is_expansion_request(query):
+            prior = _last_user_message(history)
+            project = _sole_project(prior)
+            narrative = (
+                await retrieve_narrative(
+                    embedder,
+                    db,
+                    prior or query,
+                    project,
+                    top_k,
+                    allowed_classifications=allowed_classifications,
+                )
+                if project is not None
+                else []
+            )
+            if narrative:
+                expansion = True
+                chunks = narrative
+                effective_query = _EXPANSION_DIRECTIVE
+        if not expansion:
+            chunks = await retrieve(
+                embedder,
+                db,
+                query,
+                top_k,
+                hybrid=hybrid,
+                rrf_k=rrf_k,
+                dense_weight=dense_weight,
+                lexical_weight=lexical_weight,
+                project_filter_strict=project_filter_strict,
+                allowed_classifications=allowed_classifications,
+            )
     except Exception:
         yield sse.sse_error("retrieval unavailable")
         return
@@ -174,7 +230,7 @@ async def chat_event_stream(
         yield sse.sse_sources(to_source_refs(chunks))
 
         messages = build_messages(
-            query, to_context(chunks), history, force_english=force_english
+            effective_query, to_context(chunks), history, force_english=force_english
         )
         tokens = 0
         response_parts: list[str] = []
@@ -188,6 +244,21 @@ async def chat_event_stream(
         except Exception:
             yield sse.sse_error("generation unavailable")
             return
+
+        # Progressive-disclosure offer: after a normal (non-expansion) answer about a
+        # single project that HAS a narrative, offer to go deeper. A deterministic
+        # suffix (never LLM-generated); the concise answer came FIRST, so value is
+        # never gated behind a "short or long?" question. Kept out of response_parts
+        # so memory and the log store the substantive answer, not the UX nudge.
+        # Guarded — the offer is a nicety and must never break a delivered answer.
+        if disclosure_enabled and not expansion:
+            offer_project = _sole_project(query)
+            if offer_project is not None:
+                try:
+                    if await db.has_narrative(offer_project):
+                        yield sse.sse_token("\n\n" + EXPANSION_OFFER)
+                except Exception:
+                    logger.exception("offer has_narrative check failed")
 
         yield sse.sse_done()
 

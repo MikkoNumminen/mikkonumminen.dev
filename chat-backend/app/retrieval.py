@@ -28,7 +28,10 @@ class SupportsSearch(Protocol):
         top_k: int,
         projects: Sequence[str] | None = None,
         classifications: Sequence[str] | None = None,
+        doc_types: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
+
+    async def has_narrative(self, project: str) -> bool: ...
 
     async def search_lexical(
         self,
@@ -309,6 +312,34 @@ async def retrieve(
         fused = _project_boost(fused, wanted)
     result = _ensure_gate_anchor(fused[:top_k], anchor_pool, top_k)
     return await _with_prose_anchor(result, db, vector, allowed_classifications)
+
+
+async def retrieve_narrative(
+    embedder: SupportsEmbedQuery,
+    db: SupportsSearch,
+    query: str,
+    project: str,
+    top_k: int,
+    *,
+    allowed_classifications: Sequence[str] | None = None,
+) -> list[RetrievedChunk]:
+    """Retrieve the precomputed development NARRATIVE for one project, ranked by
+    relevance to `query`.
+
+    The progressive-disclosure expansion (Phase 5) reads this single git-grounded
+    document, so the deeper answer is factual rather than the small model padding a
+    longer version on the fly. Hard-filtered to `doc_type='narrative'` and the named
+    project; the role/classification filter still applies.
+    """
+    vector = embedder.embed_query(query)
+    rows = await db.search(
+        vector,
+        top_k,
+        [project],
+        classifications=allowed_classifications,
+        doc_types=["narrative"],
+    )
+    return [_to_chunk(row) for row in rows]
 
 
 def to_context(chunks: Sequence[RetrievedChunk]) -> list[ContextChunk]:
