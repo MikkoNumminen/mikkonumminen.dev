@@ -163,9 +163,7 @@ export async function initTerminal(
         // the still-running handler mutating a screen the user thinks is empty.
         e.preventDefault();
         if (busy) return;
-        ctx.clear();
-        clearContextBar(root);
-        void chat.reset();
+        performClear(ctx, root, chat);
       } else if (e.key === 'c' && e.ctrlKey) {
         // Ignored while busy for the same reason — an in-flight handler keeps
         // writing after the ^C echo, so the interrupt would be a visual lie.
@@ -176,6 +174,19 @@ export async function initTerminal(
         history.reset();
         updateCursor(input, cursor);
       }
+    },
+    { signal },
+  );
+
+  // Clear button — fires the same three-step reset as Ctrl+L.
+  // querySelector may return null on pages that don't render Terminal.astro
+  // (e.g. non-contact pages that import terminal.ts), so the guard is required.
+  const clearBtn = root.querySelector<HTMLButtonElement>('#terminal-clear-btn');
+  clearBtn?.addEventListener(
+    'click',
+    () => {
+      if (busy) return;
+      performClear(ctx, root, chat);
     },
     { signal },
   );
@@ -388,4 +399,23 @@ function clearContextBar(root: ParentNode): void {
   arc.style.stroke = 'var(--color-term-green)';
   label.textContent = '';
   container.hidden = true;
+}
+
+/**
+ * The three-step clear sequence shared by Ctrl+L and the clear button:
+ * wipe the output, hide/reset the context donut, and fire a best-effort
+ * session reset so the next turn starts with a blank backend context.
+ *
+ * `void chat.reset()` is fire-and-forget — the session ID rolls synchronously
+ * before the POST so the next turn always uses the new ID even if the caller
+ * submits immediately after clicking the button.
+ */
+function performClear(
+  ctx: { clear: () => void },
+  root: ParentNode,
+  chat: { reset: () => Promise<void> },
+): void {
+  ctx.clear();
+  clearContextBar(root);
+  void chat.reset();
 }
