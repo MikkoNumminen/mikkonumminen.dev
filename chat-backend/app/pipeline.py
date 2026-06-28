@@ -255,7 +255,7 @@ async def chat_event_stream(
             offer_project = _sole_project(query)
             if offer_project is not None:
                 try:
-                    if await db.has_narrative(offer_project):
+                    if await db.has_narrative(offer_project, allowed_classifications):
                         yield sse.sse_token("\n\n" + EXPANSION_OFFER)
                 except Exception:
                     logger.exception("offer has_narrative check failed")

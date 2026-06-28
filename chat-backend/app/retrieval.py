@@ -31,7 +31,9 @@ class SupportsSearch(Protocol):
         doc_types: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
 
-    async def has_narrative(self, project: str) -> bool: ...
+    async def has_narrative(
+        self, project: str, classifications: Sequence[str] | None = None
+    ) -> bool: ...
 
     async def search_lexical(
         self,

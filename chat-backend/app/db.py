@@ -290,14 +290,24 @@ class Database:
             ],
         )
 
-    async def has_narrative(self, project: str) -> bool:
-        """True when `project` has a precomputed narrative chunk indexed — drives
-        the progressive-disclosure offer (never offer to expand into a narrative
-        that doesn't exist)."""
+    async def has_narrative(
+        self, project: str, classifications: Sequence[str] | None = None
+    ) -> bool:
+        """True when `project` has a precomputed narrative chunk THIS ROLE may see —
+        drives the progressive-disclosure offer (never offer to expand into a
+        narrative that doesn't exist or that the role can't retrieve, which would be
+        an offer the expansion then can't keep). The role filter mirrors `search`:
+        an empty allowed list matches nothing."""
+        params: list[object] = [project]
+        clause = ""
+        if classifications is not None:
+            params.append(list(classifications))
+            clause = f" AND classification = ANY(${len(params)}::text[])"
         row = await self._pool.fetchrow(
-            "SELECT 1 FROM documents WHERE doc_type = 'narrative' AND project = $1 "
-            "LIMIT 1",
-            project,
+            "SELECT 1 FROM documents WHERE doc_type = 'narrative' AND project = $1"
+            + clause
+            + " LIMIT 1",
+            *params,
         )
         return row is not None
 

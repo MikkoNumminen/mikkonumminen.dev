@@ -46,7 +46,9 @@ class FakeDB:
             return rows[:top_k]
         return self._rows[:top_k]
 
-    async def has_narrative(self, project: str) -> bool:
+    async def has_narrative(
+        self, project: str, classifications: Sequence[str] | None = None
+    ) -> bool:
         return project in self._narrative_projects
 
     async def closest_prose(
