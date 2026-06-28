@@ -130,6 +130,10 @@ class Settings:
     # "tell me more?" offer; a topic-less follow-up expands into the topic's
     # precomputed narrative. Default on; off restores single-shot answers.
     progressive_disclosure_enabled: bool
+    # The model's served context window (num_ctx, matches OLLAMA_CONTEXT_LENGTH).
+    # The context bar (Phase 6) renders the real prompt_eval_count + eval_count
+    # against this; keep it in sync with the Ollama service's context length.
+    context_window: int
 
     # --- retrieval + API surface ---
     retrieval_top_k: int
@@ -217,6 +221,7 @@ class Settings:
             progressive_disclosure_enabled=_get_bool(
                 "PROGRESSIVE_DISCLOSURE_ENABLED", True
             ),
+            context_window=_get_int("CONTEXT_WINDOW", 4096),
             retrieval_top_k=_get_int("TOP_K", 6),
             hybrid_enabled=_get_bool("HYBRID_ENABLED", True),
             rrf_k=_get_int("RRF_K", 60),
@@ -244,6 +249,10 @@ class Settings:
 
     def validate(self) -> None:
         """Fail fast on a configuration that can only misbehave at runtime."""
+        if self.context_window <= 0:
+            raise ValueError(
+                f"CONTEXT_WINDOW must be positive, got {self.context_window}"
+            )
         if self.embedding_dim <= 0:
             raise ValueError(f"EMBEDDING_DIM must be positive, got {self.embedding_dim}")
         if self.chunk_max_tokens <= 0:

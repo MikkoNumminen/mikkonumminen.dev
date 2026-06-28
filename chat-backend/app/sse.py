@@ -35,3 +35,11 @@ def sse_done() -> str:
 
 def sse_error(message: str) -> str:
     return sse("error", {"message": message})
+
+
+def sse_context(used: int, limit: int) -> str:
+    """The session's REAL context fill (Phase 6): used = prompt_eval_count +
+    eval_count from Ollama's response, limit = the model's context window
+    (num_ctx). The terminal's donut renders used/limit — a true measurement, not a
+    char estimate."""
+    return sse("context", {"used": used, "limit": limit})

@@ -2,11 +2,26 @@
 
 from __future__ import annotations
 
-from app.llm import LLMClient, parse_stream_line
+from app.llm import LLMClient, parse_stream_line, parse_usage_line
 
 
 def _data(payload: str) -> str:
     return f"data: {payload}"
+
+
+def test_parse_usage_line_extracts_real_token_counts() -> None:
+    line = _data(
+        '{"choices":[],"usage":{"prompt_tokens":120,"completion_tokens":30,'
+        '"total_tokens":150}}'
+    )
+    assert parse_usage_line(line) == {"prompt": 120, "completion": 30}
+
+
+def test_parse_usage_line_none_for_non_usage_lines() -> None:
+    assert parse_usage_line(_data('{"choices":[{"delta":{"content":"hi"}}]}')) is None
+    assert parse_usage_line("data: [DONE]") is None
+    assert parse_usage_line("") is None
+    assert parse_usage_line(_data('{"usage":{"prompt_tokens":"x"}}')) is None
 
 
 def test_extracts_content_delta() -> None:

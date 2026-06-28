@@ -60,19 +60,32 @@ class FakeDB:
 
 
 class FakeLLM:
-    def __init__(self, tokens: list[str], fail: bool = False) -> None:
+    def __init__(
+        self,
+        tokens: list[str],
+        fail: bool = False,
+        usage: dict[str, int] | None = None,
+    ) -> None:
         self._tokens = tokens
         self._fail = fail
+        self._usage = usage
         self.called = False
         self.messages: Sequence[dict[str, str]] = []
 
-    async def stream_chat(self, messages: Sequence[dict[str, str]]) -> AsyncIterator[str]:
+    async def stream_chat(
+        self,
+        messages: Sequence[dict[str, str]],
+        *,
+        usage_out: dict[str, int] | None = None,
+    ) -> AsyncIterator[str]:
         self.called = True
         self.messages = list(messages)
         if self._fail:
             raise RuntimeError("llm down")
         for token in self._tokens:
             yield token
+        if usage_out is not None and self._usage is not None:
+            usage_out.update(self._usage)
 
 
 def _row(
@@ -132,6 +145,38 @@ def test_happy_path_sources_then_tokens_then_done() -> None:
     assert sources_data["sources"][0]["source"] == "projects/hrm.md"
     assert _token_text(frames) == "HRM is great."
     assert llm.called is True
+
+
+# --- context bar (Phase 6) ---
+
+
+def test_context_event_carries_real_usage() -> None:
+    llm = FakeLLM(["HRM is great."], usage={"prompt": 120, "completion": 30})
+
+    async def run() -> list[str]:
+        gen = chat_event_stream(
+            "what is hrm",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            context_window=4096,
+        )
+        return [frame async for frame in gen]
+
+    frames = asyncio.run(run())
+    ctx = [f for f in frames if f.startswith("event: context")]
+    assert len(ctx) == 1
+    assert json.loads(ctx[0].split("data: ", 1)[1]) == {"used": 150, "limit": 4096}
+
+
+def test_no_context_event_without_a_window() -> None:
+    # context_window defaults to 0 -> no context frame (never a fabricated number).
+    llm = FakeLLM(["x"], usage={"prompt": 1, "completion": 1})
+    frames = _collect("what is hrm", db=FakeDB([_row("projects/hrm.md")]), llm=llm)
+    assert not any(f.startswith("event: context") for f in frames)
 
 
 # --- progressive disclosure (Phase 5) ---
@@ -278,7 +323,10 @@ def test_force_english_threads_into_the_assembled_messages() -> None:
 
     class CapturingLLM:
         async def stream_chat(
-            self, messages: Sequence[dict[str, str]]
+            self,
+            messages: Sequence[dict[str, str]],
+            *,
+            usage_out: dict[str, int] | None = None,
         ) -> AsyncIterator[str]:
             captured["messages"] = messages
             yield "ok"

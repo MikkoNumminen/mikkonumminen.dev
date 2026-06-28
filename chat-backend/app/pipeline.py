@@ -82,7 +82,12 @@ def _sole_project(text: str | None) -> str | None:
 
 
 class SupportsStreamChat(Protocol):
-    def stream_chat(self, messages: Sequence[dict[str, str]]) -> AsyncIterator[str]: ...
+    def stream_chat(
+        self,
+        messages: Sequence[dict[str, str]],
+        *,
+        usage_out: dict[str, int] | None = None,
+    ) -> AsyncIterator[str]: ...
 
 
 # The terminal renders raw text, so any markdown the model emits despite the
@@ -118,6 +123,7 @@ async def chat_event_stream(
     role: str = "public",
     allowed_classifications: Sequence[str] | None = None,
     disclosure_enabled: bool = True,
+    context_window: int = 0,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
 
@@ -234,8 +240,9 @@ async def chat_event_stream(
         )
         tokens = 0
         response_parts: list[str] = []
+        usage: dict[str, int] = {}
         try:
-            async for token in llm.stream_chat(messages):
+            async for token in llm.stream_chat(messages, usage_out=usage):
                 cleaned = _strip_markup(token)
                 if cleaned:
                     tokens += 1
@@ -259,6 +266,16 @@ async def chat_event_stream(
                         yield sse.sse_token("\n\n" + EXPANSION_OFFER)
                 except Exception:
                     logger.exception("offer has_narrative check failed")
+
+        # Context bar (Phase 6): the session's REAL fill — prompt_eval_count +
+        # eval_count from the model's usage chunk, against the served context
+        # window. context_window defaults to 0 (the value tests use to suppress the
+        # frame; in production Settings.validate() guarantees it is positive), and an
+        # older Ollama that streams no usage chunk leaves `usage` empty — so the
+        # terminal only ever sees real numbers, never a fabricated one.
+        if context_window > 0 and usage:
+            used = usage.get("prompt", 0) + usage.get("completion", 0)
+            yield sse.sse_context(used, context_window)
 
         yield sse.sse_done()
 
