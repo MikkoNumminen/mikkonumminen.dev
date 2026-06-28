@@ -619,6 +619,81 @@
       ]
     },
     {
+      "id": "narrative-audiobookmaker",
+      "question": "How did you build AudiobookMaker, and what hard problems came up along the way?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "narratives/audiobookmaker.md"
+      ],
+      "expected_points": [
+        "the five-engine TTS registry with one shared contract, and why Edge-TTS is the default while Chatterbox is isolated in its own venv/subprocess",
+        "the Chatterbox venv-isolation problems (inherited PYTHONPATH, the smoke test that imported but never synthesised) and how they were fixed",
+        "a real bug such as the 60-second waiter-thread killing long books, or tiny chunks making Chatterbox ramble, and its resolution"
+      ]
+    },
+    {
+      "id": "narrative-portfolio",
+      "question": "How was the portfolio site built, from origin to where it landed?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "narratives/portfolio.md"
+      ],
+      "expected_points": [
+        "static output only (ADR 0002) and Astro over Next.js (ADR 0003), and why",
+        "a real dead end such as the /projects CLS-1.0 reflow, the DPR-cap regression, or the registry auto-sync overwrite, and how it resolved",
+        "the outcome (Lighthouse 96-99, CLS 0.000) and the layered testing strategy"
+      ]
+    },
+    {
+      "id": "narrative-hrm",
+      "question": "What was the development story of HRM — the key choices and hard problems?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "narratives/hrm.md"
+      ],
+      "expected_points": [
+        "the origin / why it was started",
+        "a key technical choice and the reason for it",
+        "a real dead end or hard problem and how it was resolved"
+      ]
+    },
+    {
+      "id": "narrative-spacepotatis",
+      "question": "How did you build Spacepotatis?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "narratives/spacepotatis.md"
+      ],
+      "expected_points": [
+        "the origin / why it was started",
+        "a key technical choice and the reason for it",
+        "a real dead end or hard problem and how it was resolved"
+      ]
+    },
+    {
+      "id": "narrative-readlog",
+      "question": "How was ReadLog built, and what dead ends came up?",
+      "category": "deep_how_why",
+      "depth": "deep",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "narratives/readlog.md"
+      ],
+      "expected_points": [
+        "the origin / why it was started",
+        "a key technical choice and the reason for it",
+        "a real dead end or hard problem and how it was resolved"
+      ]
+    },
+    {
       "id": "refuse-out_of_scope-1",
       "question": "What's the weather in Helsinki right now?",
       "category": "out_of_scope",
