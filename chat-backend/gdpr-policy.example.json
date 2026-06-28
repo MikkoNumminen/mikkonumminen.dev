@@ -1,0 +1,35 @@
+{
+  "_comment": "Example GDPR policy — point GDPR_POLICY_FILE at a copy to enable. Demonstrates each classification, the role ladder, and pseudonymisation. The shipped default (no file) is benign: everything public, one public role, no pseudonymisation.",
+
+  "default_classification": "public",
+  "default_role": "public",
+  "data_residency_local": true,
+
+  "classification_rules": [
+    {
+      "_comment": "Anything under a restricted/ source prefix is embedded but gated to internal/admin roles.",
+      "source_prefix": "restricted/",
+      "classification": "restricted"
+    },
+    {
+      "_comment": "Internal design notes — visible to internal/admin, not the public chat.",
+      "source_prefix": "internal/",
+      "classification": "internal"
+    },
+    {
+      "_comment": "Any doc whose text carries a national ID pattern is PII: never embedded, never stored.",
+      "content_pattern": "\\b\\d{6}[-+A]\\d{3}[0-9A-Z]\\b",
+      "classification": "pii"
+    }
+  ],
+
+  "role_policy": {
+    "public": ["public"],
+    "internal": ["public", "internal"],
+    "admin": ["public", "internal", "restricted"]
+  },
+
+  "pseudonymize_patterns": [
+    "(?:Mr|Ms|Mrs|Dr)\\.? [A-Z][a-z]+ [A-Z][a-z]+"
+  ]
+}

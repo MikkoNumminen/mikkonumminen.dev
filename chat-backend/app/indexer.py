@@ -30,14 +30,22 @@ from dataclasses import dataclass
 from .chunking import Chunk, chunk_document, estimate_tokens
 from .config import Settings
 from .content import ContentDoc, is_code_doc, load_docs
+from .gdpr import classify, is_embeddable, pseudonymize
 
 
 @dataclass(frozen=True)
 class FilePlan:
-    """The chunking outcome for one source document (no embeddings yet)."""
+    """The chunking outcome for one source document (no embeddings yet).
+
+    `classification` is the GDPR class (a `pii` doc carries zero chunks — it is
+    never embedded); `pseudonyms` are the {token: original} pairs the
+    pre-embedding pass replaced, destined for the separate reverse store.
+    """
 
     doc: ContentDoc
     chunks: list[Chunk]
+    classification: str = "public"
+    pseudonyms: dict[str, str] = dataclasses.field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -48,29 +56,51 @@ class IndexStats:
     skipped: int
     deleted: int
     total_in_db: int
+    pii_skipped: int = 0
+    pseudonyms: int = 0
 
 
 def plan(settings: Settings) -> list[FilePlan]:
-    """Load and chunk the corpus without embedding or persisting anything."""
+    """Load, classify, pseudonymise, and chunk the corpus — no embedding here.
+
+    GDPR isolation happens at THIS step, before anything is embeddable: a `pii`
+    doc is classified and dropped (zero chunks — never embedded, never stored);
+    every other doc is pseudonymised BEFORE chunking, so the chunk text, the
+    hashes, and the stored content are the token form and the raw name is never
+    embedded.
+    """
     docs = load_docs(
         settings.content_dir,
         adr_dir=settings.adr_dir or None,
         adr_project=settings.adr_project,
     )
-    return [
-        FilePlan(
-            doc=doc,
-            chunks=chunk_document(
-                doc.body,
-                is_code=is_code_doc(doc),
-                language=doc.language,
-                max_tokens=settings.chunk_max_tokens,
-                min_tokens=settings.chunk_min_tokens,
-                overlap_tokens=settings.chunk_overlap_tokens,
-            ),
+    policy = settings.gdpr_policy
+    plans: list[FilePlan] = []
+    for doc in docs:
+        classification = classify(doc.source, doc.body, policy)
+        if not is_embeddable(classification):
+            # pii / excluded: NEVER chunked or embedded. The plan still lists the
+            # source (0 chunks) so reindex prunes any rows a prior run may hold.
+            plans.append(FilePlan(doc=doc, chunks=[], classification=classification))
+            continue
+        clean_body, pseudonyms = pseudonymize(doc.body, policy)
+        chunks = chunk_document(
+            clean_body,
+            is_code=is_code_doc(doc),
+            language=doc.language,
+            max_tokens=settings.chunk_max_tokens,
+            min_tokens=settings.chunk_min_tokens,
+            overlap_tokens=settings.chunk_overlap_tokens,
         )
-        for doc in docs
-    ]
+        plans.append(
+            FilePlan(
+                doc=doc,
+                chunks=chunks,
+                classification=classification,
+                pseudonyms=pseudonyms,
+            )
+        )
+    return plans
 
 
 def select_chunks_to_embed(chunks: list[Chunk], existing: dict[int, str]) -> list[Chunk]:
@@ -109,10 +139,21 @@ async def reindex(
     # failure still hits `finally` without a NameError, and the pool is closed.
     embedder: Embedder | None = None
     chunks_total = embedded = skipped = deleted = total = 0
+    pii_skipped = 0
+    pseudonyms: dict[str, str] = {}
     try:
         for fp in file_plans:
             doc = fp.doc
             chunks_total += len(fp.chunks)
+            pseudonyms.update(fp.pseudonyms)
+            if not is_embeddable(fp.classification):
+                pii_skipped += 1
+                # Defense in depth: a pii doc is NEVER embedded — not even if a
+                # (mis)built plan handed us chunks. Still reconcile the store so a
+                # source reclassified public -> pii has its prior rows pruned, then
+                # move on without ever constructing a row.
+                deleted += await db.delete_stale_chunks(doc.source, 0)
+                continue
             existing = await db.existing_chunk_hashes(doc.source)
 
             to_embed = select_chunks_to_embed(fp.chunks, existing)
@@ -137,6 +178,7 @@ async def reindex(
                         chunk_type=chunk_type,
                         doc_type=doc.doc_type,
                         doc_date=doc.doc_date,
+                        classification=fp.classification,
                     )
                     for c, vec in zip(to_embed, vectors, strict=True)
                 ]
@@ -151,6 +193,10 @@ async def reindex(
             [fp.doc.source for fp in file_plans]
         )
 
+        # Persist the pseudonym reverse map (token -> original) into its separate,
+        # access-controlled store. The embedded content already holds only tokens.
+        await db.upsert_pseudonyms(pseudonyms)
+
         total = await db.count_documents()
     finally:
         await db.close()
@@ -162,6 +208,8 @@ async def reindex(
         skipped=skipped,
         deleted=deleted,
         total_in_db=total,
+        pii_skipped=pii_skipped,
+        pseudonyms=len(pseudonyms),
     )
 
 
@@ -229,7 +277,8 @@ def main(argv: list[str] | None = None) -> int:
         "[indexer] done: "
         f"{stats.files} file(s), {stats.chunks} chunk(s) "
         f"({stats.embedded} embedded, {stats.skipped} unchanged, "
-        f"{stats.deleted} pruned) - {stats.total_in_db} rows in DB"
+        f"{stats.deleted} pruned, {stats.pii_skipped} pii-skipped, "
+        f"{stats.pseudonyms} pseudonym(s)) - {stats.total_in_db} rows in DB"
     )
     return 0
 
