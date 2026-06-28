@@ -163,8 +163,9 @@ async def chat_event_stream(
     # past the retrieval gate below, and a small local model won't reliably refuse
     # it from the prompt alone — so decline deterministically before any retrieval
     # or generation. No GPU touched, no sources cited.
-    if is_generative_request(query) or is_translation_request(query):
-        route = "generative" if is_generative_request(query) else "translation"
+    generative = is_generative_request(query)
+    if generative or is_translation_request(query):
+        route = "generative" if generative else "translation"
         if log_request is not None:
             log_request(
                 query,
@@ -226,6 +227,22 @@ async def chat_event_stream(
                 diversify_max_per_project=diversify_max_per_project,
             )
     except Exception:
+        logger.exception("retrieval failed")
+        # Record the failure so the operational log counts error events (latency
+        # spent, no GPU touched) — a health/latency log that drops every error is
+        # blind to exactly the requests worth triaging. route="error" (not gated,
+        # not answered); no distances/classes since retrieval never returned.
+        if log_request is not None:
+            log_request(
+                query,
+                [],
+                "error",
+                "",
+                role,
+                {},
+                model=None,
+                latency_ms=int((time.monotonic() - start) * 1000),
+            )
         yield sse.sse_error("retrieval unavailable")
         return
 
@@ -310,6 +327,22 @@ async def chat_event_stream(
                     response_parts.append(cleaned)
                     yield sse.sse_token(cleaned)
         except Exception:
+            logger.exception("generation failed")
+            # A generation that died mid-stream consumed a GPU slot and latency;
+            # log it as an error event (model=None — no usable inference) with the
+            # distances/classes already computed, so failed generations show up in
+            # the latency/health log.
+            if log_request is not None:
+                log_request(
+                    query,
+                    distances,
+                    "error",
+                    "".join(response_parts),
+                    role,
+                    class_counts,
+                    model=None,
+                    latency_ms=int((time.monotonic() - start) * 1000),
+                )
             yield sse.sse_error("generation unavailable")
             return
 

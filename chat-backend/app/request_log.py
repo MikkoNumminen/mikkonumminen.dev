@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Protocol
@@ -127,6 +128,14 @@ def build_request_logger(
         old.close()
         logger.removeHandler(old)
     try:
+        # The default path is relative (rag-logs/requests.jsonl) and gitignored, so
+        # its parent does not exist in a fresh checkout; FileHandler won't create it.
+        # Make it so the "on by default" log actually materializes on a bare host
+        # run, without the operator pre-creating the dir. Still inside the try, so a
+        # permission error degrades gracefully rather than crashing startup.
+        parent = os.path.dirname(log_file)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         handler = logging.FileHandler(log_file, encoding="utf-8")
     except OSError as exc:
         # A bad path / unwritable mount degrades to no-logging, never a crash of

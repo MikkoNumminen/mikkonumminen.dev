@@ -46,6 +46,7 @@ def test_smalltalk_route_courtesy(query: str) -> None:
     [
         "what is HRM",
         "hi, how does your retrieval work",  # opens with a greeting, real question
+        "hi how does retrieval work",  # no comma — whole-message match, not prefix
         "thanks, but how do I run the indexer",  # opens with thanks, real question
         "tell me about hrm",
         "moikka, mitä kuuluu projekteille",  # FI greeting + real question

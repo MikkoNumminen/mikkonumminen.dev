@@ -236,12 +236,16 @@ sole line of defense:
   (including mid-stream client disconnect).
 - **Rate limiting** — a per-IP sliding window (`RATE_LIMIT_REQUESTS` /
   `RATE_LIMIT_WINDOW_SECONDS`).
-- **Score logging** — opt-in via `RAG_LOG_FILE` (empty = disabled): one JSON
-  line per request with the query, the top cosine distances, the gate decision,
-  and the full answer text — the only place question + answer are written.
-  The file is host-persisted (`rag-logs/requests.jsonl`), grows unbounded (delete
-  to clear: `rm rag-logs/requests.jsonl`), never served by an endpoint, and
-  `.gitignore`d. `ragctl up` enables it; `ragctl logs` reads it back.
+- **Score logging** — on by default (`RAG_LOG_FILE` defaults to
+  `rag-logs/requests.jsonl`; set it empty to disable): one pure-JSONL line per
+  request with operational telemetry only — no PII. Each record carries `ts`
+  (ISO-8601 UTC), `route`, `gated`, `model`, `latency_ms`,
+  `prompt_eval_count` + `eval_count`, `best_distance` + `distances`, `role`,
+  `classifications`, and `response_chars`. Set `RAG_LOG_TEXT=true` to also
+  write the raw `query` + `response` text into each line — that is the only PII
+  path, off by default, for local debugging only.
+  The file grows unbounded (delete to clear: `rm rag-logs/requests.jsonl`),
+  never served by an endpoint, and `.gitignore`d.
 
 ## Eval + acceptance harness
 
@@ -289,7 +293,8 @@ All configuration is environment-driven and validated at startup; see
 | `INPUT_MAX_CHARS`             | `800`                           | Max `message` length; over → HTTP 400.                                                                              |
 | `LLM_MAX_CONCURRENCY`         | `2`                             | Semaphore permits around Ollama generation.                                                                         |
 | `LLM_ACQUIRE_TIMEOUT_SECONDS` | (must be `> 0`)                 | Bounded wait for a permit; on timeout the request is shed with a busy reply.                                        |
-| `RAG_LOG_FILE`                | (empty)                         | Path for per-request JSON score log; empty disables it.                                                             |
+| `RAG_LOG_FILE`                | `rag-logs/requests.jsonl`       | Path for per-request JSONL score log; set empty to disable.                                                         |
+| `RAG_LOG_TEXT`                | `false`                         | Also writes raw query + answer text into each log line — PII, off by default, for local debugging only.             |
 | `MAX_BODY_BYTES`              | `16384`                         | ASGI request-body byte cap (oversized → rejected before parse).                                                     |
 | `RATE_LIMIT_REQUESTS`         | `30`                            | Requests allowed per IP per window.                                                                                 |
 | `RATE_LIMIT_WINDOW_SECONDS`   | `60`                            | Sliding-window length for the rate limiter.                                                                         |

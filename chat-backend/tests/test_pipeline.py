@@ -446,6 +446,8 @@ def _capture_log(sink: list[dict]):
                 "latency_ms": latency_ms,
                 "prompt_eval_count": prompt_eval_count,
                 "eval_count": eval_count,
+                "distances": list(distances),
+                "classifications": dict(classifications or {}),
             }
         )
 
@@ -486,6 +488,10 @@ def test_busy_shed_calls_log_request() -> None:
     assert rec["response"] == LLM_BUSY_REPLY
     assert rec["model"] is None
     assert isinstance(rec["latency_ms"], int)
+    # The real distances + per-classification counts thread through to the shed row
+    # — a regression that logged [] / {} on a gate path would fail here.
+    assert rec["classifications"] == {"public": 1}
+    assert rec["distances"]
 
 
 # --- small-talk fast path + answered-row telemetry ---
@@ -522,6 +528,7 @@ def test_greeting_fast_path_no_llm_no_retrieval() -> None:
     assert llm.called is False
     assert log[0]["route"] == "greeting"
     assert log[0]["model"] is None and log[0]["prompt_eval_count"] is None
+    assert json.loads(frames[0].split("data: ", 1)[1])["sources"] == []
 
 
 def test_courtesy_fast_path() -> None:
@@ -531,6 +538,8 @@ def test_courtesy_fast_path() -> None:
     assert _token_text(frames) == COURTESY_REPLY
     assert llm.called is False
     assert log[0]["route"] == "courtesy"
+    assert log[0]["model"] is None
+    assert json.loads(frames[0].split("data: ", 1)[1])["sources"] == []
 
 
 def test_smalltalk_does_not_misfire_on_real_question() -> None:
@@ -557,6 +566,29 @@ def test_answered_row_logs_model_and_real_tokens() -> None:
     assert rec["model"] == "qwen2.5:7b"
     assert rec["prompt_eval_count"] == 3600
     assert rec["eval_count"] == 40
+
+
+def test_generation_error_logs_error_route() -> None:
+    # A mid-stream generation failure still emits an operational row (route="error",
+    # model=None) so failed/slow requests show up in the latency/health log.
+    log: list[dict] = []
+    _collect_logged(
+        "what is hrm",
+        db=FakeDB([_row("projects/hrm.md")]),
+        llm=FakeLLM([], fail=True),
+        log=log,
+    )
+    assert log and log[0]["route"] == "error"
+    assert log[0]["model"] is None
+    assert log[0]["distances"]  # retrieval succeeded, so its distances are recorded
+
+
+def test_retrieval_error_logs_error_route() -> None:
+    # A retrieval failure (non-greeting query) likewise produces an error row.
+    log: list[dict] = []
+    _collect_logged("what is hrm", db=FakeDB([], fail=True), llm=FakeLLM(["x"]), log=log)
+    assert log and log[0]["route"] == "error"
+    assert log[0]["model"] is None
 
 
 def test_generation_permit_is_released_after_a_successful_answer() -> None:
@@ -665,6 +697,15 @@ def test_on_answer_not_fired_on_generative_decline() -> None:
         llm=FakeLLM(["x"]),
     )
     assert calls == []
+
+
+def test_on_answer_not_fired_on_smalltalk() -> None:
+    # A greeting/thanks is answered by template and returns before the memory hook,
+    # so it is never threaded into session memory — a later "tell me more" must not
+    # resolve to "hi".
+    db = FakeDB([_row("projects/hrm.md")])
+    assert _run_with_on_answer("hi", db=db, llm=FakeLLM(["x"])) == []
+    assert _run_with_on_answer("kiitos", db=db, llm=FakeLLM(["x"])) == []
 
 
 def test_on_answer_not_fired_on_generation_error() -> None:
