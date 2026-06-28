@@ -233,6 +233,7 @@ def create_app() -> FastAPI:
                 settings.gdpr_policy.default_role
             ),
             disclosure_enabled=settings.progressive_disclosure_enabled,
+            context_window=settings.context_window,
         )
         return StreamingResponse(
             stream,

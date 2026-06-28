@@ -46,6 +46,33 @@ def parse_stream_line(line: str) -> str | None:
     return content if isinstance(content, str) and content else None
 
 
+def parse_usage_line(line: str) -> dict[str, int] | None:
+    """Extract {prompt, completion} REAL token counts from a streaming `data:` line.
+
+    With `stream_options.include_usage`, the OpenAI-compatible endpoint emits one
+    final chunk carrying `usage` (and an empty `choices`). These are the true
+    prompt_eval_count / eval_count Ollama reports — what the context bar measures,
+    never a char estimate. Returns None for every other line. Pure — unit-tested.
+    """
+    if not line.startswith("data:"):
+        return None
+    payload = line[len("data:") :].strip()
+    if not payload or payload == "[DONE]":
+        return None
+    try:
+        obj = json.loads(payload)
+    except json.JSONDecodeError:
+        return None
+    usage = obj.get("usage") if isinstance(obj, dict) else None
+    if not isinstance(usage, dict):
+        return None
+    prompt = usage.get("prompt_tokens")
+    completion = usage.get("completion_tokens")
+    if not isinstance(prompt, int) or not isinstance(completion, int):
+        return None
+    return {"prompt": prompt, "completion": completion}
+
+
 class LLMClient:
     """Thin async client over the Ollama OpenAI-compatible chat endpoint."""
 
@@ -74,6 +101,9 @@ class LLMClient:
             "model": self._model,
             "messages": list(messages),
             "stream": True,
+            # Emit a final usage chunk (prompt_tokens + completion_tokens) so the
+            # context bar measures REAL token counts, not a char estimate.
+            "stream_options": {"include_usage": True},
             "temperature": self._temperature,
         }
         if self._num_predict > 0:
@@ -102,8 +132,17 @@ class LLMClient:
         except (httpx.HTTPError, OSError):
             return False
 
-    async def stream_chat(self, messages: Sequence[dict[str, str]]) -> AsyncIterator[str]:
-        """Yield answer tokens as the model generates them."""
+    async def stream_chat(
+        self,
+        messages: Sequence[dict[str, str]],
+        *,
+        usage_out: dict[str, int] | None = None,
+    ) -> AsyncIterator[str]:
+        """Yield answer tokens as the model generates them.
+
+        When `usage_out` is given, the final usage chunk's real token counts
+        (prompt + completion) are written into it — the context bar's true numbers.
+        """
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             async with client.stream(
                 "POST",
@@ -115,3 +154,8 @@ class LLMClient:
                     token = parse_stream_line(line)
                     if token is not None:
                         yield token
+                        continue
+                    if usage_out is not None:
+                        usage = parse_usage_line(line)
+                        if usage is not None:
+                            usage_out.update(usage)
