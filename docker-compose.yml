@@ -81,6 +81,10 @@ services:
       LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
       # The indexer reads the version-controlled corpus mounted read-only below.
       CONTENT_DIR: /content
+      # Phase 1: also ingest the repo's ADRs / design notes (bind-mounted below)
+      # as doc_type='adr' prose, attributed to the portfolio project. Empty would
+      # turn it off; the indexer reads it, the runtime backend never does.
+      ADR_DIR: ${ADR_DIR:-/adr}
       # In prod set this to the site origin(s), e.g. https://mikkonumminen.dev
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-*}
       # Force every answer into English regardless of the question's language.
@@ -95,6 +99,9 @@ services:
       # The fastembed ONNX weights are baked into the image (see chat-backend/
       # Dockerfile), so no cache volume is needed.
       - ./content:/content:ro
+      # The repo's ADRs / design notes, read-only — the Phase 1 corpus expansion
+      # ingests them as design-decision prose (see ADR_DIR above).
+      - ./docs/decisions:/adr:ro
       # Persist the request log on the host so it survives container rebuilds.
       # ragctl creates + world-writes this dir (the backend writes as uid 10001).
       - ${RAG_LOG_DIR:-./rag-logs}:/srv/rag-logs

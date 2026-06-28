@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 import asyncpg
@@ -54,6 +55,13 @@ class DocumentRow:
     embedding: list[float]
     language: str | None = None
     chunk_type: str = "prose"
+    # Source genre (migration 003): 'prose' | 'code' | 'adr' (+ 'pr'/'commit'/
+    # 'narrative' later). Distinct from chunk_type (which the gate anchors on) —
+    # an ADR is chunk_type='prose', doc_type='adr'. `doc_date` is the source's date
+    # where one exists (ADRs), else NULL. Both default so a pre-003 caller still
+    # builds a valid row.
+    doc_type: str = "prose"
+    doc_date: date | None = None
 
 
 async def apply_schema(dsn: str, sql_path: str | Path | None = None) -> None:
@@ -123,8 +131,9 @@ class Database:
                         """
                         INSERT INTO documents
                             (source, project, title, kind, chunk_index,
-                             content, content_hash, embedding, language, chunk_type)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                             content, content_hash, embedding, language, chunk_type,
+                             doc_type, doc_date)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                         ON CONFLICT (source, chunk_index) DO UPDATE SET
                             project = EXCLUDED.project,
                             title = EXCLUDED.title,
@@ -133,7 +142,9 @@ class Database:
                             content_hash = EXCLUDED.content_hash,
                             embedding = EXCLUDED.embedding,
                             language = EXCLUDED.language,
-                            chunk_type = EXCLUDED.chunk_type
+                            chunk_type = EXCLUDED.chunk_type,
+                            doc_type = EXCLUDED.doc_type,
+                            doc_date = EXCLUDED.doc_date
                         """,
                         row.source,
                         row.project,
@@ -145,6 +156,8 @@ class Database:
                         row.embedding,
                         row.language,
                         row.chunk_type,
+                        row.doc_type,
+                        row.doc_date,
                     )
         return len(rows)
 
