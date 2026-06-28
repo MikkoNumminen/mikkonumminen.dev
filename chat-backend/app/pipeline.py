@@ -83,6 +83,7 @@ async def chat_event_stream(
     lexical_weight: float = 1.0,
     project_filter_strict: bool = False,
     on_complete: UsageRecorder | None = None,
+    on_answer: Callable[[str, str], Awaitable[None]] | None = None,
     semaphore: asyncio.Semaphore | None = None,
     acquire_timeout: float = 0.5,
     log_request: RequestLogger | None = None,
@@ -198,6 +199,17 @@ async def chat_event_stream(
             log_request(
                 query, distances, False, "".join(response_parts), role, class_counts
             )
+
+        # Thread this completed turn into session memory so a follow-up ("tell me
+        # more") has a referent. Only a real, fully-streamed answer is remembered —
+        # the gate refusals, the busy shed, and the generation-error return all
+        # leave before here. Guarded so a memory failure can't break a delivered
+        # answer.
+        if on_answer is not None:
+            try:
+                await on_answer(query, "".join(response_parts))
+            except Exception:
+                logger.exception("memory on_answer failed")
 
         # Record usage only on a real, fully-streamed generation — the
         # weak-retrieval refusal above never reaches here (the model wasn't

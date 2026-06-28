@@ -182,6 +182,16 @@ class Settings:
     # rather than silently widening access.
     gdpr_policy: GdprPolicy
 
+    # --- session memory (Phase 4) ---
+    # Backend conversation memory: at most this many prior turns are threaded into
+    # the next prompt per session, at most this many sessions are kept (LRU-evicted),
+    # and a session expires after this many idle seconds. The bounds keep memory
+    # from becoming an unbounded-growth or abuse vector; the per-turn input cap,
+    # relevance gate, role filter, and output cap still fire regardless.
+    memory_max_turns: int
+    memory_max_sessions: int
+    memory_ttl_seconds: float
+
     @staticmethod
     def from_env() -> Settings:
         settings = Settings(
@@ -218,6 +228,9 @@ class Settings:
             ),
             rag_log_file=_get_str("RAG_LOG_FILE", ""),
             gdpr_policy=load_policy(_get_str("GDPR_POLICY_FILE", "") or None),
+            memory_max_turns=_get_int("MEMORY_MAX_TURNS", 6),
+            memory_max_sessions=_get_int("MEMORY_MAX_SESSIONS", 1000),
+            memory_ttl_seconds=_get_float("MEMORY_TTL_SECONDS", 1800.0),
         )
         settings.validate()
         return settings
@@ -296,4 +309,16 @@ class Settings:
             raise ValueError(
                 "LLM_ACQUIRE_TIMEOUT_SECONDS must be positive, got "
                 f"{self.llm_acquire_timeout_seconds}"
+            )
+        if self.memory_max_turns <= 0:
+            raise ValueError(
+                f"MEMORY_MAX_TURNS must be positive, got {self.memory_max_turns}"
+            )
+        if self.memory_max_sessions <= 0:
+            raise ValueError(
+                f"MEMORY_MAX_SESSIONS must be positive, got {self.memory_max_sessions}"
+            )
+        if self.memory_ttl_seconds <= 0:
+            raise ValueError(
+                f"MEMORY_TTL_SECONDS must be positive, got {self.memory_ttl_seconds}"
             )
