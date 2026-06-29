@@ -16,9 +16,10 @@ assumption and recorded the uncomfortable findings.
 
 "Weak 8B local models can't synthesise Finnish; a Finnish-built model (Poro 2) is
 needed to re-enable it." **Falsified.** Finnish synthesis is already solved at 8B
-by general models. Poro wins nothing on synthesis — and is the *worst* of the
-three at refusing off-scope Finnish requests. The real lever is neither a model
-swap nor an embedder swap.
+by general models. Poro wins nothing on synthesis; containment — whether a model
+refuses off-scope Finnish — turned out too noisy to rank the three at this sample
+size (see the correction in Result II). The real lever is neither a model swap nor
+an embedder swap.
 
 ## The question and the method
 
@@ -80,14 +81,15 @@ the gated case: a secondary win, not the blocker.
 
 ## Result II — synthesis is solved; containment is the gap
 
-Nine Finnish-routed must-retrieve questions × 3 runs measured synthesis; twelve
-off-scope probes measured containment.
+Nine Finnish-routed must-retrieve questions × 3 runs measured synthesis; four
+off-scope probes measured containment. Synthesis is the stable signal here;
+containment is not, and is corrected below.
 
-| model | substantive grounded Finnish | refused off-scope Finnish |
-| --- | --- | --- |
-| **qwen3:8b** | 25/27 | **9/12** |
-| **Poro-2-8B** | 25/27 | 3/12 |
-| llama3.1:8b | 18/27 | 3/12 |
+| model | substantive grounded Finnish (3-run) |
+| --- | --- |
+| **qwen3:8b** | 25/27 |
+| **Poro-2-8B** | 25/27 |
+| llama3.1:8b | 18/27 |
 
 1. **Hypothesis falsified.** qwen3 and Poro both reach ~93% substantive grounded
    Finnish with no English drift. The original removal was caused by the prompt's
@@ -96,9 +98,28 @@ off-scope probes measured containment.
    more natural inflected morphology ("Astro 6:sta", "TypeScriptistä") — an edge
    for a human reader, not for the metric. llama's lower score is stub answers, not
    drift.
-3. **Poro is worst at containment.** It refused only 3/12 off-scope Finnish
-   requests vs qwen3's 9/12. The Finnish-tuned model follows Finnish off-scope
-   instructions most readily — better Finnish is also more obedient Finnish.
+3. **Containment does not rank the models — a correction.** This post first
+   reported qwen3 refusing **9/12** off-scope Finnish probes vs Poro and llama at
+   3/12, and concluded *Poro is worst at containment*. **That was wrong.** It was a
+   single sample of four probes × three runs, on a run later found to be silently
+   **rate-limited** — the production limiter throttling the eval and biasing later
+   runs downward. Re-measured over **20 clean runs** per model (the limiter now
+   exempts the loopback eval path), containment is a wide, overlapping stochastic
+   band, not a ranking:
+
+   | model | refused off-scope Finnish — per-run mean [min–max] / 4 (N = 20) |
+   | --- | --- |
+   | qwen3:8b | 1.75 [1–3] |
+   | Poro-2-8B | 1.55 [1–3] |
+   | llama3.1:8b | **2.9 [2–4]** |
+
+   qwen3 and Poro are **tied** (bands fully overlap, means ≈ 1.6–1.8 / 4); the
+   resident control **llama refuses the most**. At four probes per run these are
+   samples from noisy distributions, not hard numbers — so containment is reported
+   as bands, the same deterministic-vs-stochastic honesty the exact retrieval
+   (0.667) already gets. The original 9-vs-3 *inversion* was an artifact of sample
+   size plus a rate-limiter contaminant — two things this eval process was built to
+   expose, and did, before the claim reached anywhere it mattered.
 4. **Recorded limitations.** The Finnish detector fires on only 12/16 questions
    (code-identifier-dense Finnish dilutes the ä/ö heuristic, so a code-heavy
    Finnish question may answer in English); refusal outcomes are stochastic at
@@ -113,7 +134,7 @@ model, where the prompt backstop is unreliable.
 
 | candidate lever | verdict | why |
 | --- | --- | --- |
-| Model swap (to Poro) | not it | qwen3 already synthesises Finnish as well as Poro and contains best |
+| Model swap (to Poro) | not it | qwen3 already synthesises Finnish as well as Poro; containment doesn't separate them |
 | Embedder swap (multilingual) | secondary | recovers the 2 distance-gated questions + the off-corpus slider; retrieval isn't the floor |
 | Gate localization | **the lever** | Finnish patterns in the deterministic gates — cheap, AI-free, testable; closes the one real blocker |
 
@@ -124,12 +145,15 @@ The decision is structured by the data, not binary:
   means localise, then merge.
 - **Multilingual embedder?** Optional, secondary. Recovers a small number of
   distance-gated questions. Not required to ship.
-- **Model swap?** No. The resident family (qwen3) is the best Finnish synthesiser
-  tested and the best at containment.
+- **Model swap?** No. The resident family (qwen3) synthesises Finnish as well as any
+  model tested, and containment does not separate the candidates (see Result II).
 
 The durable value isn't the model choice. It's a single-variable, locked experiment
-that falsified its own starting assumption and reported the uncomfortable findings
-— Poro lost on containment; the detector misses 4/16 — rather than burying them.
+that falsified its own starting assumption — and then caught its own *published*
+containment finding being backwards (the correction in Result II) and fixed it,
+rather than letting it stand. An experiment that corrects itself when the evidence
+improves is more trustworthy than one that never erred. (The ä/ö detector also
+misses code-identifier-dense Finnish — recorded, not buried.)
 The deterministic, AI-free harness (lock-asserts, the English–Finnish
 parallel-delta table, context/VRAM measurement, the multi-model runner) generalises
 to any "should we swap X for Y" question in the pipeline — embedder, chunking,
