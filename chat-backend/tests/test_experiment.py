@@ -156,3 +156,27 @@ def test_report_assemble(tmp_path):
     assert len(res["pairs"]) == 3  # 3 models at a fixed embedder -> C(3,2) model-deltas
     assert all(ax == "model" for _, _, ax in res["pairs"])
     assert "synthesis" in res["results_md"]
+
+
+def test_report_asserts_lock_drift(tmp_path):
+    # The runbook path must apply the same lock guard as the in-process runner: an
+    # arm whose eval_arm ran at a num_ctx differing from the config must abort.
+    cfg = _cfg(tmp_path, VALID)  # config num_ctx = 8192
+    manifest = {
+        "instrument": {"static_lock_params": {"prompt_template_sha": {"value": "s"}}},
+        "eval_sets": [{"path": "evals/eval_set_fi.json", "content_sha": "e"}],
+    }
+    drifted = {
+        "fp_fields": {
+            "top_k": 6,
+            "temperature": 0.4,
+            "num_ctx": 4096,
+            "eval_set_sha": "e",
+            "model": "q",
+            "embedder": "en",
+        },
+        "observed_lock": {"top_k": 6, "temperature": 0.4, "num_ctx": 4096},
+        "retrieval": [],
+    }
+    with pytest.raises(AssertionError, match="LOCK drift"):
+        RP.assemble([drifted], cfg, manifest)

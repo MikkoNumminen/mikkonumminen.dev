@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from . import delta as delta_mod
+from . import lock as lock_mod
 from . import tables as tables_mod
 from .config import ExperimentConfig, load
 from .fingerprint import arm_fingerprint, instrument_fingerprint
@@ -37,8 +38,13 @@ def assemble(
         ),
         None,
     )
+    declared_lock = lock_mod.lock_fields(cfg.lock, prompt_sha)
     arms = []
     for a in arm_jsons:
+        # The same lock guard the in-process runner applies on its data path: a
+        # runbook arm whose eval_arm ran at a num_ctx (etc.) differing from the
+        # config must abort here, not be silently stamped as comparable.
+        lock_mod.assert_effective(declared_lock, a.get("observed_lock", {}))
         fp = {
             **a["fp_fields"],
             "prompt_template_sha": prompt_sha,
