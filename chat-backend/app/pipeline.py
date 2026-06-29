@@ -116,6 +116,7 @@ async def chat_event_stream(
     top_k: int,
     weak_retrieval_distance: float,
     force_english: bool = True,
+    think: bool | None = None,
     hybrid: bool = False,
     rrf_k: int = 60,
     dense_weight: float = 1.0,
@@ -328,6 +329,7 @@ async def chat_event_stream(
             history,
             force_english=force_english,
             answer_in_finnish=answer_in_finnish,
+            think=think,
         )
         tokens = 0
         response_parts: list[str] = []

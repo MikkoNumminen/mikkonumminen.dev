@@ -100,7 +100,13 @@ def run(
         m = arm.measure(cfg.eval_set_path)
         # LOCK on the data path: abort before recording if the stack drifted.
         lock_mod.assert_effective(declared_lock, m["observed_lock"])
-        fp_fields = {**declared_lock, "eval_set_sha": eval_sha, **cell}
+        fp_fields = {
+            **declared_lock,
+            "eval_set_sha": eval_sha,
+            "runs": cfg.runs,
+            **cell,
+            "options": cfg.cell_options(cell),
+        }
         arms.append(
             {
                 "cell": cell,

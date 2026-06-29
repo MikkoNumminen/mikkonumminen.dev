@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.ratelimit import RateLimiter, client_ip
+from app.ratelimit import RateLimiter, client_ip, is_exempt_local
 
 
 def test_allows_up_to_the_limit_then_blocks() -> None:
@@ -58,3 +58,16 @@ def test_client_ip_falls_back_to_peer() -> None:
 
 def test_client_ip_unknown_when_nothing_available() -> None:
     assert client_ip(None, None) == "unknown"
+
+
+def test_loopback_exempt_only_without_forwarded_header() -> None:
+    # Genuine direct-to-loopback (the eval/ops path): exempt.
+    assert is_exempt_local(None, "127.0.0.1") is True
+    assert is_exempt_local(None, "::1") is True
+    # CRITICAL: a proxied/Funnel request ALWAYS carries X-Forwarded-For, so even with a
+    # loopback socket peer it is NEVER exempt — the public path keeps its protection.
+    assert is_exempt_local("203.0.113.7", "127.0.0.1") is False
+    assert is_exempt_local("203.0.113.7", "::1") is False
+    # A direct non-loopback peer is not exempt; nor is an unknown peer.
+    assert is_exempt_local(None, "198.51.100.3") is False
+    assert is_exempt_local(None, None) is False

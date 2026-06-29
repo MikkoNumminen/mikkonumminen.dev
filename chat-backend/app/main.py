@@ -34,7 +34,7 @@ from .llm import LLMClient
 from .memory import SessionMemory
 from .middleware import BodySizeLimitMiddleware
 from .pipeline import chat_event_stream
-from .ratelimit import RateLimiter, client_ip
+from .ratelimit import RateLimiter, client_ip, is_exempt_local
 from .request_log import build_request_logger
 from .usage import usage_payload
 
@@ -60,6 +60,11 @@ class ChatRequest(BaseModel):
     # session's prior turns into the prompt and remembers this one. Absent => the
     # single-turn path (the client may still pass its own `history` for back-compat).
     session_id: str | None = Field(default=None, max_length=200)
+    # Optional, generic reasoning-control flag threaded into the SYSTEM prompt
+    # (prompts._REASONING_OFF). Default None => no change; the live terminal never
+    # sends it. The rag-experiment harness sets it per arm so an arm can run with
+    # reasoning disabled without altering the message (retrieval stays identical).
+    think: bool | None = None
 
 
 class ResetRequest(BaseModel):
@@ -138,12 +143,17 @@ def create_app() -> FastAPI:
         nonlocal prune_counter
         if request.method == "OPTIONS":
             return await call_next(request)
-        ip = client_ip(
-            request.headers.get("x-forwarded-for"),
-            request.client.host if request.client else None,
-        )
+        xff = request.headers.get("x-forwarded-for")
+        peer = request.client.host if request.client else None
+        # The eval harness / ops tooling hit the backend directly on loopback with no
+        # proxy header; the limiter (external-abuse protection, ADR 0010) must NOT
+        # throttle that trusted path — high-N eval runs were silently corrupted by 429s.
+        # STRICT loopback + no X-Forwarded-For, so Funnel traffic (always carries XFF) is
+        # never exempt. See ADR 0010.
+        if is_exempt_local(xff, peer):
+            return await call_next(request)
         now = time.monotonic()
-        if not limiter.allow(ip, now):
+        if not limiter.allow(client_ip(xff, peer), now):
             return JSONResponse({"detail": "rate limited"}, status_code=429)
         # Amortized sweep of drained keys so _hits stays bounded to recently
         # active IPs (single worker; a missed sweep under the GIL is harmless).
@@ -217,6 +227,7 @@ def create_app() -> FastAPI:
             top_k=settings.retrieval_top_k,
             weak_retrieval_distance=settings.weak_retrieval_distance,
             force_english=settings.force_english,
+            think=req.think,
             hybrid=settings.hybrid_enabled,
             rrf_k=settings.rrf_k,
             dense_weight=settings.retrieval_dense_weight,

@@ -71,7 +71,14 @@ pipeline order:
   instead of queueing, and the permit is released on every exit path (including
   mid-stream client disconnect).
 - **Rate limiting.** A per-IP sliding window (`RATE_LIMIT_REQUESTS` default 30 /
-  `RATE_LIMIT_WINDOW_SECONDS` default 60).
+  `RATE_LIMIT_WINDOW_SECONDS` default 60). **Loopback exemption:** a genuine
+  direct-to-loopback request — socket peer `127.0.0.1`/`::1` **and** no
+  `X-Forwarded-For` — is exempt (`ratelimit.is_exempt_local`). Rationale: the limiter
+  is external-abuse protection; the trusted local ops/eval path (the experiment
+  harness driving many sequential calls) is not abuse, and was being silently
+  corrupted by 429s. The exemption is **strictly** the loopback address with no proxy
+  header — deliberately not a CIDR/internal-network rule — so the public ingress
+  (Tailscale Funnel, which always sets `X-Forwarded-For`) can never satisfy it.
 - **Score logging.** On by default (`RAG_LOG_FILE` defaults to
   `rag-logs/requests.jsonl`; set empty to disable): one JSONL line per request
   with operational telemetry only — no PII. Set `RAG_LOG_TEXT=true` (off by

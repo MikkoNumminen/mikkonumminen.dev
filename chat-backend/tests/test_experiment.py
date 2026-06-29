@@ -107,12 +107,16 @@ def test_instrument_shared_arm_distinct():
 
 
 def test_fix_b_matrix_only_single_axis_pairs():
-    cells = [{"model": m, "embedder": e} for e in ["en", "multi"] for m in ["q", "l", "p"]]
+    cells = [
+        {"model": m, "embedder": e} for e in ["en", "multi"] for m in ["q", "l", "p"]
+    ]
     arms = [{"cell": c, "fp_fields": {**LOCK, **c}} for c in cells]
     pairs = R.comparable_pairs(arms, ["model", "embedder"])
     assert len(pairs) == 9  # 2*C(3,2) model-pairs + 3 embedder-pairs
     for i, j, ax in pairs:
-        diff = [k for k in ("model", "embedder") if arms[i]["cell"][k] != arms[j]["cell"][k]]
+        diff = [
+            k for k in ("model", "embedder") if arms[i]["cell"][k] != arms[j]["cell"][k]
+        ]
         assert diff == [ax]  # differs on exactly the declared axis, never both
 
 
@@ -180,3 +184,64 @@ def test_report_asserts_lock_drift(tmp_path):
     }
     with pytest.raises(AssertionError, match="LOCK drift"):
         RP.assemble([drifted], cfg, manifest)
+
+
+def test_cell_options_merge(tmp_path):
+    cfg = _cfg(tmp_path, VALID + '\n[arm_options]\n"q" = { think = false }\n')
+    cells = cfg.cells()
+    q = next(c for c in cells if c["model"] == "q")
+    ll = next(c for c in cells if c["model"] == "l")
+    assert cfg.cell_options(q) == '{"think":false}'  # the qwen-like arm carries it
+    assert cfg.cell_options(ll) == ""  # the others carry nothing
+
+
+def test_options_are_arm_identity():
+    # Per-arm options are part of the arm fingerprint and the model-axis identity.
+    plain = _fp(model="q")
+    think_off = _fp(model="q", options='{"think":false}')
+    assert arm_fingerprint(plain) != arm_fingerprint(think_off)  # not silently merged
+    # A model sweep carries options with the model -> comparable.
+    assert_comparable(_fp(model="q", options='{"think":false}'), _fp(model="l"), "model")
+    # Same model, options differ, but you claim the embedder is the axis -> confound
+    # (the model-axis identity, which includes options, has changed).
+    with pytest.raises(AssertionError, match="confounded"):
+        assert_comparable(plain, think_off, "embedder")
+
+
+def test_runs_is_instrument_identity(tmp_path):
+    assert _cfg(tmp_path, VALID).runs == 1  # default
+    assert _cfg(tmp_path, "runs = 3\n" + VALID).runs == 3  # top-level, before tables
+    one = _fp(model="q", runs=1)
+    three = _fp(model="q", runs=3)
+    assert arm_fingerprint(one) != arm_fingerprint(three)  # different-scale aggregates
+    with pytest.raises(AssertionError, match="runs differ"):
+        assert_comparable(one, three, "model")
+
+
+def test_variance_reporting():
+    from evals.experiment.tables import (
+        cell_stats,
+        committed_in_band,
+        render_variance_table,
+    )
+
+    assert cell_stats([3, 1, 2], 4) == {
+        "mean": 2.0,
+        "min": 1,
+        "max": 3,
+        "runs": 3,
+        "cases": 4,
+    }
+    assert committed_in_band([1, 2, 3], 3)["in_band"] is True  # 3 in [1,3]
+    assert committed_in_band([1, 2, 3], 9)["in_band"] is False  # 9 is an outlier
+    arms = [
+        {
+            "cell": {"model": "q"},
+            "retrieval": [{"hit": True}, {"hit": False}],
+            "synthesis": {"per_run": [8, 9], "cases": 12},
+            "containment": {"per_run": [1, 3], "cases": 4},
+        }
+    ]
+    t = render_variance_table(arms)
+    assert "DET" in t and "STOCH" in t
+    assert "8.5[8-9]/12" in t and "2.0[1-3]/4" in t

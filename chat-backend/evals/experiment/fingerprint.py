@@ -56,6 +56,29 @@ def _hash(fp: Mapping[str, Any], keys: tuple[str, ...]) -> str:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
 
 
+def _arm_options(fp: Mapping[str, Any]) -> str:
+    """The canonical per-arm options string (e.g. '{"think":false}'), or '' if none.
+    Per-arm run params (thinking mode, sampling, a per-arm directive) are part of arm
+    identity — a bare model name is not a full arm."""
+    return str(fp.get("options", "") or "")
+
+
+def _runs(fp: Mapping[str, Any]) -> int:
+    """How many times the eval was repeated (aggregated). Default 1. Part of the
+    instrument: a 1-run and a 3-run aggregate are different-scale measurements and must
+    not be compared as the same instrument."""
+    return int(fp.get("runs", 1) or 1)
+
+
+def _axis_identity(fp: Mapping[str, Any], axis: str) -> object:
+    """The identity of an arm along one axis. Per-arm options are CARRIED by the model
+    arm, so they belong to the model-axis identity: changing thinking mode IS a model-
+    arm change the guard must see, never a silently-equal arm."""
+    if axis == "model":
+        return (fp["model"], _arm_options(fp))
+    return fp[axis]
+
+
 def lock_fingerprint(fp: Mapping[str, Any]) -> str:
     """Hash of the LOCK params only. `inspect` emits this from code defaults as
     static provenance; it is never used to stamp a result artifact."""
@@ -64,17 +87,24 @@ def lock_fingerprint(fp: Mapping[str, Any]) -> str:
 
 
 def instrument_fingerprint(fp: Mapping[str, Any]) -> str:
-    """The instrument identity (lock + eval set; axes excluded). Shared across a
-    sweep; differs between instruments. Names runs/<exp>/<instrument-fp>/."""
+    """The instrument identity (lock + eval set + run-count; axes excluded). Shared
+    across a sweep; differs between instruments. Names runs/<exp>/<instrument-fp>/."""
     _require(fp, LOCK_KEYS + INSTRUMENT_KEYS)
-    return _hash(fp, LOCK_KEYS + INSTRUMENT_KEYS)
+    view = {**{k: fp[k] for k in LOCK_KEYS + INSTRUMENT_KEYS}, "runs": _runs(fp)}
+    return _hash(view, (*LOCK_KEYS, *INSTRUMENT_KEYS, "runs"))
 
 
 def arm_fingerprint(fp: Mapping[str, Any]) -> str:
-    """The full identity of one executed arm (lock + eval set + axes). Stamps the
-    arm's result artifact so arms differing on any axis never collide."""
+    """The full identity of one executed arm (lock + eval set + axes + per-arm
+    options). Stamps the arm's result artifact so arms differing on any axis — or on a
+    run param like thinking mode — never collide."""
     _require(fp, ALL_KEYS)
-    return _hash(fp, ALL_KEYS)
+    view = {
+        **{k: fp[k] for k in ALL_KEYS},
+        "options": _arm_options(fp),
+        "runs": _runs(fp),
+    }
+    return _hash(view, (*ALL_KEYS, "options", "runs"))
 
 
 def assert_comparable(a: Mapping[str, Any], b: Mapping[str, Any], axis: str) -> None:
@@ -99,11 +129,19 @@ def assert_comparable(a: Mapping[str, Any], b: Mapping[str, Any], axis: str) -> 
             "DIFFERENT instrument (eval_set_sha differs) — a separate block, never a "
             f"numeric delta: {a['eval_set_sha']} vs {b['eval_set_sha']}"
         )
+    if _runs(a) != _runs(b):
+        raise AssertionError(
+            "DIFFERENT instrument (runs differ) — different-scale aggregates, not "
+            f"comparable: {_runs(a)} vs {_runs(b)}"
+        )
     confound = {
-        k: [a[k], b[k]] for k in AXIS_KEYS if k != axis and a[k] != b[k]
+        k: [_axis_identity(a, k), _axis_identity(b, k)]
+        for k in AXIS_KEYS
+        if k != axis and _axis_identity(a, k) != _axis_identity(b, k)
     }
     if confound:
         raise AssertionError(
             f"more than the declared axis '{axis}' varies (confounded): {confound}"
         )
-    # a[axis] may differ — that IS the single-axis delta. Comparable.
+    # a[axis] (incl. per-arm options carried by the model axis) may differ — that IS
+    # the single-axis delta. Comparable.
