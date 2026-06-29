@@ -514,6 +514,34 @@ def golden_refusal_cases() -> list[Case]:
     return cases
 
 
+def finnish_eval_cases(path: Path, *, allow_finnish: bool) -> list[Case]:
+    """Live cases from a (Finnish) eval set for the per-model synthesis run.
+
+    must_retrieve -> the model must give a SUBSTANTIVE, non-refusing answer in the
+    ROUTED language: Finnish iff the flag is on AND looks_finnish(question), else
+    English — the same shared detector the pipeline routes on, so the language
+    assertion can't disagree with the routing. must_refuse_* -> the model must refuse
+    (the Finnish-aware _refusal_check). This scores language-compliance + substance +
+    refusal, the model-discriminating synthesis signal; fact correctness is left to
+    human review of the saved answers (--save)."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    cases: list[Case] = []
+    for q in data.get("queries", []):
+        expectation = str(q.get("expectation", ""))
+        question = str(q["question"])
+        if expectation == "must_retrieve":
+            expect_fi = allow_finnish and looks_finnish(question)
+            check = _finnish_grounded_check() if expect_fi else _english_grounded_check()
+            lang = "fi" if expect_fi else "en"
+            cases.append(Case(f"answer[{lang}]/{q['id']}", question, check))
+        elif expectation.startswith("must_refuse"):
+            no_leak = expectation == "must_refuse_injection"
+            cases.append(
+                Case(f"refuse/{q['id']}", question, _refusal_check(no_leak=no_leak))
+            )
+    return cases
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m evals.acceptance",
@@ -521,13 +549,38 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--timeout", type=float, default=90.0)
+    parser.add_argument(
+        "--eval-set",
+        default=None,
+        help="Run this eval set's cases (e.g. evals/eval_set_fi.json) for a per-model "
+        "synthesis run, instead of the default English acceptance cases.",
+    )
+    parser.add_argument(
+        "--allow-finnish",
+        action="store_true",
+        help="The backend has RAG_ALLOW_FINNISH on; assert Finnish for Finnish-routed "
+        "must_retrieve questions.",
+    )
+    parser.add_argument(
+        "--save",
+        default=None,
+        help="Append each question+answer (+pass) as JSONL here, for human review.",
+    )
+    parser.add_argument(
+        "--label", default="", help="Model label printed in the header + saved per row."
+    )
     args = parser.parse_args(argv)
 
-    print(f"[acceptance] target {args.base_url}\n")
-    # The curated cases plus every must-refuse question in the golden set, so the
-    # adversarial set lives in one place and run_eval's deferred injection cases
-    # are actually exercised here.
-    cases = CASES + golden_refusal_cases()
+    head = f"  model={args.label}" if args.label else ""
+    print(f"[acceptance] target {args.base_url}{head}\n")
+    if args.eval_set:
+        cases = finnish_eval_cases(Path(args.eval_set), allow_finnish=args.allow_finnish)
+    else:
+        # The curated cases plus every must-refuse question in the golden set, so the
+        # adversarial set lives in one place and run_eval's deferred injection cases
+        # are actually exercised here.
+        cases = CASES + golden_refusal_cases()
+    saved: list[dict[str, object]] = []
     results: list[tuple[Case, bool, str]] = []
     for case in cases:
         try:
@@ -538,11 +591,28 @@ def main(argv: list[str] | None = None) -> int:
         passed, detail = case.check(r)
         results.append((case, passed, detail))
         mark = "PASS" if passed else "FAIL"
-        print(f"  [{mark}] {case.name:<44} {detail}")
+        print(f"  [{mark}] {case.name:<40} {detail}")
+        if args.save:
+            saved.append(
+                {
+                    "model": args.label,
+                    "name": case.name,
+                    "question": case.message,
+                    "passed": passed,
+                    "detail": detail,
+                    "answer": r.text,
+                }
+            )
 
     failed = [c.name for c, ok, _ in results if not ok]
     total = len(results)
-    print(f"\n[acceptance] {total - len(failed)}/{total} passed")
+    tag = f"  (model={args.label})" if args.label else ""
+    print(f"\n[acceptance] {total - len(failed)}/{total} passed{tag}")
+    if args.save and saved:
+        with open(args.save, "a", encoding="utf-8") as fh:
+            for rec in saved:
+                fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        print(f"[acceptance] saved {len(saved)} answers -> {args.save}")
     if failed:
         print(f"[acceptance] FAILED: {', '.join(failed)}", file=sys.stderr)
         return 1
