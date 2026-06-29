@@ -414,15 +414,15 @@ export const en: Translations = {
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc:
-      'my cv, or the skills research — catalog, studies, and the latest calibration (pdf)',
+      'my cv, or the research — catalog, skills studies, calibration, and a rag finnish study (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration]',
+      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
     cmdDownloadIntro: "pick what you'd like to grab:",
     cmdDownloadOptionCv: 'my cv — pdf, full résumé',
     cmdDownloadOptionSkills:
       'jun 2026 · latest + broadest — 16 skills, cold-vs-skill A/B across 3 models; the current snapshot',
     cmdDownloadOptionResearch:
-      'the skills research — 5 pdfs, inventory → latest run (not a download)',
+      'the research — 6 pdfs: the skills suite + the rag finnish study (not a download)',
     cmdDownloadResearchIntro: 'the catalog + the studies, oldest → newest:',
     cmdDownloadOptionCatalog:
       'every skill across all 4 repos — the inventory, with measured (not guessed) costs',
@@ -432,11 +432,13 @@ export const en: Translations = {
       'round 6 · the noisiest cells re-measured at depth — an N=1 fluke overturned, ~+76% confirmed',
     cmdDownloadOptionResults:
       'the synthesis — what the two skill-auditors cost (~36% cheaper to run) and the traps they exposed',
+    cmdDownloadOptionFinnish:
+      'jun 2026 · the rag finnish experiment — 3 local 8B models on Finnish synthesis vs containment, single-variable, €0',
     cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
     cmdDownloadTryHint:
-      'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, or `download --calibration`.',
+      'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration`, or `download --finnish`.',
     cmdDownloadAmbiguous:
-      'specify only one of --cv, --catalog, --study, --replicates, --results, or --calibration.',
+      'specify only one of --cv, --catalog, --study, --replicates, --results, --calibration, or --finnish.',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet — still being polished.',
     cmdDownloadSkillsNotAvailable:
@@ -449,6 +451,8 @@ export const en: Translations = {
       'replicates pdf not available right now — reach out and I will send it.',
     cmdDownloadResultsNotAvailable:
       'skill-auditor results pdf not available right now — reach out and I will send it.',
+    cmdDownloadFinnishNotAvailable:
+      'rag finnish study pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'in the meantime, reach out:',
     cmdDownloadStarted: 'download started.',
     cmdClearDesc: 'clear the screen',

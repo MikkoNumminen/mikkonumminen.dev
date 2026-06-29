@@ -14,6 +14,7 @@ const CALIBRATION_PDF_PATH = '/skills-suite-calibration.pdf';
 const STUDY_PDF_PATH = '/skills-optim-study.pdf';
 const REPLICATES_PDF_PATH = '/skills-optim-study-replicates.pdf';
 const RESULTS_PDF_PATH = '/skills-results.pdf';
+const FINNISH_STUDY_PDF_PATH = '/rag-finnish-experiment.pdf';
 
 /**
  * Print one project's "file" — the scripted alternative to asking the RAG about
@@ -228,6 +229,14 @@ export function buildCommands(
             url: CALIBRATION_PDF_PATH,
             filename: 'skills-suite-calibration.pdf',
             notAvailableMsg: tt.cmdDownloadSkillsNotAvailable,
+          },
+          {
+            flag: '--finnish',
+            tier: 'research',
+            label: tt.cmdDownloadOptionFinnish,
+            url: FINNISH_STUDY_PDF_PATH,
+            filename: 'rag-finnish-experiment.pdf',
+            notAvailableMsg: tt.cmdDownloadFinnishNotAvailable,
           },
         ];
 

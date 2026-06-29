@@ -42,9 +42,16 @@ describe('download menu structure', () => {
     expect(out).not.toContain('--calibration');
   });
 
-  it('`download --research` lists the five research PDFs oldest -> newest', async () => {
+  it('`download --research` lists the six research PDFs oldest -> newest', async () => {
     const out = await runDownload(['--research']);
-    const order = ['--catalog', '--study', '--replicates', '--results', '--calibration'];
+    const order = [
+      '--catalog',
+      '--study',
+      '--replicates',
+      '--results',
+      '--calibration',
+      '--finnish',
+    ];
     for (const flag of order) expect(out, flag).toContain(flag);
     const positions = order.map((flag) => out.indexOf(flag));
     expect(positions, 'oldest -> newest order').toEqual(
