@@ -1,0 +1,27 @@
+# Phase-D reproduction: the 3-model Finnish synthesis comparison, single-variable on
+# the model axis. This is the skill's correctness self-test (Phase 3 asserts the
+# committed numbers: FI retrieval 0.667/0.454; synthesis 25/25/18; containment 9/3/3).
+name = "phase-d-reproduce"
+
+[lock]
+top_k = 6
+temperature = 0.4
+num_ctx = 8192          # effective (Poro's GGUF cap); the runner asserts the live value
+
+[eval_set]
+path = "evals/eval_set_fi.json"
+
+[axes.model]
+mode = "sweep"
+arms = [
+  "qwen3:8b",
+  "llama3.1:8b",
+  "hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q4_K_M",
+]
+
+[axes.embedder]
+mode = "fixed"
+value = "BAAI/bge-small-en-v1.5"
+
+[flags]
+RAG_ALLOW_FINNISH = true

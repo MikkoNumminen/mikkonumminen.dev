@@ -1,0 +1,37 @@
+# Phase-5 stress test: a model × embedder MATRIX. Two questions, separated: does a
+# multilingual embedder recover the Finnish retrieval-distance penalty (the embedder
+# axis), and does Poro show a native-Finnish synthesis edge once it has home field
+# (the model axis)? Two sweep axes => the runner compares ONE axis at a time (an
+# embedder delta at fixed model; a model delta at fixed embedder); the confounded
+# diagonal (different model AND embedder) is never produced — the guard rejects it.
+#
+# NOTE: eval_set points at the TRANSLATED FI set so this config is runnable as-is. The
+# proper Phase-5 instrument is a NATIVELY-WRITTEN Finnish eval set (each with a reverse
+# English translation), so Finnish is the native side rather than a translation —
+# author + freeze that, then repoint `path` here. Re-embedding the corpus per embedder
+# arm is deterministic and spends NO tokens (note its compute cost; budget = cells ×
+# questions = 6 × 16 = 96 generations).
+name = "finnish-embedder-matrix"
+
+[lock]
+top_k = 6
+temperature = 0.4
+num_ctx = 8192
+
+[eval_set]
+path = "evals/eval_set_fi.json"
+
+[axes.model]
+mode = "sweep"
+arms = [
+  "qwen3:8b",
+  "llama3.1:8b",
+  "hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q4_K_M",
+]
+
+[axes.embedder]
+mode = "sweep"
+arms = ["BAAI/bge-small-en-v1.5", "BAAI/bge-m3"]
+
+[flags]
+RAG_ALLOW_FINNISH = true
