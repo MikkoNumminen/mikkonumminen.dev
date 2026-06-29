@@ -414,7 +414,7 @@ export const en: Translations = {
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc:
-      'my cv, or the skills research — catalog, studies, and the latest calibration (pdf)',
+      'my cv, or the research — catalog, skills studies, calibration, and a rag finnish study (pdf)',
     cmdDownloadUsage:
       'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
     cmdDownloadIntro: "pick what you'd like to grab:",

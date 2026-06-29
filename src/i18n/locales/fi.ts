@@ -414,7 +414,7 @@ export const fi: Translations = {
     cmdLinksUsage: 'käyttö: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'tuntematon valitsin:',
     cmdDownloadDesc:
-      'cv:ni tai skillitutkimus — katalogi, tutkimukset ja uusin kalibrointi (pdf)',
+      'cv:ni tai tutkimus — katalogi, skills-tutkimukset, kalibrointi ja rag suomi -tutkimus (pdf)',
     cmdDownloadUsage:
       'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
     cmdDownloadIntro: 'valitse mitä haluat napata:',

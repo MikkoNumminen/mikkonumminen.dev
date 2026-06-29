@@ -414,7 +414,7 @@ export const sv: Translations = {
     cmdLinksUsage: 'användning: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'okänd flagga:',
     cmdDownloadDesc:
-      'mitt cv, eller skills-forskningen — katalog, studier och den senaste kalibreringen (pdf)',
+      'mitt cv, eller forskningen — katalog, skills-studier, kalibrering och rag finska studien (pdf)',
     cmdDownloadUsage:
       'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
     cmdDownloadIntro: 'välj vad du vill hämta:',
