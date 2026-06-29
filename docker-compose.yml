@@ -93,6 +93,10 @@ services:
       # Read by app/config.py; `ragctl english on|off` flips it via the repo .env.
       # Default on — without this line the container can't see the toggle at all.
       FORCE_ENGLISH: ${FORCE_ENGLISH:-1}
+      # EXPERIMENTAL (default off): answer Finnish-looking questions in Finnish
+      # instead of forcing English. Off keeps English-only behavior. Without this
+      # line the container can't see the toggle at all.
+      RAG_ALLOW_FINNISH: ${RAG_ALLOW_FINNISH:-0}
       # Per-request operational log — timestamp, route, latency, token counts, and
       # retrieval distances; NO query/answer text, so no PII. On by default (set
       # RAG_LOG_FILE empty to disable); `ragctl up` may override it with the

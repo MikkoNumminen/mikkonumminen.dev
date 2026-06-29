@@ -126,6 +126,12 @@ class Settings:
     # in-message directive (see prompts.build_messages). Toggle via `ragctl
     # english on|off`.
     force_english: bool
+    # EXPERIMENTAL (default OFF): when on, a Finnish-looking query (guardrails.
+    # looks_finnish) is answered IN FINNISH instead of being forced to English —
+    # force_english is dropped for that request and a positive Finnish closing
+    # directive is added. OFF leaves behavior byte-identical (English-only). The
+    # public deployment stays OFF until the Finnish eval data justifies flipping it.
+    rag_allow_finnish: bool
     # Progressive disclosure (Phase 5): a concise answer plus an explicit
     # "tell me more?" offer; a topic-less follow-up expands into the topic's
     # precomputed narrative. Default on; off restores single-shot answers.
@@ -242,6 +248,7 @@ class Settings:
             llm_temperature=_get_float("LLM_TEMPERATURE", 0.4),
             llm_num_predict=_get_int("LLM_NUM_PREDICT", 512),
             force_english=_get_bool("FORCE_ENGLISH", True),
+            rag_allow_finnish=_get_bool("RAG_ALLOW_FINNISH", False),
             progressive_disclosure_enabled=_get_bool(
                 "PROGRESSIVE_DISCLOSURE_ENABLED", True
             ),

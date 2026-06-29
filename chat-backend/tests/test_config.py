@@ -27,6 +27,7 @@ _CONFIG_ENV_VARS = [
     "LLM_TEMPERATURE",
     "LLM_NUM_PREDICT",
     "FORCE_ENGLISH",
+    "RAG_ALLOW_FINNISH",
     "TOP_K",
     "HYBRID_ENABLED",
     "RRF_K",
@@ -258,6 +259,14 @@ def test_rag_log_text_off_by_default_and_override(
     assert Settings.from_env().rag_log_text is False  # no PII by default
     monkeypatch.setenv("RAG_LOG_TEXT", "true")
     assert Settings.from_env().rag_log_text is True
+
+
+def test_rag_allow_finnish_off_by_default_and_override(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert Settings.from_env().rag_allow_finnish is False  # English-only by default
+    monkeypatch.setenv("RAG_ALLOW_FINNISH", "true")
+    assert Settings.from_env().rag_allow_finnish is True
 
 
 def test_llm_tuning_defaults_and_overrides(

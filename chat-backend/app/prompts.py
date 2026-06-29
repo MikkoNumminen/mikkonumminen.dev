@@ -98,6 +98,11 @@ _CLOSING_GROUNDING = (
 _CLOSING_ENGLISH = (
     " Write your entire reply in English, whatever language the question is in."
 )
+# Positive counterpart used when RAG_ALLOW_FINNISH routes a Finnish query to a
+# Finnish answer. Mirrors _CLOSING_ENGLISH as the LAST thing the model reads:
+# merely DROPPING the English directives lets a small model drift back to English,
+# so an explicit Finnish recency anchor is needed to hold it in Finnish.
+_CLOSING_FINNISH = " Vastaa kokonaan suomeksi, samalla kielellä kuin kysymys."
 
 
 def build_system_prompt(force_english: bool) -> str:
@@ -137,6 +142,7 @@ def build_messages(
     chunks: Sequence[ContextChunk],
     history: Sequence[Mapping[str, str]] = (),
     force_english: bool = True,
+    answer_in_finnish: bool = False,
 ) -> list[dict[str, str]]:
     """Assemble the OpenAI-style message list: system, prior turns, grounded ask.
 
@@ -145,14 +151,19 @@ def build_messages(
     context; the single-turn terminal passes none.
 
     Grounding/English are reinforced at BOTH ends of the user turn: prepended
-    (when `force_english`) and — more importantly — in a closing reminder after
+    (when forcing English) and — more importantly — in a closing reminder after
     the question, which a small model obeys far more reliably (recency) than the
     system rule or the prepend alone once a long context block sits in between.
-    The closing grounding reminder is unconditional; the closing English line and
-    the prepend ride on `force_english`. When off, no English text is added and
-    the model may reply in the question's language.
+    The closing grounding reminder is unconditional.
+
+    `answer_in_finnish` (RAG_ALLOW_FINNISH path) WINS over `force_english`: English
+    forcing is dropped and a positive Finnish closing anchor is added instead.
+    Otherwise English forcing rides on `force_english` exactly as before; with both
+    off, no language directive is added and the model replies in the question's
+    language.
     """
-    system = build_system_prompt(force_english)
+    english = force_english and not answer_in_finnish
+    system = build_system_prompt(english)
     messages: list[dict[str, str]] = [{"role": "system", "content": system}]
     for turn in history:
         role = turn.get("role")
@@ -161,10 +172,12 @@ def build_messages(
             messages.append({"role": role, "content": content})
     context = format_context(chunks)
     user_content = f"Context:\n{context}\n\nQuestion: {query}"
-    if force_english:
+    if english:
         user_content = _ENGLISH_USER_DIRECTIVE + user_content
     user_content += _CLOSING_GROUNDING
-    if force_english:
+    if english:
         user_content += _CLOSING_ENGLISH
+    elif answer_in_finnish:
+        user_content += _CLOSING_FINNISH
     messages.append({"role": "user", "content": user_content})
     return messages

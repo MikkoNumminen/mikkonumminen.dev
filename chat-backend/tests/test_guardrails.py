@@ -12,6 +12,7 @@ from app.guardrails import (
     is_generative_request,
     is_translation_request,
     is_weak_retrieval,
+    looks_finnish,
     looks_non_english,
     smalltalk_route,
 )
@@ -66,6 +67,37 @@ def test_looks_non_english_true_for_finnish_swedish(query: str) -> None:
 )
 def test_looks_non_english_false_for_ascii_english(query: str) -> None:
     assert not looks_non_english(query)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # both trip the threshold (>=2 function-word markers OR >=4 ä/ö)
+        "Miten HRM pitää käyttöoikeudet ajan tasalla, ja mikä on kompromissi?",
+        "Mitkä projektit käyttävät PostgreSQL:ää, ja onko jokin joka valitsi toisin?",
+    ],
+)
+def test_looks_finnish_true_for_finnish(text: str) -> None:
+    assert looks_finnish(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "How does HRM keep JWT permissions fresh without a database round-trip?",
+        "What TTS engines does AudiobookMaker use, and does it clone voices?",
+    ],
+)
+def test_looks_finnish_false_for_english(text: str) -> None:
+    assert not looks_finnish(text)
+
+
+def test_looks_finnish_short_finnish_falls_through_consistently() -> None:
+    # A terse Finnish phrase below the threshold is NOT flagged — by design: the
+    # pipeline routing and the acceptance language check share THIS function, so such
+    # a query routes to English AND the check then expects English (no spurious
+    # mismatch). Documents the deliberate recall/consistency trade.
+    assert looks_finnish("Kirjoita runo.") is False
 
 
 @pytest.mark.parametrize(

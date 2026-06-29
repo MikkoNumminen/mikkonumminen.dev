@@ -42,6 +42,40 @@ def looks_non_english(query: str) -> bool:
     return any(ch.isalpha() and ord(ch) > 127 for ch in query)
 
 
+# Finnish-language markers — common function words flanked by spaces, so they match
+# whole words not substrings. Two independent signals (function words + ä/ö) so one
+# stray loanword can't trip it.
+_FINNISH_MARKERS = (
+    " on ",
+    " ja ",
+    " joka ",
+    " että ",
+    " sekä ",
+    " minun ",
+    " sivusto",
+    " rakennettu",
+    " ovat ",
+    " tai ",
+    " mutta ",
+    " kä",
+)
+
+
+def looks_finnish(text: str) -> bool:
+    """True when the text reads as Finnish: at least two Finnish function-word
+    markers OR at least four ä/ö diacritics.
+
+    The SINGLE shared definition for both the pipeline's Finnish answer-path routing
+    (when RAG_ALLOW_FINNISH is on) and the acceptance harness's language assertion —
+    so routing and the test can never disagree on the same text (an ASCII-only
+    Finnish query that routes to English is also judged not-Finnish by the check, not
+    a spurious failure)."""
+    low = text.lower()
+    words = sum(1 for w in _FINNISH_MARKERS if w in low)
+    diacritics = sum(low.count(c) for c in ("ä", "ö"))
+    return words >= 2 or diacritics >= 4
+
+
 # Templated replies for the no-LLM small-talk fast path. A greeting or a thanks is
 # ANSWERED here without retrieval or the model — distinct from the DECLINE gates,
 # which refuse out-of-scope requests.
