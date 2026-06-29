@@ -416,13 +416,13 @@ export const sv: Translations = {
     cmdDownloadDesc:
       'mitt cv, eller skills-forskningen — katalog, studier och den senaste kalibreringen (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration]',
+      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
     cmdDownloadIntro: 'välj vad du vill hämta:',
     cmdDownloadOptionCv: 'mitt cv — pdf, fullständig meritförteckning',
     cmdDownloadOptionSkills:
       'juni 2026 · senaste + bredaste — 16 skills, kall-vs-skill A/B över 3 modeller; den aktuella ögonblicksbilden',
     cmdDownloadOptionResearch:
-      'skills-forskningen — 5 pdf:er, från inventering → senaste körningen (ingen nedladdning)',
+      'forskningen — 6 pdf:er: skills-sviten + rag finska studien (ingen nedladdning)',
     cmdDownloadResearchIntro: 'katalogen + studierna, äldst → nyast:',
     cmdDownloadOptionCatalog:
       'varje skill i alla 4 repor — inventeringen, med uppmätta (inte gissade) kostnader',
@@ -432,11 +432,13 @@ export const sv: Translations = {
       'omgång 6 · de brusigaste cellerna ommätta på djupet — en N=1-slump motbevisad, ~+76 % bekräftat',
     cmdDownloadOptionResults:
       'syntesen — vad de två skill-granskarna kostade (~36 % billigare att köra) och fällorna de avslöjade',
+    cmdDownloadOptionFinnish:
+      'juni 2026 · rag finska experimentet — 3 lokala 8B-modeller på finsk syntes vs begränsning, singelvariabel, €0',
     cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
-      'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results` eller `download --calibration`.',
+      'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` eller `download --finnish`.',
     cmdDownloadAmbiguous:
-      'ange endast en av --cv, --catalog, --study, --replicates, --results eller --calibration.',
+      'ange endast en av --cv, --catalog, --study, --replicates, --results, --calibration eller --finnish.',
     cmdDownloadPreparing: 'förbereder nedladdning...',
     cmdDownloadNotAvailable: 'cv inte tillgänglig än — fortfarande under finputsning.',
     cmdDownloadSkillsNotAvailable:
@@ -449,6 +451,8 @@ export const sv: Translations = {
       'replikat-pdf:en är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadResultsNotAvailable:
       'skill-granskarens resultat-pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
+    cmdDownloadFinnishNotAvailable:
+      'rag finska studiens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadMeantime: 'under tiden, hör av dig:',
     cmdDownloadStarted: 'nedladdning startad.',
     cmdClearDesc: 'rensa skärmen',

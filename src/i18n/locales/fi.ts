@@ -416,13 +416,13 @@ export const fi: Translations = {
     cmdDownloadDesc:
       'cv:ni tai skillitutkimus — katalogi, tutkimukset ja uusin kalibrointi (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration]',
+      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
     cmdDownloadIntro: 'valitse mitä haluat napata:',
     cmdDownloadOptionCv: 'cv:ni — pdf, koko ansioluettelo',
     cmdDownloadOptionSkills:
       'kesäkuu 2026 · uusin + laajin — 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
     cmdDownloadOptionResearch:
-      'skillitutkimus — 5 pdf:ää, inventaariosta uusimpaan ajoon (ei lataus)',
+      'tutkimus — 6 pdf:ää: skills-sarja + rag suomi -tutkimus (ei lataus)',
     cmdDownloadResearchIntro: 'katalogi + tutkimukset, vanhimmasta uusimpaan:',
     cmdDownloadOptionCatalog:
       'jokainen skilli kaikista 4 reposta — inventaario, kustannukset mitattu (ei arvattu)',
@@ -432,11 +432,13 @@ export const fi: Translations = {
       'kierros 6 · meluisimmat solut mitattu uudelleen syvemmin — N=1-sattuma kumottu, ~+76 % vahvistettu',
     cmdDownloadOptionResults:
       'synteesi — mitä kaksi skilliauditoijaa maksoivat (~36 % halvempi ajaa) ja mitkä ansat ne paljastivat',
+    cmdDownloadOptionFinnish:
+      'kesäkuu 2026 · rag suomi -koe — 3 paikallista 8B-mallia suomen synteesistä vs hallinnasta, yksittäismuuttuja, €0',
     cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
-      'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results` tai `download --calibration`.',
+      'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` tai `download --finnish`.',
     cmdDownloadAmbiguous:
-      'anna vain yksi seuraavista: --cv, --catalog, --study, --replicates, --results tai --calibration.',
+      'anna vain yksi seuraavista: --cv, --catalog, --study, --replicates, --results, --calibration tai --finnish.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla — vielä viimeistelyssä.',
     cmdDownloadSkillsNotAvailable:
@@ -449,6 +451,8 @@ export const fi: Translations = {
       'replikaattien pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadResultsNotAvailable:
       'skilliauditoijan tulosten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+    cmdDownloadFinnishNotAvailable:
+      'rag suomi -tutkimuksen pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',
