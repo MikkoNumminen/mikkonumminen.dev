@@ -46,6 +46,7 @@ from .guardrails import (
     is_generative_request,
     is_translation_request,
     is_weak_retrieval,
+    looks_finnish,
     looks_non_english,
     smalltalk_route,
 )
@@ -132,8 +133,16 @@ async def chat_event_stream(
     exclude_doc_types: Sequence[str] | None = None,
     diversify_max_per_project: int | None = None,
     model_name: str = "",
+    allow_finnish: bool = False,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
+
+    # RAG_ALLOW_FINNISH (experiment, default off): a Finnish-looking query is
+    # answered in Finnish instead of being forced to English. The SAME detector
+    # gates the answer and the acceptance language check (guardrails.looks_finnish),
+    # so routing and the test can't disagree. When off (or the query isn't Finnish)
+    # this is False and every path below is byte-identical to the English-only flow.
+    answer_in_finnish = allow_finnish and looks_finnish(query)
 
     # Small-talk fast path: a standalone greeting or thanks is ANSWERED by template
     # with NO retrieval and NO model. Conservative whole-message match — a real
@@ -179,7 +188,7 @@ async def chat_event_stream(
             )
         yield sse.sse_sources([])
         yield sse.sse_token(GENERATIVE_REPLY)
-        if looks_non_english(query):
+        if looks_non_english(query) and not answer_in_finnish:
             yield sse.sse_token(ENGLISH_ONLY_HINT)
         yield sse.sse_done()
         return
@@ -276,7 +285,7 @@ async def chat_event_stream(
             )
         yield sse.sse_sources([])
         yield sse.sse_token(WEAK_RETRIEVAL_REPLY)
-        if looks_non_english(query):
+        if looks_non_english(query) and not answer_in_finnish:
             yield sse.sse_token(ENGLISH_ONLY_HINT)
         yield sse.sse_done()
         return
@@ -314,7 +323,11 @@ async def chat_event_stream(
         yield sse.sse_sources(to_source_refs(chunks))
 
         messages = build_messages(
-            effective_query, to_context(chunks), history, force_english=force_english
+            effective_query,
+            to_context(chunks),
+            history,
+            force_english=force_english,
+            answer_in_finnish=answer_in_finnish,
         )
         tokens = 0
         response_parts: list[str] = []

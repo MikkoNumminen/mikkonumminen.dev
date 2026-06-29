@@ -80,6 +80,33 @@ def test_force_english_defaults_on() -> None:
     assert messages[-1]["content"].startswith("Respond ONLY in English")
 
 
+def test_answer_in_finnish_overrides_force_english() -> None:
+    # RAG_ALLOW_FINNISH path: answer_in_finnish WINS over force_english — the English
+    # rule + directive are dropped and the positive Finnish closing anchor is the
+    # very last thing the model reads (recency), while grounding stays unconditional.
+    messages = build_messages(
+        "kuka on mikko?", [], force_english=True, answer_in_finnish=True
+    )
+    system, user = messages[0]["content"], messages[-1]["content"]
+    assert "ENTIRE reply in English" not in system
+    assert "Respond ONLY in English" not in user
+    assert "Write your entire reply in English" not in user
+    assert "use ONLY the context above" in user  # grounding unconditional
+    assert user.rstrip().endswith("samalla kielellä kuin kysymys.")  # Finnish anchor
+
+
+def test_answer_in_finnish_false_keeps_english_forcing() -> None:
+    # The default branch (flag off, or an English query) leaves the English-forced
+    # path byte-identical and adds no Finnish anchor.
+    messages = build_messages(
+        "kuka on mikko?", [], force_english=True, answer_in_finnish=False
+    )
+    user = messages[-1]["content"]
+    assert "ENTIRE reply in English" in messages[0]["content"]
+    assert user.startswith("Respond ONLY in English")
+    assert "samalla kielellä kuin kysymys" not in user
+
+
 def test_system_prompt_carries_injection_and_reveal_guard() -> None:
     # The prompt is belt-and-braces over the architectural gates: it must tell
     # the model to treat the message as a question (not instructions), refuse

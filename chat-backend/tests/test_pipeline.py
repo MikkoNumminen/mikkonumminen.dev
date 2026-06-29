@@ -217,6 +217,82 @@ def test_english_refusal_has_no_hint() -> None:
     assert "answer in English" not in text
 
 
+# --- RAG_ALLOW_FINNISH (experiment, default off) ---
+
+
+def _llm_messages(
+    query: str, *, allow_finnish: bool, force_english: bool = True
+) -> list[dict[str, str]]:
+    """Run a normal answer turn and return the messages handed to the LLM, so the
+    flag's effect on the prompt (English forcing vs Finnish anchor) is assertable."""
+    llm = FakeLLM(["answer"])
+
+    async def run() -> None:
+        gen = chat_event_stream(
+            query,
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            force_english=force_english,
+            allow_finnish=allow_finnish,
+        )
+        async for _frame in gen:
+            pass
+
+    asyncio.run(run())
+    return list(llm.messages)
+
+
+_FI_QUERY = "Mitä teknologioita HRM käyttää, ja mikä on sen tietokanta?"
+
+
+def test_flag_on_routes_finnish_query_to_a_finnish_answer() -> None:
+    msgs = _llm_messages(_FI_QUERY, allow_finnish=True)
+    system, user = msgs[0]["content"], msgs[-1]["content"]
+    assert "ENTIRE reply in English" not in system
+    assert "Respond ONLY in English" not in user
+    assert "samalla kielellä kuin kysymys" in user  # the Finnish closing anchor
+
+
+def test_flag_off_leaves_finnish_query_forced_to_english() -> None:
+    msgs = _llm_messages(_FI_QUERY, allow_finnish=False)  # default
+    assert "ENTIRE reply in English" in msgs[0]["content"]
+    assert msgs[-1]["content"].startswith("Respond ONLY in English")
+
+
+def test_flag_on_does_not_affect_an_english_query() -> None:
+    msgs = _llm_messages("What database does HRM use?", allow_finnish=True)
+    assert "ENTIRE reply in English" in msgs[0]["content"]  # English query stays English
+    assert "samalla kielellä kuin kysymys" not in msgs[-1]["content"]
+
+
+def test_flag_on_suppresses_english_hint_on_a_finnish_refusal() -> None:
+    # A Finnish off-topic query gets the weak-retrieval refusal; with the flag on the
+    # "ask in English" nudge is suppressed (Finnish is allowed). The flag-OFF control
+    # is test_non_english_refusal_gets_an_english_hint.
+    llm = FakeLLM([])
+
+    async def run() -> list[str]:
+        gen = chat_event_stream(
+            "Mitä kuuluu projekteille, ja mikä niistä on paras?",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            allow_finnish=True,
+        )
+        return [frame async for frame in gen]
+
+    text = _token_text(asyncio.run(run()))
+    assert "I don't have anything on that" in text  # it did refuse
+    assert "answer in English" not in text  # hint suppressed
+
+
 # --- progressive disclosure (Phase 5) ---
 
 

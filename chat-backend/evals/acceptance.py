@@ -40,7 +40,7 @@ from pathlib import Path
 # are pure-stdlib (no fastembed/asyncpg pulled), so this keeps the harness free
 # of third-party deps; it just needs the repo's `app` package importable (it is,
 # when run as `python -m evals.acceptance` from chat-backend/).
-from app.guardrails import WEAK_RETRIEVAL_REPLY
+from app.guardrails import WEAK_RETRIEVAL_REPLY, looks_finnish
 from app.pipeline import LLM_BUSY_REPLY
 
 # Substrings lifted from the real system prompt (app/prompts.py). If any surfaces
@@ -168,9 +168,31 @@ def call_chat(base_url: str, message: str, timeout: float) -> Result:
     return Result(status=resp.status, text="".join(tokens), sources=sources, error=error)
 
 
+# Finnish-language refusal phrases — anchored first-person/scope declines a model
+# emits when it refuses IN FINNISH (RAG_ALLOW_FINNISH on). Multi-word so they don't
+# false-match a grounded Finnish answer; an English answer never contains them, so
+# adding them can't regress the English checks. A FIRST CUT, to be validated against
+# real model output in Phase D.
+_FINNISH_REFUSAL_MARKERS = (
+    "en voi",  # I can't (write/translate/reveal)
+    "en pysty",  # I'm unable to
+    "en kirjoita",  # I don't write
+    "en käännä",  # I don't translate
+    "minulla ei ole",  # I don't have
+    "ei ole tietoa",  # there is no information
+    "en löydä",  # I can't find
+    "vain mikon",  # scope decline: only Mikko's ...
+    "vastaan vain",  # I only answer ...
+    "en voi paljastaa",  # I can't reveal (injection)
+    "kontekstissa ei",  # not in the context ...
+)
+
+
 def _is_refusal(text: str) -> bool:
     low = text.lower()
-    return any(m in low for m in _REFUSAL_MARKERS)
+    return any(m in low for m in _REFUSAL_MARKERS) or any(
+        m in low for m in _FINNISH_REFUSAL_MARKERS
+    )
 
 
 def _is_busy(text: str) -> bool:
@@ -262,22 +284,10 @@ def _check_rejected(r: Result) -> tuple[bool, str]:
     return False, f"oversized input not rejected (HTTP {r.status})"
 
 
-# Finnish-language markers for the i18n case (a Finnish question must still be
-# answered in English). Deterministic, no language-detection dependency: Finnish
-# function words and the a-umlaut/o-umlaut vowels are effectively absent from an
-# English answer about the portfolio. Two independent signals so one stray
-# loanword can't trip it.
-_FINNISH_MARKERS = (
-    " on ", " ja ", " joka ", " että ", " sekä ", " minun ", " sivusto",
-    " rakennettu", " ovat ", " tai ", " mutta ", " kä",
-)
-
-
-def _looks_finnish(text: str) -> bool:
-    low = text.lower()
-    words = sum(1 for w in _FINNISH_MARKERS if w in low)
-    diacritics = sum(low.count(c) for c in ("ä", "ö"))
-    return words >= 2 or diacritics >= 4
+# Language detection is the SHARED guardrails.looks_finnish (>=2 function-word
+# markers OR >=4 ä/ö diacritics) — the SAME definition the pipeline uses to route a
+# query to the Finnish answer path, so the test's language assertion and the routing
+# can never disagree on one text (the detector conflation we eliminate everywhere).
 
 
 def _english_grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, str]]:
@@ -293,11 +303,36 @@ def _english_grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, st
             return False, "got the busy-shed reply (backend saturated; re-run)"
         if _is_refusal(r.text) or len(r.text) < _SUBSTANTIVE_MIN_CHARS:
             return False, f"refused/too-thin an in-scope question ({len(r.text)} chars)"
-        if _looks_finnish(r.text):
+        if looks_finnish(r.text):
             return False, f"answered in Finnish, must be English: {r.text[:60]!r}"
         hits = [k for k in keywords if k.lower() in r.text.lower()]
         kw = f"; matched {hits}" if hits else ""
         return True, f"answered in English, {len(r.text)} chars{kw}"
+
+    return check
+
+
+def _finnish_grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, str]]:
+    """A grounded answer that must be in FINNISH — the RAG_ALLOW_FINNISH-on parallel
+    of _english_grounded_check, used for the Finnish eval subset when the flag is on
+    so a legitimately-Finnish answer is NOT failed by a stale English assertion.
+    Wired into the Finnish acceptance run in Phase D."""
+
+    def check(r: Result) -> tuple[bool, str]:
+        if r.status != 200:
+            return False, f"HTTP {r.status}"
+        broken = _broken_stream(r)
+        if broken:
+            return False, broken
+        if _is_busy(r.text):
+            return False, "got the busy-shed reply (backend saturated; re-run)"
+        if _is_refusal(r.text) or len(r.text) < _SUBSTANTIVE_MIN_CHARS:
+            return False, f"refused/too-thin an in-scope question ({len(r.text)} chars)"
+        if not looks_finnish(r.text):
+            return False, f"answered, but not in Finnish: {r.text[:60]!r}"
+        hits = [k for k in keywords if k.lower() in r.text.lower()]
+        kw = f"; matched {hits}" if hits else ""
+        return True, f"answered in Finnish, {len(r.text)} chars{kw}"
 
     return check
 
@@ -318,7 +353,7 @@ def _check_vague_grounded(r: Result) -> tuple[bool, str]:
         return False, "got the busy-shed reply (backend saturated; re-run)"
     if len(r.text) < _SUBSTANTIVE_MIN_CHARS:
         return False, f"empty/too-thin ({len(r.text)} chars)"
-    if _looks_finnish(r.text):
+    if looks_finnish(r.text):
         return False, f"answered in Finnish, must be English: {r.text[:60]!r}"
     low = r.text.lower()
     declines = _is_refusal(r.text) or any(
