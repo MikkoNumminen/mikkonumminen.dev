@@ -79,5 +79,6 @@ def test_non_loopback_peer_never_exempt_even_without_xff() -> None:
     # (which arrives with a docker-bridge / cloudflared / public peer) rate-limited.
     # If a future refactor adds --proxy-headers or an nginx sidecar — making the peer
     # spoofable or always-loopback — these assertions break and flag the regression.
-    for peer in ("172.17.0.1", "172.18.0.5", "203.0.113.7", "10.0.0.5", "::ffff:127.0.0.1"):
+    peers = ("172.17.0.1", "172.18.0.5", "203.0.113.7", "10.0.0.5", "::ffff:127.0.0.1")
+    for peer in peers:
         assert is_exempt_local(None, peer) is False, peer
