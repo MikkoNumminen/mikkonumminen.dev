@@ -6,6 +6,8 @@ end-to-end self-test, Phase-D reproduction)."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from evals.experiment import config as C
@@ -193,6 +195,65 @@ def test_cell_options_merge(tmp_path):
     ll = next(c for c in cells if c["model"] == "l")
     assert cfg.cell_options(q) == '{"think":false}'  # the qwen-like arm carries it
     assert cfg.cell_options(ll) == ""  # the others carry nothing
+
+
+def test_runner_and_report_agree_on_instrument_fingerprint(tmp_path):
+    # S1 regression. runner.run (automated) and report.assemble (runbook) build the
+    # instrument-fingerprint dict differently and drifted once: runner omitted `runs`
+    # (part of the instrument identity), so a runs=3 run collided with runs=1 in one
+    # dir. Pin that both real paths produce the SAME fingerprint, and (S2) render the
+    # variance band, for one config so they can't silently diverge again. Follow-up:
+    # share the computation instead of pinning it (tracked separately).
+    text = VALID.replace('name = "t"', 'name = "eq"\nruns = 3').replace(
+        'arms = ["q", "l", "p"]', 'arms = ["q"]'
+    )
+    cfg = _cfg(tmp_path, text)
+    manifest = {
+        "instrument": {"static_lock_params": {"prompt_template_sha": {"value": "s"}}},
+        "eval_sets": [{"path": "evals/eval_set_fi.json", "content_sha": "e"}],
+    }
+    measure = {
+        "observed_lock": {"top_k": 6, "temperature": 0.4, "num_ctx": 8192},
+        "vram_mb": 9000,
+        "retrieval": [{"id": "q1", "hit": True, "rr": 1.0, "best_distance": 0.2}],
+        "synthesis": {"substantive": 9, "total": 9, "per_run": [3, 3, 3], "cases": 3},
+        "containment": {"refused": 3, "total": 12, "per_run": [1, 1, 1], "cases": 4},
+    }
+
+    class FakeArm:
+        def swap(self, cell: dict[str, str]) -> None:
+            pass
+
+        def measure(self, eval_set_path: str) -> dict:
+            return measure
+
+    runner_out = R.run(
+        cfg, manifest, FakeArm(), runs_dir=tmp_path / "runs", n_questions=16
+    )
+    runner_fp = Path(runner_out["out_dir"]).name
+
+    arm_json = {
+        "fp_fields": {
+            "top_k": 6,
+            "temperature": 0.4,
+            "num_ctx": 8192,
+            "eval_set_sha": "e",
+            "runs": 3,
+            "model": "q",
+            "embedder": "en",
+            "options": "",
+        },
+        **measure,
+    }
+    report_out = RP.assemble([arm_json], cfg, manifest)
+
+    assert runner_fp == report_out["instrument_fingerprint"]
+    # S2: for runs>1 both paths render the band (variance table + runs= header), not a
+    # bare aggregate that looks like a hard number (the defect we just fixed in prose).
+    runner_md = (Path(runner_out["out_dir"]) / "results.md").read_text(encoding="utf-8")
+    for md in (runner_md, report_out["results_md"]):
+        assert "runs=3" in md
+        assert "per-cell variance" in md
 
 
 def test_options_are_arm_identity():
