@@ -20,7 +20,7 @@ import json
 import logging
 import os
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Protocol
 
 # Routes whose `gated` is True (a guardrail refused). `gated` is DERIVED from
@@ -85,7 +85,7 @@ def format_log_record(
     """
     ordered = sorted(distances)
     record: dict[str, object] = {
-        "ts": ts or datetime.now(timezone.utc).isoformat(),
+        "ts": ts or datetime.now(UTC).isoformat(),
         "route": route,
         "gated": route in _GATED_ROUTES,
         "model": model,

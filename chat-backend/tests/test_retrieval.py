@@ -78,7 +78,9 @@ class FakeDB:
     ) -> Sequence[Mapping[str, Any]]:
         self.calls.append((embedding, top_k))
         self.classification_args.append(classifications)
-        return self._filter(self._rows, projects, classifications, exclude_doc_types)[:top_k]
+        return self._filter(
+            self._rows, projects, classifications, exclude_doc_types
+        )[:top_k]
 
     async def search_lexical(
         self,
@@ -90,7 +92,9 @@ class FakeDB:
     ) -> Sequence[Mapping[str, Any]]:
         self.lexical_calls.append((query, top_k))
         self.classification_args.append(classifications)
-        return self._filter(self._lexical, projects, classifications, exclude_doc_types)[:top_k]
+        return self._filter(
+            self._lexical, projects, classifications, exclude_doc_types
+        )[:top_k]
 
 
 def _row(
