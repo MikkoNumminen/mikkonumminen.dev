@@ -31,3 +31,22 @@ jobs:
       - run: npm run lint
       - run: npm run test:coverage
       - run: npm run build
+
+  # The RAG backend (chat-backend/) — Python — was never CI-checked, so latent
+  # ruff/mypy nits stayed latent and the whole check rode on local runs + memory.
+  # This is BLOCKING (a failure fails the PR), same standing as the frontend gate.
+  chat-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: chat-backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: mypy app evals
+      - run: pytest

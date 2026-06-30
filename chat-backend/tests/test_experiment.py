@@ -107,12 +107,16 @@ def test_instrument_shared_arm_distinct():
 
 
 def test_fix_b_matrix_only_single_axis_pairs():
-    cells = [{"model": m, "embedder": e} for e in ["en", "multi"] for m in ["q", "l", "p"]]
+    cells = [
+        {"model": m, "embedder": e} for e in ["en", "multi"] for m in ["q", "l", "p"]
+    ]
     arms = [{"cell": c, "fp_fields": {**LOCK, **c}} for c in cells]
     pairs = R.comparable_pairs(arms, ["model", "embedder"])
     assert len(pairs) == 9  # 2*C(3,2) model-pairs + 3 embedder-pairs
     for i, j, ax in pairs:
-        diff = [k for k in ("model", "embedder") if arms[i]["cell"][k] != arms[j]["cell"][k]]
+        diff = [
+            k for k in ("model", "embedder") if arms[i]["cell"][k] != arms[j]["cell"][k]
+        ]
         assert diff == [ax]  # differs on exactly the declared axis, never both
 
 
