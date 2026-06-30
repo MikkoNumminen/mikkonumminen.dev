@@ -43,8 +43,11 @@ def assemble(
     for a in arm_jsons:
         # The same lock guard the in-process runner applies on its data path: a
         # runbook arm whose eval_arm ran at a num_ctx (etc.) differing from the
-        # config must abort here, not be silently stamped as comparable.
-        lock_mod.assert_effective(declared_lock, a.get("observed_lock", {}))
+        # config must abort here, not be silently stamped as comparable. A MISSING
+        # observed_lock must abort too (KeyError) — defaulting to {} would make
+        # assert_effective a no-op, silently admitting lock drift into a comparison.
+        # The runner's data path is loud the same way (m["observed_lock"]).
+        lock_mod.assert_effective(declared_lock, a["observed_lock"])
         fp = {
             **a["fp_fields"],
             "prompt_template_sha": prompt_sha,

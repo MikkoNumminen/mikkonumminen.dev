@@ -151,6 +151,7 @@ def test_report_assemble(tmp_path):
                 "model": model,
                 "embedder": "en",
             },
+            "observed_lock": {"top_k": 6, "temperature": 0.4, "num_ctx": 8192},
             "vram_mb": 9000,
             "retrieval": [{"id": "q1", "hit": True, "rr": 1.0, "best_distance": 0.2}],
             "synthesis": {"substantive": 10, "total": 12},
@@ -186,6 +187,31 @@ def test_report_asserts_lock_drift(tmp_path):
     }
     with pytest.raises(AssertionError, match="LOCK drift"):
         RP.assemble([drifted], cfg, manifest)
+
+
+def test_report_aborts_on_missing_observed_lock(tmp_path):
+    # #5 regression. The runbook path must NOT silently accept a MISSING lock: the runner
+    # is loud (m["observed_lock"], KeyError), so report must be too. A {} default would
+    # make assert_effective a no-op and admit an arm with undetected lock drift into a
+    # comparison — the exact silent bypass the lock-assert mechanism exists to prevent.
+    cfg = _cfg(tmp_path, VALID)
+    manifest = {
+        "instrument": {"static_lock_params": {"prompt_template_sha": {"value": "s"}}},
+        "eval_sets": [{"path": "evals/eval_set_fi.json", "content_sha": "e"}],
+    }
+    no_lock = {
+        "fp_fields": {
+            "top_k": 6,
+            "temperature": 0.4,
+            "num_ctx": 8192,
+            "eval_set_sha": "e",
+            "model": "q",
+            "embedder": "en",
+        },
+        "retrieval": [],
+    }  # no observed_lock key
+    with pytest.raises(KeyError):
+        RP.assemble([no_lock], cfg, manifest)
 
 
 def test_cell_options_merge(tmp_path):
