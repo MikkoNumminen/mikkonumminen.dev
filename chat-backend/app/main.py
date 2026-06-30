@@ -148,8 +148,23 @@ def create_app() -> FastAPI:
         # The eval harness / ops tooling hit the backend directly on loopback with no
         # proxy header; the limiter (external-abuse protection, ADR 0010) must NOT
         # throttle that trusted path — high-N eval runs were silently corrupted by 429s.
-        # STRICT loopback + no X-Forwarded-For, so Funnel traffic (always carries XFF) is
-        # never exempt. See ADR 0010.
+        #
+        # SECURITY — the exempt branch must never open for external traffic:
+        #   1. Conjunctive guard (loopback peer AND no X-Forwarded-For): external
+        #      ingress satisfies at most one. cloudflared is a sibling container (172.x
+        #      bridge peer, not loopback); the host port is bound 127.0.0.1:8000:8000
+        #      (docker-compose.yml), so the only off-host reach is the tunnel, which
+        #      carries XFF. Verified empirically: a host->published-port request is
+        #      rate-limited (bridge peer), only in-container loopback is exempt.
+        #   2. `peer` is request.client.host (raw socket peer). uvicorn runs with NO
+        #      --proxy-headers, so it CANNOT be spoofed by a header. Do NOT add
+        #      --proxy-headers or an nginx sidecar without revisiting this gate.
+        #   3. Residual leak needs TWO non-default overrides AT ONCE: the Docker
+        #      userland proxy disabled (iptables-NAT then preserves a loopback peer for
+        #      host->port) AND the tunnel dropping XFF — and even then it is host-local
+        #      only (loopback-bound port), never an external attacker.
+        # The "non-loopback peer is never exempt" property is pinned in
+        # tests/test_ratelimit.py so a future refactor can't silently reopen it.
         if is_exempt_local(xff, peer):
             return await call_next(request)
         now = time.monotonic()

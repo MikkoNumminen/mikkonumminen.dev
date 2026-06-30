@@ -71,3 +71,13 @@ def test_loopback_exempt_only_without_forwarded_header() -> None:
     # A direct non-loopback peer is not exempt; nor is an unknown peer.
     assert is_exempt_local(None, "198.51.100.3") is False
     assert is_exempt_local(None, None) is False
+
+
+def test_non_loopback_peer_never_exempt_even_without_xff() -> None:
+    # Regression guard: any NON-loopback peer must never reach the exempt branch, even
+    # with X-Forwarded-For absent. This pins the property that keeps external traffic
+    # (which arrives with a docker-bridge / cloudflared / public peer) rate-limited.
+    # If a future refactor adds --proxy-headers or an nginx sidecar — making the peer
+    # spoofable or always-loopback — these assertions break and flag the regression.
+    for peer in ("172.17.0.1", "172.18.0.5", "203.0.113.7", "10.0.0.5", "::ffff:127.0.0.1"):
+        assert is_exempt_local(None, peer) is False, peer
