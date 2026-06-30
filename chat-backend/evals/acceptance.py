@@ -127,13 +127,21 @@ class Result:
     error: str | None = None
 
 
-def call_chat(base_url: str, message: str, timeout: float) -> Result:
+def call_chat(
+    base_url: str, message: str, timeout: float, *, think: bool | None = None
+) -> Result:
     """POST one question and fold the SSE stream into a Result.
 
     A rejected request (4xx) is returned as a Result with that status and the
     error body as text, not raised — the oversized-input case asserts on it.
+
+    `think` (optional) forwards the backend's generic reasoning-control flag so an
+    experiment arm can run with reasoning disabled; None omits it (the default).
     """
-    body = json.dumps({"message": message, "history": []}).encode("utf-8")
+    payload: dict[str, object] = {"message": message, "history": []}
+    if think is not None:
+        payload["think"] = think
+    body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         f"{base_url.rstrip('/')}/chat",
         data=body,

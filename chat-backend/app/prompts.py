@@ -104,6 +104,13 @@ _CLOSING_ENGLISH = (
 # so an explicit Finnish recency anchor is needed to hold it in Finnish.
 _CLOSING_FINNISH = " Vastaa kokonaan suomeksi, samalla kielellä kuin kysymys."
 
+# Optional reasoning-control directive, appended to the SYSTEM prompt (never the user
+# turn, so it stays out of the retrieval embedding) when a caller passes think=False.
+# Model-agnostic: the backend never inspects the model name — it appends this iff
+# asked. A reasoning model that honours "/no_think" obeys it; others ignore the token.
+# WHICH arm disables reasoning is the experiment config's call, not the pipeline's.
+_REASONING_OFF = " /no_think"
+
 
 def build_system_prompt(force_english: bool) -> str:
     """The system prompt, carrying the English-only rule only when forced."""
@@ -143,6 +150,7 @@ def build_messages(
     history: Sequence[Mapping[str, str]] = (),
     force_english: bool = True,
     answer_in_finnish: bool = False,
+    think: bool | None = None,
 ) -> list[dict[str, str]]:
     """Assemble the OpenAI-style message list: system, prior turns, grounded ask.
 
@@ -164,6 +172,8 @@ def build_messages(
     """
     english = force_english and not answer_in_finnish
     system = build_system_prompt(english)
+    if think is False:
+        system += _REASONING_OFF
     messages: list[dict[str, str]] = [{"role": "system", "content": system}]
     for turn in history:
         role = turn.get("role")

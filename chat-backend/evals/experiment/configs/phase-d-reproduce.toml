@@ -3,6 +3,11 @@
 # committed numbers: FI retrieval 0.667/0.454; synthesis 25/25/18; containment 9/3/3).
 name = "phase-d-reproduce"
 
+# Phase D aggregated 3 runs per model (e.g. containment 9/12 = 3 refuse probes x 3,
+# synthesis ~/27 = ~9 Finnish-routed x 3). The eval runs ONCE by default; match the
+# committed aggregate scale. `runs` is part of the instrument fingerprint.
+runs = 3
+
 [lock]
 top_k = 6
 temperature = 0.4
@@ -25,3 +30,10 @@ value = "BAAI/bge-small-en-v1.5"
 
 [flags]
 RAG_ALLOW_FINNISH = true
+
+# Per-arm run options. Phase D ran qwen3 with reasoning disabled; an arm is
+# model + run params, so think:false is part of the qwen3 arm's identity and its
+# fingerprint. Threaded to the backend's generic reasoning flag (into the system
+# prompt, NOT the message — retrieval stays identical across arms).
+[arm_options]
+"qwen3:8b" = { think = false }

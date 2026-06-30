@@ -11,6 +11,7 @@ only knows the axis NAMES (the pipeline's swap points), not their values.
 from __future__ import annotations
 
 import itertools
+import json
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,9 +24,14 @@ from .fingerprint import AXIS_KEYS
 class ExperimentConfig:
     name: str
     lock: dict[str, Any]  # top_k, temperature, num_ctx — the EFFECTIVE run values
+    runs: int  # how many times the eval repeats (aggregate); part of the instrument
     eval_set_path: str
     axes: dict[str, dict[str, Any]]  # {axis: {"mode": sweep|fixed, "arms"|"value": …}}
     flags: dict[str, Any]
+    # Per-arm run options, keyed by axis VALUE (e.g. {"qwen3:8b": {"think": False}}).
+    # Carried into the gen call AND the arm fingerprint, so a run param like thinking
+    # mode is part of arm identity, not invisible to the guard.
+    arm_options: dict[str, dict[str, Any]]
     raw_path: str
 
     def sweep_axes(self) -> list[str]:
@@ -44,6 +50,18 @@ class ExperimentConfig:
     def budget(self, n_questions: int) -> int:
         """Generations = questions x arms — the ONLY token cost. Stated before any run."""
         return n_questions * len(self.cells())
+
+    def cell_options(self, cell: dict[str, str]) -> str:
+        """Canonical JSON of the per-arm run options for a cell, merged across its axis
+        values (e.g. the model arm's {think:false}); '' if none. Part of arm identity."""
+        merged: dict[str, Any] = {}
+        for value in cell.values():
+            merged.update(self.arm_options.get(value, {}))
+        if not merged:
+            return ""
+        return json.dumps(
+            merged, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
 
 
 def load(path: str | Path) -> ExperimentConfig:
@@ -96,8 +114,10 @@ def load(path: str | Path) -> ExperimentConfig:
             "temperature": float(lock["temperature"]),
             "num_ctx": int(lock["num_ctx"]),
         },
+        runs=int(data.get("runs", 1)),
         eval_set_path=str(eval_set),
         axes=axes,
         flags=dict(data.get("flags", {})),
+        arm_options={str(k): dict(v) for k, v in data.get("arm_options", {}).items()},
         raw_path=str(p),
     )

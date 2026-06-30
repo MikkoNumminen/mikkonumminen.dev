@@ -43,8 +43,11 @@ def assemble(
     for a in arm_jsons:
         # The same lock guard the in-process runner applies on its data path: a
         # runbook arm whose eval_arm ran at a num_ctx (etc.) differing from the
-        # config must abort here, not be silently stamped as comparable.
-        lock_mod.assert_effective(declared_lock, a.get("observed_lock", {}))
+        # config must abort here, not be silently stamped as comparable. A MISSING
+        # observed_lock must abort too (KeyError) — defaulting to {} would make
+        # assert_effective a no-op, silently admitting lock drift into a comparison.
+        # The runner's data path is loud the same way (m["observed_lock"]).
+        lock_mod.assert_effective(declared_lock, a["observed_lock"])
         fp = {
             **a["fp_fields"],
             "prompt_template_sha": prompt_sha,
@@ -73,11 +76,22 @@ def assemble(
         for i, j, ax in pairs
     ]
     instr_fp = instrument_fingerprint(
-        {**cfg.lock, "prompt_template_sha": prompt_sha, "eval_set_sha": eval_sha}
+        {
+            **cfg.lock,
+            "prompt_template_sha": prompt_sha,
+            "eval_set_sha": eval_sha,
+            "runs": cfg.runs,
+        }
+    )
+    variance = (
+        "\n\n## per-cell variance (runs > 1)\n\n" + tables_mod.render_variance_table(arms)
+        if cfg.runs > 1
+        else ""
     )
     md = (
-        f"# {cfg.name}  (instrument {instr_fp})\n\n"
+        f"# {cfg.name}  (instrument {instr_fp}, runs={cfg.runs})\n\n"
         + tables_mod.render_arm_table(arms)
+        + variance
         + "\n\n## single-axis deltas\n\n"
         + (tables_mod.render_delta_table(deltas) or "(no comparable pairs)")
         + "\n"

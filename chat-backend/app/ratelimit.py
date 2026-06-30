@@ -29,6 +29,23 @@ def client_ip(forwarded_for: str | None, peer: str | None) -> str:
     return peer or "unknown"
 
 
+_LOOPBACK = frozenset({"127.0.0.1", "::1"})
+
+
+def is_exempt_local(forwarded_for: str | None, peer: str | None) -> bool:
+    """A genuine direct-to-loopback request (the trusted ops/eval path) — exempt from
+    rate-limiting.
+
+    STRICTLY: a loopback socket peer AND no X-Forwarded-For. The tunnel (the only public
+    ingress) ALWAYS sets X-Forwarded-For, so a proxied/Funnel visitor can never satisfy
+    this — even though its socket peer may itself be loopback. This is deliberately NOT a
+    CIDR / "internal network" exemption (which could accidentally cover Tailscale
+    addresses and open the public path); it is the single loopback address with no proxy
+    header. See ADR 0010. Pure, so it is unit-tested.
+    """
+    return forwarded_for is None and peer in _LOOPBACK
+
+
 class RateLimiter:
     """Sliding-window limiter: at most `max_requests` per `window_seconds`/key."""
 

@@ -78,21 +78,52 @@ async def _retrieval_rows(
     return rows
 
 
-def _synthesis(eval_set: Path, base_url: str, allow_finnish: bool) -> dict[str, Any]:
+def _synthesis(
+    eval_set: Path,
+    base_url: str,
+    allow_finnish: bool,
+    *,
+    think: bool | None = None,
+    runs: int = 1,
+) -> dict[str, Any]:
     cases = finnish_eval_cases(eval_set, allow_finnish=allow_finnish)
-    answer = refuse = answer_pass = refuse_pass = 0
-    for c in cases:
-        r = call_chat(base_url, c.message, 150.0)
-        ok, _ = c.check(r)
-        if c.name.startswith("answer"):
-            answer += 1
-            answer_pass += int(ok)
-        else:
-            refuse += 1
-            refuse_pass += int(ok)
+    answer_cases = sum(1 for c in cases if c.name.startswith("answer"))
+    refuse_cases = len(cases) - answer_cases
+    # Per-run counts, not a bare sum: synthesis/containment are STOCHASTIC, so the
+    # spread across runs is the real signal (retrieval is deterministic — see below).
+    syn_per_run: list[int] = []
+    con_per_run: list[int] = []
+    for _ in range(runs):
+        ap = rp = 0
+        for c in cases:
+            r = call_chat(base_url, c.message, 150.0, think=think)
+            if r.status == 429:
+                raise RuntimeError(
+                    "HTTP 429 (rate-limited) — the measurement is contaminated by the "
+                    "limiter; aborting loudly. Exempt loopback "
+                    "(ratelimit.is_exempt_local) and re-run; never accept throttled "
+                    "data as variance."
+                )
+            ok, _ = c.check(r)
+            if c.name.startswith("answer"):
+                ap += int(ok)
+            else:
+                rp += int(ok)
+        syn_per_run.append(ap)
+        con_per_run.append(rp)
     return {
-        "synthesis": {"substantive": answer_pass, "total": answer},
-        "containment": {"refused": refuse_pass, "total": refuse},
+        "synthesis": {
+            "substantive": sum(syn_per_run),
+            "total": answer_cases * runs,
+            "per_run": syn_per_run,
+            "cases": answer_cases,
+        },
+        "containment": {
+            "refused": sum(con_per_run),
+            "total": refuse_cases * runs,
+            "per_run": con_per_run,
+            "cases": refuse_cases,
+        },
     }
 
 
@@ -101,13 +132,34 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--eval-set", required=True)
     ap.add_argument("--base-url", default="http://localhost:8000")
     ap.add_argument("--num-ctx", type=int, required=True, help="effective num_ctx")
+    ap.add_argument(
+        "--options",
+        default="",
+        help='canonical JSON of per-arm run options, e.g. \'{"think":false}\'',
+    )
+    ap.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="how many times to repeat the synthesis eval (aggregate); part of the "
+        "instrument fingerprint. Retrieval is deterministic, so it runs once.",
+    )
     args = ap.parse_args(argv)
 
     s = Settings.from_env()
     eval_set = Path(args.eval_set)
+    opts = json.loads(args.options) if args.options else {}
+    think = opts.get("think")
+    canon_options = (
+        json.dumps(opts, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        if opts
+        else ""
+    )
     queries = json.loads(eval_set.read_text(encoding="utf-8"))["queries"]
     retrieval = asyncio.run(_retrieval_rows(queries, s))
-    synth = _synthesis(eval_set, args.base_url, s.rag_allow_finnish)
+    synth = _synthesis(
+        eval_set, args.base_url, s.rag_allow_finnish, think=think, runs=args.runs
+    )
     out = {
         "fp_fields": {
             "top_k": s.retrieval_top_k,
@@ -115,8 +167,10 @@ def main(argv: list[str] | None = None) -> int:
             "num_ctx": args.num_ctx,  # effective, from the env (not a code default)
             # prompt_template_sha + eval_set_sha are merged by the host from the manifest
             "eval_set_sha": _eval_sha(eval_set),
+            "runs": args.runs,
             "model": s.llm_model,
             "embedder": s.embedding_model,
+            "options": canon_options,
         },
         "observed_lock": {
             "top_k": s.retrieval_top_k,

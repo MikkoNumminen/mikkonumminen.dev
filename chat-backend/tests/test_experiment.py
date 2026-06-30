@@ -6,6 +6,8 @@ end-to-end self-test, Phase-D reproduction)."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from evals.experiment import config as C
@@ -149,6 +151,7 @@ def test_report_assemble(tmp_path):
                 "model": model,
                 "embedder": "en",
             },
+            "observed_lock": {"top_k": 6, "temperature": 0.4, "num_ctx": 8192},
             "vram_mb": 9000,
             "retrieval": [{"id": "q1", "hit": True, "rr": 1.0, "best_distance": 0.2}],
             "synthesis": {"substantive": 10, "total": 12},
@@ -184,3 +187,148 @@ def test_report_asserts_lock_drift(tmp_path):
     }
     with pytest.raises(AssertionError, match="LOCK drift"):
         RP.assemble([drifted], cfg, manifest)
+
+
+def test_report_aborts_on_missing_observed_lock(tmp_path):
+    # #5 regression. The runbook path must NOT silently accept a MISSING lock: the runner
+    # is loud (m["observed_lock"], KeyError), so report must be too. A {} default would
+    # make assert_effective a no-op and admit an arm with undetected lock drift into a
+    # comparison — the exact silent bypass the lock-assert mechanism exists to prevent.
+    cfg = _cfg(tmp_path, VALID)
+    manifest = {
+        "instrument": {"static_lock_params": {"prompt_template_sha": {"value": "s"}}},
+        "eval_sets": [{"path": "evals/eval_set_fi.json", "content_sha": "e"}],
+    }
+    no_lock = {
+        "fp_fields": {
+            "top_k": 6,
+            "temperature": 0.4,
+            "num_ctx": 8192,
+            "eval_set_sha": "e",
+            "model": "q",
+            "embedder": "en",
+        },
+        "retrieval": [],
+    }  # no observed_lock key
+    with pytest.raises(KeyError):
+        RP.assemble([no_lock], cfg, manifest)
+
+
+def test_cell_options_merge(tmp_path):
+    cfg = _cfg(tmp_path, VALID + '\n[arm_options]\n"q" = { think = false }\n')
+    cells = cfg.cells()
+    q = next(c for c in cells if c["model"] == "q")
+    ll = next(c for c in cells if c["model"] == "l")
+    assert cfg.cell_options(q) == '{"think":false}'  # the qwen-like arm carries it
+    assert cfg.cell_options(ll) == ""  # the others carry nothing
+
+
+def test_runner_and_report_agree_on_instrument_fingerprint(tmp_path):
+    # S1 regression. runner.run (automated) and report.assemble (runbook) build the
+    # instrument-fingerprint dict differently and drifted once: runner omitted `runs`
+    # (part of the instrument identity), so a runs=3 run collided with runs=1 in one
+    # dir. Pin that both real paths produce the SAME fingerprint, and (S2) render the
+    # variance band, for one config so they can't silently diverge again. Follow-up:
+    # share the computation instead of pinning it (tracked separately).
+    text = VALID.replace('name = "t"', 'name = "eq"\nruns = 3').replace(
+        'arms = ["q", "l", "p"]', 'arms = ["q"]'
+    )
+    cfg = _cfg(tmp_path, text)
+    manifest = {
+        "instrument": {"static_lock_params": {"prompt_template_sha": {"value": "s"}}},
+        "eval_sets": [{"path": "evals/eval_set_fi.json", "content_sha": "e"}],
+    }
+    measure = {
+        "observed_lock": {"top_k": 6, "temperature": 0.4, "num_ctx": 8192},
+        "vram_mb": 9000,
+        "retrieval": [{"id": "q1", "hit": True, "rr": 1.0, "best_distance": 0.2}],
+        "synthesis": {"substantive": 9, "total": 9, "per_run": [3, 3, 3], "cases": 3},
+        "containment": {"refused": 3, "total": 12, "per_run": [1, 1, 1], "cases": 4},
+    }
+
+    class FakeArm:
+        def swap(self, cell: dict[str, str]) -> None:
+            pass
+
+        def measure(self, eval_set_path: str) -> dict:
+            return measure
+
+    runner_out = R.run(
+        cfg, manifest, FakeArm(), runs_dir=tmp_path / "runs", n_questions=16
+    )
+    runner_fp = Path(runner_out["out_dir"]).name
+
+    arm_json = {
+        "fp_fields": {
+            "top_k": 6,
+            "temperature": 0.4,
+            "num_ctx": 8192,
+            "eval_set_sha": "e",
+            "runs": 3,
+            "model": "q",
+            "embedder": "en",
+            "options": "",
+        },
+        **measure,
+    }
+    report_out = RP.assemble([arm_json], cfg, manifest)
+
+    assert runner_fp == report_out["instrument_fingerprint"]
+    # S2: for runs>1 both paths render the band (variance table + runs= header), not a
+    # bare aggregate that looks like a hard number (the defect we just fixed in prose).
+    runner_md = (Path(runner_out["out_dir"]) / "results.md").read_text(encoding="utf-8")
+    for md in (runner_md, report_out["results_md"]):
+        assert "runs=3" in md
+        assert "per-cell variance" in md
+
+
+def test_options_are_arm_identity():
+    # Per-arm options are part of the arm fingerprint and the model-axis identity.
+    plain = _fp(model="q")
+    think_off = _fp(model="q", options='{"think":false}')
+    assert arm_fingerprint(plain) != arm_fingerprint(think_off)  # not silently merged
+    # A model sweep carries options with the model -> comparable.
+    assert_comparable(_fp(model="q", options='{"think":false}'), _fp(model="l"), "model")
+    # Same model, options differ, but you claim the embedder is the axis -> confound
+    # (the model-axis identity, which includes options, has changed).
+    with pytest.raises(AssertionError, match="confounded"):
+        assert_comparable(plain, think_off, "embedder")
+
+
+def test_runs_is_instrument_identity(tmp_path):
+    assert _cfg(tmp_path, VALID).runs == 1  # default
+    assert _cfg(tmp_path, "runs = 3\n" + VALID).runs == 3  # top-level, before tables
+    one = _fp(model="q", runs=1)
+    three = _fp(model="q", runs=3)
+    assert arm_fingerprint(one) != arm_fingerprint(three)  # different-scale aggregates
+    with pytest.raises(AssertionError, match="runs differ"):
+        assert_comparable(one, three, "model")
+
+
+def test_variance_reporting():
+    from evals.experiment.tables import (
+        cell_stats,
+        committed_in_band,
+        render_variance_table,
+    )
+
+    assert cell_stats([3, 1, 2], 4) == {
+        "mean": 2.0,
+        "min": 1,
+        "max": 3,
+        "runs": 3,
+        "cases": 4,
+    }
+    assert committed_in_band([1, 2, 3], 3)["in_band"] is True  # 3 in [1,3]
+    assert committed_in_band([1, 2, 3], 9)["in_band"] is False  # 9 is an outlier
+    arms = [
+        {
+            "cell": {"model": "q"},
+            "retrieval": [{"hit": True}, {"hit": False}],
+            "synthesis": {"per_run": [8, 9], "cases": 12},
+            "containment": {"per_run": [1, 3], "cases": 4},
+        }
+    ]
+    t = render_variance_table(arms)
+    assert "DET" in t and "STOCH" in t
+    assert "8.5[8-9]/12" in t and "2.0[1-3]/4" in t
