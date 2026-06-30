@@ -119,9 +119,7 @@ def run(
             }
         )
 
-    instr_fp = instrument_fingerprint(
-        {**declared_lock, "eval_set_sha": eval_sha, "runs": cfg.runs}
-    )
+    instr_fp = instrument_fingerprint({**declared_lock, "eval_set_sha": eval_sha})
     out_dir = runs_dir / cfg.name / instr_fp
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -167,15 +165,9 @@ def run(
         + "\n",
         encoding="utf-8",
     )
-    variance = (
-        "\n\n## per-cell variance (runs > 1)\n\n" + tables_mod.render_variance_table(arms)
-        if cfg.runs > 1
-        else ""
-    )
     results_md = (
-        f"# {cfg.name}  (instrument {instr_fp}, runs={cfg.runs})\n\n"
+        f"# {cfg.name}  (instrument {instr_fp})\n\n"
         + tables_mod.render_arm_table(arms)
-        + variance
         + "\n\n## single-axis deltas\n\n"
         + (tables_mod.render_delta_table(deltas) or "(no comparable pairs)")
         + "\n"
