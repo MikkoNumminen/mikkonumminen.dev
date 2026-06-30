@@ -47,6 +47,12 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
 
+[tool.ruff.lint.per-file-ignores]
+# pipeline.py documents two module constants + the UsageRecorder type alias inline
+# (with their rationale) between the stdlib and the local imports — a deliberate
+# readability choice. Suppress imports-not-at-top for this file only, not project-wide.
+"app/pipeline.py" = ["E402"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

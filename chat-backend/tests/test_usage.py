@@ -8,7 +8,7 @@ live, not here, since it needs a real Postgres.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.usage import UsageByModel, UsageSummary, usage_payload
 
@@ -16,7 +16,7 @@ from app.usage import UsageByModel, UsageSummary, usage_payload
 def test_usage_payload_with_data() -> None:
     summary = UsageSummary(
         window_hours=24,
-        since=datetime(2026, 6, 25, 3, 0, tzinfo=timezone.utc),
+        since=datetime(2026, 6, 25, 3, 0, tzinfo=UTC),
         total_requests=3,
         total_tokens=776,
         by_model=[

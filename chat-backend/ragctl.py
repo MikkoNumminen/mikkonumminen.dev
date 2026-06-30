@@ -169,7 +169,11 @@ def configured_force_english() -> bool:
 
 
 def list_models() -> list[str]:
-    rc, out = run(COMPOSE + ["exec", "-T", "ollama", "ollama", "list"], cwd=REPO, timeout=15)
+    rc, out = run(
+        COMPOSE + ["exec", "-T", "ollama", "ollama", "list"],
+        cwd=REPO,
+        timeout=15,
+    )
     if rc != 0:
         return []
     return [
@@ -186,7 +190,11 @@ def set_env_vars(updates: dict[str, str]) -> None:
     seen: set[str] = set()
     out: list[str] = []
     for line in lines:
-        key = line.split("=", 1)[0] if "=" in line and not line.lstrip().startswith("#") else None
+        key = (
+            line.split("=", 1)[0]
+            if "=" in line and not line.lstrip().startswith("#")
+            else None
+        )
         if key in updates:
             out.append(f"{key}={updates[key]}")
             seen.add(key)
@@ -277,7 +285,11 @@ def check_container(services: dict[str, str], name: str) -> tuple[str, str]:
 
 
 def check_model_loaded() -> tuple[str, str]:
-    rc, out = run(COMPOSE + ["exec", "-T", "ollama", "ollama", "ps"], cwd=REPO, timeout=15)
+    rc, out = run(
+        COMPOSE + ["exec", "-T", "ollama", "ollama", "ps"],
+        cwd=REPO,
+        timeout=15,
+    )
     if rc != 0:
         return ("down", "ollama not up")
     rows = [ln for ln in out.splitlines() if ln.strip() and not ln.startswith("NAME")]
@@ -322,7 +334,10 @@ def check_gpu() -> tuple[str, str]:
     try:
         used_mib, total_mib = float(used), float(total)
         pct = (used_mib / total_mib * 100) if total_mib else 0.0
-        detail = f"{util}% util · {float(power):.0f}W · {used}/{total} MiB VRAM ({pct:.0f}%)"
+        detail = (
+            f"{util}% util · {float(power):.0f}W"
+            f" · {used}/{total} MiB VRAM ({pct:.0f}%)"
+        )
         # VRAM near full risks an OOM on the next model load -> warn (yellow).
         return ("warn" if pct >= 95 else "ok", detail)
     except ValueError:
@@ -397,7 +412,10 @@ def defender_note() -> str:
     if not ps:
         return "  · Windows Defender: can't check (powershell.exe not found)"
     rc, out = run(
-        [ps, "-NoProfile", "-Command", "(Get-MpComputerStatus).RealTimeProtectionEnabled"],
+        [
+            ps, "-NoProfile", "-Command",
+            "(Get-MpComputerStatus).RealTimeProtectionEnabled",
+        ],
         timeout=20,
     )
     val = out.strip().lower()
@@ -427,9 +445,15 @@ def security_preflight() -> list[str]:
                 "  ▲ IPVanish running — Threat Protection can block model/image pulls "
                 "(not the running chat). Toggle it off if a pull stalls."
             )
-        if any(v in procs for v in ("nordvpn", "expressvpn", "surfshark", "openvpn", "protonvpn")):
+        if any(
+            v in procs
+            for v in ("nordvpn", "expressvpn", "surfshark", "openvpn", "protonvpn")
+        ):
             notes.append("  ▲ A VPN client is running — can break TLS on downloads.")
-        if any(a in procs for a in ("avast", "avgui", "kaspersky", "bdagent", "norton", "mcshield")):
+        if any(
+            a in procs
+            for a in ("avast", "avgui", "kaspersky", "bdagent", "norton", "mcshield")
+        ):
             notes.append("  ▲ Third-party AV running — its web shield can block pulls.")
     # Windows Defender uses a separate API (not the process list); always reported.
     notes.append(defender_note())
@@ -523,7 +547,8 @@ def _watch_until_ready(timeout_s: float = 90.0) -> None:
         if time.monotonic() - start > timeout_s:
             print(
                 _c(
-                    "\n  still coming up — back to the prompt; it'll finish in the background.",
+                    "\n  still coming up — back to the prompt;"
+                    " it'll finish in the background.",
                     "33",
                 )
             )
@@ -664,7 +689,10 @@ def cmd_prune() -> int:
             "0B",
         )
         print(f"     reclaimed {reclaimed}")
-    print(_c("  ● done — disk reclaimed; the running stack + warm model untouched.", "32"))
+    print(_c(
+        "  ● done — disk reclaimed; the running stack + warm model untouched.",
+        "32",
+    ))
     return 0
 
 
@@ -765,7 +793,11 @@ def cmd_model(name: str | None, effort: str, context: str | None, do_test: bool)
     # current; the build is layer-cached, so it's a fast no-op when code is unchanged.
     run(COMPOSE + ["up", "-d", "--build", *restart], cwd=REPO, timeout=300)
     print(f"  ◐ warming {name} …")
-    run(COMPOSE + ["exec", "-T", "ollama", "ollama", "run", name, "ok"], cwd=REPO, timeout=120)
+    run(
+        COMPOSE + ["exec", "-T", "ollama", "ollama", "run", name, "ok"],
+        cwd=REPO,
+        timeout=120,
+    )
     print()
     print(render(gather()))
     if do_test:
@@ -884,23 +916,41 @@ def print_menu() -> None:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="ragctl", description="Operator CLI for the local RAG chat.")
+    p = argparse.ArgumentParser(
+        prog="ragctl",
+        description="Operator CLI for the local RAG chat.",
+    )
     sub = p.add_subparsers(dest="cmd")
     sub.add_parser("status", help="one-shot status board")
     sub.add_parser("watch", help="live status board (Ctrl-C exits)")
     sub.add_parser("doctor", help="board + security pre-flight + versions")
     up = sub.add_parser("up", help="bring the stack live")
-    up.add_argument("--keep", action="store_true", help="leave it running instead of holding the board")
+    up.add_argument(
+        "--keep",
+        action="store_true",
+        help="leave it running instead of holding the board",
+    )
     sub.add_parser("down", help="cut the rag: compose down + funnel off")
     test = sub.add_parser("test", help="doctor the live model with a test question")
     test.add_argument("question", help="the question to ask")
     mdl = sub.add_parser("model", help="choose a model + effort/context and apply it")
     mdl.add_argument("name", nargs="?", help="model name (omit to pick interactively)")
     mdl.add_argument(
-        "--effort", choices=list(EFFORT_PRESETS), default="balanced", help="generation effort"
+        "--effort",
+        choices=list(EFFORT_PRESETS),
+        default="balanced",
+        help="generation effort",
     )
-    mdl.add_argument("--context", choices=list(CONTEXT_PRESETS), help="served context window")
-    mdl.add_argument("--no-test", action="store_true", help="skip the post-apply test query")
+    mdl.add_argument(
+        "--context",
+        choices=list(CONTEXT_PRESETS),
+        help="served context window",
+    )
+    mdl.add_argument(
+        "--no-test",
+        action="store_true",
+        help="skip the post-apply test query",
+    )
     eng = sub.add_parser(
         "english", help="force every answer into English (on|off); omit to show state"
     )
@@ -1033,7 +1083,10 @@ def cmd_logs(n: int) -> int:
     """Show the last N logged questions + answers from the request log."""
     log = RAG_LOG_DIR / "requests.jsonl"
     if not log.exists() or not log.stat().st_size:
-        print(_c("\n  no request log yet — bring the rag up and ask it something.\n", "33"))
+        print(_c(
+            "\n  no request log yet — bring the rag up and ask it something.\n",
+            "33",
+        ))
         return 0
     lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
     kept = [ln for ln in lines if ln.strip()]
