@@ -422,7 +422,7 @@ export const sv: Translations = {
     cmdDownloadOptionSkills:
       'juni 2026 · senaste + bredaste — 16 skills, kall-vs-skill A/B över 3 modeller; den aktuella ögonblicksbilden',
     cmdDownloadOptionResearch:
-      'forskningen — 6 pdf:er: skills-sviten + rag finska studien (ingen nedladdning)',
+      'forskningen — 7 pdf:er: skills-sviten + rag finska studien (ingen nedladdning)',
     cmdDownloadResearchIntro: 'katalogen + studierna, äldst → nyast:',
     cmdDownloadOptionCatalog:
       'varje skill i alla 4 repor — inventeringen, med uppmätta (inte gissade) kostnader',
@@ -434,6 +434,9 @@ export const sv: Translations = {
       'syntesen — vad de två skill-granskarna kostade (~36 % billigare att köra) och fällorna de avslöjade',
     cmdDownloadOptionFinnish:
       'juni 2026 · rag finska experimentet — 3 lokala 8B-modeller på finsk syntes vs begränsning, singelvariabel, €0',
+    // English placeholder — not localized yet
+    cmdDownloadOptionMethodology:
+      'jun 2026 · finnish rag, the methodology — how the experiment caught and corrected its own mistake; the process, not the findings',
     cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
       'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` eller `download --finnish`.',
@@ -453,6 +456,8 @@ export const sv: Translations = {
       'skill-granskarens resultat-pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadFinnishNotAvailable:
       'rag finska studiens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
+    cmdDownloadMethodologyNotAvailable:
+      'rag finnish methodology pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'under tiden, hör av dig:',
     cmdDownloadStarted: 'nedladdning startad.',
     cmdClearDesc: 'rensa skärmen',
