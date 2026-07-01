@@ -422,7 +422,7 @@ export const fi: Translations = {
     cmdDownloadOptionSkills:
       'kesäkuu 2026 · uusin + laajin — 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
     cmdDownloadOptionResearch:
-      'tutkimus — 6 pdf:ää: skills-sarja + rag suomi -tutkimus (ei lataus)',
+      'tutkimus — 7 pdf:ää: skills-sarja + rag suomi -tutkimus (ei lataus)',
     cmdDownloadResearchIntro: 'katalogi + tutkimukset, vanhimmasta uusimpaan:',
     cmdDownloadOptionCatalog:
       'jokainen skilli kaikista 4 reposta — inventaario, kustannukset mitattu (ei arvattu)',
@@ -434,6 +434,9 @@ export const fi: Translations = {
       'synteesi — mitä kaksi skilliauditoijaa maksoivat (~36 % halvempi ajaa) ja mitkä ansat ne paljastivat',
     cmdDownloadOptionFinnish:
       'kesäkuu 2026 · rag suomi -koe — 3 paikallista 8B-mallia suomen synteesistä vs hallinnasta, yksittäismuuttuja, €0',
+    // English placeholder — not localized yet
+    cmdDownloadOptionMethodology:
+      'jun 2026 · finnish rag, the methodology — how the experiment caught and corrected its own mistake; the process, not the findings',
     cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
       'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` tai `download --finnish`.',
@@ -453,6 +456,8 @@ export const fi: Translations = {
       'skilliauditoijan tulosten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadFinnishNotAvailable:
       'rag suomi -tutkimuksen pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+    cmdDownloadMethodologyNotAvailable:
+      'rag finnish methodology pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',
