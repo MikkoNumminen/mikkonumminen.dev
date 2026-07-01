@@ -22,7 +22,7 @@ None of that stopped a wrong finding from being published. I want to be clear ab
 
 ## The first answer, and where it broke
 
-The published result had two halves. The synthesis half held up: the small models do produce usable Finnish, and the Finnish-specific model was no better than a general one at it. The containment half was wrong. Containment means refusing off-topic requests, for example a request to write a poem when the system is only supposed to answer questions about my projects. The PDF said the Finnish model was the worst at this and a general model was the best, by a factor of three.
+The published result had two halves. The synthesis half held up: the small models do produce usable Finnish, and the Finnish-specific model was no better than a general one at it. The containment half was wrong. Containment means refusing off-topic requests, for example a request to write a poem when the system is only supposed to answer questions about my projects. The PDF got this backwards: it said the Finnish model was the worst and a general model the best by a factor of three, but clean measurement later showed the reverse, the two were about even and the general model llama actually refused the most.
 
 I only caught it because I tried to turn the manual process into a reusable tool. To trust the tool, it had to reproduce the original numbers. It did not.
 
