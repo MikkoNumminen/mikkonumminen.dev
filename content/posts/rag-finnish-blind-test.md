@@ -17,13 +17,13 @@ metrics, won 26 of 30 rounds. Friedman p < 0.0001.
 ## Why a third round
 
 The earlier experiment (the Finnish experiment post) concluded that Poro wins
-nothing on synthesis. But it left one loose thread, in its own words: *"Its only
+nothing on synthesis. But it left one loose thread, in its own words: _"Its only
 edge is qualitative — more natural inflected morphology ("Astro 6:sta",
-"TypeScriptistä") — an edge for a human reader, not for the metric."* A
+"TypeScriptistä") — an edge for a human reader, not for the metric."_ A
 checklist metric is blind to the one thing a Finnish-built model exists for.
 This round built an instrument for that human reader.
 
-The question, precisely: which model produces the best Finnish *language*. Not
+The question, precisely: which model produces the best Finnish _language_. Not
 the most correct answers. Correctness is still measured, but only as a
 disqualification floor, so that a hallucinating model cannot win on style.
 
@@ -55,23 +55,36 @@ rate-limiter loopback exemption that the previous round's correction forced.
 Three runs per model per prompt version, with the per-run spread reported
 rather than hidden.
 
-## Result I: the models keep leaving the language
+## Result I: the language router tested itself first
 
-The first thing the new eval set exposed was not quality but drift. Asked in
-Finnish, with an English retrieved context, all three models answered in
-English roughly half the time. Finnish-adherence with the baseline prompt:
-llama 54%, qwen3 40%, Poro 39%. The Finnish-built model drifted the most. The
-drift is question-driven and nearly deterministic: overview questions stay in
-Finnish, deep technical ones flip everyone to English.
+The first thing the new eval set exposed was not model quality. Asked in
+Finnish with an English retrieved context, roughly half the answers came back
+in English, and the initial read was model drift. The capture data says
+otherwise: 15 of the 30 questions never reached the Finnish path at all. The
+pipeline's language router, an ä/ö-and-function-word heuristic whose weakness
+on code-heavy Finnish the earlier experiment had already documented,
+classified them as non-Finnish and served them the full English-forcing
+prompt. Their English answers are obedience, not drift. (This correction was
+caught by the code review of this study's own PR, after the first version of
+this post was written. The process keeps working.)
 
-The cause sat in the prompt, not in the models. The English path enforced its
-language with three anchors (a system rule, a user-message prefix and a closing
-reminder). The Finnish path had one. Mirroring the triple anchor for Finnish,
-with an explicit instruction to translate the explanation while keeping product
-names and code identifiers as they are, moved Poro the most: from 39% to 48%,
-flipping two questions from all-English to all-Finnish across every run. llama
-went 54 to 55, qwen3 40 to 43. At 8B, no prompt fully beats a wall of English
-context, but a symmetric one narrows the gap substantially.
+On the 13 scored questions the router genuinely routed to Finnish, the
+picture changes completely:
+
+| model | one anchor   | three anchors                  |
+| ----- | ------------ | ------------------------------ |
+| Poro  | 33/39 (85%)  | **39/39 (100%)**               |
+| llama | 39/39 (100%) | 39/39 (100%)                   |
+| qwen3 | 34/39 (87%)  | 36/39 (92%, two empty answers) |
+
+The prompt fix stands: the Finnish path had one language anchor where English
+had three, and mirroring them, with an explicit instruction to translate the
+explanation while keeping product names and code identifiers as they are,
+took Poro from 85% to 100%. But the honest denominator changes the
+conclusion. With a correct router and a symmetric prompt, Poro does not drift
+at all. And llama's apparent adherence lead in the overall numbers came
+partly from disobeying the English-forcing instruction on misrouted
+questions. Obedience and good Finnish are different virtues.
 
 Two of the 30 questions never reached any model at all: the English embedder
 retrieved them below the relevance gate. That is the same Finnish-retrieval
@@ -98,11 +111,11 @@ before it read anything.
 
 30 rounds, judged blind, naturalness only:
 
-| model | mean rank | firsts /30 | sole firsts | sole lasts |
-|---|---|---|---|---|
-| **Poro-2-8B** | **1.37** | **26** | **17** | **0** |
-| qwen3:8b | 2.23 | 9 | 3 | 9 |
-| llama3.1:8b | 2.40 | 6 | 1 | 11 |
+| model         | mean rank | firsts /30 | sole firsts | sole lasts |
+| ------------- | --------- | ---------- | ----------- | ---------- |
+| **Poro-2-8B** | **1.37**  | **26**     | **17**      | **0**      |
+| qwen3:8b      | 2.23      | 9          | 3           | 9          |
+| llama3.1:8b   | 2.40      | 6          | 1           | 11         |
 
 Friedman χ² = 22.85 (df 2), p < 0.0001. Kendall's W = 0.38. Pairwise sign
 tests: Poro beats qwen3 20 to 3 (p = 0.0005) and llama 22 to 1 (p < 0.0001),
@@ -135,12 +148,15 @@ Finnish link.
 1. **"Poro is worst" measured the wrong thing.** Task checklists and
    containment probes rank models on dimensions where Finnish-specialisation is
    invisible. Graded blind on the language itself, Poro is decisively best.
-2. **Small models mirror their context's language.** Drift, not quality, is
-   Poro's real weakness. It is a prompt and architecture problem, partially
-   fixed here (+9 points), not a language problem.
-3. **A Finnish RAG needs two repairs, not one:** a language-anchored prompt
-   (done) and Finnish-capable retrieval (open). The English embedder both drops
-   questions at the gate and starves grounding, as the Kasvu Labs case shows.
+2. **The instrument drifted more than the models.** Half of the apparent
+   language drift was my own router forcing English on code-heavy Finnish
+   questions; most of the rest was the under-anchored prompt, and the triple
+   anchor eliminated it for Poro entirely (85% to 100% on the honestly-routed
+   subset). What remains is qwen3's residual 92%.
+3. **A Finnish RAG needs three repairs, not one:** a language-anchored prompt
+   (done), a language router that survives code-heavy Finnish (open), and
+   Finnish-capable retrieval (open). The English embedder both drops questions
+   at the gate and starves grounding, as the Kasvu Labs case shows.
 4. **The deployment decision:** Poro plus drift mitigation for the Finnish
    path, and the current default model for English. Pick the best Finnish
    writer and patch its failure mode with architecture, rather than picking a
