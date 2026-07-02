@@ -61,7 +61,24 @@ PROJECT_ALIASES: dict[str, list[str]] = {
     "platform": ["platform"],
     "strudel-patterns": ["strudel-patterns", "strudel patterns", "strudel"],
     "claude-continue": ["claude-continue", "claude continue"],
-    "portfolio": ["portfolio", "mikkonumminen.dev", "mikkonumminen dev"],
+    # chat/RAG terms point at the portfolio: the RAG chat IS a portfolio artifact,
+    # and without these a "where does this chat run?" question retrieves other
+    # projects' deploy chunks (Vercel/Neon/Azure) and the model welds their hosting
+    # onto the chat — a measured live conflation. Finnish inflections listed
+    # explicitly because alias matching is word-boundary, not stemmed. Platform's
+    # own chat feature is unharmed: multi-detection unions the filters.
+    "portfolio": [
+        "portfolio",
+        "mikkonumminen.dev",
+        "mikkonumminen dev",
+        "rag",
+        "chat",
+        "chatti",
+        "chattia",
+        "chatin",
+        "chatissa",
+        "chatbot",
+    ],
 }
 
 # Flattened alias -> project_id for scanning. Built once at import.

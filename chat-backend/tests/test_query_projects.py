@@ -46,6 +46,28 @@ def test_two_readlogs_both_detected_when_distinct() -> None:
     }
 
 
+def test_chat_and_rag_point_at_the_portfolio() -> None:
+    # "Where does this chat run?" must filter to portfolio chunks — without the
+    # alias, other projects' deploy chunks (Vercel/Neon/Azure) reach the context
+    # and their hosting gets welded onto the chat (measured live conflation).
+    assert detect_projects("Where is this chat actually running / hosted?") == {
+        "portfolio"
+    }
+    assert detect_projects("how does the RAG ground its answers") == {"portfolio"}
+
+
+def test_finnish_chat_inflections_point_at_the_portfolio() -> None:
+    assert detect_projects("missä sä ajat tota chattia?") == {"portfolio"}
+    assert detect_projects("miten chatin haku toimii") == {"portfolio"}
+
+
+def test_platform_chat_detects_both_projects() -> None:
+    # Platform has a chat feature: naming both unions the filters, which only
+    # widens the allowed set — never excludes the asked-about project.
+    got = detect_projects("how does platform's chat work")
+    assert got == {"platform", "portfolio"}
+
+
 def test_detects_tech_ecosystem_aliases() -> None:
     # Ecosystem terms point at the project that uses them, so a question worded in
     # the user's vocabulary ("the microsoft stack") still retrieves the right
