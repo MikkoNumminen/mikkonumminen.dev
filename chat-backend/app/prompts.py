@@ -96,7 +96,8 @@ _ENGLISH_USER_DIRECTIVE = (
 
 # Finnish counterpart, prepended on the RAG_ALLOW_FINNISH path (mirrors the English belt).
 _FINNISH_USER_DIRECTIVE = (
-    "Vastaa VAIN suomeksi, vaikka konteksti on englanniksi. Kirjoita luontevaa suomea.\n\n"
+    "Vastaa VAIN suomeksi, vaikka konteksti on englanniksi. "
+    "Kirjoita luontevaa suomea.\n\n"
 )
 
 # Appended AFTER the context AND the question — the LAST thing the model reads
