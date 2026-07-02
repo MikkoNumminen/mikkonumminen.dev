@@ -254,7 +254,7 @@ def test_flag_on_routes_finnish_query_to_a_finnish_answer() -> None:
     system, user = msgs[0]["content"], msgs[-1]["content"]
     assert "ENTIRE reply in English" not in system
     assert "Respond ONLY in English" not in user
-    assert "samalla kielellä kuin kysymys" in user  # the Finnish closing anchor
+    assert "KOKO vastaus suomeksi" in user  # the Finnish closing anchor
 
 
 def test_flag_off_leaves_finnish_query_forced_to_english() -> None:
@@ -266,7 +266,7 @@ def test_flag_off_leaves_finnish_query_forced_to_english() -> None:
 def test_flag_on_does_not_affect_an_english_query() -> None:
     msgs = _llm_messages("What database does HRM use?", allow_finnish=True)
     assert "ENTIRE reply in English" in msgs[0]["content"]  # English query stays English
-    assert "samalla kielellä kuin kysymys" not in msgs[-1]["content"]
+    assert "KOKO vastaus suomeksi" not in msgs[-1]["content"]
 
 
 def test_flag_on_suppresses_english_hint_on_a_finnish_refusal() -> None:

@@ -85,6 +85,7 @@ def _synthesis(
     *,
     think: bool | None = None,
     runs: int = 1,
+    capture: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     cases = finnish_eval_cases(eval_set, allow_finnish=allow_finnish)
     answer_cases = sum(1 for c in cases if c.name.startswith("answer"))
@@ -93,7 +94,7 @@ def _synthesis(
     # spread across runs is the real signal (retrieval is deterministic — see below).
     syn_per_run: list[int] = []
     con_per_run: list[int] = []
-    for _ in range(runs):
+    for run_idx in range(runs):
         ap = rp = 0
         for c in cases:
             r = call_chat(base_url, c.message, 150.0, think=think)
@@ -105,6 +106,19 @@ def _synthesis(
                     "data as variance."
                 )
             ok, _ = c.check(r)
+            if capture is not None:
+                # The raw answer text is the Phase-E quality instrument's input
+                # (Voikko + blind human ranking); substantive is the bonus grounding
+                # signal from the same check the synthesis tally uses.
+                capture.append(
+                    {
+                        "question_id": c.name,
+                        "run": run_idx,
+                        "answer": r.text,
+                        "sources": r.sources,
+                        "substantive": ok,
+                    }
+                )
             if c.name.startswith("answer"):
                 ap += int(ok)
             else:
@@ -144,6 +158,12 @@ def main(argv: list[str] | None = None) -> int:
         help="how many times to repeat the synthesis eval (aggregate); part of the "
         "instrument fingerprint. Retrieval is deterministic, so it runs once.",
     )
+    ap.add_argument(
+        "--capture",
+        default="",
+        help="write captured answers (JSON list of {question_id, run, answer, sources, "
+        "substantive}) to this path — the raw input for Phase-E offline quality scoring.",
+    )
     args = ap.parse_args(argv)
 
     s = Settings.from_env()
@@ -157,9 +177,19 @@ def main(argv: list[str] | None = None) -> int:
     )
     queries = json.loads(eval_set.read_text(encoding="utf-8"))["queries"]
     retrieval = asyncio.run(_retrieval_rows(queries, s))
+    capture: list[dict[str, Any]] | None = [] if args.capture else None
     synth = _synthesis(
-        eval_set, args.base_url, s.rag_allow_finnish, think=think, runs=args.runs
+        eval_set,
+        args.base_url,
+        s.rag_allow_finnish,
+        think=think,
+        runs=args.runs,
+        capture=capture,
     )
+    if args.capture and capture is not None:
+        Path(args.capture).write_text(
+            json.dumps(capture, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
     out = {
         "fp_fields": {
             "top_k": s.retrieval_top_k,
