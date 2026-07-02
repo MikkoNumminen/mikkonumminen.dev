@@ -5,7 +5,7 @@ import { disposeMeasureSpan, echoPromptLine, makeContext, updateCursor } from '.
 import { runBoot } from './typing';
 import { History } from './history';
 import { handleCommand, tabComplete } from './dispatch';
-import { createChatRouter, startChatAvailabilityPolling } from './chat';
+import { createChatRouter, displayModelName, startChatAvailabilityPolling } from './chat';
 
 // Allow-list for values that may be sent to the clipboard via copy buttons.
 // Only email addresses and https:// URLs are permitted; anything else is silently
@@ -283,10 +283,13 @@ function setAiIndicator(
   if (!el) return;
   if (available) {
     // textContent only — the model name is a backend string, never an HTML sink.
-    el.textContent = model ? `● ai · ${model}` : '● ai';
+    // Badge shows the shortened name; the title keeps the full backend tag.
+    el.textContent = model ? `● ai · ${displayModelName(model)}` : '● ai';
+    el.title = model ?? '';
     el.hidden = false;
   } else {
     el.textContent = '';
+    el.title = '';
     el.hidden = true;
   }
 }

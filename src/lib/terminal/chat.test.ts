@@ -5,6 +5,7 @@ import {
   askChat,
   createSSEParser,
   disableChatForSession,
+  displayModelName,
   formatSourceRef,
   getChatBaseUrl,
   getSessionId,
@@ -47,6 +48,29 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe('displayModelName', () => {
+  it('shortens a registry-style GGUF tag to the bare model name', () => {
+    expect(
+      displayModelName('hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q4_K_M'),
+    ).toBe('Llama-Poro-2-8B-Instruct');
+  });
+
+  it('keeps short size-tagged names untouched', () => {
+    expect(displayModelName('qwen2.5:7b')).toBe('qwen2.5:7b');
+    expect(displayModelName('llama3.1:8b')).toBe('llama3.1:8b');
+  });
+
+  it('drops quant tags but keeps size tags', () => {
+    expect(displayModelName('some/model:IQ4_XS')).toBe('model');
+    expect(displayModelName('some/model:F16')).toBe('model');
+    expect(displayModelName('some/model:70b')).toBe('model:70b');
+  });
+
+  it('passes plain untagged names through', () => {
+    expect(displayModelName('gemma4')).toBe('gemma4');
+  });
 });
 
 describe('getChatBaseUrl', () => {
