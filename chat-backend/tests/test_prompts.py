@@ -82,8 +82,10 @@ def test_force_english_defaults_on() -> None:
 
 def test_answer_in_finnish_overrides_force_english() -> None:
     # RAG_ALLOW_FINNISH path: answer_in_finnish WINS over force_english — the English
-    # rule + directive are dropped and the positive Finnish closing anchor is the
-    # very last thing the model reads (recency), while grounding stays unconditional.
+    # rule + directive are dropped and Finnish is enforced with the same triple
+    # anchoring as English (system rule + user prefix + closing as the very last
+    # thing the model reads), while grounding stays unconditional. One anchor was
+    # measurably not enough: the English context pulls small models back to English.
     messages = build_messages(
         "kuka on mikko?", [], force_english=True, answer_in_finnish=True
     )
@@ -91,8 +93,11 @@ def test_answer_in_finnish_overrides_force_english() -> None:
     assert "ENTIRE reply in English" not in system
     assert "Respond ONLY in English" not in user
     assert "Write your entire reply in English" not in user
+    assert "ENTIRE reply in Finnish" in system  # Finnish system rule
+    assert user.startswith("Vastaa VAIN suomeksi")  # Finnish prefix
     assert "use ONLY the context above" in user  # grounding unconditional
-    assert user.rstrip().endswith("samalla kielellä kuin kysymys.")  # Finnish anchor
+    assert "KOKO vastaus suomeksi" in user  # Finnish closing anchor
+    assert user.rstrip().endswith("alkuperäisessä muodossaan.")  # closing is last
 
 
 def test_answer_in_finnish_false_keeps_english_forcing() -> None:
@@ -103,8 +108,10 @@ def test_answer_in_finnish_false_keeps_english_forcing() -> None:
     )
     user = messages[-1]["content"]
     assert "ENTIRE reply in English" in messages[0]["content"]
+    assert "ENTIRE reply in Finnish" not in messages[0]["content"]
     assert user.startswith("Respond ONLY in English")
-    assert "samalla kielellä kuin kysymys" not in user
+    assert "Vastaa VAIN suomeksi" not in user
+    assert "KOKO vastaus suomeksi" not in user
 
 
 def test_system_prompt_carries_injection_and_reveal_guard() -> None:

@@ -422,7 +422,7 @@ export const en: Translations = {
     cmdDownloadOptionSkills:
       'jun 2026 · latest + broadest — 16 skills, cold-vs-skill A/B across 3 models; the current snapshot',
     cmdDownloadOptionResearch:
-      'the research — 7 pdfs: the skills suite + the rag finnish study (not a download)',
+      'the research — 8 pdfs: the skills suite + the rag finnish study (not a download)',
     cmdDownloadResearchIntro: 'the catalog + the studies, oldest → newest:',
     cmdDownloadOptionCatalog:
       'every skill across all 4 repos — the inventory, with measured (not guessed) costs',
@@ -436,6 +436,8 @@ export const en: Translations = {
       'jun 2026 · the rag finnish experiment — 3 local 8B models on Finnish synthesis vs containment, single-variable, €0',
     cmdDownloadOptionMethodology:
       'jun 2026 · finnish rag, the methodology — how the experiment caught and corrected its own mistake; the process, not the findings',
+    cmdDownloadOptionBlindTest:
+      'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
     cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
     cmdDownloadTryHint:
       'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration`, or `download --finnish`.',
@@ -457,6 +459,8 @@ export const en: Translations = {
       'rag finnish study pdf not available right now — reach out and I will send it.',
     cmdDownloadMethodologyNotAvailable:
       'rag finnish methodology pdf not available right now — reach out and I will send it.',
+    cmdDownloadBlindTestNotAvailable:
+      'rag blind test pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'in the meantime, reach out:',
     cmdDownloadStarted: 'download started.',
     cmdClearDesc: 'clear the screen',

@@ -1,0 +1,472 @@
+{
+  "description": "Finnish-language QUALITY eval set (Phase E). ~30 must_retrieve Finnish questions chosen to elicit substantial Finnish PROSE. PRIMARY metric = Finnish linguistic quality (Voikko morphology/spelling + blind human naturalness ranking). The per-question fact checklist is a deterministic correctness FLOOR only (a hallucinating model must not win on style) — NOT the ranking. Distinct instrument from eval_set_fi.json.",
+  "queries": [
+    {
+      "id": "audiobookmaker-tts-engines",
+      "question": "Mitkä viisi puheentuotto-moottoria AudiobookMakerissa on käytössä, ja kumpi niistä toimii täysin ilman verkkoyhteyttä ilman GPU:ta?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/audiobookmaker.md"
+      ],
+      "category": "project-fact",
+      "facts": [
+        "Piper",
+        "Edge-TTS",
+        "Chatterbox",
+        "VoxCPM2",
+        "Qwen VoiceDesign"
+      ]
+    },
+    {
+      "id": "cc-1",
+      "question": "Mikä käytännön ongelma claude-continue-projektilla ratkaistaan, ja kenelle Mikko sen alun perin rakensi?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/claude-continue.md",
+        "narratives/claude-continue.md"
+      ],
+      "category": "project-fact",
+      "facts": [
+        "Claude Code",
+        "ccusage",
+        "Max"
+      ]
+    },
+    {
+      "id": "hrm-1",
+      "question": "Miksi HRM käyttää sekä PostgreSQL- että MongoDB-tietokantaa, ja miten auditlokin eheys varmistetaan?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/hrm.md",
+        "projects/hrm-architecture.md"
+      ],
+      "category": "project-fact",
+      "facts": [
+        "PostgreSQL",
+        "MongoDB",
+        "HMAC-SHA256",
+        "/api/audit/verify"
+      ]
+    },
+    {
+      "id": "platform-1",
+      "question": "Mikä Platform-projekti on, ja miten se liittyy HRM-projektiin?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/platform.md",
+        "projects/platform-architecture.md"
+      ],
+      "category": "project-fact",
+      "facts": [
+        "HRM",
+        "Turborepo",
+        "vuohiliitto.com",
+        "Next.js",
+        "PostgreSQL"
+      ]
+    },
+    {
+      "id": "portfolio-1",
+      "question": "Millä teknologioilla mikkonumminen.dev-portfoliosivusto on rakennettu, ja mihin se on julkaistu?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/portfolio.md",
+        "projects/portfolio-architecture.md"
+      ],
+      "category": "project-fact",
+      "facts": [
+        "Astro",
+        "Three.js",
+        "GSAP",
+        "TypeScript",
+        "Vercel"
+      ]
+    },
+    {
+      "id": "readlog-01",
+      "question": "Millä teknologiapinolla alkuperäinen ReadLog-sovellus on rakennettu ja missä se on julkaistu?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/readlog.md",
+        "projects/readlog-architecture.md"
+      ],
+      "category": "project-fact",
+      "facts": [
+        "Next.js",
+        "Prisma",
+        "PostgreSQL",
+        "Vercel"
+      ]
+    },
+    {
+      "id": "spacepotatis-build-speed-stack",
+      "question": "Kuinka nopeasti Spacepotatis rakennettiin tyhjästä repositoriosta julkaistuksi peliksi, ja mitä teknologioita sen renderöinti käyttää?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/spacepotatis.md"
+      ],
+      "category": "project-fact",
+      "facts": [
+        "475",
+        "Next.js",
+        "Phaser 4",
+        "Three.js"
+      ]
+    },
+    {
+      "id": "audiobookmaker-chatterbox-venv-isolation",
+      "question": "Miksi Chatterbox-moottorin PyTorch- ja CUDA-riippuvuudet on eristetty omaan virtuaaliympäristöön, ja minkä Python-version se käyttää?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/audiobookmaker-architecture.md",
+        "projects/audiobookmaker-deepdive.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "PyTorch",
+        "CUDA",
+        "Python 3.11"
+      ]
+    },
+    {
+      "id": "hrm-2",
+      "question": "Miten HRM korjasi superuser-bootstrapin race conditionin, jossa kaksi samanaikaista ensikirjautumista saattoi molemmat saada ylläpitäjän oikeudet?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/hrm-deepdive.md",
+        "narratives/hrm.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "SERIALIZABLE",
+        "TOCTOU",
+        "upsert",
+        "NextAuth"
+      ]
+    },
+    {
+      "id": "hrm-3",
+      "question": "Miten HRM:n nopeudenrajoitin estää kahden samanaikaisen pyynnön race conditionin ilman Redistä?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/hrm-deepdive.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "Redis",
+        "INSERT",
+        "RETURNING count",
+        "PostgreSQL"
+      ]
+    },
+    {
+      "id": "platform-2",
+      "question": "Miten käyttöoikeuksien muutokset välittyvät aktiivisiin istuntoihin Platformissa ilman uloskirjautumista?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/platform-deepdive.md",
+        "projects/platform-architecture.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "permissionsVersion",
+        "JWT",
+        "findUnique"
+      ]
+    },
+    {
+      "id": "platform-3",
+      "question": "Miten Platformin nopeudenrajoitus on toteutettu ilman Redisiä?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/platform-deepdive.md",
+        "projects/platform-architecture.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "Redis",
+        "PostgreSQL",
+        "ON CONFLICT DO UPDATE",
+        "RateLimit"
+      ]
+    },
+    {
+      "id": "portfolio-2",
+      "question": "Millä upotusmallilla ja vektoriulottuvuudella portfolion RAG-chatin haku toimii, ja mikä kielimalli tuottaa vastaukset oletuksena?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/portfolio-architecture.md",
+        "projects/portfolio-deepdive.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "bge-small-en-v1.5",
+        "384",
+        "qwen2.5:7b",
+        "pgvector"
+      ]
+    },
+    {
+      "id": "readlog-02",
+      "question": "Mikä bugi liittyi unstable_cache-välimuistiin ja päivämäärien serialisointiin ReadLogissa, ja miten se korjattiin?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/readlog-deepdive.md",
+        "narratives/readlog.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "unstable_cache",
+        "toISOString",
+        "Date",
+        "JSON"
+      ]
+    },
+    {
+      "id": "spacepotatis-kysely-vs-prisma",
+      "question": "Miksi Spacepotatis-projektissa valittiin Kysely Prisman sijaan tietokantakerrokseksi?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/spacepotatis-architecture.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "Kysely",
+        "Prisma",
+        "Edge",
+        "ADR 0002"
+      ]
+    },
+    {
+      "id": "strudel-patterns-03-fake-sidechain",
+      "question": "Miten StrudelForgessa simuloidaan sidechain-kompressiota ilman oikeaa sidechain-signaalia?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/strudel-patterns-deepdive.md",
+        "narratives/strudel-patterns.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "sine.range(0.18, 0.42)",
+        ".fast(4)",
+        "7 dB",
+        "LFO"
+      ]
+    },
+    {
+      "id": "rag-fi-1",
+      "question": "Mitä kolmea kielimallia Mikko vertaili suomenkielisessä RAG-kokeessa, ja kuinka suuri konteksti-ikkuna niillä kaikilla oli käytössä?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "posts/rag-finnish-experiment.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "qwen3:8b",
+        "llama3.1:8b",
+        "Poro-2-8B",
+        "8192"
+      ]
+    },
+    {
+      "id": "readlog-04",
+      "question": "Mikä tietoturvaongelma rikkoi Google-kirjautumisen ReadLog .NET -sovelluksessa, ja miten se korjattiin?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "narratives/readlog-dotnet.md",
+        "projects/readlog-dotnet-architecture.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "CSP",
+        "form-action",
+        "accounts.google.com",
+        "PR #24"
+      ]
+    },
+    {
+      "id": "strudel-patterns-02-cpm-bpm-bug",
+      "question": "StrudelForgessa oli aluksi sekaannus cpm:n ja BPM:n välillä — miten tämä bugi löydettiin ja miten se korjattiin?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/strudel-patterns-deepdive.md",
+        "narratives/strudel-patterns.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "cpm",
+        "BPM",
+        "CLAUDE.md"
+      ]
+    },
+    {
+      "id": "spacepotatis-may-2026-save-wipe",
+      "question": "Mikä aiheutti Spacepotatisin toukokuun 2026 tallennuskadon, ja millä toimenpiteillä se korjattiin?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/spacepotatis-deepdive.md",
+        "narratives/spacepotatis.md"
+      ],
+      "category": "deep-tech",
+      "facts": [
+        "validateNoRegression",
+        "save_audit",
+        "save_snapshots",
+        "2026-05-02"
+      ]
+    },
+    {
+      "id": "audiobookmaker-pdf-parser-unicode-fn",
+      "question": "Mikä funktio tiedostossa pdf_parser.py poistaa PDF:stä puretun tekstin nollan levyiset Unicode-merkit ennen lauseenjakoa?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/audiobookmaker-deepdive.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "pdf_parser.py",
+        "_normalize_unicode_whitespace",
+        "clean_text",
+        "U+200B"
+      ]
+    },
+    {
+      "id": "audiobookmaker-process-lock-module",
+      "question": "Mikä moduuli estää kahta raskasta GPU-alaprosessia käymästä AudiobookMakerissa samanaikaisesti, ja mitä lukitusmekanismeja se käyttää Windowsilla ja POSIX-järjestelmissä?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/audiobookmaker-architecture.md",
+        "projects/audiobookmaker-deepdive.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "process_lock.py",
+        "fcntl.flock",
+        "msvcrt.locking",
+        "LockHeld"
+      ]
+    },
+    {
+      "id": "cc-5",
+      "question": "Miten Windowsin natiivi continue-injektiopolku toimittaa komennon Claude-prosesseille ilman että mikään ikkuna varastaa fokuksen — mitä Windows-rajapintoja siinä käytetään?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/claude-continue-architecture.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "AttachConsole",
+        "WriteConsoleInput",
+        "CreateFileW"
+      ]
+    },
+    {
+      "id": "hrm-4",
+      "question": "Mitkä tiedostot poistivat HRM:n REVIEW.md-katselmuksessa havaitun toistuvan permission- ja audit-koodin (DRY-03 ja DRY-04)?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/hrm-deepdive.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "src/lib/guardedAction.ts",
+        "src/lib/auditedTransaction.ts",
+        "DRY-03",
+        "DRY-04"
+      ]
+    },
+    {
+      "id": "platform-4",
+      "question": "Mitä guardedAction-funktio tekee tiedostossa lib/guardedAction.ts, ja miten lib/dm-actions.ts poikkeaa siitä?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/platform-deepdive.md",
+        "projects/platform-architecture.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "guardedAction",
+        "lib/guardedAction.ts",
+        "lib/dm-actions.ts",
+        "dm:send"
+      ]
+    },
+    {
+      "id": "spacepotatis-webgl-context-invariant",
+      "question": "Miten SceneRig.dispose() ja forceContextLoss() liittyvät toisiinsa Spacepotatisin WebGL-kontekstinhallinnassa, ja miksi galaksinäkymän canvas avataan currentSolarSystemId-arvolla?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/spacepotatis-deepdive.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "SceneRig",
+        "forceContextLoss()",
+        "currentSolarSystemId",
+        "GameCanvas.tsx"
+      ]
+    },
+    {
+      "id": "readlog-03",
+      "question": "Missä tiedostossa deduplicateResults-funktio sijaitsee ReadLogissa, ja millä periaatteella se poistaa duplikaatit kirjahakutuloksista?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/readlog-architecture.md",
+        "projects/readlog-deepdive.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "src/lib/actions.ts",
+        "deduplicateResults",
+        "google:",
+        "manual:"
+      ]
+    },
+    {
+      "id": "strudel-patterns-04-export-metadata-keys",
+      "question": "Mitkä metadata-avaimet scripts/export.js tunnistaa ja poistaa kappaletiedostojen otsikoista?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/strudel-patterns-architecture.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "scripts/export.js",
+        "Genre",
+        "Tempo",
+        "BPM",
+        "Description"
+      ]
+    },
+    {
+      "id": "rag-fi-2",
+      "question": "Minkä feature-flagin taakse suomen kielen tuki toteutettiin RAG-chatissa, ja mitkä deterministiset portit eivät havaitse suomea?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "posts/rag-finnish-experiment.md"
+      ],
+      "category": "code-heavy",
+      "facts": [
+        "RAG_ALLOW_FINNISH",
+        "looks_finnish",
+        "is_generative",
+        "is_translation"
+      ]
+    },
+    {
+      "id": "cv-1",
+      "question": "Missä yrityksessä Mikko sai ensimmäisen palkallisen ohjelmointityönsä, ja millä teknologioilla siellä työskenneltiin?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "cv",
+      "facts": [
+        "Kasvu Labs Oy",
+        "Node.js",
+        "React",
+        "2022"
+      ]
+    }
+  ]
+}

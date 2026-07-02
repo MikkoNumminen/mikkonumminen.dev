@@ -16,6 +16,7 @@ const REPLICATES_PDF_PATH = '/skills-optim-study-replicates.pdf';
 const RESULTS_PDF_PATH = '/skills-results.pdf';
 const FINNISH_STUDY_PDF_PATH = '/rag-finnish-experiment.pdf';
 const METHODOLOGY_PDF_PATH = '/rag-finnish-methodology.pdf';
+const BLIND_TEST_PDF_PATH = '/rag-finnish-blind-test.pdf';
 
 /**
  * Print one project's "file" — the scripted alternative to asking the RAG about
@@ -246,6 +247,14 @@ export function buildCommands(
             url: METHODOLOGY_PDF_PATH,
             filename: 'rag-finnish-methodology.pdf',
             notAvailableMsg: tt.cmdDownloadMethodologyNotAvailable,
+          },
+          {
+            flag: '--blindtest',
+            tier: 'research',
+            label: tt.cmdDownloadOptionBlindTest,
+            url: BLIND_TEST_PDF_PATH,
+            filename: 'rag-finnish-blind-test.pdf',
+            notAvailableMsg: tt.cmdDownloadBlindTestNotAvailable,
           },
         ];
 
