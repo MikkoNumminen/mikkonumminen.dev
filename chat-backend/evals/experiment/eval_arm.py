@@ -162,7 +162,10 @@ def main(argv: list[str] | None = None) -> int:
         "--capture",
         default="",
         help="write captured answers (JSON list of {question_id, run, answer, sources, "
-        "substantive}) to this path — the raw input for Phase-E offline quality scoring.",
+        "substantive}) to this path — the raw input for offline quality scoring. "
+        "question_id is the CASE name ('answer[lang]/<id>' or 'refuse/<id>'), not the "
+        "bare eval-set id: the [lang] tag records how the language router actually "
+        "routed the question, which downstream analysis needs.",
     )
     args = ap.parse_args(argv)
 
