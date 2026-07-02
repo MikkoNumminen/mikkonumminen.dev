@@ -43,8 +43,11 @@ def looks_non_english(query: str) -> bool:
 
 
 # Finnish-language markers — common function words flanked by spaces, so they match
-# whole words not substrings. Two independent signals (function words + ä/ö) so one
-# stray loanword can't trip it.
+# whole words not substrings (the text is space-padded before matching, so a
+# sentence-INITIAL marker like "kerro ..." counts too — the old form silently never
+# matched the first word). Query-opening words (kerro/mitä/miten/…) dominate real
+# chat questions, so they are first-class markers. Two independent signals
+# (function words + ä/ö) so one stray loanword can't trip it.
 _FINNISH_MARKERS = (
     " on ",
     " ja ",
@@ -58,22 +61,77 @@ _FINNISH_MARKERS = (
     " tai ",
     " mutta ",
     " kä",
+    " kerro ",
+    " jotain ",
+    " mitä ",
+    " mikä ",
+    " mitkä ",
+    " miksi ",
+    " miten ",
+    " kuinka ",
+    " kuka ",
+    " mistä ",
+    " missä ",
+    " milloin ",
+    " onko ",
+    " ilman ",
+    " kuten ",
+    " myös ",
+    " hänen ",
 )
+
+# Finnish case-suffix endings on longer words (projekteista, Redistä, tiedostossa…).
+# A code-heavy Finnish question can carry zero marker words and few diacritics while
+# its inflections still scream Finnish — this is the signal the ä/ö heuristic missed
+# on 15/30 questions in the blind study. Endings picked to avoid common English/
+# Swedish word tails; matched only on words of ≥5 letters for the same reason.
+# All endings are the same length and mutually exclusive, so one token can match
+# at most one — the distinct-endings rule below counts words, never double-counts.
+_FINNISH_SUFFIXES = (
+    "sta",
+    "stä",
+    "ssa",
+    "ssä",
+    "lla",
+    "llä",
+    "lta",
+    "ltä",
+    "ksi",
+    "iin",
+)
+_MIN_SUFFIX_WORD = 5
 
 
 def looks_finnish(text: str) -> bool:
-    """True when the text reads as Finnish: at least two Finnish function-word
-    markers OR at least four ä/ö diacritics.
+    """True when the text reads as Finnish: two function-word markers, four ä/ö
+    diacritics, two case-suffix words, or one marker + one case-suffix word.
 
     The SINGLE shared definition for both the pipeline's Finnish answer-path routing
     (when RAG_ALLOW_FINNISH is on) and the acceptance harness's language assertion —
     so routing and the test can never disagree on the same text (an ASCII-only
     Finnish query that routes to English is also judged not-Finnish by the check, not
     a spurious failure)."""
-    low = text.lower()
+    # Fold punctuation to spaces and pad, so markers match at sentence edges and
+    # against "mitä?"-style tokens; keep ä/ö (and other letters) intact.
+    low = " " + "".join(c if c.isalpha() else " " for c in text.lower()) + " "
     words = sum(1 for w in _FINNISH_MARKERS if w in low)
     diacritics = sum(low.count(c) for c in ("ä", "ö"))
-    return words >= 2 or diacritics >= 4
+    endings = [
+        ending
+        for token in low.split()
+        if len(token) >= _MIN_SUFFIX_WORD
+        for ending in _FINNISH_SUFFIXES
+        if token.endswith(ending)
+    ]
+    # The suffix-only path needs two DISTINCT endings: English can double one tail
+    # ("umbrella fella"), but varied Finnish case endings in one sentence cannot be
+    # faked by a loanword pair.
+    return (
+        words >= 2
+        or diacritics >= 4
+        or len(set(endings)) >= 2
+        or (words >= 1 and len(endings) >= 1)
+    )
 
 
 # Templated replies for the no-LLM small-talk fast path. A greeting or a thanks is

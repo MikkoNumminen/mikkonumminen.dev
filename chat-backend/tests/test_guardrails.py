@@ -75,6 +75,16 @@ def test_looks_non_english_false_for_ascii_english(query: str) -> None:
         # both trip the threshold (>=2 function-word markers OR >=4 ä/ö)
         "Miten HRM pitää käyttöoikeudet ajan tasalla, ja mikä on kompromissi?",
         "Mitkä projektit käyttävät PostgreSQL:ää, ja onko jokin joka valitsi toisin?",
+        # the case that motivated the router upgrade: zero diacritics, and the old
+        # space-flanked markers never matched a sentence-INITIAL word
+        "kerro jotain projekteista",
+        "Kerro projekteista tarkemmin.",
+        # code-heavy Finnish from the blind study's eval set that the old ä/ö
+        # heuristic force-routed to English (marker + case suffix now catches it)
+        "Miten HRM:n nopeudenrajoitin estää kahden samanaikaisen pyynnön race "
+        "conditionin ilman Redistä?",
+        # marker-less but two distinct case endings
+        "Kysymys tiedostossa mainituista projekteista",
     ],
 )
 def test_looks_finnish_true_for_finnish(text: str) -> None:
@@ -86,6 +96,14 @@ def test_looks_finnish_true_for_finnish(text: str) -> None:
     [
         "How does HRM keep JWT permissions fresh without a database round-trip?",
         "What TTS engines does AudiobookMaker use, and does it clone voices?",
+        # English words with Finnish-looking tails must not trip the suffix path:
+        # one suffixed word alone is never enough...
+        "does the vanilla installer work offline?",
+        # ...and a doubled tail is one DISTINCT ending, not two
+        "that umbrella fella again",
+        # Swedish stays out (its ä/ö density is below the threshold and its
+        # suffixes differ)
+        "berätta mer om projekten",
     ],
 )
 def test_looks_finnish_false_for_english(text: str) -> None:
