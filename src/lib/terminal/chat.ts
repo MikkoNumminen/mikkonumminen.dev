@@ -179,6 +179,24 @@ export interface HealthProbe {
 }
 
 /**
+ * Shorten a backend model tag for the prompt badge. Registry-style Ollama tags
+ * (`hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q4_K_M`) overflow the
+ * prompt line, so drop the registry path, a trailing `-GGUF` marker, and a
+ * quantization tag — while keeping short size tags (`qwen2.5:7b` stays as-is),
+ * which carry real information. The full tag belongs in the tooltip.
+ */
+export function displayModelName(model: string): string {
+  const base = model.split('/').pop() ?? model;
+  const colon = base.lastIndexOf(':');
+  let name = colon === -1 ? base : base.slice(0, colon);
+  const tag = colon === -1 ? '' : base.slice(colon + 1);
+  name = name.replace(/-GGUF$/i, '');
+  // Quant codes (Q4_K_M, IQ4_XS, F16, BF16…) are noise in a badge; size tags are not.
+  const isQuant = /^(i?q\d|f(16|32)|bf16)/i.test(tag);
+  return tag && !isQuant ? `${name}:${tag}` : name;
+}
+
+/**
  * Probe `${baseUrl}/health` for whether free chat should be enabled AND which
  * model is answering.
  *
