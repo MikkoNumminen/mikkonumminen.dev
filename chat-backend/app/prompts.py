@@ -121,10 +121,17 @@ _CLOSING_ENGLISH = (
 # Finnish answer. Mirrors _CLOSING_ENGLISH as the LAST thing the model reads:
 # merely DROPPING the English directives lets a small model drift back to English,
 # so an explicit Finnish recency anchor is needed to hold it in Finnish.
+# The grounded-refusal rule must exist IN FINNISH too: with only the English
+# refusal instruction, a Finnish-anchored answer pads with invented detail instead
+# of declining (measured in the QA battery: fabricated model and flag names).
 _CLOSING_FINNISH = (
     " Kirjoita KOKO vastaus suomeksi, luontevalla yleiskielellä, vaikka yllä oleva "
     "konteksti on englanniksi. Säilytä vain erisnimet, tuote- ja kirjastonimet sekä "
-    "koodimerkinnät (esim. PostgreSQL, Kysely, num_predict) alkuperäisessä muodossaan."
+    "koodimerkinnät (esim. PostgreSQL, Kysely, num_predict) alkuperäisessä muodossaan. "
+    "Jos konteksti ei kata kysymystä, sano suoraan ettei sinulla ole siitä tietoa. "
+    "Jos kysymys ei koske Mikkoa tai hänen töitään, kieltäydy lyhyesti äläkä kerro "
+    "Mikosta mitään sen sijaan. "
+    "Älä arvaa äläkä täydennä vastausta kontekstin ulkopuolisella tiedolla."
 )
 
 # Optional reasoning-control directive, appended to the SYSTEM prompt (never the user
