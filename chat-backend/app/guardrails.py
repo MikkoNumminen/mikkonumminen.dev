@@ -78,6 +78,9 @@ _FINNISH_MARKERS = (
     " kuten ",
     " myös ",
     " hänen ",
+    " tämä ",
+    " nämä ",
+    " sen ",
 )
 
 # Finnish case-suffix endings on longer words (projekteista, Redistä, tiedostossa…).
@@ -125,12 +128,14 @@ def looks_finnish(text: str) -> bool:
     ]
     # The suffix-only path needs two DISTINCT endings: English can double one tail
     # ("umbrella fella"), but varied Finnish case endings in one sentence cannot be
-    # faked by a loanword pair.
+    # faked by a loanword pair. A single marker also counts when the text carries
+    # ä/ö ("Miten tämä chat toimii?") — English essentially never does.
     return (
         words >= 2
         or diacritics >= 4
         or len(set(endings)) >= 2
         or (words >= 1 and len(endings) >= 1)
+        or (words >= 1 and diacritics >= 2)
     )
 
 

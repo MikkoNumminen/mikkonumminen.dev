@@ -97,7 +97,8 @@ def test_answer_in_finnish_overrides_force_english() -> None:
     assert user.startswith("Vastaa VAIN suomeksi")  # Finnish prefix
     assert "use ONLY the context above" in user  # grounding unconditional
     assert "KOKO vastaus suomeksi" in user  # Finnish closing anchor
-    assert user.rstrip().endswith("alkuperäisessä muodossaan.")  # closing is last
+    assert "sano suoraan ettei sinulla ole siitä tietoa" in user  # Finnish refusal rule
+    assert user.rstrip().endswith("ulkopuolisella tiedolla.")  # closing is last
 
 
 def test_answer_in_finnish_false_keeps_english_forcing() -> None:

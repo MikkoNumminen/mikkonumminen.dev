@@ -85,6 +85,9 @@ def test_looks_non_english_false_for_ascii_english(query: str) -> None:
         "conditionin ilman Redistä?",
         # marker-less but two distinct case endings
         "Kysymys tiedostossa mainituista projekteista",
+        # one marker + ä/ö — the everyday phrasing an anchor-less path answered
+        # in English in the QA battery
+        "Miten tämä chat toimii?",
     ],
 )
 def test_looks_finnish_true_for_finnish(text: str) -> None:
