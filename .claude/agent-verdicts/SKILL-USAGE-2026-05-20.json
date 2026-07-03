@@ -1,0 +1,232 @@
+{
+  "generated_at": "2026-05-20T22:27:03.345Z",
+  "window_days": 90,
+  "projects_scanned": 7,
+  "sessions_scanned": 732,
+  "attributed_assistant_messages": 2631,
+  "skills": [
+    {
+      "name": "review",
+      "invocations": 13,
+      "tokens_per_use_avg": 1097070,
+      "uses_per_year": 53,
+      "total_tokens_in_window": 14261912,
+      "annual_total": 58144710,
+      "sample_session_ids": [
+        "3b219a03-2024-4372-b270-a13237480b7e",
+        "4a938199-6bea-4ec0-b86f-901ab6faa515",
+        "6e537f60-3404-4bc0-b9c9-fd3d1a6c340d",
+        "89216c3d-52b2-4763-a770-fd7502176a12",
+        "de3894ce-bc85-4172-b059-a8a4077c594c"
+      ],
+      "last_invoked": "2026-05-20T22:20:08.798Z"
+    },
+    {
+      "name": "mikko-help",
+      "invocations": 2,
+      "tokens_per_use_avg": 643859,
+      "uses_per_year": 8,
+      "total_tokens_in_window": 1287718,
+      "annual_total": 5150872,
+      "sample_session_ids": [
+        "de3894ce-bc85-4172-b059-a8a4077c594c",
+        "c4067329-a392-4890-8eb3-d1941325463b"
+      ],
+      "last_invoked": "2026-05-20T22:26:16.795Z"
+    },
+    {
+      "name": "equipment",
+      "invocations": 2,
+      "tokens_per_use_avg": 401321,
+      "uses_per_year": 8,
+      "total_tokens_in_window": 802642,
+      "annual_total": 3210568,
+      "sample_session_ids": [
+        "a36d05d7-450e-41ca-9d2c-602c40a5d2de",
+        "ac357e75-ba76-4889-af17-2d9295c3b5df"
+      ],
+      "last_invoked": "2026-05-03T23:18:22.958Z"
+    },
+    {
+      "name": "mikko-audit",
+      "invocations": 1,
+      "tokens_per_use_avg": 670481,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 670481,
+      "annual_total": 2681924,
+      "sample_session_ids": [
+        "ac357e75-ba76-4889-af17-2d9295c3b5df"
+      ],
+      "last_invoked": "2026-05-20T05:06:26.454Z"
+    },
+    {
+      "name": "audit",
+      "invocations": 1,
+      "tokens_per_use_avg": 434907,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 434907,
+      "annual_total": 1739628,
+      "sample_session_ids": [
+        "3b219a03-2024-4372-b270-a13237480b7e"
+      ],
+      "last_invoked": "2026-05-19T15:20:19.354Z"
+    },
+    {
+      "name": "ai-codegen-smell-audit",
+      "invocations": 1,
+      "tokens_per_use_avg": 199437,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 199437,
+      "annual_total": 797748,
+      "sample_session_ids": [
+        "3b219a03-2024-4372-b270-a13237480b7e"
+      ],
+      "last_invoked": "2026-05-17T03:24:06.864Z"
+    },
+    {
+      "name": "release-cut",
+      "invocations": 1,
+      "tokens_per_use_avg": 188263,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 188263,
+      "annual_total": 753052,
+      "sample_session_ids": [
+        "4a938199-6bea-4ec0-b86f-901ab6faa515"
+      ],
+      "last_invoked": "2026-05-12T02:05:50.511Z"
+    },
+    {
+      "name": "sync-readmes",
+      "invocations": 1,
+      "tokens_per_use_avg": 118653,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 118653,
+      "annual_total": 474612,
+      "sample_session_ids": [
+        "c168355a-2563-4dbf-89bc-f36cc21f96aa"
+      ],
+      "last_invoked": "2026-05-18T23:37:46.034Z"
+    },
+    {
+      "name": "skill-registry",
+      "invocations": 1,
+      "tokens_per_use_avg": 82778,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 82778,
+      "annual_total": 331112,
+      "sample_session_ids": [
+        "397c4ce8-dcec-4a2e-a4ce-c46cc23397ec"
+      ],
+      "last_invoked": "2026-05-19T01:54:26.339Z"
+    },
+    {
+      "name": "update-config",
+      "invocations": 1,
+      "tokens_per_use_avg": 56633,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 56633,
+      "annual_total": 226532,
+      "sample_session_ids": [
+        "397c4ce8-dcec-4a2e-a4ce-c46cc23397ec"
+      ],
+      "last_invoked": "2026-05-18T00:10:02.779Z"
+    },
+    {
+      "name": "new-story",
+      "invocations": 1,
+      "tokens_per_use_avg": 55548,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 55548,
+      "annual_total": 222192,
+      "sample_session_ids": [
+        "ac357e75-ba76-4889-af17-2d9295c3b5df"
+      ],
+      "last_invoked": "2026-04-30T01:46:25.129Z"
+    },
+    {
+      "name": "content-audit",
+      "invocations": 1,
+      "tokens_per_use_avg": 53168,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 53168,
+      "annual_total": 212672,
+      "sample_session_ids": [
+        "ac357e75-ba76-4889-af17-2d9295c3b5df"
+      ],
+      "last_invoked": "2026-05-03T14:50:45.688Z"
+    },
+    {
+      "name": "mikko-skill-usage",
+      "invocations": 2,
+      "tokens_per_use_avg": 13259,
+      "uses_per_year": 8,
+      "total_tokens_in_window": 26518,
+      "annual_total": 106072,
+      "sample_session_ids": [
+        "de3894ce-bc85-4172-b059-a8a4077c594c",
+        "c4067329-a392-4890-8eb3-d1941325463b"
+      ],
+      "last_invoked": "2026-05-20T22:26:56.382Z"
+    },
+    {
+      "name": "save-roundtrip-audit",
+      "invocations": 1,
+      "tokens_per_use_avg": 18587,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 18587,
+      "annual_total": 74348,
+      "sample_session_ids": [
+        "ac357e75-ba76-4889-af17-2d9295c3b5df"
+      ],
+      "last_invoked": "2026-05-03T14:44:59.162Z"
+    },
+    {
+      "name": "copyright-scan",
+      "invocations": 1,
+      "tokens_per_use_avg": 13881,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 13881,
+      "annual_total": 55524,
+      "sample_session_ids": [
+        "6e537f60-3404-4bc0-b9c9-fd3d1a6c340d"
+      ],
+      "last_invoked": "2026-05-12T03:01:51.715Z"
+    },
+    {
+      "name": "mikko-skills",
+      "invocations": 1,
+      "tokens_per_use_avg": 11412,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 11412,
+      "annual_total": 45648,
+      "sample_session_ids": [
+        "de3894ce-bc85-4172-b059-a8a4077c594c"
+      ],
+      "last_invoked": "2026-05-20T14:53:15.974Z"
+    },
+    {
+      "name": "pre-push-scan",
+      "invocations": 1,
+      "tokens_per_use_avg": 10779,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 10779,
+      "annual_total": 43116,
+      "sample_session_ids": [
+        "6e537f60-3404-4bc0-b9c9-fd3d1a6c340d"
+      ],
+      "last_invoked": "2026-05-12T03:00:26.743Z"
+    },
+    {
+      "name": "commit-then-scan",
+      "invocations": 1,
+      "tokens_per_use_avg": 9943,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 9943,
+      "annual_total": 39772,
+      "sample_session_ids": [
+        "6e537f60-3404-4bc0-b9c9-fd3d1a6c340d"
+      ],
+      "last_invoked": "2026-05-12T02:58:40.377Z"
+    }
+  ]
+}
