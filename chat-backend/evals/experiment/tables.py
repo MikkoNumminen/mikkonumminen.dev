@@ -42,6 +42,31 @@ def render_delta_table(deltas: Sequence[dict[str, Any]]) -> str:
     return "\n\n".join(out)
 
 
+def render_results_md(
+    name: str,
+    instr_fp: str,
+    runs: int,
+    arms: Sequence[dict[str, Any]],
+    deltas: Sequence[dict[str, Any]],
+) -> str:
+    """The ONE results.md renderer — every path that emits results renders through
+    this. For runs > 1 a stochastic result MUST render with its variance band and the
+    runs= header, never as a bare aggregate that reads like a hard number."""
+    variance = (
+        "\n\n## per-cell variance (runs > 1)\n\n" + render_variance_table(arms)
+        if runs > 1
+        else ""
+    )
+    return (
+        f"# {name}  (instrument {instr_fp}, runs={runs})\n\n"
+        + render_arm_table(arms)
+        + variance
+        + "\n\n## single-axis deltas\n\n"
+        + (render_delta_table(deltas) or "(no comparable pairs)")
+        + "\n"
+    )
+
+
 def cell_stats(per_run: Sequence[int], cases: Any) -> dict[str, Any]:
     """Mean + spread for a STOCHASTIC cell across runs. A 1-run cell collapses to a
     point (min==max==mean). Deterministic cells (retrieval) are never passed here."""

@@ -3,19 +3,19 @@
 For each cell of the config's matrix it: swaps the one resident model/embedder
 (re-embedding the corpus, deterministically, if the embedder axis moved), observes
 and asserts the effective lock, records VRAM + real token counts, runs retrieval
-(zero-token) + the synthesis generations, computes the AS-EXECUTED arm_fingerprint,
-and persists the arm by that fingerprint.
+(zero-token) + the synthesis generations — then hands the measurements to the shared
+`assembly` core, which computes the AS-EXECUTED fingerprints, generates ONLY the
+guarded single-axis comparable pairs (FIX B: a confounded/diagonal pair can never be
+produced — the guard rejects it on the data path, before any delta is built), and
+renders the results. delta.py / tables.py render what the assembly hands them; they
+do not select comparisons.
 
-THEN it generates the comparable pairs itself (FIX B): it calls
-fingerprint.assert_comparable across cells and emits ONLY single-axis pairs (an
-embedder delta at fixed model; a model delta at fixed embedder). Diagonal/confounded
-pairs are never produced — the guard rejects them here, on the data path, before any
-delta is built. delta.py / tables.py render what the runner hands them; they do not
-select comparisons.
+The runbook path (`report.assemble`, fed from disk eval_arm JSON) feeds the SAME
+assembly core, so the two paths cannot drift.
 
 The swap + per-arm eval are injected via the `Arm` protocol, so the deterministic
-orchestration (budget, cell loop, lock-assert, pair generation) is unit-testable
-without a GPU. The live implementation is wired for Phase 3's reproduction run.
+orchestration (budget, cell loop, lock-assert) is unit-testable without a GPU. The
+live implementation is wired for Phase 3's reproduction run.
 """
 
 from __future__ import annotations
@@ -24,16 +24,13 @@ import json
 from pathlib import Path
 from typing import Any, Protocol
 
+from . import assembly as assembly_mod
 from . import config as config_mod
-from . import delta as delta_mod
 from . import lock as lock_mod
-from . import tables as tables_mod
-from .fingerprint import (
-    AXIS_KEYS,
-    arm_fingerprint,
-    assert_comparable,
-    instrument_fingerprint,
-)
+from .assembly import Measurement, comparable_pairs
+from .fingerprint import AXIS_KEYS
+
+__all__ = ["Arm", "comparable_pairs", "run"]
 
 
 class Arm(Protocol):
@@ -47,25 +44,6 @@ class Arm(Protocol):
         ...
 
 
-def comparable_pairs(
-    arms: list[dict[str, Any]], sweep_axes: list[str]
-) -> list[tuple[int, int, str]]:
-    """Every (i, j, axis) such that arms i and j form a valid single-axis delta on
-    `axis`. The guard does the selecting: a pair differing on >1 axis raises on every
-    axis (excluded); a pair differing on exactly one swept axis passes for that axis
-    only. Confounded/diagonal pairs can never appear in the output."""
-    pairs = []
-    for i in range(len(arms)):
-        for j in range(i + 1, len(arms)):
-            for axis in sweep_axes:
-                try:
-                    assert_comparable(arms[i]["fp_fields"], arms[j]["fp_fields"], axis)
-                    pairs.append((i, j, axis))
-                except AssertionError:
-                    continue
-    return pairs
-
-
 def run(
     cfg: config_mod.ExperimentConfig,
     manifest: dict[str, Any],
@@ -74,17 +52,7 @@ def run(
     runs_dir: Path,
     n_questions: int,
 ) -> dict[str, Any]:
-    prompt_sha = manifest["instrument"]["static_lock_params"]["prompt_template_sha"][
-        "value"
-    ]
-    eval_sha = next(
-        (
-            e["content_sha"]
-            for e in manifest["eval_sets"]
-            if e["path"] == cfg.eval_set_path
-        ),
-        None,
-    )
+    prompt_sha, eval_sha = assembly_mod.manifest_shas(manifest, cfg.eval_set_path)
     declared_lock = lock_mod.lock_fields(cfg.lock, prompt_sha)
 
     cells = cfg.cells()
@@ -94,52 +62,22 @@ def run(
         f"= {budget} generations (the ONLY token cost). sweep={cfg.sweep_axes()}"
     )
 
-    arms: list[dict[str, Any]] = []
+    measurements: list[Measurement] = []
     for cell in cells:
         arm.swap(cell)
         m = arm.measure(cfg.eval_set_path)
-        # LOCK on the data path: abort before recording if the stack drifted.
+        # LOCK fail-fast on the live path: a drifted stack must abort BEFORE the next
+        # arm's generations are spent, not after the whole matrix has run. The shared
+        # assembly re-asserts the same guard when it builds the arms.
         lock_mod.assert_effective(declared_lock, m["observed_lock"])
-        fp_fields = {
-            **declared_lock,
-            "eval_set_sha": eval_sha,
-            "runs": cfg.runs,
-            **cell,
-            "options": cfg.cell_options(cell),
-        }
-        arms.append(
-            {
-                "cell": cell,
-                "fp_fields": fp_fields,
-                "arm_fp": arm_fingerprint(fp_fields),
-                "vram_mb": m.get("vram_mb"),
-                "retrieval": m["retrieval"],
-                "synthesis": m.get("synthesis", {}),
-                "containment": m.get("containment", {}),
-            }
-        )
+        measurements.append((cell, m))
 
-    instr_fp = instrument_fingerprint(
-        {**declared_lock, "eval_set_sha": eval_sha, "runs": cfg.runs}
-    )
-    out_dir = runs_dir / cfg.name / instr_fp
+    assembled = assembly_mod.assemble(cfg, manifest, measurements)
+    arms = assembled["arms"]
+    pairs = assembled["pairs"]
+
+    out_dir = runs_dir / cfg.name / assembled["instrument_fingerprint"]
     out_dir.mkdir(parents=True, exist_ok=True)
-
-    # FIX B: the runner generates the single-axis comparable pairs (guarded).
-    pairs = comparable_pairs(arms, cfg.sweep_axes())
-    deltas = []
-    for i, j, axis in pairs:
-        a_lbl = arms[i]["cell"][axis]
-        b_lbl = arms[j]["cell"][axis]
-        deltas.append(
-            delta_mod.parallel_delta(
-                arms[i]["retrieval"],
-                arms[j]["retrieval"],
-                label_a=a_lbl,
-                label_b=b_lbl,
-                axis=axis,
-            )
-        )
 
     # persist each arm by its arm_fingerprint (so cells differing on any axis can't
     # overwrite), plus the resolved config + budget + the rendered tables.
@@ -151,7 +89,7 @@ def run(
         json.dumps(
             {
                 "name": cfg.name,
-                "instrument_fingerprint": instr_fp,
+                "instrument_fingerprint": assembled["instrument_fingerprint"],
                 "eval_set": cfg.eval_set_path,
                 "eval_set_sha": eval_sha,
                 "lock": declared_lock,
@@ -167,24 +105,14 @@ def run(
         + "\n",
         encoding="utf-8",
     )
-    # Mirror report.py exactly (the runbook path): for runs>1 a stochastic result MUST
-    # render with its band, never as a bare aggregate that reads like a hard number.
-    variance = (
-        "\n\n## per-cell variance (runs > 1)\n\n" + tables_mod.render_variance_table(arms)
-        if cfg.runs > 1
-        else ""
-    )
-    results_md = (
-        f"# {cfg.name}  (instrument {instr_fp}, runs={cfg.runs})\n\n"
-        + tables_mod.render_arm_table(arms)
-        + variance
-        + "\n\n## single-axis deltas\n\n"
-        + (tables_mod.render_delta_table(deltas) or "(no comparable pairs)")
-        + "\n"
-    )
-    (out_dir / "results.md").write_text(results_md, encoding="utf-8")
+    (out_dir / "results.md").write_text(assembled["results_md"], encoding="utf-8")
     print(f"[runner] -> {out_dir.as_posix()}  ({len(pairs)} single-axis pair(s))")
-    return {"out_dir": str(out_dir), "arms": arms, "pairs": pairs, "deltas": deltas}
+    return {
+        "out_dir": str(out_dir),
+        "arms": arms,
+        "pairs": pairs,
+        "deltas": assembled["deltas"],
+    }
 
 
 # Sweepable-axis sanity: the runner only knows the generic axis names, never a value.
