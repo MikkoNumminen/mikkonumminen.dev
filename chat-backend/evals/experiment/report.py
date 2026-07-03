@@ -1,10 +1,14 @@
 """Assemble a run from per-arm `eval_arm` JSON outputs — the runbook path (the operator
-swaps the stack, runs eval_arm per arm, then this). It merges the prompt-template sha
-from the manifest into each arm's fingerprint fields, computes each arm_fingerprint,
-asks the runner to generate the single-axis comparable pairs (the guard, on the data
-path), and renders the tables. Deterministic, zero-token — the generations were already
-spent by eval_arm. Same assembly the in-process runner uses, fed from disk instead of a
-live Arm.
+swaps the stack, runs eval_arm per arm, then this). It converts each disk arm into the
+same per-cell measurement the in-process runner produces and feeds the SAME shared
+`assembly` core (fingerprints, lock guard, pair generation, rendering all live there),
+so the two paths cannot drift. Deterministic, zero-token — the generations were
+already spent by eval_arm.
+
+The disk arm records AS-EXECUTED identity values (options, runs); the config declares
+them. The assembly derives identity from the config only, so this feeder must ASSERT
+the two agree — a mismatch means the arm on disk is not the arm the config describes,
+and re-stamping it would mislabel the comparison. Abort loudly, like the lock guard.
 
     python -m evals.experiment.report --config C.toml --manifest M.json --arms a*.json
 """
@@ -16,93 +20,63 @@ import json
 from pathlib import Path
 from typing import Any
 
-from . import delta as delta_mod
-from . import lock as lock_mod
-from . import tables as tables_mod
+from . import assembly as assembly_mod
+from .assembly import Measurement
 from .config import ExperimentConfig, load
-from .fingerprint import arm_fingerprint, instrument_fingerprint
-from .runner import comparable_pairs
+from .fingerprint import AXIS_KEYS
+
+
+def _measurement_from_disk(a: dict[str, Any], cfg: ExperimentConfig) -> Measurement:
+    fp = a.get("fp_fields", {})
+    missing = [k for k in AXIS_KEYS if k not in fp]
+    if missing:
+        raise ValueError(f"disk arm fp_fields is missing axis values: {missing}")
+    # Generic over AXIS_KEYS: a new sweepable axis extends the cell here without a
+    # report change, same as the runner's config-driven cells.
+    cell = {axis: str(fp[axis]) for axis in AXIS_KEYS}
+
+    # The recorded lock triple must be checked HERE, against fp_fields: the assembly
+    # re-derives lock values from the config, and its observed_lock guard skips keys
+    # absent from observed_lock — so an arm recorded at a different num_ctx with a
+    # truncated observed_lock would otherwise be silently re-stamped as the config's.
+    lock_drift = {
+        k: {"recorded": fp.get(k), "declared": cfg.lock[k]}
+        for k in cfg.lock
+        if fp.get(k) != cfg.lock[k]
+    }
+    if lock_drift:
+        raise AssertionError(
+            f"LOCK drift — the disk arm recorded lock values differing from the "
+            f"config: {lock_drift}. Re-run eval_arm or fix the config."
+        )
+
+    disk_runs = int(fp.get("runs", 1) or 1)
+    if disk_runs != cfg.runs:
+        raise AssertionError(
+            f"runs drift — the disk arm executed runs={disk_runs} but the config "
+            f"declares runs={cfg.runs}; a re-stamped aggregate would lie about its "
+            "scale. Re-run eval_arm or fix the config."
+        )
+    declared_options = cfg.cell_options(cell)
+    disk_options = str(fp.get("options", "") or "")
+    if disk_options != declared_options:
+        raise AssertionError(
+            f"options drift — the disk arm executed options={disk_options!r} but the "
+            f"config declares {declared_options!r} for cell {cell}; a re-stamped arm "
+            "would hide a run-param change from the guard. Re-run eval_arm or fix "
+            "the config."
+        )
+    # The measured payload is the disk arm itself: observed_lock (asserted by the
+    # assembly — MISSING must stay a loud KeyError, a {} default would no-op the lock
+    # guard), retrieval, tallies, vram.
+    return cell, a
 
 
 def assemble(
     arm_jsons: list[dict[str, Any]], cfg: ExperimentConfig, manifest: dict[str, Any]
 ) -> dict[str, Any]:
-    prompt_sha = manifest["instrument"]["static_lock_params"]["prompt_template_sha"][
-        "value"
-    ]
-    eval_sha = next(
-        (
-            e["content_sha"]
-            for e in manifest["eval_sets"]
-            if e["path"] == cfg.eval_set_path
-        ),
-        None,
-    )
-    declared_lock = lock_mod.lock_fields(cfg.lock, prompt_sha)
-    arms = []
-    for a in arm_jsons:
-        # The same lock guard the in-process runner applies on its data path: a
-        # runbook arm whose eval_arm ran at a num_ctx (etc.) differing from the
-        # config must abort here, not be silently stamped as comparable. A MISSING
-        # observed_lock must abort too (KeyError) — defaulting to {} would make
-        # assert_effective a no-op, silently admitting lock drift into a comparison.
-        # The runner's data path is loud the same way (m["observed_lock"]).
-        lock_mod.assert_effective(declared_lock, a["observed_lock"])
-        fp = {
-            **a["fp_fields"],
-            "prompt_template_sha": prompt_sha,
-            "eval_set_sha": eval_sha,
-        }
-        arms.append(
-            {
-                "cell": {"model": fp["model"], "embedder": fp["embedder"]},
-                "fp_fields": fp,
-                "arm_fp": arm_fingerprint(fp),
-                "vram_mb": a.get("vram_mb"),
-                "retrieval": a["retrieval"],
-                "synthesis": a.get("synthesis", {}),
-                "containment": a.get("containment", {}),
-            }
-        )
-    pairs = comparable_pairs(arms, cfg.sweep_axes())
-    deltas = [
-        delta_mod.parallel_delta(
-            arms[i]["retrieval"],
-            arms[j]["retrieval"],
-            label_a=arms[i]["cell"][ax],
-            label_b=arms[j]["cell"][ax],
-            axis=ax,
-        )
-        for i, j, ax in pairs
-    ]
-    instr_fp = instrument_fingerprint(
-        {
-            **cfg.lock,
-            "prompt_template_sha": prompt_sha,
-            "eval_set_sha": eval_sha,
-            "runs": cfg.runs,
-        }
-    )
-    variance = (
-        "\n\n## per-cell variance (runs > 1)\n\n" + tables_mod.render_variance_table(arms)
-        if cfg.runs > 1
-        else ""
-    )
-    md = (
-        f"# {cfg.name}  (instrument {instr_fp}, runs={cfg.runs})\n\n"
-        + tables_mod.render_arm_table(arms)
-        + variance
-        + "\n\n## single-axis deltas\n\n"
-        + (tables_mod.render_delta_table(deltas) or "(no comparable pairs)")
-        + "\n"
-    )
-    return {
-        "arms": arms,
-        "pairs": pairs,
-        "deltas": deltas,
-        "instrument_fingerprint": instr_fp,
-        "results_md": md,
-    }
+    measurements = [_measurement_from_disk(a, cfg) for a in arm_jsons]
+    return assembly_mod.assemble(cfg, manifest, measurements)
 
 
 def main(argv: list[str] | None = None) -> int:

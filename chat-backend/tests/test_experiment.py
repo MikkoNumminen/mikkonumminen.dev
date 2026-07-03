@@ -214,6 +214,84 @@ def test_report_aborts_on_missing_observed_lock(tmp_path):
         RP.assemble([no_lock], cfg, manifest)
 
 
+def test_report_asserts_recorded_lock_drift(tmp_path):
+    # The smuggle vector the feeder's fp_fields lock check exists for: observed_lock
+    # is MISSING the drifted key (assert_effective skips absent keys), and the
+    # assembly derives lock values from the config — so without the feeder check, an
+    # arm recorded at num_ctx=4096 would be silently re-stamped as the config's 8192
+    # and could pair with a genuinely-8192 arm into a lock-confounded delta.
+    cfg = _cfg(tmp_path, VALID)  # config num_ctx = 8192
+    manifest = {
+        "instrument": {"static_lock_params": {"prompt_template_sha": {"value": "s"}}},
+        "eval_sets": [{"path": "evals/eval_set_fi.json", "content_sha": "e"}],
+    }
+    smuggled = {
+        "fp_fields": {
+            "top_k": 6,
+            "temperature": 0.4,
+            "num_ctx": 4096,
+            "eval_set_sha": "e",
+            "model": "q",
+            "embedder": "en",
+        },
+        "observed_lock": {"top_k": 6, "temperature": 0.4},  # num_ctx absent
+        "retrieval": [],
+    }
+    with pytest.raises(AssertionError, match="LOCK drift"):
+        RP.assemble([smuggled], cfg, manifest)
+
+
+def test_report_asserts_runs_drift(tmp_path):
+    # The disk arm records the runs count it EXECUTED; the config declares one. The
+    # assembly stamps identity from the config only, so a disagreeing disk arm must
+    # abort — re-stamping a 1-run aggregate as runs=3 would lie about its scale.
+    cfg = _cfg(tmp_path, VALID.replace('name = "t"', 'name = "t"\nruns = 3'))
+    manifest = {
+        "instrument": {"static_lock_params": {"prompt_template_sha": {"value": "s"}}},
+        "eval_sets": [{"path": "evals/eval_set_fi.json", "content_sha": "e"}],
+    }
+    executed_once = {
+        "fp_fields": {
+            "top_k": 6,
+            "temperature": 0.4,
+            "num_ctx": 8192,
+            "eval_set_sha": "e",
+            "runs": 1,
+            "model": "q",
+            "embedder": "en",
+        },
+        "observed_lock": {"top_k": 6, "temperature": 0.4, "num_ctx": 8192},
+        "retrieval": [],
+    }
+    with pytest.raises(AssertionError, match="runs drift"):
+        RP.assemble([executed_once], cfg, manifest)
+
+
+def test_report_asserts_options_drift(tmp_path):
+    # The config declares think=false for the q arm, but the disk arm executed with
+    # no options. Stamping cfg's options onto it would hide a run-param change from
+    # the guard (options are part of the model-axis identity) — abort instead.
+    cfg = _cfg(tmp_path, VALID + '\n[arm_options]\n"q" = { think = false }\n')
+    manifest = {
+        "instrument": {"static_lock_params": {"prompt_template_sha": {"value": "s"}}},
+        "eval_sets": [{"path": "evals/eval_set_fi.json", "content_sha": "e"}],
+    }
+    ran_without_options = {
+        "fp_fields": {
+            "top_k": 6,
+            "temperature": 0.4,
+            "num_ctx": 8192,
+            "eval_set_sha": "e",
+            "model": "q",
+            "embedder": "en",
+        },
+        "observed_lock": {"top_k": 6, "temperature": 0.4, "num_ctx": 8192},
+        "retrieval": [],
+    }
+    with pytest.raises(AssertionError, match="options drift"):
+        RP.assemble([ran_without_options], cfg, manifest)
+
+
 def test_cell_options_merge(tmp_path):
     cfg = _cfg(tmp_path, VALID + '\n[arm_options]\n"q" = { think = false }\n')
     cells = cfg.cells()
@@ -224,12 +302,14 @@ def test_cell_options_merge(tmp_path):
 
 
 def test_runner_and_report_agree_on_instrument_fingerprint(tmp_path):
-    # S1 regression. runner.run (automated) and report.assemble (runbook) build the
-    # instrument-fingerprint dict differently and drifted once: runner omitted `runs`
-    # (part of the instrument identity), so a runs=3 run collided with runs=1 in one
-    # dir. Pin that both real paths produce the SAME fingerprint, and (S2) render the
-    # variance band, for one config so they can't silently diverge again. Follow-up:
-    # share the computation instead of pinning it (tracked separately).
+    # S1 regression, kept as the end-to-end net now that both paths share the
+    # assembly core: runner.run (automated) and report.assemble (runbook) once built
+    # the instrument-fingerprint dict differently — runner omitted `runs` (part of
+    # the instrument identity), so a runs=3 run collided with runs=1 in one dir.
+    # Drive BOTH real paths on one config and pin that they produce the same
+    # instrument fingerprint, the same arm fingerprint, and byte-identical
+    # results.md (S2: for runs>1 that includes the variance band + runs= header,
+    # never a bare aggregate that looks like a hard number).
     text = VALID.replace('name = "t"', 'name = "eq"\nruns = 3').replace(
         'arms = ["q", "l", "p"]', 'arms = ["q"]'
     )
@@ -274,12 +354,13 @@ def test_runner_and_report_agree_on_instrument_fingerprint(tmp_path):
     report_out = RP.assemble([arm_json], cfg, manifest)
 
     assert runner_fp == report_out["instrument_fingerprint"]
-    # S2: for runs>1 both paths render the band (variance table + runs= header), not a
-    # bare aggregate that looks like a hard number (the defect we just fixed in prose).
+    assert [a["arm_fp"] for a in runner_out["arms"]] == [
+        a["arm_fp"] for a in report_out["arms"]
+    ]
     runner_md = (Path(runner_out["out_dir"]) / "results.md").read_text(encoding="utf-8")
-    for md in (runner_md, report_out["results_md"]):
-        assert "runs=3" in md
-        assert "per-cell variance" in md
+    assert runner_md == report_out["results_md"]
+    assert "runs=3" in runner_md
+    assert "per-cell variance" in runner_md
 
 
 def test_options_are_arm_identity():
