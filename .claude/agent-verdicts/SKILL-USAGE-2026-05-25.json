@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-06-01T23:27:43.271Z",
+  "generated_at": "2026-05-25T21:57:23.919Z",
   "window_days": 90,
-  "projects_scanned": 14,
-  "sessions_scanned": 1009,
-  "attributed_assistant_messages": 4064,
+  "projects_scanned": 8,
+  "sessions_scanned": 740,
+  "attributed_assistant_messages": 3220,
   "skills": [
     {
       "name": "review",
-      "invocations": 16,
-      "tokens_per_use_avg": 1221598,
-      "uses_per_year": 65,
-      "total_tokens_in_window": 19545569,
-      "annual_total": 79403870,
+      "invocations": 14,
+      "tokens_per_use_avg": 1120115,
+      "uses_per_year": 57,
+      "total_tokens_in_window": 15681616,
+      "annual_total": 63846555,
       "sample_session_ids": [
         "3b219a03-2024-4372-b270-a13237480b7e",
         "4a938199-6bea-4ec0-b86f-901ab6faa515",
@@ -19,43 +19,43 @@
         "89216c3d-52b2-4763-a770-fd7502176a12",
         "de3894ce-bc85-4172-b059-a8a4077c594c"
       ],
-      "last_invoked": "2026-06-01T23:17:48.870Z"
+      "last_invoked": "2026-05-25T21:53:26.009Z"
+    },
+    {
+      "name": "mikko-help",
+      "invocations": 2,
+      "tokens_per_use_avg": 643859,
+      "uses_per_year": 8,
+      "total_tokens_in_window": 1287718,
+      "annual_total": 5150872,
+      "sample_session_ids": [
+        "de3894ce-bc85-4172-b059-a8a4077c594c",
+        "c4067329-a392-4890-8eb3-d1941325463b"
+      ],
+      "last_invoked": "2026-05-20T22:26:16.795Z"
     },
     {
       "name": "mikko-audit",
       "invocations": 2,
-      "tokens_per_use_avg": 935740,
+      "tokens_per_use_avg": 458841,
       "uses_per_year": 8,
-      "total_tokens_in_window": 1871480,
-      "annual_total": 7485920,
+      "total_tokens_in_window": 917681,
+      "annual_total": 3670728,
       "sample_session_ids": [
         "26b0a35a-c950-4359-9110-62ec343c6149",
         "ac357e75-ba76-4889-af17-2d9295c3b5df"
       ],
-      "last_invoked": "2026-05-28T03:05:00.382Z"
-    },
-    {
-      "name": "mikko-help",
-      "invocations": 3,
-      "tokens_per_use_avg": 482477,
-      "uses_per_year": 12,
-      "total_tokens_in_window": 1447430,
-      "annual_total": 5789724,
-      "sample_session_ids": [
-        "de3894ce-bc85-4172-b059-a8a4077c594c",
-        "c4067329-a392-4890-8eb3-d1941325463b",
-        "ac357e75-ba76-4889-af17-2d9295c3b5df"
-      ],
-      "last_invoked": "2026-05-31T01:15:11.183Z"
+      "last_invoked": "2026-05-23T05:30:16.067Z"
     },
     {
       "name": "equipment",
-      "invocations": 1,
-      "tokens_per_use_avg": 776086,
-      "uses_per_year": 4,
-      "total_tokens_in_window": 776086,
-      "annual_total": 3104344,
+      "invocations": 2,
+      "tokens_per_use_avg": 401321,
+      "uses_per_year": 8,
+      "total_tokens_in_window": 802642,
+      "annual_total": 3210568,
       "sample_session_ids": [
+        "a36d05d7-450e-41ca-9d2c-602c40a5d2de",
         "ac357e75-ba76-4889-af17-2d9295c3b5df"
       ],
       "last_invoked": "2026-05-03T23:18:22.958Z"
@@ -100,16 +100,15 @@
     },
     {
       "name": "ai-codegen-smell-audit",
-      "invocations": 2,
-      "tokens_per_use_avg": 118983,
-      "uses_per_year": 8,
-      "total_tokens_in_window": 237966,
-      "annual_total": 951864,
+      "invocations": 1,
+      "tokens_per_use_avg": 199437,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 199437,
+      "annual_total": 797748,
       "sample_session_ids": [
-        "3b219a03-2024-4372-b270-a13237480b7e",
-        "2fbb0d22-7a84-4fd1-92ab-79c73db4dd4e"
+        "3b219a03-2024-4372-b270-a13237480b7e"
       ],
-      "last_invoked": "2026-05-30T22:39:42.369Z"
+      "last_invoked": "2026-05-17T03:24:06.864Z"
     },
     {
       "name": "release-cut",
@@ -136,18 +135,6 @@
       "last_invoked": "2026-05-23T05:39:19.543Z"
     },
     {
-      "name": "modular-architecture-audit",
-      "invocations": 1,
-      "tokens_per_use_avg": 176538,
-      "uses_per_year": 4,
-      "total_tokens_in_window": 176538,
-      "annual_total": 706152,
-      "sample_session_ids": [
-        "2fbb0d22-7a84-4fd1-92ab-79c73db4dd4e"
-      ],
-      "last_invoked": "2026-05-30T22:11:55.736Z"
-    },
-    {
       "name": "sync-readmes",
       "invocations": 1,
       "tokens_per_use_avg": 118653,
@@ -170,32 +157,6 @@
         "26b0a35a-c950-4359-9110-62ec343c6149"
       ],
       "last_invoked": "2026-05-23T05:36:11.697Z"
-    },
-    {
-      "name": "mikko-skills",
-      "invocations": 2,
-      "tokens_per_use_avg": 48639,
-      "uses_per_year": 8,
-      "total_tokens_in_window": 97277,
-      "annual_total": 389112,
-      "sample_session_ids": [
-        "de3894ce-bc85-4172-b059-a8a4077c594c",
-        "c4067329-a392-4890-8eb3-d1941325463b"
-      ],
-      "last_invoked": "2026-05-31T23:36:50.997Z"
-    },
-    {
-      "name": "save-roundtrip-audit",
-      "invocations": 2,
-      "tokens_per_use_avg": 38155,
-      "uses_per_year": 8,
-      "total_tokens_in_window": 76310,
-      "annual_total": 305240,
-      "sample_session_ids": [
-        "2fbb0d22-7a84-4fd1-92ab-79c73db4dd4e",
-        "ac357e75-ba76-4889-af17-2d9295c3b5df"
-      ],
-      "last_invoked": "2026-05-28T22:26:15.691Z"
     },
     {
       "name": "mikko-skill-usage",
@@ -297,6 +258,18 @@
       "last_invoked": "2026-05-23T05:24:16.907Z"
     },
     {
+      "name": "save-roundtrip-audit",
+      "invocations": 1,
+      "tokens_per_use_avg": 18587,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 18587,
+      "annual_total": 74348,
+      "sample_session_ids": [
+        "ac357e75-ba76-4889-af17-2d9295c3b5df"
+      ],
+      "last_invoked": "2026-05-03T14:44:59.162Z"
+    },
+    {
       "name": "copyright-scan",
       "invocations": 1,
       "tokens_per_use_avg": 13881,
@@ -307,6 +280,18 @@
         "6e537f60-3404-4bc0-b9c9-fd3d1a6c340d"
       ],
       "last_invoked": "2026-05-12T03:01:51.715Z"
+    },
+    {
+      "name": "mikko-skills",
+      "invocations": 1,
+      "tokens_per_use_avg": 11412,
+      "uses_per_year": 4,
+      "total_tokens_in_window": 11412,
+      "annual_total": 45648,
+      "sample_session_ids": [
+        "de3894ce-bc85-4172-b059-a8a4077c594c"
+      ],
+      "last_invoked": "2026-05-20T14:53:15.974Z"
     },
     {
       "name": "pre-push-scan",
