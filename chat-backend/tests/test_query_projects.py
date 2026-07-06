@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.query_projects import detect_projects
+from app.query_projects import detect_projects, wants_cv
 
 
 def test_readlog_dotnet_wins_over_bare_readlog() -> None:
@@ -87,3 +87,30 @@ def test_ambiguous_bare_tech_words_are_not_aliases() -> None:
     assert detect_projects("razor-thin margins and razor blades") == set()
     assert detect_projects("does he use Razor Pages?") == {"readlog-dotnet"}
     assert detect_projects("does he write csharp?") == {"readlog-dotnet"}
+
+
+def test_wants_cv_finnish_inflections() -> None:
+    # the live failure plus the inflection spread prefix matching exists for
+    assert wants_cv("mitä työkokemusta?")
+    assert wants_cv("kerro työkokemuksestasi")
+    assert wants_cv("millainen työhistoria sinulla on")
+    assert wants_cv("kerro työurastasi")
+    assert wants_cv("missä työpaikoissa olet ollut")
+    assert wants_cv("onko ansioluetteloa?")
+
+
+def test_wants_cv_english_and_exact_cv() -> None:
+    assert wants_cv("what is your work experience?")
+    assert wants_cv("tell me about your career")
+    assert wants_cv("employment history?")
+    assert wants_cv("can I see your CV?")
+    assert wants_cv("do you have a resume")
+
+
+def test_wants_cv_false_for_project_and_tech_questions() -> None:
+    assert not wants_cv("what projects are there")
+    assert not wants_cv("how does hrm cache permissions?")
+    # "experience" alone is a tech question, not a CV question
+    assert not wants_cv("do you have experience with react?")
+    # "cv" must be a whole token, not a substring
+    assert not wants_cv("does the canvas render on mobile?")

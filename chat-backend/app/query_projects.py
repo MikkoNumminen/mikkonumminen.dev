@@ -132,3 +132,41 @@ def detect_projects(query: str) -> set[str]:
         claimed.append((start, end))
         detected.add(project_id)
     return detected
+
+
+# CV / work-experience intent. The embedder is English-only, so a Finnish query
+# like "mitä työkokemusta?" cannot land on the CV's English Experience chunk by
+# cosine — the model then presents project chunks AS work experience (a measured
+# live conflation). Deterministic detection here lets retrieval pull the kind='cv'
+# chunks explicitly. PREFIX matching (unlike the alias spans above) because
+# Finnish inflects: one stem covers työkokemusta / työkokemuksesta / työurastasi….
+# A wrong guess only prepends the CV chunks to already-retrieved context — it
+# never invents — so a mild false positive ("resume" the verb) is acceptable.
+_CV_PREFIXES = (
+    "työkokemu",  # työkokemus / työkokemusta / työkokemuksesta…
+    "työhistoria",
+    "työura",  # työura / työurasta / työurallasi… ("ura" alone is too short/risky)
+    "työpaik",  # työpaikka / työpaikoista…
+    "ansioluettelo",
+    "arbetserfarenhet",  # Swedish visitors ask too; the boost is language-neutral
+    "career",
+    "employment",
+    "resume",
+    "résumé",
+)
+_CV_EXACT = ("cv",)
+_CV_PHRASES = (" work experience ", " work history ", " employment history ")
+
+
+def wants_cv(query: str) -> bool:
+    """True when the query asks about work experience / career / the CV itself."""
+    # Same normalization as the language router: non-alphanumerics fold to spaces
+    # so "CV?" and "työkokemusta?" tokenize cleanly; accents (é) survive isalnum.
+    text = "".join(c if c.isalnum() else " " for c in query.lower())
+    tokens = text.split()
+    if any(tok in _CV_EXACT for tok in tokens):
+        return True
+    if any(tok.startswith(prefix) for tok in tokens for prefix in _CV_PREFIXES):
+        return True
+    padded = f" {' '.join(tokens)} "
+    return any(phrase in padded for phrase in _CV_PHRASES)
