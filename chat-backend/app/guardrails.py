@@ -90,6 +90,12 @@ _FINNISH_MARKERS = (
 # Swedish word tails; matched only on words of ≥5 letters for the same reason.
 # All endings are the same length and mutually exclusive, so one token can match
 # at most one — the distinct-endings rule below counts words, never double-counts.
+# The eja/ejä/oja rows are partitive plurals ("Onko projekteja?", "Onko demoja?") —
+# a terse question-word + partitive query carries no locative case and often no ä/ö,
+# so it scored one marker and nothing else, routing to English. The -ita/-itä
+# partitives are deliberately absent: English loanwords end in -ita ("margarita",
+# "fajita") and " on " is also an everyday English word, so marker+ita is a real
+# false-positive path where marker+eja is not.
 _FINNISH_SUFFIXES = (
     "sta",
     "stä",
@@ -101,6 +107,9 @@ _FINNISH_SUFFIXES = (
     "ltä",
     "ksi",
     "iin",
+    "eja",
+    "ejä",
+    "oja",
 )
 _MIN_SUFFIX_WORD = 5
 

@@ -88,6 +88,11 @@ def test_looks_non_english_false_for_ascii_english(query: str) -> None:
         # one marker + ä/ö — the everyday phrasing an anchor-less path answered
         # in English in the QA battery
         "Miten tämä chat toimii?",
+        # question word + partitive plural, no locative and no usable diacritics —
+        # a live query the router sent to English before the eja/ejä/oja endings
+        "Onko projekteja?",
+        "Onko demoja?",
+        "onko esimerkkejä",
     ],
 )
 def test_looks_finnish_true_for_finnish(text: str) -> None:
@@ -107,6 +112,9 @@ def test_looks_finnish_true_for_finnish(text: str) -> None:
         # Swedish stays out (its ä/ö density is below the threshold and its
         # suffixes differ)
         "berätta mer om projekten",
+        # documents why -ita/-itä are NOT partitive endings: an English loanword
+        # tail plus the English word "on" must not add up to Finnish
+        "is the demo based on a margarita recipe",
     ],
 )
 def test_looks_finnish_false_for_english(text: str) -> None:
