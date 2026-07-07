@@ -28,6 +28,12 @@ WORKDIR /srv
 # build time (it fails if the HF Hub is unreachable).
 RUN pip install "fastembed==0.8.0"
 RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')"
+# lingua's wheel is ~170MB (embedded language models) — same early-layer rule as
+# fastembed above: installed before the app COPY so a code edit never re-downloads
+# it (the `pip install -e .` layer below is invalidated by every app change, and
+# large downloads are the flaky part of a rebuild on this network). Keep the
+# version floor in sync with pyproject.toml.
+RUN pip install "lingua-language-detector>=2.1"
 
 # After the model is baked, force the runtime fully offline for HF so a startup
 # load reads ONLY the baked cache and never touches the network. HF_HUB_OFFLINE=1
