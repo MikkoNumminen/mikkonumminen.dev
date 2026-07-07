@@ -164,7 +164,10 @@ _CV_PHRASES = (
     " work experience ",
     " work history ",
     " employment history ",
-    " kasvu labs ",  # the canonical spaced spelling, e.g. a translated query
+    # No trailing space: suffix-tolerant, so the spaced-AND-inflected form a
+    # visitor may type ("Kasvu Labsissa") matches too, not only the exact
+    # canonical spelling a translated query carries.
+    " kasvu labs",
 )
 
 
@@ -179,6 +182,12 @@ _CV_PHRASES = (
 KNOWN_ENTITIES: dict[str, str] = {
     "kasvulabs": "Kasvu Labs",
     "kasvu labs": "Kasvu Labs",
+    # 'kysely' is the Finnish word for 'query', so the Kysely LIBRARY never
+    # survives translation — the measured eval flip spacepotatis-kysely-vs-
+    # prisma lost its expected chunks exactly this way. The Finnish common
+    # noun can also trigger this append on non-library questions; that only
+    # re-orders already-retrieved candidates, never invents.
+    "kysely": "Kysely",
 }
 
 

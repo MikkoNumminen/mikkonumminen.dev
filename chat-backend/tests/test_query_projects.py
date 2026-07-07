@@ -150,3 +150,19 @@ def test_restore_entities_appends_each_canonical_once() -> None:
         "kerro kasvu labs ja kasvulabsin ajasta", "Tell me about the growth time"
     )
     assert out.count("Kasvu Labs") == 1
+
+
+def test_wants_cv_spaced_inflected_employer_form() -> None:
+    # "Kasvu Labsissa" — spaced AND case-inflected: the fused prefix can't see
+    # it and an exact-phrase match would need a trailing space the suffix eats
+    assert wants_cv("mitä Mikko teki Kasvu Labsissa?")
+
+
+def test_restore_entities_covers_the_kysely_library() -> None:
+    # the other measured translation loss: 'kysely' means 'query' in Finnish,
+    # so the library name never survives translation
+    out = restore_entities(
+        "Miksi Spacepotatis valitsi Kyselyn Prisman sijaan?",
+        "Why did Spacepotatis choose a query instead of Prisma?",
+    )
+    assert out.endswith(" Kysely")
