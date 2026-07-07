@@ -153,9 +153,57 @@ _CV_PREFIXES = (
     "employment",
     "resume",
     "résumé",
+    # Asking about a named EMPLOYER is a work-experience question — the answer
+    # lives in the CV's Experience chunk, which cosine ranks ~0.46 for such
+    # queries (out of top-k AND beyond the gate; measured live on "mitä mikko
+    # teki kasvulabsissa?"). The prefix absorbs Finnish case endings.
+    "kasvulabs",  # kasvulabsissa / kasvulabsin…
 )
 _CV_EXACT = ("cv",)
-_CV_PHRASES = (" work experience ", " work history ", " employment history ")
+_CV_PHRASES = (
+    " work experience ",
+    " work history ",
+    " employment history ",
+    # No trailing space: suffix-tolerant, so the spaced-AND-inflected form a
+    # visitor may type ("Kasvu Labsissa") matches too, not only the exact
+    # canonical spelling a translated query carries.
+    " kasvu labs",
+)
+
+
+# Known proper nouns a retrieval-side TRANSLATION must not lose. Poro translates
+# meaning-bearing names no matter how firmly the prompt says not to ("kasvulabs"
+# → "Growth Labs", measured live — 'kasvu' is Finnish for growth), which starves
+# retrieval of the exact term the corpus uses. Deterministic restoration instead:
+# when the ORIGINAL query contains the stem (substring — Finnish case endings
+# attach after it) but the translation lost it, the canonical corpus spelling is
+# appended to the retrieval query. Appending only ever ADDS retrieval signal;
+# the model still answers the untouched original question.
+KNOWN_ENTITIES: dict[str, str] = {
+    "kasvulabs": "Kasvu Labs",
+    "kasvu labs": "Kasvu Labs",
+    # 'kysely' is the Finnish word for 'query', so the Kysely LIBRARY never
+    # survives translation — the measured eval flip spacepotatis-kysely-vs-
+    # prisma lost its expected chunks exactly this way. The Finnish common
+    # noun can also trigger this append on non-library questions; that only
+    # re-orders already-retrieved candidates, never invents.
+    "kysely": "Kysely",
+}
+
+
+def restore_entities(original: str, translated: str) -> str:
+    """Append canonical spellings of known entities the translation lost."""
+    low_orig = original.lower()
+    low_trans = translated.lower()
+    restored = translated
+    seen: set[str] = set()
+    for stem, canonical in KNOWN_ENTITIES.items():
+        if canonical in seen:
+            continue
+        if stem in low_orig and canonical.lower() not in low_trans:
+            restored = f"{restored} {canonical}"
+            seen.add(canonical)
+    return restored
 
 
 def wants_cv(query: str) -> bool:

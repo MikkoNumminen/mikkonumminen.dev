@@ -112,7 +112,14 @@ _CLOSING_GROUNDING = (
     "\n\nBefore answering: use ONLY the context above, and only about Mikko and "
     "his work. Do not add general knowledge or explain a concept in the abstract; "
     "if the context does not specifically cover the question, say you don't have "
-    "anything on that."
+    "anything on that. "
+    # A PROCEDURE, not just the system prompt's prohibition: a small model
+    # invents plausible year ranges under the prohibition alone (measured live:
+    # "2019-2021" for an employment the context dates 2022-2024) but copies
+    # them correctly under this rule (A/B on the failing question: correct
+    # years in 1/4 answers without the rule, 4/4 with it).
+    "Copy every year and number exactly as written in the context; if the "
+    "context gives no year for something, do not state one."
 )
 _CLOSING_ENGLISH = (
     " Write your entire reply in English, whatever language the question is in."
