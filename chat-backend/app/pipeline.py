@@ -124,7 +124,17 @@ async def _translate_for_retrieval(
     finally:
         if acquired and semaphore is not None:
             semaphore.release()
-    translated = "".join(parts).strip().strip('"').strip()
+    raw = "".join(parts).strip()
+    # The model reliably translates but not reliably STOPS: live verification
+    # showed Poro appending commentary after a perfect first-line translation
+    # ("What is Miko's work experience?" followed by "However, considering…").
+    # A one-line translation is the contract — keep only the first non-empty
+    # line, then apply the runaway cap to what remains.
+    translated = (
+        next((line.strip() for line in raw.splitlines() if line.strip()), "")
+        .strip('"')
+        .strip()
+    )
     max_len = _MAX_TRANSLATION_FACTOR * len(query) + _MAX_TRANSLATION_SLACK
     if not translated or len(translated) > max_len:
         return None
