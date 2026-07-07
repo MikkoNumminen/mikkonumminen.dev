@@ -132,6 +132,12 @@ class Settings:
     # directive is added. OFF leaves behavior byte-identical (English-only). The
     # public deployment stays OFF until the Finnish eval data justifies flipping it.
     rag_allow_finnish: bool
+    # When on, a Finnish query is retrieved with a model-generated English
+    # translation (the embedder and lexical index are English-only) while the
+    # answer still addresses the original Finnish question. Best-effort — any
+    # translation failure falls back to retrieving with the original query.
+    # Only ever active when rag_allow_finnish routes the query Finnish.
+    rag_translate_retrieval: bool
     # Progressive disclosure (Phase 5): a concise answer plus an explicit
     # "tell me more?" offer; a topic-less follow-up expands into the topic's
     # precomputed narrative. Default on; off restores single-shot answers.
@@ -249,6 +255,7 @@ class Settings:
             llm_num_predict=_get_int("LLM_NUM_PREDICT", 512),
             force_english=_get_bool("FORCE_ENGLISH", True),
             rag_allow_finnish=_get_bool("RAG_ALLOW_FINNISH", False),
+            rag_translate_retrieval=_get_bool("RAG_TRANSLATE_RETRIEVAL", False),
             progressive_disclosure_enabled=_get_bool(
                 "PROGRESSIVE_DISCLOSURE_ENABLED", True
             ),

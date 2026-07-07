@@ -875,3 +875,159 @@ def test_history_is_threaded_into_the_prompt() -> None:
     asyncio.run(run())
     contents = [m["content"] for m in llm.messages]
     assert any("HRM is an HR platform." in c for c in contents)
+
+
+# --- RAG_TRANSLATE_RETRIEVAL (translate-for-retrieval, default off) ---
+
+
+class RecordingEmbedder:
+    """Embedder that records what text was embedded — the flag's whole effect."""
+
+    def __init__(self) -> None:
+        self.seen: list[str] = []
+
+    def embed_query(self, text: str) -> list[float]:
+        self.seen.append(text)
+        return [0.0]
+
+
+class TranslatingLLM(FakeLLM):
+    """First call answers as the translator, later calls as the chat model."""
+
+    def __init__(self, translation: list[str], answer: list[str]) -> None:
+        super().__init__(answer)
+        self._translation = translation
+        self.call_messages: list[list[dict[str, str]]] = []
+
+    async def stream_chat(
+        self,
+        messages: Sequence[dict[str, str]],
+        *,
+        usage_out: dict[str, int] | None = None,
+    ) -> AsyncIterator[str]:
+        self.call_messages.append(list(messages))
+        self.messages = list(messages)
+        tokens = self._translation if len(self.call_messages) == 1 else self._tokens
+        for token in tokens:
+            yield token
+
+
+def _run_translate_turn(
+    query: str,
+    llm: FakeLLM,
+    *,
+    translate_retrieval: bool = True,
+    allow_finnish: bool = True,
+    semaphore: asyncio.Semaphore | None = None,
+) -> RecordingEmbedder:
+    embedder = RecordingEmbedder()
+
+    async def run() -> None:
+        gen = chat_event_stream(
+            query,
+            [],
+            embedder=embedder,
+            db=FakeDB([_row("cv.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            allow_finnish=allow_finnish,
+            translate_retrieval=translate_retrieval,
+            semaphore=semaphore,
+            acquire_timeout=0.05,
+        )
+        async for _frame in gen:
+            pass
+
+    asyncio.run(run())
+    return embedder
+
+
+def test_finnish_query_is_retrieved_via_english_translation() -> None:
+    llm = TranslatingLLM(["What work experience do you have?"], ["answer"])
+    embedder = _run_translate_turn("mitä työkokemusta sinulla on?", llm)
+    # retrieval embedded the TRANSLATION...
+    assert embedder.seen == ["What work experience do you have?"]
+    # ...while generation was asked the ORIGINAL Finnish question
+    assert "mitä työkokemusta sinulla on?" in llm.messages[-1]["content"]
+    assert len(llm.call_messages) == 2  # translate + answer
+
+
+def test_flag_off_is_byte_identical() -> None:
+    llm = TranslatingLLM(["should never be used"], ["answer"])
+    embedder = _run_translate_turn(
+        "mitä työkokemusta sinulla on?", llm, translate_retrieval=False
+    )
+    assert embedder.seen == ["mitä työkokemusta sinulla on?"]
+    assert len(llm.call_messages) == 1  # only the answer call
+
+
+def test_english_query_is_never_translated() -> None:
+    llm = TranslatingLLM(["should never be used"], ["answer"])
+    embedder = _run_translate_turn("what work experience do you have?", llm)
+    assert embedder.seen == ["what work experience do you have?"]
+    assert len(llm.call_messages) == 1
+
+
+def test_busy_gpu_skips_translation_and_retrieves_with_the_original() -> None:
+    # The translation takes a slot under the SAME semaphore as generation. With
+    # the only slot held, translation must give up quietly (no deadlock, no
+    # error) and retrieval must run with the original query; the request then
+    # hits the pre-existing busy shed at the generation acquire, as it would
+    # have without the flag.
+    sem = asyncio.Semaphore(1)
+    llm = TranslatingLLM(["unused"], ["answer"])
+
+    async def run() -> tuple[RecordingEmbedder, list[str]]:
+        embedder = RecordingEmbedder()
+        await sem.acquire()  # occupy the only slot for the whole turn
+        frames = []
+        gen = chat_event_stream(
+            "mitä työkokemusta sinulla on?",
+            [],
+            embedder=embedder,
+            db=FakeDB([_row("cv.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            allow_finnish=True,
+            translate_retrieval=True,
+            semaphore=sem,
+            acquire_timeout=0.05,
+        )
+        async for frame in gen:
+            frames.append(frame)
+        return embedder, frames
+
+    embedder, frames = asyncio.run(run())
+    assert embedder.seen == ["mitä työkokemusta sinulla on?"]  # original query
+    assert llm.call_messages == []  # neither translation nor generation ran
+    assert any("handling another question" in f for f in frames)  # the busy shed
+
+
+def test_failed_translation_falls_back_to_the_original_query() -> None:
+    class FailingFirstCallLLM(TranslatingLLM):
+        async def stream_chat(
+            self,
+            messages: Sequence[dict[str, str]],
+            *,
+            usage_out: dict[str, int] | None = None,
+        ) -> AsyncIterator[str]:
+            self.call_messages.append(list(messages))
+            self.messages = list(messages)
+            if len(self.call_messages) == 1:
+                raise RuntimeError("translator down")
+            for token in self._tokens:
+                yield token
+
+    llm = FailingFirstCallLLM(["unused"], ["answer"])
+    embedder = _run_translate_turn("mitä työkokemusta sinulla on?", llm)
+    assert embedder.seen == ["mitä työkokemusta sinulla on?"]
+
+
+def test_runaway_translation_is_discarded() -> None:
+    # A "translation" many times the query length means the model wrote prose —
+    # retrieval must fall back to the original rather than embed an essay.
+    llm = TranslatingLLM(["word " * 200], ["answer"])
+    embedder = _run_translate_turn("mitä työkokemusta?", llm)
+    assert embedder.seen == ["mitä työkokemusta?"]
