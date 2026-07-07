@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from .prompts import ContextChunk
-from .query_projects import detect_projects
+from .query_projects import detect_projects, wants_cv
 
 
 class SupportsEmbedQuery(Protocol):
@@ -30,6 +30,7 @@ class SupportsSearch(Protocol):
         classifications: Sequence[str] | None = None,
         doc_types: Sequence[str] | None = None,
         exclude_doc_types: Sequence[str] | None = None,
+        kinds: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]: ...
 
     async def has_narrative(
@@ -89,6 +90,10 @@ _CANDIDATE_CAP = 50
 # pgvector cosine distance is in [0, 2]; a lexical-only chunk gets the maximum so
 # it never lowers the gate's "is anything relevant?" minimum on its own.
 _LEXICAL_ONLY_DISTANCE = 2.0
+# On a CV-intent query, pull this many kind='cv' chunks explicitly. cv.md chunks
+# to ~3 at the default CHUNK_MAX_TOKENS, so 3 carries the whole CV (Experience
+# included) while leaving the other top_k slots for cosine's own picks.
+_CV_BOOST_K = 3
 
 
 def _to_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
@@ -133,6 +138,14 @@ def _project_boost(
     matched = [c for c in chunks if c.project in wanted]
     others = [c for c in chunks if c.project not in wanted]
     return matched + others
+
+
+def _prepend_unique(
+    front: list[RetrievedChunk], rest: list[RetrievedChunk]
+) -> list[RetrievedChunk]:
+    """`front` first, then the chunks of `rest` not already in it (by identity)."""
+    seen = {_key(c) for c in front}
+    return front + [c for c in rest if _key(c) not in seen]
 
 
 def _diversify(
@@ -283,12 +296,31 @@ async def retrieve(
     chunks. `diversify_max_per_project` caps how many chunks any single project
     contributes when the query is GENERIC (no project named); named-project and
     soft-boost queries are never diversified so they can still surface all their
-    relevant chunks.
+    relevant chunks. A CV-intent query ("mitä työkokemusta?", "what's your work
+    experience?") additionally pulls the kind='cv' chunks explicitly and prepends
+    them to the returned top_k — see the comment at the fetch.
     """
     vector = embedder.embed_query(query)
     wanted = detect_projects(query)
     strict = bool(wanted) and project_filter_strict
     project_filter: list[str] | None = sorted(wanted) if strict else None
+
+    # CV-intent boost: a work-experience question must carry the kind='cv' chunks
+    # even when cosine can't surface them (a Finnish query against the English
+    # embedder — the measured "projects presented as työkokemus" conflation).
+    # Fetched under the same role/genre filters as every other path; prepended to
+    # the final top_k below. Real distances, so the weak-retrieval gate can only
+    # get a CLOSER prose signal from these, never a new refusal.
+    cv_chunks: list[RetrievedChunk] = []
+    if wants_cv(query):
+        cv_rows = await db.search(
+            vector,
+            _CV_BOOST_K,
+            classifications=allowed_classifications,
+            exclude_doc_types=exclude_doc_types,
+            kinds=["cv"],
+        )
+        cv_chunks = [_to_chunk(row) for row in cv_rows]
 
     # Diversity applies only on generic queries (no project named). Named-project
     # and soft-boost queries must never be capped — the user asked about a specific
@@ -351,6 +383,8 @@ async def retrieve(
             sliced = _diversify(result, diversify_max_per_project, top_k)
         else:
             sliced = result[:top_k]
+        if cv_chunks:
+            sliced = _prepend_unique(cv_chunks, sliced)[:top_k]
         anchored = _ensure_gate_anchor(sliced, anchor_pool, top_k)
         return await _with_prose_anchor(
             anchored, db, vector, allowed_classifications, exclude_doc_types
@@ -386,6 +420,8 @@ async def retrieve(
         sliced = _diversify(fused, diversify_max_per_project, top_k)
     else:
         sliced = fused[:top_k]
+    if cv_chunks:
+        sliced = _prepend_unique(cv_chunks, sliced)[:top_k]
     result = _ensure_gate_anchor(sliced, anchor_pool, top_k)
     return await _with_prose_anchor(
         result, db, vector, allowed_classifications, exclude_doc_types

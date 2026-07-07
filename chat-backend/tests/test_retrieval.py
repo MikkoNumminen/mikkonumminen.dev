@@ -54,6 +54,7 @@ class FakeDB:
         projects: Sequence[str] | None,
         classifications: Sequence[str] | None = None,
         exclude_doc_types: Sequence[str] | None = None,
+        kinds: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
         out = rows
         if projects is not None:
@@ -65,6 +66,8 @@ class FakeDB:
             ]
         if exclude_doc_types:
             out = [r for r in out if r.get("doc_type", "prose") not in exclude_doc_types]
+        if kinds:
+            out = [r for r in out if r.get("kind", "project") in kinds]
         return out
 
     async def search(
@@ -75,11 +78,12 @@ class FakeDB:
         classifications: Sequence[str] | None = None,
         doc_types: Sequence[str] | None = None,
         exclude_doc_types: Sequence[str] | None = None,
+        kinds: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         self.calls.append((embedding, top_k))
         self.classification_args.append(classifications)
         return self._filter(
-            self._rows, projects, classifications, exclude_doc_types
+            self._rows, projects, classifications, exclude_doc_types, kinds
         )[:top_k]
 
     async def search_lexical(
@@ -105,6 +109,7 @@ def _row(
     chunk_type: str = "prose",
     classification: str = "public",
     doc_type: str = "prose",
+    kind: str = "project",
 ) -> dict[str, Any]:
     return {
         "source": source,
@@ -116,6 +121,7 @@ def _row(
         "chunk_type": chunk_type,
         "classification": classification,
         "doc_type": doc_type,
+        "kind": kind,
     }
 
 
@@ -622,3 +628,70 @@ def test_no_diversity_when_diversify_max_is_none() -> None:
     result = asyncio.run(retrieve(FakeEmbedder(), db, "q", top_k=3))
     assert len(result) == 3
     assert all(c.project == "hrm" for c in result)
+
+
+def test_cv_intent_injects_cv_chunks_cosine_missed() -> None:
+    # The motivating live failure: "mitä työkokemusta?" — the English embedder
+    # ranks every project chunk above the CV's Experience chunk, so the model
+    # presented projects AS work experience. The CV-intent boost must carry the
+    # kind='cv' chunks into the returned top_k anyway.
+    rows = [
+        _row("projects/hrm.md", 0.10, project="hrm"),
+        _row("projects/platform.md", 0.11, project="platform"),
+        _row("projects/spacepotatis.md", 0.12, project="spacepotatis"),
+        _row("cv.md", 0.90, project=None, kind="cv"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(retrieve(FakeEmbedder(), db, "mitä työkokemusta?", top_k=3))
+    assert result[0].source == "cv.md"
+    assert len(result) == 3
+
+
+def test_cv_intent_english_phrasing_also_boosts() -> None:
+    rows = [
+        _row("projects/hrm.md", 0.10, project="hrm"),
+        _row("cv.md", 0.90, project=None, kind="cv"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(FakeEmbedder(), db, "what is your work experience?", top_k=2)
+    )
+    assert result[0].source == "cv.md"
+
+
+def test_cv_intent_does_not_duplicate_cv_chunk_already_ranked() -> None:
+    rows = [
+        _row("cv.md", 0.10, project=None, kind="cv"),
+        _row("projects/hrm.md", 0.20, project="hrm"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(retrieve(FakeEmbedder(), db, "kerro työkokemuksesta", top_k=5))
+    assert [c.source for c in result].count("cv.md") == 1
+
+
+def test_non_cv_query_never_fetches_cv() -> None:
+    rows = [_row("projects/hrm.md", 0.10, project="hrm")]
+    db = FakeDB(rows)
+    asyncio.run(retrieve(FakeEmbedder(), db, "how does hrm cache tokens?", top_k=3))
+    # exactly one dense search — no second kind-filtered fetch
+    assert len(db.calls) == 1
+
+
+def test_cv_boost_respects_classification_filter() -> None:
+    # The role filter must reach the CV fetch too — a restricted CV chunk must
+    # never surface through the boost path.
+    rows = [
+        _row("projects/hrm.md", 0.10, project="hrm"),
+        _row("cv.md", 0.90, project=None, kind="cv", classification="restricted"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "mitä työkokemusta?",
+            top_k=3,
+            allowed_classifications=["public"],
+        )
+    )
+    assert all(c.source != "cv.md" for c in result)
