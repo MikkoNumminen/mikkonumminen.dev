@@ -148,3 +148,15 @@ def test_closing_reminder_grounding_always_english_when_forced() -> None:
     assert on.index("use ONLY the context above") > on.index("kuka on mikko?")
     assert on.rstrip().endswith("whatever language the question is in.")
     assert "Write your entire reply in English" not in off
+
+
+def test_closing_reminder_includes_the_verbatim_numbers_procedure() -> None:
+    # A prohibition alone ("never invent dates") is not enough for a small
+    # model — it invented "2019-2021" for an employment the context dates
+    # 2022-2024. The closing anchor carries an explicit copy-verbatim rule
+    # (measured: correct years 1/4 -> 4/4 on the failing question).
+    chunks = [ContextChunk(source="cv.md", title="CV", content="2022-2024.")]
+    closing = build_messages("mitä mikko teki?", chunks, force_english=False)[-1][
+        "content"
+    ]
+    assert "Copy every year and number exactly as written" in closing

@@ -51,7 +51,7 @@ from .guardrails import (
     smalltalk_route,
 )
 from .prompts import build_messages
-from .query_projects import detect_projects
+from .query_projects import detect_projects, restore_entities
 from .request_log import RequestLogger
 from .retrieval import (
     SupportsEmbedQuery,
@@ -306,7 +306,11 @@ async def chat_event_stream(
                     llm, query, semaphore, acquire_timeout
                 )
                 if translated is not None:
-                    retrieval_query = translated
+                    # The model translates meaning-bearing proper nouns away
+                    # ("kasvulabs" -> "Growth Labs") no matter what the prompt
+                    # says; restore the canonical corpus spellings the original
+                    # question carried so retrieval keeps its exact-term signal.
+                    retrieval_query = restore_entities(query, translated)
             chunks = await retrieve(
                 embedder,
                 db,

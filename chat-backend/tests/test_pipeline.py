@@ -1050,3 +1050,11 @@ def test_runaway_translation_is_discarded() -> None:
     llm = TranslatingLLM(["word " * 200], ["answer"])
     embedder = _run_translate_turn("mitä työkokemusta?", llm)
     assert embedder.seen == ["mitä työkokemusta?"]
+
+
+def test_translation_restores_lost_entity_for_retrieval() -> None:
+    # live failure: Poro renders "kasvulabsissa" as "Growth Labs"; retrieval
+    # must still carry the canonical corpus spelling
+    llm = TranslatingLLM(["What did Mikko do at Growth Labs?"], ["answer"])
+    embedder = _run_translate_turn("mitä mikko teki kasvulabsissa?", llm)
+    assert embedder.seen == ["What did Mikko do at Growth Labs? Kasvu Labs"]
