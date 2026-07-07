@@ -72,22 +72,29 @@ def test_looks_non_english_false_for_ascii_english(query: str) -> None:
 @pytest.mark.parametrize(
     "text",
     [
-        # both trip the threshold (>=2 function-word markers OR >=4 ä/ö)
+        # regression fixtures carried over from the hand-tuned heuristic era —
+        # every case some earlier router version routed to English
         "Miten HRM pitää käyttöoikeudet ajan tasalla, ja mikä on kompromissi?",
         "Mitkä projektit käyttävät PostgreSQL:ää, ja onko jokin joka valitsi toisin?",
-        # the case that motivated the router upgrade: zero diacritics, and the old
-        # space-flanked markers never matched a sentence-INITIAL word
         "kerro jotain projekteista",
         "Kerro projekteista tarkemmin.",
-        # code-heavy Finnish from the blind study's eval set that the old ä/ö
-        # heuristic force-routed to English (marker + case suffix now catches it)
         "Miten HRM:n nopeudenrajoitin estää kahden samanaikaisen pyynnön race "
         "conditionin ilman Redistä?",
-        # marker-less but two distinct case endings
         "Kysymys tiedostossa mainituista projekteista",
-        # one marker + ä/ö — the everyday phrasing an anchor-less path answered
-        # in English in the QA battery
         "Miten tämä chat toimii?",
+        "Onko projekteja?",
+        "Onko demoja?",
+        "onko esimerkkejä",
+        # the terse live-query class the heuristic couldn't reach at all (1/12) —
+        # the reason it was replaced with statistical language ID
+        "Työkokemus?",
+        "Listaa projektit",
+        "Kirjoita runo.",
+        "Mitä osaat?",
+        "Kuka olet?",
+        "Koulutus?",
+        "Yhteystiedot?",
+        "Kerro itsestäsi",
     ],
 )
 def test_looks_finnish_true_for_finnish(text: str) -> None:
@@ -99,26 +106,30 @@ def test_looks_finnish_true_for_finnish(text: str) -> None:
     [
         "How does HRM keep JWT permissions fresh without a database round-trip?",
         "What TTS engines does AudiobookMaker use, and does it clone voices?",
-        # English words with Finnish-looking tails must not trip the suffix path:
-        # one suffixed word alone is never enough...
+        # English with Finnish-looking word tails must not read as Finnish
         "does the vanilla installer work offline?",
-        # ...and a doubled tail is one DISTINCT ending, not two
         "that umbrella fella again",
-        # Swedish stays out (its ä/ö density is below the threshold and its
-        # suffixes differ)
+        "is the demo based on a margarita recipe",
+        # Swedish is a detector candidate precisely so it lands on SWEDISH,
+        # never on its look-alike neighbour Finnish
         "berätta mer om projekten",
+        # terse English stays English
+        "Projects?",
+        "Skills?",
+        "Any demos?",
+        "Work experience?",
     ],
 )
 def test_looks_finnish_false_for_english(text: str) -> None:
     assert not looks_finnish(text)
 
 
-def test_looks_finnish_short_finnish_falls_through_consistently() -> None:
-    # A terse Finnish phrase below the threshold is NOT flagged — by design: the
-    # pipeline routing and the acceptance language check share THIS function, so such
-    # a query routes to English AND the check then expects English (no spurious
-    # mismatch). Documents the deliberate recall/consistency trade.
-    assert looks_finnish("Kirjoita runo.") is False
+def test_looks_finnish_too_short_to_identify_defaults_to_english() -> None:
+    # Below 4 letters language ID is guesswork ("ok" reads as Finnish to the
+    # detector) — such messages are small-talk, answered in English by the
+    # fast path, so routing must agree and default to English.
+    assert looks_finnish("ok") is False
+    assert looks_finnish("np!") is False
 
 
 @pytest.mark.parametrize(

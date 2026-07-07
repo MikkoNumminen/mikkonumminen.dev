@@ -10,13 +10,16 @@ never be answered from hallucinated content.
 The distance threshold is conservative (errs toward answering) because the
 prompt-level guardrail handles the borderline cases; the gate exists to catch
 the clearly-irrelevant tail. Tune `WEAK_RETRIEVAL_DISTANCE` against the eval
-harness (evals/run_eval.py). Pure and stdlib-only, so it is unit-tested.
+harness (evals/run_eval.py). Pure (lingua for language ID aside), so it is
+unit-tested.
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+
+from lingua import Language, LanguageDetector, LanguageDetectorBuilder
 
 from .retrieval import RetrievedChunk
 
@@ -42,101 +45,42 @@ def looks_non_english(query: str) -> bool:
     return any(ch.isalpha() and ord(ch) > 127 for ch in query)
 
 
-# Finnish-language markers — common function words flanked by spaces, so they match
-# whole words not substrings (the text is space-padded before matching, so a
-# sentence-INITIAL marker like "kerro ..." counts too — the old form silently never
-# matched the first word). Query-opening words (kerro/mitä/miten/…) dominate real
-# chat questions, so they are first-class markers. Two independent signals
-# (function words + ä/ö) so one stray loanword can't trip it.
-_FINNISH_MARKERS = (
-    " on ",
-    " ja ",
-    " joka ",
-    " että ",
-    " sekä ",
-    " minun ",
-    " sivusto",
-    " rakennettu",
-    " ovat ",
-    " tai ",
-    " mutta ",
-    " kä",
-    " kerro ",
-    " jotain ",
-    " mitä ",
-    " mikä ",
-    " mitkä ",
-    " miksi ",
-    " miten ",
-    " kuinka ",
-    " kuka ",
-    " mistä ",
-    " missä ",
-    " milloin ",
-    " onko ",
-    " ilman ",
-    " kuten ",
-    " myös ",
-    " hänen ",
-    " tämä ",
-    " nämä ",
-    " sen ",
-)
+# Language routing. Statistical language ID (lingua) replaced the hand-tuned
+# marker/diacritic/case-suffix heuristic: the heuristic scored well on the curated
+# eval sets it was tuned against (103/104) but caught only 1/12 of the TERSE
+# queries real visitors type ("Onko projekteja?", "Työkokemus?", "Listaa
+# projektit") — every leak meant another hand-added marker. Lingua scores 104/104
+# on the eval sets and 12/12 on the terse set, offline and CPU-only. Candidates
+# restricted to EN/FI/SV: the only languages the site speaks, and a smaller set is
+# both faster and harder to confuse. Built lazily — the models are ~100MB and must
+# not load at import (unit tests of unrelated guardrails would pay for it).
+_LANGUAGES = (Language.ENGLISH, Language.FINNISH, Language.SWEDISH)
+_detector: LanguageDetector | None = None
 
-# Finnish case-suffix endings on longer words (projekteista, Redistä, tiedostossa…).
-# A code-heavy Finnish question can carry zero marker words and few diacritics while
-# its inflections still scream Finnish — this is the signal the ä/ö heuristic missed
-# on 15/30 questions in the blind study. Endings picked to avoid common English/
-# Swedish word tails; matched only on words of ≥5 letters for the same reason.
-# All endings are the same length and mutually exclusive, so one token can match
-# at most one — the distinct-endings rule below counts words, never double-counts.
-_FINNISH_SUFFIXES = (
-    "sta",
-    "stä",
-    "ssa",
-    "ssä",
-    "lla",
-    "llä",
-    "lta",
-    "ltä",
-    "ksi",
-    "iin",
-)
-_MIN_SUFFIX_WORD = 5
+# Below this many letters ("ok", "np") language ID is guesswork — such messages
+# are small-talk, not questions, and the small-talk fast path answers them in
+# English anyway; defaulting to English keeps routing and reply consistent.
+_MIN_ALPHA_FOR_DETECTION = 4
+
+
+def _get_detector() -> LanguageDetector:
+    global _detector
+    if _detector is None:
+        _detector = LanguageDetectorBuilder.from_languages(*_LANGUAGES).build()
+    return _detector
 
 
 def looks_finnish(text: str) -> bool:
-    """True when the text reads as Finnish: two function-word markers, four ä/ö
-    diacritics, two case-suffix words, or one marker + one case-suffix word.
+    """True when the text reads as Finnish (statistical language ID over EN/FI/SV).
 
     The SINGLE shared definition for both the pipeline's Finnish answer-path routing
     (when RAG_ALLOW_FINNISH is on) and the acceptance harness's language assertion —
-    so routing and the test can never disagree on the same text (an ASCII-only
-    Finnish query that routes to English is also judged not-Finnish by the check, not
-    a spurious failure)."""
-    # Fold punctuation to spaces and pad, so markers match at sentence edges and
-    # against "mitä?"-style tokens; keep ä/ö (and other letters) intact.
-    low = " " + "".join(c if c.isalpha() else " " for c in text.lower()) + " "
-    words = sum(1 for w in _FINNISH_MARKERS if w in low)
-    diacritics = sum(low.count(c) for c in ("ä", "ö"))
-    endings = [
-        ending
-        for token in low.split()
-        if len(token) >= _MIN_SUFFIX_WORD
-        for ending in _FINNISH_SUFFIXES
-        if token.endswith(ending)
-    ]
-    # The suffix-only path needs two DISTINCT endings: English can double one tail
-    # ("umbrella fella"), but varied Finnish case endings in one sentence cannot be
-    # faked by a loanword pair. A single marker also counts when the text carries
-    # ä/ö ("Miten tämä chat toimii?") — English essentially never does.
-    return (
-        words >= 2
-        or diacritics >= 4
-        or len(set(endings)) >= 2
-        or (words >= 1 and len(endings) >= 1)
-        or (words >= 1 and diacritics >= 2)
-    )
+    so routing and the test can never disagree on the same text (a Finnish query
+    that routes to English is also judged not-Finnish by the check, not a spurious
+    failure)."""
+    if sum(1 for c in text if c.isalpha()) < _MIN_ALPHA_FOR_DETECTION:
+        return False
+    return _get_detector().detect_language_of(text) == Language.FINNISH
 
 
 # Templated replies for the no-LLM small-talk fast path. A greeting or a thanks is

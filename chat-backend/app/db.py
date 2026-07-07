@@ -94,6 +94,7 @@ def _filter_clause(
     classifications: Sequence[str] | None,
     doc_types: Sequence[str] | None = None,
     exclude_doc_types: Sequence[str] | None = None,
+    kinds: Sequence[str] | None = None,
     base: list[str] | None = None,
 ) -> str:
     """Build a parameterized WHERE for the optional project + classification
@@ -128,6 +129,11 @@ def _filter_clause(
         conditions.append(
             f"(doc_type IS NULL OR doc_type <> ALL(${len(params)}::text[]))"
         )
+    # kind is a POSITIVE source-kind filter (retrieve ONLY these kinds, e.g. 'cv'
+    # for the CV-intent boost); like doc_types, empty/None means "no restriction".
+    if kinds:
+        params.append(list(kinds))
+        conditions.append(f"kind = ANY(${len(params)}::text[])")
     return ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
 
@@ -329,6 +335,7 @@ class Database:
         classifications: Sequence[str] | None = None,
         doc_types: Sequence[str] | None = None,
         exclude_doc_types: Sequence[str] | None = None,
+        kinds: Sequence[str] | None = None,
     ) -> list[asyncpg.Record]:
         """Return the `top_k` chunks nearest the query embedding (dense).
 
@@ -341,12 +348,14 @@ class Database:
         filter). `classifications` is the GDPR role filter — when given, only rows
         in those classes are eligible, applied IN SQL so restricted data is never
         even fetched. `exclude_doc_types` hides specific genres (e.g. 'adr') from
-        visitor retrieval. All filters are built from parameterized placeholders;
-        only the placeholder INDEX is interpolated into the SQL, never any value.
+        visitor retrieval. `kinds` restricts to specific source kinds (e.g. 'cv'
+        for the CV-intent boost). All filters are built from parameterized
+        placeholders; only the placeholder INDEX is interpolated into the SQL,
+        never any value.
         """
         params: list[object] = [embedding, top_k]
         where = _filter_clause(
-            params, projects, classifications, doc_types, exclude_doc_types
+            params, projects, classifications, doc_types, exclude_doc_types, kinds
         )
         rows: list[asyncpg.Record] = await self._pool.fetch(
             f"""
