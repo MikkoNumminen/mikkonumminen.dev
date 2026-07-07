@@ -69,6 +69,67 @@ _EXPANSION_DIRECTIVE = (
     "development narrative provided in the context above."
 )
 
+# Translate-for-retrieval (RAG_TRANSLATE_RETRIEVAL). The embedder and the lexical
+# index are English-only, so a Finnish query lands on the right chunk only by
+# luck — the Finnish-magnet residual measured in the blind study. When the router
+# says Finnish, ask the resident model for a one-line English translation and use
+# it FOR RETRIEVAL ONLY; generation still answers the original Finnish question.
+# Strictly best-effort: a busy GPU, a failed call, or a suspect translation all
+# fall back to the original query — translation may improve retrieval, never
+# break the request.
+_TRANSLATE_SYSTEM = (
+    "You are a translator. Translate the user's message to English. "
+    "Output ONLY the English translation — no explanations, no quotes."
+)
+# A faithful one-line translation is about query-length; a multiple of it plus
+# slack means the model ignored the instruction and wrote prose — discard rather
+# than embed an essay as the retrieval query.
+_MAX_TRANSLATION_FACTOR = 4
+_MAX_TRANSLATION_SLACK = 80
+
+
+async def _translate_for_retrieval(
+    llm: SupportsStreamChat,
+    query: str,
+    semaphore: asyncio.Semaphore | None,
+    acquire_timeout: float,
+) -> str | None:
+    """English translation of `query` for embedding/lexical search, or None.
+
+    Takes a generation slot under the SAME semaphore as the answer (a translation
+    is a generation; the single local GPU must never run two at once), released
+    before retrieval so the slots never overlap. None on a busy GPU, an error, or
+    a translation that doesn't look like a translation — the caller then retrieves
+    with the original query, exactly the pre-feature behaviour.
+    """
+    acquired = False
+    if semaphore is not None:
+        try:
+            await asyncio.wait_for(semaphore.acquire(), timeout=acquire_timeout)
+            acquired = True
+        except TimeoutError:
+            return None
+    try:
+        parts: list[str] = []
+        async for token in llm.stream_chat(
+            [
+                {"role": "system", "content": _TRANSLATE_SYSTEM},
+                {"role": "user", "content": query},
+            ]
+        ):
+            parts.append(token)
+    except Exception:
+        logger.exception("retrieval translation failed")
+        return None
+    finally:
+        if acquired and semaphore is not None:
+            semaphore.release()
+    translated = "".join(parts).strip().strip('"').strip()
+    max_len = _MAX_TRANSLATION_FACTOR * len(query) + _MAX_TRANSLATION_SLACK
+    if not translated or len(translated) > max_len:
+        return None
+    return translated
+
 
 def _last_user_message(history: Sequence[Mapping[str, str]]) -> str | None:
     """The most recent user turn in the threaded history, or None."""
@@ -135,6 +196,7 @@ async def chat_event_stream(
     diversify_max_per_project: int | None = None,
     model_name: str = "",
     allow_finnish: bool = False,
+    translate_retrieval: bool = False,
 ) -> AsyncIterator[str]:
     start = time.monotonic()
 
@@ -222,10 +284,23 @@ async def chat_event_stream(
                 chunks = narrative
                 effective_query = _EXPANSION_DIRECTIVE
         if not expansion:
+            # RAG_TRANSLATE_RETRIEVAL (default off): retrieve with an English
+            # translation of a Finnish question so the English-only embedder and
+            # lexical index can actually land on the right chunks; the model still
+            # answers the ORIGINAL question (and in Finnish — gated on the same
+            # detection). Best-effort: any failure falls back to the original
+            # query, byte-identical to the flag-off flow.
+            retrieval_query = query
+            if translate_retrieval and answer_in_finnish:
+                translated = await _translate_for_retrieval(
+                    llm, query, semaphore, acquire_timeout
+                )
+                if translated is not None:
+                    retrieval_query = translated
             chunks = await retrieve(
                 embedder,
                 db,
-                query,
+                retrieval_query,
                 top_k,
                 hybrid=hybrid,
                 rrf_k=rrf_k,

@@ -267,6 +267,7 @@ def create_app() -> FastAPI:
             diversify_max_per_project=settings.retrieval_diversity_max_per_project,
             model_name=settings.llm_model,
             allow_finnish=settings.rag_allow_finnish,
+            translate_retrieval=settings.rag_translate_retrieval,
         )
         return StreamingResponse(
             stream,
