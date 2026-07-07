@@ -42,6 +42,7 @@ class FakeDB:
         classifications: Sequence[str] | None = None,
         doc_types: Sequence[str] | None = None,
         exclude_doc_types: Sequence[str] | None = None,
+        kinds: Sequence[str] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         if self._fail:
             raise RuntimeError("db down")
@@ -50,7 +51,10 @@ class FakeDB:
             if projects:
                 rows = [r for r in rows if r.get("project") in projects]
             return rows[:top_k]
-        return self._rows[:top_k]
+        rows = self._rows
+        if kinds:
+            rows = [r for r in rows if r.get("kind", "project") in kinds]
+        return rows[:top_k]
 
     async def has_narrative(
         self, project: str, classifications: Sequence[str] | None = None
@@ -1023,6 +1027,21 @@ def test_failed_translation_falls_back_to_the_original_query() -> None:
     llm = FailingFirstCallLLM(["unused"], ["answer"])
     embedder = _run_translate_turn("mitä työkokemusta sinulla on?", llm)
     assert embedder.seen == ["mitä työkokemusta sinulla on?"]
+
+
+def test_chatty_translation_is_cut_to_its_first_line() -> None:
+    # Live-verified failure shape: a correct one-line translation followed by
+    # unsolicited commentary. Only the first line may reach the embedder.
+    llm = TranslatingLLM(
+        [
+            "What is Miko's work experience? \n\nHowever, considering \"Miko\" "
+            "might be a name, here's an alternative translation:\n\n"
+            "What are his skills?"
+        ],
+        ["answer"],
+    )
+    embedder = _run_translate_turn("Mitä työkokemusta Mikolla on?", llm)
+    assert embedder.seen == ["What is Miko's work experience?"]
 
 
 def test_runaway_translation_is_discarded() -> None:
