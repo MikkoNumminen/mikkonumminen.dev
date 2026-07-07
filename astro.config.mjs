@@ -37,6 +37,12 @@ const siteUrl =
 export default defineConfig({
   site: siteUrl,
   output: 'static',
+  // Astro 7 changed the default to 'jsx', which deletes EVERY whitespace-only
+  // text node between elements (measured on this site: 284 inter-<span> spaces
+  // across 13 pages) and trims text-node edges (' EN ' -> 'EN'). Inline-flow
+  // copy that relies on a natural space would silently run together. Pin the
+  // v6 semantics: compress safely, keep inter-element whitespace.
+  compressHTML: true,
   // Emit slash-less URLs so the in-page canonical / og:url / hreflang match
   // what is actually served — vercel.json sets `trailingSlash: false` +
   // `cleanUrls`, so a trailing-slash (or .html) canonical would 308-redirect.
