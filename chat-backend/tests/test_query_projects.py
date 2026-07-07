@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.query_projects import detect_projects, wants_cv
+from app.query_projects import detect_projects, restore_entities, wants_cv
 
 
 def test_readlog_dotnet_wins_over_bare_readlog() -> None:
@@ -114,3 +114,55 @@ def test_wants_cv_false_for_project_and_tech_questions() -> None:
     assert not wants_cv("do you have experience with react?")
     # "cv" must be a whole token, not a substring
     assert not wants_cv("does the canvas render on mobile?")
+
+
+def test_wants_cv_employer_name_is_a_work_experience_question() -> None:
+    # the live failure: asking about a named employer must pull the CV chunks
+    assert wants_cv("mitä mikko teki kasvulabsissa?")
+    assert wants_cv("what did Mikko do at Kasvu Labs?")
+    # the canonical spelling appended by entity restoration also triggers it
+    assert wants_cv("What did Mikko do at Growth Labs? Kasvu Labs")
+
+
+def test_restore_entities_appends_lost_canonical_spelling() -> None:
+    # Poro translated the employer name away ("kasvu" = growth, measured live)
+    out = restore_entities(
+        "mitä mikko teki kasvulabsissa?", "What did Mikko do at Growth Labs?"
+    )
+    assert out == "What did Mikko do at Growth Labs? Kasvu Labs"
+
+
+def test_restore_entities_no_duplicate_when_translation_kept_the_name() -> None:
+    out = restore_entities(
+        "mitä mikko teki kasvulabsissa?", "What did Mikko do at Kasvu Labs?"
+    )
+    assert out == "What did Mikko do at Kasvu Labs?"
+
+
+def test_restore_entities_passthrough_without_known_entities() -> None:
+    out = restore_entities("mitä työkokemusta?", "What work experience?")
+    assert out == "What work experience?"
+
+
+def test_restore_entities_appends_each_canonical_once() -> None:
+    # both stems ("kasvulabs" inflected + spaced form) map to one canonical name
+    out = restore_entities(
+        "kerro kasvu labs ja kasvulabsin ajasta", "Tell me about the growth time"
+    )
+    assert out.count("Kasvu Labs") == 1
+
+
+def test_wants_cv_spaced_inflected_employer_form() -> None:
+    # "Kasvu Labsissa" — spaced AND case-inflected: the fused prefix can't see
+    # it and an exact-phrase match would need a trailing space the suffix eats
+    assert wants_cv("mitä Mikko teki Kasvu Labsissa?")
+
+
+def test_restore_entities_covers_the_kysely_library() -> None:
+    # the other measured translation loss: 'kysely' means 'query' in Finnish,
+    # so the library name never survives translation
+    out = restore_entities(
+        "Miksi Spacepotatis valitsi Kyselyn Prisman sijaan?",
+        "Why did Spacepotatis choose a query instead of Prisma?",
+    )
+    assert out.endswith(" Kysely")
