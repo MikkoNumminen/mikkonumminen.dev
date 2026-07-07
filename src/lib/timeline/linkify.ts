@@ -36,8 +36,7 @@ const PROJECT_HOSTS: readonly string[] = Object.keys(projectUrlsByHost).sort(
 );
 
 export type BodyPart =
-  | { type: 'text'; value: string }
-  | { type: 'link'; value: string; href: string };
+  { type: 'text'; value: string } | { type: 'link'; value: string; href: string };
 
 /**
  * Walk the body string and split it into text spans and link spans.
