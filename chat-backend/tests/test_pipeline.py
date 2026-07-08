@@ -1256,11 +1256,9 @@ def test_cv_intent_survives_a_translation_that_loses_the_phrase() -> None:
 def test_english_question_gets_english_anchor_under_allow_finnish() -> None:
     # finding B: with allow_finnish on and force_english off, an English
     # question got NO closing language anchor at all - a drift-open door for a
-    # Finnish-first model. (The baseline's employer-en case turned out to be a
-    # different mechanism: lingua classifies that name-heavy sentence as
-    # Finnish, so it routes to the Finnish path legitimately - a documented
-    # router boundary residual, which is why THIS test uses a name-light
-    # English question.)
+    # Finnish-first model. (The baseline's employer-en case was a different
+    # mechanism - name-dense English classified Finnish - now closed by the
+    # English function-word override in looks_finnish.)
     msgs = _llm_messages(
         "What database does the reading tracker use?",
         allow_finnish=True,
