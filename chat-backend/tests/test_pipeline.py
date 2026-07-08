@@ -516,6 +516,8 @@ def _capture_log(sink: list[dict]):
         latency_ms: int,
         prompt_eval_count: int | None = None,
         eval_count: int | None = None,
+        answer_lang: str | None = None,
+        invented_years: list | None = None,
     ) -> None:
         sink.append(
             {
@@ -528,6 +530,8 @@ def _capture_log(sink: list[dict]):
                 "eval_count": eval_count,
                 "distances": list(distances),
                 "classifications": dict(classifications or {}),
+                "answer_lang": answer_lang,
+                "invented_years": list(invented_years or []),
             }
         )
 
@@ -1151,3 +1155,51 @@ def test_finnish_busy_shed_is_finnish() -> None:
 
     out = asyncio.run(run())
     assert "Vastaan juuri toiseen kysymykseen" in out
+
+
+# --- answer-quality observability (answer_lang + invented_years in the log) ---
+
+
+def test_answered_log_carries_language_and_invented_years() -> None:
+    # the fake answer states a year the context does not contain
+    captured: dict[str, Any] = {}
+
+    def fake_log(
+        query: str,
+        distances: Sequence[float],
+        route: str,
+        response: str,
+        role: str = "public",
+        classifications: Mapping[str, int] | None = None,
+        *,
+        model: str | None,
+        latency_ms: int,
+        prompt_eval_count: int | None = None,
+        eval_count: int | None = None,
+        answer_lang: str | None = None,
+        invented_years: Sequence[str] | None = None,
+    ) -> None:
+        if route == "answered":
+            captured["answer_lang"] = answer_lang
+            captured["invented_years"] = list(invented_years or [])
+
+    llm = FakeLLM(["Mikko worked there from 2019 to 2021, says this answer."])
+
+    async def run() -> None:
+        gen = chat_event_stream(
+            "when did Mikko work at Kasvu Labs?",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("cv.md")]),
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            log_request=fake_log,
+        )
+        async for _f in gen:
+            pass
+
+    asyncio.run(run())
+    assert captured["answer_lang"] == "en"
+    # _row content is "about cv.md" - contains no years, so both are invented
+    assert captured["invented_years"] == ["2019", "2021"]

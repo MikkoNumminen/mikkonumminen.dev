@@ -50,6 +50,7 @@ from .guardrails import (
     GREETING_REPLY_FI,
     WEAK_RETRIEVAL_REPLY,
     WEAK_RETRIEVAL_REPLY_FI,
+    answer_language,
     is_expansion_request,
     is_finnish_smalltalk,
     is_generative_request,
@@ -58,6 +59,7 @@ from .guardrails import (
     looks_finnish,
     looks_non_english,
     smalltalk_route,
+    unsupported_years,
 )
 from .prompts import build_messages
 from .query_projects import detect_projects, restore_entities
@@ -508,17 +510,25 @@ async def chat_event_stream(
         # (how often relevant retrieval is refused vs answered) and is a readable
         # record of what was asked and how the model answered.
         if log_request is not None:
+            answer_text = "".join(response_parts)
             log_request(
                 query,
                 distances,
                 "answered",
-                "".join(response_parts),
+                answer_text,
                 role,
                 class_counts,
                 model=model_name,
                 latency_ms=int((time.monotonic() - start) * 1000),
                 prompt_eval_count=usage.get("prompt"),
                 eval_count=usage.get("completion"),
+                # Answer-quality observability: detected answer language (drift
+                # rate) and any stated year absent from BOTH the retrieved
+                # context and the question (the measured invented-fact class).
+                answer_lang=answer_language(answer_text),
+                invented_years=unsupported_years(
+                    answer_text, [c.content for c in chunks] + [query]
+                ),
             )
 
         # Thread this completed turn into session memory so a follow-up ("tell me

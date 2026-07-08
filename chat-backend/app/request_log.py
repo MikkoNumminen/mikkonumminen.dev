@@ -46,6 +46,8 @@ class RequestLogger(Protocol):
         latency_ms: int,
         prompt_eval_count: int | None = None,
         eval_count: int | None = None,
+        answer_lang: str | None = None,
+        invented_years: Sequence[str] | None = None,
     ) -> None: ...
 
 
@@ -69,6 +71,8 @@ def format_log_record(
     latency_ms: int,
     prompt_eval_count: int | None = None,
     eval_count: int | None = None,
+    answer_lang: str | None = None,
+    invented_years: Sequence[str] | None = None,
     log_text: bool = False,
     ts: str | None = None,
 ) -> str:
@@ -97,6 +101,12 @@ def format_log_record(
         "role": role,
         "classifications": dict(classifications or {}),
         "response_chars": len(response),
+        # Answer-quality observability (answered route only; None/[] elsewhere):
+        # the generated answer's detected language, and years it states that
+        # appear nowhere in the retrieved context or the question - the
+        # deterministic invented-fact signal (see guardrails.unsupported_years).
+        "answer_lang": answer_lang,
+        "invented_years": list(invented_years or []),
     }
     if log_text:
         record["query"] = query[:_MAX_LOGGED_QUERY_CHARS]
@@ -160,6 +170,8 @@ def build_request_logger(
         latency_ms: int,
         prompt_eval_count: int | None = None,
         eval_count: int | None = None,
+        answer_lang: str | None = None,
+        invented_years: Sequence[str] | None = None,
     ) -> None:
         try:
             logger.info(
@@ -174,6 +186,8 @@ def build_request_logger(
                     latency_ms=latency_ms,
                     prompt_eval_count=prompt_eval_count,
                     eval_count=eval_count,
+                    answer_lang=answer_lang,
+                    invented_years=invented_years,
                     log_text=log_text,
                 )
             )

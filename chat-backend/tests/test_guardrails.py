@@ -8,6 +8,7 @@ from app.guardrails import (
     EXPANSION_OFFER,
     GENERATIVE_REPLY,
     WEAK_RETRIEVAL_REPLY,
+    answer_language,
     is_expansion_request,
     is_generative_request,
     is_translation_request,
@@ -15,6 +16,7 @@ from app.guardrails import (
     looks_finnish,
     looks_non_english,
     smalltalk_route,
+    unsupported_years,
 )
 from app.retrieval import RetrievedChunk
 
@@ -339,3 +341,40 @@ def test_is_generative_request_finnish_creative_asks(query: str) -> None:
 )
 def test_is_generative_request_finnish_questions_pass(query: str) -> None:
     assert not is_generative_request(query)
+
+
+def test_unsupported_years_flags_the_invented_range() -> None:
+    # the live Kasvulabs case: context dates the employment 2022-2024, the
+    # answer said 2019-2021
+    out = unsupported_years(
+        "Mikko työskenteli siellä vuosina 2019–2021.",
+        ["**Kasvu Labs Oy** (2022–2024) — first paid programming role."],
+    )
+    assert out == ["2019", "2021"]
+
+
+def test_unsupported_years_grounded_answer_is_clean() -> None:
+    out = unsupported_years(
+        "Kasvu Labs Oy:ssä vuosina 2022–2024.",
+        ["**Kasvu Labs Oy** (2022–2024)."],
+    )
+    assert out == []
+
+
+def test_unsupported_years_question_years_are_supported() -> None:
+    # a year the visitor asked about may legitimately be echoed
+    out = unsupported_years(
+        "Vuonna 2023 Mikko työskenteli Kasvu Labsissa.",
+        ["Kasvu Labs Oy (2022-2024)", "mitä mikko teki vuonna 2023?"],
+    )
+    assert out == []
+
+
+def test_unsupported_years_no_years_no_flags() -> None:
+    assert unsupported_years("Ei vuosilukuja täällä.", ["context"]) == []
+
+
+def test_answer_language_detects_fi_en_und() -> None:
+    assert answer_language("Mikko työskenteli Kasvu Labsissa kehittäjänä.") == "fi"
+    assert answer_language("Mikko worked at Kasvu Labs as a developer.") == "en"
+    assert answer_language("ok") == "und"
