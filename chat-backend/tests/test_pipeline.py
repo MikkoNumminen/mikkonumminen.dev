@@ -1273,3 +1273,42 @@ def test_finnish_question_still_gets_finnish_anchor() -> None:
     # the B fix must not touch the Finnish path
     msgs = _llm_messages(_FI_QUERY, allow_finnish=True, force_english=False)
     assert "KOKO vastaus suomeksi" in msgs[-1]["content"]
+
+
+# --- CV-intent gate override ---
+
+
+def test_cv_intent_overrides_the_weak_retrieval_gate() -> None:
+    # measured live: second-person translated phrasing embeds ~0.47 against the
+    # third-person corpus, past the 0.45 gate - but the CV route already proved
+    # the question is about work experience, so refusing is wrong
+    row_cv = _row("cv.md", distance=0.75)  # beyond the harness threshold 0.7
+    row_cv["kind"] = "cv"
+    llm = FakeLLM(["Kasvu Labs Oy 2022-2024."])
+    frames = _collect_fi(
+        "mitä työkokemusta?", db=FakeDB([row_cv]), llm=llm
+    )
+    text = _token_text(frames)
+    assert "Minulla ei ole tietoa tuosta" not in text
+    assert "Kasvu Labs" in text
+
+
+def test_gate_still_refuses_off_corpus_without_cv_intent() -> None:
+    # no CV intent -> the far distance still refuses deterministically
+    frames = _collect_fi(
+        "mikä on paras hiihtolatu Lapissa?",
+        db=FakeDB([_row("projects/hrm.md", distance=0.8)]),
+        llm=FakeLLM(["should not run"]),
+    )
+    assert "Minulla ei ole tietoa tuosta" in _token_text(frames)
+
+
+def test_cv_intent_without_cv_chunks_does_not_override() -> None:
+    # intent alone is not enough - the override needs the CV chunks present
+    # (e.g. a role-filtered retrieval that excluded them must still refuse)
+    frames = _collect_fi(
+        "mitä työkokemusta?",
+        db=FakeDB([_row("projects/hrm.md", distance=0.8)]),
+        llm=FakeLLM(["should not run"]),
+    )
+    assert "Minulla ei ole tietoa tuosta" in _token_text(frames)

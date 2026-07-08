@@ -206,6 +206,16 @@ def restore_entities(original: str, translated: str) -> str:
     return restored
 
 
+def wants_cv_intent(original: str, retrieval_query: str) -> bool:
+    """CV intent over BOTH texts — the original question carries the Finnish
+    forms, the (possibly translated) retrieval query the English phrases. The
+    single definition shared by retrieval's CV boost and the pipeline's
+    gate override, so the two can never disagree."""
+    if retrieval_query == original:
+        return wants_cv(original)
+    return wants_cv(f"{retrieval_query}\n{original}")
+
+
 def wants_cv(query: str) -> bool:
     """True when the query asks about work experience / career / the CV itself."""
     # Same normalization as the language router: non-alphanumerics fold to spaces
