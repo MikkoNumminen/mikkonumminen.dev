@@ -54,6 +54,7 @@ from .guardrails import (
     is_expansion_request,
     is_finnish_smalltalk,
     is_generative_request,
+    is_personal_trivia,
     is_translation_request,
     is_weak_retrieval,
     looks_finnish,
@@ -271,22 +272,37 @@ async def chat_event_stream(
     # it from the prompt alone — so decline deterministically before any retrieval
     # or generation. No GPU touched, no sources cited.
     generative = is_generative_request(query)
-    if generative or is_translation_request(query):
-        route = "generative" if generative else "translation"
-        generative_reply = GENERATIVE_REPLY_FI if answer_in_finnish else GENERATIVE_REPLY
+    trivia = is_personal_trivia(query)
+    if generative or trivia or is_translation_request(query):
+        # Personal trivia gets the gate's own "nothing on that" reply (it is a
+        # missing-from-corpus fact, not an out-of-scope TASK); creative and
+        # translation asks keep the task-decline wording.
+        route = (
+            "generative"
+            if generative
+            else ("personal_trivia" if trivia else "translation")
+        )
+        if trivia and not generative:
+            decline_reply = (
+                WEAK_RETRIEVAL_REPLY_FI if answer_in_finnish else WEAK_RETRIEVAL_REPLY
+            )
+        else:
+            decline_reply = (
+                GENERATIVE_REPLY_FI if answer_in_finnish else GENERATIVE_REPLY
+            )
         if log_request is not None:
             log_request(
                 query,
                 [],
                 route,
-                generative_reply,
+                decline_reply,
                 role,
                 {},
                 model=None,
                 latency_ms=int((time.monotonic() - start) * 1000),
             )
         yield sse.sse_sources([])
-        yield sse.sse_token(generative_reply)
+        yield sse.sse_token(decline_reply)
         if looks_non_english(query) and not answer_in_finnish:
             yield sse.sse_token(ENGLISH_ONLY_HINT)
         yield sse.sse_done()

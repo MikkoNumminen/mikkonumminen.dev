@@ -1312,3 +1312,18 @@ def test_cv_intent_without_cv_chunks_does_not_override() -> None:
         llm=FakeLLM(["should not run"]),
     )
     assert "Minulla ei ole tietoa tuosta" in _token_text(frames)
+
+
+def test_personal_trivia_declined_deterministically_fi_and_en() -> None:
+    # measured: these embed 0.41-0.44 (inside the gate) and the EN model path
+    # leaked speculation 0/8 - so the class is declined on the request pattern
+    frames = _collect_fi(
+        "Mikä on Mikon lempiväri?", db=FakeDB([_row("cv.md")]), llm=FakeLLM(["no"])
+    )
+    assert "Minulla ei ole tietoa tuosta" in _token_text(frames)
+    frames = _collect(
+        "What is Mikko's favourite colour?",
+        db=FakeDB([_row("cv.md")]),
+        llm=FakeLLM(["no"]),
+    )
+    assert "I don't have anything on that" in _token_text(frames)

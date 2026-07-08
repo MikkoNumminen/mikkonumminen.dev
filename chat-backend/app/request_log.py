@@ -26,7 +26,9 @@ from typing import Protocol
 # Routes whose `gated` is True (a guardrail refused). `gated` is DERIVED from
 # `route` in format_log_record so the two fields can never drift. "answered" (the
 # LLM ran), "greeting" and "courtesy" (templated, no model) are NOT gated.
-_GATED_ROUTES = frozenset({"generative", "translation", "weak_retrieval", "busy"})
+_GATED_ROUTES = frozenset(
+    {"generative", "translation", "personal_trivia", "weak_retrieval", "busy"}
+)
 
 
 class RequestLogger(Protocol):

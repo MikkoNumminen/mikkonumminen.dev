@@ -465,6 +465,60 @@ _TRANSLATE_RE = re.compile(
 )
 
 
+# Finnish translation-request shapes. The English patterns above never fire on
+# Finnish, and a live visitor's "Käännä tämä teksti englanniksi: ..." was
+# ANSWERED (measured 2026-07-08, best distance 0.428 - well under the gate).
+# Same anchoring philosophy: the imperative verb LEADS, so i18n questions
+# ("miten sivusto kääntyy suomeksi") are not caught.
+_LANG_FI = (
+    r"englanniksi|suomeksi|ruotsiksi|saksaksi|ranskaksi|espanjaksi|venäjäksi|"
+    r"italiaksi|japaniksi|kiinaksi|viroksi|norjaksi|tanskaksi|latinaksi"
+)
+# Both the imperative (käännä) and the polite-infinitive form (voitko kääntää).
+_TRANSLATE_FI_RE = re.compile(
+    r"^(?:voitko\s+|voisitko\s+|ole hyvä ja\s+)?kään(?:nä|tää)\b"
+    r"[^.?!]{0,80}?\b(?:" + _LANG_FI + r")\b",
+    re.IGNORECASE,
+)
+
+
+# Personal-trivia questions (favourite colour, shoe size, height, age, car...)
+# are never in the corpus, but they embed 0.41-0.44 against it - measured
+# 2026-07-08: the legit-query band ends at 0.411 and this class begins at
+# 0.4148, a 0.003 gap no robust gate threshold can split. The Finnish answer
+# path refuses them at the model level; the English path was measured to leak
+# a speculation or pivot to summarizing the context (0/8 refusals across two
+# prompt variants). So this class is declined ON THE REQUEST PATTERN, like the
+# generative and translation gates. Anchored on an ASKING-ABOUT-the-attribute
+# form ("what is Mikko's X", "how tall is he", "mikä on Mikon X") — a bare
+# possessive+noun anchor also declined legitimate usage questions ("does HRM
+# work on your phone?", review-caught), which project questions must never do.
+_TRIVIA_ATTRS_EN = (
+    r"favou?rite\s+\w+|shoe\s+size|salary|age|height|weight|address|"
+    r"phone(?:\s+number)?|car|girlfriend|wife|family|birthday|religion|"
+    r"political\s+\w+"
+)
+_TRIVIA_ATTRS_FI = (
+    r"lempi\w+|kengännumero|palkka|ikä|pituus|paino|osoite|puhelinnumero|"
+    r"auto|tyttöystävä|vaimo|perhe|syntymäpäivä|uskonto"
+)
+_PERSONAL_TRIVIA_RE = re.compile(
+    r"(?:"
+    r"\bwhat(?:'s|\s+is)\s+(?:mikko'?s|his|your)\s+(?:" + _TRIVIA_ATTRS_EN + r")\b"
+    r"|\bhow\s+(?:tall|old|heavy)\s+is\s+(?:mikko|he)\b"
+    r"|\bwhat\s+car\s+does\s+(?:mikko|he)\s+drive\b"
+    r"|\bmikä\s+on\s+(?:mikon|hänen)\s+(?:" + _TRIVIA_ATTRS_FI + r")"
+    r"|\bkuinka\s+(?:pitkä|vanha|painava)\s+(?:mikko|hän)\s+on\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def is_personal_trivia(query: str) -> bool:
+    """True for a personal-trivia question the corpus can never answer."""
+    return bool(_PERSONAL_TRIVIA_RE.search(query))
+
+
 def is_translation_request(query: str) -> bool:
     """True when the message asks to translate text into a named language — a
     task, not a question about Mikko's work.
@@ -473,4 +527,7 @@ def is_translation_request(query: str) -> bool:
     X in LANG", "LANG word for X"), each anchored so genuine i18n questions about
     the portfolio's own multilingual content are not caught.
     """
-    return bool(_TRANSLATE_RE.search(query.strip()))
+    stripped = query.strip()
+    return bool(_TRANSLATE_RE.search(stripped)) or bool(
+        _TRANSLATE_FI_RE.search(stripped)
+    )
