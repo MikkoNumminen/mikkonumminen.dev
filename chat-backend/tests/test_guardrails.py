@@ -343,6 +343,12 @@ def test_is_generative_request_finnish_questions_pass(query: str) -> None:
     assert not is_generative_request(query)
 
 
+def test_generative_fi_does_not_misfire_on_satunnainen() -> None:
+    # 'satunnainen' (random) shares its first four letters with 'satu'
+    # (fairy tale) - a review-caught false positive
+    assert not is_generative_request("tee satunnainen haku projekteista")
+
+
 def test_unsupported_years_flags_the_invented_range() -> None:
     # the live Kasvulabs case: context dates the employment 2022-2024, the
     # answer said 2019-2021
