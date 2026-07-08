@@ -62,7 +62,7 @@ from .guardrails import (
     unsupported_years,
 )
 from .prompts import build_messages
-from .query_projects import detect_projects, restore_entities
+from .query_projects import detect_projects, restore_entities, wants_cv_intent
 from .request_log import RequestLogger
 from .retrieval import (
     SupportsEmbedQuery,
@@ -299,6 +299,10 @@ async def chat_event_stream(
     # expansion turn, else the original question.
     expansion = False
     effective_query = query
+    # Assigned on the normal path below (possibly to a translation); initialized
+    # here so the CV-intent gate override can read it on the EXPANSION path too,
+    # where no retrieval query is ever built.
+    retrieval_query = query
     try:
         if disclosure_enabled and is_expansion_request(query):
             prior = _last_user_message(history)
@@ -392,7 +396,17 @@ async def chat_event_stream(
     # relevant, refuse deterministically WITHOUT calling the model — a clearly
     # off-topic question can never be answered from hallucinated content. No
     # sources are cited because none were relevant.
-    if is_weak_retrieval(chunks, weak_retrieval_distance):
+    # Deterministic intent overrides the statistical gate: when the CV route
+    # fired (the question IS about Mikko's work experience, by construction) and
+    # the CV chunks are in the context, refusing on cosine distance is wrong -
+    # a second-person phrasing ("what work experience do YOU have?") embeds
+    # ~0.47 against a third-person corpus and straddled the 0.45 gate, measured
+    # live as a deterministic refusal of an answerable question. Off-corpus
+    # questions never trip the CV route, so they keep full gate protection.
+    cv_grounded = wants_cv_intent(query, retrieval_query) and any(
+        c.source == "cv.md" for c in chunks
+    )
+    if is_weak_retrieval(chunks, weak_retrieval_distance) and not cv_grounded:
         weak_reply = (
             WEAK_RETRIEVAL_REPLY_FI if answer_in_finnish else WEAK_RETRIEVAL_REPLY
         )

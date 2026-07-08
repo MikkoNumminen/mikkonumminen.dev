@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from app.query_projects import detect_projects, restore_entities, wants_cv
+from app.query_projects import (
+    detect_projects,
+    restore_entities,
+    wants_cv,
+    wants_cv_intent,
+)
 
 
 def test_readlog_dotnet_wins_over_bare_readlog() -> None:
@@ -166,3 +171,12 @@ def test_restore_entities_covers_the_kysely_library() -> None:
         "Why did Spacepotatis choose a query instead of Prisma?",
     )
     assert out.endswith(" Kysely")
+
+
+def test_wants_cv_intent_sees_both_texts() -> None:
+    # original carries the Finnish form, translation lost it
+    assert wants_cv_intent("mitä työkokemusta?", "What kind of background?")
+    # translation carries the English phrase, original is opaque
+    assert wants_cv_intent("mitä taustaa?", "What work experience is there?")
+    # neither text has CV intent
+    assert not wants_cv_intent("mitä projekteja?", "What projects are there?")
