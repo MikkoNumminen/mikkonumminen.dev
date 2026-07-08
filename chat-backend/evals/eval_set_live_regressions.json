@@ -33,11 +33,8 @@
         "cv.md"
       ],
       "category": "terse-live-regression",
-      "facts": [
-        "HRM",
-        "AudiobookMaker",
-        "Spacepotatis"
-      ]
+      "facts": [],
+      "_note": "facts deliberately empty: a summarizing answer that names SOME projects is correct; demanding three specific ones failed a grounded Finnish answer in the 2026-07-08 baseline"
     },
     {
       "id": "work-experience-bare-fi",

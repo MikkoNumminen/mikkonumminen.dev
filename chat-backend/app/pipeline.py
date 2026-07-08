@@ -122,11 +122,17 @@ async def _translate_for_retrieval(
             return None
     try:
         parts: list[str] = []
+        # temperature=0: a translation is a lookup, not a composition. At the
+        # chat temperature (0.4) the same question translates differently per
+        # request, and everything downstream (retrieval, CV route, the gate)
+        # inherits that variance - measured live as an intermittent refusal of
+        # a question that usually answers.
         async for token in llm.stream_chat(
             [
                 {"role": "system", "content": _TRANSLATE_SYSTEM},
                 {"role": "user", "content": query},
-            ]
+            ],
+            temperature=0.0,
         ):
             parts.append(token)
     except Exception:
@@ -175,6 +181,7 @@ class SupportsStreamChat(Protocol):
         messages: Sequence[dict[str, str]],
         *,
         usage_out: dict[str, int] | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[str]: ...
 
 
@@ -335,6 +342,11 @@ async def chat_event_stream(
                 db,
                 retrieval_query,
                 top_k,
+                # Intent (CV route, project aliases) must see the ORIGINAL
+                # question too: translation wording can drop the intent-bearing
+                # phrase, and the original always carries the Finnish forms the
+                # detectors know.
+                intent_query=query if retrieval_query is not query else None,
                 hybrid=hybrid,
                 rrf_k=rrf_k,
                 dense_weight=dense_weight,
@@ -437,11 +449,16 @@ async def chat_event_stream(
         # Sources up front: the terminal renders them while tokens stream.
         yield sse.sse_sources(to_source_refs(chunks))
 
+        # With RAG_ALLOW_FINNISH on and FORCE_ENGLISH off, a NON-Finnish
+        # question used to get no language anchor at all - and Poro, tuned
+        # Finnish-first, drifted to Finnish on English questions (measured in
+        # the 2026-07-08 baseline). The Finnish path anchors Finnish; every
+        # other path anchors English.
         messages = build_messages(
             effective_query,
             to_context(chunks),
             history,
-            force_english=force_english,
+            force_english=force_english or (allow_finnish and not answer_in_finnish),
             answer_in_finnish=answer_in_finnish,
             think=think,
         )

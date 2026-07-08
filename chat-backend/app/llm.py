@@ -91,11 +91,18 @@ class LLMClient:
         self._temperature = temperature
         self._num_predict = num_predict
 
-    def _chat_payload(self, messages: Sequence[dict[str, str]]) -> dict[str, object]:
+    def _chat_payload(
+        self,
+        messages: Sequence[dict[str, str]],
+        temperature: float | None = None,
+    ) -> dict[str, object]:
         """The OpenAI-compatible request body with the effort knobs applied.
 
-        `temperature` is always sent; `max_tokens` (Ollama maps it to num_predict)
-        only when a positive cap is configured, so 0 keeps the model's default.
+        `temperature` is always sent (a per-call override wins over the
+        configured default — the retrieval translation runs at 0 so the whole
+        downstream chain stops inheriting sampling variance); `max_tokens`
+        (Ollama maps it to num_predict) only when a positive cap is configured,
+        so 0 keeps the model's default.
         """
         payload: dict[str, object] = {
             "model": self._model,
@@ -104,7 +111,7 @@ class LLMClient:
             # Emit a final usage chunk (prompt_tokens + completion_tokens) so the
             # context bar measures REAL token counts, not a char estimate.
             "stream_options": {"include_usage": True},
-            "temperature": self._temperature,
+            "temperature": self._temperature if temperature is None else temperature,
         }
         if self._num_predict > 0:
             payload["max_tokens"] = self._num_predict
@@ -137,6 +144,7 @@ class LLMClient:
         messages: Sequence[dict[str, str]],
         *,
         usage_out: dict[str, int] | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[str]:
         """Yield answer tokens as the model generates them.
 
@@ -147,7 +155,7 @@ class LLMClient:
             async with client.stream(
                 "POST",
                 f"{self._base}/chat/completions",
-                json=self._chat_payload(messages),
+                json=self._chat_payload(messages, temperature=temperature),
             ) as resp:
                 resp.raise_for_status()
                 async for line in resp.aiter_lines():
