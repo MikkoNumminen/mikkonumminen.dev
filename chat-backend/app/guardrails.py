@@ -124,6 +124,23 @@ def unsupported_years(response: str, supported_texts: Sequence[str]) -> list[str
     return sorted(stated - supported)
 
 
+# English function words that are never standalone Finnish words. A sentence
+# dense with Finnish proper nouns ("What did Mikko do at Kasvu Labs?") tips the
+# statistical detector to Finnish, and the visitor gets a Finnish answer to an
+# English question. Two of these as whole tokens is decisive the other way:
+# real Finnish essentially never contains them, so the override costs nothing
+# on the Finnish side. Deliberately EXCLUDED look-alikes: "on" (Finnish 'is'),
+# "me" ('we'), "he" ('they'), "no" (interjection), "a"/"i" (too short).
+_ENGLISH_OVERRIDE_WORDS = frozenset(
+    {
+        "what", "did", "does", "the", "at", "how", "why", "who", "when",
+        "where", "which", "your", "you", "have", "has", "with", "from",
+        "about", "that", "this", "do", "are", "was", "were", "his", "her",
+        "their", "them", "and", "but", "not",
+    }
+)
+
+
 def looks_finnish(text: str) -> bool:
     """True when the text reads as Finnish (statistical language ID over EN/FI/SV).
 
@@ -133,6 +150,12 @@ def looks_finnish(text: str) -> bool:
     that routes to English is also judged not-Finnish by the check, not a spurious
     failure)."""
     if sum(1 for c in text if c.isalpha()) < _MIN_ALPHA_FOR_DETECTION:
+        return False
+    # Deterministic tie-break BEFORE the statistical call: two unambiguous
+    # English function words settle the language regardless of how many Finnish
+    # proper nouns surround them (the "What did Mikko do at Kasvu Labs?" class).
+    tokens = "".join(c if c.isalpha() else " " for c in text.lower()).split()
+    if sum(1 for t in tokens if t in _ENGLISH_OVERRIDE_WORDS) >= 2:
         return False
     return _get_detector().detect_language_of(text) == Language.FINNISH
 

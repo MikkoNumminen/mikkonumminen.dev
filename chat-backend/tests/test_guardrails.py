@@ -120,10 +120,20 @@ def test_looks_finnish_true_for_finnish(text: str) -> None:
         "Skills?",
         "Any demos?",
         "Work experience?",
+        # name-dense English: Finnish proper nouns tip the statistical detector
+        # to Finnish; the English function-word override settles it (the
+        # measured employer-en baseline case)
+        "What did Mikko do at Kasvu Labs?",
+        "How did Mikko build Spacepotatis and AudiobookMaker?",
     ],
 )
 def test_looks_finnish_false_for_english(text: str) -> None:
     assert not looks_finnish(text)
+
+
+def test_english_override_needs_two_function_words() -> None:
+    # one incidental English word inside Finnish must not flip the language
+    assert looks_finnish("Mitä teknologioita the HRM käyttää?")
 
 
 def test_looks_finnish_too_short_to_identify_defaults_to_english() -> None:

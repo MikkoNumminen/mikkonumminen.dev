@@ -100,9 +100,12 @@ class FakeLLM:
         messages: Sequence[dict[str, str]],
         *,
         usage_out: dict[str, int] | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[str]:
         self.called = True
         self.messages = list(messages)
+        self.temperatures: list[float | None] = getattr(self, "temperatures", [])
+        self.temperatures.append(temperature)
         if self._fail:
             raise RuntimeError("llm down")
         for token in self._tokens:
@@ -912,9 +915,12 @@ class TranslatingLLM(FakeLLM):
         messages: Sequence[dict[str, str]],
         *,
         usage_out: dict[str, int] | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[str]:
         self.call_messages.append(list(messages))
         self.messages = list(messages)
+        self.temperatures: list[float | None] = getattr(self, "temperatures", [])
+        self.temperatures.append(temperature)
         tokens = self._translation if len(self.call_messages) == 1 else self._tokens
         for token in tokens:
             yield token
@@ -1021,6 +1027,7 @@ def test_failed_translation_falls_back_to_the_original_query() -> None:
             messages: Sequence[dict[str, str]],
             *,
             usage_out: dict[str, int] | None = None,
+            temperature: float | None = None,
         ) -> AsyncIterator[str]:
             self.call_messages.append(list(messages))
             self.messages = list(messages)
@@ -1203,3 +1210,66 @@ def test_answered_log_carries_language_and_invented_years() -> None:
     assert captured["answer_lang"] == "en"
     # _row content is "about cv.md" - contains no years, so both are invented
     assert captured["invented_years"] == ["2019", "2021"]
+
+
+
+# --- 2026-07-08 baseline findings A/B/C ---
+
+
+def test_translation_runs_at_temperature_zero() -> None:
+    # finding C: a translation is a lookup - sampling variance in it propagates
+    # to retrieval, the CV route, and the gate
+    llm = TranslatingLLM(["What work experience?"], ["answer"])
+    _run_translate_turn("mitä työkokemusta sinulla on?", llm)
+    assert llm.temperatures[0] == 0.0  # the translation call
+    assert llm.temperatures[1] is None  # the answer call keeps the default
+
+
+def test_cv_intent_survives_a_translation_that_loses_the_phrase() -> None:
+    # finding A: the translation dropped "work experience"; the ORIGINAL
+    # question still carries työkokemusta, so the CV route must fire
+    llm = TranslatingLLM(["What kind of background does Mikko have?"], ["answer"])
+    row_cv = _row("cv.md")
+    row_cv["kind"] = "cv"
+    row_cv["distance"] = 0.9
+    embedder = RecordingEmbedder()
+
+    async def run() -> list[str]:
+        gen = chat_event_stream(
+            "mitä työkokemusta sinulla on?",
+            [],
+            embedder=embedder,
+            db=FakeDB([_row("projects/hrm.md"), row_cv]),
+            llm=llm,
+            top_k=2,
+            weak_retrieval_distance=0.7,
+            allow_finnish=True,
+            translate_retrieval=True,
+        )
+        return [f async for f in gen]
+
+    frames = asyncio.run(run())
+    sources = json.loads(frames[0].split("data: ", 1)[1])["sources"]
+    assert any(s["source"] == "cv.md" for s in sources)
+
+
+def test_english_question_gets_english_anchor_under_allow_finnish() -> None:
+    # finding B: with allow_finnish on and force_english off, an English
+    # question got NO closing language anchor at all - a drift-open door for a
+    # Finnish-first model. (The baseline's employer-en case was a different
+    # mechanism - name-dense English classified Finnish - now closed by the
+    # English function-word override in looks_finnish.)
+    msgs = _llm_messages(
+        "What database does the reading tracker use?",
+        allow_finnish=True,
+        force_english=False,
+    )
+    assert msgs[-1]["content"].rstrip().endswith(
+        "whatever language the question is in."
+    )
+
+
+def test_finnish_question_still_gets_finnish_anchor() -> None:
+    # the B fix must not touch the Finnish path
+    msgs = _llm_messages(_FI_QUERY, allow_finnish=True, force_english=False)
+    assert "KOKO vastaus suomeksi" in msgs[-1]["content"]

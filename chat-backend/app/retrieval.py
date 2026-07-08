@@ -279,6 +279,7 @@ async def retrieve(
     allowed_classifications: Sequence[str] | None = None,
     exclude_doc_types: Sequence[str] | None = None,
     diversify_max_per_project: int | None = None,
+    intent_query: str | None = None,
 ) -> list[RetrievedChunk]:
     """Embed `query` and return its `top_k` most relevant corpus chunks.
 
@@ -301,7 +302,12 @@ async def retrieve(
     them to the returned top_k — see the comment at the fetch.
     """
     vector = embedder.embed_query(query)
-    wanted = detect_projects(query)
+    # Intent detection (project aliases, CV route) scans the retrieval text AND
+    # the caller's original question when they differ (translate-for-retrieval):
+    # the original carries the Finnish inflections the detectors know, the
+    # translation carries the English phrases - a hit in either must count.
+    intent_text = query if intent_query is None else f"{query}\n{intent_query}"
+    wanted = detect_projects(intent_text)
     strict = bool(wanted) and project_filter_strict
     project_filter: list[str] | None = sorted(wanted) if strict else None
 
@@ -312,7 +318,7 @@ async def retrieve(
     # the final top_k below. Real distances, so the weak-retrieval gate can only
     # get a CLOSER prose signal from these, never a new refusal.
     cv_chunks: list[RetrievedChunk] = []
-    if wants_cv(query):
+    if wants_cv(intent_text):
         cv_rows = await db.search(
             vector,
             _CV_BOOST_K,
