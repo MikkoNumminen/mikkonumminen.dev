@@ -11,6 +11,7 @@ from app.guardrails import (
     answer_language,
     is_expansion_request,
     is_generative_request,
+    is_personal_trivia,
     is_translation_request,
     is_weak_retrieval,
     looks_finnish,
@@ -394,3 +395,57 @@ def test_answer_language_detects_fi_en_und() -> None:
     assert answer_language("Mikko työskenteli Kasvu Labsissa kehittäjänä.") == "fi"
     assert answer_language("Mikko worked at Kasvu Labs as a developer.") == "en"
     assert answer_language("ok") == "und"
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "What is Mikko's favourite colour?",
+        "What is Mikko's shoe size?",
+        "How tall is Mikko?",
+        "how old is he",
+        "Mikä on Mikon lempiväri?",
+        "kuinka pitkä Mikko on?",
+        "what car does Mikko drive? I mean his car",
+    ],
+)
+def test_personal_trivia_is_detected(query: str) -> None:
+    assert is_personal_trivia(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "What is his most complex project?",
+        "what colour scheme does the hero scene use?",
+        "how tall is the hero title in the three.js scene?",
+        "mitä projekteja Mikolla on?",
+        "kerro Mikon työkokemuksesta",
+    ],
+)
+def test_personal_trivia_leaves_real_questions_alone(query: str) -> None:
+    assert not is_personal_trivia(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "Käännä tämä teksti englanniksi: 'Olen lukenut neljä kirjaa'",
+        "voitko kääntää tämän suomeksi: hello world",
+        "Käännä ruotsiksi: kiitos paljon",
+    ],
+)
+def test_finnish_translation_requests_are_declined(query: str) -> None:
+    assert is_translation_request(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "miten sivusto kääntyy suomeksi?",
+        "is the portfolio available in Finnish?",
+        "miten i18n-käännökset on toteutettu?",
+    ],
+)
+def test_i18n_questions_are_not_translation_requests(query: str) -> None:
+    assert not is_translation_request(query)
