@@ -489,8 +489,10 @@ _TRANSLATE_FI_RE = re.compile(
 # path refuses them at the model level; the English path was measured to leak
 # a speculation or pivot to summarizing the context (0/8 refusals across two
 # prompt variants). So this class is declined ON THE REQUEST PATTERN, like the
-# generative and translation gates. Anchored on a personal-attribute noun tied
-# to Mikko/him/you, so project questions can never trip it.
+# generative and translation gates. Anchored on an ASKING-ABOUT-the-attribute
+# form ("what is Mikko's X", "how tall is he", "mikä on Mikon X") — a bare
+# possessive+noun anchor also declined legitimate usage questions ("does HRM
+# work on your phone?", review-caught), which project questions must never do.
 _TRIVIA_ATTRS_EN = (
     r"favou?rite\s+\w+|shoe\s+size|salary|age|height|weight|address|"
     r"phone(?:\s+number)?|car|girlfriend|wife|family|birthday|religion|"
@@ -502,9 +504,10 @@ _TRIVIA_ATTRS_FI = (
 )
 _PERSONAL_TRIVIA_RE = re.compile(
     r"(?:"
-    r"\b(?:mikko'?s|his|your)\s+(?:" + _TRIVIA_ATTRS_EN + r")\b"
+    r"\bwhat(?:'s|\s+is)\s+(?:mikko'?s|his|your)\s+(?:" + _TRIVIA_ATTRS_EN + r")\b"
     r"|\bhow\s+(?:tall|old|heavy)\s+is\s+(?:mikko|he)\b"
-    r"|\b(?:mikon|hänen)\s+(?:" + _TRIVIA_ATTRS_FI + r")\b"
+    r"|\bwhat\s+car\s+does\s+(?:mikko|he)\s+drive\b"
+    r"|\bmikä\s+on\s+(?:mikon|hänen)\s+(?:" + _TRIVIA_ATTRS_FI + r")"
     r"|\bkuinka\s+(?:pitkä|vanha|painava)\s+(?:mikko|hän)\s+on\b"
     r")",
     re.IGNORECASE,

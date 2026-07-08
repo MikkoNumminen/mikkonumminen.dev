@@ -430,6 +430,20 @@ def test_personal_trivia_leaves_real_questions_alone(query: str) -> None:
 @pytest.mark.parametrize(
     "query",
     [
+        # review-caught: usage questions with a possessive device noun must
+        # stay answerable - only ASKING-ABOUT-the-attribute is trivia
+        "does HRM work on your phone?",
+        "can I open the site on his phone",
+        "does the hero scene run on your car's display?",
+    ],
+)
+def test_personal_trivia_spares_device_usage_questions(query: str) -> None:
+    assert not is_personal_trivia(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
         "Käännä tämä teksti englanniksi: 'Olen lukenut neljä kirjaa'",
         "voitko kääntää tämän suomeksi: hello world",
         "Käännä ruotsiksi: kiitos paljon",
@@ -449,3 +463,17 @@ def test_finnish_translation_requests_are_declined(query: str) -> None:
 )
 def test_i18n_questions_are_not_translation_requests(query: str) -> None:
     assert not is_translation_request(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        # review-caught: usage questions with a possessive device noun must
+        # stay answerable - only ASKING-ABOUT-the-attribute is trivia
+        "does HRM work on your phone?",
+        "can I open the site on his phone",
+        "does the hero scene run on your car's display?",
+    ],
+)
+def test_personal_trivia_spares_device_usage_questions(query: str) -> None:
+    assert not is_personal_trivia(query)

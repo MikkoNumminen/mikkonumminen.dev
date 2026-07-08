@@ -283,11 +283,11 @@ async def chat_event_stream(
             else ("personal_trivia" if trivia else "translation")
         )
         if trivia and not generative:
-            generative_reply = (
+            decline_reply = (
                 WEAK_RETRIEVAL_REPLY_FI if answer_in_finnish else WEAK_RETRIEVAL_REPLY
             )
         else:
-            generative_reply = (
+            decline_reply = (
                 GENERATIVE_REPLY_FI if answer_in_finnish else GENERATIVE_REPLY
             )
         if log_request is not None:
@@ -295,14 +295,14 @@ async def chat_event_stream(
                 query,
                 [],
                 route,
-                generative_reply,
+                decline_reply,
                 role,
                 {},
                 model=None,
                 latency_ms=int((time.monotonic() - start) * 1000),
             )
         yield sse.sse_sources([])
-        yield sse.sse_token(generative_reply)
+        yield sse.sse_token(decline_reply)
         if looks_non_english(query) and not answer_in_finnish:
             yield sse.sse_token(ENGLISH_ONLY_HINT)
         yield sse.sse_done()
