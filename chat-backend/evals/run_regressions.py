@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     results = []
     for case in queries:
         r = call_chat(args.base_url, case["question"], args.timeout)
-        sources = [s.get("source", "") for s in r.sources]
+        sources = [str(s.get("source", "")) for s in r.sources]
         row = score_case(case, r.text, sources)
         row["answer"] = r.text[:300]
         results.append(row)
