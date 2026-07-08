@@ -293,7 +293,7 @@ def test_flag_on_suppresses_english_hint_on_a_finnish_refusal() -> None:
         return [frame async for frame in gen]
 
     text = _token_text(asyncio.run(run()))
-    assert "I don't have anything on that" in text  # it did refuse
+    assert "Minulla ei ole tietoa tuosta" in text  # it did refuse - in Finnish now
     assert "answer in English" not in text  # hint suppressed
 
 
@@ -1006,7 +1006,8 @@ def test_busy_gpu_skips_translation_and_retrieves_with_the_original() -> None:
     embedder, frames = asyncio.run(run())
     assert embedder.seen == ["mitä työkokemusta sinulla on?"]  # original query
     assert llm.call_messages == []  # neither translation nor generation ran
-    assert any("handling another question" in f for f in frames)  # the busy shed
+    # the busy shed - in Finnish, since the query routed Finnish
+    assert any("Vastaan juuri toiseen" in f for f in frames)
 
 
 def test_failed_translation_falls_back_to_the_original_query() -> None:
@@ -1058,3 +1059,95 @@ def test_translation_restores_lost_entity_for_retrieval() -> None:
     llm = TranslatingLLM(["What did Mikko do at Growth Labs?"], ["answer"])
     embedder = _run_translate_turn("mitä mikko teki kasvulabsissa?", llm)
     assert embedder.seen == ["What did Mikko do at Growth Labs? Kasvu Labs"]
+
+
+# --- Finnish deterministic templates (the non-model reply paths) ---
+
+
+def _collect_fi(
+    query: str,
+    *,
+    db: FakeDB,
+    llm: FakeLLM,
+    allow_finnish: bool = True,
+    semaphore: asyncio.Semaphore | None = None,
+    acquire_timeout: float = 0.5,
+) -> list[str]:
+    async def run() -> list[str]:
+        gen = chat_event_stream(
+            query,
+            [],
+            embedder=FakeEmbedder(),
+            db=db,
+            llm=llm,
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            allow_finnish=allow_finnish,
+            semaphore=semaphore,
+            acquire_timeout=acquire_timeout,
+        )
+        return [frame async for frame in gen]
+
+    return asyncio.run(run())
+
+
+def test_finnish_greeting_gets_the_finnish_template() -> None:
+    frames = _collect_fi("moi", db=FakeDB([]), llm=FakeLLM([]))
+    text = _token_text(frames)
+    assert "Hei! Olen Mikko Nummisen portfolion avustaja" in text
+
+
+def test_finnish_courtesy_gets_the_finnish_template() -> None:
+    frames = _collect_fi("kiitos", db=FakeDB([]), llm=FakeLLM([]))
+    assert "Ole hyvä!" in _token_text(frames)
+
+
+def test_english_greeting_still_english_with_flag_on() -> None:
+    frames = _collect_fi("hello", db=FakeDB([]), llm=FakeLLM([]))
+    assert "Hi! I'm the assistant" in _token_text(frames)
+
+
+def test_finnish_greeting_stays_english_when_flag_off() -> None:
+    # RAG_ALLOW_FINNISH off keeps the surface English-only, templates included
+    frames = _collect_fi("moi", db=FakeDB([]), llm=FakeLLM([]), allow_finnish=False)
+    assert "Hi! I'm the assistant" in _token_text(frames)
+
+
+def test_finnish_weak_retrieval_refuses_in_finnish() -> None:
+    frames = _collect_fi(
+        "mikä on paras hiihtolatu Lapissa?", db=FakeDB([]), llm=FakeLLM([])
+    )
+    text = _token_text(frames)
+    assert "Minulla ei ole tietoa tuosta" in text
+    assert "I answer in English" not in text  # no English-hint on a Finnish path
+
+
+def test_finnish_generative_request_declines_in_finnish() -> None:
+    frames = _collect_fi(
+        "kirjoita minulle runo Mikon projekteista", db=FakeDB([]), llm=FakeLLM([])
+    )
+    assert "Vastaan vain Mikon projekteja" in _token_text(frames)
+
+
+def test_finnish_busy_shed_is_finnish() -> None:
+    sem = asyncio.Semaphore(1)
+
+    async def run() -> str:
+        await sem.acquire()  # hold the only slot for the whole turn
+        gen = chat_event_stream(
+            "mitä teknologioita HRM käyttää?",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=FakeLLM(["x"]),
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            allow_finnish=True,
+            translate_retrieval=False,
+            semaphore=sem,
+            acquire_timeout=0.05,
+        )
+        return "".join([f async for f in gen])
+
+    out = asyncio.run(run())
+    assert "Vastaan juuri toiseen kysymykseen" in out

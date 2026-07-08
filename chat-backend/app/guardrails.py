@@ -30,6 +30,16 @@ WEAK_RETRIEVAL_REPLY = (
     "I don't have anything on that. Try `help` to see what I can answer "
     "about Mikko's projects."
 )
+# Finnish counterparts of every deterministic template below. The generated
+# answer path went Finnish with RAG_ALLOW_FINNISH, but the TEMPLATE paths
+# (refusals, small talk, busy, the expansion offer) stayed English-only - so a
+# Finnish visitor asking anything off-topic, or just saying "kiitos", got
+# English with zero model involvement. Selected by the same routing the answer
+# path uses; the English constants stay the defaults everywhere else.
+WEAK_RETRIEVAL_REPLY_FI = (
+    "Minulla ei ole tietoa tuosta. Kokeile `help`-komentoa, niin näet mihin "
+    "osaan vastata Mikon projekteista."
+)
 
 # Appended to a REFUSAL only when the question looks non-English. The corpus and
 # answers are English-only, and the English embedder penalises Finnish/Swedish, so
@@ -91,8 +101,17 @@ GREETING_REPLY = (
     "projects — HRM, AudiobookMaker, ReadLog .NET, Spacepotatis, and more — the "
     "tech behind them, or his experience. Type `help` for the scripted commands."
 )
+GREETING_REPLY_FI = (
+    "Hei! Olen Mikko Nummisen portfolion avustaja. Kysy minulta hänen "
+    "projekteistaan — HRM, AudiobookMaker, ReadLog .NET, Spacepotatis ja muut — "
+    "niiden tekniikoista tai hänen kokemuksestaan. Komennolla `help` näet "
+    "valmiit komennot."
+)
 COURTESY_REPLY = (
     "You're welcome! Anything else you'd like to know about Mikko's projects or work?"
+)
+COURTESY_REPLY_FI = (
+    "Ole hyvä! Haluatko tietää jotain muuta Mikon projekteista tai työstä?"
 )
 
 # Whole-message small talk. The matcher compares the WHOLE normalized message
@@ -159,6 +178,41 @@ _COURTESY = frozenset(
 )
 
 
+# The Finnish members of the small-talk sets. A bare greeting is far too short
+# for statistical language ID (looks_finnish deliberately defaults short text to
+# English), but the matched PHRASE's language is known exactly — so the template
+# language rides on which member matched, not on the detector.
+_SMALLTALK_FI = frozenset(
+    {
+        "hei",
+        "moi",
+        "moikka",
+        "terve",
+        "morjens",
+        "moro",
+        "heippa",
+        "hei hei",
+        "huomenta",
+        "iltaa",
+        "hyvää huomenta",
+        "hyvää iltaa",
+        "mitä osaat",
+        "mitä sinä osaat",
+        "kuka olet",
+        "mitä voin kysyä",
+        "kiitos",
+        "kiitti",
+        "kiitos paljon",
+        "kiitoksia",
+    }
+)
+
+
+def is_finnish_smalltalk(query: str) -> bool:
+    """True when the message is one of the FINNISH small-talk phrasings."""
+    return _normalize_smalltalk(query) in _SMALLTALK_FI
+
+
 def _normalize_smalltalk(query: str) -> str:
     """Lowercase, strip surrounding whitespace + terminal punctuation, and collapse
     inner whitespace — so 'Hi!  ' matches 'hi' while the comparison stays against
@@ -205,6 +259,7 @@ def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> 
 # answer when a deeper narrative exists. Deterministic text, never LLM-generated —
 # terminal discoverability is low, so the user is told they can go deeper.
 EXPANSION_OFFER = "Would you like me to tell you more?"
+EXPANSION_OFFER_FI = "Haluatko, että kerron lisää?"
 
 # A topic-LESS follow-up asking to go deeper ("yes", "tell me more", "go on").
 # Matched against the WHOLE message so a request that carries a NEW topic ("tell me
@@ -239,6 +294,10 @@ GENERATIVE_REPLY = (
     "I only answer questions about Mikko's projects and work — I don't write "
     "or translate content like that."
 )
+GENERATIVE_REPLY_FI = (
+    "Vastaan vain Mikon projekteja ja työtä koskeviin kysymyksiin — en "
+    "kirjoita tai käännä tuollaista sisältöä."
+)
 
 # Creative ARTEFACT group, shared by both shapes below.
 _ARTEFACT = (
@@ -271,6 +330,18 @@ _GENERATIVE_RE = re.compile(
 )
 
 
+# Finnish creative requests. Finnish has no determiner to anchor on (the English
+# rule keys on "write A poem"), so this stays narrow: a producing VERB followed
+# within two words by a creative ARTEFACT stem. "kerro" (tell) is deliberately
+# excluded — "kerro tarina HRM:n takana" is a legitimate question about a
+# project's story, not a request to author one.
+_GENERATIVE_FI_RE = re.compile(
+    r"\b(?:kirjoita|sepitä|laadi|keksi|runoile|tee|luo)\b(?:\s+\S+){0,2}?\s+"
+    r"(?:runo|laulu|tarina|satu|vitsi|riimi|essee|räppi|loru)\w*",
+    re.IGNORECASE,
+)
+
+
 def is_generative_request(query: str) -> bool:
     """True when the message asks the assistant to WRITE creative/generic content
     (a poem, story, song, joke, ...) instead of asking about Mikko's work.
@@ -279,7 +350,9 @@ def is_generative_request(query: str) -> bool:
     requests can name an on-corpus topic (so the retrieval gate misses them) and
     a small LLM won't reliably refuse them from the system prompt alone.
     """
-    return bool(_GENERATIVE_RE.search(query))
+    return bool(_GENERATIVE_RE.search(query)) or bool(
+        _GENERATIVE_FI_RE.search(query)
+    )
 
 
 # Target-language group, shared by every translation-request shape below.

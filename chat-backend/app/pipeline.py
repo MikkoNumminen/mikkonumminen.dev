@@ -28,6 +28,9 @@ logger = logging.getLogger("chat")
 LLM_BUSY_REPLY = (
     "I'm handling another question right now — give me a moment and try again."
 )
+LLM_BUSY_REPLY_FI = (
+    "Vastaan juuri toiseen kysymykseen — odota hetki ja yritä uudelleen."
+)
 
 # Called once after a generation completes, with (completion_tokens, latency_ms),
 # so the caller can record usage. Injected by `main`; left None in tests. Counting
@@ -37,12 +40,18 @@ LLM_BUSY_REPLY = (
 UsageRecorder = Callable[[int, int], Awaitable[None]]
 from .guardrails import (
     COURTESY_REPLY,
+    COURTESY_REPLY_FI,
     ENGLISH_ONLY_HINT,
     EXPANSION_OFFER,
+    EXPANSION_OFFER_FI,
     GENERATIVE_REPLY,
+    GENERATIVE_REPLY_FI,
     GREETING_REPLY,
+    GREETING_REPLY_FI,
     WEAK_RETRIEVAL_REPLY,
+    WEAK_RETRIEVAL_REPLY_FI,
     is_expansion_request,
+    is_finnish_smalltalk,
     is_generative_request,
     is_translation_request,
     is_weak_retrieval,
@@ -223,7 +232,14 @@ async def chat_event_stream(
     # Logged with its route; model + token counts stay None (no inference ran).
     st_route = smalltalk_route(query)
     if st_route is not None:
-        reply = GREETING_REPLY if st_route == "greeting" else COURTESY_REPLY
+        # A bare greeting is too short for the language detector; the matched
+        # phrase's own language picks the template (gated on the same flag as
+        # the Finnish answer path).
+        st_finnish = allow_finnish and is_finnish_smalltalk(query)
+        if st_route == "greeting":
+            reply = GREETING_REPLY_FI if st_finnish else GREETING_REPLY
+        else:
+            reply = COURTESY_REPLY_FI if st_finnish else COURTESY_REPLY
         if log_request is not None:
             log_request(
                 query,
@@ -248,19 +264,20 @@ async def chat_event_stream(
     generative = is_generative_request(query)
     if generative or is_translation_request(query):
         route = "generative" if generative else "translation"
+        generative_reply = GENERATIVE_REPLY_FI if answer_in_finnish else GENERATIVE_REPLY
         if log_request is not None:
             log_request(
                 query,
                 [],
                 route,
-                GENERATIVE_REPLY,
+                generative_reply,
                 role,
                 {},
                 model=None,
                 latency_ms=int((time.monotonic() - start) * 1000),
             )
         yield sse.sse_sources([])
-        yield sse.sse_token(GENERATIVE_REPLY)
+        yield sse.sse_token(generative_reply)
         if looks_non_english(query) and not answer_in_finnish:
             yield sse.sse_token(ENGLISH_ONLY_HINT)
         yield sse.sse_done()
@@ -362,19 +379,22 @@ async def chat_event_stream(
     # off-topic question can never be answered from hallucinated content. No
     # sources are cited because none were relevant.
     if is_weak_retrieval(chunks, weak_retrieval_distance):
+        weak_reply = (
+            WEAK_RETRIEVAL_REPLY_FI if answer_in_finnish else WEAK_RETRIEVAL_REPLY
+        )
         if log_request is not None:
             log_request(
                 query,
                 distances,
                 "weak_retrieval",
-                WEAK_RETRIEVAL_REPLY,
+                weak_reply,
                 role,
                 class_counts,
                 model=None,
                 latency_ms=int((time.monotonic() - start) * 1000),
             )
         yield sse.sse_sources([])
-        yield sse.sse_token(WEAK_RETRIEVAL_REPLY)
+        yield sse.sse_token(weak_reply)
         if looks_non_english(query) and not answer_in_finnish:
             yield sse.sse_token(ENGLISH_ONLY_HINT)
         yield sse.sse_done()
@@ -393,18 +413,21 @@ async def chat_event_stream(
             acquired = True
         except TimeoutError:
             if log_request is not None:
+                busy_reply = LLM_BUSY_REPLY_FI if answer_in_finnish else LLM_BUSY_REPLY
                 log_request(
                     query,
                     distances,
                     "busy",
-                    LLM_BUSY_REPLY,
+                    busy_reply,
                     role,
                     class_counts,
                     model=None,
                     latency_ms=int((time.monotonic() - start) * 1000),
                 )
             yield sse.sse_sources([])
-            yield sse.sse_token(LLM_BUSY_REPLY)
+            yield sse.sse_token(
+                LLM_BUSY_REPLY_FI if answer_in_finnish else LLM_BUSY_REPLY
+            )
             yield sse.sse_done()
             return
 
@@ -461,7 +484,10 @@ async def chat_event_stream(
             if offer_project is not None:
                 try:
                     if await db.has_narrative(offer_project, allowed_classifications):
-                        yield sse.sse_token("\n\n" + EXPANSION_OFFER)
+                        offer = (
+                            EXPANSION_OFFER_FI if answer_in_finnish else EXPANSION_OFFER
+                        )
+                        yield sse.sse_token("\n\n" + offer)
                 except Exception:
                     logger.exception("offer has_narrative check failed")
 

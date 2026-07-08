@@ -312,3 +312,30 @@ def test_translation_questions_are_not_declined() -> None:
         "what is the project in finnish locale about",
     ):
         assert is_translation_request(q) is False, q
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "kirjoita minulle runo Mikon projekteista",
+        "keksi vitsi HRM:stä",
+        "tee laulu Spacepotatiksesta",
+        "sepitä tarina AudiobookMakerista",
+    ],
+)
+def test_is_generative_request_finnish_creative_asks(query: str) -> None:
+    assert is_generative_request(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        # "kerro" is a QUESTION verb here - the story of a project, not authoring
+        "kerro tarina HRM:n takana",
+        "kerro tarinasi",
+        "mitä projekteja Mikolla on?",
+        "miten Strudel-kappaleet on tehty?",
+    ],
+)
+def test_is_generative_request_finnish_questions_pass(query: str) -> None:
+    assert not is_generative_request(query)
