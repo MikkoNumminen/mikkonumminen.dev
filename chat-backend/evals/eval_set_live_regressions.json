@@ -1,0 +1,149 @@
+{
+  "_comment": "Live-regression eval set - frozen 2026-07-08 from the exact phrasings real visitors used that broke in production during 2026-07 (router misses, CV-concept gaps, employer-entity translation loss, invented years). These are deliberately TERSE and colloquial: the golden sets hold well-formed information-dense questions, and every 2026-07 live failure came from phrasings outside that register. Each FI entry has an EN twin where one exists. facts = strings that MUST appear in a correct answer (recall floor); invented-fact precision comes from the request log's invented_years field, aggregated by evals/log_metrics.py.",
+  "queries": [
+    {
+      "id": "terse-projects-fi",
+      "question": "Onko projekteja?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "terse-live-regression",
+      "facts": [
+        "HRM"
+      ]
+    },
+    {
+      "id": "terse-projects-en",
+      "question": "Any projects?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "terse-live-regression",
+      "facts": [
+        "HRM"
+      ]
+    },
+    {
+      "id": "terse-list-projects-fi",
+      "question": "Listaa projektit",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "terse-live-regression",
+      "facts": [
+        "HRM",
+        "AudiobookMaker",
+        "Spacepotatis"
+      ]
+    },
+    {
+      "id": "work-experience-bare-fi",
+      "question": "Työkokemus?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "cv-concept-live-regression",
+      "facts": [
+        "Kasvu Labs"
+      ]
+    },
+    {
+      "id": "work-experience-fi",
+      "question": "mitä työkokemusta?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "cv-concept-live-regression",
+      "facts": [
+        "Kasvu Labs"
+      ]
+    },
+    {
+      "id": "work-experience-en",
+      "question": "Work experience?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "cv-concept-live-regression",
+      "facts": [
+        "Kasvu Labs"
+      ]
+    },
+    {
+      "id": "employer-fused-fi",
+      "question": "mitä mikko teki kasvulabsissa?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "employer-live-regression",
+      "facts": [
+        "Kasvu Labs",
+        "2022",
+        "2024"
+      ]
+    },
+    {
+      "id": "employer-spaced-inflected-fi",
+      "question": "Mitä Mikko teki Kasvu Labsissa?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "employer-live-regression",
+      "facts": [
+        "Kasvu Labs",
+        "2022",
+        "2024"
+      ]
+    },
+    {
+      "id": "employer-en",
+      "question": "What did Mikko do at Kasvu Labs?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "cv.md"
+      ],
+      "category": "employer-live-regression",
+      "facts": [
+        "Kasvu Labs",
+        "2022",
+        "2024",
+        "Node.js",
+        "React"
+      ]
+    },
+    {
+      "id": "kysely-identifier-fi",
+      "question": "Miksi Spacepotatis valitsi Kyselyn Prisman sijaan?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "projects/spacepotatis-architecture.md"
+      ],
+      "category": "identifier-translation-loss",
+      "facts": [
+        "Kysely"
+      ]
+    },
+    {
+      "id": "offcorpus-terse-fi",
+      "question": "Mikä on Mikon lempiväri?",
+      "expectation": "must_refuse_offcorpus",
+      "expected_sources": [],
+      "category": "containment-fi"
+    },
+    {
+      "id": "offcorpus-terse-en",
+      "question": "What is Mikko's favourite colour?",
+      "expectation": "must_refuse_offcorpus",
+      "expected_sources": [],
+      "category": "containment-en"
+    }
+  ]
+}
