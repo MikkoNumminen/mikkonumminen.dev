@@ -208,6 +208,15 @@ _SMALLTALK_FI = frozenset(
 )
 
 
+# Drift guard, same idiom as the acceptance harness's refusal-marker assert: a
+# _SMALLTALK_FI member that is not in the route sets would be dead code (the
+# route never fires for it, so the template choice never runs).
+_SMALLTALK_FI_ORPHANS = _SMALLTALK_FI - (_GREETINGS | _COURTESY)
+assert not _SMALLTALK_FI_ORPHANS, (
+    f"_SMALLTALK_FI members missing from route sets: {_SMALLTALK_FI_ORPHANS}"
+)
+
+
 def is_finnish_smalltalk(query: str) -> bool:
     """True when the message is one of the FINNISH small-talk phrasings."""
     return _normalize_smalltalk(query) in _SMALLTALK_FI
@@ -337,7 +346,9 @@ _GENERATIVE_RE = re.compile(
 # project's story, not a request to author one.
 _GENERATIVE_FI_RE = re.compile(
     r"\b(?:kirjoita|sepitä|laadi|keksi|runoile|tee|luo)\b(?:\s+\S+){0,2}?\s+"
-    r"(?:runo|laulu|tarina|satu|vitsi|riimi|essee|räppi|loru)\w*",
+    # satu(?!nnai): 'satunnainen' (random) starts with the fairy-tale stem -
+    # 'tee satunnainen haku' is a question, not a creative request.
+    r"(?:runo|laulu|tarina|satu(?!nnai)|vitsi|riimi|essee|räppi|loru)\w*",
     re.IGNORECASE,
 )
 

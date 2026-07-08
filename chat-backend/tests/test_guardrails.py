@@ -339,3 +339,9 @@ def test_is_generative_request_finnish_creative_asks(query: str) -> None:
 )
 def test_is_generative_request_finnish_questions_pass(query: str) -> None:
     assert not is_generative_request(query)
+
+
+def test_generative_fi_does_not_misfire_on_satunnainen() -> None:
+    # 'satunnainen' (random) shares its first four letters with 'satu'
+    # (fairy tale) - a review-caught false positive
+    assert not is_generative_request("tee satunnainen haku projekteista")
