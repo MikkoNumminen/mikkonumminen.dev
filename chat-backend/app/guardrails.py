@@ -80,6 +80,50 @@ def _get_detector() -> LanguageDetector:
     return _detector
 
 
+def answer_language(text: str) -> str:
+    """'fi' | 'en' | 'sv' | 'und' for a generated ANSWER — observability only.
+
+    Logged per answered request so Poro's residual mid-answer language drift
+    (a Finnish question answered in English, or vice versa) becomes a measured
+    rate in the request log instead of an anecdote. 'und' for text too short
+    to identify. Never used for routing — looks_finnish stays the single
+    routing definition.
+    """
+    if sum(1 for c in text if c.isalpha()) < _MIN_ALPHA_FOR_DETECTION:
+        return "und"
+    detected = _get_detector().detect_language_of(text)
+    if detected == Language.FINNISH:
+        return "fi"
+    if detected == Language.SWEDISH:
+        return "sv"
+    if detected == Language.ENGLISH:
+        return "en"
+    return "und"
+
+
+# Year-shaped tokens (1900-2099). Years are the invented-fact class observed
+# live (an employment dated 2019-2021 by the model against a 2022-2024 context)
+# and the one fact type extractable with near-zero false positives.
+_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+
+
+def unsupported_years(response: str, supported_texts: Sequence[str]) -> list[str]:
+    """Years stated in `response` that appear in NONE of `supported_texts`.
+
+    The deterministic invented-fact detector for the answered route: supported
+    texts are the retrieved context chunks plus the user's own question (a year
+    the visitor asked about may legitimately be echoed). Sorted for a stable
+    log field. Empty list = every year in the answer is grounded.
+    """
+    stated = set(_YEAR_RE.findall(response))
+    if not stated:
+        return []
+    supported: set[str] = set()
+    for text in supported_texts:
+        supported.update(_YEAR_RE.findall(text))
+    return sorted(stated - supported)
+
+
 def looks_finnish(text: str) -> bool:
     """True when the text reads as Finnish (statistical language ID over EN/FI/SV).
 
