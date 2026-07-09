@@ -5,7 +5,24 @@
   "framework": "astro",
   "trailingSlash": false,
   "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/rag/health",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net/health"
+    },
+    {
+      "source": "/api/rag/chat",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net/chat"
+    }
+  ],
   "headers": [
+    {
+      "source": "/api/rag/(.*)",
+      "headers": [
+        { "key": "x-vercel-enable-rewrite-caching", "value": "0" },
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
     {
       "source": "/_astro/(.*)",
       "headers": [

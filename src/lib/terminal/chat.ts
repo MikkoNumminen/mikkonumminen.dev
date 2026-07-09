@@ -271,8 +271,10 @@ async function refreshAvailability(base: string, opts: FetchOpts = {}): Promise<
 
 // How often the live page re-checks the backend so the chat affordance can
 // appear or disappear as the operator toggles the stack on/off — without a
-// reload. Each probe hits the chat backend (the operator's own machine, via the
-// tunnel), never Vercel, so the only cost is on that box; 25s is a calm cadence.
+// reload. Each probe reaches the chat backend (the operator's own machine, via
+// the tunnel) — same-origin through the Vercel `/api/rag/*` rewrite since
+// ADR 0012, so the edge relays it but the work lands on that box; 25s is a
+// calm cadence.
 const AVAILABILITY_POLL_MS = 25_000;
 // Ceiling for the exponential backoff below: once the backend has been
 // unreachable for a few probes, fall back to checking at most this often, so a

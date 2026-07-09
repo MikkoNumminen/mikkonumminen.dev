@@ -17,6 +17,7 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0009](0009-rag-chat-backend.md)                  | Local RAG chat as a separate, optional backend service — site stays static (builds on 0002), no hosted model/DB                                                                   | Accepted                                 |
 | [0010](0010-rag-containment.md)                   | Layered architectural containment for the RAG chat (builds on 0009) — input/output caps, pre-LLM relevance gate, grounded prompting, concurrency/rate limits, acceptance contract | Accepted                                 |
 | [0011](0011-hybrid-retrieval-and-code-corpus.md)  | Hybrid dense+BM25 retrieval (RRF) over a code-enriched corpus for the RAG chat (builds on 0009/0010) — code-aware chunking, language/chunk_type metadata, hard per-project filter | Accepted                                 |
+| [0012](0012-same-origin-chat-proxy.md)            | Same-origin `/api/rag/*` proxy for the RAG chat via Vercel external rewrites (builds on 0009) — the chat reveal and SSE stream ride the site's own origin, immune to content blockers | Accepted                                 |
 
 ## Writing a new one
 

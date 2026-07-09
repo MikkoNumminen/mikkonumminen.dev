@@ -69,7 +69,7 @@ the terminal stays scripted-only with no chat affordance (build brief constraint
 
 ```bash
 PUBLIC_CHAT_API_URL=http://localhost:8000 npm run build       # local
-PUBLIC_CHAT_API_URL=https://<your-tunnel-host> npm run build  # live
+PUBLIC_CHAT_API_URL=/api/rag npm run build                     # live, proxied to the tunnel by Vercel rewrites (ADR 0012)
 ```
 
 When the stack + tunnel are down, the terminal degrades to scripted-only with no
