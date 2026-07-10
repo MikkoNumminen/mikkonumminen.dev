@@ -210,8 +210,9 @@ and whenever the tab regains focus**, so the "ask about the projects" affordance
 goes away — with no page reload**. A visitor who loaded the page while the stack
 was off sees the chat light up moments after the operator clicks Chat ON, and the
 dispatcher only routes free-form input to the model while it's actually
-reachable. The probes hit the backend (the home machine via the tunnel), never
-Vercel.
+reachable. Since [ADR 0012](decisions/0012-same-origin-chat-proxy.md), the
+probes leave the browser same-origin and reach the backend (the home machine
+via the tunnel) through Vercel's own edge rewrite, not a direct browser fetch.
 
 ---
 
@@ -248,8 +249,12 @@ compose service is left in place but unused.
 from a build-time variable on the Vercel project:
 
 ```
-PUBLIC_CHAT_API_URL = https://paskamyrsky.tail6ed53b.ts.net    (Production + Preview)
+PUBLIC_CHAT_API_URL = /api/rag    (Production + Preview)
 ```
+
+`vercel.json` rewrites proxy `/api/rag/*` to the Funnel host server-side, so the
+browser only ever makes same-origin requests — see
+[ADR 0012](decisions/0012-same-origin-chat-proxy.md).
 
 Because it's baked at build time, **changing it requires a redeploy** to take
 effect.
@@ -263,8 +268,9 @@ effect.
 > non-sensitive. (The funnel URL is public by design, so there's nothing to
 > hide.)
 
-**CORS.** The backend's `CORS_ALLOW_ORIGINS` is set to the exact site origin so
-the browser is allowed to call the funnel:
+**CORS.** The backend's `CORS_ALLOW_ORIGINS` is set to the exact site origin.
+The proxied browser traffic is same-origin and doesn't need it (ADR 0012); this
+still covers direct funnel access (ops, evals):
 
 ```
 CORS_ALLOW_ORIGINS = https://mikkonumminen-dev.vercel.app

@@ -129,13 +129,17 @@ to re-run — it brings the tunnel up without restarting anything else.
 Trigger a Vercel deployment with this build environment variable set:
 
 ```
-PUBLIC_CHAT_API_URL=https://THE-TUNNEL-HOST
+PUBLIC_CHAT_API_URL=/api/rag
 ```
 
 Set it in the Vercel project's **Environment Variables** (Settings → Environment
 Variables), then redeploy. The value is not a secret — it is embedded in the
 static HTML delivered to every browser — so plain (non-sensitive) env var
 storage in Vercel is fine.
+
+Since [ADR 0012](docs/decisions/0012-same-origin-chat-proxy.md), `vercel.json`
+proxies `/api/rag/*` to the tunnel host server-side, so it's the rewrite
+destinations in `vercel.json` — not this env var — that must match `THE-TUNNEL-HOST`.
 
 Once the build is promoted to production, the site is wired to the backend.
 No code changes, no further redeploys needed to toggle the chat on or off (see
@@ -202,10 +206,10 @@ it again and the one after that gets the chat.
 3. Check the browser console for a CORS error. If one appears:
    `CORS_ALLOW_ORIGINS` in `.env` does not match the site's exact origin.
    Update `.env` and restart the backend: `docker compose restart backend`.
-4. Check that `PUBLIC_CHAT_API_URL` in the Vercel build matches the tunnel
-   hostname exactly. A mismatch means the frontend probes the wrong URL, and
-   a missing value means the chat layer is fully dormant regardless of backend
-   state.
+4. Check that the `/api/rag/*` rewrite destinations in `vercel.json` match the
+   tunnel hostname exactly (ADR 0012). A mismatch means the proxy forwards to
+   the wrong URL, and a missing `PUBLIC_CHAT_API_URL` value means the chat
+   layer is fully dormant regardless of backend state.
 
 **`make up` fails with GPU errors**
 
