@@ -138,7 +138,7 @@ static HTML delivered to every browser — so plain (non-sensitive) env var
 storage in Vercel is fine.
 
 Since [ADR 0012](docs/decisions/0012-same-origin-chat-proxy.md), `vercel.json`
-proxies `/api/rag/*` to the tunnel host server-side, so it's the two rewrite
+proxies `/api/rag/*` to the tunnel host server-side, so it's the rewrite
 destinations in `vercel.json` — not this env var — that must match `THE-TUNNEL-HOST`.
 
 Once the build is promoted to production, the site is wired to the backend.
@@ -206,10 +206,10 @@ it again and the one after that gets the chat.
 3. Check the browser console for a CORS error. If one appears:
    `CORS_ALLOW_ORIGINS` in `.env` does not match the site's exact origin.
    Update `.env` and restart the backend: `docker compose restart backend`.
-4. Check that the two rewrite destinations in `vercel.json` match the tunnel
-   hostname exactly (ADR 0012). A mismatch means the proxy forwards to the wrong
-   URL, and a missing `PUBLIC_CHAT_API_URL` value means the chat layer is fully
-   dormant regardless of backend state.
+4. Check that the `/api/rag/*` rewrite destinations in `vercel.json` match the
+   tunnel hostname exactly (ADR 0012). A mismatch means the proxy forwards to
+   the wrong URL, and a missing `PUBLIC_CHAT_API_URL` value means the chat
+   layer is fully dormant regardless of backend state.
 
 **`make up` fails with GPU errors**
 

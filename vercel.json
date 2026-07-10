@@ -13,6 +13,10 @@
     {
       "source": "/api/rag/chat",
       "destination": "https://paskamyrsky.tail6ed53b.ts.net/chat"
+    },
+    {
+      "source": "/api/rag/session/reset",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net/session/reset"
     }
   ],
   "headers": [
