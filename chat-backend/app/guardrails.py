@@ -141,6 +141,25 @@ _ENGLISH_OVERRIDE_WORDS = frozenset(
 )
 
 
+# Code-shaped spans: backticked text, dotted/path names (scripts/export.js),
+# snake_case, digit-bearing identifiers (sha256), camelCase and PascalCase
+# (exportMyData, HeroVoiceover — but not acronyms like HRM or names like Mikko,
+# which need no internal case change). Identifiers are language-neutral, yet
+# their character n-grams drag statistical language ID off Finnish — measured
+# live 2026-07-10: "kerro exportMyData funktiosta" detected as SWEDISH and was
+# answered in English. The visitor's language lives in the words AROUND an
+# identifier, so detection retries on the stripped text when the raw text does
+# not read Finnish.
+_CODE_TOKEN_RE = re.compile(
+    r"`[^`]+`"
+    r"|\b\w+(?:[./:]\w+)+\b"
+    r"|\b\w+_\w+\b"
+    r"|\b[A-Za-z]\w*\d\w*\b"
+    r"|\b[a-z]+(?:[A-Z]\w*)+\b"
+    r"|\b[A-Z]\w*[a-z]\w*(?:[A-Z]\w*)+\b"
+)
+
+
 def looks_finnish(text: str) -> bool:
     """True when the text reads as Finnish (statistical language ID over EN/FI/SV).
 
@@ -157,7 +176,17 @@ def looks_finnish(text: str) -> bool:
     tokens = "".join(c if c.isalpha() else " " for c in text.lower()).split()
     if sum(1 for t in tokens if t in _ENGLISH_OVERRIDE_WORDS) >= 2:
         return False
-    return _get_detector().detect_language_of(text) == Language.FINNISH
+    if _get_detector().detect_language_of(text) == Language.FINNISH:
+        return True
+    # Raw detection short-circuits above, so every phrasing that already routed
+    # Finnish keeps routing identically; the stripped retry only ADDS the
+    # code-token class ("kerro exportMyData funktiosta"). Too-short residue
+    # (a bare identifier plus punctuation) keeps the English default.
+    stripped = _CODE_TOKEN_RE.sub(" ", text)
+    stripped_alpha = sum(1 for c in stripped if c.isalpha())
+    if stripped != text and stripped_alpha >= _MIN_ALPHA_FOR_DETECTION:
+        return _get_detector().detect_language_of(stripped) == Language.FINNISH
+    return False
 
 
 # Templated replies for the no-LLM small-talk fast path. A greeting or a thanks is
