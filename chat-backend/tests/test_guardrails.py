@@ -98,6 +98,23 @@ def test_looks_non_english_false_for_ascii_english(query: str) -> None:
         "Koulutus?",
         "Yhteystiedot?",
         "Kerro itsestäsi",
+        # code-shaped tokens are language-neutral, but their n-grams drag
+        # statistical ID off Finnish (measured live 2026-07-10: the first of
+        # these read as SWEDISH and was answered in English) — detection
+        # retries with identifiers stripped
+        "kerro exportMyData funktiosta",
+        "kerro chunk_markdown funktiosta",
+        "mita exportMyData tekee",
+        "kerro AudiobookMakerista",
+        "kerro scripts/export.js tiedostosta",
+        "kerro gdpr-actions.ts tiedostosta",
+        "kerro login-streak.ts logiikasta",
+        # bare kebab ("chat-backend") is NOT stripped — prose in all three
+        # languages hyphenates — so this must hold via raw detection
+        "kerro chat-backend arkkitehtuurista",
+        # identifier segments must not feed the English function-word override
+        # ("not" + "from" here are identifier parts, not words)
+        "kerro mission_not_completed ja from_dict funktioista",
     ],
 )
 def test_looks_finnish_true_for_finnish(text: str) -> None:
@@ -126,10 +143,27 @@ def test_looks_finnish_true_for_finnish(text: str) -> None:
         # measured employer-en baseline case)
         "What did Mikko do at Kasvu Labs?",
         "How did Mikko build Spacepotatis and AudiobookMaker?",
+        # English questions about the same identifiers must stay English,
+        # whichever layer decides them (function-word override or detection
+        # on the stripped text)
+        "explain the exportMyData function",
+        "does exportMyData work offline?",
+        "how does chunk_markdown work",
+        # bare hyphenated compounds are ordinary English prose, never stripped
+        "does real-time sync work offline?",
+        # the override still fires when the function words are real words, not
+        # identifier segments
+        "what is mission_not_completed and from_dict",
     ],
 )
 def test_looks_finnish_false_for_english(text: str) -> None:
     assert not looks_finnish(text)
+
+
+def test_looks_finnish_bare_identifier_defaults_to_english() -> None:
+    # A lone identifier carries no natural language — stripping leaves nothing
+    # to identify, so the English default stands.
+    assert looks_finnish("exportMyData?") is False
 
 
 def test_english_override_needs_two_function_words() -> None:

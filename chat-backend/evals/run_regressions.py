@@ -11,7 +11,7 @@ regression case against the same surface a visitor hits:
   must_refuse_offcorpus : the answer contains a refusal marker (gate template
                           or model-level decline, either language).
 
-Token cost: ONE generation per case (12 for the frozen set) — state it before
+Token cost: ONE generation per case — state the set's case count before
 running. Usage (inside the backend container):
 
   python -m evals.run_regressions [--eval-set evals/eval_set_live_regressions.json]
@@ -52,7 +52,14 @@ def score_case(
     missing_facts = [f for f in case.get("facts", []) if f.lower() not in low]
     if missing_facts:
         problems.append(f"missing facts {missing_facts}")
-    want_fi = looks_finnish(case["question"])
+    # An explicit expected_lang pins the language expectation independently of
+    # the router. Deriving want_fi from looks_finnish keeps routing and scoring
+    # in agreement, but it is CIRCULAR for router regressions: a build whose
+    # router misses a Finnish question also expects the English answer it gets,
+    # and the case passes. Frozen router-miss cases declare the language a
+    # human judged, so a regressed build fails them.
+    expected_lang = case.get("expected_lang")
+    want_fi = expected_lang == "fi" if expected_lang else looks_finnish(case["question"])
     got_lang = answer_language(answer)
     # only hard-fail on a clear cross: a Finnish question answered in English
     # or vice versa; 'und' (very short) stays informational.
