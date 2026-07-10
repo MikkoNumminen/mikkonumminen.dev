@@ -5,6 +5,7 @@
       "id": "code-token-fi",
       "question": "kerro exportMyData funktiosta",
       "expectation": "must_retrieve",
+      "expected_lang": "fi",
       "category": "terse-live-regression",
       "facts": [
         "exportMyData"

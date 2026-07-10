@@ -307,10 +307,12 @@ def _check_rejected(r: Result) -> tuple[bool, str]:
     return False, f"oversized input not rejected (HTTP {r.status})"
 
 
-# Language detection is the SHARED guardrails.looks_finnish (>=2 function-word
-# markers OR >=4 ä/ö diacritics) — the SAME definition the pipeline uses to route a
-# query to the Finnish answer path, so the test's language assertion and the routing
-# can never disagree on one text (the detector conflation we eliminate everywhere).
+# Language detection is the SHARED guardrails.looks_finnish (statistical lingua
+# ID over EN/FI/SV, an >=2-English-function-word override, and a code-token-
+# stripped retry when the raw text does not read Finnish) — the SAME definition
+# the pipeline uses to route a query to the Finnish answer path, so the test's
+# language assertion and the routing can never disagree on one text (the
+# detector conflation we eliminate everywhere).
 
 
 def _english_grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, str]]:
