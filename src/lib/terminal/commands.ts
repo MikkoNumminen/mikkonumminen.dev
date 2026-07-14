@@ -17,6 +17,7 @@ const RESULTS_PDF_PATH = '/skills-results.pdf';
 const FINNISH_STUDY_PDF_PATH = '/rag-finnish-experiment.pdf';
 const METHODOLOGY_PDF_PATH = '/rag-finnish-methodology.pdf';
 const BLIND_TEST_PDF_PATH = '/rag-finnish-blind-test.pdf';
+const PORO_FINDINGS_PDF_PATH = '/poro-findings.pdf';
 
 /**
  * Print one project's "file" — the scripted alternative to asking the RAG about
@@ -255,6 +256,14 @@ export function buildCommands(
             url: BLIND_TEST_PDF_PATH,
             filename: 'rag-finnish-blind-test.pdf',
             notAvailableMsg: tt.cmdDownloadBlindTestNotAvailable,
+          },
+          {
+            flag: '--poro',
+            tier: 'research',
+            label: tt.cmdDownloadOptionPoro,
+            url: PORO_FINDINGS_PDF_PATH,
+            filename: 'poro-findings.pdf',
+            notAvailableMsg: tt.cmdDownloadPoroNotAvailable,
           },
         ];
 
