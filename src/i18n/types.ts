@@ -244,6 +244,7 @@ export interface Translations {
     cmdDownloadOptionFinnish: string;
     cmdDownloadOptionMethodology: string;
     cmdDownloadOptionBlindTest: string;
+    cmdDownloadOptionPoro: string;
     cmdDownloadResearchHint: string;
     cmdDownloadTryHint: string;
     cmdDownloadAmbiguous: string;
@@ -257,6 +258,7 @@ export interface Translations {
     cmdDownloadFinnishNotAvailable: string;
     cmdDownloadMethodologyNotAvailable: string;
     cmdDownloadBlindTestNotAvailable: string;
+    cmdDownloadPoroNotAvailable: string;
     cmdDownloadMeantime: string;
     cmdDownloadStarted: string;
     cmdClearDesc: string;

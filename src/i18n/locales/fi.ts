@@ -422,7 +422,7 @@ export const fi: Translations = {
     cmdDownloadOptionSkills:
       'kesäkuu 2026 · uusin + laajin — 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
     cmdDownloadOptionResearch:
-      'tutkimus — 8 pdf:ää: skills-sarja + rag suomi -tutkimus (ei lataus)',
+      'tutkimus — 9 pdf:ää: skills-sarja + rag suomi -tutkimus + poro-löydökset (ei lataus)',
     cmdDownloadResearchIntro: 'katalogi + tutkimukset, vanhimmasta uusimpaan:',
     cmdDownloadOptionCatalog:
       'jokainen skilli kaikista 4 reposta — inventaario, kustannukset mitattu (ei arvattu)',
@@ -440,6 +440,8 @@ export const fi: Translations = {
     // English placeholder — not localized yet
     cmdDownloadOptionBlindTest:
       'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
+    cmdDownloadOptionPoro:
+      'heinäkuu 2026 · Poro-2-8B tuotannossa — mitä kaksi projektia mittasi, miksi toinen otti sen käyttöön ja toinen ei, sekä sen ympärille rakennettu deterministinen kerros',
     cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
       'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` tai `download --finnish`.',
@@ -463,6 +465,8 @@ export const fi: Translations = {
       'rag finnish methodology pdf not available right now — reach out and I will send it.',
     cmdDownloadBlindTestNotAvailable:
       'rag blind test pdf not available right now — reach out and I will send it.',
+    cmdDownloadPoroNotAvailable:
+      'poro-löydösten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',
