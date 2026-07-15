@@ -2,6 +2,7 @@
 title: Poro-2-8B in production: what we measured, what broke, what we built around it
 project: portfolio
 date: 2026-07-15
+type: research
 ---
 
 # Poro-2-8B in production: what we measured, what broke, what we built around it

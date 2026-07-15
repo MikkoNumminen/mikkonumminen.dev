@@ -2,6 +2,7 @@
 title: How a Finnish-RAG experiment caught and corrected its own mistake
 project: portfolio
 date: 2026-06-30
+type: research
 ---
 
 # How a Finnish-RAG experiment caught and corrected its own mistake

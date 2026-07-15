@@ -173,6 +173,11 @@ class Settings:
     # project appear in the top_k so showcased projects spread across the answer.
     # Named-project queries are never capped. Set via RETRIEVAL_DIVERSITY_MAX_PER_PROJECT.
     retrieval_diversity_max_per_project: int
+    # On a research/recency intent ("latest research"), force this many newest
+    # research posts (by doc_date) into the context so pure similarity plus the
+    # per-project diversity cap can't bury them. 0 disables (byte-identical to the
+    # pre-feature behaviour). See retrieval.retrieve / db.recent_research.
+    research_coverage_top_n: int
 
     # --- guardrails (Phase 4) ---
     # Cosine distance above which even the closest chunk is treated as
@@ -271,6 +276,7 @@ class Settings:
             retrieval_diversity_max_per_project=_get_int(
                 "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", 1
             ),
+            research_coverage_top_n=_get_int("RESEARCH_COVERAGE_TOP_N", 3),
             weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.45),
             rate_limit_requests=_get_int("RATE_LIMIT_REQUESTS", 30),
             rate_limit_window_seconds=_get_float("RATE_LIMIT_WINDOW_SECONDS", 60.0),
@@ -327,6 +333,19 @@ class Settings:
             raise ValueError(
                 "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT must be positive, got "
                 f"{self.retrieval_diversity_max_per_project}"
+            )
+        if self.research_coverage_top_n < 0:
+            raise ValueError(
+                "RESEARCH_COVERAGE_TOP_N must be non-negative, got "
+                f"{self.research_coverage_top_n}"
+            )
+        if self.research_coverage_top_n > self.retrieval_top_k:
+            # A coverage set larger than the whole result would truncate away the
+            # newest research it exists to guarantee (and squeeze out every semantic
+            # pick); fail fast instead of silently under-delivering.
+            raise ValueError(
+                "RESEARCH_COVERAGE_TOP_N must be <= TOP_K "
+                f"({self.research_coverage_top_n} > {self.retrieval_top_k})"
             )
         if self.rrf_k <= 0:
             raise ValueError(f"RRF_K must be positive, got {self.rrf_k}")

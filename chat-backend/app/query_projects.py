@@ -228,3 +228,54 @@ def wants_cv(query: str) -> bool:
         return True
     padded = f" {' '.join(tokens)} "
     return any(phrase in padded for phrase in _CV_PHRASES)
+
+
+# Research / recency-coverage intent. "tell me about Mikko's latest research",
+# "what has he published", "kerro viimeisimmistä tutkimuksista". Pure similarity
+# BURIES the newest research: every research post is project='portfolio', so the
+# generic-query diversity cap collapses them to a single slot, and doc_date has no
+# ranking weight — so on this intent `retrieval.retrieve()` forces the newest
+# research posts (by doc_date) into context (see db.recent_research). PREFIX
+# matching like the CV route so Finnish inflection is covered without a stemmer
+# (tutkimus / tutkimuksesta / tutkimuksista…). English markers also catch the
+# English translate-for-retrieval anchor of a Finnish question. High-precision
+# stems only — a wrong guess would prepend real-distance research chunks (it never
+# invents, and cannot rescue an off-topic query past the weak-retrieval gate), but
+# keeping the vocabulary tight keeps the diversity/coverage behaviour predictable.
+_RESEARCH_MARKERS = (
+    "research",
+    "finding",  # finding / findings
+    "experiment",  # experiment / experiments / experimental
+    "benchmark",
+    "measurement",  # measurement / measurements
+    "tutkimu",  # fi: tutkimus / tutkimuksesta / tutkimuksista / tutkimuksia
+    "mittau",  # fi: mittaus / mittauksesta (measurement)
+    "forskning",  # sv: research
+    # NB: deliberately NOT "study"/"studie" — those false-fire on the education
+    # question "where did Mikko study?", which is a CV/bio query, not a research
+    # sweep. "research"/"experiment"/"finding" carry the research intent instead.
+)
+
+
+def is_research_coverage_request(query: str) -> bool:
+    """True when the query asks broadly about Mikko's research / latest findings.
+
+    Fires on a research-genre marker UNLESS a specific *other* project is named,
+    so "how did you research the HRM domain model?" does NOT fire (that is an hrm
+    question, served by normal project-aware retrieval) but "what research has
+    Mikko published?" does. Reuses `detect_projects` for the exclusion so the two
+    stay in sync. Recency words ("latest"/"viimeisin") are deliberately NOT
+    required — a plain "what research has he done" should surface the newest too;
+    if evals ever show this over-firing, the documented tightening is to also
+    require a recency marker.
+    """
+    text = "".join(c if c.isalnum() else " " for c in query.lower())
+    tokens = text.split()
+    has_research = any(
+        tok.startswith(marker) for tok in tokens for marker in _RESEARCH_MARKERS
+    )
+    if not has_research:
+        return False
+    # A named non-portfolio project makes this a project question, not a
+    # research-corpus sweep — defer to normal project-aware retrieval.
+    return not (detect_projects(query) - {"portfolio"})

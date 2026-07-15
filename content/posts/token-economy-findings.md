@@ -1,6 +1,9 @@
 ---
 title: What A/B-testing my Claude Code skills actually saved
+project: portfolio
+date: 2026-06-02
 kind: post
+type: research
 ---
 
 # What A/B-testing my Claude Code skills actually saved

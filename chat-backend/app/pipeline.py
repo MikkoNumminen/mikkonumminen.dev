@@ -223,6 +223,7 @@ async def chat_event_stream(
     context_window: int = 0,
     exclude_doc_types: Sequence[str] | None = None,
     diversify_max_per_project: int | None = None,
+    research_coverage_top_n: int = 0,
     model_name: str = "",
     allow_finnish: bool = False,
     translate_retrieval: bool = False,
@@ -375,6 +376,7 @@ async def chat_event_stream(
                 allowed_classifications=allowed_classifications,
                 exclude_doc_types=exclude_doc_types,
                 diversify_max_per_project=diversify_max_per_project,
+                research_coverage_top_n=research_coverage_top_n,
             )
     except Exception:
         logger.exception("retrieval failed")

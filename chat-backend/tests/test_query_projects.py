@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from app.query_projects import (
     detect_projects,
+    is_research_coverage_request,
     restore_entities,
     wants_cv,
     wants_cv_intent,
@@ -180,3 +181,53 @@ def test_wants_cv_intent_sees_both_texts() -> None:
     assert wants_cv_intent("mitä taustaa?", "What work experience is there?")
     # neither text has CV intent
     assert not wants_cv_intent("mitä projekteja?", "What projects are there?")
+
+
+def test_research_coverage_fires_on_research_markers() -> None:
+    # The reported bug: a Finnish "latest research" question.
+    assert is_research_coverage_request(
+        "kerro jotain mikon viimeisimmistä tutkimuksista"
+    )
+    # English (also the translate-for-retrieval anchor of the Finnish above).
+    assert is_research_coverage_request("tell me about Mikko's latest research")
+    assert is_research_coverage_request("what research has Mikko published?")
+    assert is_research_coverage_request("what were the findings of the experiment?")
+    assert is_research_coverage_request("show me the benchmark study")
+    # Swedish visitors.
+    assert is_research_coverage_request("berätta om den senaste forskningen")
+
+
+def test_research_coverage_needs_a_research_marker() -> None:
+    # Recency or generic curiosity alone is not enough — "latest project" is a
+    # project question, not a research sweep.
+    assert not is_research_coverage_request("what's your latest project?")
+    assert not is_research_coverage_request("tell me about readlog")
+    assert not is_research_coverage_request("what can you do?")
+    assert not is_research_coverage_request("what have you built?")
+    # "study" is deliberately not a marker — this is an education/bio question,
+    # not a research sweep (it must not inject research posts).
+    assert not is_research_coverage_request("where did Mikko study?")
+    assert not is_research_coverage_request("what did you study at university?")
+
+
+def test_research_coverage_defers_to_a_named_project() -> None:
+    # A research marker BUT a specific project named -> that project's question,
+    # served by normal project-aware retrieval, not the corpus-wide sweep.
+    assert not is_research_coverage_request(
+        "how did you research the HRM domain model?"
+    )
+    assert not is_research_coverage_request("what experiments did spacepotatis run?")
+    # Naming the portfolio itself still counts as a research sweep, not a project.
+    assert is_research_coverage_request("what research is in your portfolio?")
+
+
+def test_research_coverage_is_deliberately_topic_permissive() -> None:
+    # The detector recognises the research-genre INTENT, not the topic — an
+    # off-corpus "latest research on X" DOES fire it. Correct by design: the
+    # injected chunks carry real (far) distances, so the pipeline's weak-retrieval
+    # gate refuses the off-topic query downstream (see the recency-offtopic
+    # regression eval). Keeping the detector permissive avoids it becoming a
+    # brittle, always-behind topic classifier.
+    assert is_research_coverage_request(
+        "what's the latest research on quantum computing"
+    )

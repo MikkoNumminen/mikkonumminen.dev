@@ -24,16 +24,42 @@ class FakeDB:
         rows: list[dict[str, Any]],
         lexical_rows: list[dict[str, Any]] | None = None,
         prose_row: dict[str, Any] | None = None,
+        research_rows: list[dict[str, Any]] | None = None,
     ) -> None:
         self._rows = rows
         self._lexical = rows if lexical_rows is None else lexical_rows
         self._prose_row = prose_row
+        self._research = research_rows or []
         self.calls: list[tuple[list[float], int]] = []
         self.lexical_calls: list[tuple[str, int]] = []
         self.prose_calls = 0
+        self.recent_research_calls = 0
         # Every classifications arg the search paths received — lets a test assert
         # the role filter reached the dense, lexical, AND prose-anchor SQL.
         self.classification_args: list[Sequence[str] | None] = []
+
+    async def recent_research(
+        self,
+        embedding: list[float],
+        top_k: int,
+        classifications: Sequence[str] | None = None,
+    ) -> Sequence[Mapping[str, Any]]:
+        # Mirror the real SQL so tests exercise the filter+ordering, not the order
+        # rows were handed in: leading chunk (index 0) of doc_type='research'
+        # sources, role-filtered, newest doc_date first (NULLs last).
+        self.recent_research_calls += 1
+        self.classification_args.append(classifications)
+        candidates = [
+            r
+            for r in self._research
+            if r.get("doc_type") == "research" and r.get("chunk_index", 0) == 0
+        ]
+        candidates = self._filter(candidates, None, classifications)
+        candidates.sort(
+            key=lambda r: (r.get("doc_date") is not None, r.get("doc_date") or ""),
+            reverse=True,
+        )
+        return candidates[:top_k]
 
     async def closest_prose(
         self,
@@ -110,6 +136,7 @@ def _row(
     classification: str = "public",
     doc_type: str = "prose",
     kind: str = "project",
+    doc_date: str | None = None,
 ) -> dict[str, Any]:
     return {
         "source": source,
@@ -122,6 +149,7 @@ def _row(
         "classification": classification,
         "doc_type": doc_type,
         "kind": kind,
+        "doc_date": doc_date,
     }
 
 
@@ -695,3 +723,176 @@ def test_cv_boost_respects_classification_filter() -> None:
         )
     )
     assert all(c.source != "cv.md" for c in result)
+
+
+def test_research_coverage_injects_newest_and_leads() -> None:
+    # A research/recency query forces the guaranteed research set to the FRONT of
+    # the returned top_k, ahead of the semantic picks, ORDERED newest-first.
+    semantic = [_row("projects/hrm.md", 0.20, project="hrm")]
+    research = [  # handed in OUT of date order; recent_research must sort by date
+        # skills is the CLOSER of the two (0.10) but OLDER — so poro leading can
+        # only come from doc_date ordering, not distance.
+        _row(
+            "posts/skills.md", 0.10, project="portfolio",
+            doc_type="research", doc_date="2026-06-02",
+        ),
+        _row(
+            "posts/poro.md", 0.30, project="portfolio",
+            doc_type="research", doc_date="2026-07-15",
+        ),
+    ]
+    db = FakeDB(semantic, research_rows=research)
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "tell me about Mikko's latest research",
+            top_k=3,
+            research_coverage_top_n=2,
+        )
+    )
+    sources = [c.source for c in got]
+    assert db.recent_research_calls == 1
+    # poro (2026-07-15) leads despite being handed in second AND being the farther
+    # chunk — the ordering key is doc_date, not cosine distance.
+    assert sources[:2] == ["posts/poro.md", "posts/skills.md"]
+    assert "projects/hrm.md" in sources  # semantic still fills the remainder
+    # Real distances preserved (not a sentinel), so the weak-retrieval gate sees an
+    # honest prose signal.
+    poro = next(c for c in got if c.source == "posts/poro.md")
+    assert poro.distance == 0.30
+
+
+def test_research_coverage_bypasses_diversity_cap() -> None:
+    # The feature's raison d'etre: all research is project='portfolio', so the
+    # per-project diversity cap (1) would collapse it to ONE chunk on a generic
+    # query. The guaranteed set is prepended AFTER diversify, so multiple portfolio
+    # research posts survive the cap.
+    semantic = [  # three portfolio-research chunks; diversify(cap=1) keeps ONE
+        _row("posts/a.md", 0.20, project="portfolio", doc_type="research"),
+        _row("posts/b.md", 0.21, project="portfolio", doc_type="research"),
+        _row("posts/c.md", 0.22, project="portfolio", doc_type="research"),
+    ]
+    research = [
+        _row(
+            "posts/poro.md", 0.30, project="portfolio",
+            doc_type="research", doc_date="2026-07-15",
+        ),
+        _row(
+            "posts/blind.md", 0.31, project="portfolio",
+            doc_type="research", doc_date="2026-07-02",
+        ),
+    ]
+    db = FakeDB(semantic, research_rows=research)
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "tell me about your latest research",
+            top_k=4,
+            diversify_max_per_project=1,
+            research_coverage_top_n=2,
+        )
+    )
+    sources = [c.source for c in got]
+    # Both guaranteed research posts lead, though every doc is 'portfolio'.
+    assert sources[:2] == ["posts/poro.md", "posts/blind.md"]
+    # Without the feature, diversify(cap=1) leaves exactly ONE portfolio chunk;
+    # with it, the cap is bypassed for the guaranteed set.
+    assert sum(1 for c in got if c.project == "portfolio") >= 2
+
+
+def test_research_coverage_injection_preserves_far_gate_signal() -> None:
+    # CONTAINMENT: on a query that FIRES the intent but is off-corpus, the injected
+    # research chunks carry their REAL (far) distances, so the closest prose stays
+    # far and the weak-retrieval gate still refuses. Injection never fabricates a
+    # near chunk — the guarantee is coverage, never relevance.
+    from app.guardrails import is_weak_retrieval
+
+    semantic = [_row("projects/hrm.md", 0.80, project="hrm")]  # far
+    research = [
+        _row(
+            "posts/poro.md", 0.85, project="portfolio",
+            doc_type="research", doc_date="2026-07-15",
+        ),
+    ]
+    db = FakeDB(semantic, research_rows=research)
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "what's the latest research on quantum computing?",
+            top_k=6,
+            research_coverage_top_n=3,
+        )
+    )
+    assert db.recent_research_calls == 1  # the intent fired and injection ran
+    # Every returned prose chunk is far, so the gate (threshold 0.45) still refuses.
+    assert is_weak_retrieval(got, 0.45)
+
+
+def test_research_coverage_not_injected_without_intent() -> None:
+    # A non-research query never triggers the guaranteed set, even with the knob on.
+    research = [_row("posts/poro.md", 0.30, project="portfolio", doc_type="research")]
+    db = FakeDB(
+        [_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research
+    )
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "how does hrm cache permissions?",
+            top_k=3,
+            research_coverage_top_n=2,
+        )
+    )
+    assert db.recent_research_calls == 0
+    assert "posts/poro.md" not in [c.source for c in got]
+
+
+def test_research_coverage_disabled_by_zero_knob() -> None:
+    # research_coverage_top_n=0 (the default) is byte-identical to the old flow:
+    # the intent fires but the fetch is never made.
+    research = [_row("posts/poro.md", 0.30, project="portfolio", doc_type="research")]
+    db = FakeDB(
+        [_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research
+    )
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "tell me about your latest research",
+            top_k=3,
+            research_coverage_top_n=0,
+        )
+    )
+    assert db.recent_research_calls == 0
+    assert "posts/poro.md" not in [c.source for c in got]
+
+
+def test_research_coverage_respects_classification_filter() -> None:
+    # The role filter must reach the research-coverage fetch too — a restricted
+    # research chunk must never surface through the guaranteed set.
+    semantic = [_row("projects/hrm.md", 0.10, project="hrm")]
+    research = [
+        _row(
+            "posts/secret.md",
+            0.20,
+            project="portfolio",
+            doc_type="research",
+            classification="restricted",
+        ),
+    ]
+    db = FakeDB(semantic, research_rows=research)
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "tell me about your latest research",
+            top_k=3,
+            research_coverage_top_n=3,
+            allowed_classifications=["public"],
+        )
+    )
+    assert db.recent_research_calls == 1
+    assert all(c.source != "posts/secret.md" for c in got)

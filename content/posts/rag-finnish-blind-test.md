@@ -2,6 +2,7 @@
 title: Which local model writes the best Finnish? A blind test settles it
 project: portfolio
 date: 2026-07-02
+type: research
 ---
 
 # Which local model writes the best Finnish? A blind test settles it

@@ -2,6 +2,7 @@
 title: Does the portfolio RAG need Finnish — and does it need a Finnish-built model?
 project: portfolio
 date: 2026-06-29
+type: research
 ---
 
 # Does the portfolio RAG need Finnish — and does it need a Finnish-built model?
