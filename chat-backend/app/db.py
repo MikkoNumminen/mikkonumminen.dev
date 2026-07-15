@@ -238,14 +238,19 @@ class Database:
         matter — e.g. tagging a post `type: research` takes effect on the next index
         with no manual SQL.
 
-        The `IS DISTINCT FROM` guard is load-bearing, not an optimisation: without
-        it every re-index rewrites every row of every source, and a rewrite is not
-        free here — `documents` carries an HNSW cosine index over a 768-dim vector,
-        so rows are too wide for HOT updates to apply reliably and each no-op write
-        churns the vector index and leaves a dead tuple. It also keeps the returned
-        count meaningful: rows whose metadata ACTUALLY changed, so an unchanged
-        corpus reports 0 and the count is a real signal that a front-matter edit
-        landed. NULL-safe, hence IS DISTINCT FROM rather than `<>`.
+        The `IS DISTINCT FROM` guard is load-bearing, not an optimisation. Without
+        it the UPDATE matches on `source` alone, so every re-index rewrites every
+        row whether or not the front matter moved. Measured on the 508-row corpus:
+        one no-op run doubled the heap (928 kB -> 1848 kB) and left 508 dead tuples,
+        with HOT saving only 2 of 508 rows — the ~1.9 kB rows leave no same-page
+        room for it. That turns an indexer documented as idempotent into per-run
+        bloat.
+
+        The guard also keeps the returned count meaningful — rows whose metadata
+        ACTUALLY changed — so an unchanged corpus reports 0 and the count is a real
+        signal that a front-matter edit landed, which is what the deploy runbook
+        tells operators to watch. NULL-safe, hence IS DISTINCT FROM rather than `<>`
+        (`doc_date` is frequently NULL).
         """
         status = await self._pool.execute(
             """
