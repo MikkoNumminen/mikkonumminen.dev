@@ -98,6 +98,14 @@ The indexer is **idempotent and additive** (sha256 per chunk): it embeds new /
 changed chunks, leaves unchanged ones, and prunes only chunks whose source is no
 longer in the corpus. A healthy run on an up-to-date tree reports **`0 pruned`**.
 
+**Front-matter-only changes propagate too.** Editing just a header field
+(`type:`/`project:`/`date:`/`title:`) leaves the chunk *content* — and its hash —
+unchanged, so nothing re-embeds; but the indexer now also runs a doc-level
+metadata refresh, so those columns still update (watch the `metadata-refreshed`
+count in the done line). Tagging a post `type: research` therefore takes effect on
+the next re-index with **no manual SQL** — earlier this silently no-op'd because
+the content-hash reconcile skipped the source entirely.
+
 > **Never `TRUNCATE documents`.** It wipes the live index that serves the contact
 > terminal and is blocked in automated contexts for good reason. A full corpus
 > rebuild is simply an additive re-index against the complete corpus — no truncate

@@ -102,6 +102,12 @@ services:
       # addresses the original question. Without this line the container can't
       # see the toggle at all.
       RAG_TRANSLATE_RETRIEVAL: ${RAG_TRANSLATE_RETRIEVAL:-0}
+      # Research/recency coverage: force this many NEWEST research posts (by
+      # doc_date) into context on a "latest research" question, so pure similarity
+      # plus the per-project diversity cap can't bury them. 0 disables. Without this
+      # line the container can't see the toggle — the config default (3) still
+      # applies, but it can't be tuned via the repo .env.
+      RESEARCH_COVERAGE_TOP_N: ${RESEARCH_COVERAGE_TOP_N:-3}
       # Per-request operational log — timestamp, route, latency, token counts, and
       # retrieval distances; NO query/answer text, so no PII. On by default (set
       # RAG_LOG_FILE empty to disable); `ragctl up` may override it with the

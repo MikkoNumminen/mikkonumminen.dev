@@ -58,6 +58,9 @@ class IndexStats:
     total_in_db: int
     pii_skipped: int = 0
     pseudonyms: int = 0
+    # Chunks whose DOC-LEVEL metadata was refreshed without a re-embed (a
+    # front-matter-only change on unchanged content — see db.refresh_doc_metadata).
+    metadata_refreshed: int = 0
 
 
 def plan(settings: Settings) -> list[FilePlan]:
@@ -138,7 +141,7 @@ async def reindex(
     # never loads the model. `db` is bound before the try so a model-load
     # failure still hits `finally` without a NameError, and the pool is closed.
     embedder: Embedder | None = None
-    chunks_total = embedded = skipped = deleted = total = 0
+    chunks_total = embedded = skipped = deleted = total = metadata_refreshed = 0
     pii_skipped = 0
     pseudonyms: dict[str, str] = {}
     try:
@@ -187,6 +190,21 @@ async def reindex(
             # Prune chunks left over from a previous, longer version of this file.
             deleted += await db.delete_stale_chunks(doc.source, len(fp.chunks))
 
+            # Refresh doc-level metadata for THIS source even when no content
+            # changed, so a front-matter-only edit (e.g. tagging a post
+            # `type: research`) propagates — a content-hash reconcile alone would
+            # skip it, leaving the columns stale. Cheap: one UPDATE per source, a
+            # no-op count for a brand-new source just inserted with current values.
+            metadata_refreshed += await db.refresh_doc_metadata(
+                doc.source,
+                project=doc.project,
+                title=doc.title,
+                kind=doc.kind,
+                doc_type=doc.doc_type,
+                doc_date=doc.doc_date,
+                classification=fp.classification,
+            )
+
         # Prune whole files removed from the corpus since the last run (and, when
         # the corpus is empty, every remaining row).
         deleted += await db.delete_sources_absent_from(
@@ -210,6 +228,7 @@ async def reindex(
         total_in_db=total,
         pii_skipped=pii_skipped,
         pseudonyms=len(pseudonyms),
+        metadata_refreshed=metadata_refreshed,
     )
 
 
@@ -277,7 +296,8 @@ def main(argv: list[str] | None = None) -> int:
         "[indexer] done: "
         f"{stats.files} file(s), {stats.chunks} chunk(s) "
         f"({stats.embedded} embedded, {stats.skipped} unchanged, "
-        f"{stats.deleted} pruned, {stats.pii_skipped} pii-skipped, "
+        f"{stats.deleted} pruned, {stats.metadata_refreshed} metadata-refreshed, "
+        f"{stats.pii_skipped} pii-skipped, "
         f"{stats.pseudonyms} pseudonym(s)) - {stats.total_in_db} rows in DB"
     )
     return 0

@@ -217,6 +217,45 @@ class Database:
                     )
         return len(rows)
 
+    async def refresh_doc_metadata(
+        self,
+        source: str,
+        *,
+        project: str | None,
+        title: str,
+        kind: str,
+        doc_type: str,
+        doc_date: date | None,
+        classification: str,
+    ) -> int:
+        """Refresh the DOC-LEVEL columns for every stored chunk of `source`.
+
+        A front-matter-only edit (doc_type / project / doc_date / title / kind, or a
+        reclassification) leaves chunk CONTENT — and thus its content_hash —
+        unchanged, so `select_chunks_to_embed` re-embeds nothing and the
+        metadata-carrying `upsert_documents` never runs for that source. This UPDATE
+        runs regardless, so the stored metadata always reflects the current front
+        matter — e.g. tagging a post `type: research` takes effect on the next index
+        with no manual SQL. Returns rows updated (0 for a brand-new source, whose
+        chunks were just inserted with current metadata, or one with no rows yet).
+        """
+        status = await self._pool.execute(
+            """
+            UPDATE documents
+            SET project = $2, title = $3, kind = $4, doc_type = $5,
+                doc_date = $6, classification = $7
+            WHERE source = $1
+            """,
+            source,
+            project,
+            title,
+            kind,
+            doc_type,
+            doc_date,
+            classification,
+        )
+        return int(status.split()[-1]) if status else 0
+
     async def delete_stale_chunks(self, source: str, chunk_count: int) -> int:
         """Prune rows for `source` left over from a longer previous version.
 
