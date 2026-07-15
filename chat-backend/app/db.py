@@ -236,8 +236,16 @@ class Database:
         metadata-carrying `upsert_documents` never runs for that source. This UPDATE
         runs regardless, so the stored metadata always reflects the current front
         matter — e.g. tagging a post `type: research` takes effect on the next index
-        with no manual SQL. Returns rows updated (0 for a brand-new source, whose
-        chunks were just inserted with current metadata, or one with no rows yet).
+        with no manual SQL.
+
+        The `IS DISTINCT FROM` guard is load-bearing, not an optimisation: without
+        it every re-index rewrites every row of every source, and a rewrite is not
+        free here — `documents` carries an HNSW cosine index over a 768-dim vector,
+        so rows are too wide for HOT updates to apply reliably and each no-op write
+        churns the vector index and leaves a dead tuple. It also keeps the returned
+        count meaningful: rows whose metadata ACTUALLY changed, so an unchanged
+        corpus reports 0 and the count is a real signal that a front-matter edit
+        landed. NULL-safe, hence IS DISTINCT FROM rather than `<>`.
         """
         status = await self._pool.execute(
             """
@@ -245,6 +253,8 @@ class Database:
             SET project = $2, title = $3, kind = $4, doc_type = $5,
                 doc_date = $6, classification = $7
             WHERE source = $1
+              AND (project, title, kind, doc_type, doc_date, classification)
+                  IS DISTINCT FROM ($2, $3, $4, $5, $6, $7)
             """,
             source,
             project,
