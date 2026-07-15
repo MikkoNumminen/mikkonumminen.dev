@@ -19,7 +19,18 @@ Operational runbook for shipping changes to the local RAG chat that powers the
 - **Compose project name:** `mikkonumminendev` (containers
   `mikkonumminendev-{backend,ollama,db}-1`).
 - **Ops CLI:** `ragctl` (`chat-backend/ragctl.py`) — `status` / `up` / `down` /
-  `doctor` / `model` / `english` / `usage` / `prune`.
+  `doctor` / `model` / `english` / `usage` / `prune`. Boot it live with
+  `ragctl up --keep` (all-green board incl. `public /health ok`); it enables the
+  funnel via the **Windows `tailscale.exe` over WSL interop**, so **no sudo** — do
+  not run the distro's Linux `tailscale funnel …` by hand, it needs sudo and hangs
+  on the password prompt.
+- **Shared funnel — never blanket-reset.** This operator runs Tailscale Funnels
+  for **other projects on the same tailnet**, so treat the funnel as shared infra.
+  This project owns `443 → 127.0.0.1:8000` on its node (`tailscale funnel status`
+  shows a single `/ proxy http://127.0.0.1:8000`). `ragctl up` / `down` scope every
+  change to that one port (`tailscale funnel --bg 8000` /
+  `tailscale funnel --https=443 off`) — **never `tailscale funnel reset` or a
+  blanket `off`**, which would tear down the other projects' funnels.
 
 ## What needs a rebuild vs. a re-index
 

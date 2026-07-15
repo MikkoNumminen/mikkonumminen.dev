@@ -618,6 +618,9 @@ def ensure_funnel() -> None:
         print(f"  ● Funnel already on → {funnel_url()}")
         return
     print("  ◐ enabling Funnel …")
+    # Scope to :8000 on the default funnel port (443): this tailnet node also runs
+    # Funnels for OTHER projects, so only this port is ever toggled — never a
+    # blanket `tailscale funnel reset`, which would drop the other projects' too.
     run([ts, "funnel", "--bg", FUNNEL_PORT], timeout=20)
     print(f"  ● Funnel → {funnel_url()}")
 
@@ -655,6 +658,9 @@ def cmd_down() -> int:
     ts = tailscale_exe()
     if ts:
         print("  ◐ funnel off …")
+        # `--https=443 off` cuts ONLY this project's funnel port. The node is
+        # shared with other projects' funnels, so a blanket `funnel off`/`reset`
+        # is deliberately avoided — it would cut theirs too.
         run([ts, "funnel", "--https=443", "off"], timeout=20)
     print("  ● done — stack + funnel stopped; Docker Desktop & Tailscale left running.")
     return 0
