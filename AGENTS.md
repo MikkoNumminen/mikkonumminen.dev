@@ -176,6 +176,10 @@ python -m evals.acceptance    # 9 black-box containment contract cases (injectio
 The acceptance harness classifiers are anchored on the real refusal wording so they cannot
 false-pass — if you change a refusal string, update them together. Ops are driven by
 `ragctl.py` (`status`/`up`/`down`/`doctor`/`model`/`english`; model switchable, `qwen2.5:7b` default).
+Boot live with `ragctl up --keep` (enables the funnel via the Windows `tailscale.exe` over WSL
+interop — no sudo). The public Tailscale funnel is **shared infra**: this operator runs funnels for
+other projects on the same tailnet, so `ragctl` scopes enable/disable to this project's `:8000` (443)
+— never `tailscale funnel reset`. See [`docs/deploy-rag-chat.md`](docs/deploy-rag-chat.md).
 
 ## Commands
 
