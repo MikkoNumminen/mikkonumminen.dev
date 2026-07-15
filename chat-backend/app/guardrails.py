@@ -383,21 +383,25 @@ def research_coverage_footer(
     """The 'latest research' suffix to append after the answer, or None.
 
     None when nothing was coverage-injected, or when the answer already names the
-    newest research — a distinctive keyword from its source stem (e.g. 'poro' from
-    posts/poro-findings.md) appears — so the pointer is added only when the model
-    actually dropped the guaranteed newest work. The caller keeps it OUT of the
+    newest research VERBATIM (its title headline appears), so the pointer is never a
+    literal duplicate. Otherwise it is appended — the guarantee is only that the
+    newest research is NAMED, and a compact deterministic citation is cheaper than
+    trusting Poro not to drop it. Detection matches the distinctive multi-word title
+    headline, NOT a filename stem: a stem like 'rag'/'token' collides with words a
+    RAG assistant emits constantly ('storage', 'tokens'), which would silently
+    suppress the footer on nearly every answer. The caller keeps this OUT of the
     logged/remembered answer, exactly like the progressive-disclosure offer.
     """
     coverage = [c for c in chunks if c.is_coverage]
     if not coverage:
         return None
     newest = coverage[0]  # retrieve() prepends the coverage set newest-first
-    stem = newest.source.rsplit("/", 1)[-1].removesuffix(".md")
-    keyword = stem.split("-", 1)[0].lower()
-    if keyword and keyword in answer.lower():
-        return None  # the model already named it — no redundant pointer
-    # Trim a long "Headline: subtitle" title down to the headline.
+    # Trim a long "Headline: subtitle" title down to the distinctive headline.
     title = re.split(r"[:—]", newest.title, maxsplit=1)[0].strip()
+    if not title:
+        return None  # defensive: no headline to point at
+    if title.lower() in answer.lower():
+        return None  # already named verbatim — no redundant pointer
     label = LATEST_RESEARCH_LABEL_FI if finnish else LATEST_RESEARCH_LABEL
     return f"\n\n{label}: {title}."
 

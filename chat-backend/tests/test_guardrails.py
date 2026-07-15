@@ -522,14 +522,34 @@ def test_research_footer_appended_when_answer_drops_newest() -> None:
     assert out == "\n\nLatest research: Poro-2-8B in production."
 
 
-def test_research_footer_none_when_answer_already_names_it() -> None:
-    # The model DID name the newest research (stem keyword 'poro' appears) -> no
-    # redundant pointer.
+def test_research_footer_none_when_answer_names_headline_verbatim() -> None:
+    # The model reproduced the title headline verbatim -> no literal duplicate.
     chunks = [_cov("posts/poro-findings.md", "Poro-2-8B in production: x")]
     out = research_coverage_footer(
-        chunks, "He deployed the Poro-2-8B model.", finnish=False
+        chunks,
+        "See the writeup 'Poro-2-8B in production' for the numbers.",
+        finnish=False,
     )
     assert out is None
+
+
+def test_research_footer_appended_even_when_model_paraphrases() -> None:
+    # Detection is verbatim-headline only: a filename stem like 'poro'/'rag'/'token'
+    # would collide with words a RAG assistant emits constantly and silently
+    # suppress the footer. A paraphrase that doesn't reproduce the headline still
+    # gets the deterministic pointer, so the newest research is always NAMED.
+    chunks = [_cov("posts/poro-findings.md", "Poro-2-8B in production: x")]
+    out = research_coverage_footer(
+        chunks, "He deployed the Poro-2-8B model to production.", finnish=False
+    )
+    assert out == "\n\nLatest research: Poro-2-8B in production."
+
+
+def test_research_footer_none_for_empty_headline() -> None:
+    # A title that is only a subtitle (leading delimiter) trims to an empty
+    # headline -> no malformed 'Latest research: .' pointer.
+    chunks = [_cov("posts/poro-findings.md", ": subtitle only")]
+    assert research_coverage_footer(chunks, "any answer", finnish=False) is None
 
 
 def test_research_footer_none_without_coverage_chunk() -> None:
