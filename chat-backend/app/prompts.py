@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 
 # The English-only rule is split out so it can be dropped when FORCE_ENGLISH is
 # off (then the model may answer in the question's language). Kept forceful
@@ -174,6 +175,45 @@ class ContextChunk:
     title: str
     content: str
     project: str | None = None
+    doc_date: date | None = None
+    # Force-injected by the research-coverage layer rather than organically
+    # retrieved, AND the question named no subject outside the corpus — i.e. the
+    # recency claim may cite it. Only `_newest_research_note` reads it, to state
+    # WHICH of these is the most recent — see the note there for why the model
+    # can't be left to work that out from the dates alone. An off-corpus "latest
+    # research on X" still gets the posts injected but arrives here False: the
+    # claim is what caused the model to weld a bridge to X (see
+    # `query_projects.names_offcorpus_research_topic`).
+    is_coverage: bool = False
+
+
+def _newest_research_note(chunks: Sequence[ContextChunk]) -> str | None:
+    """State outright which coverage chunk is the newest, or None if none is dated.
+
+    Dating the chunks is not enough on its own. Asked for the LATEST research, the
+    model reads three dated posts and still declines — measured live, it answers
+    that the context "ei suoraan mainitse uusimpia tutkimuksia" (does not directly
+    mention the newest research). That is the grounding rules working as intended:
+    they forbid going beyond what the context states, and no chunk states which of
+    the dates is the most recent. Taking `max(doc_date)` is a deterministic fact
+    the coverage layer already knows, so it asserts it here instead of leaving an
+    8B model to infer it and hoping. The model may still add detail around it — it
+    just can no longer claim the newest research isn't there.
+    """
+    dated = [c for c in chunks if c.is_coverage and c.doc_date is not None]
+    if not dated:
+        return None
+    # max() rather than trusting list order: the coverage set is prepended
+    # newest-first today, but ordering is a ranking concern that may change, and
+    # this claim must never be able to name the wrong post.
+    newest = max(dated, key=lambda c: c.doc_date or date.min)
+    label = newest.title or newest.source
+    return (
+        f"Mikko's most recent research is: {label} "
+        f"({newest.source}, published {(newest.doc_date or date.min).isoformat()}). "
+        "This is the newest of his research posts; the dated entries below are his "
+        "research, listed newest first."
+    )
 
 
 def format_context(chunks: Sequence[ContextChunk]) -> str:
@@ -181,9 +221,18 @@ def format_context(chunks: Sequence[ContextChunk]) -> str:
     if not chunks:
         return "(no relevant content found)"
     blocks = []
+    note = _newest_research_note(chunks)
+    if note is not None:
+        blocks.append(note)
     for i, chunk in enumerate(chunks, start=1):
         label = chunk.title or chunk.source
-        blocks.append(f"[{i}] {label} ({chunk.source})\n{chunk.content}")
+        if chunk.doc_date is not None:
+            blocks.append(
+                f"[{i}] {label} ({chunk.source}, {chunk.doc_date.isoformat()})\n"
+                f"{chunk.content}"
+            )
+        else:
+            blocks.append(f"[{i}] {label} ({chunk.source})\n{chunk.content}")
     return "\n\n".join(blocks)
 
 

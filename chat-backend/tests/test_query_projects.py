@@ -223,11 +223,17 @@ def test_research_coverage_defers_to_a_named_project() -> None:
 
 def test_research_coverage_is_deliberately_topic_permissive() -> None:
     # The detector recognises the research-genre INTENT, not the topic — an
-    # off-corpus "latest research on X" DOES fire it. Correct by design: the
-    # injected chunks carry real (far) distances, so the pipeline's weak-retrieval
-    # gate refuses the off-topic query downstream (see the recency-offtopic
-    # regression eval). Keeping the detector permissive avoids it becoming a
-    # brittle, always-behind topic classifier.
+    # off-corpus "latest research on X" DOES fire it. Keeping the detector
+    # permissive avoids it becoming a brittle, always-behind topic classifier.
+    # NB the ORIGINAL rationale here — "the injected chunks are far, so the
+    # weak-retrieval gate refuses the query downstream" — is FALSE, and believing it
+    # is what allowed a live fabrication. Measured: "latest research on quantum
+    # computing" retrieves coverage chunks at distance 0.4466, INSIDE the 0.45 gate;
+    # coverage chunks are prose and can only ever move the gate toward answering.
+    # What actually makes the permissiveness safe is that injection alone is
+    # harmless (the model hedged correctly) and the recency CLAIM is gated
+    # separately — see query_projects.names_offcorpus_research_topic and
+    # tests/test_research_coverage_precision.py.
     assert is_research_coverage_request(
         "what's the latest research on quantum computing"
     )

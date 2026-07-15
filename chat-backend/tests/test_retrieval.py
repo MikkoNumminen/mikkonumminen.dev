@@ -767,6 +767,86 @@ def test_research_coverage_injects_newest_and_leads() -> None:
     assert not next(c for c in got if c.source == "projects/hrm.md").is_coverage
 
 
+def test_offcorpus_research_topic_injects_but_may_not_claim_recency() -> None:
+    # "latest research on quantum computing" still INJECTS — measured harmless, and
+    # the posts keep the gate anchored on honest prose distances. What stands down
+    # is the recency CLAIM: with the note asserting "Mikko's most recent research is
+    # <post>", an 8B model welded a bridge to the asked-about topic (live: the Poro
+    # post "mentions AI-native development including quantum computing"; it does
+    # not). is_coverage=False is what withholds the note and the completeness footer.
+    semantic = [_row("projects/hrm.md", 0.20, project="hrm")]
+    research = [
+        _row(
+            "posts/poro.md", 0.30, project="portfolio",
+            doc_type="research", doc_date="2026-07-15",
+        ),
+    ]
+    db = FakeDB(semantic, research_rows=research)
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "what is the latest research on quantum computing",
+            top_k=3,
+            research_coverage_top_n=2,
+        )
+    )
+    assert db.recent_research_calls == 1  # injection preserved, deliberately
+    assert "posts/poro.md" in [c.source for c in got]
+    assert all(not c.is_coverage for c in got)
+
+
+def test_translated_finnish_sweep_claims_off_the_english_line() -> None:
+    # The real retrieval input shape. A genuine Finnish sweep translates to an
+    # English line carrying NO bound subject, so the claim stands — while the
+    # Finnish original's copula ("...on tehnyt" = "has done") sits on line 2 where
+    # the veto structurally cannot read it as the English preposition "on".
+    research = [
+        _row(
+            "posts/poro.md", 0.30, project="portfolio",
+            doc_type="research", doc_date="2026-07-15",
+        ),
+    ]
+    db = FakeDB([_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research)
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "what research has Mikko done",
+            intent_query="mitä tutkimuksia mikko on tehnyt",
+            top_k=3,
+            research_coverage_top_n=2,
+        )
+    )
+    assert next(c for c in got if c.source == "posts/poro.md").is_coverage
+
+
+def test_translated_offcorpus_query_may_not_claim_off_the_finnish_line() -> None:
+    # Containment for Finnish input rides on the ENGLISH line: Finnish marks its
+    # topic with a case ending ("...ilmastonmuutoksesta") and offers no preposition
+    # to bind, but English grammar REQUIRES one, so the translation reliably
+    # materialises the structure the veto reads.
+    research = [
+        _row(
+            "posts/poro.md", 0.30, project="portfolio",
+            doc_type="research", doc_date="2026-07-15",
+        ),
+    ]
+    db = FakeDB([_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research)
+    got = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "what is the latest research on climate change",
+            intent_query="viimeisin tutkimus ilmastonmuutoksesta",
+            top_k=3,
+            research_coverage_top_n=2,
+        )
+    )
+    assert db.recent_research_calls == 1
+    assert all(not c.is_coverage for c in got)
+
+
 def test_research_coverage_bypasses_diversity_cap() -> None:
     # The feature's raison d'etre: all research is project='portfolio', so the
     # per-project diversity cap (1) would collapse it to ONE chunk on a generic

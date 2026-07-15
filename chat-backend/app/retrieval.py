@@ -11,10 +11,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
+from datetime import date
 from typing import Any, Protocol
 
 from .prompts import ContextChunk
-from .query_projects import detect_projects, is_research_coverage_request, wants_cv
+from .query_projects import (
+    detect_projects,
+    is_research_coverage_request,
+    names_offcorpus_research_topic,
+    wants_cv,
+)
 
 
 class SupportsEmbedQuery(Protocol):
@@ -87,6 +93,10 @@ class RetrievedChunk:
     # so the pipeline can audit-log what classes a retrieval touched; the
     # role-based gate has already filtered out classes the role can't see in SQL.
     classification: str = "public"
+    # The model cannot answer "what is the latest" without a date in context —
+    # carried through purely so the rendered prompt can show it; retrieval/ranking
+    # never read this field.
+    doc_date: date | None = None
     # True when force-injected by the research-coverage layer (not organic
     # retrieval). Only the completeness footer reads it — retrieval/ranking never
     # branch on it, so a coverage chunk fuses/gates exactly like any other.
@@ -117,6 +127,7 @@ def _to_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         chunk_index=int(row["chunk_index"]),
         chunk_type=str(row["chunk_type"]),
         classification=str(row.get("classification", "public")),
+        doc_date=row.get("doc_date"),
     )
 
 
@@ -131,6 +142,7 @@ def _to_lexical_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         chunk_index=int(row["chunk_index"]),
         chunk_type=str(row["chunk_type"]),
         classification=str(row.get("classification", "public")),
+        doc_date=row.get("doc_date"),
     )
 
 
@@ -354,8 +366,18 @@ async def retrieve(
             research_coverage_top_n,
             classifications=allowed_classifications,
         )
+        # An off-corpus "latest research on X" is only DANGEROUS once the note
+        # asserts "Mikko's most recent research is <post>" — an 8B model then welds
+        # a bridge to X (measured live: the Poro post "mentions AI-native
+        # development including quantum computing"; it does not). Injection alone
+        # was measured harmless — the same query hedged correctly before the note
+        # existed — so the posts still go in and the gate anchor is untouched; only
+        # the claim stands down. Decided here because this is the only place
+        # `intent_text` exists: `build_messages` sees the ORIGINAL query, which on
+        # the Finnish path has no English line to read the topic from.
+        claimable = not names_offcorpus_research_topic(intent_text)
         coverage_chunks = [
-            replace(_to_chunk(row), is_coverage=True) for row in coverage_rows
+            replace(_to_chunk(row), is_coverage=claimable) for row in coverage_rows
         ]
 
     # Both guaranteed sets lead the returned top_k: research coverage first (newest
@@ -506,7 +528,14 @@ async def retrieve_narrative(
 def to_context(chunks: Sequence[RetrievedChunk]) -> list[ContextChunk]:
     """Adapt retrieved chunks into the prompt's context shape."""
     return [
-        ContextChunk(source=c.source, title=c.title, content=c.content, project=c.project)
+        ContextChunk(
+            source=c.source,
+            title=c.title,
+            content=c.content,
+            project=c.project,
+            doc_date=c.doc_date,
+            is_coverage=c.is_coverage,
+        )
         for c in chunks
     ]
 
