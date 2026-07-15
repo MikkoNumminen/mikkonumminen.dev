@@ -59,6 +59,7 @@ from .guardrails import (
     is_weak_retrieval,
     looks_finnish,
     looks_non_english,
+    research_coverage_footer,
     smalltalk_route,
     unsupported_years,
 )
@@ -541,6 +542,22 @@ async def chat_event_stream(
                         yield sse.sse_token("\n\n" + offer)
                 except Exception:
                     logger.exception("offer has_narrative check failed")
+
+        # Completeness guarantee (research-coverage layer): the newest research was
+        # forced into context, but Poro's synthesis can still drop it (measured: "I
+        # don't have info on the latest research" with poro-findings at source #1).
+        # When the answer didn't name it, append a deterministic pointer — the model
+        # may add, never drop. Kept OUT of response_parts (like the offer above), so
+        # memory/log store the substantive answer, not the nudge. Guarded: a nicety
+        # must never break a delivered answer.
+        try:
+            footer = research_coverage_footer(
+                chunks, "".join(response_parts), finnish=answer_in_finnish
+            )
+            if footer:
+                yield sse.sse_token(footer)
+        except Exception:
+            logger.exception("research-coverage footer failed")
 
         # Context bar (Phase 6): the session's REAL fill — prompt_eval_count +
         # eval_count from the model's usage chunk, against the served context

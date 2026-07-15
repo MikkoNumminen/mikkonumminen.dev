@@ -16,6 +16,7 @@ from app.guardrails import (
     is_weak_retrieval,
     looks_finnish,
     looks_non_english,
+    research_coverage_footer,
     smalltalk_route,
     unsupported_years,
 )
@@ -497,3 +498,57 @@ def test_finnish_translation_requests_are_declined(query: str) -> None:
 )
 def test_i18n_questions_are_not_translation_requests(query: str) -> None:
     assert not is_translation_request(query)
+
+
+def _cov(source: str, title: str, is_coverage: bool = True) -> RetrievedChunk:
+    return RetrievedChunk(
+        source=source,
+        title=title,
+        project="portfolio",
+        content="x",
+        distance=0.3,
+        is_coverage=is_coverage,
+    )
+
+
+def test_research_footer_appended_when_answer_drops_newest() -> None:
+    # Poro dropped the guaranteed newest research -> deterministic pointer added,
+    # with the long "Headline: subtitle" title trimmed to the headline.
+    chunks = [
+        _cov("posts/poro-findings.md", "Poro-2-8B in production: what we measured"),
+        _cov("projects/hrm.md", "HRM", is_coverage=False),
+    ]
+    out = research_coverage_footer(chunks, "Mikko builds AI tools.", finnish=False)
+    assert out == "\n\nLatest research: Poro-2-8B in production."
+
+
+def test_research_footer_none_when_answer_already_names_it() -> None:
+    # The model DID name the newest research (stem keyword 'poro' appears) -> no
+    # redundant pointer.
+    chunks = [_cov("posts/poro-findings.md", "Poro-2-8B in production: x")]
+    out = research_coverage_footer(
+        chunks, "He deployed the Poro-2-8B model.", finnish=False
+    )
+    assert out is None
+
+
+def test_research_footer_none_without_coverage_chunk() -> None:
+    chunks = [_cov("projects/hrm.md", "HRM", is_coverage=False)]
+    assert research_coverage_footer(chunks, "any answer", finnish=False) is None
+
+
+def test_research_footer_finnish_label() -> None:
+    chunks = [_cov("posts/poro-findings.md", "Poro-2-8B in production: x")]
+    out = research_coverage_footer(chunks, "tekoälytyökaluja", finnish=True)
+    assert out == "\n\nUusin tutkimus: Poro-2-8B in production."
+
+
+def test_research_footer_uses_newest_coverage_first() -> None:
+    # retrieve() prepends the coverage set newest-first, so coverage[0] is the one
+    # the footer names.
+    chunks = [
+        _cov("posts/poro-findings.md", "Poro-2-8B in production: x"),
+        _cov("posts/token-economy-findings.md", "What A/B-testing saved"),
+    ]
+    out = research_coverage_footer(chunks, "generic answer", finnish=False)
+    assert out == "\n\nLatest research: Poro-2-8B in production."

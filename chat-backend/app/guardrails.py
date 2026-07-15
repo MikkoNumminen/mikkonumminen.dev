@@ -368,6 +368,40 @@ def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> 
     return best > max_distance
 
 
+# Deterministic "latest research" pointer, appended when the research-coverage
+# layer forced the newest research into context but the model's synthesis dropped
+# it. Poro measurably answers "I don't have info on the latest research" with the
+# newest post sitting at source #1 — the coverage layer guarantees the doc REACHES
+# the model; this guarantees the ANSWER names it. The model may add, never drop.
+LATEST_RESEARCH_LABEL = "Latest research"
+LATEST_RESEARCH_LABEL_FI = "Uusin tutkimus"
+
+
+def research_coverage_footer(
+    chunks: Sequence[RetrievedChunk], answer: str, *, finnish: bool
+) -> str | None:
+    """The 'latest research' suffix to append after the answer, or None.
+
+    None when nothing was coverage-injected, or when the answer already names the
+    newest research — a distinctive keyword from its source stem (e.g. 'poro' from
+    posts/poro-findings.md) appears — so the pointer is added only when the model
+    actually dropped the guaranteed newest work. The caller keeps it OUT of the
+    logged/remembered answer, exactly like the progressive-disclosure offer.
+    """
+    coverage = [c for c in chunks if c.is_coverage]
+    if not coverage:
+        return None
+    newest = coverage[0]  # retrieve() prepends the coverage set newest-first
+    stem = newest.source.rsplit("/", 1)[-1].removesuffix(".md")
+    keyword = stem.split("-", 1)[0].lower()
+    if keyword and keyword in answer.lower():
+        return None  # the model already named it — no redundant pointer
+    # Trim a long "Headline: subtitle" title down to the headline.
+    title = re.split(r"[:—]", newest.title, maxsplit=1)[0].strip()
+    label = LATEST_RESEARCH_LABEL_FI if finnish else LATEST_RESEARCH_LABEL
+    return f"\n\n{label}: {title}."
+
+
 # Progressive disclosure (Phase 5): the explicit offer appended after a concise
 # answer when a deeper narrative exists. Deterministic text, never LLM-generated —
 # terminal discoverability is low, so the user is told they can go deeper.
