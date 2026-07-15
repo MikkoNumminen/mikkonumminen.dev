@@ -761,6 +761,10 @@ def test_research_coverage_injects_newest_and_leads() -> None:
     # honest prose signal.
     poro = next(c for c in got if c.source == "posts/poro.md")
     assert poro.distance == 0.30
+    # Injected chunks are flagged so the completeness footer can find the newest
+    # research; organic chunks are not.
+    assert poro.is_coverage
+    assert not next(c for c in got if c.source == "projects/hrm.md").is_coverage
 
 
 def test_research_coverage_bypasses_diversity_cap() -> None:

@@ -59,6 +59,7 @@ from .guardrails import (
     is_weak_retrieval,
     looks_finnish,
     looks_non_english,
+    research_coverage_footer,
     smalltalk_route,
     unsupported_years,
 )
@@ -530,7 +531,15 @@ async def chat_event_stream(
         # never gated behind a "short or long?" question. Kept out of response_parts
         # so memory and the log store the substantive answer, not the UX nudge.
         # Guarded — the offer is a nicety and must never break a delivered answer.
-        if disclosure_enabled and not expansion:
+        # A research-coverage query can name the portfolio via its "rag"/"chat"
+        # aliases, so _sole_project would return "portfolio" and the offer would
+        # fire ALONGSIDE the completeness footer below — a double suffix (and
+        # accepting the offer expands the portfolio BUILD narrative, not the
+        # research). The two deterministic suffixes are mutually exclusive here:
+        # when the coverage layer injected, it owns the suffix and the offer stands
+        # down.
+        coverage_injected = any(c.is_coverage for c in chunks)
+        if disclosure_enabled and not expansion and not coverage_injected:
             offer_project = _sole_project(query)
             if offer_project is not None:
                 try:
@@ -541,6 +550,22 @@ async def chat_event_stream(
                         yield sse.sse_token("\n\n" + offer)
                 except Exception:
                     logger.exception("offer has_narrative check failed")
+
+        # Completeness guarantee (research-coverage layer): the newest research was
+        # forced into context, but Poro's synthesis can still drop it (measured: "I
+        # don't have info on the latest research" with poro-findings at source #1).
+        # When the answer didn't name it, append a deterministic pointer — the model
+        # may add, never drop. Kept OUT of response_parts (like the offer above), so
+        # memory/log store the substantive answer, not the nudge. Guarded: a nicety
+        # must never break a delivered answer.
+        try:
+            footer = research_coverage_footer(
+                chunks, "".join(response_parts), finnish=answer_in_finnish
+            )
+            if footer:
+                yield sse.sse_token(footer)
+        except Exception:
+            logger.exception("research-coverage footer failed")
 
         # Context bar (Phase 6): the session's REAL fill — prompt_eval_count +
         # eval_count from the model's usage chunk, against the served context

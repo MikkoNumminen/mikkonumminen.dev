@@ -368,6 +368,44 @@ def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> 
     return best > max_distance
 
 
+# Deterministic "latest research" pointer, appended when the research-coverage
+# layer forced the newest research into context but the model's synthesis dropped
+# it. Poro measurably answers "I don't have info on the latest research" with the
+# newest post sitting at source #1 — the coverage layer guarantees the doc REACHES
+# the model; this guarantees the ANSWER names it. The model may add, never drop.
+LATEST_RESEARCH_LABEL = "Latest research"
+LATEST_RESEARCH_LABEL_FI = "Uusin tutkimus"
+
+
+def research_coverage_footer(
+    chunks: Sequence[RetrievedChunk], answer: str, *, finnish: bool
+) -> str | None:
+    """The 'latest research' suffix to append after the answer, or None.
+
+    None when nothing was coverage-injected, or when the answer already names the
+    newest research VERBATIM (its title headline appears), so the pointer is never a
+    literal duplicate. Otherwise it is appended — the guarantee is only that the
+    newest research is NAMED, and a compact deterministic citation is cheaper than
+    trusting Poro not to drop it. Detection matches the distinctive multi-word title
+    headline, NOT a filename stem: a stem like 'rag'/'token' collides with words a
+    RAG assistant emits constantly ('storage', 'tokens'), which would silently
+    suppress the footer on nearly every answer. The caller keeps this OUT of the
+    logged/remembered answer, exactly like the progressive-disclosure offer.
+    """
+    coverage = [c for c in chunks if c.is_coverage]
+    if not coverage:
+        return None
+    newest = coverage[0]  # retrieve() prepends the coverage set newest-first
+    # Trim a long "Headline: subtitle" title down to the distinctive headline.
+    title = re.split(r"[:—]", newest.title, maxsplit=1)[0].strip()
+    if not title:
+        return None  # defensive: no headline to point at
+    if title.lower() in answer.lower():
+        return None  # already named verbatim — no redundant pointer
+    label = LATEST_RESEARCH_LABEL_FI if finnish else LATEST_RESEARCH_LABEL
+    return f"\n\n{label}: {title}."
+
+
 # Progressive disclosure (Phase 5): the explicit offer appended after a concise
 # answer when a deeper narrative exists. Deterministic text, never LLM-generated —
 # terminal discoverability is low, so the user is told they can go deeper.

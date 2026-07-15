@@ -28,11 +28,13 @@ class FakeDB:
         fail: bool = False,
         narratives: list[dict[str, Any]] | None = None,
         narrative_projects: Sequence[str] = (),
+        research: list[dict[str, Any]] | None = None,
     ) -> None:
         self._rows = rows
         self._fail = fail
         self._narratives = narratives or []
         self._narrative_projects = set(narrative_projects)
+        self._research = research or []
 
     async def search(
         self,
@@ -80,6 +82,14 @@ class FakeDB:
         exclude_doc_types: Sequence[str] | None = None,
     ) -> Mapping[str, Any] | None:
         return next((r for r in self._rows if r.get("chunk_type") == "prose"), None)
+
+    async def recent_research(
+        self,
+        embedding: list[float],
+        top_k: int,
+        classifications: Sequence[str] | None = None,
+    ) -> Sequence[Mapping[str, Any]]:
+        return self._research[:top_k]
 
 
 class FakeLLM:
@@ -359,6 +369,37 @@ def test_no_offer_when_the_project_has_no_narrative() -> None:
     db = FakeDB([_row("projects/hrm.md", project="hrm")], narrative_projects=[])
     frames = _collect_with("how does hrm work", [], db=db, llm=FakeLLM(["HRM works."]))
     assert EXPANSION_OFFER not in _token_text(frames)
+
+
+def test_coverage_footer_fires_and_offer_stands_down() -> None:
+    # A portfolio-aliased research query ("rag"/"chat" alias -> portfolio) would
+    # fire BOTH the research-coverage injection AND the disclosure offer. They are
+    # mutually exclusive: the coverage footer names the newest research and the
+    # offer stands down — no double suffix.
+    research = [_row("posts/poro-findings.md", project="portfolio")]
+    research[0]["title"] = "Poro-2-8B in production: what we measured"
+    db = FakeDB(
+        [_row("projects/portfolio.md", project="portfolio")],
+        narrative_projects=["portfolio"],  # so the offer WOULD otherwise fire
+        research=research,
+    )
+
+    async def run() -> list[str]:
+        gen = chat_event_stream(
+            "what research has gone into the rag chat",
+            [],
+            embedder=FakeEmbedder(),
+            db=db,
+            llm=FakeLLM(["I have followed AI research broadly."]),
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            research_coverage_top_n=1,
+        )
+        return [frame async for frame in gen]
+
+    text = _token_text(asyncio.run(run()))
+    assert "Latest research: Poro-2-8B in production." in text  # footer fired
+    assert EXPANSION_OFFER not in text  # offer stood down (no double suffix)
 
 
 def test_expansion_without_a_prior_topic_falls_through_to_normal() -> None:

@@ -16,6 +16,7 @@ from app.guardrails import (
     is_weak_retrieval,
     looks_finnish,
     looks_non_english,
+    research_coverage_footer,
     smalltalk_route,
     unsupported_years,
 )
@@ -497,3 +498,77 @@ def test_finnish_translation_requests_are_declined(query: str) -> None:
 )
 def test_i18n_questions_are_not_translation_requests(query: str) -> None:
     assert not is_translation_request(query)
+
+
+def _cov(source: str, title: str, is_coverage: bool = True) -> RetrievedChunk:
+    return RetrievedChunk(
+        source=source,
+        title=title,
+        project="portfolio",
+        content="x",
+        distance=0.3,
+        is_coverage=is_coverage,
+    )
+
+
+def test_research_footer_appended_when_answer_drops_newest() -> None:
+    # Poro dropped the guaranteed newest research -> deterministic pointer added,
+    # with the long "Headline: subtitle" title trimmed to the headline.
+    chunks = [
+        _cov("posts/poro-findings.md", "Poro-2-8B in production: what we measured"),
+        _cov("projects/hrm.md", "HRM", is_coverage=False),
+    ]
+    out = research_coverage_footer(chunks, "Mikko builds AI tools.", finnish=False)
+    assert out == "\n\nLatest research: Poro-2-8B in production."
+
+
+def test_research_footer_none_when_answer_names_headline_verbatim() -> None:
+    # The model reproduced the title headline verbatim -> no literal duplicate.
+    chunks = [_cov("posts/poro-findings.md", "Poro-2-8B in production: x")]
+    out = research_coverage_footer(
+        chunks,
+        "See the writeup 'Poro-2-8B in production' for the numbers.",
+        finnish=False,
+    )
+    assert out is None
+
+
+def test_research_footer_appended_even_when_model_paraphrases() -> None:
+    # Detection is verbatim-headline only: a filename stem like 'poro'/'rag'/'token'
+    # would collide with words a RAG assistant emits constantly and silently
+    # suppress the footer. A paraphrase that doesn't reproduce the headline still
+    # gets the deterministic pointer, so the newest research is always NAMED.
+    chunks = [_cov("posts/poro-findings.md", "Poro-2-8B in production: x")]
+    out = research_coverage_footer(
+        chunks, "He deployed the Poro-2-8B model to production.", finnish=False
+    )
+    assert out == "\n\nLatest research: Poro-2-8B in production."
+
+
+def test_research_footer_none_for_empty_headline() -> None:
+    # A title that is only a subtitle (leading delimiter) trims to an empty
+    # headline -> no malformed 'Latest research: .' pointer.
+    chunks = [_cov("posts/poro-findings.md", ": subtitle only")]
+    assert research_coverage_footer(chunks, "any answer", finnish=False) is None
+
+
+def test_research_footer_none_without_coverage_chunk() -> None:
+    chunks = [_cov("projects/hrm.md", "HRM", is_coverage=False)]
+    assert research_coverage_footer(chunks, "any answer", finnish=False) is None
+
+
+def test_research_footer_finnish_label() -> None:
+    chunks = [_cov("posts/poro-findings.md", "Poro-2-8B in production: x")]
+    out = research_coverage_footer(chunks, "tekoälytyökaluja", finnish=True)
+    assert out == "\n\nUusin tutkimus: Poro-2-8B in production."
+
+
+def test_research_footer_uses_newest_coverage_first() -> None:
+    # retrieve() prepends the coverage set newest-first, so coverage[0] is the one
+    # the footer names.
+    chunks = [
+        _cov("posts/poro-findings.md", "Poro-2-8B in production: x"),
+        _cov("posts/token-economy-findings.md", "What A/B-testing saved"),
+    ]
+    out = research_coverage_footer(chunks, "generic answer", finnish=False)
+    assert out == "\n\nLatest research: Poro-2-8B in production."

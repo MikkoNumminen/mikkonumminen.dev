@@ -10,7 +10,7 @@ for type-checking.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 from .prompts import ContextChunk
@@ -87,6 +87,10 @@ class RetrievedChunk:
     # so the pipeline can audit-log what classes a retrieval touched; the
     # role-based gate has already filtered out classes the role can't see in SQL.
     classification: str = "public"
+    # True when force-injected by the research-coverage layer (not organic
+    # retrieval). Only the completeness footer reads it — retrieval/ranking never
+    # branch on it, so a coverage chunk fuses/gates exactly like any other.
+    is_coverage: bool = False
 
 
 # When the query names a project, or hybrid fusion is on, pull this many * top_k
@@ -350,7 +354,9 @@ async def retrieve(
             research_coverage_top_n,
             classifications=allowed_classifications,
         )
-        coverage_chunks = [_to_chunk(row) for row in coverage_rows]
+        coverage_chunks = [
+            replace(_to_chunk(row), is_coverage=True) for row in coverage_rows
+        ]
 
     # Both guaranteed sets lead the returned top_k: research coverage first (newest
     # by doc_date), then the CV boost. The per-project diversity cap never applies
