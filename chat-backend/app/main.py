@@ -265,6 +265,7 @@ def create_app() -> FastAPI:
             context_window=settings.context_window,
             exclude_doc_types=settings.retrieval_exclude_doc_types or None,
             diversify_max_per_project=settings.retrieval_diversity_max_per_project,
+            research_coverage_top_n=settings.research_coverage_top_n,
             model_name=settings.llm_model,
             allow_finnish=settings.rag_allow_finnish,
             translate_retrieval=settings.rag_translate_retrieval,

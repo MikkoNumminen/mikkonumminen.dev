@@ -151,6 +151,64 @@
       "expectation": "must_refuse_offcorpus",
       "expected_sources": [],
       "category": "containment-en"
+    },
+    {
+      "id": "recency-research-en",
+      "question": "tell me about Mikko's latest research",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "posts/poro-findings.md"
+      ],
+      "category": "research-coverage",
+      "facts": [
+        "Poro"
+      ],
+      "_note": "research-coverage layer: the deterministic intent forces the newest research (poro-findings, 2026-07-15) into context so 'latest research' can't surface only an older study. Requires the type:research tags + a re-index."
+    },
+    {
+      "id": "recency-research-fi",
+      "question": "kerro jotain mikon viimeisimmistä tutkimuksista",
+      "expectation": "must_retrieve",
+      "expected_lang": "fi",
+      "expected_sources": [
+        "posts/poro-findings.md"
+      ],
+      "category": "research-coverage",
+      "facts": [
+        "Poro"
+      ],
+      "_note": "the reported bug (2026-07-15): this exact phrasing answered only about the older skills A/B study and omitted the newest (Poro) research."
+    },
+    {
+      "id": "coverage-research-en",
+      "question": "what research has Mikko published?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "posts/poro-findings.md"
+      ],
+      "category": "research-coverage",
+      "facts": [
+        "Poro"
+      ]
+    },
+    {
+      "id": "skills-research-en",
+      "question": "what did Mikko measure about his Claude Code skills?",
+      "expectation": "must_retrieve",
+      "expected_sources": [
+        "posts/token-economy-findings.md"
+      ],
+      "category": "research-coverage",
+      "facts": [],
+      "_note": "token-economy-findings.md had NULL project and NULL date (invisible to date/project logic) until this change tagged it project:portfolio/date/type:research; a named 'skills' question should reach it via semantic retrieval."
+    },
+    {
+      "id": "recency-offcorpus-en",
+      "question": "what's the latest research on quantum computing?",
+      "expectation": "must_refuse_offcorpus",
+      "expected_sources": [],
+      "category": "research-coverage-containment",
+      "_note": "CONTAINMENT GUARD: the research-coverage intent FIRES (it carries 'research') and injects real-distance research chunks, but those chunks are far for an off-corpus topic, so the weak-retrieval gate must still refuse. Proves injection never rescues off-topic."
     }
   ]
 }

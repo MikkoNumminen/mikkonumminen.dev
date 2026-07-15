@@ -452,6 +452,52 @@ class Database:
         )
         return row
 
+    async def recent_research(
+        self,
+        embedding: list[float],
+        top_k: int,
+        classifications: Sequence[str] | None = None,
+    ) -> list[asyncpg.Record]:
+        """The leading chunk of each of the `top_k` NEWEST research sources.
+
+        The deterministic coverage set for a research/recency intent (see
+        `query_projects.is_research_coverage_request`): the title+abstract chunk
+        (`chunk_index = 0`) of the most recent `doc_type='research'` sources by
+        `doc_date`, so the guaranteed newest research reaches the model even when
+        the per-project diversity cap (all research is `project='portfolio'`) would
+        collapse it or cosine alone favours an older post. `doc_date` — dead weight
+        everywhere else in retrieval — is the ordering key here.
+
+        Each row carries its REAL `embedding <=> query` distance (same column shape
+        as `search`, so `retrieval._to_chunk` consumes it): the injected chunks are
+        prose with honest distances, so the weak-retrieval gate can only get a
+        CLOSER prose signal from them, never a falsely-relaxed one (an off-topic
+        "latest research on X" injects far chunks and still refuses). The role
+        filter (`classifications`) applies exactly as `search`/`closest_prose`, so
+        restricted research is never even fetched. `NULLS LAST` keeps a research
+        post that somehow lacks a date from crowding out dated ones.
+        """
+        params: list[object] = [embedding, top_k]
+        where = _filter_clause(
+            params,
+            None,
+            classifications,
+            doc_types=["research"],
+            base=["chunk_index = 0"],
+        )
+        rows: list[asyncpg.Record] = await self._pool.fetch(
+            f"""
+            SELECT source, project, title, kind, chunk_index, content, chunk_type,
+                   classification, embedding <=> $1 AS distance
+            FROM documents
+            {where}
+            ORDER BY doc_date DESC NULLS LAST, source
+            LIMIT $2
+            """,
+            *params,
+        )
+        return rows
+
     async def upsert_pseudonyms(self, mapping: Mapping[str, str]) -> int:
         """Persist `{token: original}` pairs into the separate, access-controlled
         reverse store. Idempotent on the token PK. The retrieval path and the model

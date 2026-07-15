@@ -2,6 +2,7 @@
 title: How I A/B-test changes to this RAG — an eval-gated experiment harness
 project: portfolio
 date: 2026-06-29
+type: research
 ---
 
 # How I A/B-test changes to this RAG — an eval-gated experiment harness

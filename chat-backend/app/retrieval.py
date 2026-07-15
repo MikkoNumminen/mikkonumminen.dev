@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from .prompts import ContextChunk
-from .query_projects import detect_projects, wants_cv
+from .query_projects import detect_projects, is_research_coverage_request, wants_cv
 
 
 class SupportsEmbedQuery(Protocol):
@@ -52,6 +52,13 @@ class SupportsSearch(Protocol):
         classifications: Sequence[str] | None = None,
         exclude_doc_types: Sequence[str] | None = None,
     ) -> Mapping[str, Any] | None: ...
+
+    async def recent_research(
+        self,
+        embedding: list[float],
+        top_k: int,
+        classifications: Sequence[str] | None = None,
+    ) -> Sequence[Mapping[str, Any]]: ...
 
 
 @dataclass(frozen=True)
@@ -280,6 +287,7 @@ async def retrieve(
     exclude_doc_types: Sequence[str] | None = None,
     diversify_max_per_project: int | None = None,
     intent_query: str | None = None,
+    research_coverage_top_n: int = 0,
 ) -> list[RetrievedChunk]:
     """Embed `query` and return its `top_k` most relevant corpus chunks.
 
@@ -327,6 +335,28 @@ async def retrieve(
             kinds=["cv"],
         )
         cv_chunks = [_to_chunk(row) for row in cv_rows]
+
+    # Research/recency coverage: a "latest research"-type question must carry the
+    # NEWEST research posts, which pure retrieval buries — every research post is
+    # project='portfolio', so the generic diversity cap collapses them to one slot
+    # and doc_date carries no ranking weight. Fetched by doc_date (the guaranteed
+    # set); real distances, so like the CV boost the gate only ever gets a CLOSER
+    # prose signal, never a new refusal, and an off-topic "latest X" (no research
+    # marker) never fires. Reversible: research_coverage_top_n=0 disables it.
+    coverage_chunks: list[RetrievedChunk] = []
+    if research_coverage_top_n > 0 and is_research_coverage_request(intent_text):
+        coverage_rows = await db.recent_research(
+            vector,
+            research_coverage_top_n,
+            classifications=allowed_classifications,
+        )
+        coverage_chunks = [_to_chunk(row) for row in coverage_rows]
+
+    # Both guaranteed sets ("the model may add, never drop") lead the returned
+    # top_k: research coverage first (newest by doc_date), then the CV boost; the
+    # per-project diversity cap never applies to them (they are prepended AFTER the
+    # diversified slice below), which is what un-collapses the portfolio research.
+    guaranteed = _prepend_unique(coverage_chunks, cv_chunks)
 
     # Diversity applies only on generic queries (no project named). Named-project
     # and soft-boost queries must never be capped — the user asked about a specific
@@ -389,8 +419,8 @@ async def retrieve(
             sliced = _diversify(result, diversify_max_per_project, top_k)
         else:
             sliced = result[:top_k]
-        if cv_chunks:
-            sliced = _prepend_unique(cv_chunks, sliced)[:top_k]
+        if guaranteed:
+            sliced = _prepend_unique(guaranteed, sliced)[:top_k]
         anchored = _ensure_gate_anchor(sliced, anchor_pool, top_k)
         return await _with_prose_anchor(
             anchored, db, vector, allowed_classifications, exclude_doc_types
@@ -426,8 +456,8 @@ async def retrieve(
         sliced = _diversify(fused, diversify_max_per_project, top_k)
     else:
         sliced = fused[:top_k]
-    if cv_chunks:
-        sliced = _prepend_unique(cv_chunks, sliced)[:top_k]
+    if guaranteed:
+        sliced = _prepend_unique(guaranteed, sliced)[:top_k]
     result = _ensure_gate_anchor(sliced, anchor_pool, top_k)
     return await _with_prose_anchor(
         result, db, vector, allowed_classifications, exclude_doc_types
