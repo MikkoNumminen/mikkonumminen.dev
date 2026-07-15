@@ -414,7 +414,7 @@ class Database:
         rows: list[asyncpg.Record] = await self._pool.fetch(
             f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
-                   classification, embedding <=> $1 AS distance
+                   doc_date, classification, embedding <=> $1 AS distance
             FROM documents
             {where}
             ORDER BY embedding <=> $1
@@ -455,7 +455,7 @@ class Database:
         rows: list[asyncpg.Record] = await self._pool.fetch(
             f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
-                   classification,
+                   doc_date, classification,
                    ts_rank(content_tsv, websearch_to_tsquery('english', $1)) AS rank
             FROM documents
             {where}
@@ -496,7 +496,7 @@ class Database:
         row = await self._pool.fetchrow(
             f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
-                   classification, embedding <=> $1 AS distance
+                   doc_date, classification, embedding <=> $1 AS distance
             FROM documents
             {where}
             ORDER BY embedding <=> $1
@@ -542,7 +542,7 @@ class Database:
         rows: list[asyncpg.Record] = await self._pool.fetch(
             f"""
             SELECT source, project, title, kind, chunk_index, content, chunk_type,
-                   classification, embedding <=> $1 AS distance
+                   doc_date, classification, embedding <=> $1 AS distance
             FROM documents
             {where}
             ORDER BY doc_date DESC NULLS LAST, source

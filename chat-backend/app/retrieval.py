@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
+from datetime import date
 from typing import Any, Protocol
 
 from .prompts import ContextChunk
@@ -87,6 +88,10 @@ class RetrievedChunk:
     # so the pipeline can audit-log what classes a retrieval touched; the
     # role-based gate has already filtered out classes the role can't see in SQL.
     classification: str = "public"
+    # The model cannot answer "what is the latest" without a date in context —
+    # carried through purely so the rendered prompt can show it; retrieval/ranking
+    # never read this field.
+    doc_date: date | None = None
     # True when force-injected by the research-coverage layer (not organic
     # retrieval). Only the completeness footer reads it — retrieval/ranking never
     # branch on it, so a coverage chunk fuses/gates exactly like any other.
@@ -117,6 +122,7 @@ def _to_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         chunk_index=int(row["chunk_index"]),
         chunk_type=str(row["chunk_type"]),
         classification=str(row.get("classification", "public")),
+        doc_date=row.get("doc_date"),
     )
 
 
@@ -131,6 +137,7 @@ def _to_lexical_chunk(row: Mapping[str, Any]) -> RetrievedChunk:
         chunk_index=int(row["chunk_index"]),
         chunk_type=str(row["chunk_type"]),
         classification=str(row.get("classification", "public")),
+        doc_date=row.get("doc_date"),
     )
 
 
@@ -506,7 +513,14 @@ async def retrieve_narrative(
 def to_context(chunks: Sequence[RetrievedChunk]) -> list[ContextChunk]:
     """Adapt retrieved chunks into the prompt's context shape."""
     return [
-        ContextChunk(source=c.source, title=c.title, content=c.content, project=c.project)
+        ContextChunk(
+            source=c.source,
+            title=c.title,
+            content=c.content,
+            project=c.project,
+            doc_date=c.doc_date,
+            is_coverage=c.is_coverage,
+        )
         for c in chunks
     ]
 
