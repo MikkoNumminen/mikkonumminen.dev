@@ -217,6 +217,60 @@ class Database:
                     )
         return len(rows)
 
+    async def refresh_doc_metadata(
+        self,
+        source: str,
+        *,
+        project: str | None,
+        title: str,
+        kind: str,
+        doc_type: str,
+        doc_date: date | None,
+        classification: str,
+    ) -> int:
+        """Refresh the DOC-LEVEL columns for every stored chunk of `source`.
+
+        A front-matter-only edit (doc_type / project / doc_date / title / kind, or a
+        reclassification) leaves chunk CONTENT — and thus its content_hash —
+        unchanged, so `select_chunks_to_embed` re-embeds nothing and the
+        metadata-carrying `upsert_documents` never runs for that source. This UPDATE
+        runs regardless, so the stored metadata always reflects the current front
+        matter — e.g. tagging a post `type: research` takes effect on the next index
+        with no manual SQL.
+
+        The `IS DISTINCT FROM` guard is load-bearing, not an optimisation. Without
+        it the UPDATE matches on `source` alone, so every re-index rewrites every
+        row whether or not the front matter moved. Measured on the 508-row corpus:
+        one no-op run doubled the heap (928 kB -> 1848 kB) and left 508 dead tuples,
+        with HOT saving only 2 of 508 rows — the ~1.9 kB rows leave no same-page
+        room for it. That turns an indexer documented as idempotent into per-run
+        bloat.
+
+        The guard also keeps the returned count meaningful — rows whose metadata
+        ACTUALLY changed — so an unchanged corpus reports 0 and the count is a real
+        signal that a front-matter edit landed, which is what the deploy runbook
+        tells operators to watch. NULL-safe, hence IS DISTINCT FROM rather than `<>`
+        (`doc_date` is frequently NULL).
+        """
+        status = await self._pool.execute(
+            """
+            UPDATE documents
+            SET project = $2, title = $3, kind = $4, doc_type = $5,
+                doc_date = $6, classification = $7
+            WHERE source = $1
+              AND (project, title, kind, doc_type, doc_date, classification)
+                  IS DISTINCT FROM ($2, $3, $4, $5, $6, $7)
+            """,
+            source,
+            project,
+            title,
+            kind,
+            doc_type,
+            doc_date,
+            classification,
+        )
+        return int(status.split()[-1]) if status else 0
+
     async def delete_stale_chunks(self, source: str, chunk_count: int) -> int:
         """Prune rows for `source` left over from a longer previous version.
 
