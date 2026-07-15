@@ -536,10 +536,12 @@ async def chat_event_stream(
         # fire ALONGSIDE the completeness footer below — a double suffix (and
         # accepting the offer expands the portfolio BUILD narrative, not the
         # research). The two deterministic suffixes are mutually exclusive here:
-        # when the coverage layer injected, it owns the suffix and the offer stands
-        # down.
-        coverage_injected = any(c.is_coverage for c in chunks)
-        if disclosure_enabled and not expansion and not coverage_injected:
+        # when the coverage layer's recency claim stands, it owns the suffix and the
+        # offer stands down. On an off-corpus "research on X" the claim is vetoed,
+        # nothing owns the suffix, and the offer is free again — which is the point:
+        # there is no completeness footer left for it to double up with.
+        coverage_claimed = any(c.is_coverage for c in chunks)
+        if disclosure_enabled and not expansion and not coverage_claimed:
             offer_project = _sole_project(query)
             if offer_project is not None:
                 try:

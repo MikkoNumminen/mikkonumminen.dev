@@ -15,7 +15,12 @@ from datetime import date
 from typing import Any, Protocol
 
 from .prompts import ContextChunk
-from .query_projects import detect_projects, is_research_coverage_request, wants_cv
+from .query_projects import (
+    detect_projects,
+    is_research_coverage_request,
+    names_offcorpus_research_topic,
+    wants_cv,
+)
 
 
 class SupportsEmbedQuery(Protocol):
@@ -361,8 +366,18 @@ async def retrieve(
             research_coverage_top_n,
             classifications=allowed_classifications,
         )
+        # An off-corpus "latest research on X" is only DANGEROUS once the note
+        # asserts "Mikko's most recent research is <post>" — an 8B model then welds
+        # a bridge to X (measured live: the Poro post "mentions AI-native
+        # development including quantum computing"; it does not). Injection alone
+        # was measured harmless — the same query hedged correctly before the note
+        # existed — so the posts still go in and the gate anchor is untouched; only
+        # the claim stands down. Decided here because this is the only place
+        # `intent_text` exists: `build_messages` sees the ORIGINAL query, which on
+        # the Finnish path has no English line to read the topic from.
+        claimable = not names_offcorpus_research_topic(intent_text)
         coverage_chunks = [
-            replace(_to_chunk(row), is_coverage=True) for row in coverage_rows
+            replace(_to_chunk(row), is_coverage=claimable) for row in coverage_rows
         ]
 
     # Both guaranteed sets lead the returned top_k: research coverage first (newest

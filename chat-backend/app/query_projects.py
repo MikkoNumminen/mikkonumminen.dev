@@ -254,6 +254,10 @@ _RESEARCH_MARKERS = (
     # NB: deliberately NOT "study"/"studie" — those false-fire on the education
     # question "where did Mikko study?", which is a CV/bio query, not a research
     # sweep. "research"/"experiment"/"finding" carry the research intent instead.
+    # Keep in sync with `_PREPOSITIONAL_RESEARCH_MARKERS` below, which is the
+    # subset the off-corpus check may read. The split is semantic, not derivable:
+    # adding a marker here does NOT arm the veto for it (and must not, for any
+    # Finnish stem — see that constant's note).
 )
 
 
@@ -279,3 +283,141 @@ def is_research_coverage_request(query: str) -> bool:
     # A named non-portfolio project makes this a project question, not a
     # research-corpus sweep — defer to normal project-aware retrieval.
     return not (detect_projects(query) - {"portfolio"})
+
+
+# The subset of `_RESEARCH_MARKERS` whose languages bind a topic with a
+# PREPOSITION ("research ON x", "forskning OM x"). Finnish stems are excluded on
+# purpose and must never be added: Finnish marks its topic with a case ending and
+# uses no preposition, and Finnish "on" is the COPULA — "mitkä tutkimukset on
+# julkaistu" means "which studies HAVE BEEN published". Reading that "on" as the
+# English preposition would veto a genuine sweep, so the rule below is kept
+# structurally unable to see it. That is what buys Finnish correctness with no
+# language ID, no threaded flag, and no import edge into guardrails.
+_PREPOSITIONAL_RESEARCH_MARKERS = (
+    "research",
+    "finding",
+    "experiment",
+    "benchmark",
+    "measurement",
+    "forskning",  # sv: safe here — Swedish has no "on"-copula homograph
+)
+
+# Prepositions that bind a SUBJECT to a research noun. Closed by construction —
+# this is a grammatical role, not a vocabulary. It is never a list of subjects:
+# enumerating the world's topics is exactly what makes a whitelist unmaintainable.
+# "in"/"for" are deliberately absent: both read temporally far more often than
+# topically ("any findings IN 2026", "what research stands out FOR you"), and that
+# reading collides head-on with the recency framing this feature exists to serve.
+# Their absence leaves "research in quantum computing" un-vetoed — today's
+# behaviour, and a cheaper miss than vetoing the flagship recency question.
+_TOPIC_PREPOSITIONS = frozenset(
+    {"on", "about", "into", "regarding", "concerning", "om"}
+)
+
+# Closed-class words that name no subject: "findings on THIS" is still a sweep.
+_DEICTIC_WORDS = frozenset(
+    {
+        "this", "that", "these", "those", "it", "them", "they", "the", "a", "an",
+        "your", "his", "her", "its", "their", "our", "my", "all", "any", "some",
+        "everything", "anything",
+    }
+)
+
+# Tokens compare edge-stripped so "research," and "computing?" match; interior
+# punctuation survives for detect_projects (".net", "readlog.net").
+_EDGE_PUNCT = "\"'`.,;:!?()[]{}<>*_~…—–-"
+
+# How far past the marker a binding preposition may sit. 5 covers the realistic
+# "what research has been done ON x" (preposition at marker+4) — measured to leak
+# at 3. Unbounded was measured strictly worse: it gains no containment and starts
+# vetoing on chatty tails ("...published? I'm working on a startup"). Failing to
+# find a preposition fails OPEN (toward today's behaviour), so the bound can only
+# ever cost containment, never recall.
+#
+# Distance alone cannot decide this: at THIS width English also strands the
+# preposition ("what research have you been working ON lately" fronts the object,
+# leaving "on" bound to nothing), which read the adverbial tail as a subject and
+# vetoed 16 measured genuine sweeps. Narrowing to adjacency fixed those but lost
+# "what research has been done on quantum computing" — a real off-corpus query. So
+# the tail's CONTENT decides, in `_names_foreign_subject`, not its distance.
+_TOPIC_PREP_WINDOW = 5
+
+# What a STRANDED preposition trails: temporal adverbials ("...working on LATELY",
+# "...landed on SO FAR") and references to Mikko's own publishing surface
+# ("...published on YOUR SITE"). Neither names an outside subject, so neither may
+# arm the veto.
+#
+# This is a CLOSED grammatical class, which is why it is not round 1's fatal
+# mistake. Round 1 died whitelisting FRAMING vocabulary ("key", "interesting",
+# "shown") — unbounded, because any adjective or verb can frame a question. These
+# words only ever occupy one narrow slot: the tail of a stranded preposition. That
+# slot admits adverbials, not arbitrary prose.
+_NON_SUBJECT_TAIL_WORDS = frozenset(
+    {
+        # temporal adverbials
+        "lately", "recently", "recent", "now", "currently", "today", "yesterday",
+        "tomorrow", "tonight", "so", "far", "then", "again", "nowadays", "year",
+        "years", "month", "months", "week", "weeks", "day", "days", "time",
+        "times", "end", "in", "ago", "since", "yet", "still", "ever", "later",
+        "before", "after", "during", "while", "first", "last", "next",
+        # Mikko's own publishing surface — not an outside subject
+        "blog", "site", "website", "page", "pages", "portfolio", "terminal",
+        "here", "own", "record", "paper", "papers", "post", "posts", "writeup",
+    }
+)
+
+
+def _names_foreign_subject(topic: str) -> bool:
+    """True when `topic` names a subject outside Mikko's corpus."""
+    cores = [t.strip(_EDGE_PUNCT).lower() for t in topic.split()]
+    cores = [c for c in cores if c]
+    if not cores:
+        return False
+    # "the findings ON the experiments" points at the research genre itself; "...working
+    # on LATELY" points at no subject at all. EVERY token must be genre, deictic or a
+    # non-subject tail to earn that reading: `any` let a single genre noun anywhere in
+    # the tail disarm the veto, so "latest research on quantum computing experiments"
+    # claimed — the live bug's own class, rescued by one trailing noun.
+    if all(
+        c in _DEICTIC_WORDS
+        or c in _NON_SUBJECT_TAIL_WORDS
+        or c.startswith(_PREPOSITIONAL_RESEARCH_MARKERS)
+        for c in cores
+    ):
+        return False
+    return not detect_projects(topic)
+
+
+def names_offcorpus_research_topic(intent_text: str) -> bool:
+    """True when the text asks for research ON A SUBJECT the corpus does not cover.
+
+    Gates the deterministic recency CLAIM only, never the injection. The measured
+    fabrication ("what is the latest research on quantum computing" → the model
+    asserting a portfolio post "mentions ... quantum computing") appeared only once
+    that claim started stating "Mikko's most recent research is <X>"; the same query
+    with the posts merely injected hedged correctly. So the posts still go in and
+    the retrieval gate anchor is untouched — only the claim stands down.
+
+    The fabrication's signature is a research noun BINDING a subject through a
+    preposition, where the subject is none of Mikko's. Only the subject slot is
+    looked up, and only against `detect_projects` — a closed, already-maintained
+    lexicon of his own work. The framing around it ("key", "interesting", "shown")
+    is never consulted: English framing vocabulary is unbounded, and any rule that
+    must enumerate it collapses into vetoing genuine questions.
+
+    Scanned per LINE: `intent_text` is "<english translation>\\n<original>", and a
+    preposition on one line must never bind a marker on the other.
+    """
+    for line in intent_text.splitlines():
+        raw = line.split()
+        cores = [t.strip(_EDGE_PUNCT).lower() for t in raw]
+        for i, core in enumerate(cores):
+            if not core.startswith(_PREPOSITIONAL_RESEARCH_MARKERS):
+                continue
+            window = min(i + 1 + _TOPIC_PREP_WINDOW, len(cores))
+            for j in range(i + 1, window):
+                if cores[j] in _TOPIC_PREPOSITIONS and _names_foreign_subject(
+                    " ".join(raw[j + 1 :])
+                ):
+                    return True
+    return False

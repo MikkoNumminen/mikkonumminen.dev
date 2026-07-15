@@ -177,9 +177,13 @@ class ContextChunk:
     project: str | None = None
     doc_date: date | None = None
     # Force-injected by the research-coverage layer rather than organically
-    # retrieved. Only `_newest_research_note` reads it, to state WHICH of these is
-    # the most recent — see the note there for why the model can't be left to work
-    # that out from the dates alone.
+    # retrieved, AND the question named no subject outside the corpus — i.e. the
+    # recency claim may cite it. Only `_newest_research_note` reads it, to state
+    # WHICH of these is the most recent — see the note there for why the model
+    # can't be left to work that out from the dates alone. An off-corpus "latest
+    # research on X" still gets the posts injected but arrives here False: the
+    # claim is what caused the model to weld a bridge to X (see
+    # `query_projects.names_offcorpus_research_topic`).
     is_coverage: bool = False
 
 
