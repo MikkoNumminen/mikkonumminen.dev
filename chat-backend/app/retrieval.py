@@ -352,10 +352,15 @@ async def retrieve(
         )
         coverage_chunks = [_to_chunk(row) for row in coverage_rows]
 
-    # Both guaranteed sets ("the model may add, never drop") lead the returned
-    # top_k: research coverage first (newest by doc_date), then the CV boost; the
-    # per-project diversity cap never applies to them (they are prepended AFTER the
-    # diversified slice below), which is what un-collapses the portfolio research.
+    # Both guaranteed sets lead the returned top_k: research coverage first (newest
+    # by doc_date), then the CV boost. The per-project diversity cap never applies
+    # to them (they are prepended AFTER the diversified slice below), which is what
+    # un-collapses the portfolio research. They lead "the model may add, never drop"
+    # — with one bounded exception shared with the CV boost: if the guaranteed set
+    # exactly saturates top_k, the gate anchor below can reclaim a single slot
+    # (dropping the lowest-priority guaranteed chunk) so a genuinely-relevant query
+    # is never falsely refused. RESEARCH_COVERAGE_TOP_N <= TOP_K (config.validate)
+    # confines this to the rare research+CV dual-intent case.
     guaranteed = _prepend_unique(coverage_chunks, cv_chunks)
 
     # Diversity applies only on generic queries (no project named). Named-project

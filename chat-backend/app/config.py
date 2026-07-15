@@ -339,6 +339,14 @@ class Settings:
                 "RESEARCH_COVERAGE_TOP_N must be non-negative, got "
                 f"{self.research_coverage_top_n}"
             )
+        if self.research_coverage_top_n > self.retrieval_top_k:
+            # A coverage set larger than the whole result would truncate away the
+            # newest research it exists to guarantee (and squeeze out every semantic
+            # pick); fail fast instead of silently under-delivering.
+            raise ValueError(
+                "RESEARCH_COVERAGE_TOP_N must be <= TOP_K "
+                f"({self.research_coverage_top_n} > {self.retrieval_top_k})"
+            )
         if self.rrf_k <= 0:
             raise ValueError(f"RRF_K must be positive, got {self.rrf_k}")
         if self.retrieval_dense_weight < 0:

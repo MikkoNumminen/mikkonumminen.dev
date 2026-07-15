@@ -246,13 +246,14 @@ _RESEARCH_MARKERS = (
     "research",
     "finding",  # finding / findings
     "experiment",  # experiment / experiments / experimental
-    "study",  # study / studies / studied
-    "studie",  # sv: studie / studier
     "benchmark",
-    "measurement",
+    "measurement",  # measurement / measurements
     "tutkimu",  # fi: tutkimus / tutkimuksesta / tutkimuksista / tutkimuksia
     "mittau",  # fi: mittaus / mittauksesta (measurement)
     "forskning",  # sv: research
+    # NB: deliberately NOT "study"/"studie" — those false-fire on the education
+    # question "where did Mikko study?", which is a CV/bio query, not a research
+    # sweep. "research"/"experiment"/"finding" carry the research intent instead.
 )
 
 

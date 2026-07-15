@@ -204,6 +204,10 @@ def test_research_coverage_needs_a_research_marker() -> None:
     assert not is_research_coverage_request("tell me about readlog")
     assert not is_research_coverage_request("what can you do?")
     assert not is_research_coverage_request("what have you built?")
+    # "study" is deliberately not a marker — this is an education/bio question,
+    # not a research sweep (it must not inject research posts).
+    assert not is_research_coverage_request("where did Mikko study?")
+    assert not is_research_coverage_request("what did you study at university?")
 
 
 def test_research_coverage_defers_to_a_named_project() -> None:
