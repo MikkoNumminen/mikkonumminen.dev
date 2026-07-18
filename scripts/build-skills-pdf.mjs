@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 // Render public/data/skills-registry.json to public/skills-registry.pdf using
-// the locally-installed Chrome's headless --print-to-pdf. Content-aware
+// the locally-installed Chrome's headless --print-to-pdf.
+//
+//   node scripts/build-skills-pdf.mjs           render only if the inputs moved
+//   node scripts/build-skills-pdf.mjs --force   re-render regardless
+//
+// The inputs are fingerprinted into scripts/skills-pdf.input.sha256 (committed),
+// so an unchanged build never launches Chrome — see lib/pdf-content.mjs for why
+// re-rendering an unchanged document is not free. Content-aware
 // wrapper for the skill-registry shape; for generic markdown / HTML use, see
 // the `md-to-pdf` skill at `.claude/skills/md-to-pdf/SKILL.md` and the
 // `scripts/build-pdf.mjs` CLI.
@@ -27,7 +34,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
+import { PRINT_FLAGS, locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
 import { inputFingerprint, pdfContentEquals, shouldRender } from './lib/pdf-content.mjs';
 import { escapeHtml as esc, isSafeHref } from './lib/escape.mjs';
 
@@ -975,12 +982,13 @@ function main() {
   // encoding shifts between browser versions, so re-rendering an unchanged
   // document is not a no-op — it rewrites the committed PDF for no visible
   // reason the first time the developer's Chrome updates.
-  const fingerprint = inputFingerprint(html);
+  const fingerprint = inputFingerprint(html, PRINT_FLAGS.join('\n'));
   const storedFingerprint = readIfExists(FINGERPRINT_FILE)?.toString('utf8').trim() ?? null;
   const existingPdf = readIfExists(OUT);
+  const force = process.argv.includes('--force');
   if (
     !shouldRender({
-      force: process.argv.includes('--force'),
+      force,
       pdfExists: existingPdf !== null,
       storedFingerprint,
       fingerprint,

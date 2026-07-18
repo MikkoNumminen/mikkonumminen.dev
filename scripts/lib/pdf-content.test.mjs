@@ -25,6 +25,19 @@ describe('inputFingerprint', () => {
     expect(inputFingerprint('<p>a</p>')).toBe(inputFingerprint('<p>a</p>'));
     expect(inputFingerprint('<p>a</p>')).not.toBe(inputFingerprint('<p>b</p>'));
   });
+
+  it('changes when only the render settings change', () => {
+    // Chrome's print flags shape the page without touching the HTML, so a flag
+    // change must invalidate the cache or it would ship a stale PDF.
+    const html = '<p>same document</p>';
+    expect(inputFingerprint(html, '--no-pdf-header-footer')).not.toBe(
+      inputFingerprint(html, '--no-pdf-header-footer\n--virtual-time-budget=2000'),
+    );
+  });
+
+  it('cannot be forged by shifting content between html and settings', () => {
+    expect(inputFingerprint('ab', 'c')).not.toBe(inputFingerprint('a', 'bc'));
+  });
 });
 
 describe('shouldRender', () => {
