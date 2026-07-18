@@ -52,6 +52,10 @@ BACKEND_HEALTH = "http://localhost:8000/health"
 BACKEND_CHAT = "http://localhost:8000/chat"
 BACKEND_USAGE = "http://localhost:8000/usage"
 FUNNEL_PORT = "8000"
+# The public HTTPS port this project's funnel occupies. The node is shared with
+# other projects' funnels (on other ports), so every enable/disable — and the
+# status check — is scoped to exactly this one.
+FUNNEL_HTTPS_PORT = "443"
 DOCKER_DESKTOP_EXE = "/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
 
 # "effort" presets -> (temperature, num_predict). Low temperature for grounded
@@ -380,13 +384,66 @@ def funnel_url() -> str | None:
         return None
 
 
+def funnel_routes(status_json: str) -> dict[str, str] | None:
+    """Publicly-exposed funnel routes: "<host>:<port>" -> proxy target.
+
+    Parses `tailscale funnel status --json`. Returns None when the output could
+    not be read as JSON at all (failed call, or a tailscale too old for --json)
+    — distinct from an empty dict, which means "read fine, nothing funnelled".
+    Only `AllowFunnel` routes are returned, so a tailnet-private `serve` mount
+    on the same port can never read as public exposure.
+
+    Structured output rather than the human-readable table on purpose: this node
+    funnels OTHER projects too (e.g. :8443 → oauth2-proxy), and a bare "Funnel
+    on" substring in that table is not evidence THIS project's route exists —
+    that misreading let `up` skip re-enabling the rag's route while another
+    project's funnel was on, leaving the chat publicly dead with every local
+    check green.
+    """
+    try:
+        cfg = json.loads(status_json)
+        allow = cfg.get("AllowFunnel") or {}
+        return {
+            host: handler["Proxy"]
+            for host, entry in (cfg.get("Web") or {}).items()
+            if allow.get(host) is True
+            for handler in (entry.get("Handlers") or {}).values()
+            if "Proxy" in handler
+        }
+    except (AttributeError, KeyError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def funnel_serves_port(routes: dict[str, str], port: str) -> bool:
+    """True iff a public :443 route proxies to 127.0.0.1:`port`.
+
+    Exact target match, never a substring: `:{port}` as a prefix test would let
+    a short port (:80) read another project's :8000 route as this one's.
+    """
+    target = f"http://127.0.0.1:{port}"
+    return any(
+        host.endswith(f":{FUNNEL_HTTPS_PORT}") and proxy == target
+        for host, proxy in routes.items()
+    )
+
+
 def check_funnel(url: str | None = None) -> tuple[str, str]:
     ts = tailscale_exe()
     if not ts:
         return ("down", "tailscale.exe not found")
-    _, out = run([ts, "funnel", "status"], timeout=10)
-    if "Funnel on" in out:
+    rc, out = run([ts, "funnel", "status", "--json"], timeout=10)
+    routes = funnel_routes(out)
+    if routes is None:
+        # Unreadable is not "off": reporting a state we could not read as a
+        # definite one is what let the last outage hide behind a green board.
+        return ("warn", f"funnel status unreadable (exit {rc})")
+    if funnel_serves_port(routes, FUNNEL_PORT):
         return ("ok", url or funnel_url() or "on")
+    if routes:
+        return (
+            "down",
+            f"other funnels on, :{FUNNEL_HTTPS_PORT}→{FUNNEL_PORT} off — `ragctl up`",
+        )
     return ("down", "off — run `ragctl up`")
 
 
@@ -661,7 +718,7 @@ def cmd_down() -> int:
         # `--https=443 off` cuts ONLY this project's funnel port. The node is
         # shared with other projects' funnels, so a blanket `funnel off`/`reset`
         # is deliberately avoided — it would cut theirs too.
-        run([ts, "funnel", "--https=443", "off"], timeout=20)
+        run([ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20)
     print("  ● done — stack + funnel stopped; Docker Desktop & Tailscale left running.")
     return 0
 
