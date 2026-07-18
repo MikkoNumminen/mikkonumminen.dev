@@ -44,6 +44,21 @@ export function locateChrome() {
  * @param {string} opts.pdfPath  - absolute path for the output PDF
  * @param {string} [opts.chromePath] - override for the auto-located Chrome binary
  */
+/**
+ * Chrome flags that shape the rendered page (the output path and source URL are
+ * appended per call). Exported so a caller that caches a rendered PDF can fold
+ * them into its cache key: changing a flag here changes the PDF without
+ * changing a single byte of the source HTML.
+ */
+export const PRINT_FLAGS = [
+  '--headless=new',
+  '--disable-gpu',
+  '--no-pdf-header-footer',
+  // Lets `@import url(...)` and remote fonts finish before the snapshot
+  // when the HTML pulls in webfonts (e.g. a Google Fonts stylesheet).
+  '--virtual-time-budget=2000',
+];
+
 export function printHtmlToPdf({ htmlPath, pdfPath, chromePath }) {
   const chrome = chromePath ?? locateChrome();
   if (!chrome) {
@@ -57,16 +72,7 @@ export function printHtmlToPdf({ htmlPath, pdfPath, chromePath }) {
   fs.mkdirSync(path.dirname(pdfPath), { recursive: true });
   execFileSync(
     chrome,
-    [
-      '--headless=new',
-      '--disable-gpu',
-      `--print-to-pdf=${pdfPath}`,
-      '--no-pdf-header-footer',
-      // Lets `@import url(...)` and remote fonts finish before the snapshot
-      // when the HTML pulls in webfonts (e.g. a Google Fonts stylesheet).
-      '--virtual-time-budget=2000',
-      pathToFileURL(htmlPath).href,
-    ],
+    [...PRINT_FLAGS, `--print-to-pdf=${pdfPath}`, pathToFileURL(htmlPath).href],
     { stdio: 'inherit' },
   );
 

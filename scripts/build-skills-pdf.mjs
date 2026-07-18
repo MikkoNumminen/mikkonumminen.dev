@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 // Render public/data/skills-registry.json to public/skills-registry.pdf using
-// the locally-installed Chrome's headless --print-to-pdf. Content-aware
+// the locally-installed Chrome's headless --print-to-pdf.
+//
+//   node scripts/build-skills-pdf.mjs           render only if the inputs moved
+//   node scripts/build-skills-pdf.mjs --force   re-render regardless
+//
+// The inputs are fingerprinted into scripts/skills-pdf.input.sha256 (committed),
+// so an unchanged build never launches Chrome — see lib/pdf-content.mjs for why
+// re-rendering an unchanged document is not free. Content-aware
 // wrapper for the skill-registry shape; for generic markdown / HTML use, see
 // the `md-to-pdf` skill at `.claude/skills/md-to-pdf/SKILL.md` and the
 // `scripts/build-pdf.mjs` CLI.
@@ -27,13 +34,16 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
-import { pdfContentEquals } from './lib/pdf-content.mjs';
+import { PRINT_FLAGS, locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
+import { inputFingerprint, pdfContentEquals, shouldRender } from './lib/pdf-content.mjs';
 import { escapeHtml as esc, isSafeHref } from './lib/escape.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const OUT = path.join(ROOT, 'public', 'skills-registry.pdf');
+// Committed on purpose: a fresh clone or new worktree with no stored
+// fingerprint would re-render and put a divergent PDF back in the tree.
+const FINGERPRINT_FILE = path.join(ROOT, 'scripts', 'skills-pdf.input.sha256');
 const CSS_FILE = path.join(ROOT, 'scripts', 'lib', 'skills-pdf.css');
 
 // ---------------------------------------------------------------------------
@@ -923,6 +933,18 @@ ${renderAppendix()}
 </html>`;
 }
 
+// Read a file that may not exist yet. Reading and handling ENOENT keeps the
+// decision on one filesystem call — an existsSync/readFileSync pair is a
+// check-then-use race, and it reads the same file twice.
+function readIfExists(file) {
+  try {
+    return fs.readFileSync(file);
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error(`source missing: ${SRC}`);
@@ -937,12 +959,6 @@ function main() {
   if (process.env.CI || process.env.VERCEL) {
     console.log(
       'build-skills-pdf: CI environment detected — skipping regeneration, committed PDF is canonical.',
-    );
-    process.exit(0);
-  }
-  if (!locateChrome()) {
-    console.log(
-      'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
     );
     process.exit(0);
   }
@@ -961,19 +977,44 @@ function main() {
   fs.mkdirSync(previewDir, { recursive: true });
   const previewHtml = path.join(previewDir, 'skills-pdf-preview.html');
   fs.writeFileSync(previewHtml, html);
+
+  // Skip the render entirely when the inputs have not moved. Chrome's internal
+  // encoding shifts between browser versions, so re-rendering an unchanged
+  // document is not a no-op — it rewrites the committed PDF for no visible
+  // reason the first time the developer's Chrome updates.
+  const fingerprint = inputFingerprint(html, PRINT_FLAGS.join('\n'));
+  const storedFingerprint = readIfExists(FINGERPRINT_FILE)?.toString('utf8').trim() ?? null;
+  const existingPdf = readIfExists(OUT);
+  const force = process.argv.includes('--force');
+  if (
+    !shouldRender({
+      force,
+      pdfExists: existingPdf !== null,
+      storedFingerprint,
+      fingerprint,
+    })
+  ) {
+    console.log(`unchanged: ${OUT} (inputs unchanged — no render)`);
+    console.log(`preview HTML: ${previewHtml}`);
+    return;
+  }
+
+  if (!locateChrome()) {
+    console.log(
+      'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
+    );
+    process.exit(0);
+  }
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-pdf-'));
   const tmpHtml = path.join(tmpDir, 'skills-registry.html');
   fs.writeFileSync(tmpHtml, html);
-  // Rendered to a temp file and copied only on a real content change: this PDF
-  // is committed and `prebuild` re-renders it on every build, so writing
-  // unconditionally left it permanently modified in every checkout.
+  // Rendered to a temp file and copied only on a real content change: a changed
+  // input does not always move the rendered page (a reworded comment in the
+  // layout code, say), and this PDF is committed.
   const tmpPdf = path.join(tmpDir, 'skills-registry.pdf');
   try {
     printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: tmpPdf });
-    if (
-      fs.existsSync(OUT) &&
-      pdfContentEquals(fs.readFileSync(OUT), fs.readFileSync(tmpPdf))
-    ) {
+    if (existingPdf && pdfContentEquals(existingPdf, fs.readFileSync(tmpPdf))) {
       console.log(`unchanged: ${OUT}`);
     } else {
       fs.copyFileSync(tmpPdf, OUT);
@@ -982,6 +1023,9 @@ function main() {
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+  // Recorded even when the bytes were kept, so the next build short-circuits
+  // on these inputs instead of re-rendering to reach the same conclusion.
+  fs.writeFileSync(FINGERPRINT_FILE, `${fingerprint}\n`);
   console.log(`preview HTML: ${previewHtml}`);
 }
 
