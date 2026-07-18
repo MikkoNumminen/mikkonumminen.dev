@@ -97,6 +97,11 @@ export const sv: Translations = {
         api: 'Google OAuth',
         body: 'Inloggning är valfri. Spela offline för evigt, eller logga in för molnsparningar och en plats på topplistan.',
       },
+      {
+        project: 'Feedback Intelligence',
+        api: 'Tailscale Funnel',
+        body: 'Demot körs gratis på Azure Static Web Apps, men modellen körs hemma: en Azure Functions-proxy vidarebefordrar varje förfrågan genom en Tailscale Funnel till en lokal Ollama-GPU. Snapshot-först: demot svarar även när tunneln är nere. Molninferensräkningen: noll.',
+      },
     ],
   },
   velocity: {
@@ -236,6 +241,36 @@ export const sv: Translations = {
         'Python · Tkinter-GUI',
         'macOS · Windows · WSL · Linux (tmux)',
         'Oövervakat via launchd / Task Scheduler',
+      ],
+    },
+    passwordmanager: {
+      tagline: 'Nollkunskaps-lösenordshanterare i Rust',
+      description:
+        'Lokalt förankrad lösenordshanterare där en enda Rust-crate är den enda platsen där kryptering existerar — Argon2id-nyckelderivering och XChaCha20-Poly1305-autentiserad kryptering, kompilerad både nativt och till WebAssembly. Fyra klienter delar den: ett offline-först CLI-valv på SQLite, en synkserver som endast lagrar krypterad text, en WASM-klient i webbläsaren och ett Chrome-tillägg med autofyllning och spara-vid-inloggning. Post-specifika nonces och AEAD bundna till post-id + tidsstämpel förhindrar att poster byts ut; nycklar nollställs efter användning; huvudlösenordet lämnar aldrig klienten. Varje säkerhetsval är dokumenterat som en ADR mot en uttrycklig hotmodell, och CI vaktar hemligheter borta från repot samtidigt som den kör format, clippy, hela arbetsytans tester och wasm-bygget.',
+      highlights: [
+        'En krypto-crate, fyra klienter',
+        'Argon2id + XChaCha20-Poly1305',
+        'Servern lagrar endast krypterad text',
+      ],
+    },
+    'claude-agents': {
+      tagline: 'Kostnadsroutade subagenter för Claude Code',
+      description:
+        'En liten global uppsättning Claude Code-subagenter som slutar betala Opus-priser för arbete som en billigare modell klarar lika bra. Tolv agenter, var och en fixerar både modellnivå och resonemangsansträngning i sin frontmatter: Haiku för skrivskyddad rekognosering (scout, log-miner, scribe, dep-checker, tidy), Sonnet för specifikationsstyrda redigeringar (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect), och en ofixerad architect som ärver sessionens modell för designarbete. Agenterna känner självmant av varje repos stack — testkörare, linter, i18n-struktur — så en enda uppsättning täcker JS-, C#- och Python-projekt. Installeras som ett Claude Code-plugin från en delad marknadsplats eller via script. MIT-licensierat.',
+      highlights: [
+        '12 modellfixerade agenter',
+        'Frikopplar modellnivå från resonemangsansträngning',
+        'Plugin- eller skriptinstallation',
+      ],
+    },
+    'feedback-intelligence': {
+      tagline: 'Underbyggd feedbackanalys med en lokal LLM',
+      description:
+        'Feedback-intelligensmotor som omvandlar rörig fritextfeedback till situationssignal utan att låta LLM:en komma nära siffrorna: ett deterministiskt, regelkodat larmlager beräknar varje antal och trend, och LLM:en strukturerar bara indata och syntetiserar temanarrativ — varje påstående citerat tillbaka till feedback-id och nedgraderat till en reservlösning om det inte klarar validering. Domäner är kopplingsbara moduler (först ut: finsk hybriddetaljhandel med dagligvaror och järnhandel); en konfigurationsflagga byter in en annan domän utan kärnändringar. .NET 8 ovanpå en lokal Poro 2 8B på Ollama — vald i ett 30-omgångars blindtest — med en live-demo på Azure Static Web Apps som når den lokala GPU:n via en Tailscale Funnel till noll molnkostnad för inferens. GDPR-ren syntetisk korpus, flerskiktat försvar mot prompt-injektion, hermetisk xUnit-svit i CI.',
+      highlights: [
+        'Deterministiska larm — LLM:en räknar aldrig siffrorna',
+        'Kopplingsbara domäner, inga kärnändringar',
+        'Live-demo på Azure, inferens på en lokal GPU',
       ],
     },
   },

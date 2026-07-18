@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
+from app.content import load_doc
 from app.query_projects import (
+    PROJECT_ALIASES,
+    TECH_ALIASES,
     detect_projects,
     is_research_coverage_request,
     restore_entities,
@@ -75,13 +82,13 @@ def test_platform_chat_detects_both_projects() -> None:
 
 
 def test_detects_tech_ecosystem_aliases() -> None:
-    # Ecosystem terms point at the project that uses them, so a question worded in
-    # the user's vocabulary ("the microsoft stack") still retrieves the right
-    # project even when the docs say ".NET"/"C#" rather than "Microsoft".
-    assert detect_projects("tell me about the microsoft stack projects") == {
-        "readlog-dotnet"
-    }
-    assert detect_projects("is anything deployed on Azure?") == {"readlog-dotnet"}
+    # Ecosystem terms point at every project that uses them, so a question worded
+    # in the user's vocabulary ("the microsoft stack") still retrieves the right
+    # projects even when the docs say ".NET"/"C#" rather than "Microsoft". Both
+    # C# projects are implicated — the union only widens the filter.
+    both_dotnet = {"readlog-dotnet", "feedback-intelligence"}
+    assert detect_projects("tell me about the microsoft stack projects") == both_dotnet
+    assert detect_projects("is anything deployed on Azure?") == both_dotnet
     assert detect_projects("which project does text-to-speech?") == {"audiobookmaker"}
 
 
@@ -92,7 +99,67 @@ def test_ambiguous_bare_tech_words_are_not_aliases() -> None:
     assert detect_projects("the key of C# major sounds bright") == set()
     assert detect_projects("razor-thin margins and razor blades") == set()
     assert detect_projects("does he use Razor Pages?") == {"readlog-dotnet"}
-    assert detect_projects("does he write csharp?") == {"readlog-dotnet"}
+    assert detect_projects("does he write csharp?") == {
+        "readlog-dotnet",
+        "feedback-intelligence",
+    }
+
+
+def test_every_language_routes_to_its_projects() -> None:
+    # Every programming language in the portfolio must resolve to the project(s)
+    # actually written in it — a visitor asks in the language's name, not the
+    # project's.
+    assert detect_projects("did he build anything in Rust?") == {"passwordmanager"}
+    assert detect_projects("show me the Python projects") == {
+        "audiobookmaker",
+        "claude-continue",
+        "portfolio",
+    }
+    assert detect_projects("how much TypeScript is there") == {
+        "hrm",
+        "platform",
+        "portfolio",
+        "readlog",
+        "spacepotatis",
+    }
+    assert detect_projects("anything written in plain JavaScript?") == {
+        "strudel-patterns",
+        "passwordmanager",
+        "feedback-intelligence",
+    }
+    assert detect_projects("what runs on WebAssembly / wasm?") == {"passwordmanager"}
+    assert detect_projects("is the site built with Astro?") == {"portfolio"}
+    assert detect_projects("any bash scripting?") == {"claude-agents"}
+
+
+def test_language_aliases_respect_word_boundaries() -> None:
+    # "rust" inside "trust"/"crust", "python" inside "pythonic", "bash" inside
+    # "bashful" must not fire — same boundary rule as the identity aliases.
+    assert detect_projects("I trust the crust of this pie") == set()
+    assert detect_projects("very pythonic and bashful prose") == set()
+
+
+def test_tech_alias_targets_are_known_project_ids() -> None:
+    # A typo'd project id in TECH_ALIASES would silently bias retrieval toward a
+    # project that has no chunks. Every target must be an identity-alias key.
+    known = set(PROJECT_ALIASES)
+    for alias, project_ids in TECH_ALIASES.items():
+        assert set(project_ids) <= known, f"TECH_ALIASES[{alias!r}] -> {project_ids}"
+
+
+def test_corpus_and_alias_table_cover_the_same_projects() -> None:
+    # "The RAG knows every project": every project documented in the corpus is
+    # routable by name, and every routable id has corpus docs to route TO.
+    # Skipped where the content tree isn't present (e.g. a container running
+    # backend tests without the repo root).
+    content_root = Path(__file__).resolve().parents[2] / "content"
+    projects_dir = content_root / "projects"
+    if not projects_dir.is_dir():
+        pytest.skip("content/projects not present in this environment")
+    corpus_projects = {
+        load_doc(path, content_root).project for path in projects_dir.glob("*.md")
+    }
+    assert corpus_projects == set(PROJECT_ALIASES)
 
 
 def test_wants_cv_finnish_inflections() -> None:
