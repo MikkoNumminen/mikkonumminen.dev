@@ -26,9 +26,13 @@ Operational runbook for shipping changes to the local RAG chat that powers the
   on the password prompt.
 - **Shared funnel — never blanket-reset.** This operator runs Tailscale Funnels
   for **other projects on the same tailnet**, so treat the funnel as shared infra.
-  This project owns `443 → 127.0.0.1:8000` on its node (`tailscale funnel status`
-  shows a single `/ proxy http://127.0.0.1:8000`). `ragctl up` / `down` scope every
-  change to that one port (`tailscale funnel --bg 8000` /
+  This project owns `443 → 127.0.0.1:8000` on its node; `tailscale funnel status`
+  lists the other projects' routes alongside it (e.g. `:8443 → 127.0.0.1:4180`),
+  so "a funnel is on" never means *this* one is. `ragctl` reads
+  `funnel status --json` and asserts the `:443` route proxies to `:8000`
+  specifically — a status row reading `other funnels on, :443→8000 off` means
+  exactly that, and `ragctl up` re-enables it. `up` / `down` scope every change to
+  that one port (`tailscale funnel --bg 8000` /
   `tailscale funnel --https=443 off`) — **never `tailscale funnel reset` or a
   blanket `off`**, which would tear down the other projects' funnels.
 
