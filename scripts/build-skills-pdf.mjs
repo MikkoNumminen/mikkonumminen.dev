@@ -922,6 +922,21 @@ ${renderAppendix()}
 </html>`;
 }
 
+// Chrome stamps every render with a fresh /CreationDate, /ModDate and file /ID,
+// so two renders of identical content are never byte-identical. `prebuild` runs
+// this script on every `npm run build` and the PDF is committed, so writing
+// unconditionally left the artifact permanently modified in every checkout —
+// four divergent copies of the same content were in flight across worktrees.
+// Both stamps are fixed-width, so masking them cannot shift the xref offsets.
+const VOLATILE_PDF_FIELDS = /\/(?:CreationDate|ModDate)\s*\([^)]*\)|\/ID\s*\[[^\]]*\]/g;
+
+function pdfContentEquals(a, b) {
+  return (
+    a.toString('latin1').replace(VOLATILE_PDF_FIELDS, '') ===
+    b.toString('latin1').replace(VOLATILE_PDF_FIELDS, '')
+  );
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error(`source missing: ${SRC}`);
@@ -963,12 +978,21 @@ function main() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-pdf-'));
   const tmpHtml = path.join(tmpDir, 'skills-registry.html');
   fs.writeFileSync(tmpHtml, html);
+  const tmpPdf = path.join(tmpDir, 'skills-registry.pdf');
   try {
-    printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: OUT });
+    printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: tmpPdf });
+    if (
+      fs.existsSync(OUT) &&
+      pdfContentEquals(fs.readFileSync(OUT), fs.readFileSync(tmpPdf))
+    ) {
+      console.log(`unchanged: ${OUT}`);
+    } else {
+      fs.copyFileSync(tmpPdf, OUT);
+      console.log(`wrote ${OUT}`);
+    }
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
-  console.log(`wrote ${OUT}`);
   console.log(`preview HTML: ${previewHtml}`);
 }
 
