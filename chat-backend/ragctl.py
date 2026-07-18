@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -380,13 +381,41 @@ def funnel_url() -> str | None:
         return None
 
 
+def funnel_serves_port(status_out: str, port: str) -> bool:
+    """True iff the DEFAULT-port (443) funnel block proxies to 127.0.0.1:`port`.
+
+    The node runs funnels for OTHER projects on other ports (e.g. :8443 →
+    oauth2-proxy), so a bare "Funnel on" substring is not evidence OUR route
+    exists — that exact misreading let `ragctl up` skip re-enabling the rag's
+    route while another project's funnel was on, leaving the chat publicly dead
+    with every local check green. Parse the status blocks instead: a header
+    with no explicit :port is the 443 block; only a proxy line inside THAT
+    block counts.
+    """
+    in_default_block = False
+    for line in status_out.splitlines():
+        stripped = line.strip()
+        header = re.match(r"^https://[^\s:/]+ \(Funnel on\)$", stripped)
+        if header:
+            in_default_block = True
+            continue
+        if re.match(r"^https://\S+ \(Funnel on\)$", stripped):
+            in_default_block = False  # a :port-suffixed (other project's) block
+            continue
+        if in_default_block and f"proxy http://127.0.0.1:{port}" in stripped:
+            return True
+    return False
+
+
 def check_funnel(url: str | None = None) -> tuple[str, str]:
     ts = tailscale_exe()
     if not ts:
         return ("down", "tailscale.exe not found")
     _, out = run([ts, "funnel", "status"], timeout=10)
-    if "Funnel on" in out:
+    if funnel_serves_port(out, FUNNEL_PORT):
         return ("ok", url or funnel_url() or "on")
+    if "Funnel on" in out:
+        return ("down", f"other funnels on, :443→{FUNNEL_PORT} off — run `ragctl up`")
     return ("down", "off — run `ragctl up`")
 
 
