@@ -240,6 +240,36 @@ export const en: Translations = {
         'Unattended via launchd / Task Scheduler',
       ],
     },
+    passwordmanager: {
+      tagline: 'Zero-knowledge password manager in Rust',
+      description:
+        'Local-first password manager where a single Rust crate is the only place crypto exists — Argon2id key derivation and XChaCha20-Poly1305 authenticated encryption, compiled natively and to WebAssembly. Four clients share it: an offline-first CLI vault on SQLite, a sync server that stores ciphertext only, an in-browser WASM client, and a Chrome extension with autofill and save-on-login. Per-entry nonces and AEAD bound to entry id + timestamp block record swapping; keys are zeroized after use; the master password never leaves the client. Every security choice is recorded as an ADR against an explicit threat model, and CI guards secrets out of the repo while running format, clippy, the full workspace tests, and the wasm build.',
+      highlights: [
+        'One crypto crate, four clients',
+        'Argon2id + XChaCha20-Poly1305',
+        'Server stores ciphertext only',
+      ],
+    },
+    'claude-agents': {
+      tagline: 'Cost-routing subagents for Claude Code',
+      description:
+        'A small global set of Claude Code subagents that stops paying Opus prices for work a cheaper model does just as well. Twelve agents, each pinning both model tier and reasoning effort in its frontmatter: Haiku for read-only recon (scout, log-miner, scribe, dep-checker, tidy), Sonnet for spec-driven edits (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect), and an unpinned architect that inherits the session model for design work. Agents auto-detect each repo’s stack — test runner, linter, i18n layout — so one set covers JS, C#, and Python projects. Installs as a Claude Code plugin from a shared marketplace or via script. MIT-licensed.',
+      highlights: [
+        '12 model-pinned agents',
+        'Decouples model tier from reasoning effort',
+        'Plugin or script install',
+      ],
+    },
+    'feedback-intelligence': {
+      tagline: 'Grounded feedback analysis with a local LLM',
+      description:
+        'Feedback-intelligence engine that turns messy free-text feedback into situational signal without letting the LLM near the numbers: a deterministic, rule-coded alert layer computes every count and trend, and the LLM only structures input and synthesizes theme narratives — each claim cited back to feedback ids and dropped to a fallback if it fails validation. Domains are pluggable modules (first: Finnish hybrid grocery–hardware retail); a config flag swaps in another domain with zero core edits. .NET 8 over a local Poro 2 8B on Ollama — picked in a 30-round blind test — with a live demo on Azure Static Web Apps reaching the local GPU through a Tailscale Funnel at zero cloud-inference cost. GDPR-clean synthetic corpus, prompt-injection defense in depth, hermetic xUnit suite in CI.',
+      highlights: [
+        'Deterministic alerts — LLM never computes the numbers',
+        'Pluggable domains, zero core edits',
+        'Live demo on Azure, inference on a local GPU',
+      ],
+    },
   },
   experiencePage: {
     eyebrow: 'the climb',

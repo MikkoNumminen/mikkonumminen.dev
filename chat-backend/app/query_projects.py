@@ -61,6 +61,42 @@ PROJECT_ALIASES: dict[str, list[str]] = {
     "platform": ["platform"],
     "strudel-patterns": ["strudel-patterns", "strudel patterns", "strudel"],
     "claude-continue": ["claude-continue", "claude continue"],
+    # "rust" is a tech alias on the microsoft/.net precedent above: this is the
+    # only Rust project, and word-boundary matching keeps "trust"/"crust" from
+    # firing. Finnish inflections listed explicitly (matching is not stemmed).
+    "passwordmanager": [
+        "passwordmanager",
+        "password manager",
+        "password-manager",
+        "rust",
+        "salasana",
+        "salasanan",
+        "salasanat",
+        "salasanoja",
+    ],
+    # Scoped forms only — bare "agents"/"agentit" would fire on questions about
+    # agents in general (a live topic in this portfolio's chat).
+    "claude-agents": [
+        "claude-agents",
+        "claude agents",
+        "subagent",
+        "subagents",
+        "cost-routing",
+        "cost routing",
+    ],
+    # Bare "feedback" is deliberate: in a portfolio chat the project reading
+    # dominates, and a wrong guess only re-orders retrieved chunks. "poro" and
+    # "ollama" are NOT aliases — this chat itself runs on Poro via Ollama, so
+    # they would misroute questions about the chat to this project.
+    "feedback-intelligence": [
+        "feedback-intelligence",
+        "feedback intelligence",
+        "feedback",
+        "palaute",
+        "palautteen",
+        "palautetta",
+        "palautteet",
+    ],
     # chat/RAG terms point at the portfolio: the RAG chat IS a portfolio artifact,
     # and without these a "where does this chat run?" question retrieves other
     # projects' deploy chunks (Vercel/Neon/Azure) and the model welds their hosting

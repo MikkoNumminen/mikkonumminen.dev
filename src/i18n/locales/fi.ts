@@ -237,6 +237,36 @@ export const fi: Translations = {
         'Valvomatta launchd / Task Scheduler',
       ],
     },
+    passwordmanager: {
+      tagline: 'Nollatietomallin salasananhallinta Rustilla',
+      description:
+        'Paikallislähtöinen salasananhallinta, jossa yksi ainoa Rust-kirjasto on ainoa paikka missä salaus tapahtuu — Argon2id-avaimenjohto ja XChaCha20-Poly1305-autentikoitu salaus, käännettynä sekä natiivisti että WebAssemblyksi. Neljä asiakassovellusta jakaa sen: offline-ensin CLI-holvi SQLitellä, synkronointipalvelin joka tallentaa vain salattua dataa, selaimessa toimiva WASM-asiakas ja Chrome-laajennus autofillillä ja tallennuksella kirjautuessa. Merkintäkohtaiset noncet ja AEAD sidottuna merkinnän id:hen ja aikaleimaan estävät tietueiden vaihtamisen; avaimet nollataan käytön jälkeen; pääsalasana ei koskaan poistu asiakkaalta. Jokainen turvallisuuspäätös on kirjattu ADR:ksi eksplisiittistä uhkamallia vasten, ja CI estää salaisuudet pääsemästä repoon samalla kun se ajaa formatoinnin, clippyn, koko työtilan testit ja wasm-käännöksen.',
+      highlights: [
+        'Yksi salauskirjasto, neljä asiakassovellusta',
+        'Argon2id + XChaCha20-Poly1305',
+        'Palvelin tallentaa vain salattua dataa',
+      ],
+    },
+    'claude-agents': {
+      tagline: 'Kustannusreititetyt subagentit Claude Codelle',
+      description:
+        'Pieni globaali kokoelma Claude Code -subagentteja, joka lopettaa Opus-hintojen maksamisen työstä jonka halvempi malli hoitaa yhtä hyvin. Kaksitoista agenttia, joista jokainen kiinnittää sekä mallitason että päättelyponnistuksen frontmatterissaan: Haiku vain-luku-tiedusteluun (scout, log-miner, scribe, dep-checker, tidy), Sonnet spesifikaatio-ohjattuihin muokkauksiin (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect) ja kiinnittämätön architect joka perii istunnon mallin suunnittelutyötä varten. Agentit tunnistavat itse kunkin repon teknologiapinon — testiajurin, linterin, i18n-rakenteen — joten yksi kokoelma kattaa JS-, C#- ja Python-projektit. Asentuu Claude Code -pluginina jaetusta markkinapaikasta tai skriptillä. MIT-lisensoitu.',
+      highlights: [
+        '12 malliin kiinnitettyä agenttia',
+        'Erottaa mallitason päättelyponnistuksesta',
+        'Plugin- tai skriptiasennus',
+      ],
+    },
+    'feedback-intelligence': {
+      tagline: 'Perusteltua palauteanalyysia paikallisella LLM:llä',
+      description:
+        'Palautteen älymoottori joka muuntaa sekavan vapaamuotoisen palautteen tilannekohtaiseksi signaaliksi päästämättä LLM:ää käsiksi lukuihin: deterministinen, sääntökoodattu hälytyskerros laskee jokaisen luvun ja trendin, ja LLM ainoastaan jäsentää syötteen ja syntetisoi teemakertomukset — jokainen väite sidottu takaisin palaute-id:ihin ja pudotetaan varajärjestelmään jos se ei läpäise validointia. Toimialat ovat liitettäviä moduuleja (ensimmäisenä: suomalainen ruoka- ja rautakaupan hybridivähittäiskauppa); konfiguraatioasetus vaihtaa toisen toimialan ilman ydinmuutoksia. .NET 8 paikallisen Poro 2 8B:n päällä Ollamassa — valittu 30 kierroksen sokkotestissä — ja live-demo Azure Static Web Appsissa joka tavoittaa paikallisen GPU:n Tailscale Funnelin kautta ilman pilvipäättelyn kustannuksia. GDPR-puhdas synteettinen korpus, kerroksittainen prompt-injektiosuoja, hermeettinen xUnit-testisarja CI:ssä.',
+      highlights: [
+        'Deterministiset hälytykset — LLM ei koskaan laske lukuja',
+        'Liitettävät toimialat, ei ydinmuutoksia',
+        'Live-demo Azuressa, päättely paikallisella GPU:lla',
+      ],
+    },
   },
   experiencePage: {
     eyebrow: 'kiipeäminen',
