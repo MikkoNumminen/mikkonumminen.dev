@@ -28,12 +28,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
-import { pdfContentEquals } from './lib/pdf-content.mjs';
+import { inputFingerprint, pdfContentEquals, shouldRender } from './lib/pdf-content.mjs';
 import { escapeHtml as esc, isSafeHref } from './lib/escape.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const OUT = path.join(ROOT, 'public', 'skills-registry.pdf');
+// Committed on purpose: a fresh clone or new worktree with no stored
+// fingerprint would re-render and put a divergent PDF back in the tree.
+const FINGERPRINT_FILE = path.join(ROOT, 'scripts', 'skills-pdf.input.sha256');
 const CSS_FILE = path.join(ROOT, 'scripts', 'lib', 'skills-pdf.css');
 
 // ---------------------------------------------------------------------------
@@ -940,12 +943,6 @@ function main() {
     );
     process.exit(0);
   }
-  if (!locateChrome()) {
-    console.log(
-      'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
-    );
-    process.exit(0);
-  }
   if (!fs.existsSync(CSS_FILE)) {
     console.error(`stylesheet missing: ${CSS_FILE}`);
     process.exit(1);
@@ -961,12 +958,40 @@ function main() {
   fs.mkdirSync(previewDir, { recursive: true });
   const previewHtml = path.join(previewDir, 'skills-pdf-preview.html');
   fs.writeFileSync(previewHtml, html);
+
+  // Skip the render entirely when the inputs have not moved. Chrome's internal
+  // encoding shifts between browser versions, so re-rendering an unchanged
+  // document is not a no-op — it rewrites the committed PDF for no visible
+  // reason the first time the developer's Chrome updates.
+  const fingerprint = inputFingerprint(html);
+  const storedFingerprint = fs.existsSync(FINGERPRINT_FILE)
+    ? fs.readFileSync(FINGERPRINT_FILE, 'utf8').trim()
+    : null;
+  if (
+    !shouldRender({
+      force: process.argv.includes('--force'),
+      pdfExists: fs.existsSync(OUT),
+      storedFingerprint,
+      fingerprint,
+    })
+  ) {
+    console.log(`unchanged: ${OUT} (inputs unchanged — no render)`);
+    console.log(`preview HTML: ${previewHtml}`);
+    return;
+  }
+
+  if (!locateChrome()) {
+    console.log(
+      'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
+    );
+    process.exit(0);
+  }
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-pdf-'));
   const tmpHtml = path.join(tmpDir, 'skills-registry.html');
   fs.writeFileSync(tmpHtml, html);
-  // Rendered to a temp file and copied only on a real content change: this PDF
-  // is committed and `prebuild` re-renders it on every build, so writing
-  // unconditionally left it permanently modified in every checkout.
+  // Rendered to a temp file and copied only on a real content change: a changed
+  // input does not always move the rendered page (a reworded comment in the
+  // layout code, say), and this PDF is committed.
   const tmpPdf = path.join(tmpDir, 'skills-registry.pdf');
   try {
     printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: tmpPdf });
@@ -982,6 +1007,9 @@ function main() {
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+  // Recorded even when the bytes were kept, so the next build short-circuits
+  // on these inputs instead of re-rendering to reach the same conclusion.
+  fs.writeFileSync(FINGERPRINT_FILE, `${fingerprint}\n`);
   console.log(`preview HTML: ${previewHtml}`);
 }
 

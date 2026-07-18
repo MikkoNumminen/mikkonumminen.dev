@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pdfContentEquals } from './pdf-content.mjs';
+import { inputFingerprint, pdfContentEquals, shouldRender } from './pdf-content.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REAL_PDF = path.join(ROOT, 'public', 'skills-registry.pdf');
@@ -19,6 +19,39 @@ function pdf({ date = DATE_A, id = ID_A, body = 'the document body' } = {}) {
     'latin1',
   );
 }
+
+describe('inputFingerprint', () => {
+  it('is stable for identical html and differs for any change', () => {
+    expect(inputFingerprint('<p>a</p>')).toBe(inputFingerprint('<p>a</p>'));
+    expect(inputFingerprint('<p>a</p>')).not.toBe(inputFingerprint('<p>b</p>'));
+  });
+});
+
+describe('shouldRender', () => {
+  const base = { force: false, pdfExists: true, storedFingerprint: 'x', fingerprint: 'x' };
+
+  it('skips the render when the inputs have not moved', () => {
+    // The Chrome-upgrade case: same html, a browser that would emit different
+    // bytes. Nothing about the document changed, so nothing should be rendered.
+    expect(shouldRender(base)).toBe(false);
+  });
+
+  it('renders when the inputs changed', () => {
+    expect(shouldRender({ ...base, fingerprint: 'y' })).toBe(true);
+  });
+
+  it('renders when there is no stored fingerprint yet', () => {
+    expect(shouldRender({ ...base, storedFingerprint: null })).toBe(true);
+  });
+
+  it('renders when the pdf is missing even if the fingerprint matches', () => {
+    expect(shouldRender({ ...base, pdfExists: false })).toBe(true);
+  });
+
+  it('renders on --force', () => {
+    expect(shouldRender({ ...base, force: true })).toBe(true);
+  });
+});
 
 describe('pdfContentEquals', () => {
   it('ignores a differing creation/modification date', () => {
