@@ -28,6 +28,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
+import { pdfContentEquals } from './lib/pdf-content.mjs';
 import { escapeHtml as esc, isSafeHref } from './lib/escape.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -922,21 +923,6 @@ ${renderAppendix()}
 </html>`;
 }
 
-// Chrome stamps every render with a fresh /CreationDate, /ModDate and file /ID,
-// so two renders of identical content are never byte-identical. `prebuild` runs
-// this script on every `npm run build` and the PDF is committed, so writing
-// unconditionally left the artifact permanently modified in every checkout —
-// four divergent copies of the same content were in flight across worktrees.
-// Both stamps are fixed-width, so masking them cannot shift the xref offsets.
-const VOLATILE_PDF_FIELDS = /\/(?:CreationDate|ModDate)\s*\([^)]*\)|\/ID\s*\[[^\]]*\]/g;
-
-function pdfContentEquals(a, b) {
-  return (
-    a.toString('latin1').replace(VOLATILE_PDF_FIELDS, '') ===
-    b.toString('latin1').replace(VOLATILE_PDF_FIELDS, '')
-  );
-}
-
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error(`source missing: ${SRC}`);
@@ -978,6 +964,9 @@ function main() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-pdf-'));
   const tmpHtml = path.join(tmpDir, 'skills-registry.html');
   fs.writeFileSync(tmpHtml, html);
+  // Rendered to a temp file and copied only on a real content change: this PDF
+  // is committed and `prebuild` re-renders it on every build, so writing
+  // unconditionally left it permanently modified in every checkout.
   const tmpPdf = path.join(tmpDir, 'skills-registry.pdf');
   try {
     printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: tmpPdf });
