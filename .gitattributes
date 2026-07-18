@@ -1,0 +1,5 @@
+# Committed PDFs are build artifacts rendered by Chrome. Git's content
+# auto-detection already keeps them out of EOL conversion, but this repo ships
+# several of them and is worked on from Windows, where a stray core.autocrlf
+# would corrupt them silently. Declare it rather than rely on the heuristic.
+*.pdf binary

@@ -15,7 +15,11 @@
 //
 // Note: Chrome stamps a creation date into the PDF, so renders aren't byte-
 // reproducible — a --force run always yields a (metadata-only) diff even when the
-// .md is unchanged. Same property as build-skills-pdf; commit PDFs intentionally.
+// .md is unchanged. The mtime skip above keeps that off the normal build path.
+// build-skills-pdf solves the same problem differently, by comparing rendered
+// content with the stamps masked (scripts/lib/pdf-content.mjs) — sturdier than
+// mtime, which a fresh clone or branch switch resets. Worth adopting here if
+// these audit PDFs ever start churning. Commit PDFs intentionally.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';

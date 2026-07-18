@@ -28,6 +28,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
+import { pdfContentEquals } from './lib/pdf-content.mjs';
 import { escapeHtml as esc, isSafeHref } from './lib/escape.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -963,12 +964,24 @@ function main() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-pdf-'));
   const tmpHtml = path.join(tmpDir, 'skills-registry.html');
   fs.writeFileSync(tmpHtml, html);
+  // Rendered to a temp file and copied only on a real content change: this PDF
+  // is committed and `prebuild` re-renders it on every build, so writing
+  // unconditionally left it permanently modified in every checkout.
+  const tmpPdf = path.join(tmpDir, 'skills-registry.pdf');
   try {
-    printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: OUT });
+    printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: tmpPdf });
+    if (
+      fs.existsSync(OUT) &&
+      pdfContentEquals(fs.readFileSync(OUT), fs.readFileSync(tmpPdf))
+    ) {
+      console.log(`unchanged: ${OUT}`);
+    } else {
+      fs.copyFileSync(tmpPdf, OUT);
+      console.log(`wrote ${OUT}`);
+    }
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
-  console.log(`wrote ${OUT}`);
   console.log(`preview HTML: ${previewHtml}`);
 }
 
