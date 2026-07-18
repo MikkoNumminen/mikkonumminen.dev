@@ -644,6 +644,58 @@ def test_named_project_query_is_not_diversified() -> None:
     assert len(hrm_chunks) > 1
 
 
+def test_multi_project_query_is_diversified() -> None:
+    # The live failure this exists for: a language alias implicates several
+    # projects at once ("python" -> audiobookmaker, claude-continue, portfolio).
+    # Detection is non-empty, so the old `not wanted` guard skipped the cap and
+    # the largest project took every slot — the two Python-first projects were
+    # absent from an answer about Python.
+    rows = [
+        _row("narratives/portfolio.md", 0.10, project="portfolio"),
+        _row("posts/skills-auditor-results.md", 0.11, project="portfolio"),
+        _row("projects/portfolio-architecture.md", 0.12, project="portfolio"),
+        _row("projects/portfolio-deepdive.md", 0.13, project="portfolio"),
+        _row("projects/audiobookmaker.md", 0.20, project="audiobookmaker"),
+        _row("projects/claude-continue.md", 0.22, project="claude-continue"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "which projects are written in python?",
+            top_k=5,
+            diversify_max_per_project=2,
+        )
+    )
+    projects = {c.project for c in result}
+    assert "audiobookmaker" in projects
+    assert "claude-continue" in projects
+    assert sum(1 for c in result if c.project == "portfolio") <= 2
+
+
+def test_single_named_project_still_beats_diversity_when_others_detected() -> None:
+    # The single-project exemption must survive the multi-project arm: naming one
+    # project still returns that project's full context, uncapped.
+    rows = [
+        _row("projects/hrm-a.md", 0.10, project="hrm"),
+        _row("projects/hrm-b.md", 0.11, project="hrm"),
+        _row("projects/hrm-c.md", 0.12, project="hrm"),
+        _row("projects/platform.md", 0.30, project="platform"),
+    ]
+    db = FakeDB(rows)
+    result = asyncio.run(
+        retrieve(
+            FakeEmbedder(),
+            db,
+            "how does HRM handle JWT permissions",
+            top_k=4,
+            diversify_max_per_project=1,
+        )
+    )
+    assert sum(1 for c in result if c.project == "hrm") > 1
+
+
 def test_no_diversity_when_diversify_max_is_none() -> None:
     # Default (diversify_max_per_project=None): byte-identical to pre-change behaviour —
     # all chunks from the closest project fill the top_k slots if they rank highest.

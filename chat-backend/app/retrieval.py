@@ -178,9 +178,9 @@ def _diversify(
 
     The group key is chunk.project when set, else chunk.source (unprojectted
     chunks each form their own singleton group). Preserves rank order within the
-    budget; stops once top_k chunks are selected. Applied ONLY on generic queries
-    (no project named) so showcased projects spread across the returned top_k
-    instead of one project monopolising all slots.
+    budget; stops once top_k chunks are selected. Applied when no single project
+    owns the query (nothing detected, or several detected) so the projects spread
+    across the returned top_k instead of one monopolising every slot.
     """
     counts: dict[str, int] = {}
     result: list[RetrievedChunk] = []
@@ -319,10 +319,11 @@ async def retrieve(
     `exclude_doc_types` hides specific genres (e.g. 'adr') from every search path
     including the prose anchor, so self-documentation doesn't crowd out project
     chunks. `diversify_max_per_project` caps how many chunks any single project
-    contributes when the query is GENERIC (no project named); named-project and
-    soft-boost queries are never diversified so they can still surface all their
-    relevant chunks. A CV-intent query ("mitä työkokemusta?", "what's your work
-    experience?") additionally pulls the kind='cv' chunks explicitly and prepends
+    contributes when no single project owns the query — either nothing was
+    detected, or a language/ecosystem term implicated several at once. A query
+    naming exactly ONE project is never diversified, so it can still surface all
+    of that project's relevant chunks. A CV-intent query ("mitä työkokemusta?",
+    "what's your work experience?") pulls the kind='cv' chunks explicitly and prepends
     them to the returned top_k — see the comment at the fetch.
     """
     vector = embedder.embed_query(query)
@@ -391,10 +392,19 @@ async def retrieve(
     # confines this to the rare research+CV dual-intent case.
     guaranteed = _prepend_unique(coverage_chunks, cv_chunks)
 
-    # Diversity applies only on generic queries (no project named). Named-project
-    # and soft-boost queries must never be capped — the user asked about a specific
-    # project and deserves its full relevant context.
-    diversify = diversify_max_per_project is not None and not wanted
+    # Diversity applies whenever no SINGLE project owns the question: a generic
+    # query (nothing detected), or a term that legitimately implicates several
+    # projects at once — a language/ecosystem alias like "python" or ".net" maps
+    # to every project written in it. Exactly one detected project is never
+    # capped: the user asked about that one and deserves its full context.
+    #
+    # The multi-project arm is not hypothetical. Detection became genuinely
+    # multi-target when TECH_ALIASES landed; before this, "which projects are
+    # written in Python?" detected audiobookmaker + claude-continue + portfolio,
+    # skipped the cap because *something* was detected, and then returned five
+    # portfolio chunks — the two Python-first projects got no slot at all
+    # (measured on the live stack).
+    diversify = diversify_max_per_project is not None and len(wanted) != 1
 
     widen = hybrid or (bool(wanted) and not strict) or diversify
     candidate_k = min(top_k * _CANDIDATE_MULTIPLIER, _CANDIDATE_CAP) if widen else top_k
