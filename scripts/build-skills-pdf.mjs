@@ -926,6 +926,18 @@ ${renderAppendix()}
 </html>`;
 }
 
+// Read a file that may not exist yet. Reading and handling ENOENT keeps the
+// decision on one filesystem call — an existsSync/readFileSync pair is a
+// check-then-use race, and it reads the same file twice.
+function readIfExists(file) {
+  try {
+    return fs.readFileSync(file);
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error(`source missing: ${SRC}`);
@@ -964,13 +976,12 @@ function main() {
   // document is not a no-op — it rewrites the committed PDF for no visible
   // reason the first time the developer's Chrome updates.
   const fingerprint = inputFingerprint(html);
-  const storedFingerprint = fs.existsSync(FINGERPRINT_FILE)
-    ? fs.readFileSync(FINGERPRINT_FILE, 'utf8').trim()
-    : null;
+  const storedFingerprint = readIfExists(FINGERPRINT_FILE)?.toString('utf8').trim() ?? null;
+  const existingPdf = readIfExists(OUT);
   if (
     !shouldRender({
       force: process.argv.includes('--force'),
-      pdfExists: fs.existsSync(OUT),
+      pdfExists: existingPdf !== null,
       storedFingerprint,
       fingerprint,
     })
@@ -995,10 +1006,7 @@ function main() {
   const tmpPdf = path.join(tmpDir, 'skills-registry.pdf');
   try {
     printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: tmpPdf });
-    if (
-      fs.existsSync(OUT) &&
-      pdfContentEquals(fs.readFileSync(OUT), fs.readFileSync(tmpPdf))
-    ) {
+    if (existingPdf && pdfContentEquals(existingPdf, fs.readFileSync(tmpPdf))) {
       console.log(`unchanged: ${OUT}`);
     } else {
       fs.copyFileSync(tmpPdf, OUT);
