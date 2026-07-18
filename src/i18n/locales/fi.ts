@@ -97,6 +97,11 @@ export const fi: Translations = {
         api: 'Google OAuth',
         body: 'Sisäänkirjautuminen on vapaaehtoista. Pelaa offline ikuisesti, tai liity mukaan pilvitallennuksiin ja tulostaulun paikkaan.',
       },
+      {
+        project: 'Feedback Intelligence',
+        api: 'Tailscale Funnel',
+        body: 'Demo pyörii ilmaiseksi Azure Static Web Appsissa, mutta malli ajetaan kotona: Azure Functions -proxy välittää jokaisen pyynnön Tailscale Funnelin kautta paikalliseen Ollama-GPU:hun. Snapshot-ensin: demo vastaa myös tunnelin ollessa poikki. Pilvi-inferenssin lasku: nolla.',
+      },
     ],
   },
   velocity: {

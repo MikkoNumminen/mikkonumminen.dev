@@ -97,6 +97,11 @@ export const sv: Translations = {
         api: 'Google OAuth',
         body: 'Inloggning är valfri. Spela offline för evigt, eller logga in för molnsparningar och en plats på topplistan.',
       },
+      {
+        project: 'Feedback Intelligence',
+        api: 'Tailscale Funnel',
+        body: 'Demot körs gratis på Azure Static Web Apps, men modellen körs hemma: en Azure Functions-proxy vidarebefordrar varje förfrågan genom en Tailscale Funnel till en lokal Ollama-GPU. Snapshot-först: demot svarar även när tunneln är nere. Molninferensräkningen: noll.',
+      },
     ],
   },
   velocity: {

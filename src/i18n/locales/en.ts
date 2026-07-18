@@ -101,6 +101,11 @@ export const en: Translations = {
         api: 'Google OAuth',
         body: 'Sign-in is optional. Play offline forever, or opt in for cloud saves and a leaderboard slot.',
       },
+      {
+        project: 'Feedback Intelligence',
+        api: 'Tailscale Funnel',
+        body: 'The demo runs free on Azure Static Web Apps, but the model runs at home: an Azure Functions proxy forwards each request through a Tailscale Funnel to a local Ollama GPU. Snapshot-first, so the demo still answers when the tunnel is down. Cloud-inference bill: zero.',
+      },
     ],
   },
   velocity: {
