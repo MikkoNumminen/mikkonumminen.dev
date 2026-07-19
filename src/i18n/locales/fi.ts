@@ -108,7 +108,7 @@ export const fi: Translations = {
     sectionAria: 'Kehitysvauhti',
     eyebrow: 'vauhti',
     heading: 'Nopeaa — todistettavasti.',
-    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 475 commitia, ~1300 testiä, koko Next.js + Phaser 4 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Suurin osa portfoliosta käynnistyi viime kuukausina. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
+    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 475 commitia, ~1300 testiä, koko Next.js + Phaser 4 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Suurin osa portfoliosta käynnistyi viime kuukausina. Jokainen tässä esitetty luku on laskettavissa commit-historiasta.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
       label: 'Miten 3,13M tokenia arvioitiin',
@@ -371,6 +371,40 @@ export const fi: Translations = {
         'Julkaistu PDF',
         'Rehellinen kirjanpito',
         'Sonnet · Opus · Haiku',
+      ],
+    },
+    'rust-crypto': {
+      title: 'Rust, ja oman työn tarkistaminen',
+      body: 'Vuoden 2026 jälkipuolisko toi mukanaan uuden kielen ja uuden tavan. Kieli oli Rust, jonka otin käyttöön salasanahallintaan, jossa koko kryptografinen pinta asuu yhdessä cratessa, joka kääntyy sekä natiivisti että WebAssemblyksi. Komentorivikassa, synkronointipalvelin, selaimessa toimiva client ja Chrome-laajennus ajavat kaikki samaa koodia — neljän toisistaan hiljalleen loittonevan kopion sijaan.\n\nTapa oli kieltäytyä uskomasta omaa sanaani mistään. Avaimenjohtamisen parametrit, nonce-strategia, se mihin autentikoitu salateksti on sidottu: jokainen niistä on kirjattu päätös, johon liittyy uhkamalli, mukaan lukien selkeä lista siitä mitä suunnittelu ei suojaa. Repossa on tätä viimeistä kohtaa varten omat auditoijansa: yksi käy päätöskirjaukset läpi koodia vasten, toinen vertaa esitettyjä turvallisuusväitteitä siihen, mitä kryptografia todella tekee. Väite jota kukaan ei tarkista uudelleen on vain kommentti.',
+      tags: [
+        'Rust',
+        'WebAssembly',
+        'Argon2id',
+        'XChaCha20-Poly1305',
+        'Nollatieto',
+        'Uhkamalli repossa',
+      ],
+      lessons: [
+        {
+          title: 'Yksi crate, neljä clientia',
+          body: 'Argon2id 256 MiB:llä ja kolmella kierroksella, XChaCha20-Poly1305 tuorein nonce jokaista tietuetta kohden, ja jokainen tietue on sidottu omaan id:hensä ja aikaleimaansa niin ettei kahta tietuetta voi vaihtaa keskenään huomaamatta. Pääsalasana ei koskaan poistu clientilta, ja synkronointipalvelin pitää hallussaan vain salatekstiä. Lukituksen avaaminen maksaa noin 430 ms, mikä on ominaisuus, ei regressio.',
+        },
+        {
+          title: 'Kolmekymmentä kierrosta, sokkona',
+          body: 'Suomenkielisen kielimallin valinta paikalliseen pinoon ratkaistiin järjestämällä kolmekymmentä suomenkielistä vastausta sokkona, arvioijana äidinkielinen puhuja joka ei nähnyt kumpi malli kirjoitti minkäkin vastauksen. Poro-2-8B sijoittui ensimmäiseksi 26 kertaa 30:stä ja päätyi tuotantoon tällä tuloksella, kahdessa eri projektissa. Valinta fiiliksen perusteella olisi ollut nopeampaa eikä olisi todistanut mitään.',
+          link: {
+            href: '/poro-findings.pdf',
+            label: 'Lue tutkimus',
+          },
+        },
+        {
+          title: 'Yleensä bugi on minun',
+          body: 'Kun vastaukset alkoivat liittää vääriä päivämääriä omaan tutkimukseeni, mukava selitys olisi ollut että pieni malli sekoili. Ei sekoillut. Päivämäärä putosi pois prompt-rajalla ennen kuin malli näki sitä koskaan. Kolme aiempaa yritystä korjata asia mallin puolella on kirjattu umpikujiksi, jotta seuraava katsoja ei käytä siihen viikkoa niin kuin minä käytin.',
+        },
+        {
+          title: 'Mittaus joka ei muuttanut mitään',
+          body: 'Monikielinen embedder näytti ilmeiseltä päivitykseltä suomenkieliseen hakuun. Suoraan vertailtuna jo tuotannossa oleva ratkaisu sai 0,810 pistettä ehdokkaan 0,762 pistettä vastaan, joten mikään ei mennyt tuotantoon. Kokeilu joka puhuu suunnitelmaa vastaan on yhtä arvokas kuin se joka vahvistaa sen, kunhan kummankin kirjaa ylös.',
+        },
       ],
     },
     now: {

@@ -54,6 +54,9 @@ export const timeline: TimelineEntry[] = [
   // Calibration follow-up to ai-workflows: the published A/B-measurement
   // proof of the saving claim made two cards upstream.
   { id: 'skill-receipts', altitude: 0.92, year: '2026', kind: 'craft' },
+  // Systems work rather than a product beat: a new language picked up for a
+  // domain that punishes guessing, and the evidence standard that came with it.
+  { id: 'rust-crypto', altitude: 0.945, year: '2026', kind: 'craft' },
   { id: 'now', altitude: 0.97, year: NOW_YEAR_SENTINEL, kind: 'now' },
 ];
 
