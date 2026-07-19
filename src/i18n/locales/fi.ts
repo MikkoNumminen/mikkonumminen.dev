@@ -375,7 +375,7 @@ export const fi: Translations = {
     },
     'rust-crypto': {
       title: 'Rust, ja oman työn tarkistaminen',
-      body: 'Vuoden 2026 jälkipuolisko toi mukanaan uuden kielen ja uuden tavan. Kieli oli Rust, jonka otin käyttöön salasanahallintaan, jossa koko kryptografinen pinta asuu yhdessä cratessa, joka kääntyy sekä natiivisti että WebAssemblyksi. Komentorivikassa, synkronointipalvelin, selaimessa toimiva client ja Chrome-laajennus ajavat kaikki samaa koodia — neljän toisistaan hiljalleen loittonevan kopion sijaan.\n\nTapa oli kieltäytyä uskomasta omaa sanaani mistään. Avaimenjohtamisen parametrit, nonce-strategia, se mihin autentikoitu salateksti on sidottu: jokainen niistä on kirjattu päätös, johon liittyy uhkamalli, mukaan lukien selkeä lista siitä mitä suunnittelu ei suojaa. Repossa on tätä viimeistä kohtaa varten omat auditoijansa: yksi käy päätöskirjaukset läpi koodia vasten, toinen vertaa esitettyjä turvallisuusväitteitä siihen, mitä kryptografia todella tekee. Väite jota kukaan ei tarkista uudelleen on vain kommentti.',
+      body: 'Uusi kieli ja tiukempi näytön vaatimus tulivat yhtä aikaa. Kieli on Rust, jonka otin käyttöön salasanahallintaan, jossa koko kryptografinen pinta asuu yhdessä cratessa, joka kääntyy sekä natiivisti että WebAssemblyksi. Komentorivikassa, synkronointipalvelin, selaimessa toimiva client ja Chrome-laajennus ajavat kaikki samaa koodia — neljän toisistaan hiljalleen loittonevan kopion sijaan.\n\nTapa oli kieltäytyä uskomasta omaa sanaani mistään. Avaimenjohtamisen parametrit, nonce-strategia, se mihin autentikoitu salateksti on sidottu: jokainen niistä on kirjattu päätös, johon liittyy uhkamalli, mukaan lukien selkeä lista siitä mitä suunnittelu ei suojaa. Repossa on tätä viimeistä kohtaa varten omat auditoijansa: yksi käy päätöskirjaukset läpi koodia vasten, toinen vertaa esitettyjä turvallisuusväitteitä siihen, mitä kryptografia todella tekee. Väite jota kukaan ei tarkista uudelleen on vain kommentti.',
       tags: [
         'Rust',
         'WebAssembly',
@@ -391,7 +391,7 @@ export const fi: Translations = {
         },
         {
           title: 'Kolmekymmentä kierrosta, sokkona',
-          body: 'Suomenkielisen kielimallin valinta paikalliseen pinoon ratkaistiin järjestämällä kolmekymmentä suomenkielistä vastausta sokkona, arvioijana äidinkielinen puhuja joka ei nähnyt kumpi malli kirjoitti minkäkin vastauksen. Poro-2-8B sijoittui ensimmäiseksi 26 kertaa 30:stä ja päätyi tuotantoon tällä tuloksella, kahdessa eri projektissa. Valinta fiiliksen perusteella olisi ollut nopeampaa eikä olisi todistanut mitään.',
+          body: 'Suomenkielisen kielimallin valinta paikalliseen pinoon ratkaistiin järjestämällä kolmekymmentä suomenkielistä vastausta sokkona, arvioijana äidinkielinen puhuja joka ei nähnyt kumpi malli kirjoitti minkäkin vastauksen. Poro-2-8B sijoittui ensimmäiseksi 26 kertaa 30:stä ja päätyi tuotantoon tällä tuloksella. Toinen projekti ajoi samat luvut ja jätti sen väliin, koska oikea valinta riippuu siitä miten tuotosta käytetään. Kumman tahansa valitseminen fiiliksen perusteella olisi ollut nopeampaa eikä olisi todistanut mitään.',
           link: {
             href: '/poro-findings.pdf',
             label: 'Lue tutkimus',

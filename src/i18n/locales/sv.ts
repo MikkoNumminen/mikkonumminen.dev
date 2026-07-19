@@ -376,7 +376,7 @@ export const sv: Translations = {
     },
     'rust-crypto': {
       title: 'Rust, och att kontrollera mitt eget arbete',
-      body: 'Andra halvan av 2026 tillförde ett språk och en vana. Språket var Rust, plockat upp för en lösenordshanterare där hela den kryptografiska ytan bor i en enda crate som kompilerar både nativt och till WebAssembly. Kommandoradsvalvet, synkroniseringsservern, klienten i webbläsaren och Chrome-tillägget kör alla samma kod, i stället för fyra kopior som tyst glider isär.\n\nVanan var att vägra ta mitt eget ord för något. Parametrarna för nyckelderivering, nonce-strategin, vad den autentiserade krypterade texten är bunden till: var och en är ett nedskrivet beslut med en hotmodell bifogad, inklusive en tydlig lista över vad designen inte skyddar mot. Repot bär egna granskare för just den sista punkten: en går igenom besluten mot koden, en annan håller de uttalade säkerhetspåståendena mot vad kryptografin faktiskt gör. Ett påstående som ingen kontrollerar igen är bara en kommentar.',
+      body: 'Ett nytt språk och ett hårdare beviskrav kom samtidigt. Språket är Rust, plockat upp för en lösenordshanterare där hela den kryptografiska ytan bor i en enda crate som kompilerar både nativt och till WebAssembly. Kommandoradsvalvet, synkroniseringsservern, klienten i webbläsaren och Chrome-tillägget kör alla samma kod, i stället för fyra kopior som tyst glider isär.\n\nVanan var att vägra ta mitt eget ord för något. Parametrarna för nyckelderivering, nonce-strategin, vad den autentiserade krypterade texten är bunden till: var och en är ett nedskrivet beslut med en hotmodell bifogad, inklusive en tydlig lista över vad designen inte skyddar mot. Repot bär egna granskare för just den sista punkten: en går igenom besluten mot koden, en annan håller de uttalade säkerhetspåståendena mot vad kryptografin faktiskt gör. Ett påstående som ingen kontrollerar igen är bara en kommentar.',
       tags: [
         'Rust',
         'WebAssembly',
@@ -392,7 +392,7 @@ export const sv: Translations = {
         },
         {
           title: 'Trettio rundor, blint',
-          body: 'Valet av finsk språkmodell för den lokala stacken avgjordes genom att rangordna trettio finska svar blint, bedömda av en modersmålstalare som inte kunde se vilken modell som skrev vad. Poro-2-8B placerade sig först i 26 av 30 och gick till produktion på det resultatet, i två separata projekt. Att välja på känsla hade gått snabbare och hade inte bevisat något.',
+          body: 'Valet av finsk språkmodell för den lokala stacken avgjordes genom att rangordna trettio finska svar blint, bedömda av en modersmålstalare som inte kunde se vilken modell som skrev vad. Poro-2-8B placerade sig först i 26 av 30 och gick till produktion på det resultatet. Ett andra projekt körde samma siffror och avstod, eftersom rätt val beror på hur utdatan används. Att välja åt något håll på känsla hade gått snabbare och hade inte bevisat något.',
           link: {
             href: '/poro-findings.pdf',
             label: 'Läs studien',

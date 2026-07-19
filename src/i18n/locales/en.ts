@@ -378,7 +378,7 @@ export const en: Translations = {
     },
     'rust-crypto': {
       title: 'Rust, and checking my own work',
-      body: 'The second half of 2026 added a language and a habit. The language was Rust, picked up for a password manager where the entire cryptographic surface lives in one crate that compiles both natively and to WebAssembly. The command-line vault, the sync server, the in-browser client and the Chrome extension all run that same code, rather than four copies quietly drifting apart.\n\nThe habit was declining to take my own word for anything. The key-derivation parameters, the nonce strategy, what the authenticated ciphertext is bound to: each one is a written decision with a threat model attached, including a plain list of what the design does not protect against. The repository carries auditors of its own for that last part: one walks the decision records against the code, another holds the stated security claims up against what the cryptography actually does. A claim nobody re-checks is just a comment.',
+      body: 'A new language and a harder standard of evidence, arriving together. The language is Rust, picked up for a password manager where the entire cryptographic surface lives in one crate that compiles both natively and to WebAssembly. The command-line vault, the sync server, the in-browser client and the Chrome extension all run that same code, rather than four copies quietly drifting apart.\n\nThe habit was declining to take my own word for anything. The key-derivation parameters, the nonce strategy, what the authenticated ciphertext is bound to: each one is a written decision with a threat model attached, including a plain list of what the design does not protect against. The repository carries auditors of its own for that last part: one walks the decision records against the code, another holds the stated security claims up against what the cryptography actually does. A claim nobody re-checks is just a comment.',
       tags: [
         'Rust',
         'WebAssembly',
@@ -394,7 +394,7 @@ export const en: Translations = {
         },
         {
           title: 'Thirty rounds, blind',
-          body: 'Choosing the Finnish language model for the local stack was settled by ranking thirty Finnish answers blind, scored by a native speaker who could not see which model wrote which. Poro-2-8B placed first in 26 of 30 and went to production on that result, in two separate projects. Picking it by feel would have been faster and would have proved nothing.',
+          body: 'Choosing the Finnish language model for the local stack was settled by ranking thirty Finnish answers blind, scored by a native speaker who could not see which model wrote which. Poro-2-8B placed first in 26 of 30 and went to production on that result. A second project ran the same numbers and passed on it, because the right call depends on how the output gets consumed. Picking either way by feel would have been faster and would have proved nothing.',
           link: {
             href: '/poro-findings.pdf',
             label: 'Read the study',
