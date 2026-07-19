@@ -108,7 +108,7 @@ export const sv: Translations = {
     sectionAria: 'Utvecklingstempo',
     eyebrow: 'tempo',
     heading: 'Snabbt — på riktigt.',
-    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 475 commits, ~1300 tester, hela Next.js + Phaser 4 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Större delen av portföljen startade under de senaste månaderna. AI-nativt är inte snack — det är matematik.',
+    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 475 commits, ~1300 tester, hela Next.js + Phaser 4 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Större delen av portföljen startade under de senaste månaderna. Varje siffra här går att räkna fram ur commit-historiken.',
     link: {
       href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
       label: 'Hur 3,13M token uppskattades',
@@ -372,6 +372,40 @@ export const sv: Translations = {
         'Publicerad PDF',
         'Ärlig redovisning',
         'Sonnet · Opus · Haiku',
+      ],
+    },
+    'rust-crypto': {
+      title: 'Rust, och att kontrollera mitt eget arbete',
+      body: 'Ett nytt språk och ett hårdare beviskrav kom samtidigt. Språket är Rust, plockat upp för en lösenordshanterare där hela den kryptografiska ytan bor i en enda crate som kompilerar både nativt och till WebAssembly. Kommandoradsvalvet, synkroniseringsservern, klienten i webbläsaren och Chrome-tillägget kör alla samma kod, i stället för fyra kopior som tyst glider isär.\n\nVanan var att vägra ta mitt eget ord för något. Parametrarna för nyckelderivering, nonce-strategin, vad den autentiserade krypterade texten är bunden till: var och en är ett nedskrivet beslut med en hotmodell bifogad, inklusive en tydlig lista över vad designen inte skyddar mot. Repot bär egna granskare för just den sista punkten: en går igenom besluten mot koden, en annan håller de uttalade säkerhetspåståendena mot vad kryptografin faktiskt gör. Ett påstående som ingen kontrollerar igen är bara en kommentar.',
+      tags: [
+        'Rust',
+        'WebAssembly',
+        'Argon2id',
+        'XChaCha20-Poly1305',
+        'Nollkunskap',
+        'Hotmodell i repot',
+      ],
+      lessons: [
+        {
+          title: 'En crate, fyra klienter',
+          body: 'Argon2id på 256 MiB och tre pass, XChaCha20-Poly1305 med en färsk nonce per post, och varje post bunden till sitt eget id och sin egen tidsstämpel så att två poster inte kan bytas ut under dig. Huvudlösenordet lämnar aldrig klienten, och synkroniseringsservern håller alltid bara krypterad text. Att låsa upp kostar omkring 430 ms, vilket är funktionen snarare än regressionen.',
+        },
+        {
+          title: 'Trettio rundor, blint',
+          body: 'Valet av finsk språkmodell för den lokala stacken avgjordes genom att rangordna trettio finska svar blint, bedömda av en modersmålstalare som inte kunde se vilken modell som skrev vad. Poro-2-8B placerade sig först i 26 av 30 och gick till produktion på det resultatet. Ett andra projekt körde samma siffror och avstod, eftersom rätt val beror på hur utdatan används. Att välja åt något håll på känsla hade gått snabbare och hade inte bevisat något.',
+          link: {
+            href: '/poro-findings.pdf',
+            label: 'Läs studien',
+          },
+        },
+        {
+          title: 'Oftast är buggen min',
+          body: 'När svaren började koppla fel datum till min egen forskning var den bekväma förklaringen att en liten modell hallucinerade. Det gjorde den inte. Datumet föll bort vid prompt-gränsen innan modellen någonsin såg det. Tre tidigare försök att fixa det på modellsidan är nedskrivna som återvändsgränder, så nästa person som tittar inte behöver lägga ner en vecka som jag gjorde.',
+        },
+        {
+          title: 'En mätning som inte ändrade något',
+          body: 'En flerspråkig embedder såg ut som den självklara uppgraderingen för finsk retrieval. Uppmätt sida vid sida fick den redan driftsatta uppsättningen 0,810 mot kandidatens 0,762, så inget skeppades. Experimentet som talar emot din plan är lika mycket värt som det som bekräftar den, förutsatt att du skriver ner det ändå.',
+        },
       ],
     },
     now: {
