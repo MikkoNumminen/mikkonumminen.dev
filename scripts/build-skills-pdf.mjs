@@ -263,6 +263,10 @@ function renderCrossModelCallout(data) {
       if (measured.length >= 2) multiModel.push({ repo: r.name, name: s.name });
     }
   }
+  // Built-in Claude Code commands the author also measured are a SEPARATE
+  // population from the register's own skills — folding them into one "skills"
+  // count made the callout read as more skills tested than the headline's total.
+  const builtInMultiModel = [];
   for (const br of data.built_in_references ?? []) {
     if (!br.alt_model_measurements) continue;
     const measured = [];
@@ -270,13 +274,16 @@ function renderCrossModelCallout(data) {
     for (const [m, v] of Object.entries(br.alt_model_measurements)) {
       if (v?.arm_A_tokens != null && v?.arm_B_tokens != null) measured.push(m);
     }
-    if (measured.length >= 2)
-      multiModel.push({ repo: 'built-in', name: br.label ?? br.name });
+    if (measured.length >= 2) builtInMultiModel.push(br.label ?? br.name);
   }
   const n = multiModel.length;
   if (n === 0) return '';
+  const builtInClause =
+    builtInMultiModel.length > 0
+      ? `, as ${builtInMultiModel.length === 1 ? 'was' : 'were'} ${builtInMultiModel.length} built-in command${builtInMultiModel.length === 1 ? '' : 's'}`
+      : '';
   return `<aside class="callout avoid-break">
-  <p><strong>Across-model pattern.</strong> ${n} skills were A/B-tested on more than one model. The save rate is what changes: skills that save 50%+ on Sonnet typically settle at 20–40% on Opus. The skill arm does not get more expensive — the cold arm gets cheaper, because a stronger model needs less scaffolding to do the task well. A skill's measured value is not a fixed property; it is relative to the model underneath it. See the per-model save columns below.</p>
+  <p><strong>Across-model pattern.</strong> ${n} of these skills were A/B-tested on more than one model${builtInClause}. The save rate is what changes: skills that save 50%+ on Sonnet typically settle at 20–40% on Opus. The skill arm does not get more expensive — the cold arm gets cheaper, because a stronger model needs less scaffolding to do the task well. A skill's measured value is not a fixed property; it is relative to the model underneath it. See the per-model save columns below.</p>
 </aside>`;
 }
 
@@ -483,7 +490,22 @@ function renderSpineTable(data) {
         repo.github_url && isSafeHref(repo.github_url)
           ? ` · <a href="${esc(repo.github_url)}">${esc(repo.github_url.replace(/^https?:\/\//, ''))}</a>`
           : '';
-      const heading = `<tr class="group-heading"><td colspan="7"><strong>${esc(repo.name)}</strong>${url} · ${repo.skills.length} skill${repo.skills.length === 1 ? '' : 's'}</td></tr>`;
+      // Count active vs redirect so the heading reconciles with the lede's
+      // active-skill total instead of re-introducing the raw file count.
+      const redirectCount = repo.skills.filter((s) => s.redirect).length;
+      const activeCount = repo.skills.length - redirectCount;
+      // Suppress a "0 skills" segment for an all-redirect repo; show just the
+      // redirect count in that (unlikely) case.
+      const activeLabel =
+        activeCount > 0 || redirectCount === 0
+          ? `${activeCount} skill${activeCount === 1 ? '' : 's'}`
+          : '';
+      const redirectLabel =
+        redirectCount > 0
+          ? `${redirectCount} redirect${redirectCount === 1 ? '' : 's'}`
+          : '';
+      const countLabel = [activeLabel, redirectLabel].filter(Boolean).join(' · ');
+      const heading = `<tr class="group-heading"><td colspan="7"><strong>${esc(repo.name)}</strong>${url} · ${countLabel}</td></tr>`;
       const rows = repo.skills.map((s) =>
         spineRowHtml({
           name: s.name,
@@ -812,6 +834,12 @@ function buildAggregates(data) {
     let calibArmATotal = 0;
     let calibArmBTotal = 0;
     for (const s of r.skills) {
+      // A redirect stub is a tombstone, not a measured skill. Exclude it from
+      // every aggregate so the calibrated/measured counts can never exceed the
+      // active-skill total the headline reports — even if a superseded skill
+      // kept an old receipt, which would otherwise revive the "more tested than
+      // total" contradiction this file just removed.
+      if (s.redirect) continue;
       const rec = s.receipt;
       if (!rec) continue;
       const saved = tokensSavedAnnual(rec);
@@ -893,6 +921,18 @@ function buildHtml(data, css) {
   const generated = data.generated_at.slice(0, 10);
   const agg = buildAggregates(data);
   const calibratedCount = agg.perRepo.reduce((n, r) => n + (r.calibratedCount || 0), 0);
+  // Headline the ACTIVE skills, not every file. A redirect skill is a tombstone
+  // pointing at its replacement — it has no receipt to show, so counting it in a
+  // receipts document only invites "where is the untested one?". The redirect is
+  // still listed (labelled) in the per-skill table; it just does not inflate the
+  // headline past the number the measured breakdown reconciles to. Derived from
+  // the same per-skill redirect flags the per-repo headings use, so the headline
+  // and the headings can never disagree (a stale totals.redirects in a
+  // hand-edited registry would).
+  const activeSkills = data.repos.reduce(
+    (n, r) => n + r.skills.filter((s) => !s.redirect).length,
+    0,
+  );
 
   return `<!doctype html>
 <html lang="en">
@@ -905,7 +945,7 @@ function buildHtml(data, css) {
 
 <header>
   <h1>Skill registry — ${esc(generated)}</h1>
-  <p class="lede-short">A register of every custom slash-command skill I have written for Claude Code, with measurement when I have it and an honest guess when I do not. ${data.repos.length} repos, ${data.totals.skills} skills, ${calibratedCount} A/B-tested.</p>
+  <p class="lede-short">A register of every custom slash-command skill I have written for Claude Code, with measurement when I have it and an honest guess when I do not. ${data.repos.length} repos, ${activeSkills} skills, ${calibratedCount} A/B-tested.</p>
 </header>
 
 ${renderHero(agg.perRepo)}
