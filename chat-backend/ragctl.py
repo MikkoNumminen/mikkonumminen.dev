@@ -38,6 +38,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -56,6 +57,16 @@ FUNNEL_PORT = "8000"
 # other projects' funnels (on other ports), so every enable/disable — and the
 # status check — is scoped to exactly this one.
 FUNNEL_HTTPS_PORT = "443"
+# The genuine end-to-end visitor path: browser -> Vercel rewrite -> funnel ->
+# backend. Probing this from the node is NOT a hairpin — it goes out to the
+# internet and back — so it can see the "local healthy, public path dead" state
+# that every local check misses (the 2026-07-20 stale-ingress outage).
+PUBLIC_SITE_HEALTH_URL = "https://mikkonumminen-dev.vercel.app/api/rag/health"
+# Same host, static root: served by Vercel whenever we have internet at all,
+# regardless of the funnel. Reachable here but /api/rag down => the funnel is the
+# problem (recover it). Unreachable => a dead uplink, which no local action can
+# fix, so the watchdog must NOT flap tailscale down/up against it.
+INTERNET_PROBE_URL = "https://mikkonumminen-dev.vercel.app/"
 DOCKER_DESKTOP_EXE = "/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
 
 # "effort" presets -> (temperature, num_predict). Low temperature for grounded
@@ -458,6 +469,81 @@ def check_public(url: str | None) -> tuple[str, str]:
     return ("warn", "public but llm not ready")
 
 
+# --- watchdog: auto-recover the public path --------------------------------
+# The 2026-07-20 outage: a network change left tailscale's connection to its
+# funnel INGRESS relays stale, so the visitor path 502'd while every local check
+# (backend, funnel config, cert, node health) stayed green. Nothing local can
+# see it; only an external probe can. This guards that path unattended.
+
+
+def watchdog_action(
+    external_ok: bool,
+    local_ok: bool,
+    internet_ok: bool,
+    consecutive_failures: int,
+    fail_threshold: int,
+    reasserted_this_outage: bool,
+) -> str:
+    """Decide the watchdog's next move from the health signals. Pure.
+
+    Returns one of:
+      "ok"                — public path healthy; clear outage state.
+      "wait"              — down, but under `fail_threshold` consecutive failures;
+                            treat as a transient blip, do nothing yet.
+      "skip-no-internet"  — down AND the uplink itself is dead; no local action
+                            can help, so never flap tailscale against it.
+      "skip-backend-down" — down AND the local backend is down too; the operator
+                            must bring the stack up (`ragctl up`), not reconnect.
+      "reassert"          — confirmed public outage, backend + internet fine: try
+                            the cheap scoped fix first (`funnel --bg 8000`).
+      "reconnect"         — a re-assert already failed this outage, so force a
+                            full `tailscale down/up` to rebuild the ingress.
+
+    `consecutive_failures` counts consecutive external-broken polls INCLUDING the
+    current one. `reasserted_this_outage` becomes True after the first re-assert
+    since the last healthy poll, escalating the next action to a reconnect.
+    """
+    if external_ok:
+        return "ok"
+    if consecutive_failures < fail_threshold:
+        return "wait"
+    if not internet_ok:
+        return "skip-no-internet"
+    if not local_ok:
+        return "skip-backend-down"
+    if not reasserted_this_outage:
+        return "reassert"
+    return "reconnect"
+
+
+def _reachable(url: str, timeout: int = 8) -> bool:
+    """True if the host answered at all — any HTTP status counts as 'we have a
+    path to it', so a 4xx/5xx still means the uplink is alive."""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return 200 <= r.status < 500
+    except urllib.error.HTTPError:
+        return True  # got an HTTP response => reachable (internet is up)
+    except Exception:
+        return False
+
+
+def public_path_ok() -> bool:
+    """True iff the Vercel visitor path returns a healthy backend /health."""
+    body = http_json(PUBLIC_SITE_HEALTH_URL, timeout=12)
+    return bool(body and body.get("checks", {}).get("llm") is True)
+
+
+def internet_ok() -> bool:
+    """True iff the static site root answers — a funnel-independent uplink canary."""
+    return _reachable(INTERNET_PROBE_URL)
+
+
+def local_backend_ok() -> bool:
+    """True iff the backend answers healthily on localhost (funnel-independent)."""
+    return check_backend_health()[0] == "ok"
+
+
 def defender_note() -> str:
     """Windows Defender real-time-protection state, via Get-MpComputerStatus.
 
@@ -723,6 +809,85 @@ def cmd_down() -> int:
     return 0
 
 
+def _wd_stamp() -> str:
+    return time.strftime("%H:%M:%S")
+
+
+def _watchdog_reassert(ts: str) -> None:
+    # Force the scoped re-assert — do NOT gate on check_funnel(): in the
+    # stale-ingress failure mode the route IS present and check_funnel reports
+    # ok, which is exactly why this outage class is invisible locally. Scoped to
+    # :8000, so the other project's funnel is untouched.
+    print(f"  ▲ {_wd_stamp()}  re-asserting funnel route (--bg {FUNNEL_PORT}) …")
+    run([ts, "funnel", "--bg", FUNNEL_PORT], timeout=20)
+
+
+def _watchdog_reconnect(ts: str) -> None:
+    # The heavier fix for a stale ingress after a network change: reconnect the
+    # whole node so it re-establishes across all ingress relays. Funnel config
+    # persists across down/up, so both this and the other project's routes come
+    # back. Briefly blips the node — the price of self-healing.
+    print(f"  ▲ {_wd_stamp()}  re-asserting did not take — tailscale down/up …")
+    run([ts, "down"], timeout=25)
+    run([ts, "up"], timeout=40)
+
+
+def cmd_watchdog(
+    interval: int = 120, fail_threshold: int = 2, cooldown: int = 300
+) -> int:
+    """Guard the PUBLIC visitor path and auto-recover a stale funnel ingress.
+
+    Polls the Vercel path (a true external probe); on a confirmed outage with a
+    healthy backend and a live uplink, escalates re-assert -> down/up, with a
+    cooldown so it can never flap. Ctrl-C to stop."""
+    ts = tailscale_exe()
+    if not ts:
+        print("  ○ tailscale.exe not found — the watchdog can't recover the funnel")
+        return 1
+    print(_c("\n  rag watchdog — guarding the public visitor path\n", "1"))
+    print(f"  probe   {PUBLIC_SITE_HEALTH_URL}")
+    print(
+        f"  every {interval}s · act after {fail_threshold} consecutive failures ·"
+        f" {cooldown}s cooldown between recovery attempts\n"
+    )
+    failures = 0
+    reasserted = False
+    try:
+        while True:
+            ext = public_path_ok()
+            failures = 0 if ext else failures + 1
+            action = watchdog_action(
+                ext,
+                local_backend_ok() if not ext else True,
+                internet_ok() if not ext else True,
+                failures,
+                fail_threshold,
+                reasserted,
+            )
+            wait = interval
+            if action == "ok":
+                if reasserted:
+                    print(f"  ● {_wd_stamp()}  public path recovered")
+                reasserted = False
+            elif action == "wait":
+                print(f"  ◐ {_wd_stamp()}  public path down ({failures}) — transient")
+            elif action == "skip-no-internet":
+                print(f"  ○ {_wd_stamp()}  no uplink — nothing local can fix that")
+            elif action == "skip-backend-down":
+                print(f"  ○ {_wd_stamp()}  backend down too — run `ragctl up`")
+            elif action == "reassert":
+                _watchdog_reassert(ts)
+                reasserted = True
+                wait = cooldown
+            elif action == "reconnect":
+                _watchdog_reconnect(ts)
+                wait = cooldown
+            time.sleep(wait)  # interruptible by Ctrl-C
+    except KeyboardInterrupt:
+        print("\n  watchdog stopped (funnel left as-is).")
+    return 0
+
+
 def cmd_prune() -> int:
     """Reclaim Docker disk left by rebuilds — build cache, stopped containers, and
     dangling images. Disk only: the running stack, the named volumes (Postgres
@@ -958,13 +1123,14 @@ _MENU: list[tuple[str, str]] = [
     ("usage [--hours N]", "how much the model's been used (24h)"),
     ("logs", "show recent questions + answers (request log)"),
     ("prune", "reclaim docker disk (rebuild cache, stopped containers)"),
+    ("watchdog", "guard the public path, auto-recover a stale funnel"),
     ("exit", "leave ragctl"),
 ]
 
 # Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
 _VERBS = [
     "status", "watch", "doctor", "up", "down", "test", "model", "english",
-    "usage", "logs", "prune", "exit", "quit",
+    "usage", "logs", "prune", "watchdog", "exit", "quit",
 ]
 
 
@@ -1035,6 +1201,25 @@ def _build_parser() -> argparse.ArgumentParser:
         "prune",
         help="reclaim docker disk: build cache + stopped containers + dangling images",
     )
+    wd = sub.add_parser(
+        "watchdog",
+        help="guard the public path and auto-recover a stale funnel (Ctrl-C stops)",
+    )
+    wd.add_argument(
+        "--interval", type=int, default=120, help="seconds between probes (default 120)"
+    )
+    wd.add_argument(
+        "--fail-threshold",
+        type=int,
+        default=2,
+        help="consecutive failures before acting (default 2)",
+    )
+    wd.add_argument(
+        "--cooldown",
+        type=int,
+        default=300,
+        help="seconds to wait after a recovery attempt (default 300)",
+    )
     return p
 
 
@@ -1065,6 +1250,8 @@ def dispatch(argv: list[str]) -> int:
         return cmd_logs(args.n)
     if args.cmd == "prune":
         return cmd_prune()
+    if args.cmd == "watchdog":
+        return cmd_watchdog(args.interval, args.fail_threshold, args.cooldown)
     p.print_help()
     return 0
 
