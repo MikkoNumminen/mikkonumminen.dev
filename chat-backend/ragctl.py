@@ -35,6 +35,7 @@ import json
 import os
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -48,6 +49,11 @@ COMPOSE = ["docker", "compose"]
 # below to this container path; `ragctl up` enables it. Host file == REPO/rag-logs.
 RAG_LOG_DIR = REPO / "rag-logs"
 RAG_LOG_CONTAINER_FILE = "/srv/rag-logs/requests.jsonl"
+# The autostarted background watchdog records its pid here and streams its output
+# to the log beside it, so `up` can spawn it, `down` can stop it, and `status`
+# can report whether it's running.
+WATCHDOG_PID_FILE = RAG_LOG_DIR / "watchdog.pid"
+WATCHDOG_LOG_FILE = RAG_LOG_DIR / "watchdog.log"
 BACKEND_HEALTH = "http://localhost:8000/health"
 BACKEND_CHAT = "http://localhost:8000/chat"
 BACKEND_USAGE = "http://localhost:8000/usage"
@@ -673,6 +679,11 @@ def render(rows: list[tuple[str, tuple[str, str]]]) -> str:
 def cmd_status() -> int:
     rows = gather()
     print(render(rows))
+    # Reported below the board, not as a board row: the watchdog is optional
+    # protection, so its being off must not flip the board's LIVE verdict.
+    pid = watchdog_pid()
+    note = f"running (pid {pid})" if pid else "off — `ragctl watchdog` or re-`up`"
+    print(f"  {_c('●' if pid else '○', '2')} watchdog       {note}\n")
     return 0 if all(r[1][0] == "ok" for r in rows) else 1
 
 
@@ -781,7 +792,91 @@ def ensure_funnel() -> None:
     print(f"  ● Funnel → {funnel_url()}")
 
 
-def cmd_up(keep: bool) -> int:
+# --- watchdog daemon lifecycle (autostarted by `up`, stopped by `down`) -----
+
+
+def _proc_argv(pid: int) -> list[str] | None:
+    """argv of `pid` from /proc, or None if it isn't running / readable. ragctl
+    runs in WSL (Linux), so /proc is always available."""
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return None
+    return [p.decode("utf-8", "replace") for p in raw.split(b"\x00") if p]
+
+
+def _cmdline_is_watchdog(argv: list[str] | None) -> bool:
+    """True iff `argv` is our watchdog invocation. Guards against a RECYCLED pid:
+    a crashed watchdog whose pid Linux reassigned to an unrelated process must NOT
+    read as 'the watchdog', or `down` would SIGTERM a stranger and `up` would
+    refuse to respawn (silently leaving the path unguarded)."""
+    return bool(argv) and "watchdog" in argv and any("ragctl" in a for a in argv)
+
+
+def watchdog_pid() -> int | None:
+    """The running background watchdog's pid, or None. A stale pid file, a gone
+    process, OR a recycled pid now owned by something else all read as None — so a
+    crashed watchdog re-spawns cleanly and stop never signals the wrong process."""
+    try:
+        pid = int(WATCHDOG_PID_FILE.read_text().strip())
+    except (OSError, ValueError):
+        return None
+    return pid if _cmdline_is_watchdog(_proc_argv(pid)) else None
+
+
+def start_watchdog_daemon() -> int | None:
+    """Spawn the watchdog as a DETACHED background process and record its pid.
+
+    Idempotent: a second call while one is running is a no-op. Safe to call from
+    `up` before the model has warmed — the watchdog's backend-down guard makes it
+    stand down (never reconnect) until the stack is actually serving.
+    """
+    running = watchdog_pid()
+    if running is not None:
+        print(f"  ● watchdog already running (pid {running})")
+        return running
+    RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    # The child inherits the log fd, so the parent can close its own handle on
+    # exit without cutting the child's output. start_new_session detaches it so
+    # it outlives this `ragctl` invocation (and Ctrl-C in the REPL).
+    with open(WATCHDOG_LOG_FILE, "a", encoding="utf-8") as log:
+        proc = subprocess.Popen(
+            # -u: unbuffered, so each poll/alert line reaches the log immediately.
+            # Block-buffered stdout to a file would strand the watchdog's output
+            # (including its alerts) in a buffer that a sparse logger never fills.
+            [sys.executable, "-u", str(Path(__file__).resolve()), "watchdog"],
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+            cwd=str(REPO),
+        )
+    WATCHDOG_PID_FILE.write_text(str(proc.pid))
+    print(f"  ● watchdog started (pid {proc.pid}) — log: {WATCHDOG_LOG_FILE}")
+    return proc.pid
+
+
+def stop_watchdog_daemon() -> bool:
+    """Stop the background watchdog if running; return whether one was killed.
+
+    `down` calls this FIRST, before cutting the funnel — otherwise the still-live
+    watchdog would see the public path drop (because WE turned the funnel off) and
+    race to 'recover' the very funnel we are intentionally shutting down.
+    """
+    pid = watchdog_pid()
+    if pid is None:
+        WATCHDOG_PID_FILE.unlink(missing_ok=True)
+        return False
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        pass
+    WATCHDOG_PID_FILE.unlink(missing_ok=True)
+    print(f"  ● watchdog stopped (pid {pid})")
+    return True
+
+
+def cmd_up(keep: bool, watchdog: bool = True) -> int:
     print(_c("\n  bringing the rag up …\n", "1"))
     if not ensure_docker():
         return 1
@@ -792,6 +887,8 @@ def cmd_up(keep: bool) -> int:
     # No separate blocking warm: the live board's /health check loads and verifies
     # the model lazily and SHOWS it happening, instead of a silent multi-second
     # `ollama run` that made `up` feel hung.
+    if watchdog:
+        start_watchdog_daemon()
     if keep:
         print()
         print(render(gather()))
@@ -809,6 +906,8 @@ def cmd_up(keep: bool) -> int:
 
 def cmd_down() -> int:
     print(_c("\n  cutting the rag …", "1"))
+    # Stop the watchdog BEFORE cutting the funnel, or it would fight the shutdown.
+    stop_watchdog_daemon()
     print("  ◐ docker compose down (frees VRAM) …")
     run(COMPOSE + ["down"], cwd=REPO, timeout=120)
     ts = tailscale_exe()
@@ -854,6 +953,15 @@ def _watchdog_reconnect(ts: str) -> bool:
     return True
 
 
+def _wd_sleep(seconds: int, stop: dict[str, bool]) -> None:
+    """Sleep up to `seconds`, waking within ~1s of a stop request so the daemon
+    reacts promptly to `ragctl down` instead of waiting out a full cooldown."""
+    for _ in range(seconds):
+        if stop["requested"]:
+            return
+        time.sleep(1)
+
+
 def cmd_watchdog(
     interval: int = 120, fail_threshold: int = 2, cooldown: int = 300
 ) -> int:
@@ -861,7 +969,8 @@ def cmd_watchdog(
 
     Polls the Vercel path (a true external probe); on a confirmed outage with a
     healthy backend and a live uplink, escalates re-assert -> down/up, with a
-    cooldown so it can never flap. Ctrl-C to stop."""
+    cooldown so it can never flap. Ctrl-C or SIGTERM (`ragctl down`) to stop;
+    a stop that lands mid-reconnect lets the down/up finish first."""
     ts = tailscale_exe()
     if not ts:
         print("  ○ tailscale.exe not found — the watchdog can't recover the funnel")
@@ -875,8 +984,18 @@ def cmd_watchdog(
     failures = 0
     reasserted = False
     reconnects = 0
+    # SIGTERM (how `ragctl down` stops the daemon) sets a flag checked only at
+    # loop boundaries — NON-raising, so a stop that lands mid-reconnect lets the
+    # in-flight `tailscale down/up` FINISH before we exit. The node is never left
+    # down by the stop itself. Ctrl-C (SIGINT) still exits via KeyboardInterrupt.
+    stop = {"requested": False}
+
+    def _request_stop(signum: int, frame: object) -> None:
+        stop["requested"] = True
+
+    old_handler = signal.signal(signal.SIGTERM, _request_stop)
     try:
-        while True:
+        while not stop["requested"]:
             ext = probe_public_path()
             failures = 0 if ext else failures + 1
             # The local + uplink probes only matter when the public path is down;
@@ -921,9 +1040,14 @@ def cmd_watchdog(
                     "or a Vercel-side issue). Not churning the shared node further."
                 )
                 wait = cooldown
-            time.sleep(wait)  # interruptible by Ctrl-C
+            if stop["requested"]:
+                break
+            _wd_sleep(wait, stop)
+        print("\n  watchdog stopping (SIGTERM) — funnel left as-is.")
     except KeyboardInterrupt:
         print("\n  watchdog stopped (funnel left as-is).")
+    finally:
+        signal.signal(signal.SIGTERM, old_handler)
     return 0
 
 
@@ -1198,6 +1322,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="leave it running instead of holding the board",
     )
+    up.add_argument(
+        "--no-watchdog",
+        action="store_true",
+        help="don't autostart the public-path watchdog",
+    )
     sub.add_parser("down", help="cut the rag: compose down + funnel off")
     test = sub.add_parser("test", help="doctor the live model with a test question")
     test.add_argument("question", help="the question to ask")
@@ -1274,7 +1403,7 @@ def dispatch(argv: list[str]) -> int:
     if args.cmd == "doctor":
         return cmd_doctor()
     if args.cmd == "up":
-        return cmd_up(keep=args.keep)
+        return cmd_up(keep=args.keep, watchdog=not args.no_watchdog)
     if args.cmd == "down":
         return cmd_down()
     if args.cmd == "test":

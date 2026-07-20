@@ -140,3 +140,123 @@ def test_healthy_http_false_on_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(urllib.request, "urlopen", boom)
     assert _healthy_http("https://x") is False
+
+
+# --- daemon lifecycle (autostart on up / stop on down) ----------------------
+
+
+def test_cmdline_is_watchdog_matches_only_our_invocation() -> None:
+    assert ragctl._cmdline_is_watchdog(
+        ["/usr/bin/python3", "-u", "/srv/chat-backend/ragctl.py", "watchdog"]
+    )
+    # A recycled pid now owned by a stranger must NOT match.
+    assert not ragctl._cmdline_is_watchdog(["/usr/bin/vim", "notes.txt"])
+    # ragctl running some OTHER subcommand is not the watchdog either.
+    assert not ragctl._cmdline_is_watchdog(["python3", "ragctl.py", "status"])
+    assert not ragctl._cmdline_is_watchdog(None)  # not alive / unreadable
+    assert not ragctl._cmdline_is_watchdog([])  # zombie: empty cmdline
+
+
+def test_watchdog_pid_missing_stale_recycled_and_live(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    pidfile = tmp_path / "watchdog.pid"
+    monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", pidfile)
+    assert ragctl.watchdog_pid() is None  # no file yet
+
+    pidfile.write_text("4242")
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: None)
+    assert ragctl.watchdog_pid() is None  # process gone
+
+    # Recycled pid: alive, but it's a DIFFERENT program — must read as not ours.
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["/usr/bin/vim", "x"])
+    assert ragctl.watchdog_pid() is None
+
+    monkeypatch.setattr(
+        ragctl, "_proc_argv", lambda pid: ["python3", "ragctl.py", "watchdog"]
+    )
+    assert ragctl.watchdog_pid() == 4242  # our live watchdog
+
+    pidfile.write_text("not-a-number")
+    assert ragctl.watchdog_pid() is None  # unparseable reads as not running
+
+
+def test_start_is_idempotent_when_already_running(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 777)
+
+    def no_spawn(*a: object, **k: object) -> None:
+        raise AssertionError("must not spawn a second watchdog")
+
+    monkeypatch.setattr(ragctl.subprocess, "Popen", no_spawn)
+    assert ragctl.start_watchdog_daemon() == 777
+
+
+def test_stop_kills_running_watchdog(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    pidfile = tmp_path / "watchdog.pid"
+    pidfile.write_text("555")
+    monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", pidfile)
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
+    killed: list[tuple[int, int]] = []
+    monkeypatch.setattr(ragctl.os, "kill", lambda pid, sig: killed.append((pid, sig)))
+    assert ragctl.stop_watchdog_daemon() is True
+    assert killed == [(555, ragctl.signal.SIGTERM)]
+    assert not pidfile.exists()  # pid file cleaned up
+
+
+def test_stop_is_a_noop_when_not_running(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", tmp_path / "watchdog.pid")
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
+    assert ragctl.stop_watchdog_daemon() is False
+
+
+def test_down_stops_watchdog_before_cutting_the_funnel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Critical ordering: if the funnel were cut first, the still-live watchdog
+    # would see the public path drop and race to 'recover' the funnel we are
+    # deliberately turning off.
+    calls: list[str] = []
+    monkeypatch.setattr(
+        ragctl, "stop_watchdog_daemon", lambda: calls.append("stop-watchdog") or True
+    )
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+
+    def fake_run(cmd: list[str], **k: object) -> tuple[int, str]:
+        calls.append(" ".join(str(c) for c in cmd))
+        return (0, "")
+
+    monkeypatch.setattr(ragctl, "run", fake_run)
+    ragctl.cmd_down()
+    assert calls[0] == "stop-watchdog"
+    funnel_off = next(i for i, c in enumerate(calls) if "funnel" in c and "off" in c)
+    assert calls.index("stop-watchdog") < funnel_off
+
+
+def test_up_autostarts_the_watchdog_unless_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Stub out everything that touches docker/funnel; assert only the autostart
+    # wiring, both with and without --no-watchdog.
+    monkeypatch.setattr(ragctl, "ensure_docker", lambda: True)
+    monkeypatch.setattr(ragctl, "ensure_request_log", lambda: None)
+    monkeypatch.setattr(ragctl, "ensure_funnel", lambda: None)
+    monkeypatch.setattr(ragctl, "run", lambda *a, **k: (0, ""))
+    monkeypatch.setattr(ragctl, "gather", lambda: [])
+    monkeypatch.setattr(ragctl, "render", lambda rows: "")
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+    started: list[bool] = []
+    monkeypatch.setattr(ragctl, "start_watchdog_daemon", lambda: started.append(True))
+
+    ragctl.cmd_up(keep=True, watchdog=True)
+    assert started == [True]
+
+    started.clear()
+    ragctl.cmd_up(keep=True, watchdog=False)
+    assert started == []
