@@ -82,3 +82,33 @@ async def test_zero_ttl_disables_caching() -> None:
     await flag.get(refresh)
     await flag.get(refresh)
     assert calls["n"] == 3  # every call re-probes
+
+
+@pytest.mark.asyncio
+async def test_false_is_never_cached_so_recovery_is_immediate() -> None:
+    # The regression this guards: caching a not-ready result would keep the boot
+    # board / chat reveal showing "down" for up to the TTL after the model is up.
+    clock = _Clock()
+    flag = CachedFlag(30.0, clock=clock)
+    state = {"up": False}
+
+    async def refresh() -> bool:
+        return state["up"]
+
+    assert await flag.get(refresh) is False  # model still loading
+    clock.t = 1.0
+    state["up"] = True
+    assert await flag.get(refresh) is True  # recovery seen at +1s, not +30s
+
+
+@pytest.mark.asyncio
+async def test_a_down_model_is_re_probed_every_call() -> None:
+    clock = _Clock()
+    flag = CachedFlag(30.0, clock=clock)
+    refresh, calls = _counter(False)
+    await flag.get(refresh)
+    clock.t = 1.0
+    await flag.get(refresh)
+    clock.t = 2.0
+    await flag.get(refresh)
+    assert calls["n"] == 3  # a False is never held; always re-checked

@@ -458,6 +458,31 @@ describe('startChatAvailabilityPolling', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
+  it('does not keep polling when the tab hides while a probe is in flight', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    let resolveProbe: ((r: Response) => void) | undefined;
+    const fetchImpl = vi.fn(
+      () =>
+        new Promise<Response>((res) => {
+          resolveProbe = res;
+        }),
+    );
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0); // initial probe is now in flight
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+    setVisibility('hidden'); // hide BEFORE the probe resolves
+    resolveProbe?.(
+      jsonResponse(true, { status: 'ok', checks: { db: true, llm: true }, model: 'm' }),
+    );
+    await vi.advanceTimersByTimeAsync(5000); // the finally must not re-arm a timer
+    expect(fetchImpl).toHaveBeenCalledTimes(1); // …so no further probe fires
+  });
+
   it('hides (false) when the backend goes away', async () => {
     vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
     let up = true;

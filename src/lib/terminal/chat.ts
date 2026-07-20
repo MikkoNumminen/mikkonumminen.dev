@@ -370,7 +370,10 @@ export function startChatAvailabilityPolling(
       }
     } finally {
       ticking = false;
-      schedule();
+      // Don't re-arm while hidden. If the tab was hidden mid-probe, stop cleanly
+      // rather than leaving a timer that would fire one more (no-op) tick;
+      // onVisibility restarts the loop on 'visible'.
+      if (document.visibilityState !== 'hidden') schedule();
     }
   };
 

@@ -82,11 +82,13 @@ async def _db_ok(db: Database) -> bool:
         return False
 
 
-# How long a /health LLM-liveness result is reused before re-probing the model.
+# How long an ALIVE /health LLM result is reused before re-probing the model.
 # Set just above the frontend poll interval (25s) so one viewer's back-to-back
-# probes reuse the result and many viewers can't fan out into a completion each;
-# staleness of the liveness pill is bounded by this. A model switch is reflected
-# within this window.
+# probes reuse the result and many viewers can't fan out into a completion each.
+# Only the alive result is cached (see health_cache.py): a not-ready/down result
+# is never held, so boot and recovery are detected on the next probe rather than
+# after this window. Staleness applies only to a model going DOWN while cached
+# up — bounded by this — and a model switch is reflected within the window.
 HEALTH_LLM_CACHE_SECONDS = 30.0
 
 
