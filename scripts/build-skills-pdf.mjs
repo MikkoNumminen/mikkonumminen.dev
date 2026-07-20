@@ -494,11 +494,17 @@ function renderSpineTable(data) {
       // active-skill total instead of re-introducing the raw file count.
       const redirectCount = repo.skills.filter((s) => s.redirect).length;
       const activeCount = repo.skills.length - redirectCount;
-      const countLabel =
-        `${activeCount} skill${activeCount === 1 ? '' : 's'}` +
-        (redirectCount > 0
-          ? ` · ${redirectCount} redirect${redirectCount === 1 ? '' : 's'}`
-          : '');
+      // Suppress a "0 skills" segment for an all-redirect repo; show just the
+      // redirect count in that (unlikely) case.
+      const activeLabel =
+        activeCount > 0 || redirectCount === 0
+          ? `${activeCount} skill${activeCount === 1 ? '' : 's'}`
+          : '';
+      const redirectLabel =
+        redirectCount > 0
+          ? `${redirectCount} redirect${redirectCount === 1 ? '' : 's'}`
+          : '';
+      const countLabel = [activeLabel, redirectLabel].filter(Boolean).join(' · ');
       const heading = `<tr class="group-heading"><td colspan="7"><strong>${esc(repo.name)}</strong>${url} · ${countLabel}</td></tr>`;
       const rows = repo.skills.map((s) =>
         spineRowHtml({
@@ -828,6 +834,12 @@ function buildAggregates(data) {
     let calibArmATotal = 0;
     let calibArmBTotal = 0;
     for (const s of r.skills) {
+      // A redirect stub is a tombstone, not a measured skill. Exclude it from
+      // every aggregate so the calibrated/measured counts can never exceed the
+      // active-skill total the headline reports — even if a superseded skill
+      // kept an old receipt, which would otherwise revive the "more tested than
+      // total" contradiction this file just removed.
+      if (s.redirect) continue;
       const rec = s.receipt;
       if (!rec) continue;
       const saved = tokensSavedAnnual(rec);
@@ -913,8 +925,14 @@ function buildHtml(data, css) {
   // pointing at its replacement — it has no receipt to show, so counting it in a
   // receipts document only invites "where is the untested one?". The redirect is
   // still listed (labelled) in the per-skill table; it just does not inflate the
-  // headline past the number the measured breakdown reconciles to.
-  const activeSkills = data.totals.skills - (data.totals.redirects || 0);
+  // headline past the number the measured breakdown reconciles to. Derived from
+  // the same per-skill redirect flags the per-repo headings use, so the headline
+  // and the headings can never disagree (a stale totals.redirects in a
+  // hand-edited registry would).
+  const activeSkills = data.repos.reduce(
+    (n, r) => n + r.skills.filter((s) => !s.redirect).length,
+    0,
+  );
 
   return `<!doctype html>
 <html lang="en">
