@@ -34,9 +34,14 @@ Operational runbook for shipping changes to the local RAG chat that powers the
   reconnects that don't recover it, **gives up and alerts** (rather than churning
   the shared node forever against something a reconnect can't fix — expired auth,
   a Vercel-side incident); a dead uplink or a down backend also make it stand down
-  instead of reconnecting. Runs until Ctrl-C; leave it in a WSL pane, or start it
-  on boot via Task Scheduler / a login hook. Tune with `--interval` /
-  `--fail-threshold` / `--cooldown`.
+  instead of reconnecting. **`ragctl up` autostarts it** as a detached background
+  process (pid in `rag-logs/watchdog.pid`, output in `rag-logs/watchdog.log`) and
+  **`ragctl down` stops it** — first, before the funnel is cut, so it can't race
+  the shutdown. `ragctl status` shows whether it's running. Opt out with
+  `ragctl up --no-watchdog`; run it in the foreground with `ragctl watchdog`
+  (`--interval` / `--fail-threshold` / `--cooldown`). It does NOT survive a
+  reboot on its own — a Task Scheduler / login entry that runs `ragctl up` on
+  boot covers that.
 - **Shared funnel — never blanket-reset.** This operator runs Tailscale Funnels
   for **other projects on the same tailnet**, so treat the funnel as shared infra.
   This project owns `443 → 127.0.0.1:8000` on its node; `tailscale funnel status`
