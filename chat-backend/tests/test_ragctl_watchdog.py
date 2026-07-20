@@ -145,24 +145,19 @@ def test_healthy_http_false_on_error(monkeypatch: pytest.MonkeyPatch) -> None:
 # --- daemon lifecycle (autostart on up / stop on down) ----------------------
 
 
-def test_pid_alive_reads_os_kill(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(ragctl.os, "kill", lambda pid, sig: None)
-    assert ragctl._pid_alive(123) is True
-
-    def gone(pid: int, sig: int) -> None:
-        raise ProcessLookupError
-
-    monkeypatch.setattr(ragctl.os, "kill", gone)
-    assert ragctl._pid_alive(123) is False
-
-    def denied(pid: int, sig: int) -> None:
-        raise PermissionError
-
-    monkeypatch.setattr(ragctl.os, "kill", denied)
-    assert ragctl._pid_alive(123) is True  # exists, just not ours to signal
+def test_cmdline_is_watchdog_matches_only_our_invocation() -> None:
+    assert ragctl._cmdline_is_watchdog(
+        ["/usr/bin/python3", "-u", "/srv/chat-backend/ragctl.py", "watchdog"]
+    )
+    # A recycled pid now owned by a stranger must NOT match.
+    assert not ragctl._cmdline_is_watchdog(["/usr/bin/vim", "notes.txt"])
+    # ragctl running some OTHER subcommand is not the watchdog either.
+    assert not ragctl._cmdline_is_watchdog(["python3", "ragctl.py", "status"])
+    assert not ragctl._cmdline_is_watchdog(None)  # not alive / unreadable
+    assert not ragctl._cmdline_is_watchdog([])  # zombie: empty cmdline
 
 
-def test_watchdog_pid_missing_stale_and_live(
+def test_watchdog_pid_missing_stale_recycled_and_live(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     pidfile = tmp_path / "watchdog.pid"
@@ -170,11 +165,17 @@ def test_watchdog_pid_missing_stale_and_live(
     assert ragctl.watchdog_pid() is None  # no file yet
 
     pidfile.write_text("4242")
-    monkeypatch.setattr(ragctl, "_pid_alive", lambda pid: False)
-    assert ragctl.watchdog_pid() is None  # stale: process gone
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: None)
+    assert ragctl.watchdog_pid() is None  # process gone
 
-    monkeypatch.setattr(ragctl, "_pid_alive", lambda pid: True)
-    assert ragctl.watchdog_pid() == 4242  # live
+    # Recycled pid: alive, but it's a DIFFERENT program — must read as not ours.
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["/usr/bin/vim", "x"])
+    assert ragctl.watchdog_pid() is None
+
+    monkeypatch.setattr(
+        ragctl, "_proc_argv", lambda pid: ["python3", "ragctl.py", "watchdog"]
+    )
+    assert ragctl.watchdog_pid() == 4242  # our live watchdog
 
     pidfile.write_text("not-a-number")
     assert ragctl.watchdog_pid() is None  # unparseable reads as not running

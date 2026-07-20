@@ -795,25 +795,33 @@ def ensure_funnel() -> None:
 # --- watchdog daemon lifecycle (autostarted by `up`, stopped by `down`) -----
 
 
-def _pid_alive(pid: int) -> bool:
-    """True if a process with `pid` currently exists (POSIX; ragctl runs in WSL)."""
+def _proc_argv(pid: int) -> list[str] | None:
+    """argv of `pid` from /proc, or None if it isn't running / readable. ragctl
+    runs in WSL (Linux), so /proc is always available."""
     try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True  # exists but owned by another user — still alive
-    return True
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return None
+    return [p.decode("utf-8", "replace") for p in raw.split(b"\x00") if p]
+
+
+def _cmdline_is_watchdog(argv: list[str] | None) -> bool:
+    """True iff `argv` is our watchdog invocation. Guards against a RECYCLED pid:
+    a crashed watchdog whose pid Linux reassigned to an unrelated process must NOT
+    read as 'the watchdog', or `down` would SIGTERM a stranger and `up` would
+    refuse to respawn (silently leaving the path unguarded)."""
+    return bool(argv) and "watchdog" in argv and any("ragctl" in a for a in argv)
 
 
 def watchdog_pid() -> int | None:
-    """The running background watchdog's pid, or None. A stale pid file (the
-    process is gone) reads as None so a crashed watchdog re-spawns cleanly."""
+    """The running background watchdog's pid, or None. A stale pid file, a gone
+    process, OR a recycled pid now owned by something else all read as None — so a
+    crashed watchdog re-spawns cleanly and stop never signals the wrong process."""
     try:
         pid = int(WATCHDOG_PID_FILE.read_text().strip())
     except (OSError, ValueError):
         return None
-    return pid if _pid_alive(pid) else None
+    return pid if _cmdline_is_watchdog(_proc_argv(pid)) else None
 
 
 def start_watchdog_daemon() -> int | None:
@@ -945,6 +953,15 @@ def _watchdog_reconnect(ts: str) -> bool:
     return True
 
 
+def _wd_sleep(seconds: int, stop: dict[str, bool]) -> None:
+    """Sleep up to `seconds`, waking within ~1s of a stop request so the daemon
+    reacts promptly to `ragctl down` instead of waiting out a full cooldown."""
+    for _ in range(seconds):
+        if stop["requested"]:
+            return
+        time.sleep(1)
+
+
 def cmd_watchdog(
     interval: int = 120, fail_threshold: int = 2, cooldown: int = 300
 ) -> int:
@@ -952,7 +969,8 @@ def cmd_watchdog(
 
     Polls the Vercel path (a true external probe); on a confirmed outage with a
     healthy backend and a live uplink, escalates re-assert -> down/up, with a
-    cooldown so it can never flap. Ctrl-C to stop."""
+    cooldown so it can never flap. Ctrl-C or SIGTERM (`ragctl down`) to stop;
+    a stop that lands mid-reconnect lets the down/up finish first."""
     ts = tailscale_exe()
     if not ts:
         print("  ○ tailscale.exe not found — the watchdog can't recover the funnel")
@@ -966,8 +984,18 @@ def cmd_watchdog(
     failures = 0
     reasserted = False
     reconnects = 0
+    # SIGTERM (how `ragctl down` stops the daemon) sets a flag checked only at
+    # loop boundaries — NON-raising, so a stop that lands mid-reconnect lets the
+    # in-flight `tailscale down/up` FINISH before we exit. The node is never left
+    # down by the stop itself. Ctrl-C (SIGINT) still exits via KeyboardInterrupt.
+    stop = {"requested": False}
+
+    def _request_stop(signum: int, frame: object) -> None:
+        stop["requested"] = True
+
+    old_handler = signal.signal(signal.SIGTERM, _request_stop)
     try:
-        while True:
+        while not stop["requested"]:
             ext = probe_public_path()
             failures = 0 if ext else failures + 1
             # The local + uplink probes only matter when the public path is down;
@@ -1012,9 +1040,14 @@ def cmd_watchdog(
                     "or a Vercel-side issue). Not churning the shared node further."
                 )
                 wait = cooldown
-            time.sleep(wait)  # interruptible by Ctrl-C
+            if stop["requested"]:
+                break
+            _wd_sleep(wait, stop)
+        print("\n  watchdog stopping (SIGTERM) — funnel left as-is.")
     except KeyboardInterrupt:
         print("\n  watchdog stopped (funnel left as-is).")
+    finally:
+        signal.signal(signal.SIGTERM, old_handler)
     return 0
 
 
