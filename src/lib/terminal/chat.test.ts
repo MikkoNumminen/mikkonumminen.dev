@@ -367,8 +367,21 @@ describe('startChatAvailabilityPolling', () => {
   });
   afterEach(() => {
     ac.abort();
+    // Reset visibility so a test that hid the tab can't leak into the next one.
+    Object.defineProperty(document, 'visibilityState', {
+      value: 'visible',
+      configurable: true,
+    });
     vi.useRealTimers();
   });
+
+  function setVisibility(state: 'visible' | 'hidden'): void {
+    Object.defineProperty(document, 'visibilityState', {
+      value: state,
+      configurable: true,
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }
 
   /** A fetch stub whose `/health` `llm` flag + model name are read live. */
   function healthFetch(
@@ -421,6 +434,28 @@ describe('startChatAvailabilityPolling', () => {
     await vi.advanceTimersByTimeAsync(2500); // initial + two interval polls, all up
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenLastCalledWith(true, 'qwen2.5:7b');
+  });
+
+  it('stops probing while the tab is hidden and resumes when visible again', async () => {
+    vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
+    const fetchImpl = healthFetch(() => true);
+    startChatAvailabilityPolling(vi.fn(), {
+      intervalMs: 1000,
+      signal: ac.signal,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await vi.advanceTimersByTimeAsync(0); // initial probe while visible
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+    setVisibility('hidden');
+    await vi.advanceTimersByTimeAsync(5000); // five intervals elapse while hidden
+    expect(fetchImpl).toHaveBeenCalledTimes(1); // …and not one extra probe fires
+
+    setVisibility('visible');
+    await vi.advanceTimersByTimeAsync(0); // becoming visible probes immediately
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1000); // and the interval loop is running again
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
   it('hides (false) when the backend goes away', async () => {

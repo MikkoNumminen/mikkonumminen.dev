@@ -30,6 +30,7 @@ from .config import Settings
 from .db import Database, apply_schema
 from .embeddings import Embedder
 from .health import health_payload
+from .health_cache import CachedFlag
 from .llm import LLMClient
 from .memory import SessionMemory
 from .middleware import BodySizeLimitMiddleware
@@ -81,8 +82,19 @@ async def _db_ok(db: Database) -> bool:
         return False
 
 
+# How long a /health LLM-liveness result is reused before re-probing the model.
+# Set just above the frontend poll interval (25s) so one viewer's back-to-back
+# probes reuse the result and many viewers can't fan out into a completion each;
+# staleness of the liveness pill is bounded by this. A model switch is reflected
+# within this window.
+HEALTH_LLM_CACHE_SECONDS = 30.0
+
+
 def create_app() -> FastAPI:
     settings = Settings.from_env()
+    # One memo per app: collapses a burst of /health probes into a single
+    # 1-token LLM completion (see health_cache.py).
+    llm_health = CachedFlag(HEALTH_LLM_CACHE_SECONDS)
     # Local request log — operational telemetry on by default; None only when
     # RAG_LOG_FILE is explicitly emptied, in which case the pipeline skips logging.
     # RAG_LOG_TEXT (off by default) gates the raw query/answer text.
@@ -189,7 +201,7 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health() -> JSONResponse:
         db_ok = await _db_ok(app.state.db)
-        llm_ok = await app.state.llm.check_health()
+        llm_ok = await llm_health.get(app.state.llm.check_health)
         # Always 200 — the body's `checks.llm` carries availability; the frontend
         # reads that flag, not the status code.
         return JSONResponse(health_payload(db_ok, llm_ok, settings.llm_model))

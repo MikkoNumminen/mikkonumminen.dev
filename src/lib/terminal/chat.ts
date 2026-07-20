@@ -342,6 +342,13 @@ export function startChatAvailabilityPolling(
     // Re-entrancy guard: a visibilitychange can fire mid-probe; serialising keeps
     // `failures`/`last` race-free and avoids a doubled in-flight request.
     if (signal?.aborted || ticking) return;
+    // Pause while the tab is hidden. An unattended or backgrounded tab left open
+    // (overnight, say) would otherwise probe /health forever — and every probe is
+    // a fresh TLS connection over the funnel plus a real 1-token LLM completion
+    // server-side. Returning WITHOUT rescheduling stops the loop; `onVisibility`
+    // restarts it the moment the tab is looked at again, so a watching user still
+    // sees the indicator refresh within one interval.
+    if (document.visibilityState === 'hidden') return;
     ticking = true;
     try {
       const probe = sessionDisabled
@@ -369,7 +376,14 @@ export function startChatAvailabilityPolling(
 
   void tick();
   const onVisibility = (): void => {
-    if (document.visibilityState === 'visible') void tick();
+    if (document.visibilityState === 'visible') {
+      void tick();
+    } else if (timer !== undefined) {
+      // Cancel the pending probe the instant the tab is hidden, so not even one
+      // more request fires while nobody is watching.
+      clearTimeout(timer);
+      timer = undefined;
+    }
   };
   document.addEventListener('visibilitychange', onVisibility);
   signal?.addEventListener(
