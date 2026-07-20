@@ -29,10 +29,14 @@ Operational runbook for shipping changes to the local RAG chat that powers the
   URL — a true external probe, not a hairpin, so it sees the "local green, public
   502" state nothing local can — and on a confirmed outage (backend + uplink still
   healthy) escalates a scoped `funnel --bg 8000` re-assert → `tailscale down/up`,
-  with a cooldown so it can't flap and never touching another project's port. Runs
-  until Ctrl-C; leave it running in a WSL pane, or start it on boot via Task
-  Scheduler / a login hook. Tune with `--interval` / `--fail-threshold` /
-  `--cooldown`.
+  with a cooldown so it can't flap and never touching another project's port. It
+  verifies `tailscale up` actually brought the node back, and after a few
+  reconnects that don't recover it, **gives up and alerts** (rather than churning
+  the shared node forever against something a reconnect can't fix — expired auth,
+  a Vercel-side incident); a dead uplink or a down backend also make it stand down
+  instead of reconnecting. Runs until Ctrl-C; leave it in a WSL pane, or start it
+  on boot via Task Scheduler / a login hook. Tune with `--interval` /
+  `--fail-threshold` / `--cooldown`.
 - **Shared funnel — never blanket-reset.** This operator runs Tailscale Funnels
   for **other projects on the same tailnet**, so treat the funnel as shared infra.
   This project owns `443 → 127.0.0.1:8000` on its node; `tailscale funnel status`
