@@ -1,0 +1,197 @@
+---
+import { getCollection } from 'astro:content';
+import { asLocale, getTranslations, localizePath } from '../../i18n';
+import AiBadge from '../blog/AiBadge.astro';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
+const entries = (
+  await getCollection('blog', ({ data }) => data.locale === locale && !data.draft)
+)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 3);
+
+const dateFormatter = new Intl.DateTimeFormat(locale, {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+---
+
+<section class="latest has-grain" aria-label={t.latestEntries.sectionAria}>
+  <span class="ghost-num latest__ghost" aria-hidden="true">02</span>
+
+  <div class="latest__inner">
+    <p class="latest__eyebrow eyebrow-marker" data-reveal>
+      <span class="eyebrow-marker__num" aria-hidden="true">/ 02</span>
+      <span class="eyebrow-marker__rule" aria-hidden="true"></span>
+      {t.latestEntries.eyebrow}
+    </p>
+
+    <h2 class="latest__heading">
+      <span data-split data-reveal-chars>{t.latestEntries.heading}</span>
+    </h2>
+
+    {
+      entries.length === 0 ? (
+        <p class="latest__empty" data-reveal>
+          {t.latestEntries.empty}
+        </p>
+      ) : (
+        <ul class="latest__list">
+          {entries.map((entry) => (
+            <li class="latest__item" data-reveal>
+              <a
+                class="latest__link"
+                href={localizePath(`/blog/${entry.data.slug}`, locale)}
+              >
+                <span class="latest__meta">
+                  <time
+                    class="latest__date"
+                    datetime={entry.data.date.toISOString().slice(0, 10)}
+                  >
+                    {dateFormatter.format(entry.data.date)}
+                  </time>
+                  {entry.data.aiGenerated && <AiBadge />}
+                </span>
+                <h3 class="latest__title">{entry.data.title}</h3>
+                <p class="latest__desc">{entry.data.description}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    <a class="latest__all" href={localizePath('/blog', locale)} data-reveal>
+      {t.latestEntries.viewAll}
+      <span aria-hidden="true"> →</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .latest {
+    position: relative;
+    padding: clamp(7rem, 16vh, 11rem) 1.5rem;
+    overflow: hidden;
+  }
+
+  .latest__ghost {
+    top: 4rem;
+    left: -3vw;
+  }
+
+  .latest__inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .latest__eyebrow {
+    margin: 0 0 1.5rem;
+  }
+
+  .latest__heading {
+    font-size: clamp(2.25rem, 6vw, 4.25rem);
+    /* See Intro.astro for why 1.18 instead of the editorial-tight 1.02. */
+    line-height: 1.18;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    margin: 0 0 2rem;
+    color: #fff;
+    max-width: 18ch;
+  }
+
+  .latest__empty {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0;
+  }
+
+  .latest__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .latest__item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .latest__link {
+    display: block;
+    padding: clamp(1.75rem, 3.5vh, 2.5rem) 0.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.4s ease;
+  }
+
+  .latest__link:hover,
+  .latest__link:focus-visible {
+    background: linear-gradient(to right, rgba(128, 168, 255, 0.06), transparent 70%);
+  }
+
+  .latest__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+
+  .latest__date {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .latest__title {
+    font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    color: #fff;
+    margin: 0 0 0.75rem;
+    max-width: 34ch;
+  }
+
+  .latest__desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 0;
+    max-width: 78ch;
+  }
+
+  .latest__all {
+    display: inline-block;
+    margin-top: 2.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  .latest__all:hover,
+  .latest__all:focus-visible {
+    color: #fff;
+  }
+
+  @media (max-width: 720px) {
+    .latest__ghost {
+      left: -8vw;
+      font-size: clamp(7rem, 28vw, 12rem);
+    }
+  }
+</style>

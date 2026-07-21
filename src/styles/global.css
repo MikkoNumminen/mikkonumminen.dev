@@ -169,12 +169,11 @@ body {
 
    Layout cost: the inline-block contributes (line-height 1.18em) + (padding
    0.4em) = 1.58em to its parent's line box, so the heading's content box
-   grows by ~0.22em compared to no padding. All five home-page headings sit
+   grows by ~0.22em compared to no padding. Every home-page heading sits
    above a 1.75-2rem margin-bottom (Intro has 0, body sits directly under)
    that absorbs the painted overhang into existing breathing room. The
    surrounding gaps were re-tightened from the editorial redesign's 4rem
-   defaults once the descender padding stacked visibly on top — see
-   src/components/home/Focus.astro for the rationale.
+   defaults once the descender padding stacked visibly on top.
 
    Centralised here so every new section that uses `[data-split]` inherits
    the fix instead of re-tripping the same clipping bug. If a future heading

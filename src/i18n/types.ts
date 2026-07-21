@@ -33,11 +33,13 @@ export interface Translations {
     contact: { title: string; description: string };
     projects: { title: string; description: string };
     experience: { title: string; description: string };
+    blog: { title: string; description: string };
   };
   nav: {
     home: string;
     projects: string;
     experience: string;
+    blog: string;
     contact: string;
     primaryAria: string;
     languageSwitcherAria: string;
@@ -57,40 +59,41 @@ export interface Translations {
     eyebrow: string;
     heading: string;
     body: string;
-    statTests: string;
-    statCoverage: string;
-    statProducts: string;
+    /**
+     * Marker chip rendered above the intro body while `body` is still
+     * placeholder copy. Delete this key and the `.intro__placeholder`
+     * element in Intro.astro once the real paragraph is written.
+     */
+    placeholderNote: string;
   };
-  focus: {
+  latestEntries: {
     sectionAria: string;
     eyebrow: string;
     heading: string;
-    items: Array<{ title: string; body: string; link?: ReceiptLink }>;
-  };
-  integrations: {
-    sectionAria: string;
-    eyebrow: string;
-    heading: string;
-    items: Array<{ project: string; api: string; body: string }>;
-  };
-  velocity: {
-    sectionAria: string;
-    eyebrow: string;
-    heading: string;
-    body: string;
-    /** Optional external link rendered after the body so readers can verify the token-saving claim. */
-    link?: ReceiptLink;
-    stats: Array<{ num: string; label: string }>;
+    viewAll: string;
+    empty: string;
   };
   navCards: {
     sectionAria: string;
     eyebrow: string;
     heading: string;
-    projects: { label: string; description: string };
-    experience: { label: string; description: string };
-    contact: { label: string; description: string };
+    projects: { label: string };
+    experience: { label: string };
+    blog: { label: string };
+    contact: { label: string };
     footerCopyright: string;
     footerBuiltWith: string;
+  };
+  blog: {
+    eyebrow: string;
+    title: string;
+    lede: string;
+    /** Prominent badge on any entry whose frontmatter sets `aiGenerated: true`. */
+    aiBadge: string;
+    /** Longer disclosure shown on the entry page itself, under the badge. */
+    aiNotice: string;
+    backToIndex: string;
+    empty: string;
   };
   projectsPage: {
     eyebrow: string;

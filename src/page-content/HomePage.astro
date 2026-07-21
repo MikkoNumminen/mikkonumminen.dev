@@ -3,9 +3,7 @@ import { execSync } from 'node:child_process';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/home/Hero.astro';
 import Intro from '../components/home/Intro.astro';
-import Focus from '../components/home/Focus.astro';
-import Integrations from '../components/home/Integrations.astro';
-import Velocity from '../components/home/Velocity.astro';
+import LatestEntries from '../components/home/LatestEntries.astro';
 import NavCards from '../components/home/NavCards.astro';
 import { asLocale, getTranslations } from '../i18n';
 
@@ -95,9 +93,7 @@ const personSchema = {
 
   <Hero commitMessages={commitMessages} />
   <Intro />
-  <Focus />
-  <Integrations />
-  <Velocity />
+  <LatestEntries />
   <NavCards />
 </BaseLayout>
 

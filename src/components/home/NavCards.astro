@@ -1,35 +1,14 @@
 ---
-import '../../styles/nav-cards.css';
 import { asLocale, getTranslations, localizePath } from '../../i18n';
-import PlanetIcon from './icons/PlanetIcon.astro';
-import MountainIcon from './icons/MountainIcon.astro';
-import TerminalIcon from './icons/TerminalIcon.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
-const cards = [
-  {
-    href: localizePath('/projects', locale),
-    label: t.navCards.projects.label,
-    description: t.navCards.projects.description,
-    accent: 'projects',
-    icon: 'planet' as const,
-  },
-  {
-    href: localizePath('/experience', locale),
-    label: t.navCards.experience.label,
-    description: t.navCards.experience.description,
-    accent: 'experience',
-    icon: 'mountain' as const,
-  },
-  {
-    href: localizePath('/contact', locale),
-    label: t.navCards.contact.label,
-    description: t.navCards.contact.description,
-    accent: 'contact',
-    icon: 'terminal' as const,
-  },
+const links = [
+  { href: localizePath('/projects', locale), label: t.navCards.projects.label },
+  { href: localizePath('/experience', locale), label: t.navCards.experience.label },
+  { href: localizePath('/blog', locale), label: t.navCards.blog.label },
+  { href: localizePath('/contact', locale), label: t.navCards.contact.label },
 ];
 ---
 
@@ -38,11 +17,11 @@ const cards = [
   data-section-nav-cards
   aria-label={t.navCards.sectionAria}
 >
-  <span class="ghost-num nav-cards__ghost" aria-hidden="true">05</span>
+  <span class="ghost-num nav-cards__ghost" aria-hidden="true">03</span>
 
   <div class="nav-cards__inner">
     <p class="nav-cards__eyebrow eyebrow-marker" data-reveal>
-      <span class="eyebrow-marker__num" aria-hidden="true">/ 05</span>
+      <span class="eyebrow-marker__num" aria-hidden="true">/ 03</span>
       <span class="eyebrow-marker__rule" aria-hidden="true"></span>
       {t.navCards.eyebrow}
     </p>
@@ -50,18 +29,12 @@ const cards = [
       <span data-split data-reveal-chars>{t.navCards.heading}</span>
     </h2>
 
-    <div class="nav-cards__grid">
+    <div class="nav-cards__row">
       {
-        cards.map((card) => (
-          <a href={card.href} class="nav-card" data-nav-card data-accent={card.accent}>
-            <span class="nav-card__icon" aria-hidden="true">
-              {card.icon === 'planet' && <PlanetIcon />}
-              {card.icon === 'mountain' && <MountainIcon />}
-              {card.icon === 'terminal' && <TerminalIcon />}
-            </span>
-            <span class="nav-card__label">{card.label}</span>
-            <span class="nav-card__desc">{card.description}</span>
-            <span class="nav-card__arrow" aria-hidden="true">
+        links.map((link) => (
+          <a href={link.href} class="nav-link" data-nav-card>
+            <span class="nav-link__label">{link.label}</span>
+            <span class="nav-link__arrow" aria-hidden="true">
               →
             </span>
           </a>
@@ -70,3 +43,108 @@ const cards = [
     </div>
   </div>
 </section>
+
+<style>
+  .nav-cards {
+    position: relative;
+    padding: clamp(7rem, 16vh, 11rem) 1.5rem clamp(3rem, 6vh, 4rem);
+    overflow: hidden;
+  }
+
+  .nav-cards__ghost {
+    top: 4rem;
+    right: -2vw;
+    color: rgba(255, 255, 255, 0.025);
+  }
+
+  .nav-cards__inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .nav-cards__eyebrow {
+    margin: 0 0 1.5rem;
+  }
+
+  .nav-cards__heading {
+    font-size: clamp(2.25rem, 6vw, 4.25rem);
+    /* See Intro.astro for why 1.18 instead of the editorial-tight 1.02. */
+    line-height: 1.18;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    margin: 0 0 2rem;
+    color: #fff;
+    max-width: 18ch;
+  }
+
+  .nav-cards__row {
+    display: flex;
+    flex-wrap: wrap;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-link {
+    flex: 1 1 12rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.5rem 1.25rem;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.75);
+    transition:
+      color 0.3s ease,
+      background 0.4s ease;
+  }
+
+  .nav-link + .nav-link {
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-link:hover,
+  .nav-link:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .nav-link__label {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .nav-link__arrow {
+    color: rgba(255, 255, 255, 0.4);
+    transition:
+      transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+      color 0.4s ease;
+  }
+
+  .nav-link:hover .nav-link__arrow,
+  .nav-link:focus-visible .nav-link__arrow {
+    transform: translateX(6px);
+    color: #fff;
+  }
+
+  @media (max-width: 640px) {
+    .nav-cards__row {
+      flex-direction: column;
+    }
+
+    .nav-link + .nav-link {
+      border-left: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-link__arrow,
+    .nav-link:hover .nav-link__arrow,
+    .nav-link:focus-visible .nav-link__arrow {
+      transform: none !important;
+    }
+  }
+</style>

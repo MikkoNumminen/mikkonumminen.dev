@@ -19,30 +19,13 @@ const t = getTranslations(locale);
       <span data-split data-reveal-chars>{t.intro.heading}</span>
     </h2>
 
+    <!-- Delete this marker and t.intro.placeholderNote together once the real
+         paragraph is written. -->
+    <p class="intro__placeholder" data-reveal>{t.intro.placeholderNote}</p>
+
     <p class="intro__body" data-reveal>
       {t.intro.body}
     </p>
-
-    <hr class="hairline intro__divider" aria-hidden="true" data-reveal />
-
-    <ul class="intro__stats">
-      <li class="intro__stat" data-reveal data-stat="tests">
-        <span class="intro__stat-num">
-          1828<span class="intro__stat-suffix">+</span>
-        </span>
-        <span class="intro__stat-label">{t.intro.statTests}</span>
-      </li>
-      <li class="intro__stat" data-reveal data-stat="coverage">
-        <span class="intro__stat-num">
-          91.9<span class="intro__stat-suffix">%</span>
-        </span>
-        <span class="intro__stat-label">{t.intro.statCoverage}</span>
-      </li>
-      <li class="intro__stat" data-reveal data-stat="products">
-        <span class="intro__stat-num">9</span>
-        <span class="intro__stat-label">{t.intro.statProducts}</span>
-      </li>
-    </ul>
   </div>
 </section>
 
@@ -84,116 +67,31 @@ const t = getTranslations(locale);
     max-width: 18ch;
   }
 
+  .intro__placeholder {
+    justify-self: start;
+    margin: 0;
+    padding: 0.5rem 0.9rem;
+    border: 1px dashed rgba(251, 191, 36, 0.65);
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.08);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fbbf24;
+  }
+
   .intro__body {
     font-size: clamp(1.05rem, 1.6vw, 1.25rem);
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.7);
     max-width: 62ch;
     margin: 0;
-  }
-
-  .intro__divider {
-    margin: 4.5rem 0 0;
-  }
-
-  .intro__stats {
-    list-style: none;
-    padding: 0;
-    margin: 2.5rem 0 0;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2.5rem;
-  }
-
-  .intro__stat {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding-right: 1.5rem;
-    position: relative;
-  }
-
-  /* Subtle vertical hairlines between stats on desktop */
-  .intro__stat + .intro__stat::before {
-    content: '';
-    position: absolute;
-    left: -1.25rem;
-    top: 0.5rem;
-    bottom: 0.5rem;
-    width: 1px;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      rgba(255, 255, 255, 0.12) 30%,
-      rgba(255, 255, 255, 0.12) 70%,
-      transparent
-    );
-  }
-
-  .intro__stat-num {
-    font-size: clamp(3.25rem, 8vw, 5.75rem);
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    line-height: 0.95;
-    font-feature-settings:
-      'tnum' 1,
-      'lnum' 1;
-  }
-
-  .intro__stat-suffix {
-    font-size: 0.55em;
-    font-weight: 600;
-    letter-spacing: 0;
-    margin-left: 0.05em;
-    vertical-align: 0.2em;
-  }
-
-  .intro__stat-label {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.45;
-    max-width: 22ch;
-  }
-
-  /* Per-stat color story — previews the rest of the site's palette
-     (home / projects / velocity-amber). */
-  .intro__stat[data-stat='tests'] .intro__stat-num {
-    color: var(--color-home-accent);
-  }
-  .intro__stat[data-stat='tests'] .intro__stat-suffix {
-    color: rgba(196, 212, 255, 0.65);
-  }
-
-  .intro__stat[data-stat='coverage'] .intro__stat-num {
-    color: var(--color-projects-accent);
-  }
-  .intro__stat[data-stat='coverage'] .intro__stat-suffix {
-    color: rgba(128, 168, 255, 0.65);
-  }
-
-  .intro__stat[data-stat='products'] .intro__stat-num {
-    color: #fbbf24;
+    padding-left: 1.25rem;
+    border-left: 2px dashed rgba(251, 191, 36, 0.45);
   }
 
   @media (max-width: 720px) {
-    .intro__stats {
-      grid-template-columns: 1fr;
-      gap: 2.5rem;
-    }
-
-    .intro__stat + .intro__stat::before {
-      left: 0;
-      top: -1.25rem;
-      bottom: auto;
-      right: 0;
-      width: auto;
-      height: 1px;
-      background: linear-gradient(to right, rgba(255, 255, 255, 0.12), transparent 70%);
-    }
-
     .intro__ghost {
       top: 2rem;
       right: -4vw;
