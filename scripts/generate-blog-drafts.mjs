@@ -7,16 +7,19 @@
 //   node scripts/generate-blog-drafts.mjs              top 3 groups, last 3 days
 //   node scripts/generate-blog-drafts.mjs --days=14    widen the window
 //   node scripts/generate-blog-drafts.mjs --count=5    write more groups
-//   node scripts/generate-blog-drafts.mjs --force      overwrite existing files
+//   node scripts/generate-blog-drafts.mjs --force      rewrite its own drafts
 //
 // What it can and cannot do, by construction:
 //   - Reads git history only. Every git call goes through `git()`, which
-//     refuses any subcommand outside a read-only allowlist, so a later edit
-//     that reaches for `add`/`commit`/`push` throws instead of staging work.
+//     refuses any subcommand outside a read-only allowlist and checks the
+//     argument shape of the one allowlisted subcommand that can also write, so
+//     a later edit that reaches for `add`/`commit`/`push` throws instead of
+//     staging work.
 //   - Writes only into src/content/blog/en/. Never fi/ or sv/ — a machine
 //     summary of English commits is not a translation.
-//   - Never overwrites. An existing path is skipped and logged; --force is the
-//     only way past that.
+//   - Never overwrites prose a person wrote. An existing path is skipped and
+//     logged; --force rewrites only files that carry `aiGenerated: true`, which
+//     is exactly the set this script produced.
 //   - Every entry carries `draft: true`, so nothing it writes reaches a built
 //     page until a human edits the file and flips the flag.
 //
@@ -30,9 +33,14 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = path.join(ROOT, 'src', 'content', 'blog', 'en');
-const WORKTREE_MARKER = path.join('.claude', 'worktrees');
 
 const DEFAULTS = { days: 3, count: 3 };
+
+// `days` becomes a millisecond offset subtracted from now, and a large enough
+// value puts the result outside the range Date represents, which surfaces as an
+// uncaught RangeError from toISOString rather than as a usage error.
+const MAX_DAYS = 3650;
+const MAX_COUNT = 100;
 
 // Conventional-commit types that describe upkeep rather than a change in
 // behaviour. A group made only of these gets a flat sentence saying so instead
@@ -45,22 +53,62 @@ const HOUSEKEEPING_TYPES = new Set(['chore', 'build', 'ci', 'deps', 'style', 're
 
 const READ_ONLY_SUBCOMMANDS = new Set(['rev-parse', 'symbolic-ref', 'rev-list', 'log']);
 
-// The allowlist is the safety property, not the comment above it. Returns null
-// on a non-zero exit because half these calls are existence probes for refs
-// that legitimately do not exist.
-function git(cwd, args) {
+// `symbolic-ref` is the one allowlisted subcommand that also writes: a second
+// operand repoints the named ref and -d deletes it. Matching on the subcommand
+// alone would leave the allowlist claiming a safety property it does not have,
+// so the read probe's shape is checked as well.
+const SYMBOLIC_REF_READ_FLAGS = new Set(['-q', '--quiet', '--short']);
+
+const GIT_MAX_BUFFER = 64 * 1024 * 1024;
+const GIT_TIMEOUT_MS = 60_000;
+
+class GitEnvironmentError extends Error {}
+
+function assertReadOnly(args) {
   const subcommand = args[0] ?? '';
   if (!READ_ONLY_SUBCOMMANDS.has(subcommand)) {
-    throw new Error(`generate-blog-drafts: refusing non-read-only git call: ${subcommand}`);
+    throw new Error(
+      `generate-blog-drafts: refusing non-read-only git call: ${subcommand}`,
+    );
   }
+  if (subcommand !== 'symbolic-ref') return;
+  const rest = args.slice(1);
+  const flags = rest.filter((arg) => arg.startsWith('-'));
+  const operands = rest.filter((arg) => !arg.startsWith('-'));
+  const isReadProbe =
+    operands.length === 1 && flags.every((flag) => SYMBOLIC_REF_READ_FLAGS.has(flag));
+  if (!isReadProbe) {
+    throw new Error(
+      `generate-blog-drafts: refusing non-read-only git call: symbolic-ref ${rest.join(' ')}`,
+    );
+  }
+}
+
+// Returns null only for a probe whose ref legitimately does not exist. Every
+// other failure throws: a missing binary, a timeout, output past maxBuffer, or
+// a directory that is not a repository all otherwise read as a quiet week, and
+// the run would exit 0 having found nothing.
+function git(cwd, args, { probe = false } = {}) {
+  assertReadOnly(args);
   try {
     return execFileSync('git', args, {
       cwd,
       encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: GIT_MAX_BUFFER,
+      timeout: GIT_TIMEOUT_MS,
     }).trim();
-  } catch {
-    return null;
+  } catch (error) {
+    const stderr = typeof error?.stderr === 'string' ? error.stderr.trim() : '';
+    // A numeric status means git ran and chose its exit code. Anything else is
+    // ENOENT, the timeout's SIGTERM, or ENOBUFS: git never reported at all.
+    const gitAnswered = typeof error?.status === 'number';
+    const missingRepo = /not a git repository/i.test(stderr);
+    if (probe && gitAnswered && !missingRepo) return null;
+    throw new GitEnvironmentError(
+      `generate-blog-drafts: git ${args.join(' ')} (in ${cwd}) failed: ` +
+        (stderr || error?.message || 'no output'),
+    );
   }
 }
 
@@ -72,8 +120,11 @@ function git(cwd, args) {
 // walking up from __dirname finds the wrong siblings when this runs from a
 // worktree. The common git dir always points at the main checkout's .git.
 function siteRepoRoot() {
-  const commonDir = git(ROOT, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
-  if (!commonDir) return ROOT;
+  const commonDir = git(ROOT, [
+    'rev-parse',
+    '--path-format=absolute',
+    '--git-common-dir',
+  ]);
   return path.dirname(commonDir);
 }
 
@@ -82,10 +133,12 @@ function discoverRepos(workspace) {
   for (const entry of fs.readdirSync(workspace, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const dir = path.join(workspace, entry.name);
-    // A registered worktree carries a .git file and the same history as its
-    // parent checkout, so scanning one would double every commit it holds.
-    if (dir.includes(WORKTREE_MARKER)) continue;
-    if (!fs.existsSync(path.join(dir, '.git'))) continue;
+    const gitEntry = fs.statSync(path.join(dir, '.git'), { throwIfNoEntry: false });
+    if (!gitEntry) continue;
+    // A linked worktree records its git dir in a .git FILE and shares the
+    // history of the checkout it came from, so reading both counts every
+    // commit in that repository twice.
+    if (!gitEntry.isDirectory()) continue;
     repos.push({ name: entry.name, dir });
   }
   return repos;
@@ -94,86 +147,90 @@ function discoverRepos(workspace) {
 // ---------------------------------------------------------------------------
 //  Ref selection
 //
-//  A checkout's local default branch can sit behind its remote, and reading
-//  HEAD then silently drops the commits that only exist on origin. Prefer a
-//  remote-tracking ref whenever it carries commits HEAD does not.
+//  HEAD and a remote-tracking ref each hold commits the other does not: a local
+//  branch sits behind its remote after a fetch, and unpushed work exists only
+//  on HEAD. Reading one ref drops the difference in whichever direction it
+//  happens to fall, so every ref that exists is handed to a single `git log`,
+//  which walks their union and dedupes the shared history for free.
 // ---------------------------------------------------------------------------
 
 function remoteCandidates(dir) {
   const candidates = [];
-  const originHead = git(dir, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']);
+  const originHead = git(dir, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD'], {
+    probe: true,
+  });
   if (originHead) candidates.push(originHead.replace(/^refs\/remotes\//, ''));
   candidates.push('origin/main', 'origin/master');
   const seen = new Set();
   return candidates.filter((ref) => {
     if (seen.has(ref)) return false;
     seen.add(ref);
-    return git(dir, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]) !== null;
+    return (
+      git(dir, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], {
+        probe: true,
+      }) !== null
+    );
   });
 }
 
-function countRevs(dir, range) {
-  const out = git(dir, ['rev-list', '--count', range]);
-  const n = Number.parseInt(out ?? '', 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function selectRef(dir) {
-  if (git(dir, ['rev-parse', '--verify', '--quiet', 'HEAD^{commit}']) === null) {
+function selectRefs(dir) {
+  if (
+    git(dir, ['rev-parse', '--verify', '--quiet', 'HEAD^{commit}'], { probe: true }) ===
+    null
+  ) {
     return null;
   }
-  for (const ref of remoteCandidates(dir)) {
-    const ahead = countRevs(dir, `HEAD..${ref}`);
-    if (ahead === 0) continue;
-    const localOnly = countRevs(dir, `${ref}..HEAD`);
-    const note =
-      localOnly > 0
-        ? `${ahead} ahead of HEAD, ${localOnly} local-only commit(s) not on the remote`
-        : `${ahead} ahead of HEAD`;
-    return { ref, note };
-  }
-  return { ref: 'HEAD', note: 'no remote ref ahead of it' };
+  return ['HEAD', ...remoteCandidates(dir)];
 }
 
 // ---------------------------------------------------------------------------
 //  Commit reading
 // ---------------------------------------------------------------------------
 
-// ASCII unit/record separators rather than newlines or pipes: a commit subject
-// can contain anything, and these two bytes are the only delimiters git will
-// never emit inside one.
+// ASCII unit/record separators rather than newlines or pipes, because a subject
+// carries those routinely and these two almost never. Almost: `git commit
+// --cleanup=verbatim` accepts control characters in a message, and one stray
+// separator shifts every field after it, so each record is validated rather
+// than trusted.
 const FIELD_SEP = '\u001f';
 const RECORD_SEP = '\u001e';
+const SHORT_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const CONVENTIONAL = /^(\w+)(?:\(([^)]*)\))?!?:\s*(.+)$/;
 
-function readCommits(repo, ref, since) {
+function readCommits(repo, refs, since) {
   const raw = git(repo.dir, [
     'log',
-    ref,
+    ...refs,
     '--no-merges',
     `--since=${since}`,
     '--date=short',
     '--format=%ad%x1f%s%x1e',
   ]);
-  if (!raw) return [];
-  return raw
-    .split(RECORD_SEP)
-    .map((record) => record.trim())
-    .filter((record) => record.length > 0)
-    .map((record) => {
-      const [date = '', subject = ''] = record.split(FIELD_SEP);
-      const match = CONVENTIONAL.exec(subject);
-      const scope = match?.[2]?.trim();
-      return {
-        repo: repo.name,
-        date,
-        subject,
-        type: match?.[1] ?? null,
-        // A commit with no scope belongs to its repo rather than to a shared
-        // bucket of scopeless commits from everywhere.
-        key: scope && scope.length > 0 ? scope : repo.name,
-      };
+  const commits = [];
+  let dropped = 0;
+  for (const record of raw.split(RECORD_SEP)) {
+    const trimmed = record.trim();
+    if (trimmed.length === 0) continue;
+    const fields = trimmed.split(FIELD_SEP);
+    const date = fields[0] ?? '';
+    const subject = (fields[1] ?? '').trim();
+    if (fields.length !== 2 || !SHORT_DATE.test(date) || subject.length === 0) {
+      dropped += 1;
+      continue;
+    }
+    const match = CONVENTIONAL.exec(subject);
+    const scope = match?.[2]?.trim();
+    commits.push({
+      repo: repo.name,
+      date,
+      subject,
+      type: match?.[1] ?? null,
+      // A commit with no scope belongs to its repo rather than to a shared
+      // bucket of scopeless commits from everywhere.
+      key: scope && scope.length > 0 ? scope : repo.name,
     });
+  }
+  return { commits, dropped };
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +347,9 @@ function machineSummary(group) {
   ];
   const onlyHousekeeping = breakdown.every(([type]) => HOUSEKEEPING_TYPES.has(type));
   if (onlyHousekeeping) {
-    lines.push('Nothing in this group changes behaviour. It is dependency and upkeep work.');
+    lines.push(
+      'Nothing in this group changes behaviour. It is dependency and upkeep work.',
+    );
   }
   return lines.join(' ');
 }
@@ -300,7 +359,9 @@ function renderEntry(group, options) {
   const description =
     `Generated draft. ${plural(group.commits.length, 'commit')} under the ${group.key} scope ` +
     `in ${joinList(group.repos)}. The summary is machine-written and needs replacing.`;
-  const tags = [...new Set([kebab(group.key), ...group.repos.map((r) => kebab(r))])].slice(0, 5);
+  const tags = [
+    ...new Set([kebab(group.key), ...group.repos.map((r) => kebab(r))]),
+  ].slice(0, 5);
 
   const evidence = group.commits
     .map((c) => `- ${inlineCode(plainPunctuation(c.subject))} (${c.repo}, ${c.date})`)
@@ -309,7 +370,7 @@ function renderEntry(group, options) {
   return `---
 title: ${yamlString(title)}
 description: ${yamlString(description)}
-date: ${group.newest}
+date: ${yamlString(group.newest)}
 locale: en
 slug: ${yamlString(kebab(group.key))}
 aiGenerated: true
@@ -334,6 +395,34 @@ Rewrite the summary as an account of what the work actually was: what broke, wha
 }
 
 // ---------------------------------------------------------------------------
+//  Output paths
+// ---------------------------------------------------------------------------
+
+const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/;
+
+// The generator stamps aiGenerated: true on everything it writes, so it can
+// recognise its own output and leave anything else alone. --force is for
+// regenerating a stale draft, not for overwriting an entry someone rewrote.
+function isGeneratorOutput(file) {
+  const frontmatter = FRONTMATTER.exec(fs.readFileSync(file, 'utf8'))?.[1] ?? '';
+  return /^aiGenerated:\s*true\s*$/m.test(frontmatter);
+}
+
+// Two group keys are distinct Map keys while differing only in case or
+// punctuation ("RAG" in one repo, "rag" in another), and both kebab to one
+// slug. Writing them in turn silently keeps whichever landed last.
+function findSlugCollision(groups) {
+  const claimed = new Map();
+  for (const group of groups) {
+    const slug = kebab(group.key);
+    const owner = claimed.get(slug);
+    if (owner) return { slug, first: owner, second: group.key };
+    claimed.set(slug, group.key);
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 //  CLI
 // ---------------------------------------------------------------------------
 
@@ -343,18 +432,23 @@ function usage() {
       '\n' +
       '  usage: node scripts/generate-blog-drafts.mjs [--days=N] [--count=N] [--force]\n' +
       '\n' +
-      `  --days=N    commit window, in days (default ${DEFAULTS.days})\n` +
-      `  --count=N   how many themes to write (default ${DEFAULTS.count})\n` +
-      '  --force     overwrite an existing draft file (default: skip it)\n' +
+      `  --days=N    commit window, in days, 1 to ${MAX_DAYS} (default ${DEFAULTS.days})\n` +
+      `  --count=N   how many themes to write, 1 to ${MAX_COUNT} (default ${DEFAULTS.count})\n` +
+      '  --force     rewrite an existing draft this script wrote, recognised by\n' +
+      '              aiGenerated: true (default: skip it). A file without that\n' +
+      '              flag is hand-written and is skipped even with --force.\n' +
       '\n' +
       'Reads git history and writes files. It never stages, commits, or pushes anything.\n',
   );
 }
 
-function parseIntFlag(raw, flag) {
+function parseIntFlag(raw, flag, max) {
   const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 1) {
-    console.error(`generate-blog-drafts: ${flag} needs a positive integer, got "${raw}"`);
+  if (!Number.isFinite(n) || n < 1 || n > max) {
+    console.error(
+      `generate-blog-drafts: ${flag} needs an integer from 1 to ${max}, got "${raw}"`,
+    );
+    usage();
     process.exit(1);
   }
   return n;
@@ -364,8 +458,10 @@ function parseArgs(argv) {
   const out = { ...DEFAULTS, force: false };
   for (const arg of argv) {
     if (arg === '--force') out.force = true;
-    else if (arg.startsWith('--days=')) out.days = parseIntFlag(arg.slice(7), '--days');
-    else if (arg.startsWith('--count=')) out.count = parseIntFlag(arg.slice(8), '--count');
+    else if (arg.startsWith('--days='))
+      out.days = parseIntFlag(arg.slice(7), '--days', MAX_DAYS);
+    else if (arg.startsWith('--count='))
+      out.count = parseIntFlag(arg.slice(8), '--count', MAX_COUNT);
     else if (arg === '--help' || arg === '-h') {
       usage();
       process.exit(0);
@@ -387,17 +483,27 @@ function main() {
   console.log(`generate-blog-drafts: window ${options.days} day(s), since ${since}`);
 
   const repos = discoverRepos(workspace);
+  if (repos.length === 0) {
+    console.error(
+      `generate-blog-drafts: no git repositories under ${workspace}. The site checkout is ` +
+        'itself one of them, so an empty result means discovery looked in the wrong place.',
+    );
+    process.exit(1);
+  }
+
   const commits = [];
   for (const repo of repos) {
-    const selected = selectRef(repo.dir);
-    if (!selected) {
+    const refs = selectRefs(repo.dir);
+    if (!refs) {
       console.log(`  ${repo.name}: no readable HEAD, skipped`);
       continue;
     }
-    const found = readCommits(repo, selected.ref, since);
-    commits.push(...found);
+    const found = readCommits(repo, refs, since);
+    commits.push(...found.commits);
+    const note =
+      found.dropped > 0 ? `, ${plural(found.dropped, 'malformed record')} dropped` : '';
     console.log(
-      `  ${repo.name}: ref ${selected.ref} (${selected.note}), ${plural(found.length, 'commit')}`,
+      `  ${repo.name}: read ${refs.join(' + ')}, ${plural(found.commits.length, 'commit')}${note}`,
     );
   }
 
@@ -416,16 +522,34 @@ function main() {
       `${plural(groups.length, 'group')}, writing the top ${selected.length}`,
   );
 
+  const collision = findSlugCollision(selected);
+  if (collision) {
+    console.error(
+      `generate-blog-drafts: scopes "${collision.first}" and "${collision.second}" both write ` +
+        `${collision.slug}.md, so one would replace the other. Nothing written.`,
+    );
+    process.exit(1);
+  }
+
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const written = [];
   const skipped = [];
   for (const group of selected) {
     const file = path.join(OUT_DIR, `${kebab(group.key)}.md`);
     const rel = path.relative(ROOT, file);
-    if (fs.existsSync(file) && !options.force) {
-      skipped.push(rel);
-      console.log(`  skipped ${rel} (already exists, pass --force to overwrite)`);
-      continue;
+    if (fs.existsSync(file)) {
+      if (!options.force) {
+        skipped.push(rel);
+        console.log(`  skipped ${rel} (already exists, pass --force to overwrite)`);
+        continue;
+      }
+      if (!isGeneratorOutput(file)) {
+        skipped.push(rel);
+        console.log(
+          `  skipped ${rel} (not aiGenerated: true, so --force leaves it alone)`,
+        );
+        continue;
+      }
     }
     fs.writeFileSync(file, renderEntry(group, options));
     written.push(rel);
@@ -441,4 +565,9 @@ function main() {
   );
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+}

@@ -1,32 +1,48 @@
 ---
-import { render, type CollectionEntry } from 'astro:content';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AiBadge from '../components/blog/AiBadge.astro';
-import { asLocale, getTranslations, localizePath } from '../i18n';
+import { asLocale, getTranslations, localizePath, LOCALES } from '../i18n';
+import { formatEntryDate } from '../lib/blog/entryDate';
 
 interface Props {
   entry: CollectionEntry<'blog'>;
 }
 
 const { entry } = Astro.props;
-const { title, description, date, aiGenerated, tags } = entry.data;
+const { title, description, date, aiGenerated, tags, slug } = entry.data;
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
 const { Content } = await render(entry);
 
-// Frontmatter dates are date-only, so they parse as UTC midnight. Formatting
-// them in the build host's zone renders the previous day west of UTC.
-const dateLabel = date.toLocaleDateString(entry.data.locale, {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-  timeZone: 'UTC',
-});
+const dateLabel = formatEntryDate(date, locale);
+
+// Only the locales this entry is actually published in get a route, so the
+// switcher and the hreflang alternates have to be restricted to them.
+const siblings = await getCollection(
+  'blog',
+  (candidate) => candidate.data.slug === slug && !candidate.data.draft,
+);
+const availableLocales = LOCALES.filter((l) =>
+  siblings.some((candidate) => candidate.data.locale === l),
+);
+
+// Every other route carries the brand suffix through its `meta.*.title`
+// dictionary entry; a post title comes from frontmatter, which is also the
+// visible <h1> and so has to stay bare.
+const documentTitle = `${title} — Mikko Numminen`;
 ---
 
-<BaseLayout title={title} description={description} theme="home">
+<BaseLayout
+  title={documentTitle}
+  description={description}
+  theme="home"
+  ogType="article"
+  publishedTime={date.toISOString()}
+  availableLocales={availableLocales}
+>
   <article class="blog-post">
     <header class="blog-post__header">
       <p class="blog-post__meta">
@@ -101,10 +117,10 @@ const dateLabel = date.toLocaleDateString(entry.data.locale, {
     align-items: flex-start;
     gap: 0.9rem;
     padding: 1.25rem 1.4rem;
-    border: 1px solid rgba(251, 191, 36, 0.4);
+    border: 1px solid rgba(var(--color-term-amber-rgb), 0.4);
     border-left-width: 4px;
     border-radius: 8px;
-    background: rgba(251, 191, 36, 0.08);
+    background: rgba(var(--color-term-amber-rgb), 0.08);
   }
 
   .blog-post__notice {

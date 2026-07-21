@@ -10,8 +10,9 @@ import { glob } from 'astro/loaders';
  *
  * Layout is `src/content/blog/<locale>/<slug>.md`. Locale and slug are ALSO
  * explicit frontmatter fields: the id is a build detail, whereas the language
- * switcher needs to pair the same entry across locales, and it does that by
- * matching on `slug`.
+ * switcher and the hreflang alternates have to pair the same entry across
+ * locales, and they do that by querying the collection for `slug` and reading
+ * `locale` off each match.
  *
  * `generateId` is explicit because the glob loader's default returns frontmatter
  * `slug` verbatim when the field is present, ignoring the file path entirely.

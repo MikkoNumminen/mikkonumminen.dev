@@ -1,5 +1,7 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { getTranslations } from '../../i18n';
+import { formatEntryDate } from '../../lib/blog/entryDate';
 import AiBadge from './AiBadge.astro';
 
 interface Props {
@@ -10,24 +12,21 @@ interface Props {
 const { entry, href } = Astro.props;
 const { title, description, date, locale, aiGenerated, tags } = entry.data;
 
-// Frontmatter dates are date-only, so they parse as UTC midnight. Formatting
-// them in the build host's zone renders the previous day west of UTC.
-const dateLabel = date.toLocaleDateString(locale, {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-  timeZone: 'UTC',
-});
+const t = getTranslations(locale);
+const dateLabel = formatEntryDate(date, locale);
 ---
 
 <article class="post-card">
   <div class="post-card__meta">
     <time datetime={date.toISOString()}>{dateLabel}</time>
-    {aiGenerated && <AiBadge />}
+    {aiGenerated && <AiBadge decorative />}
   </div>
 
   <h2 class="post-card__title">
-    <a href={href} class="post-card__link">{title}</a>
+    <a href={href} class="post-card__link">
+      {title}
+      {aiGenerated && <span class="sr-only">{t.blog.aiBadge}</span>}
+    </a>
   </h2>
 
   <p class="post-card__description">{description}</p>
@@ -73,8 +72,8 @@ const dateLabel = date.toLocaleDateString(locale, {
     margin: 0;
   }
 
-  /* Stretched hit area so the whole card is clickable while the accessible
-     name stays on the heading's own link. */
+  /* PARALLEL TO LatestEntries.astro: stretched hit area keeps the whole card
+     clickable while the accessible name stays on the heading's own link. */
   .post-card__link {
     color: #fff;
     text-decoration: none;

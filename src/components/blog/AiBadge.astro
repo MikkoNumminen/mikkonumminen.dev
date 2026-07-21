@@ -4,15 +4,23 @@ import { asLocale, getTranslations } from '../../i18n';
 interface Props {
   /** `lg` is the entry page's disclosure header; `sm` rides along on cards. */
   size?: 'sm' | 'lg';
+  /**
+   * Card lists repeat the disclosure inside the entry link so it reaches the
+   * link's accessible name; the chip is then a second announcement of the
+   * same fact and is hidden from assistive tech rather than read twice.
+   */
+  decorative?: boolean;
 }
 
-const { size = 'sm' } = Astro.props;
+const { size = 'sm', decorative = false } = Astro.props;
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 ---
 
-<span class="ai-badge" data-size={size}>{t.blog.aiBadge}</span>
+<span class="ai-badge" data-size={size} aria-hidden={decorative ? 'true' : undefined}>
+  {t.blog.aiBadge}
+</span>
 
 <style>
   /* Solid amber on ink rather than a tinted outline: the whole point of the
@@ -30,8 +38,11 @@ const t = getTranslations(locale);
     white-space: nowrap;
   }
 
+  /* Sized to sit with the date and tag metadata it rides beside rather than
+     below it: this is the element carrying the provenance claim, so it is
+     never the smallest text in the card. */
   .ai-badge[data-size='sm'] {
-    font-size: 0.6rem;
+    font-size: 0.7rem;
     padding: 0.3rem 0.6rem 0.3rem 0.72rem;
   }
 

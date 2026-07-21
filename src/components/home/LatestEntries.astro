@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import { asLocale, getTranslations, localizePath } from '../../i18n';
+import { formatEntryDate } from '../../lib/blog/entryDate';
 import AiBadge from '../blog/AiBadge.astro';
 
 const locale = asLocale(Astro.currentLocale);
@@ -11,13 +12,6 @@ const entries = (
 )
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, 3);
-
-const dateFormatter = new Intl.DateTimeFormat(locale, {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-  timeZone: 'UTC',
-});
 ---
 
 <section class="latest has-grain" aria-label={t.latestEntries.sectionAria}>
@@ -43,22 +37,27 @@ const dateFormatter = new Intl.DateTimeFormat(locale, {
         <ul class="latest__list">
           {entries.map((entry) => (
             <li class="latest__item" data-reveal>
-              <a
-                class="latest__link"
-                href={localizePath(`/blog/${entry.data.slug}`, locale)}
-              >
-                <span class="latest__meta">
-                  <time
-                    class="latest__date"
-                    datetime={entry.data.date.toISOString().slice(0, 10)}
-                  >
-                    {dateFormatter.format(entry.data.date)}
-                  </time>
-                  {entry.data.aiGenerated && <AiBadge />}
-                </span>
-                <h3 class="latest__title">{entry.data.title}</h3>
-                <p class="latest__desc">{entry.data.description}</p>
-              </a>
+              <span class="latest__meta">
+                <time
+                  class="latest__date"
+                  datetime={entry.data.date.toISOString().slice(0, 10)}
+                >
+                  {formatEntryDate(entry.data.date, locale)}
+                </time>
+                {entry.data.aiGenerated && <AiBadge decorative />}
+              </span>
+              <h3 class="latest__title">
+                <a
+                  class="latest__link"
+                  href={localizePath(`/blog/${entry.data.slug}`, locale)}
+                >
+                  {entry.data.title}
+                  {entry.data.aiGenerated && (
+                    <span class="sr-only">{t.blog.aiBadge}</span>
+                  )}
+                </a>
+              </h3>
+              <p class="latest__desc">{entry.data.description}</p>
             </li>
           ))}
         </ul>
@@ -121,20 +120,31 @@ const dateFormatter = new Intl.DateTimeFormat(locale, {
   }
 
   .latest__item {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .latest__link {
-    display: block;
+    position: relative;
     padding: clamp(1.75rem, 3.5vh, 2.5rem) 0.5rem;
-    text-decoration: none;
-    color: inherit;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     transition: background 0.4s ease;
   }
 
-  .latest__link:hover,
-  .latest__link:focus-visible {
+  /* The row highlight is driven from the row rather than the anchor because
+     the anchor only wraps the title — `:focus-within` keeps the keyboard
+     state matching the pointer state. */
+  .latest__item:hover,
+  .latest__item:focus-within {
     background: linear-gradient(to right, rgba(128, 168, 255, 0.06), transparent 70%);
+  }
+
+  .latest__link {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* PARALLEL TO PostCard.astro: stretched hit area keeps the whole row
+     clickable while the accessible name stays on the title's own link. */
+  .latest__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
   }
 
   .latest__meta {
