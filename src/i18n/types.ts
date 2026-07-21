@@ -77,10 +77,10 @@ export interface Translations {
     sectionAria: string;
     eyebrow: string;
     heading: string;
-    projects: { label: string };
-    experience: { label: string };
-    blog: { label: string };
-    contact: { label: string };
+    projects: { label: string; description: string };
+    experience: { label: string; description: string };
+    blog: { label: string; description: string };
+    contact: { label: string; description: string };
     footerCopyright: string;
     footerBuiltWith: string;
   };

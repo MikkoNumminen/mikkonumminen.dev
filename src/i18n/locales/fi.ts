@@ -68,10 +68,23 @@ export const fi: Translations = {
     sectionAria: 'Tutustu sivuston muihin osiin',
     eyebrow: 'jatka',
     heading: 'Muualla sivustolla.',
-    projects: { label: 'Projektit' },
-    experience: { label: 'Kokemus' },
-    blog: { label: 'Blogi' },
-    contact: { label: 'Yhteystiedot' },
+    projects: {
+      label: 'Projektit',
+      description: 'Tutustu interaktiiviseen aurinkokuntaan projekteistani.',
+    },
+    experience: {
+      label: 'Kokemus',
+      description: 'Kiipeä vuorta pitkin läpi taitojen, työkalujen ja saavutusten.',
+    },
+    blog: {
+      label: 'Blogi',
+      description:
+        'Työmuistiinpanoja siitä, mitä olen rakentanut, osa koottu commit-historiasta.',
+    },
+    contact: {
+      label: 'Yhteystiedot',
+      description: 'Hyppää terminaaliin ja ota yhteyttä suoraan.',
+    },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'tehty: astro · three.js · gsap',
   },
