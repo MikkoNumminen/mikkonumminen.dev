@@ -19,6 +19,63 @@
       "destination": "https://paskamyrsky.tail6ed53b.ts.net/session/reset"
     }
   ],
+  "redirects": [
+    {
+      "source": "/hrm",
+      "destination": "https://hr-manager-pearl.vercel.app",
+      "permanent": false
+    },
+    {
+      "source": "/platform",
+      "destination": "https://vuohiliitto.com",
+      "permanent": false
+    },
+    {
+      "source": "/readlog",
+      "destination": "https://read-log-pi.vercel.app",
+      "permanent": false
+    },
+    {
+      "source": "/readlog-net",
+      "destination": "https://readlog-a2feef.azurewebsites.net",
+      "permanent": false
+    },
+    {
+      "source": "/spacepotatis",
+      "destination": "https://spacepotatis.vercel.app",
+      "permanent": false
+    },
+    {
+      "source": "/feedback",
+      "destination": "https://red-ground-0bacf9c03.7.azurestaticapps.net",
+      "permanent": false
+    },
+    {
+      "source": "/audiobookmaker",
+      "destination": "https://github.com/MikkoNumminen/AudiobookMaker/releases",
+      "permanent": false
+    },
+    {
+      "source": "/claude-continue",
+      "destination": "https://github.com/MikkoNumminen/claude-continue/releases",
+      "permanent": false
+    },
+    {
+      "source": "/strudel",
+      "destination": "https://github.com/MikkoNumminen/strudel-patterns",
+      "permanent": false
+    },
+    {
+      "source": "/passwordmanager",
+      "destination": "https://github.com/MikkoNumminen/PasswordManager",
+      "permanent": false
+    },
+    {
+      "source": "/claude-agents",
+      "destination": "https://github.com/MikkoNumminen/claude-agents",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/api/rag/(.*)",
