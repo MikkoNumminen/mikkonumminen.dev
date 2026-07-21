@@ -158,7 +158,7 @@ export const fi: Translations = {
       'Projektini. Työpöytänäkymässä ne näkyvät interaktiivisena aurinkokuntana — tässä luettavana listana.',
     keyHeading: 'Selitykset',
     keyConnectionsLabel: 'Yhteydet',
-    keyExternalDesc: 'kiertävä satelliitti — yhteys ulkomaailmaan',
+    keyExternalDesc: 'kiertoradalla oleva satelliitti — yhteys ulkoiseen palveluun',
     listHeading: 'Hyppää projektiin',
     listAriaLabel: 'Projektiluettelo',
     connectionKindLabels: {
@@ -421,7 +421,8 @@ export const fi: Translations = {
     hintType: 'kirjoita',
     hintHistory: 'historia',
     hintComplete: 'täydennä',
-    noscriptIntro: 'Tämä sivu on interaktiivinen terminaali joka vaatii JavaScriptin.',
+    noscriptIntro:
+      'Tämä sivu on interaktiivinen terminaali, joka toimii vain JavaScriptin kanssa.',
     noscriptReachMe: 'Voit tavoittaa minut suoraan:',
     noscriptEmailLabel: 'Sähköposti:',
     noscriptGithubLabel: 'GitHub:',
