@@ -403,9 +403,30 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/;
 // The generator stamps aiGenerated: true on everything it writes, so it can
 // recognise its own output and leave anything else alone. --force is for
 // regenerating a stale draft, not for overwriting an entry someone rewrote.
-function isGeneratorOutput(file) {
-  const frontmatter = FRONTMATTER.exec(fs.readFileSync(file, 'utf8'))?.[1] ?? '';
-  return /^aiGenerated:\s*true\s*$/m.test(frontmatter);
+// Returns 'written', 'exists', or 'foreign'. Never checks a path and then acts
+// on it: `wx` claims a new path or fails in one step, and the overwrite holds a
+// single descriptor across inspect-then-replace so the bytes vetted and the
+// bytes truncated belong to the same file no matter what happens to the path.
+function writeEntry(file, contents, force) {
+  try {
+    fs.writeFileSync(file, contents, { flag: 'wx' });
+    return 'written';
+  } catch (error) {
+    if (error.code !== 'EEXIST') throw error;
+  }
+
+  if (!force) return 'exists';
+
+  const fd = fs.openSync(file, 'r+');
+  try {
+    const frontmatter = FRONTMATTER.exec(fs.readFileSync(fd, 'utf8'))?.[1] ?? '';
+    if (!/^aiGenerated:\s*true\s*$/m.test(frontmatter)) return 'foreign';
+    fs.ftruncateSync(fd, 0);
+    fs.writeSync(fd, contents, 0, 'utf8');
+    return 'written';
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 // Two group keys are distinct Map keys while differing only in case or
@@ -537,21 +558,17 @@ function main() {
   for (const group of selected) {
     const file = path.join(OUT_DIR, `${kebab(group.key)}.md`);
     const rel = path.relative(ROOT, file);
-    if (fs.existsSync(file)) {
-      if (!options.force) {
-        skipped.push(rel);
-        console.log(`  skipped ${rel} (already exists, pass --force to overwrite)`);
-        continue;
-      }
-      if (!isGeneratorOutput(file)) {
-        skipped.push(rel);
-        console.log(
-          `  skipped ${rel} (not aiGenerated: true, so --force leaves it alone)`,
-        );
-        continue;
-      }
+    const outcome = writeEntry(file, renderEntry(group, options), options.force);
+    if (outcome === 'exists') {
+      skipped.push(rel);
+      console.log(`  skipped ${rel} (already exists, pass --force to overwrite)`);
+      continue;
     }
-    fs.writeFileSync(file, renderEntry(group, options));
+    if (outcome === 'foreign') {
+      skipped.push(rel);
+      console.log(`  skipped ${rel} (not aiGenerated: true, so --force leaves it alone)`);
+      continue;
+    }
     written.push(rel);
     console.log(`  wrote   ${rel} (${plural(group.commits.length, 'commit')})`);
   }
