@@ -491,7 +491,7 @@ export const sv: Translations = {
     cmdDownloadOptionSkills:
       'juni 2026 · senaste + bredaste — 16 skills, kall-vs-skill A/B över 3 modeller; den aktuella ögonblicksbilden',
     cmdDownloadOptionResearch:
-      'forskningen — 9 pdf:er: skills-sviten + rag finska studien + poro-resultaten (ingen nedladdning)',
+      'forskningen — 10 pdf:er: skills-sviten + rag finska studien + poro-resultaten + översättningsgranskningen (ingen nedladdning)',
     cmdDownloadResearchIntro: 'katalogen + studierna, äldst → nyast:',
     cmdDownloadOptionCatalog:
       'varje skill i alla 4 repor — inventeringen, med uppmätta (inte gissade) kostnader',
@@ -511,6 +511,8 @@ export const sv: Translations = {
       'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
     cmdDownloadOptionPoro:
       'juli 2026 · Poro-2-8B i produktion — vad två projekt mätte, varför ett antog den och ett avstod, och det deterministiska lagret byggt runt den',
+    cmdDownloadOptionTranslations:
+      'juli 2026 · översättningsgranskningen — en lokal finsk språkmodell läser om alla sidans 396 finska strängar mot den engelska källan; bara 2 av dess 276 föreslagna ändringar höll',
     cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
       'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` eller `download --finnish`.',
@@ -536,6 +538,8 @@ export const sv: Translations = {
       'rag blind test pdf not available right now — reach out and I will send it.',
     cmdDownloadPoroNotAvailable:
       'poro-resultatens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
+    cmdDownloadTranslationsNotAvailable:
+      'översättningsgranskningens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadMeantime: 'under tiden, hör av dig:',
     cmdDownloadStarted: 'nedladdning startad.',
     cmdClearDesc: 'rensa skärmen',

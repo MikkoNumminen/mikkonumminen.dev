@@ -157,13 +157,13 @@
       "question": "tell me about Mikko's latest research",
       "expectation": "must_retrieve",
       "expected_sources": [
-        "posts/poro-findings.md"
+        "posts/poro-finnish-review.md"
       ],
       "category": "research-coverage",
       "facts": [
         "Poro"
       ],
-      "_note": "research-coverage layer: the deterministic intent forces the newest research (poro-findings, 2026-07-15) into context so 'latest research' can't surface only an older study. Requires the type:research tags + a re-index."
+      "_note": "research-coverage layer: the deterministic intent forces the newest research (poro-finnish-review, 2026-07-21) into context so 'latest research' can't surface only an older study. Requires the type:research tags + a re-index."
     },
     {
       "id": "recency-research-fi",
@@ -171,13 +171,13 @@
       "expectation": "must_retrieve",
       "expected_lang": "fi",
       "expected_sources": [
-        "posts/poro-findings.md"
+        "posts/poro-finnish-review.md"
       ],
       "category": "research-coverage",
       "facts": [
         "Poro"
       ],
-      "_note": "the reported bug (2026-07-15): this exact phrasing answered only about the older skills A/B study and omitted the newest (Poro) research."
+      "_note": "this exact phrasing once answered only about the older skills A/B study and omitted the newest research (the original 2026-07-15 bug); the newest is now poro-finnish-review (2026-07-21)."
     },
     {
       "id": "coverage-research-en",
