@@ -26,7 +26,7 @@ Poro proposed rewriting 276 of the 396 strings — 70% of the copy. Read literal
 After the adversarial pass, exactly **two** of the 276 changes survived — a 99.3% rejection rate on Poro's own suggestions. Both are real fixes a careful human proofreader would also have made:
 
 - `projectsPage.keyExternalDesc` (accuracy): the original "yhteys ulkomaailmaan" (connection to the outside *world*) had dropped the word *service* from the English "connects to an outside service". Poro's "yhteys ulkoiseen palveluun" restores it, and "kiertoradalla oleva satelliitti" is more precise than "kiertävä satelliitti".
-- `contactPage.noscriptIntro` (grammar): the original was missing the comma Finnish requires before a relative "joka" clause. Poro added it.
+- `contactPage.noscriptIntro` (grammar): the original was missing the comma Finnish requires before a relative "joka" clause. Poro added it, and also rephrased the predicate from "vaatii JavaScriptin" (requires JavaScript) to "toimii vain JavaScriptin kanssa" (only works with JavaScript) — a semantically equivalent wording that reads a little more naturally.
 
 ## Where Poro went wrong
 
@@ -36,7 +36,7 @@ The pattern is the mirror image of what the original translator got right. Poro 
 
 ## So which translator won
 
-The one I started with. A purpose-built Finnish model, allowed to change anything on the site, improved it in two small places and made it worse everywhere else it tried. The machine translation I had been quietly unsure about turned out to be solid. Poro earned its keep not as a rewriter but as a second reader: it confirmed the overwhelming bulk of the work and surfaced two genuine misses.
+The one I started with. A purpose-built Finnish model, allowed to change anything on the site, improved it in two small places and failed to improve it everywhere else it tried — often making it worse, sometimes just changing it sideways. The machine translation I had been quietly unsure about turned out to be solid. Poro earned its keep not as a rewriter but as a second reader: it confirmed the overwhelming bulk of the work and surfaced two genuine misses.
 
 ## Caveats
 
