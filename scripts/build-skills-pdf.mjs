@@ -837,8 +837,7 @@ function buildAggregates(data) {
       // A redirect stub is a tombstone, not a measured skill. Exclude it from
       // every aggregate so the calibrated/measured counts can never exceed the
       // active-skill total the headline reports — even if a superseded skill
-      // kept an old receipt, which would otherwise revive the "more tested than
-      // total" contradiction this file just removed.
+      // kept an old receipt.
       if (s.redirect) continue;
       const rec = s.receipt;
       if (!rec) continue;
