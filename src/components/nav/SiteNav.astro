@@ -12,9 +12,11 @@ interface Props {
   theme: 'home' | 'projects' | 'experience' | 'contact';
   current: string;
   locale?: Locale;
+  /** Locales the current page exists in; the switcher never links past this set. */
+  availableLocales?: readonly Locale[];
 }
 
-const { theme, current, locale: propLocale } = Astro.props;
+const { theme, current, locale: propLocale, availableLocales = LOCALES } = Astro.props;
 const locale = propLocale ?? asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
@@ -22,13 +24,14 @@ const links = [
   { href: localizePath('/', locale), label: t.nav.home },
   { href: localizePath('/projects', locale), label: t.nav.projects },
   { href: localizePath('/experience', locale), label: t.nav.experience },
+  { href: localizePath('/blog', locale), label: t.nav.blog },
   { href: localizePath('/contact', locale), label: t.nav.contact },
 ];
 
 // For the language switcher we need to know the bare path (no locale prefix)
 // so we can re-localize it for each available language.
 const barePath = stripLocale(current);
-const langLinks = LOCALES.map((l) => ({
+const langLinks = availableLocales.map((l) => ({
   locale: l,
   href: localizePath(barePath, l),
   label: t.langSwitcher[l],

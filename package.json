@@ -19,6 +19,7 @@
     "build:review-stats": "node scripts/build-review-stats.mjs",
     "sync:skills-registry": "node scripts/sync-skill-registry.mjs",
     "render:audit-pdfs": "node scripts/render-audit-pdfs.mjs",
+    "blog:drafts": "node scripts/generate-blog-drafts.mjs",
     "prebuild": "npm run validate:registry && npm run render:audit-pdfs && npm run build:skills-pdf",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,mjs,astro,json,css}\" \"*.{ts,mjs,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,mjs,astro,json,css}\" \"*.{ts,mjs,json}\"",

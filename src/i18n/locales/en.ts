@@ -9,7 +9,7 @@ export const en: Translations = {
     home: {
       title: 'Mikko Numminen — full-stack developer',
       description:
-        'Full-stack developer in Finland. Nine projects shipped solo this year — real users, 1828+ tests, AI-native by default.',
+        'Full-stack developer in Finland. Working notes and selected projects, shipped solo and AI-native by default.',
     },
     contact: {
       title: 'Contact — Mikko Numminen',
@@ -25,11 +25,17 @@ export const en: Translations = {
       description:
         "Climb the mountain — Mikko Numminen's experience, skills, and milestones from base camp to today.",
     },
+    blog: {
+      title: 'Blog — Mikko Numminen',
+      description:
+        'Working notes from the projects of Mikko Numminen. Entries written from the commit history are labelled as machine-generated.',
+    },
   },
   nav: {
     home: 'home',
     projects: 'projects',
     experience: 'experience',
+    blog: 'blog',
     contact: 'contact',
     primaryAria: 'Primary',
     languageSwitcherAria: 'Language',
@@ -47,100 +53,37 @@ export const en: Translations = {
   intro: {
     sectionAria: 'About',
     eyebrow: 'about',
-    heading: 'Nine repos. They build on each other.',
-    body: 'Full-stack developer in Finland. HRM is the architectural backbone of Platform — live for a real WoW guild at vuohiliitto.com. AudiobookMaker voices Spacepotatis, a browser game I shipped this year; strudel-patterns scores it. Each repo stands on its own — the seams between them are the point.',
-    statTests: 'tests in the largest project',
-    statCoverage: 'line coverage',
-    statProducts: 'shipped projects',
+    heading: 'A short introduction.',
+    placeholderNote: 'placeholder — replace this paragraph',
+    body: 'This paragraph is a placeholder and has not been written yet. It is here so the section has real length to lay out against. Replace this text with your own introduction, then delete the placeholder marker above it.',
   },
-  focus: {
-    sectionAria: 'How the projects connect',
-    eyebrow: 'connections',
-    heading: 'How the projects connect.',
-    items: [
-      {
-        title: 'Repos that feed each other',
-        body: 'HRM ships as a git submodule inside Platform — same auth, same audit log, two products from one core. AudiobookMaker voices Spacepotatis; strudel-patterns scores it. Every line of dialogue and every note of music traces back to a repo I own.',
-      },
-      {
-        title: "Tested or it doesn't ship",
-        body: 'Every repo runs CI on every push. HRM has 1828+ tests at 91.9% coverage, Spacepotatis ~1300, AudiobookMaker over 3000. Quality gates matter more than the fanciest stack.',
-      },
-      {
-        title: 'AI-native, on the record',
-        body: 'Spacepotatis ships a catalog of custom Claude Code skills under .claude/skills/ — version-controlled, audited, treated as production artifacts. Pair-programming with AI is part of the toolchain; the methodology is the receipts.',
-        link: {
-          href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-          label: 'See the receipts',
-        },
-      },
-    ],
-  },
-  integrations: {
-    sectionAria: 'External integrations',
-    eyebrow: 'integrations',
-    heading: 'Plugged into the world.',
-    items: [
-      {
-        project: 'Platform',
-        api: 'Raider.IO API',
-        body: 'Live Mythic+ team tracker for a real WoW guild. Rosters, recent runs, and rio scores pulled fresh on every load — no stale screenshots. Auth via Google or GitHub OAuth, plus a zero-credential demo for visitors.',
-      },
-      {
-        project: 'ReadLog',
-        api: 'Open Library + Google Books',
-        body: 'Two book APIs queried in parallel; whichever source returns the cleaner record wins. Duplicates are collapsed before they reach the UI. Sign-in via Google OAuth.',
-      },
-      {
-        project: 'AudiobookMaker',
-        api: 'Microsoft Edge-TTS',
-        body: '30+ cloud voices in six languages, on top of three local engines (Piper, Chatterbox, VoxCPM2). Pick the voice that fits the book.',
-      },
-      {
-        project: 'Spacepotatis',
-        api: 'Google OAuth',
-        body: 'Sign-in is optional. Play offline forever, or opt in for cloud saves and a leaderboard slot.',
-      },
-      {
-        project: 'Feedback Intelligence',
-        api: 'Tailscale Funnel',
-        body: 'The demo runs free on Azure Static Web Apps, but the model runs at home: an Azure Functions proxy forwards each request through a Tailscale Funnel to a local Ollama GPU. Snapshot-first, so the demo still answers when the tunnel is down. Cloud-inference bill: zero.',
-      },
-    ],
-  },
-  velocity: {
-    sectionAria: 'Development velocity',
-    eyebrow: 'velocity',
-    heading: 'Fast — for real.',
-    body: 'Spacepotatis went from empty repo to live browser game in 12 days: 475 commits, ~1300 tests, full Next.js + Phaser 4 + Three.js stack — backed by audited Claude Code skills as production artifacts. Most of the portfolio started in the last few months. Every number here is countable from the commit history.',
-    link: {
-      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-      label: 'How 3.13M tokens was estimated',
-    },
-    stats: [
-      { num: '12', label: 'days from empty repo to live Spacepotatis' },
-      { num: '475', label: 'Spacepotatis commits' },
-      { num: '~1300', label: 'Spacepotatis tests passing' },
-    ],
+  latestEntries: {
+    sectionAria: 'Latest blog entries',
+    eyebrow: 'writing',
+    heading: 'Latest entries.',
+    viewAll: 'All entries',
+    empty: 'No entries published yet.',
   },
   navCards: {
     sectionAria: 'Explore the rest of the site',
     eyebrow: 'continue',
-    heading: 'Pick a world.',
-    projects: {
-      label: 'Projects',
-      description: 'Explore an interactive solar system of things I have built.',
-    },
-    experience: {
-      label: 'Experience',
-      description: 'Climb a parallax mountain through skills, tools, and milestones.',
-    },
-    contact: {
-      label: 'Contact',
-      description: 'Drop into a terminal and reach me directly.',
-    },
+    heading: 'Elsewhere on the site.',
+    projects: { label: 'Projects' },
+    experience: { label: 'Experience' },
+    blog: { label: 'Blog' },
+    contact: { label: 'Contact' },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'built with astro · three.js · gsap',
+  },
+  blog: {
+    eyebrow: 'writing',
+    title: 'Blog',
+    lede: 'Working notes on what I have been building. Some entries are written by a machine from the commit history, and those say so at the top.',
+    aiBadge: 'AI-generated',
+    aiNotice:
+      'This entry was generated from commit history by a language model. I have not rewritten it. Treat it as a summary of what changed, not as something I sat down and wrote.',
+    backToIndex: 'All entries',
+    empty: 'No entries yet.',
   },
   projectsPage: {
     eyebrow: 'Selected work',

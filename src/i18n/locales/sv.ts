@@ -9,7 +9,7 @@ export const sv: Translations = {
     home: {
       title: 'Mikko Numminen — full-stack-utvecklare',
       description:
-        'Portfolio för Mikko Numminen, en full-stack-utvecklare från Finland som bygger produktionsklara webbapplikationer med AI-assisterade arbetsflöden.',
+        'Full-stack-utvecklare i Finland. Arbetsanteckningar och utvalda projekt, levererade solo och AI-nativt som standard.',
     },
     contact: {
       title: 'Kontakt — Mikko Numminen',
@@ -25,11 +25,17 @@ export const sv: Translations = {
       description:
         'Klättra uppför berget — Mikko Numminens erfarenhet, kompetenser och milstolpar från baslägret till idag.',
     },
+    blog: {
+      title: 'Blogg — Mikko Numminen',
+      description:
+        'Arbetsanteckningar från Mikko Nummisens projekt. Inlägg skrivna utifrån commit-historiken är märkta som AI-genererade.',
+    },
   },
   nav: {
     home: 'hem',
     projects: 'projekt',
     experience: 'erfarenhet',
+    blog: 'blogg',
     contact: 'kontakt',
     primaryAria: 'Huvudmeny',
     languageSwitcherAria: 'Språk',
@@ -47,97 +53,37 @@ export const sv: Translations = {
   intro: {
     sectionAria: 'Om',
     eyebrow: 'om',
-    heading: 'Nio repon. De bygger på varandra.',
-    body: 'Full-stack-utvecklare i Finland. HRM är den arkitektoniska ryggraden i Platform — live för ett riktigt WoW-gille på vuohiliitto.com. AudiobookMaker ger rösten åt Spacepotatis, ett webbläsarspel jag släppte i år; strudel-patterns skriver musiken. Varje repo står för sig själv — fogarna mellan dem är poängen.',
-    statTests: 'tester i det största projektet',
-    statCoverage: 'radtäckning',
-    statProducts: 'levererade projekt',
+    heading: 'En kort introduktion.',
+    placeholderNote: 'platshållare, ersätt detta stycke',
+    body: 'Det här stycket är en platshållare och har inte skrivits ännu. Det finns här så att sektionen har verklig längd att utgå ifrån. Ersätt den här texten med din egen introduktion och ta sedan bort platshållarmarkeringen ovanför.',
   },
-  focus: {
-    sectionAria: 'Så hänger projekten ihop',
-    eyebrow: 'kopplingar',
-    heading: 'Så hänger projekten ihop.',
-    items: [
-      {
-        title: 'Repon som matar varandra',
-        body: 'HRM körs som git-undermodul inuti Platform — samma autentisering, samma granskningslogg, två produkter ur en kärna. AudiobookMaker ger rösten åt Spacepotatis; strudel-patterns skriver musiken. Varje replik och varje not spåras tillbaka till ett repo jag äger själv.',
-      },
-      {
-        title: 'Testat eller det skeppas inte',
-        body: 'Varje repo kör CI vid varje push. HRM har 1828+ tester med 91,9 % täckning, Spacepotatis ~1300, AudiobookMaker över 3000. Kvalitetsportar väger tyngre än den häftigaste stacken.',
-      },
-      {
-        title: 'AI-nativt, dokumenterat',
-        body: 'Spacepotatis levererar en uppsättning egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade, behandlade som produktionsartefakter. Parprogrammering med AI är en del av verktygskedjan; metoden är kvittot.',
-      },
-    ],
-  },
-  integrations: {
-    sectionAria: 'Externa integrationer',
-    eyebrow: 'integrationer',
-    heading: 'Kopplad till världen.',
-    items: [
-      {
-        project: 'Platform',
-        api: 'Raider.IO API',
-        body: 'Live Mythic+-teamspårning för ett riktigt WoW-gille. Rosters, senaste runs och rio-poäng hämtas färska vid varje laddning — inga inaktuella skärmdumpar. Inloggning via Google- eller GitHub-OAuth, plus en lösenordsfri demo för besökare.',
-      },
-      {
-        project: 'ReadLog',
-        api: 'Open Library + Google Books',
-        body: 'Två bok-API:er körs parallellt; den med renare data vinner. Dubletter slås ihop innan de når gränssnittet. Inloggning via Google-OAuth.',
-      },
-      {
-        project: 'AudiobookMaker',
-        api: 'Microsoft Edge-TTS',
-        body: '30+ molnröster på sex språk, ovanpå tre lokala motorer (Piper, Chatterbox, VoxCPM2). Välj rösten som passar boken.',
-      },
-      {
-        project: 'Spacepotatis',
-        api: 'Google OAuth',
-        body: 'Inloggning är valfri. Spela offline för evigt, eller logga in för molnsparningar och en plats på topplistan.',
-      },
-      {
-        project: 'Feedback Intelligence',
-        api: 'Tailscale Funnel',
-        body: 'Demot körs gratis på Azure Static Web Apps, men modellen körs hemma: en Azure Functions-proxy vidarebefordrar varje förfrågan genom en Tailscale Funnel till en lokal Ollama-GPU. Snapshot-först: demot svarar även när tunneln är nere. Molninferensräkningen: noll.',
-      },
-    ],
-  },
-  velocity: {
-    sectionAria: 'Utvecklingstempo',
-    eyebrow: 'tempo',
-    heading: 'Snabbt — på riktigt.',
-    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 475 commits, ~1300 tester, hela Next.js + Phaser 4 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Större delen av portföljen startade under de senaste månaderna. Varje siffra här går att räkna fram ur commit-historiken.',
-    link: {
-      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-      label: 'Hur 3,13M token uppskattades',
-    },
-    stats: [
-      { num: '12', label: 'dagar från tomt repo till live Spacepotatis' },
-      { num: '475', label: 'Spacepotatis-commits' },
-      { num: '~1300', label: 'Spacepotatis-tester som går igenom' },
-    ],
+  latestEntries: {
+    sectionAria: 'Senaste blogginläggen',
+    eyebrow: 'skrivet',
+    heading: 'Senaste inläggen.',
+    viewAll: 'Alla inlägg',
+    empty: 'Inga inlägg publicerade än.',
   },
   navCards: {
     sectionAria: 'Utforska resten av sajten',
     eyebrow: 'fortsätt',
-    heading: 'Välj en värld.',
-    projects: {
-      label: 'Projekt',
-      description: 'Utforska ett interaktivt solsystem av saker jag har byggt.',
-    },
-    experience: {
-      label: 'Erfarenhet',
-      description:
-        'Klättra uppför ett parallaxberg genom kompetenser, verktyg och milstolpar.',
-    },
-    contact: {
-      label: 'Kontakt',
-      description: 'Hoppa in i en terminal och nå mig direkt.',
-    },
+    heading: 'Övrigt på sajten.',
+    projects: { label: 'Projekt' },
+    experience: { label: 'Erfarenhet' },
+    blog: { label: 'Blogg' },
+    contact: { label: 'Kontakt' },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'byggt med astro · three.js · gsap',
+  },
+  blog: {
+    eyebrow: 'skrivet',
+    title: 'Blogg',
+    lede: 'Arbetsanteckningar om vad jag har byggt. Vissa inlägg är skrivna av en maskin utifrån commit-historiken, och det står överst i dem.',
+    aiBadge: 'AI-genererad',
+    aiNotice:
+      'Det här inlägget genererades från commit-historiken av en språkmodell. Jag har inte skrivit om det. Betrakta det som en sammanfattning av vad som ändrades, inte som något jag satt mig ner och skrivit.',
+    backToIndex: 'Alla inlägg',
+    empty: 'Inga inlägg än.',
   },
   projectsPage: {
     eyebrow: 'Utvalt arbete',

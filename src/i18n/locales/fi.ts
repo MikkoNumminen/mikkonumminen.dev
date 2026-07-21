@@ -9,7 +9,7 @@ export const fi: Translations = {
     home: {
       title: 'Mikko Numminen — full-stack-kehittäjä',
       description:
-        'Mikko Nummisen portfolio. Suomesta käsin toimiva full-stack-kehittäjä rakentaa tuotantotason verkkosovelluksia AI-avusteisilla työnkuluilla.',
+        'Full-stack-kehittäjä Suomesta. Työmuistiinpanoja ja valittuja projekteja, toteutettu yksin ja tekoälylähtöisesti oletuksena.',
     },
     contact: {
       title: 'Yhteystiedot — Mikko Numminen',
@@ -25,11 +25,17 @@ export const fi: Translations = {
       description:
         'Kiipeä vuorelle — Mikko Nummisen kokemus, taidot ja virstanpylväät perusleiristä tähän hetkeen.',
     },
+    blog: {
+      title: 'Blogi — Mikko Numminen',
+      description:
+        'Työmuistiinpanoja Mikko Nummisen projekteista. Commit-historiasta kirjoitetut merkinnät on merkitty tekoälyn generoimiksi.',
+    },
   },
   nav: {
     home: 'etusivu',
     projects: 'projektit',
     experience: 'kokemus',
+    blog: 'blogi',
     contact: 'yhteystiedot',
     primaryAria: 'Päänavigaatio',
     languageSwitcherAria: 'Kieli',
@@ -47,96 +53,37 @@ export const fi: Translations = {
   intro: {
     sectionAria: 'Tietoja',
     eyebrow: 'tietoja',
-    heading: 'Yhdeksän repoa. Ne rakentavat toistensa päälle.',
-    body: 'Full-stack-kehittäjä Suomesta. HRM on Platformin arkkitehtuuripohja — Platform on tuotantokäytössä oikealla WoW-killalla osoitteessa vuohiliitto.com. AudiobookMaker tuottaa äänet Spacepotatikseen, tänä vuonna julkaisemaani selainpeliin; strudel-patterns säveltää sen musiikin. Jokainen repo seisoo omillaan — saumat niiden välillä ovat se juju.',
-    statTests: 'testiä suurimmassa projektissa',
-    statCoverage: 'rivikattavuus',
-    statProducts: 'julkaistua projektia',
+    heading: 'Lyhyt esittely.',
+    placeholderNote: 'paikkamerkki, korvaa tämä kappale',
+    body: 'Tämä kappale on paikkamerkki eikä sitä ole vielä kirjoitettu. Se on tässä, jotta osiolla on todellista pituutta asettelua varten. Korvaa tämä teksti omalla esittelylläsi ja poista sitten yllä oleva paikkamerkkitunniste.',
   },
-  focus: {
-    sectionAria: 'Miten projektit kytkeytyvät',
-    eyebrow: 'kytkennät',
-    heading: 'Miten projektit kytkeytyvät yhteen.',
-    items: [
-      {
-        title: 'Repot syöttävät toisiaan',
-        body: 'HRM toimii git-alimoduulina Platformin sisällä — sama tunnistautuminen, sama auditloki, kaksi tuotetta yhdestä ytimestä. AudiobookMaker tuottaa äänet Spacepotatikseen, strudel-patterns sen musiikin. Jokainen repliikki ja jokainen sävel jäljitetään takaisin repoon, jonka omistan itse.',
-      },
-      {
-        title: 'Testattu tai ei lähde',
-        body: 'Jokaisella repolla on CI joka pushissa. HRM:ssä 1828+ testiä 91,9 % kattavuudella, Spacepotatiksessa ~1300, AudiobookMakerissa yli 3000. Laatuportit painavat enemmän kuin mahtipontisin teknologiapino.',
-      },
-      {
-        title: 'AI-natiivi, jäljitettävästi',
-        body: 'Spacepotatis toimittaa kokoelman omia Claude Code -skillejä .claude/skills/-hakemistossa — versionhallittuja, auditoituja, tuotantoartefaktien tavoin käsiteltyjä. Pariohjelmointi tekoälyn kanssa on osa työkalupakkia; menetelmä on kuitti.',
-      },
-    ],
-  },
-  integrations: {
-    sectionAria: 'Ulkoiset integraatiot',
-    eyebrow: 'integraatiot',
-    heading: 'Kytköksissä maailmaan.',
-    items: [
-      {
-        project: 'Platform',
-        api: 'Raider.IO API',
-        body: 'Reaaliaikainen Mythic+-tiimiseuranta oikealle WoW-killalle. Rosterit, viimeisimmät retket ja rio-pisteet haetaan tuoreina jokaisella latauksella — ei vanhentuneita ruutukaappauksia. Tunnistautuminen Google- tai GitHub-OAuthilla, lisäksi tunnukseton demo vierailijoille.',
-      },
-      {
-        project: 'ReadLog',
-        api: 'Open Library + Google Books',
-        body: 'Kaksi kirja-API:a kysellään rinnakkain; tarkemmat tiedot palauttava lähde voittaa. Duplikaatit yhdistetään ennen kuin ne ehtivät käyttöliittymään. Sisäänkirjautuminen Google-OAuthilla.',
-      },
-      {
-        project: 'AudiobookMaker',
-        api: 'Microsoft Edge-TTS',
-        body: '30+ pilvi-ääntä kuudella kielellä, kolmen offline-moottorin (Piper, Chatterbox, VoxCPM2) lisäksi. Valitse ääni, joka sopii kirjaan.',
-      },
-      {
-        project: 'Spacepotatis',
-        api: 'Google OAuth',
-        body: 'Sisäänkirjautuminen on vapaaehtoista. Pelaa offline ikuisesti, tai liity mukaan pilvitallennuksiin ja tulostaulun paikkaan.',
-      },
-      {
-        project: 'Feedback Intelligence',
-        api: 'Tailscale Funnel',
-        body: 'Demo pyörii ilmaiseksi Azure Static Web Appsissa, mutta malli ajetaan kotona: Azure Functions -proxy välittää jokaisen pyynnön Tailscale Funnelin kautta paikalliseen Ollama-GPU:hun. Snapshot-ensin: demo vastaa myös tunnelin ollessa poikki. Pilvi-inferenssin lasku: nolla.',
-      },
-    ],
-  },
-  velocity: {
-    sectionAria: 'Kehitysvauhti',
-    eyebrow: 'vauhti',
-    heading: 'Nopeaa — todistettavasti.',
-    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 475 commitia, ~1300 testiä, koko Next.js + Phaser 4 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Suurin osa portfoliosta käynnistyi viime kuukausina. Jokainen tässä esitetty luku on laskettavissa commit-historiasta.',
-    link: {
-      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-      label: 'Miten 3,13M tokenia arvioitiin',
-    },
-    stats: [
-      { num: '12', label: 'päivää tyhjästä reposta Spacepotatis-tuotantoon' },
-      { num: '475', label: 'Spacepotatis-commitia' },
-      { num: '~1300', label: 'Spacepotatis-testiä menossa läpi' },
-    ],
+  latestEntries: {
+    sectionAria: 'Uusimmat blogimerkinnät',
+    eyebrow: 'kirjoituksia',
+    heading: 'Uusimmat merkinnät.',
+    viewAll: 'Kaikki merkinnät',
+    empty: 'Ei vielä julkaistuja merkintöjä.',
   },
   navCards: {
     sectionAria: 'Tutustu sivuston muihin osiin',
     eyebrow: 'jatka',
-    heading: 'Valitse maailma.',
-    projects: {
-      label: 'Projektit',
-      description: 'Tutustu interaktiiviseen aurinkokuntaan projekteistani.',
-    },
-    experience: {
-      label: 'Kokemus',
-      description: 'Kiipeä vuorta pitkin läpi taitojen, työkalujen ja saavutusten.',
-    },
-    contact: {
-      label: 'Yhteystiedot',
-      description: 'Hyppää terminaaliin ja ota yhteyttä suoraan.',
-    },
+    heading: 'Muualla sivustolla.',
+    projects: { label: 'Projektit' },
+    experience: { label: 'Kokemus' },
+    blog: { label: 'Blogi' },
+    contact: { label: 'Yhteystiedot' },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'tehty: astro · three.js · gsap',
+  },
+  blog: {
+    eyebrow: 'kirjoituksia',
+    title: 'Blogi',
+    lede: 'Työmuistiinpanoja siitä, mitä olen rakentanut. Osa merkinnöistä on koneen kirjoittamia commit-historiasta, ja ne kertovat sen heti alussa.',
+    aiBadge: 'tekoälyn generoima',
+    aiNotice:
+      'Tämän merkinnän on generoinut kielimalli commit-historiasta. En ole kirjoittanut sitä uudelleen. Käsittele sitä yhteenvetona muutoksista, ei jonain minun itse kirjoittamana.',
+    backToIndex: 'Kaikki merkinnät',
+    empty: 'Ei vielä merkintöjä.',
   },
   projectsPage: {
     eyebrow: 'Valitut työt',

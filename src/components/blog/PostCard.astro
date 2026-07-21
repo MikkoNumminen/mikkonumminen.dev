@@ -1,0 +1,120 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getTranslations } from '../../i18n';
+import { formatEntryDate } from '../../lib/blog/entryDate';
+import AiBadge from './AiBadge.astro';
+
+interface Props {
+  entry: CollectionEntry<'blog'>;
+  href: string;
+}
+
+const { entry, href } = Astro.props;
+const { title, description, date, locale, aiGenerated, tags } = entry.data;
+
+const t = getTranslations(locale);
+const dateLabel = formatEntryDate(date, locale);
+---
+
+<article class="post-card">
+  <div class="post-card__meta">
+    <time datetime={date.toISOString()}>{dateLabel}</time>
+    {aiGenerated && <AiBadge decorative />}
+  </div>
+
+  <h2 class="post-card__title">
+    <a href={href} class="post-card__link">
+      {title}
+      {aiGenerated && <span class="sr-only">{t.blog.aiBadge}</span>}
+    </a>
+  </h2>
+
+  <p class="post-card__description">{description}</p>
+
+  {
+    tags.length > 0 && (
+      <ul class="post-card__tags">
+        {tags.map((tag) => (
+          <li>{tag}</li>
+        ))}
+      </ul>
+    )
+  }
+</article>
+
+<style>
+  .post-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.75rem 0 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .post-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .post-card__title {
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  /* PARALLEL TO LatestEntries.astro: stretched hit area keeps the whole card
+     clickable while the accessible name stays on the heading's own link. */
+  .post-card__link {
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .post-card__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .post-card__link:hover,
+  .post-card__link:focus-visible {
+    color: var(--color-home-accent);
+  }
+
+  .post-card__description {
+    margin: 0;
+    max-width: 68ch;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  .post-card__tags {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    margin: 0.25rem 0 0;
+  }
+
+  .post-card__tags li {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    padding: 0.22rem 0.6rem;
+  }
+</style>
