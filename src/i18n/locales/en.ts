@@ -68,10 +68,23 @@ export const en: Translations = {
     sectionAria: 'Explore the rest of the site',
     eyebrow: 'continue',
     heading: 'Elsewhere on the site.',
-    projects: { label: 'Projects' },
-    experience: { label: 'Experience' },
-    blog: { label: 'Blog' },
-    contact: { label: 'Contact' },
+    projects: {
+      label: 'Projects',
+      description: 'Explore an interactive solar system of things I have built.',
+    },
+    experience: {
+      label: 'Experience',
+      description: 'Climb a parallax mountain through skills, tools, and milestones.',
+    },
+    blog: {
+      label: 'Blog',
+      description:
+        'Working notes on what I have been building, some drafted from the commit history.',
+    },
+    contact: {
+      label: 'Contact',
+      description: 'Drop into a terminal and reach me directly.',
+    },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'built with astro · three.js · gsap',
   },

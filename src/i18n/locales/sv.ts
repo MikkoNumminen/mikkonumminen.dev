@@ -68,10 +68,24 @@ export const sv: Translations = {
     sectionAria: 'Utforska resten av sajten',
     eyebrow: 'fortsätt',
     heading: 'Övrigt på sajten.',
-    projects: { label: 'Projekt' },
-    experience: { label: 'Erfarenhet' },
-    blog: { label: 'Blogg' },
-    contact: { label: 'Kontakt' },
+    projects: {
+      label: 'Projekt',
+      description: 'Utforska ett interaktivt solsystem av saker jag har byggt.',
+    },
+    experience: {
+      label: 'Erfarenhet',
+      description:
+        'Klättra uppför ett parallaxberg genom kompetenser, verktyg och milstolpar.',
+    },
+    blog: {
+      label: 'Blogg',
+      description:
+        'Arbetsanteckningar om vad jag har byggt, vissa hämtade ur commit-historiken.',
+    },
+    contact: {
+      label: 'Kontakt',
+      description: 'Hoppa in i en terminal och nå mig direkt.',
+    },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'byggt med astro · three.js · gsap',
   },
