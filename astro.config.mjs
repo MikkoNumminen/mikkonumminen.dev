@@ -10,22 +10,17 @@ import sitemap from '@astrojs/sitemap';
 // We resolve it dynamically from Vercel's deployment env vars so every
 // deployment (production, preview, branch) emits OG / canonical URLs
 // pointing at the host the page is actually served from:
-//   - Production:  uses `VERCEL_PROJECT_PRODUCTION_URL` — currently
-//                  `mikkonumminen-dev.vercel.app`, and the moment the
-//                  apex `mikkonumminen.dev` DNS records point at Vercel
-//                  and the custom domain is promoted to primary, this
-//                  env var flips automatically — no config edit needed.
+//   - Production:  PINNED to the custom domain `https://mikkonumminen.dev`.
+//                  We pin it rather than derive from
+//                  `VERCEL_PROJECT_PRODUCTION_URL` so canonical / OG / sitemap
+//                  don't hinge on Vercel's "primary domain" flag being set —
+//                  the domain is decided.
 //   - Preview / branch: uses `VERCEL_URL`, the per-deployment URL
 //                  (e.g. `mikkonumminen-dev-git-foo.vercel.app`), so
 //                  preview cards self-reference instead of pointing at
-//                  the production alias.
+//                  production.
 //   - Local dev / `npm run build` off-Vercel: falls back to the
 //                  production domain.
-//
-// Production is PINNED to the custom domain rather than derived from
-// VERCEL_PROJECT_PRODUCTION_URL: the domain is decided now, so canonical/OG/
-// sitemap shouldn't hinge on Vercel's "primary domain" flag being set. Previews
-// still self-reference via VERCEL_URL.
 const siteUrl =
   process.env.VERCEL_ENV === 'production'
     ? 'https://mikkonumminen.dev'
