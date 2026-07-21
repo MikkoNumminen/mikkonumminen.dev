@@ -20,18 +20,18 @@ import sitemap from '@astrojs/sitemap';
 //                  preview cards self-reference instead of pointing at
 //                  the production alias.
 //   - Local dev / `npm run build` off-Vercel: falls back to the
-//                  vercel.app alias, which is currently the canonical.
+//                  production domain.
 //
-// Once `mikkonumminen.dev` DNS is live and Vercel has promoted it,
-// configure a 301 from the `vercel.app` alias to the custom domain at
-// the Vercel project level so any search-engine canonical that
-// accumulated on the alias migrates cleanly.
+// Production is PINNED to the custom domain rather than derived from
+// VERCEL_PROJECT_PRODUCTION_URL: the domain is decided now, so canonical/OG/
+// sitemap shouldn't hinge on Vercel's "primary domain" flag being set. Previews
+// still self-reference via VERCEL_URL.
 const siteUrl =
-  process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  process.env.VERCEL_ENV === 'production'
+    ? 'https://mikkonumminen.dev'
     : process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : 'https://mikkonumminen-dev.vercel.app';
+      : 'https://mikkonumminen.dev';
 
 // https://astro.build/config
 export default defineConfig({
