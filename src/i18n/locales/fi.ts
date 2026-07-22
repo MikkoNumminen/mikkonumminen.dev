@@ -56,7 +56,7 @@ export const fi: Translations = {
     heading: 'Lyhyt esittely.',
     // REVIEW (fi): literal mirror of the EN intro; the sarcasm does not
     // translate 1:1. Draft only, replace with your own phrasing.
-    body: 'Rakennan ohjelmistoja kielimallien ympärille ja käytän sitten suurimman osan ajastani niiden paimentamiseen, koska malli, joka on väärässä mutta varma asiastaan, on aivan oma ongelmansa. Päädyin tähän vuonna 2022 myytyäni rautaa 24 vuotta, joten olen se tyyppi, joka lukee käyttöohjeen ja odottaa silti laitteen hajoavan. Mittaan sen, minkä rakennan. Joskus mittaan sen, julkaisen tulokset ja huomaan sitten, että mittari itse oli rikki, mikä on nöyryyttävä tapa oppia, että myös instrumentti pitää tarkistaa.',
+    body: 'Olen full-stack-kehittäjä, ja viime aikoina työni on pyörinyt enimmäkseen kielimallien ympärillä, joiden paimentamiseen käytän suurimman osan ajastani, koska malli, joka on väärässä mutta varma asiastaan, on aivan oma ongelmansa. Päädyin tähän vuonna 2022 myytyäni rautaa 24 vuotta, joten olen se tyyppi, joka lukee käyttöohjeen ja odottaa silti laitteen hajoavan. Rakennan koko homman, tietokannasta ruudulle asti, ja mittaan sen, minkä rakennan. Joskus mittaan sen, julkaisen tulokset ja huomaan sitten, että mittari itse oli rikki, mikä on nöyryyttävä tapa oppia, että myös instrumentti pitää tarkistaa.',
   },
   latestEntries: {
     sectionAria: 'Uusimmat blogimerkinnät',

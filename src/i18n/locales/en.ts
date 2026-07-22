@@ -54,7 +54,7 @@ export const en: Translations = {
     sectionAria: 'About',
     eyebrow: 'about',
     heading: 'A short introduction.',
-    body: "I build software around language models and then spend most of my time babysitting them, because a model that's wrong and sure of it is a special kind of problem. I got here in 2022 after 24 years selling hardware, so I'm the guy who reads the manual and still expects the thing to break. I measure what I build. Sometimes I measure it, publish it, and then find out the measurement was the broken part, which is a humbling way to learn that the instrument needs checking too.",
+    body: "I'm a full-stack developer, and lately most of my work has been around language models, where I spend most of my time babysitting them, because a model that's wrong and sure of it is a special kind of problem. I got here in 2022 after 24 years selling hardware, so I'm the guy who reads the manual and still expects the thing to break. I build the whole thing, from the database to the screen, and I measure what I build. Sometimes I measure it, publish it, and then find out the measurement was the broken part, which is a humbling way to learn that the instrument needs checking too.",
   },
   latestEntries: {
     sectionAria: 'Latest blog entries',
