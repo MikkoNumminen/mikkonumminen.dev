@@ -9,9 +9,15 @@
  * `onRoute` bridges a page enhancement to that lifecycle: it registers ONE
  * `astro:page-load` (mount) and ONE `astro:before-swap` (dispose) listener, mounts
  * only when the route's marker is present (so a home enhancement no-ops on
- * `/projects`), and disposes whatever is mounted before the next swap. It also owns
- * the bfcache freeze/restore cycle (`pagehide` / `pageshow[persisted]`), which
- * Astro's router does not surface as page-load / before-swap events.
+ * `/projects`), and disposes whatever is mounted before the next swap.
+ *
+ * It deliberately does NOT touch the bfcache freeze/restore cycle
+ * (`pagehide` / `pageshow`). Re-running a mount on a `pageshow` restore is unsafe
+ * in general: an append-render enhancement (the terminals) would render a second
+ * copy over the DOM bfcache preserved, and a WebGL scene would re-init a canvas
+ * whose context was force-lost on freeze. Instead a bfcache-restored page simply
+ * resumes its frozen JS, and any enhancement that must survive a freeze does so by
+ * not tearing itself down on `pagehide` (e.g. the mobile chat wiring).
  *
  * Two guards keep mounting correct:
  *   - `mounted` makes a single arrival idempotent. A route's deferred module
@@ -93,16 +99,6 @@ export function onRoute(
 
   document.addEventListener('astro:page-load', doMount);
   document.addEventListener('astro:before-swap', doDispose);
-  // bfcache: a cross-document back/forward restores from bfcache via `pageshow`
-  // (persisted) WITHOUT firing `load`, so Astro dispatches no `astro:page-load`;
-  // and it freezes via `pagehide` WITHOUT an `astro:before-swap`. Own both so a
-  // restored page re-mounts and a frozen one is torn down. (These fire only on a
-  // real document freeze/restore, never on a client-side swap, so they don't
-  // double up with the Astro events above.)
-  window.addEventListener('pagehide', doDispose);
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) doMount();
-  });
 
   // The deferred module script may run before OR after `astro:page-load` for its
   // own arrival; attempt a mount now too. The `mounted` guard makes whichever

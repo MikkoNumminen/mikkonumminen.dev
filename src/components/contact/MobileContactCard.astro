@@ -362,17 +362,14 @@ const m = t.mobileContact;
     // prompt ("$ ▏") is hidden (the live input below is the prompt then).
     const screen = output.parentElement;
 
-    // One controller owns everything this wiring registers. Aborted on pagehide
-    // (so a bfcache-frozen page stops probing) and re-armed on pageshow(persisted)
-    // by the boot below. Binding every listener + the in-flight stream to its
-    // signal means a back/forward restore can re-run wireChat without stacking
-    // duplicate handlers or leaking a timer.
+    // One controller owns everything this wiring registers; onRoute aborts it on
+    // astro:before-swap (client-side navigation away). It is deliberately NOT
+    // aborted on pagehide: a bfcache freeze already pauses the poller's timers, so
+    // leaving the listeners attached lets the chat resume intact on a Back-restore
+    // — an abort here would leave it dead, since onRoute does not re-mount on
+    // pageshow. Every listener + the in-flight stream is bound to the signal.
     const controller = new AbortController();
     const { signal } = controller;
-    window.addEventListener('pagehide', () => controller.abort(), {
-      once: true,
-      signal,
-    });
 
     // Tapping anywhere in the terminal box (not just the thin input line) focuses
     // the input — the small line was a poor touch target. focus() called inside
