@@ -99,14 +99,19 @@ const personSchema = {
 
 <script>
   import { initHomeTimeline } from '../lib/gsap/homeTimeline';
+  import { onRoute } from '../lib/lifecycle';
 
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let sceneHandle: {
+  type HomeSceneHandle = {
     setScrollProgress: (p: number) => void;
     dispose: () => void;
-  } | null = null;
+  };
 
-  const bootHomeScene = async () => {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Boots the Three.js hero scene and returns its handle, or null when the scene
+  // is skipped (mobile / reduced-motion / missing canvas) or fails to init. The
+  // GSAP timeline is owned by the caller, not here.
+  const bootHomeScene = async (): Promise<HomeSceneHandle | null> => {
     const canvas = document.getElementById('home-canvas') as HTMLCanvasElement | null;
 
     // Lazy-load the Three.js scene only on capable devices.
@@ -129,7 +134,7 @@ const personSchema = {
           }
         }
         const { createHomeScene } = await import('../lib/three/homeScene');
-        sceneHandle = await createHomeScene({
+        return await createHomeScene({
           canvas,
           fontUrl: '/fonts/helvetiker_bold.typeface.json',
           reducedMotion,
@@ -144,20 +149,41 @@ const personSchema = {
       const fallback = document.querySelector('.hero__title-fallback');
       if (fallback) (fallback as HTMLElement).style.display = 'block';
     }
-
-    initHomeTimeline({
-      reducedMotion,
-      onScrollProgress: (p) => sceneHandle?.setScrollProgress(p),
-    });
+    return null;
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootHomeScene, { once: true });
-  } else {
-    bootHomeScene();
-  }
+  // Mount on every arrival at home, dispose on leaving. BOTH the scene and the
+  // timeline are disposed — the timeline handle was previously discarded, so its
+  // ScrollTriggers leaked on every navigation.
+  onRoute(
+    () => !!document.getElementById('home-canvas'),
+    () => {
+      let sceneHandle: HomeSceneHandle | null = null;
+      let disposed = false;
 
-  window.addEventListener('beforeunload', () => {
-    sceneHandle?.dispose();
-  });
+      // Timeline is synchronous; onScrollProgress reads sceneHandle lazily, so it
+      // works even though the scene resolves asynchronously below.
+      const timeline = initHomeTimeline({
+        reducedMotion,
+        onScrollProgress: (p) => sceneHandle?.setScrollProgress(p),
+      });
+
+      // If disposed (navigated away) before the async scene resolves, dispose the
+      // latecomer immediately rather than leak a WebGL context onto a gone page.
+      void bootHomeScene().then((handle) => {
+        if (disposed) {
+          handle?.dispose();
+          return;
+        }
+        sceneHandle = handle;
+      });
+
+      return () => {
+        disposed = true;
+        sceneHandle?.dispose();
+        sceneHandle = null;
+        timeline.dispose();
+      };
+    },
+  );
 </script>

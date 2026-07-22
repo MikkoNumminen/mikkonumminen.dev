@@ -25,6 +25,8 @@ const voiceSrc = `/audio/voice-projects-${locale}.mp3`;
 </audio>
 
 <script>
+  import { onRoute } from '../../lib/lifecycle';
+
   // Constant volume — see component header for why.
   const VOICE_VOLUME = 0.7;
 
@@ -34,102 +36,133 @@ const voiceSrc = `/audio/voice-projects-${locale}.mp3`;
   // the camera) doesn't get re-narrated at.
   const IDLE_REPLAY_MS = 50_000;
 
-  const voice = document.getElementById('projects-voice') as HTMLAudioElement | null;
-  // `.bg-audio` is rendered by BaseLayout's BackgroundAudio component
-  // and dispatches `bg-audio:state` whenever the sound toggle resolves.
-  const bgAudio = document.querySelector<HTMLElement>('.bg-audio');
   // Honor reduced-motion: skip the narration entirely. Music keeps
   // playing (BackgroundAudio doesn't gate on RM) and the sound toggle
   // still controls it; we just don't add a recurring spoken layer on
   // top for users who've opted out of attention-grabbing content.
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  if (voice && bgAudio && !reducedMotion) {
-    voice.volume = VOICE_VOLUME;
+  // Mount per projects arrival, dispose on leaving. All listeners/timers are
+  // bound to an AbortController so a return visit can't stack a second set of
+  // document-level listeners (this component had NO teardown before ClientRouter).
+  onRoute(
+    () => !reducedMotion && !!document.getElementById('projects-voice'),
+    () => {
+      const voice = document.getElementById('projects-voice') as HTMLAudioElement | null;
+      // `.bg-audio` is rendered by BaseLayout's BackgroundAudio component
+      // (persisted across navigation) and dispatches `bg-audio:state` whenever
+      // the sound toggle resolves.
+      const bgAudio = document.querySelector<HTMLElement>('.bg-audio');
+      if (!voice || !bgAudio) return;
 
-    // `'on'` is the only resolved-on state — `'loading'` is the initial
-    // pre-resolve value and must wait for the `bg-audio:state` event.
-    // Treating `'loading'` as on would race the dispatch and restart
-    // the voice mid-clip (same bug we fixed in HeroVoiceover earlier).
-    let wantOn = bgAudio.dataset.state === 'on';
+      const controller = new AbortController();
+      const { signal } = controller;
 
-    let idleTimer: number | null = null;
-    const cancelIdleTimer = (): void => {
-      if (idleTimer !== null) {
-        clearTimeout(idleTimer);
-        idleTimer = null;
-      }
-    };
+      voice.volume = VOICE_VOLUME;
 
-    const scheduleIdleReplay = (): void => {
-      cancelIdleTimer();
-      if (!wantOn) return;
-      if (!voice.ended) return;
-      idleTimer = window.setTimeout(() => {
-        idleTimer = null;
-        playFresh();
-      }, IDLE_REPLAY_MS);
-    };
+      // `'on'` is the only resolved-on state — `'loading'` is the initial
+      // pre-resolve value and must wait for the `bg-audio:state` event.
+      // Treating `'loading'` as on would race the dispatch and restart
+      // the voice mid-clip (same bug we fixed in HeroVoiceover earlier).
+      let wantOn = bgAudio.dataset.state === 'on';
 
-    const playFresh = async (): Promise<void> => {
-      if (!wantOn) return;
-      cancelIdleTimer();
-      try {
-        voice.currentTime = 0;
-        voice.volume = VOICE_VOLUME;
-        await voice.play();
-        if (!wantOn) voice.pause();
-      } catch {
-        /* autoplay blocked, source missing, or play interrupted */
-      }
-    };
-
-    const playResume = async (): Promise<void> => {
-      if (!wantOn) return;
-      try {
-        voice.volume = VOICE_VOLUME;
-        await voice.play();
-        if (!wantOn) voice.pause();
-      } catch {
-        /* autoplay blocked, source missing, or play interrupted */
-      }
-    };
-
-    voice.addEventListener('ended', () => {
-      scheduleIdleReplay();
-    });
-
-    // Activity events that reset the idle countdown. `pointermove` is
-    // deliberately excluded — a drifting mouse on an uneven desk would
-    // pin the timer indefinitely even though the user is sitting still.
-    // The remaining four require explicit intent. The `idleTimer !==
-    // null` guard makes these no-ops while the voice is actively
-    // playing or sound is off.
-    const onActivity = (): void => {
-      if (idleTimer !== null) scheduleIdleReplay();
-    };
-    document.addEventListener('pointerdown', onActivity, { passive: true });
-    document.addEventListener('touchstart', onActivity, { passive: true });
-    document.addEventListener('keydown', onActivity);
-    document.addEventListener('scroll', onActivity, { passive: true });
-
-    document.addEventListener('bg-audio:state', (e: Event) => {
-      const detail = (e as CustomEvent<{ on: boolean }>).detail;
-      wantOn = detail.on;
-      if (detail.on) {
-        // Already playing — do nothing. Without this, the resolved
-        // `on` dispatch that follows a successful autoplay would
-        // restart the voice from zero mid-clip.
-        if (!voice.paused) return;
-        if (voice.currentTime > 0 && !voice.ended) {
-          playResume();
-        } else {
-          playFresh();
+      let idleTimer: number | null = null;
+      const cancelIdleTimer = (): void => {
+        if (idleTimer !== null) {
+          clearTimeout(idleTimer);
+          idleTimer = null;
         }
-      } else {
-        voice.pause();
+      };
+
+      const scheduleIdleReplay = (): void => {
         cancelIdleTimer();
-      }
-    });
-  }
+        if (!wantOn) return;
+        if (!voice.ended) return;
+        idleTimer = window.setTimeout(() => {
+          idleTimer = null;
+          playFresh();
+        }, IDLE_REPLAY_MS);
+      };
+
+      const playFresh = async (): Promise<void> => {
+        if (!wantOn) return;
+        cancelIdleTimer();
+        try {
+          voice.currentTime = 0;
+          voice.volume = VOICE_VOLUME;
+          await voice.play();
+          if (!wantOn) voice.pause();
+        } catch {
+          /* autoplay blocked, source missing, or play interrupted */
+        }
+      };
+
+      const playResume = async (): Promise<void> => {
+        if (!wantOn) return;
+        try {
+          voice.volume = VOICE_VOLUME;
+          await voice.play();
+          if (!wantOn) voice.pause();
+        } catch {
+          /* autoplay blocked, source missing, or play interrupted */
+        }
+      };
+
+      voice.addEventListener(
+        'ended',
+        () => {
+          scheduleIdleReplay();
+        },
+        { signal },
+      );
+
+      // Activity events that reset the idle countdown. `pointermove` is
+      // deliberately excluded — a drifting mouse on an uneven desk would
+      // pin the timer indefinitely even though the user is sitting still.
+      // The remaining four require explicit intent. The `idleTimer !==
+      // null` guard makes these no-ops while the voice is actively
+      // playing or sound is off.
+      const onActivity = (): void => {
+        if (idleTimer !== null) scheduleIdleReplay();
+      };
+      document.addEventListener('pointerdown', onActivity, { passive: true, signal });
+      document.addEventListener('touchstart', onActivity, { passive: true, signal });
+      document.addEventListener('keydown', onActivity, { signal });
+      document.addEventListener('scroll', onActivity, { passive: true, signal });
+
+      document.addEventListener(
+        'bg-audio:state',
+        (e: Event) => {
+          const detail = (e as CustomEvent<{ on: boolean }>).detail;
+          wantOn = detail.on;
+          if (detail.on) {
+            // Already playing — do nothing. Without this, the resolved
+            // `on` dispatch that follows a successful autoplay would
+            // restart the voice from zero mid-clip.
+            if (!voice.paused) return;
+            if (voice.currentTime > 0 && !voice.ended) {
+              playResume();
+            } else {
+              playFresh();
+            }
+          } else {
+            voice.pause();
+            cancelIdleTimer();
+          }
+        },
+        { signal },
+      );
+
+      // Sound is already on — e.g. enabled on another view, now persisted across
+      // navigation. No `bg-audio:state` change fires on a client-side arrival, so
+      // start this page's narration here; otherwise the voice would stay silent.
+      if (wantOn) void playFresh();
+
+      return () => {
+        controller.abort();
+        cancelIdleTimer();
+        voice.pause();
+      };
+    },
+  );
 </script>

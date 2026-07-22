@@ -20,12 +20,15 @@ const t = getTranslations(locale);
 
 <script>
   import { initTerminal } from '../lib/terminal/terminal';
+  import { onRoute } from '../lib/lifecycle';
 
-  const bootContactPage = () => initTerminal(document);
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootContactPage, { once: true });
-  } else {
-    bootContactPage();
-  }
+  // Mount per contact arrival, dispose on leaving. initTerminal returns a
+  // Promise<{ dispose }>; onRoute disposes it on the next swap (and, if we
+  // navigate away before it resolves, disposes the latecomer) — which also
+  // stops the chat-availability poller it starts. Its own `pagehide` self-
+  // dispose remains as a full-unload / bfcache fallback.
+  onRoute(
+    () => !!document.getElementById('terminal-form'),
+    () => initTerminal(document),
+  );
 </script>

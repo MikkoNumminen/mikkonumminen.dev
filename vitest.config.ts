@@ -51,7 +51,6 @@ export default defineConfig({
         'src/lib/three/projects/buildPlanetTexture.ts',
         'src/lib/three/projects/buildSun.ts',
         'src/lib/home/dataFeedConsole.ts',
-        'src/lib/transitions/pageTransition.ts',
       ],
       // Ratchet floor under the current jsdom-testable coverage (~35%, held down
       // by DOM-orchestration files that are integration-level rather than

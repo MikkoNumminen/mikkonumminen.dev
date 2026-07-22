@@ -30,21 +30,18 @@ const t = getTranslations(locale);
 
 <script>
   import { initExperienceTimeline } from '../lib/gsap/experienceTimeline';
+  import { onRoute } from '../lib/lifecycle';
 
-  let handle: { dispose: () => void } | null = null;
-
-  const bootExperienceTimeline = () => {
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    handle = initExperienceTimeline({ reducedMotion });
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootExperienceTimeline, { once: true });
-  } else {
-    bootExperienceTimeline();
-  }
-
-  window.addEventListener('beforeunload', () => handle?.dispose());
+  // Mount per experience arrival, dispose on leaving — otherwise the timeline's
+  // master ScrollTrigger, gsap.ticker callback, and IntersectionObserver would
+  // run against stale DOM after a client-side navigation.
+  onRoute(
+    () => !!document.querySelector('[data-experience-track]'),
+    () => {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      return initExperienceTimeline({ reducedMotion });
+    },
+  );
 </script>
 
 <style is:global>

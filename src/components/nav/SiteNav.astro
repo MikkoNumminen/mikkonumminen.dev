@@ -96,20 +96,24 @@ const isActive = (href: string) => {
 <script>
   // When the user manually picks a language, remember it so the auto-detect
   // script in BaseLayout doesn't override their choice on the next visit.
-  document.querySelectorAll<HTMLAnchorElement>('.site-nav__lang').forEach((a) => {
-    a.addEventListener('click', () => {
-      const lang = a.getAttribute('data-lang');
-      if (lang) {
-        try {
-          localStorage.setItem('mn_preferred_locale', lang);
-          // Also clear the session flag so the detector won't re-fire
-          // before the navigation completes.
-          sessionStorage.setItem('mn_lang_checked', '1');
-        } catch {
-          /* ignore */
-        }
-      }
-    });
+  // Delegated on `document` (registered once) rather than bound to each
+  // `.site-nav__lang` anchor, so it keeps working after ClientRouter swaps the
+  // nav out — anchor-bound listeners would be lost on the first navigation and
+  // the module script does not re-run to rebind them.
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement | null;
+    const anchor = target?.closest<HTMLAnchorElement>('.site-nav__lang');
+    if (!anchor) return;
+    const lang = anchor.getAttribute('data-lang');
+    if (!lang) return;
+    try {
+      localStorage.setItem('mn_preferred_locale', lang);
+      // Also clear the session flag so the detector won't re-fire before the
+      // navigation completes.
+      sessionStorage.setItem('mn_lang_checked', '1');
+    } catch {
+      /* ignore */
+    }
   });
 </script>
 

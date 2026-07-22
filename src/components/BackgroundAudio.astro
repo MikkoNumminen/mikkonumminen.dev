@@ -26,7 +26,7 @@ const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 ---
 
-<div class="bg-audio" data-state="loading">
+<div class="bg-audio" data-state="loading" transition:persist="bg-audio">
   <audio id="bg-audio-a" preload="metadata" aria-hidden="true">
     <source src="/audio/devlander.ogg" type="audio/ogg" />
     <source src="/audio/devlander.mp3" type="audio/mpeg" />
@@ -290,8 +290,10 @@ const t = getTranslations(locale);
   const deckA = document.getElementById('bg-audio-a') as HTMLAudioElement | null;
   const deckB = document.getElementById('bg-audio-b') as HTMLAudioElement | null;
   const button = document.querySelector<HTMLButtonElement>('[data-bg-audio-toggle]');
-  // Hero is home-page-only; presence drives the volume strategy below.
-  const hero = document.querySelector<HTMLElement>('[data-section-hero]');
+  // Hero is home-page-only; presence drives the volume strategy below. Not
+  // `const`: the decks are `transition:persist`ed across client-side navigation,
+  // so this is re-resolved for the new page on each `astro:page-load` (below).
+  let hero = document.querySelector<HTMLElement>('[data-section-hero]');
 
   if (wrapper && deckA && deckB && button) {
     type DeckKey = 'a' | 'b';
@@ -478,10 +480,22 @@ const t = getTranslations(locale);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
 
-    // Initial state: always muted. The toggle is the only thing that
-    // starts audio, and the choice is never persisted — every page load
-    // and refresh lands here, silent, until the visitor clicks it.
+    // Initial state on first load: muted. The toggle is the only thing that
+    // starts audio; nothing autoplays. Because the component is
+    // `transition:persist`ed and its module script runs once per session, this
+    // block runs ONLY on the very first load — client-side navigations keep the
+    // persisted decks (and whatever play/pause the visitor chose) untouched, so
+    // the music is continuous and the toggle is a sticky, site-wide preference.
     getActive().volume = computeVolume();
     setState('off');
+
+    // The decks persist across navigation, but `hero` (home-only, drives the
+    // scroll-eased volume) does not — re-resolve it after every swap and
+    // re-apply the correct level for the new page. Play/pause is left as-is.
+    document.addEventListener('astro:page-load', () => {
+      hero = document.querySelector<HTMLElement>('[data-section-hero]');
+      const active = getActive();
+      if (!active.paused && !crossfading) active.volume = computeVolume();
+    });
   }
 </script>
