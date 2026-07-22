@@ -163,138 +163,157 @@ const connectionLegendEntries = connections.map((c) => ({
   import { asLocale, getTranslations } from '../i18n';
   import { initProjectDrawer } from '../lib/projects/drawer';
   import { scheduleProjectsSceneBoot } from '../lib/projects/boot';
-
-  // Read locale from <html lang> set by BaseLayout, then merge structural
-  // project data with the localized text from the i18n dictionaries.
-  const locale = asLocale(document.documentElement.lang);
-  const t = getTranslations(locale);
-  const localizedProjects = localizeProjects(t);
-  const tp = t.projectsPage;
+  import { onRoute } from '../lib/lifecycle';
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const isSmall = window.matchMedia('(max-width: 860px)').matches;
 
-  let sceneHandle: {
-    selectById: (id: string | null) => void;
-    hoverById: (id: string | null) => void;
-    dispose: () => void;
-  } | null = null;
-  // Hoisted to script scope (like sceneHandle) so the beforeunload teardown can
-  // dispose it — its document-level listeners otherwise leak on navigation.
-  let drawer: ReturnType<typeof initProjectDrawer> | null = null;
+  // Mount per projects arrival, dispose on leaving. The scene boot is deferred
+  // (waits for first interaction / 2 s), so the disposer both `cancel()`s an
+  // unfired boot AND disposes the scene/drawer if they did boot; a `disposed`
+  // flag also drops a scene whose dynamic import is still resolving when we
+  // navigate away, so a WebGL context can't linger on a swapped-away page.
+  onRoute(
+    () => !!document.querySelector('[data-projects-scene]'),
+    () => {
+      // Read locale from <html lang> (updated per navigation by the router),
+      // then merge structural project data with the localized text.
+      const locale = asLocale(document.documentElement.lang);
+      const t = getTranslations(locale);
+      const localizedProjects = localizeProjects(t);
+      const tp = t.projectsPage;
 
-  const sceneRoot = document.querySelector<HTMLElement>('[data-projects-scene]');
-  const fallback = document.querySelector<HTMLElement>('[data-projects-fallback]');
+      let sceneHandle: {
+        selectById: (id: string | null) => void;
+        hoverById: (id: string | null) => void;
+        dispose: () => void;
+      } | null = null;
+      let drawer: ReturnType<typeof initProjectDrawer> | null = null;
+      let disposed = false;
 
-  const bootProjectsScene = async () => {
-    if (reducedMotion || isSmall || !sceneRoot) {
-      // CSS @media rules already hide the scene and show the fallback grid
-      // for these clients before JS runs. Set the explicit data flag too so
-      // the fallback path is observable from CSS / future code, not just an
-      // implicit consequence of the WebGL canvas being hidden.
-      sceneRoot?.setAttribute('data-fallback-active', 'true');
-      fallback?.setAttribute('data-active', 'true');
-      return;
-    }
+      const sceneRoot = document.querySelector<HTMLElement>('[data-projects-scene]');
+      const fallback = document.querySelector<HTMLElement>('[data-projects-fallback]');
 
-    const canvas = document.getElementById('projects-canvas') as HTMLCanvasElement | null;
-    const hoverLabel = document.getElementById('hover-label');
-    const planetLabels = document.getElementById('planet-labels');
-    const detail = document.getElementById('project-detail');
-    const closeBtn = document.getElementById(
-      'project-detail-close',
-    ) as HTMLButtonElement | null;
-    const intro = document.querySelector<HTMLElement>('[data-intro]');
-    const legend = document.querySelector<HTMLElement>('[data-legend]');
-    const credits = document.querySelector<HTMLElement>('[data-credits]');
-    const key = document.querySelector<HTMLElement>('[data-key]');
-    const list = document.querySelector<HTMLElement>('[data-list]');
-
-    if (!canvas || !hoverLabel || !planetLabels || !detail || !closeBtn) return;
-
-    // Mark the list item that matches the currently selected project so
-    // when the drawer closes the user can see which project was just
-    // opened. `scrollIntoView` keeps it in view if the list overflows.
-    // Modern browsers respect prefers-reduced-motion for CSSOM smooth
-    // scroll, but explicit fallback to instant scroll is belt-and-
-    // suspenders and matches the rest of the page's reduced-motion
-    // policy.
-    const scrollBehavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
-    const setListSelected = (id: string | null) => {
-      if (!list) return;
-      list.querySelectorAll<HTMLElement>('[data-project-id]').forEach((btn) => {
-        if (btn.getAttribute('data-project-id') === id) {
-          btn.setAttribute('data-selected', 'true');
-          btn.scrollIntoView({ block: 'nearest', behavior: scrollBehavior });
-        } else {
-          btn.removeAttribute('data-selected');
+      const bootProjectsScene = async () => {
+        if (reducedMotion || isSmall || !sceneRoot) {
+          // CSS @media rules already hide the scene and show the fallback grid
+          // for these clients before JS runs. Set the explicit data flag too so
+          // the fallback path is observable from CSS / future code, not just an
+          // implicit consequence of the WebGL canvas being hidden.
+          sceneRoot?.setAttribute('data-fallback-active', 'true');
+          fallback?.setAttribute('data-active', 'true');
+          return;
         }
-      });
-    };
 
-    drawer = initProjectDrawer({
-      detail,
-      closeBtn,
-      intro,
-      legend,
-      credits,
-      key,
-      list,
-      labels: { liveDemo: tp.liveDemo, githubLink: tp.githubLink },
-      onClose: () => {
-        setListSelected(null);
-        sceneHandle?.selectById(null);
-      },
-    });
+        const canvas = document.getElementById(
+          'projects-canvas',
+        ) as HTMLCanvasElement | null;
+        const hoverLabel = document.getElementById('hover-label');
+        const planetLabels = document.getElementById('planet-labels');
+        const detail = document.getElementById('project-detail');
+        const closeBtn = document.getElementById(
+          'project-detail-close',
+        ) as HTMLButtonElement | null;
+        const intro = document.querySelector<HTMLElement>('[data-intro]');
+        const legend = document.querySelector<HTMLElement>('[data-legend]');
+        const credits = document.querySelector<HTMLElement>('[data-credits]');
+        const key = document.querySelector<HTMLElement>('[data-key]');
+        const list = document.querySelector<HTMLElement>('[data-list]');
 
-    // Per-button listeners on the side-panel list. Click selects the
-    // project (mirroring planet click); hover/focus mirror the planet's
-    // hover (forced-hover scale-up + label) so the user can preview each
-    // project from the stationary list. `prepareOpen` hands the trigger
-    // to the drawer so closing returns focus to the list item even when
-    // the click-outside handler's interim close shifts activeElement.
-    list?.querySelectorAll<HTMLButtonElement>('[data-project-id]').forEach((btn) => {
-      const id = btn.getAttribute('data-project-id');
-      if (!id) return;
-      btn.addEventListener('click', () => {
-        drawer?.prepareOpen(btn);
-        sceneHandle?.selectById(id);
-      });
-      btn.addEventListener('mouseenter', () => sceneHandle?.hoverById(id));
-      btn.addEventListener('mouseleave', () => sceneHandle?.hoverById(null));
-      btn.addEventListener('focus', () => sceneHandle?.hoverById(id));
-      btn.addEventListener('blur', () => sceneHandle?.hoverById(null));
-    });
+        if (!canvas || !hoverLabel || !planetLabels || !detail || !closeBtn) return;
 
-    try {
-      const { createProjectsScene } = await import('../lib/three/projectsScene');
-      sceneHandle = createProjectsScene({
-        canvas,
-        hoverLabel,
-        planetLabels,
-        projects: localizedProjects,
-        reducedMotion,
-        onSelect: (project) => {
-          setListSelected(project.id);
-          drawer?.open(project);
-        },
-        onDeselect: () => {
-          /* triggered by drawer.close via onClose */
-        },
-      });
-    } catch (err) {
-      console.warn('projects scene failed to init', err);
-      sceneRoot.setAttribute('data-fallback-active', 'true');
-      fallback?.setAttribute('data-active', 'true');
-      drawer?.dispose();
-    }
-  };
+        // Mark the list item that matches the currently selected project so
+        // when the drawer closes the user can see which project was just
+        // opened. `scrollIntoView` keeps it in view if the list overflows.
+        // Modern browsers respect prefers-reduced-motion for CSSOM smooth
+        // scroll, but explicit fallback to instant scroll is belt-and-
+        // suspenders and matches the rest of the page's reduced-motion
+        // policy.
+        const scrollBehavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
+        const setListSelected = (id: string | null) => {
+          if (!list) return;
+          list.querySelectorAll<HTMLElement>('[data-project-id]').forEach((btn) => {
+            if (btn.getAttribute('data-project-id') === id) {
+              btn.setAttribute('data-selected', 'true');
+              btn.scrollIntoView({ block: 'nearest', behavior: scrollBehavior });
+            } else {
+              btn.removeAttribute('data-selected');
+            }
+          });
+        };
 
-  const bootHandle = scheduleProjectsSceneBoot({ onBoot: bootProjectsScene });
+        drawer = initProjectDrawer({
+          detail,
+          closeBtn,
+          intro,
+          legend,
+          credits,
+          key,
+          list,
+          labels: { liveDemo: tp.liveDemo, githubLink: tp.githubLink },
+          onClose: () => {
+            setListSelected(null);
+            sceneHandle?.selectById(null);
+          },
+        });
 
-  window.addEventListener('beforeunload', () => {
-    bootHandle.cancel();
-    sceneHandle?.dispose();
-    drawer?.dispose();
-  });
+        // Per-button listeners on the side-panel list. Click selects the
+        // project (mirroring planet click); hover/focus mirror the planet's
+        // hover (forced-hover scale-up + label) so the user can preview each
+        // project from the stationary list. `prepareOpen` hands the trigger
+        // to the drawer so closing returns focus to the list item even when
+        // the click-outside handler's interim close shifts activeElement.
+        // (These live on the list buttons, which the router swaps out on
+        // navigation, so they're GC'd with the DOM — no explicit teardown.)
+        list?.querySelectorAll<HTMLButtonElement>('[data-project-id]').forEach((btn) => {
+          const id = btn.getAttribute('data-project-id');
+          if (!id) return;
+          btn.addEventListener('click', () => {
+            drawer?.prepareOpen(btn);
+            sceneHandle?.selectById(id);
+          });
+          btn.addEventListener('mouseenter', () => sceneHandle?.hoverById(id));
+          btn.addEventListener('mouseleave', () => sceneHandle?.hoverById(null));
+          btn.addEventListener('focus', () => sceneHandle?.hoverById(id));
+          btn.addEventListener('blur', () => sceneHandle?.hoverById(null));
+        });
+
+        try {
+          const { createProjectsScene } = await import('../lib/three/projectsScene');
+          // Navigated away while the scene module was importing — the disposer
+          // already tore down the drawer, so just bail before creating a scene
+          // that would leak a WebGL context onto the page we've left.
+          if (disposed) return;
+          sceneHandle = createProjectsScene({
+            canvas,
+            hoverLabel,
+            planetLabels,
+            projects: localizedProjects,
+            reducedMotion,
+            onSelect: (project) => {
+              setListSelected(project.id);
+              drawer?.open(project);
+            },
+            onDeselect: () => {
+              /* triggered by drawer.close via onClose */
+            },
+          });
+        } catch (err) {
+          console.warn('projects scene failed to init', err);
+          sceneRoot.setAttribute('data-fallback-active', 'true');
+          fallback?.setAttribute('data-active', 'true');
+          drawer?.dispose();
+        }
+      };
+
+      const bootHandle = scheduleProjectsSceneBoot({ onBoot: bootProjectsScene });
+
+      return () => {
+        disposed = true;
+        bootHandle.cancel();
+        sceneHandle?.dispose();
+        drawer?.dispose();
+      };
+    },
+  );
 </script>

@@ -80,6 +80,8 @@ const m = t.mobileContact;
 </section>
 
 <script>
+  import { onRoute } from '../../lib/lifecycle';
+
   // Auto-played scripted terminal session for the mobile contact card.
   // Plain DOM, no GSAP. Respects prefers-reduced-motion.
 
@@ -94,7 +96,7 @@ const m = t.mobileContact;
   const POST_OUTPUT_PAUSE_MS = 250;
   const POST_CMD_PAUSE_MS = 140;
 
-  const start = (): void => {
+  const start = () => {
     const output = document.getElementById('mcc-output');
     if (!output) return;
 
@@ -285,12 +287,13 @@ const m = t.mobileContact;
       timeouts.clear();
     };
 
-    window.addEventListener('beforeunload', cleanup, { once: true });
-    window.addEventListener('pagehide', cleanup, { once: true });
-
+    // `cleanup` is returned as the disposer; onRoute runs it on astro:before-swap
+    // (client-side nav) and on pagehide (full unload / bfcache freeze), so no
+    // per-mount window listeners are registered here — those weren't bound to a
+    // controller and stacked on every /contact re-mount.
     if (reduced) {
       renderAllStatic();
-      return;
+      return cleanup;
     }
 
     void (async () => {
@@ -312,13 +315,16 @@ const m = t.mobileContact;
       if (cancelled) return;
       renderIdlePrompt();
     })();
+
+    return cleanup;
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
-  } else {
-    start();
-  }
+  // Mount per contact arrival, dispose (cancel the typing chain + timeouts) on
+  // leaving, so the setTimeout chain can't keep firing against swapped-away DOM.
+  onRoute(
+    () => !!document.getElementById('mcc-output'),
+    () => start(),
+  );
 </script>
 
 <script>
@@ -333,8 +339,9 @@ const m = t.mobileContact;
     streamChat,
   } from '../../lib/terminal/chat';
   import type { ChatHandlers, ChatSource } from '../../lib/terminal/chat';
+  import { onRoute } from '../../lib/lifecycle';
 
-  const wireChat = (): void => {
+  const wireChat = () => {
     // Mobile only: above 640px the desktop terminal owns the chat poll, so the
     // page never double-probes /health. (CSS hides this card there anyway; if
     // matchMedia is unavailable we defer to the desktop poller and do nothing.)
@@ -355,17 +362,14 @@ const m = t.mobileContact;
     // prompt ("$ ▏") is hidden (the live input below is the prompt then).
     const screen = output.parentElement;
 
-    // One controller owns everything this wiring registers. Aborted on pagehide
-    // (so a bfcache-frozen page stops probing) and re-armed on pageshow(persisted)
-    // by the boot below. Binding every listener + the in-flight stream to its
-    // signal means a back/forward restore can re-run wireChat without stacking
-    // duplicate handlers or leaking a timer.
+    // One controller owns everything this wiring registers; onRoute aborts it on
+    // astro:before-swap (client-side navigation away). It is deliberately NOT
+    // aborted on pagehide: a bfcache freeze already pauses the poller's timers, so
+    // leaving the listeners attached lets the chat resume intact on a Back-restore
+    // — an abort here would leave it dead, since onRoute does not re-mount on
+    // pageshow. Every listener + the in-flight stream is bound to the signal.
     const controller = new AbortController();
     const { signal } = controller;
-    window.addEventListener('pagehide', () => controller.abort(), {
-      once: true,
-      signal,
-    });
 
     // Tapping anywhere in the terminal box (not just the thin input line) focuses
     // the input — the small line was a poor touch target. focus() called inside
@@ -464,17 +468,17 @@ const m = t.mobileContact;
       },
       { signal },
     );
+
+    return () => controller.abort();
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', wireChat, { once: true });
-  } else {
-    wireChat();
-  }
-  // Re-arm after a back/forward (bfcache) restore: pagehide aborted the poller on
-  // the way out, so re-run the wiring. The prior listeners were bound to that
-  // aborted controller and are already gone, so nothing stacks.
-  window.addEventListener('pageshow', (event) => {
-    if (event.persisted) wireChat();
-  });
+  // Mount per contact arrival, dispose (abort the controller — every listener,
+  // the in-flight stream, and the availability poller) on leaving. Under
+  // ClientRouter, in-site back/forward is a client-side navigation that fires
+  // astro:page-load, so onRoute re-mounts it — replacing the old bfcache
+  // pageshow re-arm. The internal `pagehide` abort stays as a full-unload guard.
+  onRoute(
+    () => !!document.getElementById('mcc-output'),
+    () => wireChat(),
+  );
 </script>

@@ -1,10 +1,8 @@
 /**
  * Single source of truth for the per-page theme identifier.
  *
- * Used by:
- *  - `BaseLayout.astro` — sets `data-theme` on `<html>` and `<body>`.
- *  - `pageTransition.ts` — paints the dissolve canvas with the destination
- *    page's accent colour by reading this same union.
+ * Set by `BaseLayout.astro` on `<html>` and `<body>` (`data-theme`), which drives
+ * the per-theme accent tokens (`--color-{theme}-accent`) and component chrome.
  */
 export type Theme = 'home' | 'projects' | 'experience' | 'contact';
 

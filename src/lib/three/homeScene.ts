@@ -977,6 +977,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       scene.clear();
 
       renderer.dispose();
+      // dispose() frees GPU objects but not the WebGL context itself — the
+      // browser only reclaims that when the detached canvas is GC'd. Under
+      // client-side routing this scene is created/destroyed per navigation, so
+      // release the context now to avoid contexts piling toward the browser cap.
+      renderer.forceContextLoss();
     },
   };
 }

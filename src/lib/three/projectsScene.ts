@@ -745,6 +745,10 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       scene.fog = null;
       scene.clear();
       renderer.dispose();
+      // Release the WebGL context now (dispose() only frees GPU objects, not the
+      // context) — this scene is created/destroyed per navigation under
+      // client-side routing, so leaving contexts for GC lets them pile up.
+      renderer.forceContextLoss();
     },
   };
 }
