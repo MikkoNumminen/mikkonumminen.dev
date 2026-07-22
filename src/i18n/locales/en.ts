@@ -54,8 +54,7 @@ export const en: Translations = {
     sectionAria: 'About',
     eyebrow: 'about',
     heading: 'A short introduction.',
-    placeholderNote: 'placeholder — replace this paragraph',
-    body: 'This paragraph is a placeholder and has not been written yet. It is here so the section has real length to lay out against. Replace this text with your own introduction, then delete the placeholder marker above it.',
+    body: "I build software around language models and then spend most of my time babysitting them, because a model that's wrong and sure of it is a special kind of problem. I got here in 2022 after 24 years selling hardware, so I'm the guy who reads the manual and still expects the thing to break. I measure what I build. Sometimes I measure it, publish it, and then find out the measurement was the broken part, which is a humbling way to learn that the instrument needs checking too.",
   },
   latestEntries: {
     sectionAria: 'Latest blog entries',
