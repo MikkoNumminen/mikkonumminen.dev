@@ -51,9 +51,9 @@ function splitPath(path: string): { pathname: string; suffix: string } {
  *
  *   localizePath('/projects', 'en')       -> '/projects'
  *   localizePath('/projects', 'fi')       -> '/fi/projects'
- *   localizePath('/',         'sv')       -> '/sv/'
+ *   localizePath('/',         'sv')       -> '/sv'
  *   localizePath('/projects?id=1', 'fi')  -> '/fi/projects?id=1'
- *   localizePath('/#top',      'fi')      -> '/fi/#top'
+ *   localizePath('/#top',      'fi')      -> '/fi#top'
  */
 export function localizePath(path: string, locale: Locale): string {
   const { pathname, suffix } = splitPath(path);
@@ -64,7 +64,7 @@ export function localizePath(path: string, locale: Locale): string {
 
   let localized: string;
   if (locale === DEFAULT_LOCALE) localized = p;
-  else if (p === '/') localized = `/${locale}/`;
+  else if (p === '/') localized = `/${locale}`;
   else localized = `/${locale}${p}`;
 
   return `${localized}${suffix}`;

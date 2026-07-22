@@ -39,7 +39,7 @@ const langLinks = availableLocales.map((l) => ({
 }));
 
 const isActive = (href: string) => {
-  if (href === '/' || href === '/fi/' || href === '/sv/') {
+  if (href === '/' || href === '/fi' || href === '/sv') {
     return current === href;
   }
   return current === href || current.startsWith(href + '/');
