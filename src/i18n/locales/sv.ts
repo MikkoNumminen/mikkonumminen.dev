@@ -56,7 +56,7 @@ export const sv: Translations = {
     heading: 'En kort introduktion.',
     // REVIEW (sv): literal mirror of the EN intro; the sarcasm does not
     // translate 1:1. Draft only, replace with your own phrasing.
-    body: 'Jag bygger mjukvara runt språkmodeller och ägnar sedan större delen av min tid åt att passa dem, eftersom en modell som har fel och är säker på sin sak är ett alldeles särskilt slags problem. Jag hamnade här 2022 efter 24 år med hårdvaruförsäljning, så jag är typen som läser manualen och ändå väntar mig att grejen går sönder. Jag mäter det jag bygger. Ibland mäter jag det, publicerar det och upptäcker sedan att det var mätningen som var trasig, vilket är ett ödmjukande sätt att lära sig att även instrumentet behöver kontrolleras.',
+    body: 'Jag är full-stack-utvecklare, och på sistone har det mesta av mitt arbete kretsat kring språkmodeller, där jag ägnar största delen av min tid åt att passa dem, eftersom en modell som har fel och är säker på sin sak är ett alldeles särskilt slags problem. Jag hamnade här 2022 efter 24 år med hårdvaruförsäljning, så jag är typen som läser manualen och ändå väntar mig att grejen går sönder. Jag bygger hela grejen, från databasen till skärmen, och jag mäter det jag bygger. Ibland mäter jag det, publicerar det och upptäcker sedan att det var mätningen som var trasig, vilket är ett ödmjukande sätt att lära sig att även instrumentet behöver kontrolleras.',
   },
   latestEntries: {
     sectionAria: 'Senaste blogginläggen',
