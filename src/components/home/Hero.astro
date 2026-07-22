@@ -22,6 +22,8 @@ const t = getTranslations(locale);
 
   <div class="hero__overlay" aria-hidden="true"></div>
 
+  <div class="hero__fade" aria-hidden="true"></div>
+
   <div class="hero__masthead">
     <p class="hero__eyebrow">{t.hero.eyebrow}</p>
     <p class="hero__subtitle">{t.hero.subtitle}</p>
@@ -125,6 +127,22 @@ const t = getTranslations(locale);
       transparent 40%,
       rgba(0, 0, 0, 0.55) 100%
     );
+    pointer-events: none;
+  }
+
+  /* The hero is the only section that paints its own opaque background;
+     every section below it is transparent over var(--color-ink). Fade the
+     hero's bottom into that same colour so the hero→next boundary is
+     colour-to-colour like every other boundary, not a hard edge. Ordered
+     after the canvas/vignette but before the masthead/scroll chrome, so it
+     blends the backdrop without dimming any foreground. */
+  .hero__fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30%;
+    background: linear-gradient(to bottom, transparent 0%, var(--color-ink) 100%);
     pointer-events: none;
   }
 
