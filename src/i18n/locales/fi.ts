@@ -54,8 +54,9 @@ export const fi: Translations = {
     sectionAria: 'Tietoja',
     eyebrow: 'tietoja',
     heading: 'Lyhyt esittely.',
-    placeholderNote: 'paikkamerkki, korvaa tämä kappale',
-    body: 'Tämä kappale on paikkamerkki eikä sitä ole vielä kirjoitettu. Se on tässä, jotta osiolla on todellista pituutta asettelua varten. Korvaa tämä teksti omalla esittelylläsi ja poista sitten yllä oleva paikkamerkkitunniste.',
+    // REVIEW (fi): literal mirror of the EN intro; the sarcasm does not
+    // translate 1:1. Draft only, replace with your own phrasing.
+    body: 'Rakennan ohjelmistoja kielimallien ympärille ja käytän sitten suurimman osan ajastani niiden paimentamiseen, koska malli, joka on väärässä mutta varma asiastaan, on aivan oma ongelmansa. Päädyin tähän vuonna 2022 myytyäni rautaa 24 vuotta, joten olen se tyyppi, joka lukee käyttöohjeen ja odottaa silti laitteen hajoavan. Mittaan sen, minkä rakennan. Joskus mittaan sen, julkaisen tulokset ja huomaan sitten, että mittari itse oli rikki, mikä on nöyryyttävä tapa oppia, että myös instrumentti pitää tarkistaa.',
   },
   latestEntries: {
     sectionAria: 'Uusimmat blogimerkinnät',

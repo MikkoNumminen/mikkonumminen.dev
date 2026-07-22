@@ -59,12 +59,6 @@ export interface Translations {
     eyebrow: string;
     heading: string;
     body: string;
-    /**
-     * Marker chip rendered above the intro body while `body` is still
-     * placeholder copy. Delete this key and the `.intro__placeholder`
-     * element in Intro.astro once the real paragraph is written.
-     */
-    placeholderNote: string;
   };
   latestEntries: {
     sectionAria: string;

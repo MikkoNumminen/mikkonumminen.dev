@@ -19,10 +19,6 @@ const t = getTranslations(locale);
       <span data-split data-reveal-chars>{t.intro.heading}</span>
     </h2>
 
-    <!-- Delete this marker and t.intro.placeholderNote together once the real
-         paragraph is written. -->
-    <p class="intro__placeholder" data-reveal>{t.intro.placeholderNote}</p>
-
     <p class="intro__body" data-reveal>
       {t.intro.body}
     </p>
@@ -65,20 +61,6 @@ const t = getTranslations(locale);
     margin: 0;
     color: #fff;
     max-width: 18ch;
-  }
-
-  .intro__placeholder {
-    justify-self: start;
-    margin: 0;
-    padding: 0.5rem 0.9rem;
-    border: 1px dashed rgba(var(--color-term-amber-rgb), 0.65);
-    border-radius: 999px;
-    background: rgba(var(--color-term-amber-rgb), 0.08);
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--color-term-amber);
   }
 
   .intro__body {
