@@ -6,9 +6,8 @@ import { LOCALES, DEFAULT_LOCALE, type Locale, type Translations } from './types
 export { LOCALES, DEFAULT_LOCALE } from './types';
 export type { Locale, Translations, TimelineLesson } from './types';
 
-// Path helpers live in `./routing` so runtime modules that only need
-// path manipulation (notably the page-transition runtime, which loads on
-// every page) can import from there directly without pulling in the
+// Path helpers live in `./routing` so modules that only need path
+// manipulation can import from there directly without pulling in the
 // locale dictionaries below. We re-export them here for the build-time
 // callers (Astro frontmatter, components) that import from the barrel.
 export { localizePath, stripLocale } from './routing';

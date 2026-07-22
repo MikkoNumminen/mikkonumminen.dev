@@ -7,14 +7,26 @@
  * swap, and on the initial load) and `astro:before-swap` (before every swap) do.
  *
  * `onRoute` bridges a page enhancement to that lifecycle: it registers ONE
- * `astro:page-load` (mount) and ONE `astro:before-swap` (dispose) listener,
- * mounts only when the route's marker is present (so a home enhancement no-ops on
- * `/projects`), and disposes whatever is mounted before the next swap.
+ * `astro:page-load` (mount) and ONE `astro:before-swap` (dispose) listener, mounts
+ * only when the route's marker is present (so a home enhancement no-ops on
+ * `/projects`), and disposes whatever is mounted before the next swap. It also owns
+ * the bfcache freeze/restore cycle (`pagehide` / `pageshow[persisted]`), which
+ * Astro's router does not surface as page-load / before-swap events.
  *
- * Async mounts are guarded by a generation token: if a swap happens while an
- * async `mount()` is still resolving, the late-arriving disposer runs immediately
- * instead of being stored — a scene can never end up alive on a page that has
- * already been swapped away (a real race for the deferred `/projects` boot).
+ * Two guards keep mounting correct:
+ *   - `mounted` makes a single arrival idempotent. A route's deferred module
+ *     script runs — and calls the registration `doMount()` below — BEFORE Astro
+ *     fires `astro:page-load` for that arrival, so both would otherwise mount. For
+ *     an async mount `current` isn't set until the promise resolves, and a
+ *     void-returning mount never sets it at all, so keying the guard on `current`
+ *     would let the trailing page-load mount a duplicate. `mounted` is set the
+ *     moment a mount is attempted and cleared only on dispose, collapsing the pair
+ *     to one. (The registration call is kept as a safety net for browsers that
+ *     fall back to a non-view-transition navigation.)
+ *   - the generation token guards the separate race where a swap happens while an
+ *     async `mount()` is still resolving: the late-arriving disposer runs
+ *     immediately instead of being stored, so a scene can't end up alive on a page
+ *     already swapped away (the deferred `/projects` boot).
  */
 
 export type Disposer = (() => void) | { dispose: () => void };
@@ -30,8 +42,13 @@ export function onRoute(
   mount: () => Disposer | void | Promise<Disposer | void>,
 ): void {
   let current: Disposer | null = null;
-  // Bumped on every mount attempt AND every teardown. An async mount whose token
-  // no longer matches when it resolves is disposed on arrival, not stored.
+  // True from the moment a mount is attempted for the current arrival until the
+  // next dispose. Distinct from `current` (the stored disposer, which is null for
+  // an async mount still in flight or a void-returning mount) so neither can be
+  // re-invoked by the trailing `astro:page-load`.
+  let mounted = false;
+  // Bumped on every mount attempt AND every dispose. An async mount whose token no
+  // longer matches when it resolves is disposed on arrival, not stored.
   let generation = 0;
 
   const store = (gen: number, d: Disposer | void): void => {
@@ -43,14 +60,15 @@ export function onRoute(
   };
 
   const doMount = (): void => {
-    if (current || !shouldMount()) return;
+    if (mounted || !shouldMount()) return;
+    mounted = true;
     const gen = ++generation;
     let result: Disposer | void | Promise<Disposer | void>;
     try {
       result = mount();
     } catch {
-      // A synchronous mount failure must not wedge the lifecycle — the page
-      // simply renders without its enhancement.
+      // A synchronous mount failure must not wedge the lifecycle — it just won't
+      // retry until the next dispose; the page renders without its enhancement.
       return;
     }
     if (result && typeof (result as Promise<Disposer | void>).then === 'function') {
@@ -67,6 +85,7 @@ export function onRoute(
 
   const doDispose = (): void => {
     generation++; // invalidate any in-flight async mount
+    mounted = false;
     const d = current;
     current = null;
     runDispose(d);
@@ -74,11 +93,19 @@ export function onRoute(
 
   document.addEventListener('astro:page-load', doMount);
   document.addEventListener('astro:before-swap', doDispose);
+  // bfcache: a cross-document back/forward restores from bfcache via `pageshow`
+  // (persisted) WITHOUT firing `load`, so Astro dispatches no `astro:page-load`;
+  // and it freezes via `pagehide` WITHOUT an `astro:before-swap`. Own both so a
+  // restored page re-mounts and a frozen one is torn down. (These fire only on a
+  // real document freeze/restore, never on a client-side swap, so they don't
+  // double up with the Astro events above.)
+  window.addEventListener('pagehide', doDispose);
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) doMount();
+  });
 
-  // A page's bundled module script is deferred, so it may execute AFTER the
-  // `astro:page-load` for its own arrival has already fired (especially the
-  // first time a route is swapped in). Attempt a mount immediately on
-  // registration too; the `current` guard makes the later page-load a no-op if
-  // this already mounted, and the marker check no-ops when we're off-route.
+  // The deferred module script may run before OR after `astro:page-load` for its
+  // own arrival; attempt a mount now too. The `mounted` guard makes whichever
+  // fires second a no-op, and the marker check no-ops when we're off-route.
   doMount();
 }

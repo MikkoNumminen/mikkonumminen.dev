@@ -1,10 +1,9 @@
 /**
- * Locale-aware path helpers, split out from `./index.ts` so they can be
- * imported by runtime modules (notably the page-transition runtime, which
- * loads on every page) without dragging in the en / fi / sv translation
- * dictionaries. Bundling those dictionaries onto every page just to do
- * pure path manipulation costs ~6 KB gzipped per route — meaningful for a
- * static site whose first byte is the only metric that matters.
+ * Locale-aware path helpers, split out from `./index.ts` so modules that only
+ * need path manipulation can import them without dragging in the en / fi / sv
+ * translation dictionaries. Bundling those dictionaries just to do pure path
+ * manipulation costs ~6 KB gzipped per route — meaningful for a static site
+ * whose first byte is the only metric that matters.
  *
  * Module-level imports here are limited to `./types`, which itself
  * imports nothing else, so this file has zero bundle dependencies

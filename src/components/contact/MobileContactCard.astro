@@ -287,12 +287,10 @@ const m = t.mobileContact;
       timeouts.clear();
     };
 
-    // Full-unload / bfcache fallback; the onRoute disposer below drives the
-    // client-side-navigation case. cleanup is idempotent, so a double call
-    // (both a swap and a later unload) is harmless.
-    window.addEventListener('beforeunload', cleanup, { once: true });
-    window.addEventListener('pagehide', cleanup, { once: true });
-
+    // `cleanup` is returned as the disposer; onRoute runs it on astro:before-swap
+    // (client-side nav) and on pagehide (full unload / bfcache freeze), so no
+    // per-mount window listeners are registered here — those weren't bound to a
+    // controller and stacked on every /contact re-mount.
     if (reduced) {
       renderAllStatic();
       return cleanup;

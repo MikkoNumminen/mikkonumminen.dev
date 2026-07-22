@@ -394,6 +394,11 @@ const t = getTranslations(locale);
           activeKey = activeKey === 'a' ? 'b' : 'a';
           crossfadeRaf = null;
           crossfading = false;
+          // Re-sync the now-active deck to the CURRENT page's target. The fade
+          // captured incomingTargetVol when it began; if a navigation (or a
+          // scroll) landed during the fade, the astro:page-load / scroll volume
+          // writes were skipped under the `crossfading` guard, so recompute here.
+          getActive().volume = computeVolume();
         }
       };
       crossfadeRaf = requestAnimationFrame(tick);
