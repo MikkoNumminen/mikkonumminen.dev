@@ -153,7 +153,7 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
           if (target === 'en') {
             next = bare;
           } else if (bare === '/') {
-            next = '/' + target + '/';
+            next = '/' + target;
           } else {
             next = '/' + target + bare;
           }
