@@ -1,8 +1,17 @@
 ---
+import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 import SiteNav from '../components/nav/SiteNav.astro';
 import BackgroundAudio from '../components/BackgroundAudio.astro';
-import { asLocale, getTranslations, localizePath, stripLocale, LOCALES } from '../i18n';
+import {
+  asLocale,
+  getTranslations,
+  localizePath,
+  stripLocale,
+  LOCALES,
+  DEFAULT_LOCALE,
+  type Locale,
+} from '../i18n';
 import type { Theme } from '../lib/theme';
 
 interface Props {
@@ -10,6 +19,17 @@ interface Props {
   description?: string;
   theme?: Theme;
   ogImage?: string;
+  ogType?: 'website' | 'article';
+  /** ISO 8601 timestamp. Only meaningful alongside `ogType="article"`. */
+  publishedTime?: string;
+  /**
+   * Locales this page actually exists in. Routes built from static data exist
+   * in all three by construction, so the default is correct for them. Routes
+   * built from content do not: an entry published in one locale only would
+   * otherwise advertise a switcher link and an hreflang alternate to a URL
+   * the build never generated.
+   */
+  availableLocales?: readonly Locale[];
 }
 
 const locale = asLocale(Astro.currentLocale);
@@ -20,19 +40,28 @@ const {
   description = t.meta.home.description,
   theme = 'home',
   ogImage = '/og-default.png',
+  ogType = 'website',
+  publishedTime,
+  availableLocales = LOCALES,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
 const ogImageUrl = new URL(ogImage, Astro.site).toString();
 
 // Build hreflang alternates by stripping the current locale from the path
-// and re-localizing for each supported locale.
+// and re-localizing for each locale this page exists in.
 const basePath = stripLocale(Astro.url.pathname);
-const alternates = LOCALES.map((l) => ({
+const alternates = availableLocales.map((l) => ({
   locale: l,
   href: new URL(localizePath(basePath, l), Astro.site).toString(),
 }));
-const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
+// x-default is the fallback for languages we don't publish, which is English
+// wherever it exists. When it doesn't, the current locale is the only page we
+// can name that the build actually produced.
+const xDefaultLocale = availableLocales.includes(DEFAULT_LOCALE)
+  ? DEFAULT_LOCALE
+  : locale;
+const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toString();
 ---
 
 <!doctype html>
@@ -62,7 +91,8 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
     <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
+    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
     <meta property="og:site_name" content="mikkonumminen.dev" />
     <meta
       property="og:locale"
@@ -123,7 +153,7 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
           if (target === 'en') {
             next = bare;
           } else if (bare === '/') {
-            next = '/' + target + '/';
+            next = '/' + target;
           } else {
             next = '/' + target + bare;
           }
@@ -135,6 +165,8 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
     </script>
 
     <slot name="head" />
+
+    <ClientRouter />
   </head>
   <body data-theme={theme}>
     <a
@@ -144,7 +176,12 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
       {t.nav.skipToContent}
     </a>
 
-    <SiteNav theme={theme} current={Astro.url.pathname} locale={locale} />
+    <SiteNav
+      theme={theme}
+      current={Astro.url.pathname}
+      locale={locale}
+      availableLocales={availableLocales}
+    />
 
     <main id="main" tabindex="-1">
       <slot />
@@ -157,27 +194,7 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
 
     <BackgroundAudio />
 
-    <!-- Page transition overlay (canvas-based particle dissolve) -->
-    <div id="page-transition-overlay" data-state="idle" aria-hidden="true">
-      <canvas id="page-transition-canvas"></canvas>
-    </div>
-
     <style is:global>
-      #page-transition-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        pointer-events: none;
-      }
-      #page-transition-overlay[data-state='animating'] {
-        pointer-events: auto;
-      }
-      #page-transition-canvas {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
-
       .site-footer {
         position: relative;
         z-index: 20;
@@ -204,21 +221,12 @@ const xDefault = new URL(localizePath(basePath, 'en'), Astro.site).toString();
     </style>
 
     <script>
-      import { initPageTransitions } from '../lib/transitions/pageTransition';
       import { initObservability } from '../lib/observability/initObservability';
 
-      // Observability fires before page transitions so any error in the
-      // transition init itself is captured. Both are no-ops on a second run
-      // (transitions guard via globalThis; observability guards on missing
-      // DSN), so safe to call on bfcache restore.
+      // Once-only: Sentry.init must not repeat, so this runs on module load
+      // (once per session) rather than on every astro:page-load. Guarded on a
+      // missing DSN, so it's a no-op when observability isn't configured.
       initObservability();
-
-      const start = () => initPageTransitions();
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', start, { once: true });
-      } else {
-        start();
-      }
     </script>
   </body>
 </html>

@@ -9,7 +9,7 @@
 //              I → V → iii → II → V → I → II → V — modal floating, never cadential.
 // Length: 16-bar loop = 48 seconds. Two structural entries inside the loop give
 //         3 architectural events between t=0 and t=42 s (chord changes excluded).
-// Role: ambient bed for the portfolio landing page (mikkonumminen-dev.vercel.app).
+// Role: ambient bed for the portfolio landing page (mikkonumminen.dev).
 //        No beat, no rhythm — only drift. Should sit behind the page content
 //        without demanding attention. Designed to enter or exit at any point.
 //

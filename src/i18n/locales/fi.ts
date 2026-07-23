@@ -9,7 +9,7 @@ export const fi: Translations = {
     home: {
       title: 'Mikko Numminen — full-stack-kehittäjä',
       description:
-        'Mikko Nummisen portfolio. Suomesta käsin toimiva full-stack-kehittäjä rakentaa tuotantotason verkkosovelluksia AI-avusteisilla työnkuluilla.',
+        'Full-stack-kehittäjä Suomesta. Työmuistiinpanoja ja valittuja projekteja, toteutettu yksin ja tekoälylähtöisesti oletuksena.',
     },
     contact: {
       title: 'Yhteystiedot — Mikko Numminen',
@@ -25,11 +25,17 @@ export const fi: Translations = {
       description:
         'Kiipeä vuorelle — Mikko Nummisen kokemus, taidot ja virstanpylväät perusleiristä tähän hetkeen.',
     },
+    blog: {
+      title: 'Blogi — Mikko Numminen',
+      description:
+        'Työmuistiinpanoja Mikko Nummisen projekteista. Commit-historiasta kirjoitetut merkinnät on merkitty tekoälyn generoimiksi.',
+    },
   },
   nav: {
     home: 'etusivu',
     projects: 'projektit',
     experience: 'kokemus',
+    blog: 'blogi',
     contact: 'yhteystiedot',
     primaryAria: 'Päänavigaatio',
     languageSwitcherAria: 'Kieli',
@@ -47,77 +53,22 @@ export const fi: Translations = {
   intro: {
     sectionAria: 'Tietoja',
     eyebrow: 'tietoja',
-    heading: 'Yhdeksän repoa. Ne rakentavat toistensa päälle.',
-    body: 'Full-stack-kehittäjä Suomesta. HRM on Platformin arkkitehtuuripohja — Platform on tuotantokäytössä oikealla WoW-killalla osoitteessa vuohiliitto.com. AudiobookMaker tuottaa äänet Spacepotatikseen, tänä vuonna julkaisemaani selainpeliin; strudel-patterns säveltää sen musiikin. Jokainen repo seisoo omillaan — saumat niiden välillä ovat se juju.',
-    statTests: 'testiä suurimmassa projektissa',
-    statCoverage: 'rivikattavuus',
-    statProducts: 'julkaistua projektia',
+    heading: 'Lyhyt esittely.',
+    // REVIEW (fi): literal mirror of the EN intro; the sarcasm does not
+    // translate 1:1. Draft only, replace with your own phrasing.
+    body: 'Olen full-stack-kehittäjä, ja viime aikoina työni on pyörinyt enimmäkseen kielimallien ympärillä, joiden paimentamiseen käytän suurimman osan ajastani, koska malli, joka on väärässä mutta varma asiastaan, on aivan oma ongelmansa. Päädyin tähän vuonna 2022 myytyäni rautaa 24 vuotta, joten olen se tyyppi, joka lukee käyttöohjeen ja odottaa silti laitteen hajoavan. Rakennan koko homman, tietokannasta ruudulle asti, ja mittaan sen, minkä rakennan. Joskus mittaan sen, julkaisen tulokset ja huomaan sitten, että mittari itse oli rikki, mikä on nöyryyttävä tapa oppia, että myös instrumentti pitää tarkistaa.',
   },
-  focus: {
-    sectionAria: 'Miten projektit kytkeytyvät',
-    eyebrow: 'kytkennät',
-    heading: 'Miten projektit kytkeytyvät yhteen.',
-    items: [
-      {
-        title: 'Repot syöttävät toisiaan',
-        body: 'HRM toimii git-alimoduulina Platformin sisällä — sama tunnistautuminen, sama auditloki, kaksi tuotetta yhdestä ytimestä. AudiobookMaker tuottaa äänet Spacepotatikseen, strudel-patterns sen musiikin. Jokainen repliikki ja jokainen sävel jäljitetään takaisin repoon, jonka omistan itse.',
-      },
-      {
-        title: 'Testattu tai ei lähde',
-        body: 'Jokaisella repolla on CI joka pushissa. HRM:ssä 1828+ testiä 91,9 % kattavuudella, Spacepotatiksessa ~1300, AudiobookMakerissa yli 3000. Laatuportit painavat enemmän kuin mahtipontisin teknologiapino.',
-      },
-      {
-        title: 'AI-natiivi, jäljitettävästi',
-        body: 'Spacepotatis toimittaa kokoelman omia Claude Code -skillejä .claude/skills/-hakemistossa — versionhallittuja, auditoituja, tuotantoartefaktien tavoin käsiteltyjä. Pariohjelmointi tekoälyn kanssa on osa työkalupakkia; menetelmä on kuitti.',
-      },
-    ],
-  },
-  integrations: {
-    sectionAria: 'Ulkoiset integraatiot',
-    eyebrow: 'integraatiot',
-    heading: 'Kytköksissä maailmaan.',
-    items: [
-      {
-        project: 'Platform',
-        api: 'Raider.IO API',
-        body: 'Reaaliaikainen Mythic+-tiimiseuranta oikealle WoW-killalle. Rosterit, viimeisimmät retket ja rio-pisteet haetaan tuoreina jokaisella latauksella — ei vanhentuneita ruutukaappauksia. Tunnistautuminen Google- tai GitHub-OAuthilla, lisäksi tunnukseton demo vierailijoille.',
-      },
-      {
-        project: 'ReadLog',
-        api: 'Open Library + Google Books',
-        body: 'Kaksi kirja-API:a kysellään rinnakkain; tarkemmat tiedot palauttava lähde voittaa. Duplikaatit yhdistetään ennen kuin ne ehtivät käyttöliittymään. Sisäänkirjautuminen Google-OAuthilla.',
-      },
-      {
-        project: 'AudiobookMaker',
-        api: 'Microsoft Edge-TTS',
-        body: '30+ pilvi-ääntä kuudella kielellä, kolmen offline-moottorin (Piper, Chatterbox, VoxCPM2) lisäksi. Valitse ääni, joka sopii kirjaan.',
-      },
-      {
-        project: 'Spacepotatis',
-        api: 'Google OAuth',
-        body: 'Sisäänkirjautuminen on vapaaehtoista. Pelaa offline ikuisesti, tai liity mukaan pilvitallennuksiin ja tulostaulun paikkaan.',
-      },
-    ],
-  },
-  velocity: {
-    sectionAria: 'Kehitysvauhti',
-    eyebrow: 'vauhti',
-    heading: 'Nopeaa — todistettavasti.',
-    body: 'Spacepotatis ehti tyhjästä reposta tuotannossa olevaksi selainpeliksi 12 päivässä: 475 commitia, ~1300 testiä, koko Next.js + Phaser 4 + Three.js -pino — taustalla auditoidut Claude Code -skillit tuotantoartefakteina. Suurin osa portfoliosta käynnistyi viime kuukausina. AI-natiivi ei ole sloganpuhetta — se on matematiikkaa.',
-    link: {
-      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-      label: 'Miten 3,13M tokenia arvioitiin',
-    },
-    stats: [
-      { num: '12', label: 'päivää tyhjästä reposta Spacepotatis-tuotantoon' },
-      { num: '475', label: 'Spacepotatis-commitia' },
-      { num: '~1300', label: 'Spacepotatis-testiä menossa läpi' },
-    ],
+  latestEntries: {
+    sectionAria: 'Uusimmat blogimerkinnät',
+    eyebrow: 'kirjoituksia',
+    heading: 'Uusimmat merkinnät.',
+    viewAll: 'Kaikki merkinnät',
+    empty: 'Ei vielä julkaistuja merkintöjä.',
   },
   navCards: {
     sectionAria: 'Tutustu sivuston muihin osiin',
     eyebrow: 'jatka',
-    heading: 'Valitse maailma.',
+    heading: 'Muualla sivustolla.',
     projects: {
       label: 'Projektit',
       description: 'Tutustu interaktiiviseen aurinkokuntaan projekteistani.',
@@ -126,12 +77,27 @@ export const fi: Translations = {
       label: 'Kokemus',
       description: 'Kiipeä vuorta pitkin läpi taitojen, työkalujen ja saavutusten.',
     },
+    blog: {
+      label: 'Blogi',
+      description:
+        'Työmuistiinpanoja siitä, mitä olen rakentanut, osa koottu commit-historiasta.',
+    },
     contact: {
       label: 'Yhteystiedot',
       description: 'Hyppää terminaaliin ja ota yhteyttä suoraan.',
     },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'tehty: astro · three.js · gsap',
+  },
+  blog: {
+    eyebrow: 'kirjoituksia',
+    title: 'Blogi',
+    lede: 'Työmuistiinpanoja siitä, mitä olen rakentanut. Osa merkinnöistä on koneen kirjoittamia commit-historiasta, ja ne kertovat sen heti alussa.',
+    aiBadge: 'tekoälyn generoima',
+    aiNotice:
+      'Tämän merkinnän on generoinut kielimalli commit-historiasta. En ole kirjoittanut sitä uudelleen. Käsittele sitä yhteenvetona muutoksista, ei jonain minun itse kirjoittamana.',
+    backToIndex: 'Kaikki merkinnät',
+    empty: 'Ei vielä merkintöjä.',
   },
   projectsPage: {
     eyebrow: 'Valitut työt',
@@ -153,7 +119,7 @@ export const fi: Translations = {
       'Projektini. Työpöytänäkymässä ne näkyvät interaktiivisena aurinkokuntana — tässä luettavana listana.',
     keyHeading: 'Selitykset',
     keyConnectionsLabel: 'Yhteydet',
-    keyExternalDesc: 'kiertävä satelliitti — yhteys ulkomaailmaan',
+    keyExternalDesc: 'kiertoradalla oleva satelliitti — yhteys ulkoiseen palveluun',
     listHeading: 'Hyppää projektiin',
     listAriaLabel: 'Projektiluettelo',
     connectionKindLabels: {
@@ -235,6 +201,36 @@ export const fi: Translations = {
         'Python · Tkinter-GUI',
         'macOS · Windows · WSL · Linux (tmux)',
         'Valvomatta launchd / Task Scheduler',
+      ],
+    },
+    passwordmanager: {
+      tagline: 'Nollatietomallin salasananhallinta Rustilla',
+      description:
+        'Paikallislähtöinen salasananhallinta, jossa yksi ainoa Rust-kirjasto on ainoa paikka missä salaus tapahtuu — Argon2id-avaimenjohto ja XChaCha20-Poly1305-autentikoitu salaus, käännettynä sekä natiivisti että WebAssemblyksi. Neljä asiakassovellusta jakaa sen: offline-ensin CLI-holvi SQLitellä, synkronointipalvelin joka tallentaa vain salattua dataa, selaimessa toimiva WASM-asiakas ja Chrome-laajennus autofillillä ja tallennuksella kirjautuessa. Merkintäkohtaiset noncet ja AEAD sidottuna merkinnän id:hen ja aikaleimaan estävät tietueiden vaihtamisen; avaimet nollataan käytön jälkeen; pääsalasana ei koskaan poistu asiakkaalta. Jokainen turvallisuuspäätös on kirjattu ADR:ksi eksplisiittistä uhkamallia vasten, ja CI estää salaisuudet pääsemästä repoon samalla kun se ajaa formatoinnin, clippyn, koko työtilan testit ja wasm-käännöksen.',
+      highlights: [
+        'Yksi salauskirjasto, neljä asiakassovellusta',
+        'Argon2id + XChaCha20-Poly1305',
+        'Palvelin tallentaa vain salattua dataa',
+      ],
+    },
+    'claude-agents': {
+      tagline: 'Kustannusreititetyt subagentit Claude Codelle',
+      description:
+        'Pieni globaali kokoelma Claude Code -subagentteja, joka lopettaa Opus-hintojen maksamisen työstä jonka halvempi malli hoitaa yhtä hyvin. Kaksitoista agenttia, joista jokainen kiinnittää sekä mallitason että päättelyponnistuksen frontmatterissaan: Haiku vain-luku-tiedusteluun (scout, log-miner, scribe, dep-checker, tidy), Sonnet spesifikaatio-ohjattuihin muokkauksiin (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect) ja kiinnittämätön architect joka perii istunnon mallin suunnittelutyötä varten. Agentit tunnistavat itse kunkin repon teknologiapinon — testiajurin, linterin, i18n-rakenteen — joten yksi kokoelma kattaa JS-, C#- ja Python-projektit. Asentuu Claude Code -pluginina jaetusta markkinapaikasta tai skriptillä. MIT-lisensoitu.',
+      highlights: [
+        '12 malliin kiinnitettyä agenttia',
+        'Erottaa mallitason päättelyponnistuksesta',
+        'Plugin- tai skriptiasennus',
+      ],
+    },
+    'feedback-intelligence': {
+      tagline: 'Perusteltua palauteanalyysia paikallisella LLM:llä',
+      description:
+        'Palautteen älymoottori joka muuntaa sekavan vapaamuotoisen palautteen tilannekohtaiseksi signaaliksi päästämättä LLM:ää käsiksi lukuihin: deterministinen, sääntökoodattu hälytyskerros laskee jokaisen luvun ja trendin, ja LLM ainoastaan jäsentää syötteen ja syntetisoi teemakertomukset — jokainen väite sidottu takaisin palaute-id:ihin ja pudotetaan varajärjestelmään jos se ei läpäise validointia. Toimialat ovat liitettäviä moduuleja (ensimmäisenä: suomalainen ruoka- ja rautakaupan hybridivähittäiskauppa); konfiguraatioasetus vaihtaa toisen toimialan ilman ydinmuutoksia. .NET 8 paikallisen Poro 2 8B:n päällä Ollamassa — valittu 30 kierroksen sokkotestissä — ja live-demo Azure Static Web Appsissa joka tavoittaa paikallisen GPU:n Tailscale Funnelin kautta ilman pilvipäättelyn kustannuksia. GDPR-puhdas synteettinen korpus, kerroksittainen prompt-injektiosuoja, hermeettinen xUnit-testisarja CI:ssä.',
+      highlights: [
+        'Deterministiset hälytykset — LLM ei koskaan laske lukuja',
+        'Liitettävät toimialat, ei ydinmuutoksia',
+        'Live-demo Azuressa, päättely paikallisella GPU:lla',
       ],
     },
   },
@@ -338,6 +334,40 @@ export const fi: Translations = {
         'Sonnet · Opus · Haiku',
       ],
     },
+    'rust-crypto': {
+      title: 'Rust, ja oman työn tarkistaminen',
+      body: 'Uusi kieli ja tiukempi näytön vaatimus tulivat yhtä aikaa. Kieli on Rust, jonka otin käyttöön salasanahallintaan, jossa koko kryptografinen pinta asuu yhdessä cratessa, joka kääntyy sekä natiivisti että WebAssemblyksi. Komentorivikassa, synkronointipalvelin, selaimessa toimiva client ja Chrome-laajennus ajavat kaikki samaa koodia — neljän toisistaan hiljalleen loittonevan kopion sijaan.\n\nTapa oli kieltäytyä uskomasta omaa sanaani mistään. Avaimenjohtamisen parametrit, nonce-strategia, se mihin autentikoitu salateksti on sidottu: jokainen niistä on kirjattu päätös, johon liittyy uhkamalli, mukaan lukien selkeä lista siitä mitä suunnittelu ei suojaa. Repossa on tätä viimeistä kohtaa varten omat auditoijansa: yksi käy päätöskirjaukset läpi koodia vasten, toinen vertaa esitettyjä turvallisuusväitteitä siihen, mitä kryptografia todella tekee. Väite jota kukaan ei tarkista uudelleen on vain kommentti.',
+      tags: [
+        'Rust',
+        'WebAssembly',
+        'Argon2id',
+        'XChaCha20-Poly1305',
+        'Nollatieto',
+        'Uhkamalli repossa',
+      ],
+      lessons: [
+        {
+          title: 'Yksi crate, neljä clientia',
+          body: 'Argon2id 256 MiB:llä ja kolmella kierroksella, XChaCha20-Poly1305 tuorein nonce jokaista tietuetta kohden, ja jokainen tietue on sidottu omaan id:hensä ja aikaleimaansa niin ettei kahta tietuetta voi vaihtaa keskenään huomaamatta. Pääsalasana ei koskaan poistu clientilta, ja synkronointipalvelin pitää hallussaan vain salatekstiä. Lukituksen avaaminen maksaa noin 430 ms, mikä on ominaisuus, ei regressio.',
+        },
+        {
+          title: 'Kolmekymmentä kierrosta, sokkona',
+          body: 'Suomenkielisen kielimallin valinta paikalliseen pinoon ratkaistiin järjestämällä kolmekymmentä suomenkielistä vastausta sokkona, arvioijana äidinkielinen puhuja joka ei nähnyt kumpi malli kirjoitti minkäkin vastauksen. Poro-2-8B sijoittui ensimmäiseksi 26 kertaa 30:stä ja päätyi tuotantoon tällä tuloksella. Toinen projekti ajoi samat luvut ja jätti sen väliin, koska oikea valinta riippuu siitä miten tuotosta käytetään. Kumman tahansa valitseminen fiiliksen perusteella olisi ollut nopeampaa eikä olisi todistanut mitään.',
+          link: {
+            href: '/poro-findings.pdf',
+            label: 'Lue tutkimus',
+          },
+        },
+        {
+          title: 'Yleensä bugi on minun',
+          body: 'Kun vastaukset alkoivat liittää vääriä päivämääriä omaan tutkimukseeni, mukava selitys olisi ollut että pieni malli sekoili. Ei sekoillut. Päivämäärä putosi pois prompt-rajalla ennen kuin malli näki sitä koskaan. Kolme aiempaa yritystä korjata asia mallin puolella on kirjattu umpikujiksi, jotta seuraava katsoja ei käytä siihen viikkoa niin kuin minä käytin.',
+        },
+        {
+          title: 'Mittaus joka ei muuttanut mitään',
+          body: 'Monikielinen embedder näytti ilmeiseltä päivitykseltä suomenkieliseen hakuun. Suoraan vertailtuna jo tuotannossa oleva ratkaisu sai 0,810 pistettä ehdokkaan 0,762 pistettä vastaan, joten mikään ei mennyt tuotantoon. Kokeilu joka puhuu suunnitelmaa vastaan on yhtä arvokas kuin se joka vahvistaa sen, kunhan kummankin kirjaa ylös.',
+        },
+      ],
+    },
     now: {
       title: 'Katse ylöspäin',
       body: 'Saatavilla nyt. Avoin kunnianhimoisille full-stack-rooleille, joissa sekä laatu että vauhti ratkaisevat. Yhdeksän tänä vuonna yksin tuotantoon vietyä projektia — todiste molemmista.',
@@ -352,7 +382,8 @@ export const fi: Translations = {
     hintType: 'kirjoita',
     hintHistory: 'historia',
     hintComplete: 'täydennä',
-    noscriptIntro: 'Tämä sivu on interaktiivinen terminaali joka vaatii JavaScriptin.',
+    noscriptIntro:
+      'Tämä sivu on interaktiivinen terminaali, joka toimii vain JavaScriptin kanssa.',
     noscriptReachMe: 'Voit tavoittaa minut suoraan:',
     noscriptEmailLabel: 'Sähköposti:',
     noscriptGithubLabel: 'GitHub:',
@@ -422,7 +453,7 @@ export const fi: Translations = {
     cmdDownloadOptionSkills:
       'kesäkuu 2026 · uusin + laajin — 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
     cmdDownloadOptionResearch:
-      'tutkimus — 9 pdf:ää: skills-sarja + rag suomi -tutkimus + poro-löydökset (ei lataus)',
+      'tutkimus — 10 pdf:ää: skills-sarja + rag suomi -tutkimus + poro-löydökset + käännösauditointi (ei lataus)',
     cmdDownloadResearchIntro: 'katalogi + tutkimukset, vanhimmasta uusimpaan:',
     cmdDownloadOptionCatalog:
       'jokainen skilli kaikista 4 reposta — inventaario, kustannukset mitattu (ei arvattu)',
@@ -442,6 +473,8 @@ export const fi: Translations = {
       'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
     cmdDownloadOptionPoro:
       'heinäkuu 2026 · Poro-2-8B tuotannossa — mitä kaksi projektia mittasi, miksi toinen otti sen käyttöön ja toinen ei, sekä sen ympärille rakennettu deterministinen kerros',
+    cmdDownloadOptionTranslations:
+      'heinäkuu 2026 · käännösauditointi — paikallinen suomen kielen malli lukee sivuston kaikki 396 suomenkielistä merkkijonoa englanninkielistä lähdettä vasten; sen 276 ehdotetusta muutoksesta vain 2 kesti',
     cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
       'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` tai `download --finnish`.',
@@ -467,6 +500,8 @@ export const fi: Translations = {
       'rag blind test pdf not available right now — reach out and I will send it.',
     cmdDownloadPoroNotAvailable:
       'poro-löydösten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+    cmdDownloadTranslationsNotAvailable:
+      'käännösauditoinnin pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',

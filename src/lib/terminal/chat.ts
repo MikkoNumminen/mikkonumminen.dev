@@ -338,10 +338,22 @@ export function startChatAvailabilityPolling(
     timer = setTimeout(() => void tick(), delay);
   };
 
+  // Read fresh on every call — never a narrowed literal — so the getter's live
+  // value is honoured after an await, and the finally check below isn't seen by
+  // TS as an impossible comparison against the guard's narrowing.
+  const isHidden = (): boolean => document.visibilityState === 'hidden';
+
   const tick = async (): Promise<void> => {
     // Re-entrancy guard: a visibilitychange can fire mid-probe; serialising keeps
     // `failures`/`last` race-free and avoids a doubled in-flight request.
     if (signal?.aborted || ticking) return;
+    // Pause while the tab is hidden. An unattended or backgrounded tab left open
+    // (overnight, say) would otherwise probe /health forever — and every probe is
+    // a fresh TLS connection over the funnel plus a real 1-token LLM completion
+    // server-side. Returning WITHOUT rescheduling stops the loop; `onVisibility`
+    // restarts it the moment the tab is looked at again, so a watching user still
+    // sees the indicator refresh within one interval.
+    if (isHidden()) return;
     ticking = true;
     try {
       const probe = sessionDisabled
@@ -363,13 +375,23 @@ export function startChatAvailabilityPolling(
       }
     } finally {
       ticking = false;
-      schedule();
+      // Don't re-arm while hidden. If the tab was hidden mid-probe, stop cleanly
+      // rather than leaving a timer that would fire one more (no-op) tick;
+      // onVisibility restarts the loop on 'visible'.
+      if (!isHidden()) schedule();
     }
   };
 
   void tick();
   const onVisibility = (): void => {
-    if (document.visibilityState === 'visible') void tick();
+    if (!isHidden()) {
+      void tick();
+    } else if (timer !== undefined) {
+      // Cancel the pending probe the instant the tab is hidden, so not even one
+      // more request fires while nobody is watching.
+      clearTimeout(timer);
+      timer = undefined;
+    }
   };
   document.addEventListener('visibilitychange', onVisibility);
   signal?.addEventListener(

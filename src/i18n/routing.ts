@@ -1,10 +1,9 @@
 /**
- * Locale-aware path helpers, split out from `./index.ts` so they can be
- * imported by runtime modules (notably the page-transition runtime, which
- * loads on every page) without dragging in the en / fi / sv translation
- * dictionaries. Bundling those dictionaries onto every page just to do
- * pure path manipulation costs ~6 KB gzipped per route — meaningful for a
- * static site whose first byte is the only metric that matters.
+ * Locale-aware path helpers, split out from `./index.ts` so modules that only
+ * need path manipulation can import them without dragging in the en / fi / sv
+ * translation dictionaries. Bundling those dictionaries just to do pure path
+ * manipulation costs ~6 KB gzipped per route — meaningful for a static site
+ * whose first byte is the only metric that matters.
  *
  * Module-level imports here are limited to `./types`, which itself
  * imports nothing else, so this file has zero bundle dependencies
@@ -52,9 +51,9 @@ function splitPath(path: string): { pathname: string; suffix: string } {
  *
  *   localizePath('/projects', 'en')       -> '/projects'
  *   localizePath('/projects', 'fi')       -> '/fi/projects'
- *   localizePath('/',         'sv')       -> '/sv/'
+ *   localizePath('/',         'sv')       -> '/sv'
  *   localizePath('/projects?id=1', 'fi')  -> '/fi/projects?id=1'
- *   localizePath('/#top',      'fi')      -> '/fi/#top'
+ *   localizePath('/#top',      'fi')      -> '/fi#top'
  */
 export function localizePath(path: string, locale: Locale): string {
   const { pathname, suffix } = splitPath(path);
@@ -65,7 +64,7 @@ export function localizePath(path: string, locale: Locale): string {
 
   let localized: string;
   if (locale === DEFAULT_LOCALE) localized = p;
-  else if (p === '/') localized = `/${locale}/`;
+  else if (p === '/') localized = `/${locale}`;
   else localized = `/${locale}${p}`;
 
   return `${localized}${suffix}`;

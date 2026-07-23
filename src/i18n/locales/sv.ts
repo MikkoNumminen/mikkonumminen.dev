@@ -9,7 +9,7 @@ export const sv: Translations = {
     home: {
       title: 'Mikko Numminen — full-stack-utvecklare',
       description:
-        'Portfolio för Mikko Numminen, en full-stack-utvecklare från Finland som bygger produktionsklara webbapplikationer med AI-assisterade arbetsflöden.',
+        'Full-stack-utvecklare i Finland. Arbetsanteckningar och utvalda projekt, levererade solo och AI-nativt som standard.',
     },
     contact: {
       title: 'Kontakt — Mikko Numminen',
@@ -25,11 +25,17 @@ export const sv: Translations = {
       description:
         'Klättra uppför berget — Mikko Numminens erfarenhet, kompetenser och milstolpar från baslägret till idag.',
     },
+    blog: {
+      title: 'Blogg — Mikko Numminen',
+      description:
+        'Arbetsanteckningar från Mikko Nummisens projekt. Inlägg skrivna utifrån commit-historiken är märkta som AI-genererade.',
+    },
   },
   nav: {
     home: 'hem',
     projects: 'projekt',
     experience: 'erfarenhet',
+    blog: 'blogg',
     contact: 'kontakt',
     primaryAria: 'Huvudmeny',
     languageSwitcherAria: 'Språk',
@@ -47,77 +53,22 @@ export const sv: Translations = {
   intro: {
     sectionAria: 'Om',
     eyebrow: 'om',
-    heading: 'Nio repon. De bygger på varandra.',
-    body: 'Full-stack-utvecklare i Finland. HRM är den arkitektoniska ryggraden i Platform — live för ett riktigt WoW-gille på vuohiliitto.com. AudiobookMaker ger rösten åt Spacepotatis, ett webbläsarspel jag släppte i år; strudel-patterns skriver musiken. Varje repo står för sig själv — fogarna mellan dem är poängen.',
-    statTests: 'tester i det största projektet',
-    statCoverage: 'radtäckning',
-    statProducts: 'levererade projekt',
+    heading: 'En kort introduktion.',
+    // REVIEW (sv): literal mirror of the EN intro; the sarcasm does not
+    // translate 1:1. Draft only, replace with your own phrasing.
+    body: 'Jag är full-stack-utvecklare, och på sistone har det mesta av mitt arbete kretsat kring språkmodeller, där jag ägnar största delen av min tid åt att passa dem, eftersom en modell som har fel och är säker på sin sak är ett alldeles särskilt slags problem. Jag hamnade här 2022 efter 24 år med hårdvaruförsäljning, så jag är typen som läser manualen och ändå väntar mig att grejen går sönder. Jag bygger hela grejen, från databasen till skärmen, och jag mäter det jag bygger. Ibland mäter jag det, publicerar det och upptäcker sedan att det var mätningen som var trasig, vilket är ett ödmjukande sätt att lära sig att även instrumentet behöver kontrolleras.',
   },
-  focus: {
-    sectionAria: 'Så hänger projekten ihop',
-    eyebrow: 'kopplingar',
-    heading: 'Så hänger projekten ihop.',
-    items: [
-      {
-        title: 'Repon som matar varandra',
-        body: 'HRM körs som git-undermodul inuti Platform — samma autentisering, samma granskningslogg, två produkter ur en kärna. AudiobookMaker ger rösten åt Spacepotatis; strudel-patterns skriver musiken. Varje replik och varje not spåras tillbaka till ett repo jag äger själv.',
-      },
-      {
-        title: 'Testat eller det skeppas inte',
-        body: 'Varje repo kör CI vid varje push. HRM har 1828+ tester med 91,9 % täckning, Spacepotatis ~1300, AudiobookMaker över 3000. Kvalitetsportar väger tyngre än den häftigaste stacken.',
-      },
-      {
-        title: 'AI-nativt, dokumenterat',
-        body: 'Spacepotatis levererar en uppsättning egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade, behandlade som produktionsartefakter. Parprogrammering med AI är en del av verktygskedjan; metoden är kvittot.',
-      },
-    ],
-  },
-  integrations: {
-    sectionAria: 'Externa integrationer',
-    eyebrow: 'integrationer',
-    heading: 'Kopplad till världen.',
-    items: [
-      {
-        project: 'Platform',
-        api: 'Raider.IO API',
-        body: 'Live Mythic+-teamspårning för ett riktigt WoW-gille. Rosters, senaste runs och rio-poäng hämtas färska vid varje laddning — inga inaktuella skärmdumpar. Inloggning via Google- eller GitHub-OAuth, plus en lösenordsfri demo för besökare.',
-      },
-      {
-        project: 'ReadLog',
-        api: 'Open Library + Google Books',
-        body: 'Två bok-API:er körs parallellt; den med renare data vinner. Dubletter slås ihop innan de når gränssnittet. Inloggning via Google-OAuth.',
-      },
-      {
-        project: 'AudiobookMaker',
-        api: 'Microsoft Edge-TTS',
-        body: '30+ molnröster på sex språk, ovanpå tre lokala motorer (Piper, Chatterbox, VoxCPM2). Välj rösten som passar boken.',
-      },
-      {
-        project: 'Spacepotatis',
-        api: 'Google OAuth',
-        body: 'Inloggning är valfri. Spela offline för evigt, eller logga in för molnsparningar och en plats på topplistan.',
-      },
-    ],
-  },
-  velocity: {
-    sectionAria: 'Utvecklingstempo',
-    eyebrow: 'tempo',
-    heading: 'Snabbt — på riktigt.',
-    body: 'Spacepotatis gick från tomt repo till live webbläsarspel på 12 dagar: 475 commits, ~1300 tester, hela Next.js + Phaser 4 + Three.js-stacken — med granskade Claude Code-skills som produktionsartefakter i bakgrunden. Större delen av portföljen startade under de senaste månaderna. AI-nativt är inte snack — det är matematik.',
-    link: {
-      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-      label: 'Hur 3,13M token uppskattades',
-    },
-    stats: [
-      { num: '12', label: 'dagar från tomt repo till live Spacepotatis' },
-      { num: '475', label: 'Spacepotatis-commits' },
-      { num: '~1300', label: 'Spacepotatis-tester som går igenom' },
-    ],
+  latestEntries: {
+    sectionAria: 'Senaste blogginläggen',
+    eyebrow: 'skrivet',
+    heading: 'Senaste inläggen.',
+    viewAll: 'Alla inlägg',
+    empty: 'Inga inlägg publicerade än.',
   },
   navCards: {
     sectionAria: 'Utforska resten av sajten',
     eyebrow: 'fortsätt',
-    heading: 'Välj en värld.',
+    heading: 'Övrigt på sajten.',
     projects: {
       label: 'Projekt',
       description: 'Utforska ett interaktivt solsystem av saker jag har byggt.',
@@ -127,12 +78,27 @@ export const sv: Translations = {
       description:
         'Klättra uppför ett parallaxberg genom kompetenser, verktyg och milstolpar.',
     },
+    blog: {
+      label: 'Blogg',
+      description:
+        'Arbetsanteckningar om vad jag har byggt, vissa hämtade ur commit-historiken.',
+    },
     contact: {
       label: 'Kontakt',
       description: 'Hoppa in i en terminal och nå mig direkt.',
     },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'byggt med astro · three.js · gsap',
+  },
+  blog: {
+    eyebrow: 'skrivet',
+    title: 'Blogg',
+    lede: 'Arbetsanteckningar om vad jag har byggt. Vissa inlägg är skrivna av en maskin utifrån commit-historiken, och det står överst i dem.',
+    aiBadge: 'AI-genererad',
+    aiNotice:
+      'Det här inlägget genererades från commit-historiken av en språkmodell. Jag har inte skrivit om det. Betrakta det som en sammanfattning av vad som ändrades, inte som något jag satt mig ner och skrivit.',
+    backToIndex: 'Alla inlägg',
+    empty: 'Inga inlägg än.',
   },
   projectsPage: {
     eyebrow: 'Utvalt arbete',
@@ -238,6 +204,36 @@ export const sv: Translations = {
         'Oövervakat via launchd / Task Scheduler',
       ],
     },
+    passwordmanager: {
+      tagline: 'Nollkunskaps-lösenordshanterare i Rust',
+      description:
+        'Lokalt förankrad lösenordshanterare där en enda Rust-crate är den enda platsen där kryptering existerar — Argon2id-nyckelderivering och XChaCha20-Poly1305-autentiserad kryptering, kompilerad både nativt och till WebAssembly. Fyra klienter delar den: ett offline-först CLI-valv på SQLite, en synkserver som endast lagrar krypterad text, en WASM-klient i webbläsaren och ett Chrome-tillägg med autofyllning och spara-vid-inloggning. Post-specifika nonces och AEAD bundna till post-id + tidsstämpel förhindrar att poster byts ut; nycklar nollställs efter användning; huvudlösenordet lämnar aldrig klienten. Varje säkerhetsval är dokumenterat som en ADR mot en uttrycklig hotmodell, och CI vaktar hemligheter borta från repot samtidigt som den kör format, clippy, hela arbetsytans tester och wasm-bygget.',
+      highlights: [
+        'En krypto-crate, fyra klienter',
+        'Argon2id + XChaCha20-Poly1305',
+        'Servern lagrar endast krypterad text',
+      ],
+    },
+    'claude-agents': {
+      tagline: 'Kostnadsroutade subagenter för Claude Code',
+      description:
+        'En liten global uppsättning Claude Code-subagenter som slutar betala Opus-priser för arbete som en billigare modell klarar lika bra. Tolv agenter, var och en fixerar både modellnivå och resonemangsansträngning i sin frontmatter: Haiku för skrivskyddad rekognosering (scout, log-miner, scribe, dep-checker, tidy), Sonnet för specifikationsstyrda redigeringar (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect), och en ofixerad architect som ärver sessionens modell för designarbete. Agenterna känner självmant av varje repos stack — testkörare, linter, i18n-struktur — så en enda uppsättning täcker JS-, C#- och Python-projekt. Installeras som ett Claude Code-plugin från en delad marknadsplats eller via script. MIT-licensierat.',
+      highlights: [
+        '12 modellfixerade agenter',
+        'Frikopplar modellnivå från resonemangsansträngning',
+        'Plugin- eller skriptinstallation',
+      ],
+    },
+    'feedback-intelligence': {
+      tagline: 'Underbyggd feedbackanalys med en lokal LLM',
+      description:
+        'Feedback-intelligensmotor som omvandlar rörig fritextfeedback till situationssignal utan att låta LLM:en komma nära siffrorna: ett deterministiskt, regelkodat larmlager beräknar varje antal och trend, och LLM:en strukturerar bara indata och syntetiserar temanarrativ — varje påstående citerat tillbaka till feedback-id och nedgraderat till en reservlösning om det inte klarar validering. Domäner är kopplingsbara moduler (först ut: finsk hybriddetaljhandel med dagligvaror och järnhandel); en konfigurationsflagga byter in en annan domän utan kärnändringar. .NET 8 ovanpå en lokal Poro 2 8B på Ollama — vald i ett 30-omgångars blindtest — med en live-demo på Azure Static Web Apps som når den lokala GPU:n via en Tailscale Funnel till noll molnkostnad för inferens. GDPR-ren syntetisk korpus, flerskiktat försvar mot prompt-injektion, hermetisk xUnit-svit i CI.',
+      highlights: [
+        'Deterministiska larm — LLM:en räknar aldrig siffrorna',
+        'Kopplingsbara domäner, inga kärnändringar',
+        'Live-demo på Azure, inferens på en lokal GPU',
+      ],
+    },
   },
   experiencePage: {
     eyebrow: 'klättringen',
@@ -339,6 +335,40 @@ export const sv: Translations = {
         'Sonnet · Opus · Haiku',
       ],
     },
+    'rust-crypto': {
+      title: 'Rust, och att kontrollera mitt eget arbete',
+      body: 'Ett nytt språk och ett hårdare beviskrav kom samtidigt. Språket är Rust, plockat upp för en lösenordshanterare där hela den kryptografiska ytan bor i en enda crate som kompilerar både nativt och till WebAssembly. Kommandoradsvalvet, synkroniseringsservern, klienten i webbläsaren och Chrome-tillägget kör alla samma kod, i stället för fyra kopior som tyst glider isär.\n\nVanan var att vägra ta mitt eget ord för något. Parametrarna för nyckelderivering, nonce-strategin, vad den autentiserade krypterade texten är bunden till: var och en är ett nedskrivet beslut med en hotmodell bifogad, inklusive en tydlig lista över vad designen inte skyddar mot. Repot bär egna granskare för just den sista punkten: en går igenom besluten mot koden, en annan håller de uttalade säkerhetspåståendena mot vad kryptografin faktiskt gör. Ett påstående som ingen kontrollerar igen är bara en kommentar.',
+      tags: [
+        'Rust',
+        'WebAssembly',
+        'Argon2id',
+        'XChaCha20-Poly1305',
+        'Nollkunskap',
+        'Hotmodell i repot',
+      ],
+      lessons: [
+        {
+          title: 'En crate, fyra klienter',
+          body: 'Argon2id på 256 MiB och tre pass, XChaCha20-Poly1305 med en färsk nonce per post, och varje post bunden till sitt eget id och sin egen tidsstämpel så att två poster inte kan bytas ut under dig. Huvudlösenordet lämnar aldrig klienten, och synkroniseringsservern håller alltid bara krypterad text. Att låsa upp kostar omkring 430 ms, vilket är funktionen snarare än regressionen.',
+        },
+        {
+          title: 'Trettio rundor, blint',
+          body: 'Valet av finsk språkmodell för den lokala stacken avgjordes genom att rangordna trettio finska svar blint, bedömda av en modersmålstalare som inte kunde se vilken modell som skrev vad. Poro-2-8B placerade sig först i 26 av 30 och gick till produktion på det resultatet. Ett andra projekt körde samma siffror och avstod, eftersom rätt val beror på hur utdatan används. Att välja åt något håll på känsla hade gått snabbare och hade inte bevisat något.',
+          link: {
+            href: '/poro-findings.pdf',
+            label: 'Läs studien',
+          },
+        },
+        {
+          title: 'Oftast är buggen min',
+          body: 'När svaren började koppla fel datum till min egen forskning var den bekväma förklaringen att en liten modell hallucinerade. Det gjorde den inte. Datumet föll bort vid prompt-gränsen innan modellen någonsin såg det. Tre tidigare försök att fixa det på modellsidan är nedskrivna som återvändsgränder, så nästa person som tittar inte behöver lägga ner en vecka som jag gjorde.',
+        },
+        {
+          title: 'En mätning som inte ändrade något',
+          body: 'En flerspråkig embedder såg ut som den självklara uppgraderingen för finsk retrieval. Uppmätt sida vid sida fick den redan driftsatta uppsättningen 0,810 mot kandidatens 0,762, så inget skeppades. Experimentet som talar emot din plan är lika mycket värt som det som bekräftar den, förutsatt att du skriver ner det ändå.',
+        },
+      ],
+    },
     now: {
       title: 'Blickar uppåt',
       body: 'Tillgänglig nu. Öppen för ambitiösa full-stack-roller där både hantverk och tempo räknas. Nio solo-levererade projekt i år — bevis på båda.',
@@ -422,7 +452,7 @@ export const sv: Translations = {
     cmdDownloadOptionSkills:
       'juni 2026 · senaste + bredaste — 16 skills, kall-vs-skill A/B över 3 modeller; den aktuella ögonblicksbilden',
     cmdDownloadOptionResearch:
-      'forskningen — 9 pdf:er: skills-sviten + rag finska studien + poro-resultaten (ingen nedladdning)',
+      'forskningen — 10 pdf:er: skills-sviten + rag finska studien + poro-resultaten + översättningsgranskningen (ingen nedladdning)',
     cmdDownloadResearchIntro: 'katalogen + studierna, äldst → nyast:',
     cmdDownloadOptionCatalog:
       'varje skill i alla 4 repor — inventeringen, med uppmätta (inte gissade) kostnader',
@@ -442,6 +472,8 @@ export const sv: Translations = {
       'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
     cmdDownloadOptionPoro:
       'juli 2026 · Poro-2-8B i produktion — vad två projekt mätte, varför ett antog den och ett avstod, och det deterministiska lagret byggt runt den',
+    cmdDownloadOptionTranslations:
+      'juli 2026 · översättningsgranskningen — en lokal finsk språkmodell läser om alla sidans 396 finska strängar mot den engelska källan; bara 2 av dess 276 föreslagna ändringar höll',
     cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
       'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` eller `download --finnish`.',
@@ -467,6 +499,8 @@ export const sv: Translations = {
       'rag blind test pdf not available right now — reach out and I will send it.',
     cmdDownloadPoroNotAvailable:
       'poro-resultatens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
+    cmdDownloadTranslationsNotAvailable:
+      'översättningsgranskningens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadMeantime: 'under tiden, hör av dig:',
     cmdDownloadStarted: 'nedladdning startad.',
     cmdClearDesc: 'rensa skärmen',

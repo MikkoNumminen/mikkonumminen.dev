@@ -7,6 +7,14 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # typescript 7 (major) is held: `npm run typecheck` runs astro check via
+      # @astrojs/check (latest 0.9.9), whose typescript peer is "^5 || ^6", so a
+      # TS7 bump makes `npm ci` fail on the ERESOLVE peer conflict (this is what
+      # turned the first dev-group PR red in ~7s, before any script ran). Remove
+      # this entry once @astrojs/check ships a release that peers typescript 7.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
       dev-dependencies:
         dependency-type: development

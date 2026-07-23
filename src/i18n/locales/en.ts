@@ -9,7 +9,7 @@ export const en: Translations = {
     home: {
       title: 'Mikko Numminen — full-stack developer',
       description:
-        'Full-stack developer in Finland. Nine projects shipped solo this year — real users, 1828+ tests, AI-native by default.',
+        'Full-stack developer in Finland. Working notes and selected projects, shipped solo and AI-native by default.',
     },
     contact: {
       title: 'Contact — Mikko Numminen',
@@ -25,11 +25,17 @@ export const en: Translations = {
       description:
         "Climb the mountain — Mikko Numminen's experience, skills, and milestones from base camp to today.",
     },
+    blog: {
+      title: 'Blog — Mikko Numminen',
+      description:
+        'Working notes from the projects of Mikko Numminen. Entries written from the commit history are labelled as machine-generated.',
+    },
   },
   nav: {
     home: 'home',
     projects: 'projects',
     experience: 'experience',
+    blog: 'blog',
     contact: 'contact',
     primaryAria: 'Primary',
     languageSwitcherAria: 'Language',
@@ -47,81 +53,20 @@ export const en: Translations = {
   intro: {
     sectionAria: 'About',
     eyebrow: 'about',
-    heading: 'Nine repos. They build on each other.',
-    body: 'Full-stack developer in Finland. HRM is the architectural backbone of Platform — live for a real WoW guild at vuohiliitto.com. AudiobookMaker voices Spacepotatis, a browser game I shipped this year; strudel-patterns scores it. Each repo stands on its own — the seams between them are the point.',
-    statTests: 'tests in the largest project',
-    statCoverage: 'line coverage',
-    statProducts: 'shipped projects',
+    heading: 'A short introduction.',
+    body: "I'm a full-stack developer, and lately most of my work has been around language models, where I spend most of my time babysitting them, because a model that's wrong and sure of it is a special kind of problem. I got here in 2022 after 24 years selling hardware, so I'm the guy who reads the manual and still expects the thing to break. I build the whole thing, from the database to the screen, and I measure what I build. Sometimes I measure it, publish it, and then find out the measurement was the broken part, which is a humbling way to learn that the instrument needs checking too.",
   },
-  focus: {
-    sectionAria: 'How the projects connect',
-    eyebrow: 'connections',
-    heading: 'How the projects connect.',
-    items: [
-      {
-        title: 'Repos that feed each other',
-        body: 'HRM ships as a git submodule inside Platform — same auth, same audit log, two products from one core. AudiobookMaker voices Spacepotatis; strudel-patterns scores it. Every line of dialogue and every note of music traces back to a repo I own.',
-      },
-      {
-        title: "Tested or it doesn't ship",
-        body: 'Every repo runs CI on every push. HRM has 1828+ tests at 91.9% coverage, Spacepotatis ~1300, AudiobookMaker over 3000. Quality gates matter more than the fanciest stack.',
-      },
-      {
-        title: 'AI-native, on the record',
-        body: 'Spacepotatis ships a catalog of custom Claude Code skills under .claude/skills/ — version-controlled, audited, treated as production artifacts. Pair-programming with AI is part of the toolchain; the methodology is the receipts.',
-        link: {
-          href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-          label: 'See the receipts',
-        },
-      },
-    ],
-  },
-  integrations: {
-    sectionAria: 'External integrations',
-    eyebrow: 'integrations',
-    heading: 'Plugged into the world.',
-    items: [
-      {
-        project: 'Platform',
-        api: 'Raider.IO API',
-        body: 'Live Mythic+ team tracker for a real WoW guild. Rosters, recent runs, and rio scores pulled fresh on every load — no stale screenshots. Auth via Google or GitHub OAuth, plus a zero-credential demo for visitors.',
-      },
-      {
-        project: 'ReadLog',
-        api: 'Open Library + Google Books',
-        body: 'Two book APIs queried in parallel; whichever source returns the cleaner record wins. Duplicates are collapsed before they reach the UI. Sign-in via Google OAuth.',
-      },
-      {
-        project: 'AudiobookMaker',
-        api: 'Microsoft Edge-TTS',
-        body: '30+ cloud voices in six languages, on top of three local engines (Piper, Chatterbox, VoxCPM2). Pick the voice that fits the book.',
-      },
-      {
-        project: 'Spacepotatis',
-        api: 'Google OAuth',
-        body: 'Sign-in is optional. Play offline forever, or opt in for cloud saves and a leaderboard slot.',
-      },
-    ],
-  },
-  velocity: {
-    sectionAria: 'Development velocity',
-    eyebrow: 'velocity',
-    heading: 'Fast — for real.',
-    body: 'Spacepotatis went from empty repo to live browser game in 12 days: 475 commits, ~1300 tests, full Next.js + Phaser 4 + Three.js stack — backed by audited Claude Code skills as production artifacts. Most of the portfolio started in the last few months. AI-native isn’t rhetoric — it’s the math.',
-    link: {
-      href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
-      label: 'How 3.13M tokens was estimated',
-    },
-    stats: [
-      { num: '12', label: 'days from empty repo to live Spacepotatis' },
-      { num: '475', label: 'Spacepotatis commits' },
-      { num: '~1300', label: 'Spacepotatis tests passing' },
-    ],
+  latestEntries: {
+    sectionAria: 'Latest blog entries',
+    eyebrow: 'writing',
+    heading: 'Latest entries.',
+    viewAll: 'All entries',
+    empty: 'No entries published yet.',
   },
   navCards: {
     sectionAria: 'Explore the rest of the site',
     eyebrow: 'continue',
-    heading: 'Pick a world.',
+    heading: 'Elsewhere on the site.',
     projects: {
       label: 'Projects',
       description: 'Explore an interactive solar system of things I have built.',
@@ -130,12 +75,27 @@ export const en: Translations = {
       label: 'Experience',
       description: 'Climb a parallax mountain through skills, tools, and milestones.',
     },
+    blog: {
+      label: 'Blog',
+      description:
+        'Working notes on what I have been building, some drafted from the commit history.',
+    },
     contact: {
       label: 'Contact',
       description: 'Drop into a terminal and reach me directly.',
     },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'built with astro · three.js · gsap',
+  },
+  blog: {
+    eyebrow: 'writing',
+    title: 'Blog',
+    lede: 'Working notes on what I have been building. Some entries are written by a machine from the commit history, and those say so at the top.',
+    aiBadge: 'AI-generated',
+    aiNotice:
+      'This entry was generated from commit history by a language model. I have not rewritten it. Treat it as a summary of what changed, not as something I sat down and wrote.',
+    backToIndex: 'All entries',
+    empty: 'No entries yet.',
   },
   projectsPage: {
     eyebrow: 'Selected work',
@@ -240,6 +200,36 @@ export const en: Translations = {
         'Unattended via launchd / Task Scheduler',
       ],
     },
+    passwordmanager: {
+      tagline: 'Zero-knowledge password manager in Rust',
+      description:
+        'Local-first password manager where a single Rust crate is the only place crypto exists — Argon2id key derivation and XChaCha20-Poly1305 authenticated encryption, compiled natively and to WebAssembly. Four clients share it: an offline-first CLI vault on SQLite, a sync server that stores ciphertext only, an in-browser WASM client, and a Chrome extension with autofill and save-on-login. Per-entry nonces and AEAD bound to entry id + timestamp block record swapping; keys are zeroized after use; the master password never leaves the client. Every security choice is recorded as an ADR against an explicit threat model, and CI guards secrets out of the repo while running format, clippy, the full workspace tests, and the wasm build.',
+      highlights: [
+        'One crypto crate, four clients',
+        'Argon2id + XChaCha20-Poly1305',
+        'Server stores ciphertext only',
+      ],
+    },
+    'claude-agents': {
+      tagline: 'Cost-routing subagents for Claude Code',
+      description:
+        'A small global set of Claude Code subagents that stops paying Opus prices for work a cheaper model does just as well. Twelve agents, each pinning both model tier and reasoning effort in its frontmatter: Haiku for read-only recon (scout, log-miner, scribe, dep-checker, tidy), Sonnet for spec-driven edits (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect), and an unpinned architect that inherits the session model for design work. Agents auto-detect each repo’s stack — test runner, linter, i18n layout — so one set covers JS, C#, and Python projects. Installs as a Claude Code plugin from a shared marketplace or via script. MIT-licensed.',
+      highlights: [
+        '12 model-pinned agents',
+        'Decouples model tier from reasoning effort',
+        'Plugin or script install',
+      ],
+    },
+    'feedback-intelligence': {
+      tagline: 'Grounded feedback analysis with a local LLM',
+      description:
+        'Feedback-intelligence engine that turns messy free-text feedback into situational signal without letting the LLM near the numbers: a deterministic, rule-coded alert layer computes every count and trend, and the LLM only structures input and synthesizes theme narratives — each claim cited back to feedback ids and dropped to a fallback if it fails validation. Domains are pluggable modules (first: Finnish hybrid grocery–hardware retail); a config flag swaps in another domain with zero core edits. .NET 8 over a local Poro 2 8B on Ollama — picked in a 30-round blind test — with a live demo on Azure Static Web Apps reaching the local GPU through a Tailscale Funnel at zero cloud-inference cost. GDPR-clean synthetic corpus, prompt-injection defense in depth, hermetic xUnit suite in CI.',
+      highlights: [
+        'Deterministic alerts — LLM never computes the numbers',
+        'Pluggable domains, zero core edits',
+        'Live demo on Azure, inference on a local GPU',
+      ],
+    },
   },
   experiencePage: {
     eyebrow: 'the climb',
@@ -341,6 +331,40 @@ export const en: Translations = {
         'Sonnet · Opus · Haiku',
       ],
     },
+    'rust-crypto': {
+      title: 'Rust, and checking my own work',
+      body: 'A new language and a harder standard of evidence, arriving together. The language is Rust, picked up for a password manager where the entire cryptographic surface lives in one crate that compiles both natively and to WebAssembly. The command-line vault, the sync server, the in-browser client and the Chrome extension all run that same code, rather than four copies quietly drifting apart.\n\nThe habit was declining to take my own word for anything. The key-derivation parameters, the nonce strategy, what the authenticated ciphertext is bound to: each one is a written decision with a threat model attached, including a plain list of what the design does not protect against. The repository carries auditors of its own for that last part: one walks the decision records against the code, another holds the stated security claims up against what the cryptography actually does. A claim nobody re-checks is just a comment.',
+      tags: [
+        'Rust',
+        'WebAssembly',
+        'Argon2id',
+        'XChaCha20-Poly1305',
+        'Zero-knowledge',
+        'Threat model in the repo',
+      ],
+      lessons: [
+        {
+          title: 'One crate, four clients',
+          body: 'Argon2id at 256 MiB and three passes, XChaCha20-Poly1305 with a fresh nonce per entry, and every record bound to its own id and timestamp so two entries cannot be swapped underneath you. The master password never leaves the client and the sync server only ever holds ciphertext. Unlocking costs about 430 ms, which is the feature rather than the regression.',
+        },
+        {
+          title: 'Thirty rounds, blind',
+          body: 'Choosing the Finnish language model for the local stack was settled by ranking thirty Finnish answers blind, scored by a native speaker who could not see which model wrote which. Poro-2-8B placed first in 26 of 30 and went to production on that result. A second project ran the same numbers and passed on it, because the right call depends on how the output gets consumed. Picking either way by feel would have been faster and would have proved nothing.',
+          link: {
+            href: '/poro-findings.pdf',
+            label: 'Read the study',
+          },
+        },
+        {
+          title: 'Usually the bug is mine',
+          body: 'When answers started attaching the wrong dates to my own research, the comfortable story was that a small model was confabulating. It was not. The date was being dropped at the prompt boundary before the model ever saw it. Three earlier attempts to fix it on the model side are written down as dead ends, so the next person to look does not spend the week I did.',
+        },
+        {
+          title: 'A measurement that changed nothing',
+          body: 'A multilingual embedder looked like the obvious upgrade for Finnish retrieval. Measured head to head, the setup already deployed scored .810 against the candidate’s .762, so nothing shipped. The experiment that argues against your plan is worth as much as the one that confirms it, provided you write it down either way.',
+        },
+      ],
+    },
     now: {
       title: 'Looking up',
       body: 'Available now. Open to ambitious full-stack roles where craft and velocity both matter. Nine solo-shipped projects this year — proof of both.',
@@ -422,7 +446,7 @@ export const en: Translations = {
     cmdDownloadOptionSkills:
       'jun 2026 · latest + broadest — 16 skills, cold-vs-skill A/B across 3 models; the current snapshot',
     cmdDownloadOptionResearch:
-      'the research — 9 pdfs: the skills suite + the rag finnish study + the poro findings (not a download)',
+      'the research — 10 pdfs: the skills suite + the rag finnish study + the poro findings + the translation audit (not a download)',
     cmdDownloadResearchIntro: 'the catalog + the studies, oldest → newest:',
     cmdDownloadOptionCatalog:
       'every skill across all 4 repos — the inventory, with measured (not guessed) costs',
@@ -440,6 +464,8 @@ export const en: Translations = {
       'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
     cmdDownloadOptionPoro:
       'jul 2026 · Poro-2-8B in production — what two projects measured, why one adopted it and one passed, and the deterministic layer built around it',
+    cmdDownloadOptionTranslations:
+      "jul 2026 · the translation audit — a local Finnish model re-reads all 396 of the site's Finnish strings against their English source; only 2 of its 276 proposed rewrites held up",
     cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
     cmdDownloadTryHint:
       'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration`, or `download --finnish`.',
@@ -465,6 +491,8 @@ export const en: Translations = {
       'rag blind test pdf not available right now — reach out and I will send it.',
     cmdDownloadPoroNotAvailable:
       'poro findings pdf not available right now — reach out and I will send it.',
+    cmdDownloadTranslationsNotAvailable:
+      'translation audit pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'in the meantime, reach out:',
     cmdDownloadStarted: 'download started.',
     cmdClearDesc: 'clear the screen',

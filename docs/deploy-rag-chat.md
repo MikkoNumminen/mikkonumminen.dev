@@ -19,16 +19,38 @@ Operational runbook for shipping changes to the local RAG chat that powers the
 - **Compose project name:** `mikkonumminendev` (containers
   `mikkonumminendev-{backend,ollama,db}-1`).
 - **Ops CLI:** `ragctl` (`chat-backend/ragctl.py`) — `status` / `up` / `down` /
-  `doctor` / `model` / `english` / `usage` / `prune`. Boot it live with
-  `ragctl up --keep` (all-green board incl. `public /health ok`); it enables the
-  funnel via the **Windows `tailscale.exe` over WSL interop**, so **no sudo** — do
-  not run the distro's Linux `tailscale funnel …` by hand, it needs sudo and hangs
-  on the password prompt.
+  `doctor` / `model` / `english` / `usage` / `prune` / `watchdog`. Boot it live
+  with `ragctl up --keep` (all-green board incl. `public /health ok`); it enables
+  the funnel via the **Windows `tailscale.exe` over WSL interop**, so **no sudo** —
+  do not run the distro's Linux `tailscale funnel …` by hand, it needs sudo and
+  hangs on the password prompt.
+- **Auto-recovery:** `ragctl watchdog` guards the **public visitor path** unattended
+  and self-heals a stale funnel ingress (the failure below). It polls the Vercel
+  URL — a true external probe, not a hairpin, so it sees the "local green, public
+  502" state nothing local can — and on a confirmed outage (backend + uplink still
+  healthy) escalates a scoped `funnel --bg 8000` re-assert → `tailscale down/up`,
+  with a cooldown so it can't flap and never touching another project's port. It
+  verifies `tailscale up` actually brought the node back, and after a few
+  reconnects that don't recover it, **gives up and alerts** (rather than churning
+  the shared node forever against something a reconnect can't fix — expired auth,
+  a Vercel-side incident); a dead uplink or a down backend also make it stand down
+  instead of reconnecting. **`ragctl up` autostarts it** as a detached background
+  process (pid in `rag-logs/watchdog.pid`, output in `rag-logs/watchdog.log`) and
+  **`ragctl down` stops it** — first, before the funnel is cut, so it can't race
+  the shutdown. `ragctl status` shows whether it's running. Opt out with
+  `ragctl up --no-watchdog`; run it in the foreground with `ragctl watchdog`
+  (`--interval` / `--fail-threshold` / `--cooldown`). It does NOT survive a
+  reboot on its own — a Task Scheduler / login entry that runs `ragctl up` on
+  boot covers that.
 - **Shared funnel — never blanket-reset.** This operator runs Tailscale Funnels
   for **other projects on the same tailnet**, so treat the funnel as shared infra.
-  This project owns `443 → 127.0.0.1:8000` on its node (`tailscale funnel status`
-  shows a single `/ proxy http://127.0.0.1:8000`). `ragctl up` / `down` scope every
-  change to that one port (`tailscale funnel --bg 8000` /
+  This project owns `443 → 127.0.0.1:8000` on its node; `tailscale funnel status`
+  lists the other projects' routes alongside it (e.g. `:8443 → 127.0.0.1:4180`),
+  so "a funnel is on" never means *this* one is. `ragctl` reads
+  `funnel status --json` and asserts the `:443` route proxies to `:8000`
+  specifically — a status row reading `other funnels on, :443→8000 off` means
+  exactly that, and `ragctl up` re-enables it. `up` / `down` scope every change to
+  that one port (`tailscale funnel --bg 8000` /
   `tailscale funnel --https=443 off`) — **never `tailscale funnel reset` or a
   blanket `off`**, which would tear down the other projects' funnels.
 

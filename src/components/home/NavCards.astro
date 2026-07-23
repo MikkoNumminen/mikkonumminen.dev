@@ -1,8 +1,8 @@
 ---
-import '../../styles/nav-cards.css';
 import { asLocale, getTranslations, localizePath } from '../../i18n';
 import PlanetIcon from './icons/PlanetIcon.astro';
 import MountainIcon from './icons/MountainIcon.astro';
+import PenIcon from './icons/PenIcon.astro';
 import TerminalIcon from './icons/TerminalIcon.astro';
 
 const locale = asLocale(Astro.currentLocale);
@@ -24,6 +24,13 @@ const cards = [
     icon: 'mountain' as const,
   },
   {
+    href: localizePath('/blog', locale),
+    label: t.navCards.blog.label,
+    description: t.navCards.blog.description,
+    accent: 'blog',
+    icon: 'pen' as const,
+  },
+  {
     href: localizePath('/contact', locale),
     label: t.navCards.contact.label,
     description: t.navCards.contact.description,
@@ -38,11 +45,11 @@ const cards = [
   data-section-nav-cards
   aria-label={t.navCards.sectionAria}
 >
-  <span class="ghost-num nav-cards__ghost" aria-hidden="true">05</span>
+  <span class="ghost-num nav-cards__ghost" aria-hidden="true">03</span>
 
   <div class="nav-cards__inner">
     <p class="nav-cards__eyebrow eyebrow-marker" data-reveal>
-      <span class="eyebrow-marker__num" aria-hidden="true">/ 05</span>
+      <span class="eyebrow-marker__num" aria-hidden="true">/ 03</span>
       <span class="eyebrow-marker__rule" aria-hidden="true"></span>
       {t.navCards.eyebrow}
     </p>
@@ -57,6 +64,7 @@ const cards = [
             <span class="nav-card__icon" aria-hidden="true">
               {card.icon === 'planet' && <PlanetIcon />}
               {card.icon === 'mountain' && <MountainIcon />}
+              {card.icon === 'pen' && <PenIcon />}
               {card.icon === 'terminal' && <TerminalIcon />}
             </span>
             <span class="nav-card__label">{card.label}</span>
@@ -70,3 +78,193 @@ const cards = [
     </div>
   </div>
 </section>
+
+<style>
+  .nav-cards {
+    position: relative;
+    padding: clamp(7rem, 16vh, 11rem) 1.5rem clamp(3rem, 6vh, 4rem);
+    overflow: hidden;
+  }
+
+  .nav-cards__ghost {
+    top: 4rem;
+    right: -2vw;
+    color: rgba(255, 255, 255, 0.025);
+  }
+
+  .nav-cards__inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .nav-cards__eyebrow {
+    margin: 0 0 1.5rem;
+  }
+
+  .nav-cards__heading {
+    font-size: clamp(2.25rem, 6vw, 4.25rem);
+    /* See Intro.astro for why 1.18 instead of the editorial-tight 1.02. */
+    line-height: 1.18;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    /* 2rem, not 4rem — see Intro.astro. */
+    margin: 0 0 2rem;
+    color: #fff;
+    max-width: 18ch;
+  }
+
+  .nav-cards__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+  }
+
+  .nav-card {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 1rem;
+    padding: 2.25rem 2rem 1.75rem;
+    text-decoration: none;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.025);
+    overflow: hidden;
+    transition:
+      transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+      border-color 0.5s ease,
+      background 0.5s ease;
+  }
+
+  .nav-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at top right,
+      var(--accent-color, rgba(255, 255, 255, 0.1)) 0%,
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+
+  .nav-card:hover,
+  .nav-card:focus-visible {
+    transform: translateY(-6px);
+  }
+  /* Keyboard focus keeps the global themed ring (white on the home theme).
+     It is not suppressed here and survives the reduced-motion block below
+     (which only cancels the transform), so focus stays perceivable. */
+
+  .nav-card:hover::before,
+  .nav-card:focus-visible::before {
+    opacity: 1;
+  }
+
+  .nav-card[data-accent='projects'] {
+    --accent-color: rgba(120, 170, 255, 0.25);
+  }
+  .nav-card[data-accent='projects']:hover {
+    border-color: rgba(120, 170, 255, 0.5);
+  }
+  .nav-card[data-accent='projects'] .nav-card__icon {
+    color: var(--color-projects-accent);
+  }
+
+  .nav-card[data-accent='experience'] {
+    --accent-color: rgba(140, 200, 120, 0.22);
+  }
+  .nav-card[data-accent='experience']:hover {
+    border-color: rgba(140, 200, 120, 0.5);
+  }
+  .nav-card[data-accent='experience'] .nav-card__icon {
+    color: #a8d480;
+  }
+
+  .nav-card[data-accent='blog'] {
+    --accent-color: rgba(251, 191, 36, 0.22);
+  }
+  .nav-card[data-accent='blog']:hover {
+    border-color: rgba(251, 191, 36, 0.5);
+  }
+  .nav-card[data-accent='blog'] .nav-card__icon {
+    color: #fbbf24;
+  }
+
+  .nav-card[data-accent='contact'] {
+    --accent-color: rgba(74, 222, 128, 0.22);
+  }
+  .nav-card[data-accent='contact']:hover {
+    border-color: rgba(74, 222, 128, 0.5);
+  }
+  .nav-card[data-accent='contact'] .nav-card__icon {
+    color: #4ade80;
+  }
+
+  .nav-card__icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .nav-card__icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .nav-card__label {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .nav-card__desc {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .nav-card__arrow {
+    align-self: end;
+    justify-self: end;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.5);
+    transition:
+      transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+      color 0.4s ease;
+  }
+
+  .nav-card:hover .nav-card__arrow {
+    transform: translateX(6px);
+    color: #fff;
+  }
+
+  /* Four cards need an intermediate 2-up step so tablet widths don't
+     squeeze the labels; the row collapses to a single column on phones. */
+  @media (max-width: 1024px) {
+    .nav-cards__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .nav-cards__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-card,
+    .nav-card:hover,
+    .nav-card:focus-visible,
+    .nav-card__arrow,
+    .nav-card:hover .nav-card__arrow,
+    .nav-card:focus-visible .nav-card__arrow {
+      transform: none !important;
+    }
+  }
+</style>

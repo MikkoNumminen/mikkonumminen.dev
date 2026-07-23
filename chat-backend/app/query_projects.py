@@ -9,7 +9,9 @@ bias toward that project's own chunks (see `retrieval.retrieve`).
 
 Alias-based, not embedding-based, on purpose: it is deterministic, stdlib-only,
 trivially unit-tested, and a wrong guess only re-orders candidates (never
-invents). Adding a project to the corpus means adding its id + aliases here.
+invents). Adding a project to the corpus means adding its id + aliases here —
+and its stack/language terms to TECH_ALIASES, which may implicate several
+projects at once.
 """
 
 from __future__ import annotations
@@ -26,24 +28,6 @@ PROJECT_ALIASES: dict[str, list[str]] = {
         "readlog c#",
         "readlog csharp",
         "readlog-csharp",
-        # Tech aliases: readlog-dotnet is the only Microsoft/.NET project, so these
-        # ecosystem terms point at it — "the microsoft stack projects" surfaced
-        # nothing before because the docs say ".NET"/"C#", not "Microsoft". Bare
-        # "c#" (a musical note — and there IS a music project) and "razor" (shaving,
-        # "razor-thin") are deliberately NOT aliases; use the scoped/qualified
-        # forms below. "azure"/"microsoft" can also mean a colour / Office, but in a
-        # dev-portfolio chat the cloud/.NET reading dominates and a wrong guess only
-        # re-orders already-retrieved chunks (it never invents).
-        "microsoft",
-        ".net",
-        "dotnet",
-        "csharp",
-        "asp.net",
-        "aspnet",
-        "ef core",
-        "entity framework",
-        "razor pages",
-        "azure",
     ],
     "readlog": ["readlog"],
     "hrm": ["hrm", "hrmanager", "hr manager"],
@@ -61,6 +45,39 @@ PROJECT_ALIASES: dict[str, list[str]] = {
     "platform": ["platform"],
     "strudel-patterns": ["strudel-patterns", "strudel patterns", "strudel"],
     "claude-continue": ["claude-continue", "claude continue"],
+    # Finnish inflections listed explicitly (matching is not stemmed).
+    "passwordmanager": [
+        "passwordmanager",
+        "password manager",
+        "password-manager",
+        "salasana",
+        "salasanan",
+        "salasanat",
+        "salasanoja",
+    ],
+    # Scoped forms only — bare "agents"/"agentit" would fire on questions about
+    # agents in general (a live topic in this portfolio's chat).
+    "claude-agents": [
+        "claude-agents",
+        "claude agents",
+        "subagent",
+        "subagents",
+        "cost-routing",
+        "cost routing",
+    ],
+    # Bare "feedback" is deliberate: in a portfolio chat the project reading
+    # dominates, and a wrong guess only re-orders retrieved chunks. "poro" and
+    # "ollama" are NOT aliases — this chat itself runs on Poro via Ollama, so
+    # they would misroute questions about the chat to this project.
+    "feedback-intelligence": [
+        "feedback-intelligence",
+        "feedback intelligence",
+        "feedback",
+        "palaute",
+        "palautteen",
+        "palautetta",
+        "palautteet",
+    ],
     # chat/RAG terms point at the portfolio: the RAG chat IS a portfolio artifact,
     # and without these a "where does this chat run?" question retrieves other
     # projects' deploy chunks (Vercel/Neon/Azure) and the model welds their hosting
@@ -81,12 +98,62 @@ PROJECT_ALIASES: dict[str, list[str]] = {
     ],
 }
 
-# Flattened alias -> project_id for scanning. Built once at import.
-_ALIAS_TO_PROJECT: dict[str, str] = {
-    alias: project_id
-    for project_id, aliases in PROJECT_ALIASES.items()
-    for alias in aliases
+# Stack / language terms -> every project they implicate. Separate from the
+# identity aliases above because these are legitimately MULTI-TARGET: ".net"
+# means readlog-dotnet AND feedback-intelligence, "typescript" spans half the
+# portfolio. The flattening below unions, so a term firing only ever widens the
+# retrieval filter — it never excludes the asked-about project. Every
+# programming language in the portfolio must route somewhere: "what has he
+# built in Rust?" names no project yet has exactly one right answer.
+#
+# Bare "c#" (a musical note — and there IS a music project) and "razor"
+# (shaving, "razor-thin") are deliberately NOT aliases; the scoped/qualified
+# forms cover them. Bare "markdown" is excluded too — visitors say "answer in
+# markdown". "microsoft"/"azure" can also mean a colour / Office, but in a
+# dev-portfolio chat the cloud/.NET reading dominates and a wrong guess only
+# re-orders already-retrieved chunks (it never invents). Library names
+# (three.js, gsap, phaser…) stay in the identity lists or out entirely: a
+# library named NEXT TO a project ("how did spacepotatis bridge phaser and
+# three.js") must not drag other projects into the filter.
+TECH_ALIASES: dict[str, tuple[str, ...]] = {
+    # .NET ecosystem — both C# projects.
+    "microsoft": ("readlog-dotnet", "feedback-intelligence"),
+    ".net": ("readlog-dotnet", "feedback-intelligence"),
+    "dotnet": ("readlog-dotnet", "feedback-intelligence"),
+    "csharp": ("readlog-dotnet", "feedback-intelligence"),
+    "asp.net": ("readlog-dotnet", "feedback-intelligence"),
+    "aspnet": ("readlog-dotnet", "feedback-intelligence"),
+    "azure": ("readlog-dotnet", "feedback-intelligence"),
+    # Stack pieces only one of the .NET projects uses.
+    "ef core": ("readlog-dotnet",),
+    "entity framework": ("readlog-dotnet",),
+    "razor pages": ("readlog-dotnet",),
+    # Languages. Word-boundary matching keeps "trust"/"crust" off "rust" and
+    # "pythonic" off "python".
+    "rust": ("passwordmanager",),
+    "webassembly": ("passwordmanager",),
+    "wasm": ("passwordmanager",),
+    "python": ("audiobookmaker", "claude-continue", "portfolio"),
+    "typescript": ("hrm", "platform", "portfolio", "readlog", "spacepotatis"),
+    "javascript": ("strudel-patterns", "passwordmanager", "feedback-intelligence"),
+    "astro": ("portfolio",),
+    "bash": ("claude-agents",),
 }
+
+
+def _flatten_aliases() -> dict[str, frozenset[str]]:
+    """Union identity + tech aliases into one alias -> project-ids map."""
+    flat: dict[str, frozenset[str]] = {}
+    for project_id, aliases in PROJECT_ALIASES.items():
+        for alias in aliases:
+            flat[alias] = flat.get(alias, frozenset()) | {project_id}
+    for alias, project_ids in TECH_ALIASES.items():
+        flat[alias] = flat.get(alias, frozenset()) | frozenset(project_ids)
+    return flat
+
+
+# Flattened alias -> project ids for scanning. Built once at import.
+_ALIAS_TO_PROJECTS: dict[str, frozenset[str]] = _flatten_aliases()
 
 
 def _word_ish_boundary(text: str, start: int, end: int) -> bool:
@@ -108,11 +175,14 @@ def detect_projects(query: str) -> set[str]:
     span consumption: "readlog .net" claims its span and maps to readlog-dotnet,
     so the contained bare "readlog" (which overlaps that span) is not also
     counted — yet a *separate* "readlog" elsewhere in the query still maps to
-    readlog. Empty result => caller must behave exactly as plain cosine search.
+    readlog. A claimed alias contributes EVERY project it implicates (a tech
+    term like ".net" legitimately means more than one) — the union only widens
+    the retrieval filter. Empty result => caller must behave exactly as plain
+    cosine search.
     """
     text = query.lower()
-    occurrences: list[tuple[int, int, str]] = []
-    for alias, project_id in _ALIAS_TO_PROJECT.items():
+    occurrences: list[tuple[int, int, frozenset[str]]] = []
+    for alias, project_ids in _ALIAS_TO_PROJECTS.items():
         start = 0
         while True:
             idx = text.find(alias, start)
@@ -120,17 +190,17 @@ def detect_projects(query: str) -> set[str]:
                 break
             end = idx + len(alias)
             if _word_ish_boundary(text, idx, end):
-                occurrences.append((idx, end, project_id))
+                occurrences.append((idx, end, project_ids))
             start = idx + 1
     # Longest alias first (most specific claims the span), then by position.
     occurrences.sort(key=lambda o: (-(o[1] - o[0]), o[0]))
     claimed: list[tuple[int, int]] = []
     detected: set[str] = set()
-    for start, end, project_id in occurrences:
+    for start, end, project_ids in occurrences:
         if any(start < c_end and end > c_start for c_start, c_end in claimed):
             continue  # overlaps an already-claimed (longer/earlier) span
         claimed.append((start, end))
-        detected.add(project_id)
+        detected.update(project_ids)
     return detected
 
 

@@ -22,6 +22,8 @@ const t = getTranslations(locale);
 
   <div class="hero__overlay" aria-hidden="true"></div>
 
+  <div class="hero__fade" aria-hidden="true"></div>
+
   <div class="hero__masthead">
     <p class="hero__eyebrow">{t.hero.eyebrow}</p>
     <p class="hero__subtitle">{t.hero.subtitle}</p>
@@ -125,6 +127,22 @@ const t = getTranslations(locale);
       transparent 40%,
       rgba(0, 0, 0, 0.55) 100%
     );
+    pointer-events: none;
+  }
+
+  /* The hero is the only section that paints its own opaque background;
+     every section below it is transparent over var(--color-ink). Fade the
+     hero's bottom into that same colour so the hero→next boundary is
+     colour-to-colour like every other boundary, not a hard edge. Ordered
+     after the canvas/vignette but before the masthead/scroll chrome, so it
+     blends the backdrop without dimming any foreground. */
+  .hero__fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30%;
+    background: linear-gradient(to bottom, transparent 0%, var(--color-ink) 100%);
     pointer-events: none;
   }
 
@@ -417,47 +435,42 @@ const t = getTranslations(locale);
 
 <script>
   import { buildDataFeedConsole } from '../../lib/home/dataFeedConsole';
+  import { onRoute } from '../../lib/lifecycle';
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const init = (): void => {
-    // Corner widgets are hidden via CSS at ≤860px; skip the console
-    // work on mobile so we don't burn CPU painting an invisible canvas.
-    if (window.matchMedia('(max-width: 860px)').matches) return;
-    const root = document.querySelector<HTMLElement>('[data-data-feed]');
-    if (!root) return;
-    const canvas = root.querySelector<HTMLCanvasElement>('.hero__data-feed-canvas');
-    if (!canvas) return;
-    const handle = buildDataFeedConsole(canvas, reducedMotion);
 
-    // Click-to-animate: clicking the widget injects a "ping" exchange
-    // into the typing queue. Mirrors the click responses on the scene
-    // elements — each clickable corner of the hero acknowledges the user.
-    // Uses `pointerdown` (not `click`) to match the 3D scene's snappy
-    // press-to-fire feel; otherwise the data-feed would lag behind a
-    // letter pop in side-by-side comparison. Reduced-motion clients get
-    // the no-op handle from buildDataFeedConsole, so pushLine is a no-op
-    // there.
-    const onPointerDown = (): void => {
-      handle.pushLine(
-        { text: '$ ping mikko', kind: 'cmd' },
-        { text: '> hi 0.01ms', kind: 'out' },
-      );
-    };
-    root.addEventListener('pointerdown', onPointerDown);
+  onRoute(
+    () => !!document.querySelector('[data-data-feed]'),
+    () => {
+      // Corner widgets are hidden via CSS at ≤860px; skip the console
+      // work on mobile so we don't burn CPU painting an invisible canvas.
+      if (window.matchMedia('(max-width: 860px)').matches) return;
+      const root = document.querySelector<HTMLElement>('[data-data-feed]');
+      if (!root) return;
+      const canvas = root.querySelector<HTMLCanvasElement>('.hero__data-feed-canvas');
+      if (!canvas) return;
+      const handle = buildDataFeedConsole(canvas, reducedMotion);
 
-    window.addEventListener(
-      'beforeunload',
-      () => {
+      // Click-to-animate: clicking the widget injects a "ping" exchange
+      // into the typing queue. Mirrors the click responses on the scene
+      // elements — each clickable corner of the hero acknowledges the user.
+      // Uses `pointerdown` (not `click`) to match the 3D scene's snappy
+      // press-to-fire feel; otherwise the data-feed would lag behind a
+      // letter pop in side-by-side comparison. Reduced-motion clients get
+      // the no-op handle from buildDataFeedConsole, so pushLine is a no-op
+      // there.
+      const onPointerDown = (): void => {
+        handle.pushLine(
+          { text: '$ ping mikko', kind: 'cmd' },
+          { text: '> hi 0.01ms', kind: 'out' },
+        );
+      };
+      root.addEventListener('pointerdown', onPointerDown);
+
+      return () => {
         root.removeEventListener('pointerdown', onPointerDown);
         handle.dispose();
-      },
-      { once: true },
-    );
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    init();
-  }
+      };
+    },
+  );
 </script>

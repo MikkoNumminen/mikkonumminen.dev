@@ -17,9 +17,9 @@ describe('localizePath', () => {
     expect(localizePath('/projects', 'sv')).toBe('/sv/projects');
   });
 
-  it('handles root path for non-default locales with trailing slash', () => {
-    expect(localizePath('/', 'fi')).toBe('/fi/');
-    expect(localizePath('/', 'sv')).toBe('/sv/');
+  it('localizes the root path without a trailing slash (trailingSlash: never)', () => {
+    expect(localizePath('/', 'fi')).toBe('/fi');
+    expect(localizePath('/', 'sv')).toBe('/sv');
   });
 
   it('strips an existing locale prefix before re-localizing', () => {
@@ -35,7 +35,7 @@ describe('localizePath', () => {
   });
 
   it('preserves hash fragments', () => {
-    expect(localizePath('/#top', 'fi')).toBe('/fi/#top');
+    expect(localizePath('/#top', 'fi')).toBe('/fi#top');
     expect(localizePath('/#top', 'en')).toBe('/#top');
   });
 });

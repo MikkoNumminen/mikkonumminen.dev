@@ -35,6 +35,7 @@ import json
 import os
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -48,10 +49,35 @@ COMPOSE = ["docker", "compose"]
 # below to this container path; `ragctl up` enables it. Host file == REPO/rag-logs.
 RAG_LOG_DIR = REPO / "rag-logs"
 RAG_LOG_CONTAINER_FILE = "/srv/rag-logs/requests.jsonl"
+# The autostarted background watchdog records its pid here and streams its output
+# to the log beside it, so `up` can spawn it, `down` can stop it, and `status`
+# can report whether it's running.
+WATCHDOG_PID_FILE = RAG_LOG_DIR / "watchdog.pid"
+WATCHDOG_LOG_FILE = RAG_LOG_DIR / "watchdog.log"
 BACKEND_HEALTH = "http://localhost:8000/health"
 BACKEND_CHAT = "http://localhost:8000/chat"
 BACKEND_USAGE = "http://localhost:8000/usage"
 FUNNEL_PORT = "8000"
+# The public HTTPS port this project's funnel occupies. The node is shared with
+# other projects' funnels (on other ports), so every enable/disable — and the
+# status check — is scoped to exactly this one.
+FUNNEL_HTTPS_PORT = "443"
+# The genuine end-to-end visitor path: browser -> Vercel rewrite -> funnel ->
+# backend. Probing this from the node is NOT a hairpin — it goes out to the
+# internet and back — so it can see the "local healthy, public path dead" state
+# that every local check misses (the 2026-07-20 stale-ingress outage).
+PUBLIC_SITE_HEALTH_URL = "https://mikkonumminen-dev.vercel.app/api/rag/health"
+# Same host, static root: Vercel serves it healthily (2xx) whenever the uplink
+# is up AND Vercel is up, regardless of OUR funnel. Healthy here but /api/rag
+# down => the funnel is the problem (recover it). NOT healthy (dead uplink, or a
+# Vercel-side 5xx) => not something a tailscale reconnect can fix, so the
+# watchdog must stand down rather than flap the node against it.
+UPLINK_PROBE_URL = "https://mikkonumminen-dev.vercel.app/"
+# Stop churning the SHARED node: after this many down/up attempts in one outage
+# without recovery, the watchdog gives up and only alerts, rather than flapping
+# the node (and the other project's :8443 funnel) every cooldown against
+# something a reconnect can't fix — expired tailscale auth, a Vercel incident.
+WATCHDOG_RECONNECT_CAP = 3
 DOCKER_DESKTOP_EXE = "/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
 
 # "effort" presets -> (temperature, num_predict). Low temperature for grounded
@@ -380,13 +406,66 @@ def funnel_url() -> str | None:
         return None
 
 
+def funnel_routes(status_json: str) -> dict[str, str] | None:
+    """Publicly-exposed funnel routes: "<host>:<port>" -> proxy target.
+
+    Parses `tailscale funnel status --json`. Returns None when the output could
+    not be read as JSON at all (failed call, or a tailscale too old for --json)
+    — distinct from an empty dict, which means "read fine, nothing funnelled".
+    Only `AllowFunnel` routes are returned, so a tailnet-private `serve` mount
+    on the same port can never read as public exposure.
+
+    Structured output rather than the human-readable table on purpose: this node
+    funnels OTHER projects too (e.g. :8443 → oauth2-proxy), and a bare "Funnel
+    on" substring in that table is not evidence THIS project's route exists —
+    that misreading let `up` skip re-enabling the rag's route while another
+    project's funnel was on, leaving the chat publicly dead with every local
+    check green.
+    """
+    try:
+        cfg = json.loads(status_json)
+        allow = cfg.get("AllowFunnel") or {}
+        return {
+            host: handler["Proxy"]
+            for host, entry in (cfg.get("Web") or {}).items()
+            if allow.get(host) is True
+            for handler in (entry.get("Handlers") or {}).values()
+            if "Proxy" in handler
+        }
+    except (AttributeError, KeyError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def funnel_serves_port(routes: dict[str, str], port: str) -> bool:
+    """True iff a public :443 route proxies to 127.0.0.1:`port`.
+
+    Exact target match, never a substring: `:{port}` as a prefix test would let
+    a short port (:80) read another project's :8000 route as this one's.
+    """
+    target = f"http://127.0.0.1:{port}"
+    return any(
+        host.endswith(f":{FUNNEL_HTTPS_PORT}") and proxy == target
+        for host, proxy in routes.items()
+    )
+
+
 def check_funnel(url: str | None = None) -> tuple[str, str]:
     ts = tailscale_exe()
     if not ts:
         return ("down", "tailscale.exe not found")
-    _, out = run([ts, "funnel", "status"], timeout=10)
-    if "Funnel on" in out:
+    rc, out = run([ts, "funnel", "status", "--json"], timeout=10)
+    routes = funnel_routes(out)
+    if routes is None:
+        # Unreadable is not "off": reporting a state we could not read as a
+        # definite one is what let the last outage hide behind a green board.
+        return ("warn", f"funnel status unreadable (exit {rc})")
+    if funnel_serves_port(routes, FUNNEL_PORT):
         return ("ok", url or funnel_url() or "on")
+    if routes:
+        return (
+            "down",
+            f"other funnels on, :{FUNNEL_HTTPS_PORT}→{FUNNEL_PORT} off — `ragctl up`",
+        )
     return ("down", "off — run `ragctl up`")
 
 
@@ -399,6 +478,89 @@ def check_public(url: str | None) -> tuple[str, str]:
     if body.get("checks", {}).get("llm") is True:
         return ("ok", "public /health ok")
     return ("warn", "public but llm not ready")
+
+
+# --- watchdog: auto-recover the public path --------------------------------
+# The 2026-07-20 outage: a network change left tailscale's connection to its
+# funnel INGRESS relays stale, so the visitor path 502'd while every local check
+# (backend, funnel config, cert, node health) stayed green. Nothing local can
+# see it; only an external probe can. This guards that path unattended.
+
+
+def watchdog_action(
+    external_ok: bool,
+    local_ok: bool,
+    uplink_ok: bool,
+    consecutive_failures: int,
+    fail_threshold: int,
+    reasserted_this_outage: bool,
+    reconnects_this_outage: int,
+    reconnect_cap: int,
+) -> str:
+    """Decide the watchdog's next move from the health signals. Pure.
+
+    Returns one of:
+      "ok"                — public path healthy; clear outage state.
+      "wait"              — down, but under `fail_threshold` consecutive failures;
+                            treat as a transient blip, do nothing yet.
+      "skip-uplink"       — down AND the funnel-INDEPENDENT path (the static site)
+                            is unhealthy too: a dead uplink or a Vercel-side
+                            outage. Not ours to fix — never flap tailscale.
+      "skip-backend-down" — down AND the local backend is down too; the operator
+                            must bring the stack up (`ragctl up`), not reconnect.
+      "reassert"          — confirmed public outage, backend + uplink fine: try
+                            the cheap scoped fix first (`funnel --bg 8000`).
+      "reconnect"         — a re-assert already failed this outage, so force a
+                            full `tailscale down/up` to rebuild the ingress.
+      "give-up"           — `reconnect_cap` reconnects have not recovered it, so
+                            stop churning the shared node and only alert.
+
+    `consecutive_failures` counts consecutive external-broken polls INCLUDING the
+    current one. `reasserted_this_outage` becomes True after the first re-assert
+    since the last healthy poll, escalating the next action to a reconnect;
+    `reconnects_this_outage` then bounds how many down/up cycles are attempted.
+    """
+    if external_ok:
+        return "ok"
+    if consecutive_failures < fail_threshold:
+        return "wait"
+    if not uplink_ok:
+        return "skip-uplink"
+    if not local_ok:
+        return "skip-backend-down"
+    if not reasserted_this_outage:
+        return "reassert"
+    if reconnects_this_outage >= reconnect_cap:
+        return "give-up"
+    return "reconnect"
+
+
+def _healthy_http(url: str, timeout: int = 8) -> bool:
+    """True only for a genuine 2xx/3xx — a 4xx/5xx (urllib raises HTTPError) or a
+    connection error is False. So a Vercel-side 5xx reads as 'not healthy', not
+    'internet up', and can't trigger a needless reconnect during their outage."""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return 200 <= r.status < 400
+    except Exception:
+        return False
+
+
+def probe_public_path() -> bool:
+    """True iff the Vercel visitor path returns a healthy backend /health."""
+    body = http_json(PUBLIC_SITE_HEALTH_URL, timeout=12)
+    return bool(body and body.get("checks", {}).get("llm") is True)
+
+
+def probe_uplink() -> bool:
+    """True iff the static site root serves healthily — the funnel-independent
+    canary that separates 'our funnel is stale' from 'no internet / Vercel down'."""
+    return _healthy_http(UPLINK_PROBE_URL)
+
+
+def probe_local_backend() -> bool:
+    """True iff the backend answers healthily on localhost (funnel-independent)."""
+    return check_backend_health()[0] == "ok"
 
 
 def defender_note() -> str:
@@ -517,6 +679,11 @@ def render(rows: list[tuple[str, tuple[str, str]]]) -> str:
 def cmd_status() -> int:
     rows = gather()
     print(render(rows))
+    # Reported below the board, not as a board row: the watchdog is optional
+    # protection, so its being off must not flip the board's LIVE verdict.
+    pid = watchdog_pid()
+    note = f"running (pid {pid})" if pid else "off — `ragctl watchdog` or re-`up`"
+    print(f"  {_c('●' if pid else '○', '2')} watchdog       {note}\n")
     return 0 if all(r[1][0] == "ok" for r in rows) else 1
 
 
@@ -625,7 +792,91 @@ def ensure_funnel() -> None:
     print(f"  ● Funnel → {funnel_url()}")
 
 
-def cmd_up(keep: bool) -> int:
+# --- watchdog daemon lifecycle (autostarted by `up`, stopped by `down`) -----
+
+
+def _proc_argv(pid: int) -> list[str] | None:
+    """argv of `pid` from /proc, or None if it isn't running / readable. ragctl
+    runs in WSL (Linux), so /proc is always available."""
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return None
+    return [p.decode("utf-8", "replace") for p in raw.split(b"\x00") if p]
+
+
+def _cmdline_is_watchdog(argv: list[str] | None) -> bool:
+    """True iff `argv` is our watchdog invocation. Guards against a RECYCLED pid:
+    a crashed watchdog whose pid Linux reassigned to an unrelated process must NOT
+    read as 'the watchdog', or `down` would SIGTERM a stranger and `up` would
+    refuse to respawn (silently leaving the path unguarded)."""
+    return bool(argv) and "watchdog" in argv and any("ragctl" in a for a in argv)
+
+
+def watchdog_pid() -> int | None:
+    """The running background watchdog's pid, or None. A stale pid file, a gone
+    process, OR a recycled pid now owned by something else all read as None — so a
+    crashed watchdog re-spawns cleanly and stop never signals the wrong process."""
+    try:
+        pid = int(WATCHDOG_PID_FILE.read_text().strip())
+    except (OSError, ValueError):
+        return None
+    return pid if _cmdline_is_watchdog(_proc_argv(pid)) else None
+
+
+def start_watchdog_daemon() -> int | None:
+    """Spawn the watchdog as a DETACHED background process and record its pid.
+
+    Idempotent: a second call while one is running is a no-op. Safe to call from
+    `up` before the model has warmed — the watchdog's backend-down guard makes it
+    stand down (never reconnect) until the stack is actually serving.
+    """
+    running = watchdog_pid()
+    if running is not None:
+        print(f"  ● watchdog already running (pid {running})")
+        return running
+    RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    # The child inherits the log fd, so the parent can close its own handle on
+    # exit without cutting the child's output. start_new_session detaches it so
+    # it outlives this `ragctl` invocation (and Ctrl-C in the REPL).
+    with open(WATCHDOG_LOG_FILE, "a", encoding="utf-8") as log:
+        proc = subprocess.Popen(
+            # -u: unbuffered, so each poll/alert line reaches the log immediately.
+            # Block-buffered stdout to a file would strand the watchdog's output
+            # (including its alerts) in a buffer that a sparse logger never fills.
+            [sys.executable, "-u", str(Path(__file__).resolve()), "watchdog"],
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+            cwd=str(REPO),
+        )
+    WATCHDOG_PID_FILE.write_text(str(proc.pid))
+    print(f"  ● watchdog started (pid {proc.pid}) — log: {WATCHDOG_LOG_FILE}")
+    return proc.pid
+
+
+def stop_watchdog_daemon() -> bool:
+    """Stop the background watchdog if running; return whether one was killed.
+
+    `down` calls this FIRST, before cutting the funnel — otherwise the still-live
+    watchdog would see the public path drop (because WE turned the funnel off) and
+    race to 'recover' the very funnel we are intentionally shutting down.
+    """
+    pid = watchdog_pid()
+    if pid is None:
+        WATCHDOG_PID_FILE.unlink(missing_ok=True)
+        return False
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        pass
+    WATCHDOG_PID_FILE.unlink(missing_ok=True)
+    print(f"  ● watchdog stopped (pid {pid})")
+    return True
+
+
+def cmd_up(keep: bool, watchdog: bool = True) -> int:
     print(_c("\n  bringing the rag up …\n", "1"))
     if not ensure_docker():
         return 1
@@ -636,6 +887,8 @@ def cmd_up(keep: bool) -> int:
     # No separate blocking warm: the live board's /health check loads and verifies
     # the model lazily and SHOWS it happening, instead of a silent multi-second
     # `ollama run` that made `up` feel hung.
+    if watchdog:
+        start_watchdog_daemon()
     if keep:
         print()
         print(render(gather()))
@@ -653,6 +906,8 @@ def cmd_up(keep: bool) -> int:
 
 def cmd_down() -> int:
     print(_c("\n  cutting the rag …", "1"))
+    # Stop the watchdog BEFORE cutting the funnel, or it would fight the shutdown.
+    stop_watchdog_daemon()
     print("  ◐ docker compose down (frees VRAM) …")
     run(COMPOSE + ["down"], cwd=REPO, timeout=120)
     ts = tailscale_exe()
@@ -661,8 +916,138 @@ def cmd_down() -> int:
         # `--https=443 off` cuts ONLY this project's funnel port. The node is
         # shared with other projects' funnels, so a blanket `funnel off`/`reset`
         # is deliberately avoided — it would cut theirs too.
-        run([ts, "funnel", "--https=443", "off"], timeout=20)
+        run([ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20)
     print("  ● done — stack + funnel stopped; Docker Desktop & Tailscale left running.")
+    return 0
+
+
+def _wd_stamp() -> str:
+    return time.strftime("%H:%M:%S")
+
+
+def _watchdog_reassert(ts: str) -> None:
+    # Force the scoped re-assert — do NOT gate on check_funnel(): in the
+    # stale-ingress failure mode the route IS present and check_funnel reports
+    # ok, which is exactly why this outage class is invisible locally. Scoped to
+    # :8000, so the other project's funnel is untouched.
+    print(f"  ▲ {_wd_stamp()}  re-asserting funnel route (--bg {FUNNEL_PORT}) …")
+    run([ts, "funnel", "--bg", FUNNEL_PORT], timeout=20)
+
+
+def _watchdog_reconnect(ts: str) -> bool:
+    """Force a full `tailscale down/up` to rebuild a stale ingress; return whether
+    the node came back UP. Funnel config persists across down/up, so both our
+    route and the other project's restore. A `down` whose `up` then fails would
+    strand the whole node (and the other project's funnel) offline, so the `up`
+    result is verified and a failure is surfaced loudly rather than swallowed."""
+    print(f"  ▲ {_wd_stamp()}  re-asserting did not take — tailscale down/up …")
+    run([ts, "down"], timeout=25)
+    rc, _ = run([ts, "up"], timeout=40)
+    if rc != 0 or check_tailscale()[0] != "ok":
+        print(
+            f"  ✗ {_wd_stamp()}  `tailscale up` did NOT bring the node back — it may "
+            "be OFFLINE (this project's funnel AND the shared node). Run "
+            "`tailscale up` / re-check auth."
+        )
+        return False
+    return True
+
+
+def _wd_sleep(seconds: int, stop: dict[str, bool]) -> None:
+    """Sleep up to `seconds`, waking within ~1s of a stop request so the daemon
+    reacts promptly to `ragctl down` instead of waiting out a full cooldown."""
+    for _ in range(seconds):
+        if stop["requested"]:
+            return
+        time.sleep(1)
+
+
+def cmd_watchdog(
+    interval: int = 120, fail_threshold: int = 2, cooldown: int = 300
+) -> int:
+    """Guard the PUBLIC visitor path and auto-recover a stale funnel ingress.
+
+    Polls the Vercel path (a true external probe); on a confirmed outage with a
+    healthy backend and a live uplink, escalates re-assert -> down/up, with a
+    cooldown so it can never flap. Ctrl-C or SIGTERM (`ragctl down`) to stop;
+    a stop that lands mid-reconnect lets the down/up finish first."""
+    ts = tailscale_exe()
+    if not ts:
+        print("  ○ tailscale.exe not found — the watchdog can't recover the funnel")
+        return 1
+    print(_c("\n  rag watchdog — guarding the public visitor path\n", "1"))
+    print(f"  probe   {PUBLIC_SITE_HEALTH_URL}")
+    print(
+        f"  every {interval}s · act after {fail_threshold} consecutive failures ·"
+        f" {cooldown}s cooldown between recovery attempts\n"
+    )
+    failures = 0
+    reasserted = False
+    reconnects = 0
+    # SIGTERM (how `ragctl down` stops the daemon) sets a flag checked only at
+    # loop boundaries — NON-raising, so a stop that lands mid-reconnect lets the
+    # in-flight `tailscale down/up` FINISH before we exit. The node is never left
+    # down by the stop itself. Ctrl-C (SIGINT) still exits via KeyboardInterrupt.
+    stop = {"requested": False}
+
+    def _request_stop(signum: int, frame: object) -> None:
+        stop["requested"] = True
+
+    old_handler = signal.signal(signal.SIGTERM, _request_stop)
+    try:
+        while not stop["requested"]:
+            ext = probe_public_path()
+            failures = 0 if ext else failures + 1
+            # The local + uplink probes only matter when the public path is down;
+            # skip them (and their HTTP round-trips) on a healthy poll.
+            action = watchdog_action(
+                ext,
+                probe_local_backend() if not ext else True,
+                probe_uplink() if not ext else True,
+                failures,
+                fail_threshold,
+                reasserted,
+                reconnects,
+                WATCHDOG_RECONNECT_CAP,
+            )
+            wait = interval
+            if action == "ok":
+                if reasserted or reconnects:
+                    print(f"  ● {_wd_stamp()}  public path recovered")
+                reasserted = False
+                reconnects = 0
+            elif action == "wait":
+                print(f"  ◐ {_wd_stamp()}  public path down ({failures}) — transient")
+            elif action == "skip-uplink":
+                print(
+                    f"  ○ {_wd_stamp()}  site itself unreachable (uplink/Vercel)"
+                    " — not the funnel"
+                )
+            elif action == "skip-backend-down":
+                print(f"  ○ {_wd_stamp()}  backend down too — run `ragctl up`")
+            elif action == "reassert":
+                _watchdog_reassert(ts)
+                reasserted = True
+                wait = cooldown
+            elif action == "reconnect":
+                _watchdog_reconnect(ts)
+                reconnects += 1
+                wait = cooldown
+            elif action == "give-up":
+                print(
+                    f"  ✗ {_wd_stamp()}  {reconnects} reconnects did not recover the "
+                    "public path — MANUAL FIX NEEDED (check `tailscale status`, auth, "
+                    "or a Vercel-side issue). Not churning the shared node further."
+                )
+                wait = cooldown
+            if stop["requested"]:
+                break
+            _wd_sleep(wait, stop)
+        print("\n  watchdog stopping (SIGTERM) — funnel left as-is.")
+    except KeyboardInterrupt:
+        print("\n  watchdog stopped (funnel left as-is).")
+    finally:
+        signal.signal(signal.SIGTERM, old_handler)
     return 0
 
 
@@ -901,13 +1286,14 @@ _MENU: list[tuple[str, str]] = [
     ("usage [--hours N]", "how much the model's been used (24h)"),
     ("logs", "show recent questions + answers (request log)"),
     ("prune", "reclaim docker disk (rebuild cache, stopped containers)"),
+    ("watchdog", "guard the public path, auto-recover a stale funnel"),
     ("exit", "leave ragctl"),
 ]
 
 # Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
 _VERBS = [
     "status", "watch", "doctor", "up", "down", "test", "model", "english",
-    "usage", "logs", "prune", "exit", "quit",
+    "usage", "logs", "prune", "watchdog", "exit", "quit",
 ]
 
 
@@ -935,6 +1321,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--keep",
         action="store_true",
         help="leave it running instead of holding the board",
+    )
+    up.add_argument(
+        "--no-watchdog",
+        action="store_true",
+        help="don't autostart the public-path watchdog",
     )
     sub.add_parser("down", help="cut the rag: compose down + funnel off")
     test = sub.add_parser("test", help="doctor the live model with a test question")
@@ -978,6 +1369,25 @@ def _build_parser() -> argparse.ArgumentParser:
         "prune",
         help="reclaim docker disk: build cache + stopped containers + dangling images",
     )
+    wd = sub.add_parser(
+        "watchdog",
+        help="guard the public path and auto-recover a stale funnel (Ctrl-C stops)",
+    )
+    wd.add_argument(
+        "--interval", type=int, default=120, help="seconds between probes (default 120)"
+    )
+    wd.add_argument(
+        "--fail-threshold",
+        type=int,
+        default=2,
+        help="consecutive failures before acting (default 2)",
+    )
+    wd.add_argument(
+        "--cooldown",
+        type=int,
+        default=300,
+        help="seconds to wait after a recovery attempt (default 300)",
+    )
     return p
 
 
@@ -993,7 +1403,7 @@ def dispatch(argv: list[str]) -> int:
     if args.cmd == "doctor":
         return cmd_doctor()
     if args.cmd == "up":
-        return cmd_up(keep=args.keep)
+        return cmd_up(keep=args.keep, watchdog=not args.no_watchdog)
     if args.cmd == "down":
         return cmd_down()
     if args.cmd == "test":
@@ -1008,6 +1418,8 @@ def dispatch(argv: list[str]) -> int:
         return cmd_logs(args.n)
     if args.cmd == "prune":
         return cmd_prune()
+    if args.cmd == "watchdog":
+        return cmd_watchdog(args.interval, args.fail_threshold, args.cooldown)
     p.print_help()
     return 0
 

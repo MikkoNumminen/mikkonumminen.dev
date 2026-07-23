@@ -12,9 +12,11 @@ interface Props {
   theme: 'home' | 'projects' | 'experience' | 'contact';
   current: string;
   locale?: Locale;
+  /** Locales the current page exists in; the switcher never links past this set. */
+  availableLocales?: readonly Locale[];
 }
 
-const { theme, current, locale: propLocale } = Astro.props;
+const { theme, current, locale: propLocale, availableLocales = LOCALES } = Astro.props;
 const locale = propLocale ?? asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
@@ -22,13 +24,14 @@ const links = [
   { href: localizePath('/', locale), label: t.nav.home },
   { href: localizePath('/projects', locale), label: t.nav.projects },
   { href: localizePath('/experience', locale), label: t.nav.experience },
+  { href: localizePath('/blog', locale), label: t.nav.blog },
   { href: localizePath('/contact', locale), label: t.nav.contact },
 ];
 
 // For the language switcher we need to know the bare path (no locale prefix)
 // so we can re-localize it for each available language.
 const barePath = stripLocale(current);
-const langLinks = LOCALES.map((l) => ({
+const langLinks = availableLocales.map((l) => ({
   locale: l,
   href: localizePath(barePath, l),
   label: t.langSwitcher[l],
@@ -36,7 +39,7 @@ const langLinks = LOCALES.map((l) => ({
 }));
 
 const isActive = (href: string) => {
-  if (href === '/' || href === '/fi/' || href === '/sv/') {
+  if (href === '/' || href === '/fi' || href === '/sv') {
     return current === href;
   }
   return current === href || current.startsWith(href + '/');
@@ -93,20 +96,24 @@ const isActive = (href: string) => {
 <script>
   // When the user manually picks a language, remember it so the auto-detect
   // script in BaseLayout doesn't override their choice on the next visit.
-  document.querySelectorAll<HTMLAnchorElement>('.site-nav__lang').forEach((a) => {
-    a.addEventListener('click', () => {
-      const lang = a.getAttribute('data-lang');
-      if (lang) {
-        try {
-          localStorage.setItem('mn_preferred_locale', lang);
-          // Also clear the session flag so the detector won't re-fire
-          // before the navigation completes.
-          sessionStorage.setItem('mn_lang_checked', '1');
-        } catch {
-          /* ignore */
-        }
-      }
-    });
+  // Delegated on `document` (registered once) rather than bound to each
+  // `.site-nav__lang` anchor, so it keeps working after ClientRouter swaps the
+  // nav out — anchor-bound listeners would be lost on the first navigation and
+  // the module script does not re-run to rebind them.
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement | null;
+    const anchor = target?.closest<HTMLAnchorElement>('.site-nav__lang');
+    if (!anchor) return;
+    const lang = anchor.getAttribute('data-lang');
+    if (!lang) return;
+    try {
+      localStorage.setItem('mn_preferred_locale', lang);
+      // Also clear the session flag so the detector won't re-fire before the
+      // navigation completes.
+      sessionStorage.setItem('mn_lang_checked', '1');
+    } catch {
+      /* ignore */
+    }
   });
 </script>
 

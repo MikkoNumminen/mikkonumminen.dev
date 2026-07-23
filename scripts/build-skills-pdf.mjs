@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 // Render public/data/skills-registry.json to public/skills-registry.pdf using
-// the locally-installed Chrome's headless --print-to-pdf. Content-aware
+// the locally-installed Chrome's headless --print-to-pdf.
+//
+//   node scripts/build-skills-pdf.mjs           render only if the inputs moved
+//   node scripts/build-skills-pdf.mjs --force   re-render regardless
+//
+// The inputs are fingerprinted into scripts/skills-pdf.input.sha256 (committed),
+// so an unchanged build never launches Chrome — see lib/pdf-content.mjs for why
+// re-rendering an unchanged document is not free. Content-aware
 // wrapper for the skill-registry shape; for generic markdown / HTML use, see
 // the `md-to-pdf` skill at `.claude/skills/md-to-pdf/SKILL.md` and the
 // `scripts/build-pdf.mjs` CLI.
@@ -27,12 +34,16 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
+import { PRINT_FLAGS, locateChrome, printHtmlToPdf } from './lib/chrome-pdf.mjs';
+import { inputFingerprint, pdfContentEquals, shouldRender } from './lib/pdf-content.mjs';
 import { escapeHtml as esc, isSafeHref } from './lib/escape.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'public', 'data', 'skills-registry.json');
 const OUT = path.join(ROOT, 'public', 'skills-registry.pdf');
+// Committed on purpose: a fresh clone or new worktree with no stored
+// fingerprint would re-render and put a divergent PDF back in the tree.
+const FINGERPRINT_FILE = path.join(ROOT, 'scripts', 'skills-pdf.input.sha256');
 const CSS_FILE = path.join(ROOT, 'scripts', 'lib', 'skills-pdf.css');
 
 // ---------------------------------------------------------------------------
@@ -252,6 +263,10 @@ function renderCrossModelCallout(data) {
       if (measured.length >= 2) multiModel.push({ repo: r.name, name: s.name });
     }
   }
+  // Built-in Claude Code commands the author also measured are a SEPARATE
+  // population from the register's own skills — folding them into one "skills"
+  // count made the callout read as more skills tested than the headline's total.
+  const builtInMultiModel = [];
   for (const br of data.built_in_references ?? []) {
     if (!br.alt_model_measurements) continue;
     const measured = [];
@@ -259,13 +274,16 @@ function renderCrossModelCallout(data) {
     for (const [m, v] of Object.entries(br.alt_model_measurements)) {
       if (v?.arm_A_tokens != null && v?.arm_B_tokens != null) measured.push(m);
     }
-    if (measured.length >= 2)
-      multiModel.push({ repo: 'built-in', name: br.label ?? br.name });
+    if (measured.length >= 2) builtInMultiModel.push(br.label ?? br.name);
   }
   const n = multiModel.length;
   if (n === 0) return '';
+  const builtInClause =
+    builtInMultiModel.length > 0
+      ? `, as ${builtInMultiModel.length === 1 ? 'was' : 'were'} ${builtInMultiModel.length} built-in command${builtInMultiModel.length === 1 ? '' : 's'}`
+      : '';
   return `<aside class="callout avoid-break">
-  <p><strong>Across-model pattern.</strong> ${n} skills were A/B-tested on more than one model. The save rate is what changes: skills that save 50%+ on Sonnet typically settle at 20–40% on Opus. The skill arm does not get more expensive — the cold arm gets cheaper, because a stronger model needs less scaffolding to do the task well. A skill's measured value is not a fixed property; it is relative to the model underneath it. See the per-model save columns below.</p>
+  <p><strong>Across-model pattern.</strong> ${n} of these skills were A/B-tested on more than one model${builtInClause}. The save rate is what changes: skills that save 50%+ on Sonnet typically settle at 20–40% on Opus. The skill arm does not get more expensive — the cold arm gets cheaper, because a stronger model needs less scaffolding to do the task well. A skill's measured value is not a fixed property; it is relative to the model underneath it. See the per-model save columns below.</p>
 </aside>`;
 }
 
@@ -472,7 +490,22 @@ function renderSpineTable(data) {
         repo.github_url && isSafeHref(repo.github_url)
           ? ` · <a href="${esc(repo.github_url)}">${esc(repo.github_url.replace(/^https?:\/\//, ''))}</a>`
           : '';
-      const heading = `<tr class="group-heading"><td colspan="7"><strong>${esc(repo.name)}</strong>${url} · ${repo.skills.length} skill${repo.skills.length === 1 ? '' : 's'}</td></tr>`;
+      // Count active vs redirect so the heading reconciles with the lede's
+      // active-skill total instead of re-introducing the raw file count.
+      const redirectCount = repo.skills.filter((s) => s.redirect).length;
+      const activeCount = repo.skills.length - redirectCount;
+      // Suppress a "0 skills" segment for an all-redirect repo; show just the
+      // redirect count in that (unlikely) case.
+      const activeLabel =
+        activeCount > 0 || redirectCount === 0
+          ? `${activeCount} skill${activeCount === 1 ? '' : 's'}`
+          : '';
+      const redirectLabel =
+        redirectCount > 0
+          ? `${redirectCount} redirect${redirectCount === 1 ? '' : 's'}`
+          : '';
+      const countLabel = [activeLabel, redirectLabel].filter(Boolean).join(' · ');
+      const heading = `<tr class="group-heading"><td colspan="7"><strong>${esc(repo.name)}</strong>${url} · ${countLabel}</td></tr>`;
       const rows = repo.skills.map((s) =>
         spineRowHtml({
           name: s.name,
@@ -801,6 +834,11 @@ function buildAggregates(data) {
     let calibArmATotal = 0;
     let calibArmBTotal = 0;
     for (const s of r.skills) {
+      // A redirect stub is a tombstone, not a measured skill. Exclude it from
+      // every aggregate so the calibrated/measured counts can never exceed the
+      // active-skill total the headline reports — even if a superseded skill
+      // kept an old receipt.
+      if (s.redirect) continue;
       const rec = s.receipt;
       if (!rec) continue;
       const saved = tokensSavedAnnual(rec);
@@ -882,6 +920,18 @@ function buildHtml(data, css) {
   const generated = data.generated_at.slice(0, 10);
   const agg = buildAggregates(data);
   const calibratedCount = agg.perRepo.reduce((n, r) => n + (r.calibratedCount || 0), 0);
+  // Headline the ACTIVE skills, not every file. A redirect skill is a tombstone
+  // pointing at its replacement — it has no receipt to show, so counting it in a
+  // receipts document only invites "where is the untested one?". The redirect is
+  // still listed (labelled) in the per-skill table; it just does not inflate the
+  // headline past the number the measured breakdown reconciles to. Derived from
+  // the same per-skill redirect flags the per-repo headings use, so the headline
+  // and the headings can never disagree (a stale totals.redirects in a
+  // hand-edited registry would).
+  const activeSkills = data.repos.reduce(
+    (n, r) => n + r.skills.filter((s) => !s.redirect).length,
+    0,
+  );
 
   return `<!doctype html>
 <html lang="en">
@@ -894,7 +944,7 @@ function buildHtml(data, css) {
 
 <header>
   <h1>Skill registry — ${esc(generated)}</h1>
-  <p class="lede-short">A register of every custom slash-command skill I have written for Claude Code, with measurement when I have it and an honest guess when I do not. ${data.repos.length} repos, ${data.totals.skills} skills, ${calibratedCount} A/B-tested.</p>
+  <p class="lede-short">A register of every custom slash-command skill I have written for Claude Code, with measurement when I have it and an honest guess when I do not. ${data.repos.length} repos, ${activeSkills} skills, ${calibratedCount} A/B-tested.</p>
 </header>
 
 ${renderHero(agg.perRepo)}
@@ -922,6 +972,18 @@ ${renderAppendix()}
 </html>`;
 }
 
+// Read a file that may not exist yet. Reading and handling ENOENT keeps the
+// decision on one filesystem call — an existsSync/readFileSync pair is a
+// check-then-use race, and it reads the same file twice.
+function readIfExists(file) {
+  try {
+    return fs.readFileSync(file);
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error(`source missing: ${SRC}`);
@@ -936,12 +998,6 @@ function main() {
   if (process.env.CI || process.env.VERCEL) {
     console.log(
       'build-skills-pdf: CI environment detected — skipping regeneration, committed PDF is canonical.',
-    );
-    process.exit(0);
-  }
-  if (!locateChrome()) {
-    console.log(
-      'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
     );
     process.exit(0);
   }
@@ -960,15 +1016,55 @@ function main() {
   fs.mkdirSync(previewDir, { recursive: true });
   const previewHtml = path.join(previewDir, 'skills-pdf-preview.html');
   fs.writeFileSync(previewHtml, html);
+
+  // Skip the render entirely when the inputs have not moved. Chrome's internal
+  // encoding shifts between browser versions, so re-rendering an unchanged
+  // document is not a no-op — it rewrites the committed PDF for no visible
+  // reason the first time the developer's Chrome updates.
+  const fingerprint = inputFingerprint(html, PRINT_FLAGS.join('\n'));
+  const storedFingerprint = readIfExists(FINGERPRINT_FILE)?.toString('utf8').trim() ?? null;
+  const existingPdf = readIfExists(OUT);
+  const force = process.argv.includes('--force');
+  if (
+    !shouldRender({
+      force,
+      pdfExists: existingPdf !== null,
+      storedFingerprint,
+      fingerprint,
+    })
+  ) {
+    console.log(`unchanged: ${OUT} (inputs unchanged — no render)`);
+    console.log(`preview HTML: ${previewHtml}`);
+    return;
+  }
+
+  if (!locateChrome()) {
+    console.log(
+      'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
+    );
+    process.exit(0);
+  }
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-pdf-'));
   const tmpHtml = path.join(tmpDir, 'skills-registry.html');
   fs.writeFileSync(tmpHtml, html);
+  // Rendered to a temp file and copied only on a real content change: a changed
+  // input does not always move the rendered page (a reworded comment in the
+  // layout code, say), and this PDF is committed.
+  const tmpPdf = path.join(tmpDir, 'skills-registry.pdf');
   try {
-    printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: OUT });
+    printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: tmpPdf });
+    if (existingPdf && pdfContentEquals(existingPdf, fs.readFileSync(tmpPdf))) {
+      console.log(`unchanged: ${OUT}`);
+    } else {
+      fs.copyFileSync(tmpPdf, OUT);
+      console.log(`wrote ${OUT}`);
+    }
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
-  console.log(`wrote ${OUT}`);
+  // Recorded even when the bytes were kept, so the next build short-circuits
+  // on these inputs instead of re-rendering to reach the same conclusion.
+  fs.writeFileSync(FINGERPRINT_FILE, `${fingerprint}\n`);
   console.log(`preview HTML: ${previewHtml}`);
 }
 
