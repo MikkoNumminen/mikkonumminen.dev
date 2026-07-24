@@ -8,12 +8,12 @@ This is intentionally not a typical web app. It's a visual showcase, with each p
 
 ## The four pages
 
-- **`/`** — Immersive scroll experience. 3D name in WebGL, particle field, GSAP scroll triggers, parallax sections, animated nav cards.
+- **`/`** — Immersive scroll experience. A WebGL particle field forms the name, then scatters into a starfield behind the content on scroll. GSAP scroll triggers, parallax sections, animated nav cards.
 - **`/projects`** — Interactive solar system. Each project orbits a central sun. Hover a planet for the elevator pitch, click to zoom in.
 - **`/experience`** — Parallax mountain landscape. A goat climbs as you scroll. The sky shifts from pre-dawn to bright day across the climb. Timeline markers fade in along the way.
 - **`/contact`** — Terminal / CRT aesthetic. Real command parser, command history, tab completion, scan lines, blinking cursor, copy-to-clipboard. Try `help` for the command list — `skills` and `download --catalog` surface the live cross-repo skill registry.
 
-Page-to-page navigation triggers a canvas particle dissolve coloured to the destination page's theme.
+Page-to-page navigation is client-side (Astro `ClientRouter`), animated with the built-in view transition; the music bed survives the swap.
 
 ## Languages
 
@@ -128,6 +128,7 @@ see [`LAUNCH.md`](LAUNCH.md) and the as-built [`docs/rag-chat.md`](docs/rag-chat
 
 - [Astro](https://astro.build/) — static site generator with island architecture
 - [Three.js](https://threejs.org/) — 3D graphics for the home and projects pages
+- [postprocessing](https://github.com/pmndrs/postprocessing) — bloom pass on the home particle field
 - [GSAP](https://gsap.com/) + ScrollTrigger — scroll-driven animation timelines
 - [Tailwind CSS v4](https://tailwindcss.com/) — utility CSS, no component library
 - TypeScript (strict, with `noUncheckedIndexedAccess`)
@@ -138,7 +139,7 @@ This stack is intentionally separate from the production stack used in my other 
 
 ## Local development
 
-Requires Node 22+ (Astro 6; see [`.nvmrc`](./.nvmrc)).
+Requires Node 22+ (Astro 7; see [`.nvmrc`](./.nvmrc)).
 
 ```bash
 npm install
@@ -154,7 +155,7 @@ npm run build:og      # rasterize OG cards + manifest icons from the source SVGs
 npm run sync:skills-registry  # copy latest dated SKILL-REGISTRY-*.json → public/data/
 npm run validate:registry     # check public/data/skills-registry.json against its JSON schema
 npm run build:skills-pdf      # regenerate public/skills-registry.pdf via local Chrome
-npm test              # run the Vitest suite (i18n + project data)
+npm test              # run the Vitest suite (src + scripts unit tests)
 npm run test:watch    # Vitest in watch mode for TDD
 ```
 
@@ -166,25 +167,25 @@ npm run test:watch    # Vitest in watch mode for TDD
 
 ```
 src/
-  layouts/        BaseLayout — shared head, nav, transition overlay
+  layouts/        BaseLayout — shared head, nav, client router
   components/     One folder per page (home, projects, experience, contact, nav)
   page-content/   Page-level composition (one .astro per page, wrapped by the routed file)
   pages/          One file per route (.astro), including /fi and /sv mirrors
   lib/
     three/        Core Three.js helpers + scene entry points (homeScene, projectsScene)
-    home/         Home-scene building blocks (galaxy, starfield, title)
+    home/         Home-page DOM layers (data-feed console, commit popups)
     projects/     Projects-scene building blocks (planets, hover labels)
     timeline/     Experience-page timeline scene helpers
     gsap/         GSAP timelines per page
     terminal/     Terminal command parser and runtime
-    transitions/  Page transitions (canvas particle dissolve)
+    blog/         Blog content helpers (entry dates, slug parity)
     observability/ Sentry + Core Web Vitals init
     utils/        Cross-cutting helpers (e.g. escapeHtml)
     debug/        Dev-only diagnostics, stripped from production
   data/           Project metadata, timeline entries
   i18n/           Locale dictionaries and locale-aware path helpers
   styles/         global.css (Tailwind v4 + CSS vars) and per-component CSS
-public/           Static assets — favicon, manifest, OG images, fonts, robots, icons
+public/           Static assets — favicon, manifest, OG images, robots, icons
   data/           Build-synced registry JSON consumed by the terminal `skills` command
 scripts/
   check-env.mjs                Fresh-clone sanity check: Node version + deps (npm run check:env)
@@ -218,7 +219,7 @@ Several `scripts/` and `scripts/lib/` modules have co-located `*.test.mjs` suite
 - Three.js scenes are skipped entirely on small screens and when `prefers-reduced-motion: reduce` is set, with a static fallback
 - All animations respect `prefers-reduced-motion`; the home and projects voiceovers also skip narration on RM (music still plays)
 - Skip-link, semantic landmarks, ARIA labels, focus-visible rings per theme
-- All Three.js resources are explicitly disposed on `beforeunload`
+- All Three.js resources are explicitly disposed on client-side navigation away from a scene's page
 
 ## AI tooling
 
