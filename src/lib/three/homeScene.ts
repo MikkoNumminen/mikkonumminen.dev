@@ -1,6 +1,7 @@
 /**
  * Home page (`/`) scene: ONE continuous particle field on a fixed,
- * full-viewport, transparent canvas behind the whole page. The field
+ * full-viewport canvas behind the whole page (opaque, cleared in the
+ * page's own ink — see the createRenderer call below). The field
  * morphs between three states — galaxy (load-in), name ("MIKKO
  * NUMMINEN" formation), and starfield (persistent background for every
  * content section) — driven entirely by uniforms; see
@@ -492,9 +493,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // links instead of compiling from scratch. Raced with a timeout —
   // compileAsync polls on rAF in some engines and a hidden tab must not
   // wedge the boot forever.
+  // Short race: if the driver stalls the async compile, frame 1 simply
+  // compiles synchronously behind the gate — waiting longer here only
+  // delays the reveal.
   await Promise.race([
     renderer.compileAsync(scene, camera).catch(() => {}),
-    new Promise((resolve) => setTimeout(resolve, 1500)),
+    new Promise((resolve) => setTimeout(resolve, 800)),
   ]);
 
   tick();

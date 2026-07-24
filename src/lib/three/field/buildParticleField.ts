@@ -174,6 +174,11 @@ void main() {
   float amp = mix(mix(1.0, 0.04, form), 0.55, dissolve) * uDriftAmp;
   pos += wob * amp;
 
+  // Scroll drift applies BEFORE the interaction block: the pointer and
+  // ripple origins are converted from screen coordinates, so they refer
+  // to where particles VISUALLY sit — which includes the drift offset.
+  pos.y += uScrollDrift;
+
   // Where this particle's camera ray crosses the z=0 plane — the space
   // the pointer and ripple origins live in. Deep particles get the same
   // screen-aligned falloff but a subtler world push (natural parallax).
@@ -201,8 +206,6 @@ void main() {
       pos.z += band * env * RIPPLE_LIFT;
     }
   }
-
-  pos.y += uScrollDrift;
 
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mv;
@@ -308,6 +311,9 @@ export function buildParticleField(opts: ParticleFieldOptions): ParticleFieldHan
   const material = new ShaderMaterial({
     vertexShader: VERTEX_SHADER,
     fragmentShader: FRAGMENT_SHADER,
+    // Safe cast: ParticleFieldUniforms is a structural subtype of the
+    // IUniform record three expects — narrowed here only so callers get
+    // typed uniform access instead of string lookups.
     uniforms: uniforms as unknown as ShaderMaterial['uniforms'],
     transparent: true,
     depthWrite: false,

@@ -241,7 +241,14 @@ const personSchema = {
 
 <style is:global>
   /* Scroll stays locked while the gate is up, so the first scroll input
-     a visitor can physically make lands on a warm, compiled scene. */
+     a visitor can physically make lands on a warm, compiled scene. The
+     stable gutter keeps the scrollbar's space reserved while it's
+     hidden — without it the reveal reflows the whole page by a
+     scrollbar width on classic-scrollbar platforms. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   html.field-loading {
     overflow: hidden;
   }
@@ -418,15 +425,22 @@ const personSchema = {
       const gate = document.querySelector<HTMLElement>('[data-field-gate]');
       let slowTimer = 0;
       let capTimer = 0;
+      let unlockTimer = 0;
 
+      // Guarded on `disposed`: a reveal (or its unlock timer) arriving
+      // after a quick home → away → home navigation must not strip the
+      // NEXT visit's gate class mid-warm-up.
       const reveal = (): void => {
-        if (revealed) return;
+        if (revealed || disposed) return;
         revealed = true;
         window.clearTimeout(slowTimer);
         window.clearTimeout(capTimer);
         performance.mark('field:revealed');
         gate?.classList.add('field-gate--done');
-        window.setTimeout(() => html.classList.remove('field-loading'), 380);
+        unlockTimer = window.setTimeout(
+          () => html.classList.remove('field-loading'),
+          380,
+        );
         sceneHandle?.startIntro();
       };
 
@@ -475,6 +489,7 @@ const personSchema = {
         disposed = true;
         window.clearTimeout(slowTimer);
         window.clearTimeout(capTimer);
+        window.clearTimeout(unlockTimer);
         // Never leave the NEXT page scroll-locked behind a gone gate.
         html.classList.remove('field-loading');
         sceneHandle?.dispose();
