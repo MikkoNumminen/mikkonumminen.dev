@@ -13,8 +13,36 @@ export interface HomeTimelineOptions {
    * document) so the dissolve completes within the first viewport.
    */
   onHeroProgress?: (progress: number) => void;
+  /**
+   * Per-section field mood, already blended: as each `[data-field-section]`
+   * scrubs into view its mood crossfades in from the previous section's.
+   * Small state changes only — a hue lean, a density/drift nudge.
+   */
+  onSectionMood?: (hue: number, density: number, drift: number) => void;
   reducedMotion?: boolean;
 }
+
+export interface FieldMood {
+  /** Palette hue rotation in degrees (applied to the starfield colours). */
+  hue: number;
+  /** Multiplier on the field's density (fraction of particles visible). */
+  density: number;
+  /** Multiplier on the drift speed. */
+  drift: number;
+}
+
+const NEUTRAL_MOOD: FieldMood = { hue: 0, density: 1, drift: 1 };
+
+/**
+ * Mood per section marker value. Deliberately small deltas — noticeable,
+ * not a show: About leans teal and calm, Writing leans warm and a touch
+ * denser, the nav cards go neutral with livelier drift.
+ */
+const SECTION_MOODS: Record<string, FieldMood> = {
+  about: { hue: 18, density: 0.85, drift: 0.8 },
+  writing: { hue: -14, density: 1.1, drift: 1.1 },
+  nav: { hue: 0, density: 1, drift: 1.4 },
+};
 
 export interface HomeTimelineHandle {
   dispose: () => void;
@@ -82,7 +110,12 @@ function splitChars(root: ParentNode): void {
 }
 
 export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHandle {
-  const { onScrollProgress, onHeroProgress, reducedMotion = prefersReducedMotion() } = opts;
+  const {
+    onScrollProgress,
+    onHeroProgress,
+    onSectionMood,
+    reducedMotion = prefersReducedMotion(),
+  } = opts;
 
   // ── Reduced-motion static fallback ─────────────────────────────────
   // No splitting, no opacity:0, no tweens, no ScrollTriggers. Everything
@@ -147,6 +180,40 @@ export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHa
           onUpdate: (self) => onHeroProgress(self.progress),
         }),
       );
+    }
+
+    // ── Per-section field moods ─────────────────────────────────────────
+    // Each marked section scrubs a crossfade from the previous section's
+    // mood to its own as its top travels 70% → 25% of the viewport. The
+    // trigger windows of consecutive full-height sections don't overlap,
+    // so the last writer is always the section actually arriving.
+    if (onSectionMood) {
+      const marked = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-field-section]'),
+      );
+      marked.forEach((el, i) => {
+        const mood = SECTION_MOODS[el.dataset.fieldSection ?? ''] ?? NEUTRAL_MOOD;
+        const prev =
+          i === 0
+            ? NEUTRAL_MOOD
+            : (SECTION_MOODS[marked[i - 1]?.dataset.fieldSection ?? ''] ?? NEUTRAL_MOOD);
+        ownedTriggers.push(
+          ScrollTrigger.create({
+            trigger: el,
+            start: 'top 70%',
+            end: 'top 25%',
+            scrub: true,
+            onUpdate: (self) => {
+              const p = self.progress;
+              onSectionMood(
+                prev.hue + (mood.hue - prev.hue) * p,
+                prev.density + (mood.density - prev.density) * p,
+                prev.drift + (mood.drift - prev.drift) * p,
+              );
+            },
+          }),
+        );
+      });
     }
 
     // ── Hero scroll hint fade ───────────────────────────────────────────

@@ -73,6 +73,9 @@ export interface HomeSceneHandle {
   /** Launch a field ripple from a viewport position (used by the
    *  discoverability hint; background clicks route here internally). */
   ripple: (clientX: number, clientY: number, strength?: number) => void;
+  /** Per-section mood: palette hue rotation (degrees) plus density and
+   *  drift multipliers. Values arrive pre-blended from the timeline. */
+  setMood: (hue: number, density: number, drift: number) => void;
   /** Release the renderer, all GPU resources, and listeners. Call once. */
   dispose: () => void;
   /** Re-fit the field after a viewport / orientation change. */
@@ -205,6 +208,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   let formTime = 0;
   let form = 0;
   let formedNotified = false;
+
+  // ── Section mood (written by the timeline's scrubbed crossfade) ──────
+  let moodHue = 0;
+  let moodDensity = 1;
+  let moodDrift = 1;
 
   // ── Fit math (camera never moves; cache the frustum trig once) ───────
   const tanHalfFov = Math.tan((CAMERA_FOV * Math.PI) / 180 / 2);
@@ -354,16 +362,22 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // than page text — that contrast clamp lives here, not in CSS.
     colorA.lerpColors(GALAXY_COLOR_A, STAR_COLOR_A, dissolve);
     colorB.lerpColors(GALAXY_COLOR_B, STAR_COLOR_B, dissolve);
+    if (moodHue !== 0) {
+      colorA.offsetHSL(moodHue / 360, 0, 0);
+      colorB.offsetHSL(moodHue / 360, 0, 0);
+    }
     u.uColorA.value.copy(colorA);
     u.uColorB.value.copy(colorB);
+    u.uDriftSpeed.value = moodDrift;
     const formedBrightness =
       GALAXY_BRIGHTNESS + (NAME_BRIGHTNESS - GALAXY_BRIGHTNESS) * form;
     u.uBrightness.value =
       formedBrightness + (STARFIELD_BRIGHTNESS - formedBrightness) * dissolve;
 
     // Starfield reads sparse: only ~40% of the field stays visible once
-    // fully dissolved (density thresholds against the per-particle rank).
-    u.uDensity.value = 1 - dissolve * 0.6;
+    // fully dissolved (density thresholds against the per-particle rank),
+    // nudged by the active section's mood.
+    u.uDensity.value = Math.max(0, Math.min(1, (1 - dissolve * 0.6) * moodDensity));
 
     glowMaterial.opacity = 1 - dissolve * 0.9;
 
@@ -394,6 +408,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     },
     ripple: (clientX: number, clientY: number, strength = 1): void => {
       launchRipple(clientX, clientY, strength);
+    },
+    setMood: (hue: number, density: number, drift: number): void => {
+      moodHue = hue;
+      moodDensity = density;
+      moodDrift = drift;
     },
     resize: resize.handler,
     dispose: (): void => {

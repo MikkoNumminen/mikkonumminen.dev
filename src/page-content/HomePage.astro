@@ -179,6 +179,7 @@ const personSchema = {
     setScrollProgress: (p: number) => void;
     setDissolve: (p: number) => void;
     ripple: (clientX: number, clientY: number, strength?: number) => void;
+    setMood: (hue: number, density: number, drift: number) => void;
     dispose: () => void;
   };
 
@@ -292,6 +293,7 @@ const personSchema = {
         reducedMotion,
         onScrollProgress: (p) => sceneHandle?.setScrollProgress(p),
         onHeroProgress: (p) => sceneHandle?.setDissolve(p),
+        onSectionMood: (h, d, dr) => sceneHandle?.setMood(h, d, dr),
       });
 
       // If disposed (navigated away) before the async scene resolves, dispose the
