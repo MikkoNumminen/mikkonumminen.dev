@@ -13,6 +13,14 @@ export interface CreateRendererOptions {
   toneMapping?: ToneMapping;
   toneMappingExposure?: number;
   /**
+   * Drawing-buffer alpha. Defaults to true (scene composites over the
+   * page background). Pass false for scenes that paint an opaque clear
+   * colour — an alpha buffer under a post-processing chain leaves
+   * alpha-0 regions that the browser composites additively, lifting
+   * every black to gray.
+   */
+  alpha?: boolean;
+  /**
    * Hard cap on the renderer's pixel ratio. At 2 the internal buffer is
    * 4× the CSS-pixel area on a retina/HiDPI display; bloom + post chain
    * scale linearly with pixel count, so lowering this is the biggest
@@ -27,17 +35,18 @@ export function createRenderer(
   canvas: HTMLCanvasElement,
   options: CreateRendererOptions = {},
 ): WebGLRenderer {
+  const alpha = options.alpha ?? true;
   const renderer = new WebGLRenderer({
     canvas,
     antialias: true,
-    alpha: true,
+    alpha,
     powerPreference: 'high-performance',
   });
   renderer.setPixelRatio(
     resolvePixelRatio(window.devicePixelRatio, options.maxPixelRatio),
   );
   renderer.setSize(window.innerWidth, window.innerHeight, false);
-  renderer.setClearColor(0x000000, 0);
+  renderer.setClearColor(0x000000, alpha ? 0 : 1);
   if (options.toneMapping !== undefined) {
     renderer.toneMapping = options.toneMapping;
   }

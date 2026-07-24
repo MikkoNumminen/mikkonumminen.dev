@@ -21,6 +21,7 @@
 import {
   Color,
   HalfFloatType,
+  LinearSRGBColorSpace,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -152,12 +153,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const maxPixelRatio = perfFlags.lowPerf ? 1 : 1.5;
   const particleCount = perfFlags.lowPerf ? 8_000 : 24_000;
 
-  const renderer = createRenderer(canvas, { maxPixelRatio });
-  // Opaque clear in the page's own ink (--color-ink). The canvas covers
-  // the whole viewport behind every section, so an opaque clear is
-  // pixel-identical to transparent-over-ink — and it sidesteps the
-  // premultiplied-alpha pitfalls of running a post chain on a
-  // transparent framebuffer.
+  // Opaque context clearing to the page's own ink (--color-ink). The
+  // canvas covers the whole viewport behind every section, so opaque is
+  // pixel-identical to transparent-over-ink — and it removes the alpha
+  // channel entirely, which the post chain otherwise leaves at 0 in
+  // empty regions where the browser then composites the frame
+  // additively over the page and lifts every black to gray.
+  const renderer = createRenderer(canvas, { maxPixelRatio, alpha: false });
   renderer.setClearColor(0x0a0a0f, 1);
 
   const scene = new Scene();
@@ -228,9 +230,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   let bloom: BloomEffect | null = null;
   let composer: EffectComposer | null = null;
   if (!perfFlags.lowPerf) {
-    // Half-float buffers keep the chain linear end-to-end — with the
-    // default byte buffers the ink clear colour round-trips through an
-    // sRGB encode twice and every black lifts to washed gray.
+    // Composer path: pmndrs applies the final sRGB encode in its screen
+    // pass, so the renderer's own output conversion must be switched
+    // OFF — with both active every frame is encoded twice and all
+    // blacks lift to washed gray. Verified empirically against the
+    // non-composer low-tier path; if the two tiers ever disagree on
+    // background tone again, this pairing is the first suspect.
+    renderer.outputColorSpace = LinearSRGBColorSpace;
     composer = new EffectComposer(renderer, { frameBufferType: HalfFloatType });
     composer.addPass(new RenderPass(scene, camera));
     // Tight radius + a firm threshold: the widest mip levels of the
