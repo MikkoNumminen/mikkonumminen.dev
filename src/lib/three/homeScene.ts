@@ -43,6 +43,13 @@ import { makeRadialSpriteTexture } from './textures';
 
 export interface HomeSceneOptions {
   canvas: HTMLCanvasElement;
+  /**
+   * Fired whenever a ripple actually launches (background clicks and the
+   * programmatic {@link HomeSceneHandle.ripple} alike, in viewport
+   * coordinates). The commit-message popup layer subscribes here — the
+   * scene stays presentation-only and knows nothing about popups.
+   */
+  onRipple?: (clientX: number, clientY: number) => void;
 }
 
 /**
@@ -56,6 +63,9 @@ export interface HomeSceneHandle {
   setScrollProgress: (progress: number) => void;
   /** Hero-scrub progress 0→1: name/galaxy dissolves into the starfield. */
   setDissolve: (progress: number) => void;
+  /** Launch a field ripple from a viewport position (used by the
+   *  discoverability hint; background clicks route here internally). */
+  ripple: (clientX: number, clientY: number, strength?: number) => void;
   /** Release the renderer, all GPU resources, and listeners. Call once. */
   dispose: () => void;
   /** Re-fit the field after a viewport / orientation change. */
@@ -89,8 +99,18 @@ const STAR_COLOR_B = new Color('#d8e0f2');
 const GALAXY_BRIGHTNESS = 1.0;
 const STARFIELD_BRIGHTNESS = 0.5;
 
+// Elements whose clicks belong to real UI — never converted into field
+// ripples. `[data-no-ripple]` opts out anything else (e.g. the data-feed
+// widget, which has its own click response).
+const RIPPLE_EXCLUDE_SELECTOR =
+  'a, button, input, textarea, select, summary, [data-no-ripple]';
+
+// Clicks landing on running text still ripple the field (the page is one
+// material), just slightly stronger so the response reads as deliberate.
+const TEXT_TARGET_SELECTOR = 'p, h1, h2, h3, h4, li, blockquote, figcaption';
+
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
-  const { canvas } = opts;
+  const { canvas, onRipple } = opts;
 
   const perfFlags = readPerfFlags();
   const maxPixelRatio = perfFlags.lowPerf ? 1 : 1.5;
@@ -164,6 +184,51 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // ── Fit math (camera never moves; cache the frustum trig once) ───────
   const tanHalfFov = Math.tan((CAMERA_FOV * Math.PI) / 180 / 2);
   const halfHeightAtZ0 = tanHalfFov * CAMERA_Z;
+
+  field.uniforms.uCameraZ.value = CAMERA_Z;
+
+  // ── Pointer avoidance input ──────────────────────────────────────────
+  // Raw client coords → world coords on the z=0 plane (the camera looks
+  // straight down -z, so this is two multiplies — no raycaster). The
+  // target is written by the event, the smoothed value by the tick loop.
+  let targetPointerX = 0;
+  let targetPointerY = 0;
+  let pointerSeen = false;
+
+  const clientToWorldX = (clientX: number): number =>
+    (clientX / window.innerWidth - 0.5) * 2 * halfHeightAtZ0 * camera.aspect;
+  const clientToWorldY = (clientY: number): number =>
+    -(clientY / window.innerHeight - 0.5) * 2 * halfHeightAtZ0;
+
+  const onPointerMove = (e: PointerEvent): void => {
+    targetPointerX = clientToWorldX(e.clientX);
+    targetPointerY = clientToWorldY(e.clientY);
+    pointerSeen = true;
+  };
+  window.addEventListener('pointermove', onPointerMove, { passive: true });
+
+  // ── Click ripples ────────────────────────────────────────────────────
+  // Document-level because the canvas is pointer-events: none behind the
+  // content — the whole page is one clickable material. Round-robin over
+  // the fixed pool; overlapping ripples are the point.
+  let nextRipple = 0;
+  let elapsedNow = 0;
+
+  const launchRipple = (clientX: number, clientY: number, strength: number): void => {
+    // Non-null: (non-negative int % 4) always lands inside the 4-tuple.
+    const slot = field.uniforms.uRipples.value[nextRipple % 4]!;
+    nextRipple++;
+    slot.set(clientToWorldX(clientX), clientToWorldY(clientY), elapsedNow, strength);
+    onRipple?.(clientX, clientY);
+  };
+
+  const onPointerDown = (e: PointerEvent): void => {
+    const target = e.target as Element | null;
+    if (target?.closest(RIPPLE_EXCLUDE_SELECTOR)) return;
+    const strength = target?.closest(TEXT_TARGET_SELECTOR) ? 1.25 : 1;
+    launchRipple(e.clientX, e.clientY, strength);
+  };
+  document.addEventListener('pointerdown', onPointerDown);
   const halfHeightAtGalaxyZ = tanHalfFov * (CAMERA_Z - GALAXY_Z);
   const halfHeightAtGlowZ = tanHalfFov * (CAMERA_Z - GLOW_Z);
 
@@ -232,8 +297,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
     const u = field.uniforms;
     u.uTime.value = elapsed;
+    elapsedNow = elapsed;
     u.uGalaxySpin.value = elapsed * GALAXY_SPIN_RATE;
     u.uDissolve.value = dissolve;
+
+    // Smooth pointer — the lerp keeps the avoidance feeling weighty
+    // rather than glued to the cursor; strength eases in after the first
+    // real move so the (0,0) default never repels screen-centre.
+    const p = u.uPointer.value;
+    p.x += (targetPointerX - p.x) * 0.08;
+    p.y += (targetPointerY - p.y) * 0.08;
+    u.uPointerStrength.value += ((pointerSeen ? 1 : 0) - u.uPointerStrength.value) * 0.05;
     // Field lags the content slightly as the page scrolls — enough to
     // feel attached to the page, not painted on the glass.
     u.uScrollDrift.value = scrollProgress * 1.5;
@@ -278,6 +352,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     setDissolve: (p: number): void => {
       dissolve = Math.max(0, Math.min(1, p));
     },
+    ripple: (clientX: number, clientY: number, strength = 1): void => {
+      launchRipple(clientX, clientY, strength);
+    },
     resize: resize.handler,
     dispose: (): void => {
       if (disposed) return;
@@ -285,6 +362,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       cancelAnimationFrame(raf);
       raf = 0;
       resize.dispose();
+      window.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       perfOverlay?.dispose();
 

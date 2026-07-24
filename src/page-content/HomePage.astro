@@ -129,6 +129,48 @@ const personSchema = {
   }
 </style>
 
+<style is:global>
+  /* Commit-message popups (src/lib/home/commitPopups.ts). Global because
+     the elements are created at runtime and never carry Astro's scoping
+     attribute. The container never intercepts clicks — the same
+     pointerdown that spawned a popup must keep working underneath it. */
+  .field-popups {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 30;
+    overflow: hidden;
+  }
+
+  .field-popup {
+    position: absolute;
+    transform: translate(-50%, -120%);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+    color: rgba(196, 212, 255, 0.9);
+    text-shadow: 0 0 12px rgba(128, 168, 255, 0.55);
+    animation: field-popup-rise 1.9s ease-out forwards;
+  }
+
+  /* Animated via `translate` so it composes with the centering
+     `transform` above instead of overwriting it. */
+  @keyframes field-popup-rise {
+    0% {
+      opacity: 0;
+      translate: 0 8px;
+    }
+    12% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      translate: 0 -44px;
+    }
+  }
+</style>
+
 <script>
   import { initHomeTimeline } from '../lib/gsap/homeTimeline';
   import { onRoute } from '../lib/lifecycle';
@@ -136,12 +178,14 @@ const personSchema = {
   type HomeSceneHandle = {
     setScrollProgress: (p: number) => void;
     setDissolve: (p: number) => void;
+    ripple: (clientX: number, clientY: number, strength?: number) => void;
     dispose: () => void;
   };
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Boots the Three.js particle field and returns its handle, or null when the
+  // Boots the Three.js particle field (plus the commit-popup layer that
+  // rides on its ripples) and returns a composite handle, or null when the
   // scene is skipped (mobile / reduced-motion / missing canvas) or fails to
   // init. The GSAP timeline is owned by the caller, not here.
   const bootHomeScene = async (): Promise<HomeSceneHandle | null> => {
@@ -153,10 +197,40 @@ const personSchema = {
     const skipScene = !canvas || reducedMotion || isSmall;
 
     if (!skipScene && canvas) {
+      let popups: { spawn: (x: number, y: number) => void; dispose: () => void } | null =
+        null;
       try {
-        const { createHomeScene } = await import('../lib/three/homeScene');
-        return await createHomeScene({ canvas });
+        let commitMessages: string[] = [];
+        const raw = canvas.dataset.commitMessages;
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              commitMessages = parsed.filter((s): s is string => typeof s === 'string');
+            }
+          } catch {
+            // Bad JSON shouldn't kill the scene — popups fall back to defaults.
+          }
+        }
+        const [{ createHomeScene }, { buildCommitPopups }] = await Promise.all([
+          import('../lib/three/homeScene'),
+          import('../lib/home/commitPopups'),
+        ]);
+        popups = buildCommitPopups(commitMessages);
+        const boundPopups = popups;
+        const scene = await createHomeScene({
+          canvas,
+          onRipple: (x, y) => boundPopups.spawn(x, y),
+        });
+        return {
+          ...scene,
+          dispose: (): void => {
+            scene.dispose();
+            boundPopups.dispose();
+          },
+        };
       } catch (err) {
+        popups?.dispose();
         console.warn('home scene failed to init', err);
       }
     } else if (canvas) {

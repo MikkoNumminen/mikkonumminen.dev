@@ -33,6 +33,7 @@ import {
   SRGBColorSpace,
   type Texture,
   Vector3,
+  Vector4,
 } from 'three';
 import { makeRadialSpriteTexture } from '../textures';
 
@@ -57,6 +58,16 @@ export interface ParticleFieldUniforms {
   uTime: { value: number };
   uForm: { value: number };
   uDissolve: { value: number };
+  /** Pointer position on the z=0 world plane (z component unused). */
+  uPointer: { value: Vector3 };
+  /** 0 until the first pointer move, then eased toward 1 — stops the
+   *  (0,0) default from repelling particles at screen centre on load. */
+  uPointerStrength: { value: number };
+  /** Fixed pool of 4 ripples: xy = origin on the z=0 plane, z = start
+   *  time in scene seconds, w = strength. Inactive slots park at a
+   *  start time far in the past. */
+  uRipples: { value: [Vector4, Vector4, Vector4, Vector4] };
+  uCameraZ: { value: number };
   uGalaxySpin: { value: number };
   uGalaxyCenter: { value: Vector3 };
   uGalaxyTilt: { value: Matrix3 };
@@ -104,9 +115,26 @@ uniform float uBrightness;
 uniform float uScrollDrift;
 uniform vec3 uColorA;
 uniform vec3 uColorB;
+uniform vec3 uPointer;
+uniform float uPointerStrength;
+uniform vec4 uRipples[4];
+uniform float uCameraZ;
 
 varying vec3 vColor;
 varying float vAlpha;
+
+// Interaction tuning. Radii/distances are measured on the z=0 world
+// plane (each particle is projected onto it through the camera first,
+// so a deep starfield particle reacts to the cursor it VISUALLY sits
+// under, not to a world position that projects elsewhere).
+const float POINTER_RADIUS = 4.5;
+const float POINTER_PUSH = 1.6;
+const float RIPPLE_LIFE = 3.0;
+const float RIPPLE_SPEED = 10.0;
+const float RIPPLE_WIDTH = 2.4;
+const float RIPPLE_DAMP = 1.5;
+const float RIPPLE_PUSH = 1.5;
+const float RIPPLE_LIFT = 0.7;
 
 // Per-particle staggered progress: particles with a low seed lead the
 // morph, high seeds trail, so transitions sweep through the field.
@@ -141,6 +169,34 @@ void main() {
   );
   float amp = mix(mix(1.0, 0.06, form), 0.55, dissolve) * uDriftAmp;
   pos += wob * amp;
+
+  // Where this particle's camera ray crosses the z=0 plane — the space
+  // the pointer and ripple origins live in. Deep particles get the same
+  // screen-aligned falloff but a subtler world push (natural parallax).
+  vec2 eq = pos.xy * (uCameraZ / (uCameraZ - pos.z));
+
+  // Cursor avoidance — particles drift away and flow back, every state.
+  vec2 away = eq - uPointer.xy;
+  float ad = length(away);
+  float push = uPointerStrength * smoothstep(POINTER_RADIUS, 0.0, ad);
+  if (ad > 1e-4) pos.xy += (away / ad) * push * POINTER_PUSH;
+
+  // Click ripples — a travelling ring with a gaussian band profile and
+  // an exponentially damped envelope, radial push plus a small z lift.
+  for (int i = 0; i < 4; i++) {
+    vec4 r = uRipples[i];
+    float age = uTime - r.z;
+    if (age >= 0.0 && age <= RIPPLE_LIFE) {
+      vec2 d2 = eq - r.xy;
+      float rd = length(d2);
+      float front = age * RIPPLE_SPEED;
+      float bandArg = (rd - front) / RIPPLE_WIDTH;
+      float band = exp(-bandArg * bandArg);
+      float env = exp(-age * RIPPLE_DAMP) * r.w;
+      if (rd > 1e-4) pos.xy += (d2 / rd) * band * env * RIPPLE_PUSH;
+      pos.z += band * env * RIPPLE_LIFT;
+    }
+  }
 
   pos.y += uScrollDrift;
 
@@ -214,6 +270,17 @@ export function buildParticleField(opts: ParticleFieldOptions): ParticleFieldHan
     uTime: { value: 0 },
     uForm: { value: 0 },
     uDissolve: { value: 0 },
+    uPointer: { value: new Vector3() },
+    uPointerStrength: { value: 0 },
+    uRipples: {
+      value: [
+        new Vector4(0, 0, -1e4, 0),
+        new Vector4(0, 0, -1e4, 0),
+        new Vector4(0, 0, -1e4, 0),
+        new Vector4(0, 0, -1e4, 0),
+      ],
+    },
+    uCameraZ: { value: 26 },
     uGalaxySpin: { value: 0 },
     uGalaxyCenter: { value: new Vector3(...opts.galaxyCenter) },
     uGalaxyTilt: { value: tilt },
