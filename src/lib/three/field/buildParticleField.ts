@@ -18,6 +18,10 @@
  * Everything per-frame is a uniform write; the CPU never touches
  * per-particle data after construction. This is the invariant that keeps
  * scroll handling off the critical path — preserve it.
+ *
+ * Numeric tuning for the name state's micro-life lives in `tuning.ts`
+ * and is interpolated into the GLSL source below as compile-time
+ * constants, so the knobs sit in one block outside the shader.
  */
 import {
   AdditiveBlending,
@@ -36,6 +40,7 @@ import {
   Vector4,
 } from 'three';
 import { makeRadialSpriteTexture } from '../textures';
+import { FIELD_TUNING, glslFloat } from './tuning';
 
 export interface ParticleFieldOptions {
   count: number;
@@ -97,6 +102,8 @@ export interface ParticleFieldHandle {
 // group used, so the spiral reads at the familiar angle.
 const GALAXY_TILT_EULER = new Euler(-Math.PI * 0.18, 0, Math.PI * 0.12);
 
+const M = FIELD_TUNING.microLife;
+
 const VERTEX_SHADER = /* glsl */ `
 attribute vec3 aNamePos;
 attribute float aNameDim;
@@ -140,10 +147,41 @@ const float RIPPLE_DAMP = 1.5;
 const float RIPPLE_PUSH = 1.5;
 const float RIPPLE_LIFT = 0.7;
 
+// Micro-life constants, injected from FIELD_TUNING (field/tuning.ts) so
+// every knob lives in one block outside the shader. Compile-time
+// literals — the driver folds them; none of this costs a uniform read.
+const float NAME_SWAY = ${glslFloat(M.nameSway)};
+const float NAME_SHIMMER = ${glslFloat(M.nameShimmer)};
+const float NAME_SHIMMER_SPEED = ${glslFloat(M.nameShimmerSpeed)};
+const float NAME_TWINKLE = ${glslFloat(M.nameTwinkle)};
+const float WAVE_PERIOD = ${glslFloat(M.wavePeriod)};
+const float WAVE_FREQUENCY = ${glslFloat(M.waveFrequency)};
+const float WAVE_SHARPNESS = ${glslFloat(M.waveSharpness)};
+const float WAVE_GAIN = ${glslFloat(M.waveGain)};
+const float STRAY_FRACTION = ${glslFloat(M.strayFraction)};
+const float STRAY_PERIOD = ${glslFloat(M.strayPeriod)};
+const float STRAY_DUTY = ${glslFloat(M.strayDuty)};
+const float STRAY_DISTANCE = ${glslFloat(M.strayDistance)};
+
+const float PI = 3.14159265;
+const float TAU = 6.28318531;
+
 // Per-particle staggered progress: particles with a low seed lead the
 // morph, high seeds trail, so transitions sweep through the field.
 float staggered(float u, float sd) {
   return smoothstep(0.0, 1.0, clamp(u * 1.35 - sd * 0.35, 0.0, 1.0));
+}
+
+// Hash11 (Dave Hoskins). The seed attribute's four components are all
+// spoken for as ordered quantities (stagger, size, density rank, palette
+// mix); hashing decorrelates the micro-life draws from them, which
+// matters most for the density rank — using it raw would make any
+// density cull remove a spatially coherent slab.
+float hash11(float p) {
+  p = fract(p * 0.1031);
+  p *= p + 33.33;
+  p *= p + p;
+  return fract(p);
 }
 
 void main() {
@@ -171,8 +209,36 @@ void main() {
     cos(t * 0.7 + sd * 9.0 + pos.x * 0.30),
     sin(t * 0.5 + aSeed.w * 6.2831)
   );
-  float amp = mix(mix(1.0, 0.04, form), 0.55, dissolve) * uDriftAmp;
+  float amp = mix(mix(1.0, NAME_SWAY, form), 0.55, dissolve) * uDriftAmp;
   pos += wob * amp;
+
+  // ── Micro-life ───────────────────────────────────────────────────────
+  // The formed name is the one state with no motion of its own, and a
+  // frozen field reads as a finished PNG. Everything below is masked to
+  // glyph particles in the name state, and sized well under the ~0.43
+  // world glyph stem so the letterforms never soften.
+  float glyph = form * (1.0 - dissolve) * (1.0 - aNameDim);
+
+  // Faster than the sway above and out of phase per particle: amplitude
+  // alone just makes the name lean, frequency is what reads as shimmer.
+  vec3 shimmer = vec3(
+    sin(uTime * NAME_SHIMMER_SPEED + sd * 40.0),
+    cos(uTime * NAME_SHIMMER_SPEED * 1.13 + aSeed.w * 37.0),
+    sin(uTime * NAME_SHIMMER_SPEED * 0.87 + aSeed.y * 29.0)
+  );
+  pos += shimmer * (NAME_SHIMMER * glyph);
+
+  // Strays: a hashed slice of the glyph particles wanders off the
+  // letterform and eases back on its own phase. sin^2 has zero slope at
+  // both ends, so an excursion departs and lands without a visible kink.
+  float strayOn = step(1.0 - STRAY_FRACTION, hash11(aSeed.x * 91.7 + aSeed.w * 13.3));
+  float strayCycle = fract(uTime / STRAY_PERIOD + hash11(aSeed.w * 5.31 + 2.7));
+  float strayEnv = sin(PI * min(strayCycle / STRAY_DUTY, 1.0));
+  float strayAz = hash11(aSeed.w * 7.13 + 1.7) * TAU;
+  float strayCos = hash11(aSeed.x * 3.71 + 5.3) * 2.0 - 1.0;
+  float straySin = sqrt(max(0.0, 1.0 - strayCos * strayCos));
+  pos += vec3(straySin * cos(strayAz), straySin * sin(strayAz), strayCos) *
+    (strayEnv * strayEnv * STRAY_DISTANCE * glyph * strayOn);
 
   // Scroll drift applies BEFORE the interaction block: the pointer and
   // ripple origins are converted from screen coordinates, so they refer
@@ -219,13 +285,21 @@ void main() {
   float stateSize = mix(mix(1.0, 0.75, form), 0.7, dissolve) * (1.0 - dust * 0.35);
   gl_PointSize = uSize * aSeed.y * stateSize * vis * uPixelRatio * (12.0 / -mv.z);
 
-  // Twinkle — loud in the galaxy, nearly frozen in the name state so the
+  // Twinkle — loud in the galaxy, restrained in the name state so the
   // letterforms hold steady, gentle in the starfield.
-  float twAmp = mix(mix(0.30, 0.08, form), 0.22, dissolve);
+  float twAmp = mix(mix(0.30, NAME_TWINKLE, form), 0.22, dissolve);
   float tw = 1.0 - twAmp + twAmp * sin(uTime * (1.2 + aSeed.y) + sd * 6.2831);
 
+  // Brightness wave: a highlight travelling letter to letter across the
+  // formed name. Phase comes from NAME-space x, not the live position,
+  // so the crest tracks the letterforms rather than being dragged around
+  // by shimmer, cursor push and ripples.
+  float wavePhase = uTime * (TAU / WAVE_PERIOD) - aNamePos.x * WAVE_FREQUENCY;
+  float wave = pow(0.5 + 0.5 * cos(wavePhase), WAVE_SHARPNESS);
+
   vColor = mix(uColorA, uColorB, aSeed.w);
-  vAlpha = uBrightness * vis * tw * (1.0 - dust * 0.78);
+  vAlpha =
+    uBrightness * vis * tw * (1.0 - dust * 0.78) * (1.0 + WAVE_GAIN * wave * glyph);
 }
 `;
 
