@@ -223,7 +223,7 @@ Several `scripts/` and `scripts/lib/` modules have co-located `*.test.mjs` suite
 
 ## AI tooling
 
-Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/) — version-controlled, reviewed when added, audited per run. Each skill spawns N parallel Sonnet sub-agents that return structured reports; an Opus synthesizer applies the agreed-on rules and opens a PR. The orchestrator never merges — human review is the gate.
+Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/) — version-controlled, reviewed when added, audited per run. The automation skills spawn N parallel Sonnet sub-agents that return structured reports; an Opus synthesizer applies the agreed-on rules and opens a PR, and the orchestrator never merges — human review is the gate. The RAG skills are knowledge-and-harness specs a session loads instead of re-deriving the architecture or test battery from scratch.
 
 ### Skills shipped in this repo
 
