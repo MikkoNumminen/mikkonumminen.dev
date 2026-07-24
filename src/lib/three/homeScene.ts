@@ -97,6 +97,14 @@ export interface HomeSceneHandle {
    * plays out invisibly behind the overlay. Idempotent.
    */
   startIntro: () => void;
+  /**
+   * Jump straight to the fully-formed state, skipping the galaxy→name
+   * intro. Used for back/forward restores that land mid-page — replaying
+   * the formation inside a scrolled view is nonsense; the correct state
+   * there is the formed field at its scrubbed dissolve. Suppresses
+   * `onFormed`, so the discoverability hint never fires off a restore.
+   */
+  snapFormed: () => void;
 }
 
 const CAMERA_Z = 26;
@@ -521,6 +529,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     whenReady: (): Promise<void> => readyPromise,
     startIntro: (): void => {
       if (introStartedAt < 0) introStartedAt = elapsedNow;
+    },
+    snapFormed: (): void => {
+      formTime = FORM_DURATION;
+      form = 1;
+      formedNotified = true;
     },
     resize: resize.handler,
     dispose: (): void => {
