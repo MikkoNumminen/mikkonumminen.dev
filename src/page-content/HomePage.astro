@@ -77,13 +77,6 @@ const personSchema = {
 
 <BaseLayout title={t.meta.home.title} description={t.meta.home.description} theme="home">
   <Fragment slot="head">
-    <link
-      rel="preload"
-      href="/fonts/helvetiker_bold.typeface.json"
-      as="fetch"
-      type="application/json"
-      crossorigin="anonymous"
-    />
     <script
       is:inline
       type="application/ld+json"
@@ -91,11 +84,50 @@ const personSchema = {
     />
   </Fragment>
 
-  <Hero commitMessages={commitMessages} />
+  {/* The unified particle field. Fixed and full-viewport so the field
+      persists behind every section of the page — the hero no longer owns
+      it. z-index -1 paints it above the body background but below all
+      normal-flow content. pointer-events: none: clicks are observed at
+      the document level by the scene, never captured by the canvas. */}
+  <canvas
+    id="home-canvas"
+    class="field-canvas"
+    aria-hidden="true"
+    data-commit-messages={JSON.stringify(commitMessages)}></canvas>
+
+  <Hero />
   <Intro />
   <LatestEntries />
   <NavCards />
 </BaseLayout>
+
+<style>
+  .field-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    display: block;
+  }
+
+  /* Small screens and reduced-motion clients never get the WebGL field —
+     the boot script skips scene creation and the DOM fallback title in
+     the hero takes over. Hiding the canvas here keeps those paths free
+     of a stray transparent element and mirrors the old hero CSS. */
+  @media (max-width: 640px) {
+    .field-canvas {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field-canvas {
+      display: none;
+    }
+  }
+</style>
 
 <script>
   import { initHomeTimeline } from '../lib/gsap/homeTimeline';
@@ -103,14 +135,15 @@ const personSchema = {
 
   type HomeSceneHandle = {
     setScrollProgress: (p: number) => void;
+    setDissolve: (p: number) => void;
     dispose: () => void;
   };
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Boots the Three.js hero scene and returns its handle, or null when the scene
-  // is skipped (mobile / reduced-motion / missing canvas) or fails to init. The
-  // GSAP timeline is owned by the caller, not here.
+  // Boots the Three.js particle field and returns its handle, or null when the
+  // scene is skipped (mobile / reduced-motion / missing canvas) or fails to
+  // init. The GSAP timeline is owned by the caller, not here.
   const bootHomeScene = async (): Promise<HomeSceneHandle | null> => {
     const canvas = document.getElementById('home-canvas') as HTMLCanvasElement | null;
 
@@ -121,30 +154,14 @@ const personSchema = {
 
     if (!skipScene && canvas) {
       try {
-        let commitMessages: string[] = [];
-        const raw = canvas.dataset.commitMessages;
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              commitMessages = parsed.filter((s): s is string => typeof s === 'string');
-            }
-          } catch {
-            // Bad JSON shouldn't kill the scene — fall back to defaults.
-          }
-        }
         const { createHomeScene } = await import('../lib/three/homeScene');
-        return await createHomeScene({
-          canvas,
-          fontUrl: '/fonts/helvetiker_bold.typeface.json',
-          reducedMotion,
-          commitMessages,
-        });
+        return await createHomeScene({ canvas });
       } catch (err) {
         console.warn('home scene failed to init', err);
       }
     } else if (canvas) {
-      // Hide the canvas on mobile / reduced-motion so the gradient backdrop shows
+      // Hide the canvas on mobile / reduced-motion so the flat page
+      // background shows through
       canvas.style.display = 'none';
       const fallback = document.querySelector('.hero__title-fallback');
       if (fallback) (fallback as HTMLElement).style.display = 'block';
@@ -166,6 +183,7 @@ const personSchema = {
       const timeline = initHomeTimeline({
         reducedMotion,
         onScrollProgress: (p) => sceneHandle?.setScrollProgress(p),
+        onHeroProgress: (p) => sceneHandle?.setDissolve(p),
       });
 
       // If disposed (navigated away) before the async scene resolves, dispose the

@@ -6,6 +6,13 @@ type Tween = gsap.core.Tween;
 
 export interface HomeTimelineOptions {
   onScrollProgress?: (progress: number) => void;
+  /**
+   * Hero-scrub progress 0→1 over the hero section's own height — drives
+   * the particle field's name→starfield dissolve (and its reverse when
+   * scrolling back to top). Kept separate from `onScrollProgress` (whole
+   * document) so the dissolve completes within the first viewport.
+   */
+  onHeroProgress?: (progress: number) => void;
   reducedMotion?: boolean;
 }
 
@@ -75,7 +82,7 @@ function splitChars(root: ParentNode): void {
 }
 
 export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHandle {
-  const { onScrollProgress, reducedMotion = prefersReducedMotion() } = opts;
+  const { onScrollProgress, onHeroProgress, reducedMotion = prefersReducedMotion() } = opts;
 
   // ── Reduced-motion static fallback ─────────────────────────────────
   // No splitting, no opacity:0, no tweens, no ScrollTriggers. Everything
@@ -94,6 +101,7 @@ export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHa
     );
 
     if (onScrollProgress) onScrollProgress(0);
+    if (onHeroProgress) onHeroProgress(0);
 
     return {
       refresh: (): void => {},
@@ -121,6 +129,22 @@ export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHa
           start: 'top top',
           end: 'bottom bottom',
           onUpdate: (self) => onScrollProgress(self.progress),
+        }),
+      );
+    }
+
+    // ── Hero dissolve scrub for the particle field ──────────────────────
+    // Name (or galaxy, pre-formation) → starfield across the hero's own
+    // height. Scrub means reverse comes free: scrolling back to the top
+    // re-forms the name every time.
+    if (onHeroProgress) {
+      ownedTriggers.push(
+        ScrollTrigger.create({
+          trigger: '[data-section-hero]',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+          onUpdate: (self) => onHeroProgress(self.progress),
         }),
       );
     }
