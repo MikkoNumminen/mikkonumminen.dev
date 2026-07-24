@@ -15,6 +15,13 @@ updates:
       # this entry once @astrojs/check ships a release that peers typescript 7.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
+      # three is held at 0.185.x: `postprocessing` (the home field's bloom)
+      # peers "three >= 0.168 < 0.186", so a 0.186+ bump makes `npm ci` fail
+      # on the ERESOLVE peer conflict. Remove this entry once
+      # pmndrs/postprocessing ships a release that widens the peer range.
+      - dependency-name: 'three'
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
     groups:
       dev-dependencies:
         dependency-type: development
