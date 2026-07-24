@@ -107,8 +107,14 @@
   }
 
   .goat {
+    position: relative;
     width: clamp(56px, 7vw, 90px);
     animation: goat-bob 1s ease-in-out infinite;
+    /* The wrap is pointer-events: none so the goat never blocks the
+       page; re-enabled here for the click-to-bleat easter egg (migrated
+       from the old home-hero goat). Cursor stays default on purpose —
+       hidden easter eggs don't advertise. */
+    pointer-events: auto;
   }
 
   .goat svg {
@@ -153,13 +159,101 @@
     }
   }
 
+  /* Click-to-bleat: a hop with a scale pulse plus a dust puff at the
+     hooves. The hop runs on the inner svg so it composes with the idle
+     bob on .goat instead of replacing it mid-cycle. */
+  .goat--bleat svg {
+    animation: goat-bleat 0.6s ease-out;
+  }
+
+  @keyframes goat-bleat {
+    0% {
+      transform: translateY(0) scale(1);
+    }
+    35% {
+      transform: translateY(-14px) scale(1.16);
+    }
+    100% {
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .goat::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -4px;
+    width: 26px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      rgba(245, 239, 226, 0.5),
+      rgba(245, 239, 226, 0)
+    );
+    transform: translateX(-50%) scale(0);
+    pointer-events: none;
+  }
+
+  .goat--bleat::after {
+    animation: goat-dust 0.6s ease-out;
+  }
+
+  @keyframes goat-dust {
+    0% {
+      transform: translateX(-50%) scale(0.2);
+      opacity: 0;
+    }
+    30% {
+      opacity: 0.8;
+    }
+    100% {
+      transform: translateX(-50%) scale(1.6);
+      opacity: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .goat-wrap {
       will-change: auto;
     }
     .goat,
-    .goat__leg {
+    .goat__leg,
+    .goat--bleat svg,
+    .goat::after {
       animation: none;
     }
   }
 </style>
+
+<script>
+  import { onRoute } from '../../lib/lifecycle';
+
+  // Click-to-bleat easter egg, migrated from the old home-hero goat when
+  // the hero's zone decor was retired for the particle field. Purely
+  // decorative: the goat is aria-hidden and gets no cursor affordance.
+  // Reduced-motion clients skip the listener entirely — the goat stays a
+  // static illustration for them.
+  onRoute(
+    () => !!document.querySelector('[data-goat]'),
+    () => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const goat = document.querySelector<HTMLElement>('[data-goat] .goat');
+      if (!goat) return;
+
+      const onPointerDown = (): void => {
+        // One bleat at a time — restarting mid-hop reads as a glitch,
+        // not an eager goat.
+        if (goat.classList.contains('goat--bleat')) return;
+        goat.classList.add('goat--bleat');
+        window.setTimeout(() => goat.classList.remove('goat--bleat'), 650);
+      };
+      goat.addEventListener('pointerdown', onPointerDown);
+
+      return () => {
+        goat.removeEventListener('pointerdown', onPointerDown);
+        goat.classList.remove('goat--bleat');
+      };
+    },
+  );
+</script>
