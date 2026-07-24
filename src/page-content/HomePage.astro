@@ -307,6 +307,7 @@ const personSchema = {
     setMood: (hue: number, density: number, drift: number) => void;
     whenReady: () => Promise<void>;
     startIntro: () => void;
+    snapFormed: () => void;
     dispose: () => void;
   };
 
@@ -475,6 +476,23 @@ const personSchema = {
           // static page must never wait on a scene that isn't coming.
           reveal();
           return;
+        }
+        // Back/forward restores land with the browser's scroll already
+        // applied, but every ScrollTrigger callback that fired during
+        // mount hit a still-null scene handle — so the field would boot
+        // believing it's at the top and play the galaxy→name intro
+        // inside the restored view. Sync the real position now, and on a
+        // mid-page restore skip the intro entirely: the correct state
+        // there is the formed field at its scrubbed dissolve.
+        const heroHeight =
+          document.querySelector('[data-section-hero]')?.clientHeight ??
+          window.innerHeight;
+        const restoredDissolve = Math.min(1, window.scrollY / heroHeight);
+        if (restoredDissolve > 0.05) handle.snapFormed();
+        handle.setDissolve(restoredDissolve);
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        if (scrollable > 0) {
+          handle.setScrollProgress(Math.min(1, window.scrollY / scrollable));
         }
         if (gateActive && !revealed) {
           void handle.whenReady().then(reveal);
