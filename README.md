@@ -13,7 +13,7 @@ This is intentionally not a typical web app. It's a visual showcase, with each p
 - **`/experience`** — Parallax mountain landscape. A goat climbs as you scroll. The sky shifts from pre-dawn to bright day across the climb. Timeline markers fade in along the way.
 - **`/contact`** — Terminal / CRT aesthetic. Real command parser, command history, tab completion, scan lines, blinking cursor, copy-to-clipboard. Try `help` for the command list — `skills` and `download --catalog` surface the live cross-repo skill registry.
 
-Page-to-page navigation triggers a canvas particle dissolve coloured to the destination page's theme.
+Page-to-page navigation is client-side (Astro `ClientRouter`), animated with the built-in view transition; the music bed survives the swap.
 
 ## Languages
 
@@ -167,7 +167,7 @@ npm run test:watch    # Vitest in watch mode for TDD
 
 ```
 src/
-  layouts/        BaseLayout — shared head, nav, transition overlay
+  layouts/        BaseLayout — shared head, nav, client router
   components/     One folder per page (home, projects, experience, contact, nav)
   page-content/   Page-level composition (one .astro per page, wrapped by the routed file)
   pages/          One file per route (.astro), including /fi and /sv mirrors
@@ -178,7 +178,7 @@ src/
     timeline/     Experience-page timeline scene helpers
     gsap/         GSAP timelines per page
     terminal/     Terminal command parser and runtime
-    transitions/  Page transitions (canvas particle dissolve)
+    blog/         Blog content helpers (entry dates, slug parity)
     observability/ Sentry + Core Web Vitals init
     utils/        Cross-cutting helpers (e.g. escapeHtml)
     debug/        Dev-only diagnostics, stripped from production

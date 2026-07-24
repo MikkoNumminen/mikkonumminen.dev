@@ -34,6 +34,19 @@
 | --- | --- | --- | --- |
 | skill | `rag-audit`, `rag-backend`, `rag-experiment` exist under `.claude/skills/` but are absent from "Skills shipped in this repo" (which reads as an enumeration: "the four skills above") | "AI tooling" | adjacent entries are multi-paragraph with measured token-economics receipts; matching that shape would require fabricating figures. Recommend a manual decision: either add hand-written entries with real receipts, or reword the section opener so it doesn't imply completeness. |
 
+## Second pass — ADR 0013 drift the first sweep missed
+
+The first pass was scoped by the #406/#407 diff; a follow-up sweep against
+ADR 0013 (client-side routing, merged 2026-07-23) caught three more stale
+claims plus one missing tree entry, fixed in the same PR:
+
+| Axis | README claim | Reality | Fix |
+| --- | --- | --- | --- |
+| feature | "Page-to-page navigation triggers a canvas particle dissolve" | the bespoke dissolve module was deleted with ADR 0013; navigation is Astro `ClientRouter` with the built-in view transition | rewritten |
+| file-structure | `layouts/ BaseLayout — shared head, nav, transition overlay` | no transition overlay exists; BaseLayout hosts the `ClientRouter` | rewritten |
+| file-structure | `transitions/  Page transitions (canvas particle dissolve)` in the tree | `src/lib/transitions/` no longer exists | removed |
+| file-structure | `src/lib/blog/` absent from the tree | exists (entry dates, slug parity helpers) | added |
+
 ### Unverifiable claims (flagged, not touched)
 
 | Claim | Why unverifiable | Suggested action |
