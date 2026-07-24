@@ -1,725 +1,391 @@
 /**
- * Home page (`/`) hero scene: the 3D "MIKKO NUMMINEN" title beside a spiral
- * galaxy, with meteors that converge on the galaxy and a one-shot entrance.
- * Entry point is `createHomeScene` (below); the rest of the file is its closure.
+ * Home page (`/`) scene: ONE continuous particle field on a fixed,
+ * full-viewport canvas behind the whole page (opaque, cleared in the
+ * page's own ink — see the createRenderer call below). The field
+ * morphs between three states — galaxy (load-in), name ("MIKKO
+ * NUMMINEN" formation), and starfield (persistent background for every
+ * content section) — driven entirely by uniforms; see
+ * `field/buildParticleField.ts` for the state model.
+ *
+ * Scroll stays off the critical path by construction: GSAP ScrollTrigger
+ * callbacks write plain numbers through the {@link HomeSceneHandle}, the
+ * tick loop copies them into uniforms, and the vertex shader does the
+ * rest. No per-frame allocations, no layout reads, no CPU per-particle
+ * work.
+ *
+ * The scene is only ever constructed on the full-motion desktop path —
+ * the boot script in HomePage.astro skips it for reduced-motion and
+ * small-screen clients (they get the static DOM fallback and the canvas
+ * is display:none), so unlike the previous implementation there is no
+ * internal reduced-motion branching.
  */
 import {
-  ACESFilmicToneMapping,
-  AmbientLight,
-  DirectionalLight,
-  Fog,
-  MeshPhysicalMaterial,
-  type Object3D,
+  Color,
+  HalfFloatType,
+  LinearSRGBColorSpace,
+  Mesh,
+  MeshBasicMaterial,
   PerspectiveCamera,
-  PointLight,
+  PlaneGeometry,
   Scene,
-  Vector3,
+  SRGBColorSpace,
 } from 'three';
+import { BloomEffect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
-import { userDataNumber } from './userData';
-import { easeOutCubic } from './easing';
-import { entranceFlashEnvelope } from './entranceFlash';
-import { responsiveTitleScale, responsiveGalaxyX } from './responsiveLayout';
-import { createOffscreenPauser } from '../utils/createOffscreenPauser';
 import { readPerfFlags } from '../debug/perfFlags';
 import {
   mountPerfOverlay,
   formatPerfOverlayLabel,
   type PerfOverlayHandle,
 } from '../debug/perfOverlay';
-import {
-  buildTitle,
-  DEPTH as TITLE_DEPTH,
-  loadFont,
-  measureTextWidth,
-  type TitleLetter,
-} from './buildTitle';
-import { createInteractionManager } from './interactions';
-import { buildTitleColorMap } from './buildTitleColorMap';
-import { buildCollisionSparks, type CollisionSparksHandle } from './buildCollisionSparks';
-import { buildEnvironment, type EnvironmentHandle } from './buildEnvironment';
-import { buildGalaxyLayer, type GalaxyLayerHandle } from './buildGalaxyLayer';
-import { buildHorizonGlow, type HorizonGlowHandle } from './buildHorizonGlow';
-import { buildImpactText, type ImpactTextHandle } from './buildImpactText';
-import { buildLetterFlashes, type LetterFlashesHandle } from './buildLetterFlashes';
-import { buildMeteors, type MeteorsHandle } from './buildMeteors';
-import {
-  buildExperienceZoneDecor,
-  type ExperienceZoneDecorHandle,
-} from './buildExperienceZoneDecor';
-import {
-  buildProjectsZoneDecor,
-  type ProjectsZoneDecorHandle,
-} from './buildProjectsZoneDecor';
-import { createBloomComposer, type BloomComposerHandle } from './postprocessing';
-import { disposeMaterial } from './disposeMaterial';
-import { decayImpulse } from './textures';
+import { buildParticleField } from './field/buildParticleField';
+import { generateGalaxyTargets } from './field/galaxyTargets';
+import { generateStarfieldTargets } from './field/starfieldTargets';
+import { rasterizeNameTargets } from './field/nameTargets';
+import { makeRadialSpriteTexture } from './textures';
+import { easeOutCubic } from './easing';
 
-interface HomeSceneOptions {
+export interface HomeSceneOptions {
   canvas: HTMLCanvasElement;
-  fontUrl: string;
-  reducedMotion?: boolean;
   /**
-   * Recent commit subjects, baked in at build time. One is shown at each
-   * meteor impact as an RPG-style damage popup. Falls back to a small
-   * sentinel list when empty (e.g. dev outside a git checkout).
+   * Fired whenever a ripple actually launches (background clicks and the
+   * programmatic {@link HomeSceneHandle.ripple} alike, in viewport
+   * coordinates). The commit-message popup layer subscribes here — the
+   * scene stays presentation-only and knows nothing about popups.
    */
-  commitMessages?: string[];
+  onRipple?: (clientX: number, clientY: number) => void;
+  /**
+   * Fired once, the first time the name formation reaches completion.
+   * The boot script hangs the once-per-session discoverability hint off
+   * this — the scene itself never decides to show hints.
+   */
+  onFormed?: () => void;
 }
 
-// Sentinel pool used only when build-time `git log` returned nothing
-// (e.g. site previewed outside a git checkout). Mirrors the type(scope)
-// shape of real entries so a fallback popup is indistinguishable from
-// a real one — no full-sentence fragments leaking into the UI.
-const FALLBACK_COMMITS: string[] = [
-  'feat(home)',
-  'fix(home)',
-  'feat(projects)',
-  'fix(projects)',
-  'chore(lint)',
-  'feat(experience)',
-  'fix(contact)',
-  'feat(observability)',
-  'docs(audit)',
-  'fix(a11y)',
-];
-
 /**
- * Imperative handle to a mounted home scene. The caller owns the lifecycle:
- * call `dispose()` once on unmount / route change to release the WebGL context,
- * geometries, materials, and rAF/event listeners.
+ * Imperative handle to the mounted field. The caller owns the lifecycle:
+ * `dispose()` once on route change releases the WebGL context, GPU
+ * resources, and listeners. Every setter is a plain number write — safe
+ * to call from ScrollTrigger callbacks at scroll rate.
  */
 export interface HomeSceneHandle {
-  /** Drive the scroll-linked camera + parallax. `progress` is 0 (top) → 1 (bottom). */
+  /** Whole-document scroll progress 0→1; drives the subtle global drift. */
   setScrollProgress: (progress: number) => void;
-  /** Release the renderer, all GPU resources, and listeners. Call once on unmount. */
+  /** Hero-scrub progress 0→1: name/galaxy dissolves into the starfield. */
+  setDissolve: (progress: number) => void;
+  /** Launch a field ripple from a viewport position (used by the
+   *  discoverability hint; background clicks route here internally). */
+  ripple: (clientX: number, clientY: number, strength?: number) => void;
+  /** Per-section mood: palette hue rotation (degrees) plus density and
+   *  drift multipliers. Values arrive pre-blended from the timeline. */
+  setMood: (hue: number, density: number, drift: number) => void;
+  /** Release the renderer, all GPU resources, and listeners. Call once. */
   dispose: () => void;
-  /** Re-fit the title and galaxy after a viewport / orientation change. */
+  /** Re-fit the field after a viewport / orientation change. */
   resize: () => void;
+  /**
+   * Resolves once the scene has proven itself warm: shaders compiled and
+   * two consecutive real frames rendered under the jank threshold (or a
+   * frame-count cap, so a slow-but-steady machine still resolves). The
+   * loading gate reveals on this — measured ready, not assumed.
+   */
+  whenReady: () => Promise<void>;
+  /**
+   * Start the load-in choreography (galaxy hold → name formation).
+   * Called by the boot script at gate reveal so the formation never
+   * plays out invisibly behind the overlay. Idempotent.
+   */
+  startIntro: () => void;
 }
 
-const FOG_COLOR = 0x05060c;
-const TITLE = 'MIKKO\nNUMMINEN';
-const TITLE_DESIGN_WIDTH = 1100;
-// Floor below which the title would read as decorative noise rather than
-// a name. Set low enough that the frustum-fit cap can fully constrain
-// portrait-tablet aspect ratios (≈ 0.7 aspect needs scale ≈ 0.3) without
-// the floor kicking in and re-introducing right-edge clipping.
-const TITLE_MIN_SCALE = 0.3;
+const CAMERA_Z = 26;
+const CAMERA_FOV = 50;
 
-/**
- * Build and mount the home hero scene: the 3D "MIKKO NUMMINEN" title, the
- * spiral galaxy beside it, meteors that converge on the galaxy with collision
- * flashes, and the one-shot entrance. Async because it loads the title font.
- *
- * Lifecycle: returns a {@link HomeSceneHandle}; the caller owns it and MUST
- * call `dispose()` on unmount to release the WebGL context and GPU resources.
- * Honours `reducedMotion` (settles to the final pose, no per-frame rAF churn).
- */
+// Galaxy anchor — left third of the frame, pushed back, mirroring the
+// old scene's editorial layout. X is clamped on resize so narrow
+// viewports never clip the disk (see fitGalaxyX below).
+const GALAXY_DESIGN_X = -14;
+const GALAXY_Y = -2;
+const GALAXY_Z = -14;
+const GALAXY_RADIUS = 8;
+const GALAXY_LEFT_PADDING = 1;
+const GALAXY_SPIN_RATE = -0.04;
+
+// Name block design width at uNameScale=1 plus the frustum padding the
+// fit math preserves on either side.
+const NAME_DESIGN_HALF_WIDTH = 10;
+const NAME_FIT_PADDING = 1.5;
+
+// State-blended palettes. Galaxy/name share the richer pair; the
+// starfield dims toward the cool end so page text always wins contrast.
+const GALAXY_COLOR_A = new Color('#a8c0ff');
+const GALAXY_COLOR_B = new Color('#fff1dc');
+const STAR_COLOR_A = new Color('#8fa3c8');
+const STAR_COLOR_B = new Color('#d8e0f2');
+const GALAXY_BRIGHTNESS = 1.0;
+const STARFIELD_BRIGHTNESS = 0.5;
+
+// Elements whose clicks belong to real UI — never converted into field
+// ripples. `[data-no-ripple]` opts out anything else (e.g. the data-feed
+// widget, which has its own click response).
+const RIPPLE_EXCLUDE_SELECTOR =
+  'a, button, input, textarea, select, summary, [data-no-ripple]';
+
+// Clicks landing on running text still ripple the field (the page is one
+// material), just slightly stronger so the response reads as deliberate.
+const TEXT_TARGET_SELECTOR = 'p, h1, h2, h3, h4, li, blockquote, figcaption';
+
+// Load-in choreography: hold the pure galaxy briefly, then form the name
+// over FORM_DURATION seconds. If the user scrolls mid-formation the
+// dissolve scrub takes over visually while formation races to completion
+// at FORM_CATCHUP speed — no pop, no conflicting owners of the morph.
+const FORM_DELAY = 0.4;
+const FORM_DURATION = 2.0;
+const FORM_CATCHUP = 4;
+/** Glyph particles get a touch more presence than the galaxy so the
+ *  formed name is unambiguously the brightest thing in the frame. */
+const NAME_BRIGHTNESS = 1.12;
+
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
-  const { canvas, fontUrl, reducedMotion = false } = opts;
-  const commitMessages =
-    opts.commitMessages && opts.commitMessages.length > 0
-      ? opts.commitMessages
-      : FALLBACK_COMMITS;
-
-  // Load the font BEFORE allocating any GPU/DOM resources. If the font fails
-  // we never enter the try-block, so there is nothing to clean up.
-  const font = await loadFont(fontUrl);
+  const { canvas, onRipple, onFormed } = opts;
 
   const perfFlags = readPerfFlags();
-
-  // Keep a local reference so the same cap can be forwarded to
-  // createResizeHandler — otherwise every resize event would silently
-  // upgrade the DPR back to the browser's native value (up to 2).
   const maxPixelRatio = perfFlags.lowPerf ? 1 : 1.5;
-  const renderer = createRenderer(canvas, {
-    toneMapping: ACESFilmicToneMapping,
-    toneMappingExposure: 1.05,
-    // `?perf=low` clamps DPR at 1 — halves the pixel work of the chain
-    // (RenderPass → UnrealBloomPass → OutputPass) versus the default 1.5.
-    maxPixelRatio,
-  });
+  const particleCount = perfFlags.lowPerf ? 8_000 : 24_000;
+
+  // Opaque context clearing to the page's own ink (--color-ink). The
+  // canvas covers the whole viewport behind every section, so opaque is
+  // pixel-identical to transparent-over-ink — and it removes the alpha
+  // channel entirely, which the post chain otherwise leaves at 0 in
+  // empty regions where the browser then composites the frame
+  // additively over the page and lifts every black to gray.
+  const renderer = createRenderer(canvas, { maxPixelRatio, alpha: false });
+  renderer.setClearColor(0x0a0a0f, 1);
 
   const scene = new Scene();
-  scene.fog = new Fog(FOG_COLOR, 12, 60);
-
-  // ── Environment (drives the chrome reflection on the title) ──────────
-  const env: EnvironmentHandle = buildEnvironment(renderer);
-  scene.environment = env.envMap;
-
   const camera = new PerspectiveCamera(
-    45,
+    CAMERA_FOV,
     window.innerWidth / window.innerHeight,
     0.1,
     200,
   );
-  camera.position.set(0, 0, 18);
+  camera.position.set(0, 0, CAMERA_Z);
+  camera.lookAt(0, 0, 0);
 
-  // ── Lighting ─────────────────────────────────────────────────────────
-  const ambient = new AmbientLight(0xffffff, 0.28);
-  scene.add(ambient);
-
-  const keyLight = new DirectionalLight(0xeaf2ff, 1.4);
-  keyLight.position.set(6, 8, 10);
-  scene.add(keyLight);
-
-  // Rim is animated on a slow orbit in the tick loop. Steady intensity
-  // After the entrance, the rim only fires when galaxies collide — no
-  // random sweep, no idle baseline. The chrome's resting look is carried
-  // by ambient + fill + envMap; the rim is reserved for synced events.
-  const RIM_BASE_INTENSITY = 0;
-  // Orbiting rim — drives the dramatic entrance burst only. After
-  // entrance it sits at 0 intensity and just slowly orbits in case it's
-  // ever wired up again.
-  const rimLight = new DirectionalLight(0xa6c2ff, RIM_BASE_INTENSITY);
-  rimLight.position.set(-8, -2, -4);
-  scene.add(rimLight);
-
-  // Dedicated camera-facing flash light for galaxy collisions. The
-  // orbiting rim spends roughly half its time behind the title (z < 0),
-  // and a DirectionalLight from behind only lights the back faces — so
-  // every other collision was producing a "real but invisible" rim
-  // flash. This light is locked above-and-in-front of the title (camera
-  // is at +18 looking at the origin), so it always hits the front
-  // faces the user actually sees.
-  const collisionRimLight = new DirectionalLight(0xc8e0ff, 0);
-  collisionRimLight.position.set(2, 2, 6);
-  scene.add(collisionRimLight);
-
-  const fillLight = new PointLight(0xff8a4c, 0.55, 40);
-  fillLight.position.set(-4, 4, 6);
-  scene.add(fillLight);
-
-  // Resting world-space center of the spiral galaxy. Pushed deep into
-  // the left third of the frame so the chrome title can sit in the
-  // right third — editorial layout, not symmetric centre-stage.
-  // Meteors converge on this point; the collision-flash light moves to
-  // each impact as it fires.
-  //
-  // On narrow-aspect viewports the design x (-13) sits outside the
-  // visible frustum at the galaxy's z-plane, clipping the spiral arms.
-  // The resize handler pulls the galaxy toward x=0 just enough to keep
-  // it inside the viewport (see GALAXY_RADIUS / GALAXY_LEFT_PADDING).
-  const GALAXY_DESIGN_X = -13;
-  const GALAXY_DESIGN_Y = -3;
-  const GALAXY_DESIGN_Z = -13;
-  // Visual radius of the spiral disk. homeScene is the source of truth —
-  // passed into buildGalaxyLayer below so the value used to build the
-  // geometry and the value used by the fit math can never drift apart.
-  const GALAXY_RADIUS = 8;
-  // World-space breathing room between the galaxy's left edge and the
-  // visible frustum.
-  const GALAXY_LEFT_PADDING = 1;
-  const GALAXY_CENTER: [number, number, number] = [
-    GALAXY_DESIGN_X,
-    GALAXY_DESIGN_Y,
-    GALAXY_DESIGN_Z,
-  ];
-  const galaxyCenter = new Vector3(...GALAXY_CENTER);
-  // Title's resting offset along x. Tuned so on a 1440-px viewport the
-  // right edge of "NUMMINEN" clears the top-right data-feed widget; on
-  // wider screens the gap grows. The offset is scaled by the responsive
-  // title scale each frame so narrow viewports shrink it proportionally
-  // and "NUMMINEN" never clips the frame.
-  const TITLE_X_OFFSET = 3;
-
-  // Dedicated collision-flash PointLight. Steady at 0; pulses bright on
-  // each meteor impact and decays back over ~0.25 s, painting the
-  // chrome with a brief bright flash that agrees with the sparks.
-  const collisionFlashLight = new PointLight(0xeaf5ff, 0, 32);
-  collisionFlashLight.position.copy(galaxyCenter);
-  scene.add(collisionFlashLight);
-
-  // ── Horizon glow plate (sun-side halo behind the title) ──────────────
-  const horizon: HorizonGlowHandle = buildHorizonGlow();
-  // Override the builder's default position. With the title in the right
-  // third the original (12, 4.5, -15) landed the bright pinpoint right
-  // under "MIKKO". We keep the same upper-right *bearing* so the chrome's
-  // envMap reflection (baked at scene construction with the bright zone
-  // on the right) still agrees with the visible star — just lifted high
-  // enough that the star clears the title vertically.
-  horizon.mesh.position.set(13, 9, -18);
-  scene.add(horizon.mesh);
-
-  // ── Galaxy ───────────────────────────────────────────────────────────
-  // Single focal spiral galaxy — meteors converge on it from all
-  // directions and detonate on impact, driving the sparks + rim flash +
-  // commit-message popup below. `?perf=low` halves the star count; the
-  // visual change is subtle (still a clear spiral disk) but the per-frame
-  // vertex shader work drops with it.
-  const galaxy: GalaxyLayerHandle = buildGalaxyLayer({
-    starCount: perfFlags.lowPerf ? 450 : 900,
-    position: GALAXY_CENTER,
-    radius: GALAXY_RADIUS,
+  // ── The field ────────────────────────────────────────────────────────
+  const nameTargets = await rasterizeNameTargets({ count: particleCount });
+  const field = buildParticleField({
+    count: particleCount,
+    galaxyPositions: generateGalaxyTargets({
+      count: particleCount,
+      radius: GALAXY_RADIUS,
+    }),
+    namePositions: nameTargets.positions,
+    nameDim: nameTargets.dim,
+    starPositions: generateStarfieldTargets({ count: particleCount }),
+    galaxyCenter: [GALAXY_DESIGN_X, GALAXY_Y, GALAXY_Z],
+    // Fewer particles on the low tier read sparser at the same size, so
+    // give each one slightly more presence.
+    baseSize: perfFlags.lowPerf ? 17 : 13,
+    pixelRatio: renderer.getPixelRatio(),
   });
-  scene.add(galaxy.group);
+  scene.add(field.points);
 
-  // ── Collision flash sprites ──────────────────────────────────────────
-  // Bright additive sprites that scale up and fade out at the moment of
-  // each meteor impact. Reads as a clean "flash of light" matching the
-  // text rim flashes, not a debris explosion.
-  const sparks: CollisionSparksHandle = buildCollisionSparks();
-  scene.add(sparks.group);
-
-  // ── Impact text popups ───────────────────────────────────────────────
-  // RPG-style damage popups in terminal monospace, one per meteor impact.
-  // Each pop renders a recent commit subject at the impact point, drifts
-  // upward, and fades. Tinted by the meteor's world color so the popup
-  // carries the meteor's signature into the explosion.
-  const impactText: ImpactTextHandle = buildImpactText();
-  scene.add(impactText.group);
-
-  // Random commit pick with no immediate repeat — sequential indexing
-  // would cycle through the 50-message pool in the same order forever.
-  let lastCommitIdx = -1;
-  const pickCommit = (): string => {
-    if (commitMessages.length === 0) return '';
-    if (commitMessages.length === 1) return commitMessages[0]!;
-    let idx = Math.floor(Math.random() * commitMessages.length);
-    if (idx === lastCommitIdx) idx = (idx + 1) % commitMessages.length;
-    lastCommitIdx = idx;
-    return commitMessages[idx]!;
-  };
-
-  // Impact-flash energies are read/written by the meteor onImpact closure
-  // below. Declared up here so the closure captures already-initialized
-  // bindings — moving them after the buildMeteors call would TDZ if
-  // anything ever fires onImpact during init.
-  let collisionFlashEnergy = 0;
-  let collisionRimEnergy = 0;
-  // The flash on the title is the headline moment of every strike, so
-  // it's pushed hard into the saturation range — the bloom pass at
-  // threshold 0.82 amplifies anything past 1.0, turning each peak into
-  // a dramatic chrome bloom rather than a subtle rim brighten.
-  const COLLISION_RIM_PEAK = 14.0;
-  // Multiplier for the per-impact PointLight that paints the chrome
-  // from the impact's world position. Same scaling rationale as the
-  // rim — the higher the peak, the more bloom kicks in.
-  const COLLISION_FLASH_PEAK = 11.0;
-  // Decay rates (per second) for the rim and point-light energies. Lower
-  // values mean each flash lingers longer; tuned so the bright moment
-  // reads as a beat, not a strobe.
-  const COLLISION_RIM_DECAY = 3.5;
-  const COLLISION_FLASH_DECAY = 3.0;
-
-  // ── Title (continuous chrome with four-world gradient color map) ─────
-  // The four worlds are seamlessly painted across the letterforms via a
-  // horizontal gradient color map: galaxy blue on the left, chrome white
-  // in the middle-left, warm bronze in the middle-right, phosphor green
-  // on the right. The chrome metal multiplies its envMap reflections by
-  // this map, so the four worlds read as smooth color zones flowing
-  // through the letters with no segment seams.
-  const titleColorMap = buildTitleColorMap();
-  const titleMaterial = new MeshPhysicalMaterial({
-    color: 0xffffff,
-    map: titleColorMap,
-    metalness: 0.95,
-    roughness: 0.08,
-    clearcoat: 1,
-    clearcoatRoughness: 0.04,
-    reflectivity: 1,
-    envMapIntensity: 1.25,
+  // ── Background glow ──────────────────────────────────────────────────
+  // Replaces the hero's old opaque CSS radial gradient: the same deep
+  // navy centre glow, but rendered inside the scene so it belongs to the
+  // field (fading out as the field dissolves to starfield) and the page
+  // background can stay one flat colour from top to footer — the
+  // hero→About seam ceases to exist rather than being blended.
+  const GLOW_Z = -30;
+  // Alpha-matched to the old hero CSS gradient: #0d1226 at centre over
+  // the #0a0a0f ink is a whisper of navy, not a blue wash. Normal
+  // blending mixes toward the stop colour, so at alpha≈0.85 the centre
+  // reproduces the old gradient's peak almost exactly.
+  const glowTexture = makeRadialSpriteTexture(512, [
+    [0, 'rgba(13, 18, 38, 0.85)'],
+    [0.5, 'rgba(8, 11, 26, 0.5)'],
+    [1, 'rgba(5, 6, 16, 0)'],
+  ]);
+  // Canvas 2D paints sRGB values; without declaring that, the renderer
+  // treats them as linear and its output encode brightens the plate into
+  // a blue wash (rgb 13,18,38 would render as ~63,74,110).
+  glowTexture.colorSpace = SRGBColorSpace;
+  const glowMaterial = new MeshBasicMaterial({
+    map: glowTexture,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
   });
-  const title = buildTitle(font, TITLE, titleMaterial);
-  scene.add(title.group);
-  const totalHeight = title.totalHeight;
+  const glowGeometry = new PlaneGeometry(2, 2);
+  const glow = new Mesh(glowGeometry, glowMaterial);
+  glow.position.set(0, 2, GLOW_Z);
+  glow.renderOrder = 0;
+  scene.add(glow);
 
-  // ── Per-letter zone decor (text is a landscape) ──────────────────────
-  // Each letter zone of the title becomes a tiny embedded scene
-  // representing one of the four pages. Single-letter targets (M, O)
-  // keep each decor visually contained and let the chrome letters
-  // between them breathe.
-  //   M       → Experience (single ridge + drifting snow + goat)
-  //   I-K-K   → (no decor — quiet chrome between the loud zones)
-  //   O       → Projects   (Saturn ring + orbiting planet)
-  //   NUMMINEN → (no decor — the line reads as just the name)
-  //
-  // The contact zone is no longer in the 3D scene — it lives as a
-  // "data feed" widget under the editorial coords in the top-right
-  // corner of the page, so the matrix cascade doesn't block scene
-  // elements (galaxies, etc). The "home" zone is also dropped —
-  // an earlier dust cloud across the NUMMINEN line read as snowfall
-  // competing with the title.
-  const wMIKKO = measureTextWidth(font, 'MIKKO');
-  const wM = measureTextWidth(font, 'M');
-  const wMIKK = measureTextWidth(font, 'MIKK');
-
-  // Per-letter meshes are positioned so the line's visual center sits at
-  // line-local x = 0 (each letter's mesh.position.x = cursorX + lineDX).
-  // Substring centers in pre-translation coords are midpoints of
-  // cumulative advances; subtracting lineWidth/2 maps them into the
-  // centered line space used by the decor placements below.
-  const xCenterM = wM / 2 - wMIKKO / 2;
-  const xCenterO = wMIKK / 2; // = (wMIKK + wMIKKO)/2 - wMIKKO/2
-
-  const mikkoLine = title.lines[0];
-  const nummLine = title.lines[1];
-  if (!mikkoLine || !nummLine) {
-    throw new Error('homeScene: title is missing a line — TITLE expected to be 2 lines.');
-  }
-  // Mikko's top y in line-local space — line bbox already accounts for
-  // the per-line centering offset, so this is the y above the visible
-  // glyphs where the mountain's base should sit.
-  const mikkoTopY = mikkoLine.yMax;
-
-  // Each zone module's "design width" at scale=1, used to pick a scale
-  // that fills the targeted letter span.
-  const EXPERIENCE_DESIGN_WIDTH = 2.2; // single ridge spans ±1.1 ≈ M width
-
-  const experienceDecor: ExperienceZoneDecorHandle = buildExperienceZoneDecor({
-    envMap: env.envMap,
-    scale: wM / EXPERIENCE_DESIGN_WIDTH,
-  });
-  const projectsDecor: ProjectsZoneDecorHandle = buildProjectsZoneDecor({
-    envMap: env.envMap,
-    // Scale tuned so the ring outer radius (1.12 * scale ≈ 0.78) sits
-    // just outside the O's letter outline with a small breathing gap.
-    scale: 0.7,
-  });
-  const nummWidth = nummLine.width;
-
-  // Parent each decor under the appropriate line group so it inherits
-  // the title's floats / sway / entrance offset for free.
-  mikkoLine.group.add(experienceDecor.group);
-  mikkoLine.group.add(projectsDecor.group);
-
-  // ── Per-letter flash highlights (impact strobing) ────────────────────
-  // Pool of brief PointLights parented to the line groups; each meteor
-  // impact triggers 3-5 of them at random x positions with staggered
-  // start times. The result is a stutter of bright spots rippling
-  // across the chrome, on top of the whole-title rim flash.
-  const letterFlashes: LetterFlashesHandle = buildLetterFlashes({
-    lines: [
-      {
-        parent: mikkoLine.group,
-        width: wMIKKO,
-        yMin: mikkoLine.yMin,
-        yMax: mikkoLine.yMax,
-      },
-      {
-        parent: nummLine.group,
-        width: nummWidth,
-        yMin: nummLine.yMin,
-        yMax: nummLine.yMax,
-      },
-    ],
-  });
-
-  // Mountain rises ABOVE the M's letter top so the silhouette is
-  // visible against the dark background, not embedded in the letter
-  // solid. Anchored at the actual letter top from the bbox.
-  experienceDecor.group.position.set(xCenterM, mikkoTopY, TITLE_DEPTH / 2);
-  projectsDecor.group.position.set(xCenterO, 0, TITLE_DEPTH / 2);
-
-  /**
-   * One row per zone. `boost` is mutable (lerps toward 1 on hover) and
-   * drives subtle visual response in the per-zone decor. Click-to-animate
-   * responses (the loud one-shot effects) are wired separately via the
-   * InteractionManager below. `hotRadiusBase` sets the hover radius in
-   * pixels before responsive title scaling; sized to each zone's screen
-   * footprint.
-   */
-  interface ZoneEntry {
-    decor: ExperienceZoneDecorHandle | ProjectsZoneDecorHandle;
-    parent: Object3D;
-    boost: number;
-    hotRadiusBase: number;
-  }
-  const zones: ZoneEntry[] = [
-    {
-      decor: experienceDecor,
-      parent: mikkoLine.group,
-      boost: 0,
-      hotRadiusBase: 160,
-    },
-    {
-      decor: projectsDecor,
-      parent: mikkoLine.group,
-      boost: 0,
-      hotRadiusBase: 110,
-    },
-  ];
-
-  // Reused each frame to avoid allocating Vector3 in the hot path.
-  const projectedDecorPos = new Vector3();
-
-  /**
-   * Returns the screen-pixel position of the zone's world center plus a
-   * hover hot-radius. Used by the per-frame hover-boost lerp.
-   */
-  // Reused scratch — the single caller destructures the result immediately,
-  // so returning a shared object avoids a per-frame, per-zone literal allocation.
-  const zoneHotspot = { x: 0, y: 0, r: 0 };
-  const zoneScreenHotspot = (entry: ZoneEntry): { x: number; y: number; r: number } => {
-    entry.decor.group.getWorldPosition(projectedDecorPos);
-    projectedDecorPos.project(camera);
-    zoneHotspot.x = (projectedDecorPos.x + 1) * 0.5 * window.innerWidth;
-    zoneHotspot.y = (1 - projectedDecorPos.y) * 0.5 * window.innerHeight;
-    // Hot radius scales with the title (responsive layouts shrink it).
-    zoneHotspot.r = entry.hotRadiusBase * title.group.scale.x;
-    return zoneHotspot;
-  };
-
-  // ── Meteors (converge on the galaxy and detonate on impact) ─────────
-  const meteors: MeteorsHandle = buildMeteors({
-    galaxyCenter,
-    onImpact: (impactWorldPos) => {
-      sparks.spawn(impactWorldPos.x, impactWorldPos.y, impactWorldPos.z);
-      // Brighten the chrome rim, the per-impact point light, and ripple
-      // a stutter of per-letter flashes across the title — three
-      // overlapping highlights that read as one rich "moment of impact".
-      collisionFlashEnergy = 1;
-      collisionRimEnergy = 1;
-      collisionFlashLight.position.copy(impactWorldPos);
-      letterFlashes.trigger();
-      impactText.spawn(
-        pickCommit(),
-        impactWorldPos.x,
-        impactWorldPos.y,
-        impactWorldPos.z,
-      );
-    },
-  });
-  scene.add(meteors.group);
-
-  // ── Postprocessing: bloom on bright specular peaks + sun glow ────────
-  // Skipped for reduced-motion clients to keep them on the cheap path,
-  // and for `?perf=low` because UnrealBloomPass's 5-mip downscale +
-  // blur + composite is the single biggest per-frame cost in the chain.
-  const bloom: BloomComposerHandle | null =
-    reducedMotion || perfFlags.lowPerf
-      ? null
-      : createBloomComposer(renderer, scene, camera, {
-          strength: 0.55,
-          radius: 0.5,
-          threshold: 0.82,
-        });
-
-  // ── Click-to-animate state ───────────────────────────────────────────
-  // One animation state per title letter; the ripple writes into these
-  // and the tick loop reads them every frame. Storing state outside the
-  // letter mesh lets us reset position/rotation back to zero cleanly when
-  // an impulse ends, without having to remember pre-animation values.
-  interface LetterPopState {
-    letter: TitleLetter;
-    delay: number; // seconds until the pop starts (ripple stagger)
-    age: number; // seconds since pop started
-    lifetime: number; // total pop duration
-    peak: number; // animation amplitude (z-pop height in line-local units)
-    active: boolean;
-  }
-  const letterStates: LetterPopState[] = title.allLetters.map((letter) => ({
-    letter,
-    delay: 0,
-    age: 0,
-    lifetime: 0,
-    peak: 0,
-    active: false,
-  }));
-
-  /** Tuning for the per-letter pop+ripple. */
-  const RIPPLE_NEIGHBOUR_RANGE = 3;
-  const RIPPLE_BASE_PEAK = 0.18;
-  const RIPPLE_PEAK_FALLOFF = 0.55; // per-neighbour-step
-  const RIPPLE_DELAY_STEP = 0.05; // 50 ms per neighbour step
-  const RIPPLE_LIFETIME = 0.5;
-  /** Multiplier from `peak` to actual z translation in line-local units —
-   *  a peak of 0.18 gives ~0.72 units of forward pop on the clicked letter. */
-  const RIPPLE_Z_GAIN = 4;
-
-  const triggerLetterRipple = (clickedLetter: TitleLetter): void => {
-    const clickedLine = userDataNumber(clickedLetter.mesh, 'line');
-    const clickedChar = userDataNumber(clickedLetter.mesh, 'charIndex');
-    for (const s of letterStates) {
-      const sLine = userDataNumber(s.letter.mesh, 'line');
-      if (sLine !== clickedLine) continue;
-      const sChar = userDataNumber(s.letter.mesh, 'charIndex');
-      const d = Math.abs(sChar - clickedChar);
-      if (d > RIPPLE_NEIGHBOUR_RANGE) continue;
-      // Each fresh click restarts neighbours from the start of their pop
-      // — feels more responsive than letting a previous ripple suppress
-      // the new one.
-      s.delay = d * RIPPLE_DELAY_STEP;
-      s.age = 0;
-      s.lifetime = RIPPLE_LIFETIME;
-      s.peak = RIPPLE_BASE_PEAK * Math.pow(RIPPLE_PEAK_FALLOFF, d);
-      s.active = true;
-    }
-  };
-
-  // ── Interaction manager ──────────────────────────────────────────────
-  // Owns the click raycaster and the cursor-on-hover updates. Each
-  // clickable scene element is registered as a target with a `play`
-  // callback that triggers its visual response. Future sound layer can
-  // subscribe via `.on()` without rewiring the play callbacks.
-  const interactions = createInteractionManager({
-    canvas,
-    camera,
-    reducedMotion,
-  });
-  for (const letter of title.allLetters) {
-    // ID encodes the character so the future SFX layer can play a
-    // different sound per letter if it wants to — e.g. tuned by the
-    // letter's column in the four-world gradient. A shared `title-letter`
-    // id collapsed that option.
-    interactions.add({
-      id: `title-letter-${letter.char}`,
-      object: letter.mesh,
-      cursor: true,
-      play: () => triggerLetterRipple(letter),
+  // ── Post-processing: mipmap-blur bloom, skipped on the low tier ──────
+  // Intensity is state-driven per frame: loudest on the galaxy, calm on
+  // the formed name (legibility), near-off in the starfield so page text
+  // always wins.
+  let bloom: BloomEffect | null = null;
+  let composer: EffectComposer | null = null;
+  if (!perfFlags.lowPerf) {
+    // Composer path: pmndrs applies the final sRGB encode in its screen
+    // pass, so the renderer's own output conversion must be switched
+    // OFF — with both active every frame is encoded twice and all
+    // blacks lift to washed gray. Verified empirically against the
+    // non-composer low-tier path; if the two tiers ever disagree on
+    // background tone again, this pairing is the first suspect.
+    renderer.outputColorSpace = LinearSRGBColorSpace;
+    composer = new EffectComposer(renderer, { frameBufferType: HalfFloatType });
+    composer.addPass(new RenderPass(scene, camera));
+    // Tight radius + a firm threshold: the widest mip levels of the
+    // default settings smear the bright name across the entire viewport
+    // and lift the ink background to gray.
+    bloom = new BloomEffect({
+      intensity: 1.1,
+      luminanceThreshold: 0.32,
+      luminanceSmoothing: 0.25,
+      mipmapBlur: true,
+      radius: 0.45,
     });
+    composer.addPass(new EffectPass(camera, bloom));
   }
-  // Galaxy is a `Points` cloud — `Raycaster.params.Points.threshold`
-  // defaults to 1 world unit, so a click anywhere within ~1 unit of any
-  // star registers. With 900 stars on an 8-unit disk this gives a
-  // generous, "click the galaxy" target rather than requiring a pixel-
-  // perfect hit on an individual star. Deliberate default; to tighten,
-  // set `raycaster.params.Points.threshold` on the Raycaster instance
-  // inside `createInteractionManager` (interactions.ts) before the
-  // first pointerdown.
-  interactions.add({
-    id: 'galaxy',
-    object: galaxy.group,
-    cursor: true,
-    play: () => galaxy.play(),
-  });
-  interactions.add({
-    id: 'star',
-    object: horizon.mesh,
-    cursor: false,
-    play: () => horizon.play(),
-  });
-  interactions.add({
-    id: 'experience-decor',
-    object: experienceDecor.group,
-    cursor: false,
-    play: () => experienceDecor.play(),
-  });
-  interactions.add({
-    id: 'projects-decor',
-    object: projectsDecor.group,
-    cursor: false,
-    play: () => projectsDecor.play(),
-  });
 
-  // ── State ────────────────────────────────────────────────────────────
-  let disposed = false;
-  let raf = 0;
+  // ── Scroll / state inputs (written by handle setters, read by tick) ──
   let scrollProgress = 0;
-  let mouseX = 0;
-  let mouseY = 0;
-  let targetMouseX = 0;
-  let targetMouseY = 0;
-  // True after the first pointermove. Hover hit-tests treat the
-  // pre-move state as "no hover" — otherwise the (0, 0) defaults map
-  // to screen center and would falsely trigger hover on any decor
-  // that happens to project near the middle of the viewport.
-  let mouseSeen = false;
+  let dissolve = 0;
+
+  // ── Formation state (time-driven, owned by the tick loop) ────────────
+  let formTime = 0;
+  let form = 0;
+  let formedNotified = false;
+  // Intro waits for the gate reveal — a formation that plays behind the
+  // loading overlay would be wasted choreography.
+  let introStartedAt = -1;
+
+  // ── Measured readiness (drives the loading gate's reveal) ────────────
+  let readyResolved = false;
+  let warmFrames = 0;
+  let goodStreak = 0;
+  let resolveReady: () => void = () => {};
+  const readyPromise = new Promise<void>((resolve) => {
+    resolveReady = resolve;
+  });
+  const READY_FRAME_MS = 20;
+  const READY_STREAK = 2;
+  const READY_FRAME_CAP = 20;
+
+  // ── Section mood (written by the timeline's scrubbed crossfade) ──────
+  let moodHue = 0;
+  let moodDensity = 1;
+  let moodDrift = 1;
+
+  // ── Fit math (camera never moves; cache the frustum trig once) ───────
+  const tanHalfFov = Math.tan((CAMERA_FOV * Math.PI) / 180 / 2);
+  const halfHeightAtZ0 = tanHalfFov * CAMERA_Z;
+
+  field.uniforms.uCameraZ.value = CAMERA_Z;
+
+  // ── Pointer avoidance input ──────────────────────────────────────────
+  // Raw client coords → world coords on the z=0 plane (the camera looks
+  // straight down -z, so this is two multiplies — no raycaster). The
+  // target is written by the event, the smoothed value by the tick loop.
+  let targetPointerX = 0;
+  let targetPointerY = 0;
+  let pointerSeen = false;
+
+  const clientToWorldX = (clientX: number): number =>
+    (clientX / window.innerWidth - 0.5) * 2 * halfHeightAtZ0 * camera.aspect;
+  const clientToWorldY = (clientY: number): number =>
+    -(clientY / window.innerHeight - 0.5) * 2 * halfHeightAtZ0;
 
   const onPointerMove = (e: PointerEvent): void => {
-    targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-    targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-    mouseSeen = true;
+    targetPointerX = clientToWorldX(e.clientX);
+    targetPointerY = clientToWorldY(e.clientY);
+    pointerSeen = true;
   };
-  if (!reducedMotion) {
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
-  }
+  window.addEventListener('pointermove', onPointerMove, { passive: true });
 
-  // World-space half-width the title occupies at scale=1.0: the wider
-  // line's half-width plus the editorial x-offset, since the group is
-  // shifted right by TITLE_X_OFFSET * scale every frame.
-  const titleNaturalHalfWidth = Math.max(wMIKKO, nummWidth) / 2 + TITLE_X_OFFSET;
-  // World-space breathing room between the title's right edge and the
-  // right edge of the visible frustum — keeps "NUMMINEN" clear of the
-  // top-right data-feed widget and absorbs the small extra horizontal
-  // span the pointer-driven Y-rotation (up to ≈ 12°) projects onto the
-  // x-axis at the small end of the fit envelope.
-  const TITLE_RIGHT_PADDING = 2;
+  // ── Click ripples ────────────────────────────────────────────────────
+  // Document-level because the canvas is pointer-events: none behind the
+  // content — the whole page is one clickable material. Round-robin over
+  // the fixed pool; overlapping ripples are the point.
+  let nextRipple = 0;
+  let elapsedNow = 0;
 
-  // Camera fov (the *vertical* fov in Three.js) and z don't change after
-  // init — cache `tan(fov/2) * z` so each resize is just one multiply by
-  // `camera.aspect`. Note: the visible vertical extent at z=0 is
-  // `2 * cameraHalfHeightAtZ0` and is independent of viewport pixel
-  // height, so the title (≈ 5 world units tall) never needs a vertical
-  // fit constraint — only the horizontal extent changes with aspect.
-  const tanHalfFov = Math.tan((camera.fov * Math.PI) / 180 / 2);
-  const cameraHalfHeightAtZ0 = tanHalfFov * camera.position.z;
-  // Half-height of the visible frustum at the galaxy's z-plane. The
-  // galaxy sits at z = GALAXY_DESIGN_Z (a fixed depth — it never moves
-  // on the z-axis), so we can cache this once.
-  const cameraHalfHeightAtGalaxyZ = tanHalfFov * (camera.position.z - GALAXY_DESIGN_Z);
+  const launchRipple = (clientX: number, clientY: number, strength: number): void => {
+    // Non-null: (non-negative int % 4) always lands inside the 4-tuple.
+    const slot = field.uniforms.uRipples.value[nextRipple % 4]!;
+    nextRipple++;
+    slot.set(clientToWorldX(clientX), clientToWorldY(clientY), elapsedNow, strength);
+    onRipple?.(clientX, clientY);
+  };
+
+  const onPointerDown = (e: PointerEvent): void => {
+    const target = e.target as Element | null;
+    if (target?.closest(RIPPLE_EXCLUDE_SELECTOR)) return;
+    const strength = target?.closest(TEXT_TARGET_SELECTOR) ? 1.25 : 1;
+    launchRipple(e.clientX, e.clientY, strength);
+  };
+  document.addEventListener('pointerdown', onPointerDown);
+  const halfHeightAtGalaxyZ = tanHalfFov * (CAMERA_Z - GALAXY_Z);
+  const halfHeightAtGlowZ = tanHalfFov * (CAMERA_Z - GLOW_Z);
 
   const resize = createResizeHandler(
     renderer,
     camera,
-    (width) => {
-      // Width-based scale combined with a frustum-fit cap so the widest line's
-      // right edge never clips on narrow-aspect viewports. The fit cap is hard;
-      // the readability floor yields to it. See responsiveLayout.ts.
-      const visibleHalfWidth = cameraHalfHeightAtZ0 * camera.aspect;
-      const scale = responsiveTitleScale({
-        width,
-        visibleHalfWidth,
-        titleNaturalHalfWidth,
-        rightPadding: TITLE_RIGHT_PADDING,
-        designWidth: TITLE_DESIGN_WIDTH,
-        minScale: TITLE_MIN_SCALE,
-      });
+    () => {
+      const aspect = camera.aspect;
 
-      title.group.scale.setScalar(scale);
+      // Name block: scale down (never up) so it always fits the frustum
+      // width with padding.
+      const visibleHalfWidth = halfHeightAtZ0 * aspect;
+      field.uniforms.uNameScale.value = Math.min(
+        1,
+        (visibleHalfWidth - NAME_FIT_PADDING) / NAME_DESIGN_HALF_WIDTH,
+      );
 
-      // Galaxy responsive x-position. At narrow aspects the design x
-      // (-13) sits outside the visible frustum at the galaxy's z-plane,
-      // clipping the spiral disk on the left. Pull the center toward x=0
-      // just enough to keep the whole disk inside, never pushing it
-      // further left than the design position (so wide aspects are
-      // unchanged) and never crossing past x=0 onto the title's side.
-      // Mutating `galaxyCenter` propagates to the meteor spawn / target
-      // logic since buildMeteors reads it by reference. collisionFlashLight
-      // is repositioned per-impact in the onImpact handler; intensity is 0
-      // between impacts, so the stale design-x sitting on the light between
-      // init and the first impact is invisible.
-      const visibleHalfWidthAtGalaxyZ = cameraHalfHeightAtGalaxyZ * camera.aspect;
-      const galaxyX = responsiveGalaxyX({
-        visibleHalfWidth: visibleHalfWidthAtGalaxyZ,
-        radius: GALAXY_RADIUS,
-        leftPadding: GALAXY_LEFT_PADDING,
-        designX: GALAXY_DESIGN_X,
-      });
-      galaxy.group.position.x = galaxyX;
-      galaxyCenter.x = galaxyX;
+      // Galaxy: pull toward centre on narrow viewports just enough that
+      // the disk's left edge stays inside the frame; never push it
+      // further left than the design anchor.
+      const visibleHalfWidthAtGalaxy = halfHeightAtGalaxyZ * aspect;
+      field.uniforms.uGalaxyCenter.value.x = Math.max(
+        GALAXY_DESIGN_X,
+        -(visibleHalfWidthAtGalaxy - GALAXY_RADIUS - GALAXY_LEFT_PADDING),
+      );
 
-      if (bloom) bloom.resize(window.innerWidth, window.innerHeight);
+      // Glow plate: cover the frustum at its depth with margin.
+      const glowHalfWidth = halfHeightAtGlowZ * aspect;
+      glow.scale.set(glowHalfWidth * 2.0, halfHeightAtGlowZ * 2.0, 1);
+
+      field.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+      composer?.setSize(window.innerWidth, window.innerHeight);
     },
     maxPixelRatio,
   );
   resize.handler();
 
-  // Debug overlay — `?debug=perf` mounts a small FPS / ms-per-frame
-  // readout in the top-left. Cheap (DOM textContent every 500 ms) and
-  // exits the rAF early if disabled, so production paths pay nothing.
   const perfOverlay: PerfOverlayHandle | null = perfFlags.debugOverlay
     ? mountPerfOverlay(formatPerfOverlayLabel('home', perfFlags))
     : null;
 
-  // ── Animation loop (visibility-aware) ────────────────────────────────
+  // ── Animation loop ───────────────────────────────────────────────────
+  let disposed = false;
+  let raf = 0;
   const startTime = performance.now();
   let lastFrame = startTime;
 
-  // Cap the render loop to ~60 fps regardless of monitor refresh. On a
-  // 144 / 240 Hz display rAF fires 2.4–4× as often as on 60 Hz; the bloom
-  // pass + chrome `MeshPhysicalMaterial` + 900-star galaxy scale linearly,
-  // so an uncapped loop on a high-refresh monitor was burning ~40–60% of
-  // one core for the same visual result. The simulation reads `delta` so
-  // capping doesn't break motion timing.
+  // Cap at ~60 fps regardless of monitor refresh — on 144/240 Hz panels
+  // an uncapped loop burns proportionally more CPU/GPU for no visual
+  // gain at this scene's motion frequencies.
   const TARGET_FRAME_MS = 1000 / 60 - 1;
 
-  // One-shot entrance: title flies in from far-Z with a slight tilt over
-  // ENTRANCE_DURATION seconds, then settles into its idle float. Disabled
-  // for reduced-motion clients so they see the title in its final pose.
-  const ENTRANCE_DURATION = 1.4;
+  // Scratch colours reused every frame — the palette lerp must not
+  // allocate in the tick loop.
+  const colorA = new Color();
+  const colorB = new Color();
 
   const tick = (): void => {
     if (disposed) return;
@@ -731,185 +397,130 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const delta = (now - lastFrame) / 1000;
     lastFrame = now;
 
-    // Smooth pointer — lerp toward the target at 0.05/frame. Hand-tuned feel:
-    // low enough that the title's lean into the cursor reads as weighty, not jumpy.
-    mouseX += (targetMouseX - mouseX) * 0.05;
-    mouseY += (targetMouseY - mouseY) * 0.05;
+    const u = field.uniforms;
+    u.uTime.value = elapsed;
+    elapsedNow = elapsed;
+    u.uGalaxySpin.value = elapsed * GALAXY_SPIN_RATE;
+    u.uDissolve.value = dissolve;
 
-    // Entrance: 0 → 1 over ENTRANCE_DURATION, then frozen at 1.
-    const entrance = reducedMotion
-      ? 1
-      : easeOutCubic(Math.min(1, elapsed / ENTRANCE_DURATION));
-    const entranceOffset = (1 - entrance) * -22;
-    const entranceTilt = (1 - entrance) * 0.18;
-
-    // Title floats and reacts to pointer + scroll. The 0.12 / 0.18 multipliers
-    // are hand-tuned lean amounts (how far the title tilts toward the cursor);
-    // the sin terms add a slow idle drift.
-    title.group.rotation.x =
-      mouseY * 0.12 + Math.sin(elapsed * 0.5) * 0.02 - entranceTilt;
-    title.group.rotation.y = mouseX * 0.18 + Math.sin(elapsed * 0.4) * 0.03;
-    // Editorial offset: title sits in the right third of the frame,
-    // galaxy in the left third (see GALAXY_CENTER). Scaled by the
-    // responsive title scale so narrow viewports keep "NUMMINEN" inside
-    // the visible area.
-    title.group.position.x = TITLE_X_OFFSET * title.group.scale.x;
-    title.group.position.z = -scrollProgress * 6 + entranceOffset;
-    title.group.position.y =
-      totalHeight / 2 + Math.sin(elapsed * 0.7) * 0.08 + scrollProgress * 1.5;
-
-    // Orbiting rim drives the entrance burst (angle determines drama
-    // direction during the stroboscopic arrival).
-    const rimAngle = (elapsed * Math.PI * 2) / 14;
-    rimLight.position.set(
-      Math.cos(rimAngle) * 9,
-      2 + Math.sin(rimAngle * 0.5) * 1.5,
-      Math.sin(rimAngle) * 9 - 2,
-    );
-    rimLight.intensity = reducedMotion
-      ? RIM_BASE_INTENSITY
-      : RIM_BASE_INTENSITY + entranceFlashEnvelope(elapsed);
-
-    // Galaxy-collision flash uses a separate, camera-facing light so
-    // every collision lights the front faces of the title regardless
-    // of where the orbiting rim happens to be at that moment.
-    collisionRimLight.intensity = reducedMotion
-      ? 0
-      : collisionRimEnergy * COLLISION_RIM_PEAK;
-
-    // Horizon glow drives its own breathing pulse + click-impulse decay
-    // via horizon.tick(); reduced-motion clients still call it (delta=0)
-    // so click impulses fade to zero on the next frame.
-    horizon.tick(reducedMotion ? 0 : delta, elapsed);
-
-    // Galaxy z-spin + click-flare decay live inside galaxy.tick now.
-    // Each meteor impact (handled in buildMeteors → onImpact) bumps the
-    // collision-flash energy and the title rim-flash energy; both decay
-    // here every frame.
-    galaxy.tick(reducedMotion ? 0 : delta, elapsed);
-    if (!reducedMotion) {
-      // Decay the collision-flash pulse each frame; bright on hit, fades
-      // smoothly to zero.
-      collisionFlashEnergy = decayImpulse(
-        collisionFlashEnergy,
-        delta,
-        COLLISION_FLASH_DECAY,
-      );
-      collisionFlashLight.intensity = collisionFlashEnergy * COLLISION_FLASH_PEAK;
-      // Rim flash decays slightly faster than the point light so the
-      // bright moment on the title's chrome reads as a sharp peak.
-      collisionRimEnergy = decayImpulse(collisionRimEnergy, delta, COLLISION_RIM_DECAY);
-
-      sparks.tick(delta);
-      impactText.tick(delta);
-      letterFlashes.tick(delta);
-    }
-
-    // Per-zone hover/boost/tick. Each zone's hover hot-zone lerps its
-    // boost toward 1 when the cursor is in range; the boost only drives
-    // visual response inside each decor module. Clicks on the decor (or
-    // on the title letters above it) are handled separately by the
-    // InteractionManager registered above.
-    {
-      const mxPx = (targetMouseX * 0.5 + 0.5) * window.innerWidth;
-      const myPx = (targetMouseY * 0.5 + 0.5) * window.innerHeight;
-      for (const entry of zones) {
-        const { x: hx, y: hy, r: hr } = zoneScreenHotspot(entry);
-        const hovering = mouseSeen && Math.hypot(mxPx - hx, myPx - hy) < hr;
-        const targetBoost = hovering ? 1 : 0;
-        entry.boost += (targetBoost - entry.boost) * delta * 6;
-        entry.decor.tick(reducedMotion ? 0 : delta, entry.boost);
+    // Name formation — advances on its own clock after a short galaxy
+    // hold once the intro has been released by the gate reveal; an early
+    // scroll makes it race to completion under the dissolve instead of
+    // leaving two owners fighting over the morph.
+    if (form < 1 && introStartedAt >= 0 && elapsed - introStartedAt > FORM_DELAY) {
+      formTime += delta * (dissolve > 0.02 ? FORM_CATCHUP : 1);
+      form = easeOutCubic(Math.min(1, formTime / FORM_DURATION));
+      if (form >= 1 && !formedNotified) {
+        formedNotified = true;
+        onFormed?.();
       }
     }
+    u.uForm.value = form;
 
-    // Per-letter pop+ripple. The clicked letter (peak amplitude) and a
-    // few neighbours (decaying amplitude + staggered delay) push along
-    // the letter's local z axis with a sin(πt) envelope so the rise and
-    // fall are smooth. Reduced-motion clients skip the visual but the
-    // InteractionManager still fires play() for the future sound layer.
-    if (!reducedMotion) {
-      for (const s of letterStates) {
-        if (!s.active) continue;
-        if (s.delay > 0) {
-          s.delay = Math.max(0, s.delay - delta);
-          continue;
-        }
-        s.age += delta;
-        if (s.age >= s.lifetime) {
-          s.active = false;
-          s.letter.mesh.position.z = 0;
-          s.letter.mesh.rotation.x = 0;
-          continue;
-        }
-        const t = s.age / s.lifetime;
-        const env = Math.sin(t * Math.PI);
-        s.letter.mesh.position.z = s.peak * env * RIPPLE_Z_GAIN;
-        // Small forward tilt at apex so the pop reads as the letter
-        // leaning toward the viewer, not just sliding flat forward.
-        s.letter.mesh.rotation.x = -s.peak * env * 1.1;
-      }
+    // Smooth pointer — the lerp keeps the avoidance feeling weighty
+    // rather than glued to the cursor; strength eases in after the first
+    // real move so the (0,0) default never repels screen-centre.
+    const p = u.uPointer.value;
+    p.x += (targetPointerX - p.x) * 0.08;
+    p.y += (targetPointerY - p.y) * 0.08;
+    u.uPointerStrength.value += ((pointerSeen ? 1 : 0) - u.uPointerStrength.value) * 0.05;
+    // Field lags the content slightly as the page scrolls — enough to
+    // feel attached to the page, not painted on the glass.
+    u.uScrollDrift.value = scrollProgress * 1.5;
+
+    // State-blended palette + brightness. Starfield must stay dimmer
+    // than page text — that contrast clamp lives here, not in CSS.
+    colorA.lerpColors(GALAXY_COLOR_A, STAR_COLOR_A, dissolve);
+    colorB.lerpColors(GALAXY_COLOR_B, STAR_COLOR_B, dissolve);
+    if (moodHue !== 0) {
+      colorA.offsetHSL(moodHue / 360, 0, 0);
+      colorB.offsetHSL(moodHue / 360, 0, 0);
     }
+    u.uColorA.value.copy(colorA);
+    u.uColorB.value.copy(colorB);
+    u.uDriftSpeed.value = moodDrift;
+    const formedBrightness =
+      GALAXY_BRIGHTNESS + (NAME_BRIGHTNESS - GALAXY_BRIGHTNESS) * form;
+    u.uBrightness.value =
+      formedBrightness + (STARFIELD_BRIGHTNESS - formedBrightness) * dissolve;
 
-    // Meteors — randomized spawn schedule, fade-in/out envelope, trail
-    // updated as a per-frame position queue inside the meteor module.
-    if (!reducedMotion) {
-      meteors.tick(elapsed, delta);
-    }
+    // Starfield reads sparse: only ~40% of the field stays visible once
+    // fully dissolved (density thresholds against the per-particle rank),
+    // nudged by the active section's mood.
+    u.uDensity.value = Math.max(0, Math.min(1, (1 - dissolve * 0.6) * moodDensity));
 
-    // Camera pulls back slightly with scroll, plus a slow lazy ~30-second
-    // orbit so each world layer rotates across the title's reflection. The
-    // orbit is tiny (≤1 unit) — sells "alive" without feeling drifty.
-    const orbit = reducedMotion ? 0 : 1;
-    const orbitAngle = (elapsed * Math.PI * 2) / 30;
-    camera.position.z = 18 + scrollProgress * 4;
-    camera.position.x = mouseX * 0.6 + Math.sin(orbitAngle) * 0.9 * orbit;
-    camera.position.y =
-      -mouseY * 0.4 - scrollProgress * 0.5 + Math.cos(orbitAngle) * 0.45 * orbit;
-    camera.lookAt(0, 0, 0);
+    glowMaterial.opacity = 1 - dissolve * 0.9;
 
     if (bloom) {
-      bloom.composer.render();
+      bloom.intensity = (1.1 + (0.35 - 1.1) * form) * (1 - dissolve) + 0.1 * dissolve;
+    }
+
+    if (composer) {
+      composer.render(delta);
     } else {
       renderer.render(scene, camera);
     }
 
+    // Warm-up instrumentation: the first frames prove the scene renders
+    // under the jank threshold before the gate lets the user in.
+    if (!readyResolved) {
+      const frameCpu = performance.now() - now;
+      warmFrames++;
+      goodStreak = frameCpu < READY_FRAME_MS ? goodStreak + 1 : 0;
+      if (goodStreak >= READY_STREAK || warmFrames >= READY_FRAME_CAP) {
+        readyResolved = true;
+        resolveReady();
+      }
+    }
+
     perfOverlay?.tick(delta);
   };
-
-  // Pause the loop when the canvas is scrolled off-screen. The hero is
-  // `height: 100vh`; once the user reads anything below it the canvas is
-  // fully out of view, and there's no reason to keep rendering.
-  const pauser = createOffscreenPauser({
-    target: canvas,
-    onResume: (): void => {
-      if (disposed || document.hidden || raf !== 0) return;
-      lastFrame = performance.now();
-      tick();
-    },
-    onPause: (): void => {
-      if (raf === 0) return;
-      cancelAnimationFrame(raf);
-      raf = 0;
-    },
-  });
 
   const onVisibilityChange = (): void => {
     if (disposed) return;
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-    } else if (raf === 0 && pauser.isVisible()) {
+    } else if (raf === 0) {
       lastFrame = performance.now();
       tick();
     }
   };
   document.addEventListener('visibilitychange', onVisibilityChange);
 
+  // Compile every program off the critical path where the driver
+  // supports KHR_parallel_shader_compile, so the first rendered frame
+  // links instead of compiling from scratch. Raced with a timeout —
+  // compileAsync polls on rAF in some engines and a hidden tab must not
+  // wedge the boot forever.
+  // Short race: if the driver stalls the async compile, frame 1 simply
+  // compiles synchronously behind the gate — waiting longer here only
+  // delays the reveal.
+  await Promise.race([
+    renderer.compileAsync(scene, camera).catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, 800)),
+  ]);
+
   tick();
 
   return {
     setScrollProgress: (p: number): void => {
       scrollProgress = Math.max(0, Math.min(1, p));
+    },
+    setDissolve: (p: number): void => {
+      dissolve = Math.max(0, Math.min(1, p));
+    },
+    ripple: (clientX: number, clientY: number, strength = 1): void => {
+      launchRipple(clientX, clientY, strength);
+    },
+    setMood: (hue: number, density: number, drift: number): void => {
+      moodHue = hue;
+      moodDensity = density;
+      moodDrift = drift;
+    },
+    whenReady: (): Promise<void> => readyPromise,
+    startIntro: (): void => {
+      if (introStartedAt < 0) introStartedAt = elapsedNow;
     },
     resize: resize.handler,
     dispose: (): void => {
@@ -919,68 +530,23 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       raf = 0;
       resize.dispose();
       window.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      pauser.dispose();
       perfOverlay?.dispose();
 
-      interactions.dispose();
-
-      for (const entry of zones) {
-        entry.parent.remove(entry.decor.group);
-        entry.decor.dispose();
-      }
-
-      for (const letter of title.allLetters) {
-        letter.mesh.geometry.dispose();
-      }
-      disposeMaterial(title.material);
-      titleColorMap.dispose();
-
-      scene.remove(
-        ambient,
-        keyLight,
-        rimLight,
-        collisionRimLight,
-        fillLight,
-        horizon.mesh,
-        galaxy.group,
-        sparks.group,
-        impactText.group,
-        meteors.group,
-      );
-      ambient.dispose();
-      keyLight.dispose();
-      rimLight.dispose();
-      collisionRimLight.dispose();
-      collisionFlashLight.dispose();
-      fillLight.dispose();
-      horizon.geometry.dispose();
-      horizon.material.dispose();
-      horizon.texture.dispose();
-
-      galaxy.starsGeometry.dispose();
-      galaxy.starsMaterial.dispose();
-
-      sparks.dispose();
-      impactText.dispose();
-      letterFlashes.dispose();
-      meteors.dispose();
-
-      scene.environment = null;
-      env.envMap.dispose();
-      env.source.dispose();
-      env.pmrem.dispose();
-
-      bloom?.dispose();
-
-      scene.fog = null;
+      scene.remove(field.points, glow);
+      composer?.dispose();
+      field.dispose();
+      glowGeometry.dispose();
+      glowMaterial.dispose();
+      glowTexture.dispose();
       scene.clear();
 
       renderer.dispose();
       // dispose() frees GPU objects but not the WebGL context itself — the
       // browser only reclaims that when the detached canvas is GC'd. Under
-      // client-side routing this scene is created/destroyed per navigation, so
-      // release the context now to avoid contexts piling toward the browser cap.
+      // client-side routing this scene is created/destroyed per navigation,
+      // so release the context now to avoid contexts piling toward the cap.
       renderer.forceContextLoss();
     },
   };

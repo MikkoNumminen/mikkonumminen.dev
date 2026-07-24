@@ -2,27 +2,12 @@
 import { asLocale, getTranslations } from '../../i18n';
 import HeroVoiceover from './HeroVoiceover.astro';
 
-interface Props {
-  commitMessages?: string[];
-}
-
-const { commitMessages = [] } = Astro.props;
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 ---
 
 <section class="hero" data-section-hero aria-label={t.hero.sectionAria}>
   <HeroVoiceover />
-
-  <canvas
-    id="home-canvas"
-    class="hero__canvas"
-    aria-hidden="true"
-    data-commit-messages={JSON.stringify(commitMessages)}></canvas>
-
-  <div class="hero__overlay" aria-hidden="true"></div>
-
-  <div class="hero__fade" aria-hidden="true"></div>
 
   <div class="hero__masthead">
     <p class="hero__eyebrow">{t.hero.eyebrow}</p>
@@ -65,7 +50,7 @@ const t = getTranslations(locale);
       <span class="hero__corner-rule hero__corner-rule--tr"></span>
       <span class="hero__corner-place">tampere · hervanta</span>
     </span>
-    <span class="hero__data-feed" data-data-feed>
+    <span class="hero__data-feed" data-data-feed data-no-ripple>
       <span class="hero__data-feed-label">
         <span class="hero__data-feed-pulse"></span>
         <span>data · ch-01</span>
@@ -80,70 +65,19 @@ const t = getTranslations(locale);
 </section>
 
 <style>
+  /* The hero paints NO background of its own: the whole page sits on one
+     flat var(--color-ink) (body) with the fixed particle-field canvas
+     behind every section, so there is no hero→About colour boundary to
+     blend — the old radial gradient + bottom fade are gone because the
+     seam they papered over no longer exists. The atmospheric centre glow
+     they provided now lives inside the field scene (a glow plate that
+     fades out as the field dissolves to starfield). */
   .hero {
     position: relative;
     height: 100vh;
     width: 100%;
     overflow: hidden;
-    background: radial-gradient(
-      ellipse at 50% 30%,
-      #0d1226 0%,
-      #050610 60%,
-      #020308 100%
-    );
-  }
-
-  .hero__canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  /* On mobile and reduced-motion the chrome 3D type is replaced by the
-     flat `.hero__title-fallback`. The canvas was still rendering behind
-     the fallback in those cases, producing a small blue 3D wordmark
-     stacked above the white fallback — visible from ≤640px down to the
-     narrowest viewports. Hide the canvas wherever the fallback takes
-     over so only one title shows at a time. */
-  @media (max-width: 640px) {
-    .hero__canvas {
-      display: none;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hero__canvas {
-      display: none;
-    }
-  }
-
-  .hero__overlay {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      ellipse at center,
-      transparent 40%,
-      rgba(0, 0, 0, 0.55) 100%
-    );
-    pointer-events: none;
-  }
-
-  /* The hero is the only section that paints its own opaque background;
-     every section below it is transparent over var(--color-ink). Fade the
-     hero's bottom into that same colour so the hero→next boundary is
-     colour-to-colour like every other boundary, not a hard edge. Ordered
-     after the canvas/vignette but before the masthead/scroll chrome, so it
-     blends the backdrop without dimming any foreground. */
-  .hero__fade {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 30%;
-    background: linear-gradient(to bottom, transparent 0%, var(--color-ink) 100%);
-    pointer-events: none;
+    background: transparent;
   }
 
   /* On the desktop default path this container has no visible children

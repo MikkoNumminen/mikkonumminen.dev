@@ -10,8 +10,8 @@ import { asLocale, getTranslations } from '../i18n';
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
-// Recent commit subjects, baked in at build time. Drives the impact-text
-// popups that burst from each meteor strike on the home hero galaxy.
+// Recent commit subjects, baked in at build time. Drives the commit
+// popups that rise from field ripples when the background is clicked.
 // We strip each subject to its conventional-commit type+scope and only
 // keep the ones with an explicit (scope). NO dedup — the popup pool is
 // the latest ~40 prefixes in chronological order, repetitions and all,
@@ -77,13 +77,6 @@ const personSchema = {
 
 <BaseLayout title={t.meta.home.title} description={t.meta.home.description} theme="home">
   <Fragment slot="head">
-    <link
-      rel="preload"
-      href="/fonts/helvetiker_bold.typeface.json"
-      as="fetch"
-      type="application/json"
-      crossorigin="anonymous"
-    />
     <script
       is:inline
       type="application/ld+json"
@@ -91,11 +84,217 @@ const personSchema = {
     />
   </Fragment>
 
-  <Hero commitMessages={commitMessages} />
+  {
+    /* The unified particle field. Fixed and full-viewport so the field
+      persists behind every section of the page — the hero no longer owns
+      it. z-index -1 paints it above the body background but below all
+      normal-flow content. pointer-events: none: clicks are observed at
+      the document level by the scene, never captured by the canvas. */
+  }
+  <canvas
+    id="home-canvas"
+    class="field-canvas"
+    aria-hidden="true"
+    data-commit-messages={JSON.stringify(commitMessages)}></canvas>
+
+  {
+    /* Loading gate. Shown only while <html> carries .field-loading — the
+      inline script below adds it pre-paint on the WebGL path and never
+      on small screens / reduced motion / no-JS, so fallback users are
+      never gated. The boot script reveals on measured readiness (warm
+      frames rendered) with a 2s hard cap. */
+  }
+  <div class="field-gate" data-field-gate aria-hidden="true">
+    <span class="field-gate__rule"><span class="field-gate__fill"></span></span>
+    <span class="field-gate__caption">initialising · field</span>
+  </div>
+
+  <script is:inline data-astro-rerun>
+    (function () {
+      try {
+        if (window.matchMedia('(max-width: 640px)').matches) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        document.documentElement.classList.add('field-loading');
+        performance.mark('field:gate-shown');
+      } catch {
+        /* gate is progressive enhancement — never block the page */
+      }
+    })();
+  </script>
+
+  <Hero />
   <Intro />
   <LatestEntries />
   <NavCards />
 </BaseLayout>
+
+<style>
+  .field-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    display: block;
+  }
+
+  /* Small screens and reduced-motion clients never get the WebGL field —
+     the boot script skips scene creation and the DOM fallback title in
+     the hero takes over. Hiding the canvas here keeps those paths free
+     of a stray transparent element and mirrors the old hero CSS. */
+  @media (max-width: 640px) {
+    .field-canvas {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field-canvas {
+      display: none;
+    }
+  }
+
+  /* ── Loading gate ──────────────────────────────────────────────────
+     Flat ink with a thin sweeping rule and a mono caption in the
+     corner-frame voice. The caption stays hidden unless the warm-up
+     outlasts 300ms (.field-gate--slow), so fast machines see only an
+     imperceptible ink flash. Fixed and above everything, faded out by
+     .field-gate--done, then display collapses when .field-loading
+     leaves <html>. */
+  .field-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--color-ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    visibility: hidden;
+    opacity: 1;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+  }
+
+  :global(html.field-loading) .field-gate {
+    visibility: visible;
+  }
+
+  .field-gate--done {
+    opacity: 0;
+  }
+
+  .field-gate__rule {
+    width: 9rem;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+  }
+
+  .field-gate__fill {
+    display: block;
+    width: 40%;
+    height: 100%;
+    background: rgba(196, 212, 255, 0.7);
+    animation: field-gate-sweep 1.1s ease-in-out infinite;
+  }
+
+  @keyframes field-gate-sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(350%);
+    }
+  }
+
+  .field-gate__caption {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  :global(.field-gate--slow) .field-gate__caption {
+    opacity: 1;
+  }
+
+  /* Fallback paths are never gated, belt and braces with the inline
+     activation check. */
+  @media (max-width: 640px) {
+    .field-gate {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field-gate {
+      display: none;
+    }
+  }
+</style>
+
+<style is:global>
+  /* Scroll stays locked while the gate is up, so the first scroll input
+     a visitor can physically make lands on a warm, compiled scene. The
+     stable gutter keeps the scrollbar's space reserved while it's
+     hidden — without it the reveal reflows the whole page by a
+     scrollbar width on classic-scrollbar platforms. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  html.field-loading {
+    overflow: hidden;
+  }
+</style>
+
+<style is:global>
+  /* Commit-message popups (src/lib/home/commitPopups.ts). Global because
+     the elements are created at runtime and never carry Astro's scoping
+     attribute. The container never intercepts clicks — the same
+     pointerdown that spawned a popup must keep working underneath it. */
+  .field-popups {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 30;
+    overflow: hidden;
+  }
+
+  .field-popup {
+    position: absolute;
+    transform: translate(-50%, -120%);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+    color: rgba(196, 212, 255, 0.9);
+    text-shadow: 0 0 12px rgba(128, 168, 255, 0.55);
+    animation: field-popup-rise 1.9s ease-out forwards;
+  }
+
+  /* Animated via `translate` so it composes with the centering
+     `transform` above instead of overwriting it. */
+  @keyframes field-popup-rise {
+    0% {
+      opacity: 0;
+      translate: 0 8px;
+    }
+    12% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      translate: 0 -44px;
+    }
+  }
+</style>
 
 <script>
   import { initHomeTimeline } from '../lib/gsap/homeTimeline';
@@ -103,14 +302,20 @@ const personSchema = {
 
   type HomeSceneHandle = {
     setScrollProgress: (p: number) => void;
+    setDissolve: (p: number) => void;
+    ripple: (clientX: number, clientY: number, strength?: number) => void;
+    setMood: (hue: number, density: number, drift: number) => void;
+    whenReady: () => Promise<void>;
+    startIntro: () => void;
     dispose: () => void;
   };
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Boots the Three.js hero scene and returns its handle, or null when the scene
-  // is skipped (mobile / reduced-motion / missing canvas) or fails to init. The
-  // GSAP timeline is owned by the caller, not here.
+  // Boots the Three.js particle field (plus the commit-popup layer that
+  // rides on its ripples) and returns a composite handle, or null when the
+  // scene is skipped (mobile / reduced-motion / missing canvas) or fails to
+  // init. The GSAP timeline is owned by the caller, not here.
   const bootHomeScene = async (): Promise<HomeSceneHandle | null> => {
     const canvas = document.getElementById('home-canvas') as HTMLCanvasElement | null;
 
@@ -120,6 +325,8 @@ const personSchema = {
     const skipScene = !canvas || reducedMotion || isSmall;
 
     if (!skipScene && canvas) {
+      let popups: { spawn: (x: number, y: number) => void; dispose: () => void } | null =
+        null;
       try {
         let commitMessages: string[] = [];
         const raw = canvas.dataset.commitMessages;
@@ -130,21 +337,67 @@ const personSchema = {
               commitMessages = parsed.filter((s): s is string => typeof s === 'string');
             }
           } catch {
-            // Bad JSON shouldn't kill the scene — fall back to defaults.
+            // Bad JSON shouldn't kill the scene — popups fall back to defaults.
           }
         }
-        const { createHomeScene } = await import('../lib/three/homeScene');
-        return await createHomeScene({
-          canvas,
-          fontUrl: '/fonts/helvetiker_bold.typeface.json',
-          reducedMotion,
-          commitMessages,
+        const [{ createHomeScene }, { buildCommitPopups }] = await Promise.all([
+          import('../lib/three/homeScene'),
+          import('../lib/home/commitPopups'),
+        ]);
+        popups = buildCommitPopups(commitMessages);
+        const boundPopups = popups;
+
+        // Discoverability hint: once per SESSION (sessionStorage, same
+        // persistence pattern as the audio state), after the name forms,
+        // and only if the visitor hasn't already clicked or scrolled.
+        // The session flag is set on the first formation either way — a
+        // visitor who discovered clicking organically shouldn't get the
+        // hint on a later SPA re-visit.
+        const HINT_KEY = 'mn_field_hint_shown';
+        let interacted = false;
+        const markInteracted = (): void => {
+          interacted = true;
+        };
+        window.addEventListener('pointerdown', markInteracted, {
+          capture: true,
+          once: true,
         });
+
+        let fieldScene: Awaited<ReturnType<typeof createHomeScene>> | null = null;
+        const scene = await createHomeScene({
+          canvas,
+          onRipple: (x, y) => boundPopups.spawn(x, y),
+          onFormed: () => {
+            try {
+              if (sessionStorage.getItem(HINT_KEY)) return;
+              sessionStorage.setItem(HINT_KEY, '1');
+            } catch {
+              return; // storage unavailable — skip the hint entirely
+            }
+            if (interacted || window.scrollY > 4) return;
+            // Below the name block — the wave brushes the letters gently
+            // at its decayed edge instead of bending them at full force.
+            fieldScene?.ripple(window.innerWidth * 0.5, window.innerHeight * 0.78, 1);
+          },
+        });
+        fieldScene = scene;
+        return {
+          ...scene,
+          dispose: (): void => {
+            window.removeEventListener('pointerdown', markInteracted, {
+              capture: true,
+            });
+            scene.dispose();
+            boundPopups.dispose();
+          },
+        };
       } catch (err) {
+        popups?.dispose();
         console.warn('home scene failed to init', err);
       }
     } else if (canvas) {
-      // Hide the canvas on mobile / reduced-motion so the gradient backdrop shows
+      // Hide the canvas on mobile / reduced-motion so the flat page
+      // background shows through
       canvas.style.display = 'none';
       const fallback = document.querySelector('.hero__title-fallback');
       if (fallback) (fallback as HTMLElement).style.display = 'block';
@@ -160,12 +413,53 @@ const personSchema = {
     () => {
       let sceneHandle: HomeSceneHandle | null = null;
       let disposed = false;
+      let revealed = false;
+
+      // ── Gate orchestration ──────────────────────────────────────────
+      // The inline pre-paint script decides WHETHER the gate shows; this
+      // block decides WHEN it lifts: on measured scene readiness, or the
+      // hard cap — whichever comes first. Fallback users never had the
+      // gate, so none of this runs for them (gateActive false).
+      const html = document.documentElement;
+      const gateActive = html.classList.contains('field-loading');
+      const gate = document.querySelector<HTMLElement>('[data-field-gate]');
+      let slowTimer = 0;
+      let capTimer = 0;
+      let unlockTimer = 0;
+
+      // Guarded on `disposed`: a reveal (or its unlock timer) arriving
+      // after a quick home → away → home navigation must not strip the
+      // NEXT visit's gate class mid-warm-up.
+      const reveal = (): void => {
+        if (revealed || disposed) return;
+        revealed = true;
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(capTimer);
+        performance.mark('field:revealed');
+        gate?.classList.add('field-gate--done');
+        unlockTimer = window.setTimeout(
+          () => html.classList.remove('field-loading'),
+          380,
+        );
+        sceneHandle?.startIntro();
+      };
+
+      if (gateActive) {
+        // Caption only appears if the warm-up outlasts 300ms — a fast
+        // machine sees an imperceptible ink flash, not a loading screen.
+        slowTimer = window.setTimeout(() => gate?.classList.add('field-gate--slow'), 300);
+        // Hard cap: never hold the page hostage. Reveal even if readiness
+        // was never proven (hidden tab, struggling GPU).
+        capTimer = window.setTimeout(reveal, 2000);
+      }
 
       // Timeline is synchronous; onScrollProgress reads sceneHandle lazily, so it
       // works even though the scene resolves asynchronously below.
       const timeline = initHomeTimeline({
         reducedMotion,
         onScrollProgress: (p) => sceneHandle?.setScrollProgress(p),
+        onHeroProgress: (p) => sceneHandle?.setDissolve(p),
+        onSectionMood: (h, d, dr) => sceneHandle?.setMood(h, d, dr),
       });
 
       // If disposed (navigated away) before the async scene resolves, dispose the
@@ -176,10 +470,28 @@ const personSchema = {
           return;
         }
         sceneHandle = handle;
+        if (!handle) {
+          // Scene skipped or failed — lift the gate immediately; the
+          // static page must never wait on a scene that isn't coming.
+          reveal();
+          return;
+        }
+        if (gateActive && !revealed) {
+          void handle.whenReady().then(reveal);
+        } else {
+          // Gate never shown (or already hard-capped away) — release the
+          // intro now.
+          handle.startIntro();
+        }
       });
 
       return () => {
         disposed = true;
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(capTimer);
+        window.clearTimeout(unlockTimer);
+        // Never leave the NEXT page scroll-locked behind a gone gate.
+        html.classList.remove('field-loading');
         sceneHandle?.dispose();
         sceneHandle = null;
         timeline.dispose();
