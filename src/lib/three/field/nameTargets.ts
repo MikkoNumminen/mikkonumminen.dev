@@ -1,17 +1,25 @@
 /**
- * Name-state target positions for the unified particle field.
+ * Name-state target positions for the unified particle field: rasterise
+ * "MIKKO NUMMINEN" on a hidden 2D canvas (same-document canvas — no
+ * OffscreenCanvas, the CSP forbids workers), sample the filled glyph
+ * pixels into world-space points, and distribute the field's particles
+ * over them via nameDistribution.ts. The particles ARE the name — there
+ * is no text mesh.
  *
- * PLACEHOLDER — the real implementation (rasterising "MIKKO NUMMINEN" on
- * a hidden 2D canvas and sampling glyph pixels into world-space targets)
- * lands in the name-formation step of the particle-field rewrite. Until
- * then the field's formation state is never driven above 0, so these
- * targets are unreachable; the stub exists so the geometry's attribute
- * layout (and everything downstream of it) is final from day one.
+ * Uses the site's own heading stack (--font-sans at weight 800, i.e. the
+ * same face the DOM fallback title renders in), so the formed name and
+ * the reduced-motion fallback agree. `document.fonts.ready` is raced
+ * against a short timeout — a hung font must never block the field; the
+ * system fallback face rasterises fine.
  *
- * The stub shape is a flat ellipsoid where the name will sit, so if the
- * formation uniform is ever driven early the result is a soft blob at
- * the right screen position rather than a degenerate point.
+ * Failure of any canvas step falls back to a soft ellipsoid blob at the
+ * name's position (generateNameTargetsStub) rather than breaking the
+ * scene.
  */
+import {
+  distributeNameTargets,
+  type NameTargetSet,
+} from './nameDistribution';
 
 export interface NameTargetStubOptions {
   count: number;
@@ -24,6 +32,9 @@ export interface NameTargetStubOptions {
   random?: () => number;
 }
 
+/** Fallback shape when the rasteriser can't run: a flat ellipsoid where
+ *  the name would sit, so a degenerate environment still shows a soft
+ *  blob at the right screen position. */
 export function generateNameTargetsStub(opts: NameTargetStubOptions): Float32Array {
   const {
     count,
@@ -49,4 +60,96 @@ export function generateNameTargetsStub(opts: NameTargetStubOptions): Float32Arr
     positions[i3 + 2] = sinPhi * Math.sin(theta) * r * semiZ;
   }
   return positions;
+}
+
+// Raster geometry. WORLD_WIDTH must agree with homeScene's
+// NAME_DESIGN_HALF_WIDTH * 2 — the resize fit math scales the block down
+// from exactly this design width.
+//
+// Line sizes differ on purpose: at equal sizes the 8-glyph NUMMINEN
+// packs its letters so tight that the particle spread (point radius +
+// shimmer) closes the inter-letter gaps and the line reads as blocks.
+// A smaller size plus explicit letter-spacing keeps the counters and
+// gaps open at particle resolution. (ctx.letterSpacing is ignored by
+// older engines — the text just sets a touch tighter there.)
+const CANVAS_W = 1400;
+const CANVAS_H = 560;
+const WORLD_WIDTH = 20;
+const WORLD_PER_PX = WORLD_WIDTH / CANVAS_W;
+const CENTER_Y = 0.5;
+const LINE1_FONT_PX = 190;
+const LINE2_FONT_PX = 150;
+const LINE1_Y = 165;
+const LINE2_Y = 415;
+const LETTER_SPACING = '0.08em';
+/** Alpha above which a pixel counts as glyph interior. */
+const ALPHA_THRESHOLD = 128;
+/** Sample grid step in canvas px — 2px across a ~22px stroke keeps the
+ *  letterforms solid at the field's particle budget. */
+const SAMPLE_STEP = 2;
+const FONT_READY_TIMEOUT_MS = 800;
+
+export interface RasterizeNameTargetsOptions {
+  count: number;
+  random?: () => number;
+}
+
+export async function rasterizeNameTargets(
+  opts: RasterizeNameTargetsOptions,
+): Promise<NameTargetSet> {
+  const { count, random = Math.random } = opts;
+
+  try {
+    await Promise.race([
+      document.fonts.ready,
+      new Promise((resolve) => setTimeout(resolve, FONT_READY_TIMEOUT_MS)),
+    ]);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = CANVAS_W;
+    canvas.height = CANVAS_H;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) throw new Error('2D context unavailable');
+
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.letterSpacing = LETTER_SPACING;
+    ctx.font = `800 ${LINE1_FONT_PX}px Inter, system-ui, -apple-system, sans-serif`;
+    ctx.fillText('MIKKO', CANVAS_W / 2, LINE1_Y);
+    ctx.font = `800 ${LINE2_FONT_PX}px Inter, system-ui, -apple-system, sans-serif`;
+    ctx.fillText('NUMMINEN', CANVAS_W / 2, LINE2_Y);
+
+    const image = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H).data;
+    // Generous upper bound: every sampled cell a glyph pixel.
+    const maxCandidates =
+      Math.ceil(CANVAS_W / SAMPLE_STEP) * Math.ceil(CANVAS_H / SAMPLE_STEP);
+    const candidates = new Float32Array(maxCandidates * 2);
+    let n = 0;
+    for (let y = 0; y < CANVAS_H; y += SAMPLE_STEP) {
+      for (let x = 0; x < CANVAS_W; x += SAMPLE_STEP) {
+        const alpha = image[(y * CANVAS_W + x) * 4 + 3] ?? 0;
+        if (alpha < ALPHA_THRESHOLD) continue;
+        // Sub-step jitter so the sample grid never reads as a lattice.
+        candidates[n * 2] =
+          (x + (random() - 0.5) * SAMPLE_STEP - CANVAS_W / 2) * WORLD_PER_PX;
+        candidates[n * 2 + 1] =
+          -(y + (random() - 0.5) * SAMPLE_STEP - CANVAS_H / 2) * WORLD_PER_PX + CENTER_Y;
+        n++;
+      }
+    }
+    if (n < 200) throw new Error(`glyph sampling found only ${n} points`);
+
+    return distributeNameTargets({
+      candidates: candidates.subarray(0, n * 2),
+      count,
+      random,
+    });
+  } catch (err) {
+    console.warn('nameTargets: rasterisation failed, using blob fallback', err);
+    return {
+      positions: generateNameTargetsStub({ count, random }),
+      dim: new Float32Array(count),
+    };
+  }
 }

@@ -38,8 +38,9 @@ import {
 import { buildParticleField } from './field/buildParticleField';
 import { generateGalaxyTargets } from './field/galaxyTargets';
 import { generateStarfieldTargets } from './field/starfieldTargets';
-import { generateNameTargetsStub } from './field/nameTargets';
+import { rasterizeNameTargets } from './field/nameTargets';
 import { makeRadialSpriteTexture } from './textures';
+import { easeOutCubic } from './easing';
 
 export interface HomeSceneOptions {
   canvas: HTMLCanvasElement;
@@ -50,6 +51,12 @@ export interface HomeSceneOptions {
    * scene stays presentation-only and knows nothing about popups.
    */
   onRipple?: (clientX: number, clientY: number) => void;
+  /**
+   * Fired once, the first time the name formation reaches completion.
+   * The boot script hangs the once-per-session discoverability hint off
+   * this — the scene itself never decides to show hints.
+   */
+  onFormed?: () => void;
 }
 
 /**
@@ -109,8 +116,19 @@ const RIPPLE_EXCLUDE_SELECTOR =
 // material), just slightly stronger so the response reads as deliberate.
 const TEXT_TARGET_SELECTOR = 'p, h1, h2, h3, h4, li, blockquote, figcaption';
 
+// Load-in choreography: hold the pure galaxy briefly, then form the name
+// over FORM_DURATION seconds. If the user scrolls mid-formation the
+// dissolve scrub takes over visually while formation races to completion
+// at FORM_CATCHUP speed — no pop, no conflicting owners of the morph.
+const FORM_DELAY = 0.4;
+const FORM_DURATION = 2.0;
+const FORM_CATCHUP = 4;
+/** Glyph particles get a touch more presence than the galaxy so the
+ *  formed name is unambiguously the brightest thing in the frame. */
+const NAME_BRIGHTNESS = 1.12;
+
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
-  const { canvas, onRipple } = opts;
+  const { canvas, onRipple, onFormed } = opts;
 
   const perfFlags = readPerfFlags();
   const maxPixelRatio = perfFlags.lowPerf ? 1 : 1.5;
@@ -129,13 +147,15 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   camera.lookAt(0, 0, 0);
 
   // ── The field ────────────────────────────────────────────────────────
+  const nameTargets = await rasterizeNameTargets({ count: particleCount });
   const field = buildParticleField({
     count: particleCount,
     galaxyPositions: generateGalaxyTargets({
       count: particleCount,
       radius: GALAXY_RADIUS,
     }),
-    namePositions: generateNameTargetsStub({ count: particleCount }),
+    namePositions: nameTargets.positions,
+    nameDim: nameTargets.dim,
     starPositions: generateStarfieldTargets({ count: particleCount }),
     galaxyCenter: [GALAXY_DESIGN_X, GALAXY_Y, GALAXY_Z],
     // Fewer particles on the low tier read sparser at the same size, so
@@ -180,6 +200,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // ── Scroll / state inputs (written by handle setters, read by tick) ──
   let scrollProgress = 0;
   let dissolve = 0;
+
+  // ── Formation state (time-driven, owned by the tick loop) ────────────
+  let formTime = 0;
+  let form = 0;
+  let formedNotified = false;
 
   // ── Fit math (camera never moves; cache the frustum trig once) ───────
   const tanHalfFov = Math.tan((CAMERA_FOV * Math.PI) / 180 / 2);
@@ -301,6 +326,19 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     u.uGalaxySpin.value = elapsed * GALAXY_SPIN_RATE;
     u.uDissolve.value = dissolve;
 
+    // Name formation — advances on its own clock after a short galaxy
+    // hold; an early scroll makes it race to completion under the
+    // dissolve instead of leaving two owners fighting over the morph.
+    if (form < 1 && elapsed > FORM_DELAY) {
+      formTime += delta * (dissolve > 0.02 ? FORM_CATCHUP : 1);
+      form = easeOutCubic(Math.min(1, formTime / FORM_DURATION));
+      if (form >= 1 && !formedNotified) {
+        formedNotified = true;
+        onFormed?.();
+      }
+    }
+    u.uForm.value = form;
+
     // Smooth pointer — the lerp keeps the avoidance feeling weighty
     // rather than glued to the cursor; strength eases in after the first
     // real move so the (0,0) default never repels screen-centre.
@@ -318,8 +356,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     colorB.lerpColors(GALAXY_COLOR_B, STAR_COLOR_B, dissolve);
     u.uColorA.value.copy(colorA);
     u.uColorB.value.copy(colorB);
+    const formedBrightness =
+      GALAXY_BRIGHTNESS + (NAME_BRIGHTNESS - GALAXY_BRIGHTNESS) * form;
     u.uBrightness.value =
-      GALAXY_BRIGHTNESS + (STARFIELD_BRIGHTNESS - GALAXY_BRIGHTNESS) * dissolve;
+      formedBrightness + (STARFIELD_BRIGHTNESS - formedBrightness) * dissolve;
 
     // Starfield reads sparse: only ~40% of the field stays visible once
     // fully dissolved (density thresholds against the per-particle rank).

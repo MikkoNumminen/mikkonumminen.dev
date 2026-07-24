@@ -218,13 +218,47 @@ const personSchema = {
         ]);
         popups = buildCommitPopups(commitMessages);
         const boundPopups = popups;
+
+        // Discoverability hint: once per SESSION (sessionStorage, same
+        // persistence pattern as the audio state), after the name forms,
+        // and only if the visitor hasn't already clicked or scrolled.
+        // The session flag is set on the first formation either way — a
+        // visitor who discovered clicking organically shouldn't get the
+        // hint on a later SPA re-visit.
+        const HINT_KEY = 'mn_field_hint_shown';
+        let interacted = false;
+        const markInteracted = (): void => {
+          interacted = true;
+        };
+        window.addEventListener('pointerdown', markInteracted, {
+          capture: true,
+          once: true,
+        });
+
+        let fieldScene: Awaited<ReturnType<typeof createHomeScene>> | null = null;
         const scene = await createHomeScene({
           canvas,
           onRipple: (x, y) => boundPopups.spawn(x, y),
+          onFormed: () => {
+            try {
+              if (sessionStorage.getItem(HINT_KEY)) return;
+              sessionStorage.setItem(HINT_KEY, '1');
+            } catch {
+              return; // storage unavailable — skip the hint entirely
+            }
+            if (interacted || window.scrollY > 4) return;
+            // Below the name block — the wave brushes the letters gently
+            // at its decayed edge instead of bending them at full force.
+            fieldScene?.ripple(window.innerWidth * 0.5, window.innerHeight * 0.78, 1);
+          },
         });
+        fieldScene = scene;
         return {
           ...scene,
           dispose: (): void => {
+            window.removeEventListener('pointerdown', markInteracted, {
+              capture: true,
+            });
             scene.dispose();
             boundPopups.dispose();
           },

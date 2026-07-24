@@ -43,6 +43,9 @@ export interface ParticleFieldOptions {
   galaxyPositions: Float32Array;
   /** Name-state positions in world units at unit scale (len = count*3). */
   namePositions: Float32Array;
+  /** Per-particle name-state dim flag (0 = glyph, 1 = background dust
+   *  that fades hard while the name is formed). len = count. */
+  nameDim: Float32Array;
   /** Starfield-state positions in world space (len = count*3). */
   starPositions: Float32Array;
   /** World-space anchor of the galaxy disk. Mutable via the uniform. */
@@ -96,6 +99,7 @@ const GALAXY_TILT_EULER = new Euler(-Math.PI * 0.18, 0, Math.PI * 0.12);
 
 const VERTEX_SHADER = /* glsl */ `
 attribute vec3 aNamePos;
+attribute float aNameDim;
 attribute vec3 aStarPos;
 attribute vec4 aSeed; // x: stagger/phase 0..1, y: size jitter, z: density rank 0..1, w: palette mix 0..1
 
@@ -167,7 +171,7 @@ void main() {
     cos(t * 0.7 + sd * 9.0 + pos.x * 0.30),
     sin(t * 0.5 + aSeed.w * 6.2831)
   );
-  float amp = mix(mix(1.0, 0.06, form), 0.55, dissolve) * uDriftAmp;
+  float amp = mix(mix(1.0, 0.04, form), 0.55, dissolve) * uDriftAmp;
   pos += wob * amp;
 
   // Where this particle's camera ray crosses the z=0 plane — the space
@@ -206,7 +210,10 @@ void main() {
   // Density culling without geometry churn: ranks above the current
   // density collapse to size 0 (still processed, never drawn).
   float vis = step(aSeed.z, uDensity);
-  float stateSize = mix(mix(1.0, 0.85, form), 0.7, dissolve);
+  // Name legibility: while the name is formed, background-dust particles
+  // shrink and dim hard so the letterforms are the unambiguous subject.
+  float dust = aNameDim * form * (1.0 - dissolve);
+  float stateSize = mix(mix(1.0, 0.75, form), 0.7, dissolve) * (1.0 - dust * 0.35);
   gl_PointSize = uSize * aSeed.y * stateSize * vis * uPixelRatio * (12.0 / -mv.z);
 
   // Twinkle — loud in the galaxy, nearly frozen in the name state so the
@@ -215,7 +222,7 @@ void main() {
   float tw = 1.0 - twAmp + twAmp * sin(uTime * (1.2 + aSeed.y) + sd * 6.2831);
 
   vColor = mix(uColorA, uColorB, aSeed.w);
-  vAlpha = uBrightness * vis * tw;
+  vAlpha = uBrightness * vis * tw * (1.0 - dust * 0.78);
 }
 `;
 
@@ -246,6 +253,7 @@ export function buildParticleField(opts: ParticleFieldOptions): ParticleFieldHan
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(galaxyPositions, 3));
   geometry.setAttribute('aNamePos', new BufferAttribute(namePositions, 3));
+  geometry.setAttribute('aNameDim', new BufferAttribute(opts.nameDim, 1));
   geometry.setAttribute('aStarPos', new BufferAttribute(starPositions, 3));
   geometry.setAttribute('aSeed', new BufferAttribute(seeds, 4));
   // The shader displaces far beyond the raw attribute bounds; hand the
