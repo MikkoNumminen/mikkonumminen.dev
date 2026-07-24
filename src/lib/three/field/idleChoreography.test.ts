@@ -140,6 +140,20 @@ describe('createIdleChoreographer', () => {
     expect(run(c, 0, { wordReady: false }).weights).toEqual([0, 0, 1]);
   });
 
+  it('will not swallow a whole background stretch in one advance', () => {
+    // A page opened in a background tab reaches its first real frame
+    // with a delta of the entire time it sat there. Without a clamp the
+    // clock crosses the first delay instantly and the visitor's arrival
+    // is greeted by a transition they never idled for.
+    const c = createIdleChoreographer({ random: halfRandom });
+    const after = c.advance({ ...IDLE_FRAME, delta: 600 });
+    expect(after.phase).toBe('waiting');
+    expect(after.mix).toBe(0);
+    // And the normal wait still has to elapse from there.
+    expect(run(c, T.firstDelay - 1).phase).toBe('waiting');
+    expect(run(c, 2).phase).toBe('entering');
+  });
+
   it('reset() eases back to the name without an input frame', () => {
     const c = createIdleChoreographer({ random: halfRandom });
     run(c, T.firstDelay + T.transition + 1);

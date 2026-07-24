@@ -121,7 +121,14 @@ export function createIdleChoreographer(
   };
 
   return {
-    advance: ({ delta, armed, interrupted, wordReady }): IdleState => {
+    advance: (input): IdleState => {
+      const { armed, interrupted, wordReady } = input;
+      // Clamped here rather than at the call site: no single advance may
+      // skip more than one hitched frame's worth of schedule, whoever is
+      // driving. A page opened in a background tab reaches its first
+      // real frame with a delta of the whole time it sat there.
+      const delta = Math.min(input.delta, T.maxAdvance);
+
       if (interrupted) beginReturn(1, T.firstDelay);
       // Scroll wins outright: the dissolve is already taking the field
       // somewhere else, so collapse the idle contribution fast rather

@@ -597,13 +597,16 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-    } else if (raf === 0) {
-      lastFrame = performance.now();
-      // A tab regaining focus is attention arriving, and the name is
-      // what that attention should meet — so ease back to it rather than
-      // resuming a transition the visitor never saw begin.
+    } else {
+      // Unconditional, not folded into the restart below: a page opened
+      // in a background tab still has its very first rAF pending, so
+      // `raf` is non-zero and the loop needs no restart — but that
+      // arrival is exactly the one that must meet the name.
       idle.reset();
-      tick();
+      if (raf === 0) {
+        lastFrame = performance.now();
+        tick();
+      }
     }
   };
   document.addEventListener('visibilitychange', onVisibilityChange);

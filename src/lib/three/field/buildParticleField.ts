@@ -366,7 +366,11 @@ void main() {
     float age = uTime - im.z;
     float k = clamp(age / life, 0.0, 1.0);
     float settle = (1.0 - k) * (1.0 - k);
-    float env = smoothstep(0.0, IMPULSE_ATTACK, age) * settle * im.w * nameState;
+    // Masked by idleMix as well as the name state: a strike belongs to
+    // the name, and a decaying one must not follow the field out into an
+    // idle formation if the idle delay is ever tuned below its lifetime.
+    float env =
+      smoothstep(0.0, IMPULSE_ATTACK, age) * settle * im.w * nameState * (1.0 - idleMix);
     vec2 d3 = eq - im.xy;
     float id = length(d3);
     float fall = smoothstep(IMPULSE_RADIUS, 0.0, id);

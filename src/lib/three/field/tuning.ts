@@ -128,6 +128,12 @@ export const FIELD_TUNING = {
      *  restore landing a pixel down the page must not lock the
      *  choreography out for the whole visit. */
     maxDissolve: 0.002,
+    /** Ceiling on the delta a single advance may consume, seconds. A tab
+     *  that was never visible hands its first real frame a delta of the
+     *  entire time the page sat in the background; without this the
+     *  clock swallows it whole and opens on a transition nobody idled
+     *  for. Well above a hitched frame, far below any idle window. */
+    maxAdvance: 0.25,
 
     /** The galaxy again, but turned to face the viewer and centred —
      *  the same object seen differently, which is what makes it read as

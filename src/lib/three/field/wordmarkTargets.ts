@@ -13,6 +13,11 @@
  * soft ellipsoid IS a reasonable stand-in for a name that must appear,
  * but it is nothing at all as a stand-in for a wordmark. The
  * choreography skips the formation instead.
+ *
+ * ORDERING: this is synchronous and does NOT await `document.fonts.ready`
+ * — it relies on `rasterizeNameTargets` having already awaited it. Call
+ * it after that, never before, or the mark silently rasterises in the
+ * fallback face while the name uses Inter.
  */
 import { distributeNameTargets, type NameTargetSet } from './nameDistribution';
 
