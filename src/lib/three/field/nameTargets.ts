@@ -16,10 +16,7 @@
  * name's position (generateNameTargetsStub) rather than breaking the
  * scene.
  */
-import {
-  distributeNameTargets,
-  type NameTargetSet,
-} from './nameDistribution';
+import { distributeNameTargets, type NameTargetSet } from './nameDistribution';
 
 export interface NameTargetStubOptions {
   count: number;

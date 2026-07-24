@@ -10,8 +10,8 @@ import { asLocale, getTranslations } from '../i18n';
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
-// Recent commit subjects, baked in at build time. Drives the impact-text
-// popups that burst from each meteor strike on the home hero galaxy.
+// Recent commit subjects, baked in at build time. Drives the commit
+// popups that rise from field ripples when the background is clicked.
 // We strip each subject to its conventional-commit type+scope and only
 // keep the ones with an explicit (scope). NO dedup — the popup pool is
 // the latest ~40 prefixes in chronological order, repetitions and all,
@@ -84,22 +84,26 @@ const personSchema = {
     />
   </Fragment>
 
-  {/* The unified particle field. Fixed and full-viewport so the field
+  {
+    /* The unified particle field. Fixed and full-viewport so the field
       persists behind every section of the page — the hero no longer owns
       it. z-index -1 paints it above the body background but below all
       normal-flow content. pointer-events: none: clicks are observed at
-      the document level by the scene, never captured by the canvas. */}
+      the document level by the scene, never captured by the canvas. */
+  }
   <canvas
     id="home-canvas"
     class="field-canvas"
     aria-hidden="true"
     data-commit-messages={JSON.stringify(commitMessages)}></canvas>
 
-  {/* Loading gate. Shown only while <html> carries .field-loading — the
+  {
+    /* Loading gate. Shown only while <html> carries .field-loading — the
       inline script below adds it pre-paint on the WebGL path and never
       on small screens / reduced motion / no-JS, so fallback users are
       never gated. The boot script reveals on measured readiness (warm
-      frames rendered) with a 2s hard cap. */}
+      frames rendered) with a 2s hard cap. */
+  }
   <div class="field-gate" data-field-gate aria-hidden="true">
     <span class="field-gate__rule"><span class="field-gate__fill"></span></span>
     <span class="field-gate__caption">initialising · field</span>
@@ -429,10 +433,7 @@ const personSchema = {
       if (gateActive) {
         // Caption only appears if the warm-up outlasts 300ms — a fast
         // machine sees an imperceptible ink flash, not a loading screen.
-        slowTimer = window.setTimeout(
-          () => gate?.classList.add('field-gate--slow'),
-          300,
-        );
+        slowTimer = window.setTimeout(() => gate?.classList.add('field-gate--slow'), 300);
         // Hard cap: never hold the page hostage. Reveal even if readiness
         // was never proven (hidden tab, struggling GPU).
         capTimer = window.setTimeout(reveal, 2000);

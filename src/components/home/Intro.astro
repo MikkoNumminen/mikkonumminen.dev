@@ -5,7 +5,11 @@ const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 ---
 
-<section class="intro has-grain" data-field-section="about" aria-label={t.intro.sectionAria}>
+<section
+  class="intro has-grain"
+  data-field-section="about"
+  aria-label={t.intro.sectionAria}
+>
   <span class="ghost-num intro__ghost" aria-hidden="true">01</span>
 
   <div class="intro__inner">

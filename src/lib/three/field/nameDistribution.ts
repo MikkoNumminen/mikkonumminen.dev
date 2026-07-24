@@ -34,9 +34,7 @@ export interface NameTargetSet {
   dim: Float32Array;
 }
 
-export function distributeNameTargets(
-  opts: DistributeNameTargetsOptions,
-): NameTargetSet {
+export function distributeNameTargets(opts: DistributeNameTargetsOptions): NameTargetSet {
   const {
     candidates,
     count,
