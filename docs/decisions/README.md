@@ -19,6 +19,7 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0011](0011-hybrid-retrieval-and-code-corpus.md)  | Hybrid dense+BM25 retrieval (RRF) over a code-enriched corpus for the RAG chat (builds on 0009/0010) — code-aware chunking, language/chunk_type metadata, hard per-project filter | Accepted                                 |
 | [0012](0012-same-origin-chat-proxy.md)            | Same-origin `/api/rag/*` proxy for the RAG chat via Vercel external rewrites (builds on 0009) — the chat reveal and SSE stream ride the site's own origin, immune to content blockers | Accepted                                 |
 | [0013](0013-client-side-routing-persisted-audio.md) | Client-side routing (Astro ClientRouter) + `transition:persist` audio so the sound toggle persists continuously across views (builds on 0002) — every page's client init moves to an `onRoute` lifecycle helper; the custom canvas transition is removed | Accepted                                 |
+| [0014](0014-unified-home-particle-field.md)       | One uniform-driven particle field for the entire home page — galaxy → name formation → persistent starfield on a fixed opaque canvas, field-based interactivity, pmndrs bloom, and a measured-ready loading gate that moves shader compilation behind an overlay (cures a measured 306 ms first-scroll block) | Accepted                                 |
 
 ## Writing a new one
 
