@@ -331,6 +331,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const idle = createIdleChoreographer();
   const wordReady = wordTargets !== null;
   let idleInterrupt = false;
+  let idleGalaxySpin = 0;
   const markInteraction = (): void => {
     idleInterrupt = true;
   };
@@ -507,7 +508,19 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     u.uIdle.value = idleState.mix;
     const [wGalaxy, wWord, wSparse] = idleState.weights;
     u.uIdleWeights.value.set(wGalaxy, wWord, wSparse);
-    u.uIdleGalaxySpin.value = elapsed * IDLE.galaxyVariant.spinRate;
+    // Accumulated rather than derived from `elapsed`, so it pauses with
+    // the loop. This variant is the one formation a visitor can see
+    // both before hiding a tab and after returning to it, so a spin
+    // derived from wall-clock time would resume visibly rotated. The
+    // load-in galaxy above keeps its wall clock deliberately: it is only
+    // ever on screen before the name forms, so there is no earlier
+    // orientation for anyone to notice it jumping from.
+    // Clamped like the choreographer's own advance: visibilitychange
+    // covers a hidden tab, but a suspended machine resumes without one,
+    // and an accumulator that swallows that delta lands right back in
+    // the jump this replaced.
+    idleGalaxySpin += Math.min(delta, IDLE.maxAdvance) * IDLE.galaxyVariant.spinRate;
+    u.uIdleGalaxySpin.value = idleGalaxySpin;
 
     // Per-shape presentation, blended by the same weights the shader
     // uses for geometry — so the sparse field actually reads sparse
@@ -598,15 +611,18 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       cancelAnimationFrame(raf);
       raf = 0;
     } else {
-      // Unconditional, not folded into the restart below: a page opened
-      // in a background tab still has its very first rAF pending, so
-      // `raf` is non-zero and the loop needs no restart — but that
-      // arrival is exactly the one that must meet the name.
+      // Both of these are unconditional, and the `raf === 0` guard below
+      // is only about restarting the loop. A page opened in a background
+      // tab never had its first rAF fire, so `raf` is non-zero and needs
+      // no restart — but that pending frame is still holding a
+      // `lastFrame` from scene construction, and would arrive with a
+      // delta of the entire background stretch: enough to snap the name
+      // into existence instead of forming it, and to hand the composer a
+      // nonsense frame time. That arrival is also exactly the one that
+      // must meet the name rather than a transition already in flight.
+      lastFrame = performance.now();
       idle.reset();
-      if (raf === 0) {
-        lastFrame = performance.now();
-        tick();
-      }
+      if (raf === 0) tick();
     }
   };
   document.addEventListener('visibilitychange', onVisibilityChange);
