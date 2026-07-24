@@ -101,4 +101,59 @@ export const FIELD_TUNING = {
     minForm: 0.9,
     maxDissolve: 0.05,
   },
+
+  /**
+   * What the field does when nobody is doing anything. Only ever runs on
+   * the formed name at the top of the page, and every path out of it
+   * ends on the name — the name is what an interrupting visitor gets.
+   */
+  idle: {
+    /** Seconds of continuous idleness before the first transition. */
+    firstDelay: 12,
+    /** Hold window per formation, seconds. Randomised inside the range
+     *  so a visitor who stays a while never learns the beat. */
+    holdMin: 20,
+    holdMax: 30,
+    /** Transition duration, seconds — paced to the load-in formation's
+     *  unhurried quality, not to UI-crossfade speed. */
+    transition: 3,
+    /** Return-to-name duration, seconds. Covers both routes back: a
+     *  deliberate interruption and a tab regaining focus. */
+    returnDuration: 0.9,
+    /** Multiplier on that return once the scrub has taken over. The
+     *  dissolve is already moving the field somewhere else and two
+     *  owners of one morph must not overlap; mirrors FORM_CATCHUP. */
+    scrubCatchup: 4,
+    /** uDissolve at or below which idle may arm. Not exactly zero: a
+     *  restore landing a pixel down the page must not lock the
+     *  choreography out for the whole visit. */
+    maxDissolve: 0.002,
+
+    /** The galaxy again, but turned to face the viewer and centred —
+     *  the same object seen differently, which is what makes it read as
+     *  a variation rather than a rewind of the load-in. */
+    galaxyVariant: {
+      x: 0,
+      y: 0,
+      z: -8,
+      scale: 1.35,
+      spinRate: 0.06,
+      tiltX: -0.32,
+      tiltZ: 0.55,
+    },
+
+    /** Free-floating calm field: a centred ellipsoid, widened on x so it
+     *  fills a landscape frame. World units. */
+    sparseRadius: 11,
+    sparseAspect: 1.5,
+    sparseDepth: 0.7,
+
+    /** Per-shape presentation, blended by the same weights the shader
+     *  uses for geometry: [galaxy, wordmark, sparse]. The sparse field
+     *  earns its name here — density and brightness drop rather than the
+     *  particle count changing. */
+    shapeBrightness: [1, 1.05, 0.6],
+    shapeDensity: [1, 1, 0.45],
+    shapeBloom: [1, 0.45, 0.25],
+  },
 } as const;

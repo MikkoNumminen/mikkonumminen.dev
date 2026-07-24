@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { easeOutCubic } from './easing';
+import { easeInOutCubic, easeOutCubic } from './easing';
 
 describe('easeOutCubic', () => {
   it('fixes the endpoints at 0 and 1', () => {
@@ -21,6 +21,30 @@ describe('easeOutCubic', () => {
       const v = easeOutCubic(x);
       expect(v).toBeGreaterThan(prev);
       prev = v;
+    }
+  });
+});
+
+describe('easeInOutCubic', () => {
+  it('pins the endpoints and the midpoint', () => {
+    expect(easeInOutCubic(0)).toBe(0);
+    expect(easeInOutCubic(0.5)).toBeCloseTo(0.5, 10);
+    expect(easeInOutCubic(1)).toBe(1);
+  });
+
+  it('settles at both ends, unlike easeOutCubic', () => {
+    // The reason it exists: a shape-to-shape crossfade has no impulse at
+    // either end, so it must not start fast.
+    expect(easeInOutCubic(0.05)).toBeLessThan(easeOutCubic(0.05));
+    expect(easeInOutCubic(0.95)).toBeGreaterThan(0.9);
+  });
+
+  it('is monotonic', () => {
+    let prev = -1;
+    for (let x = 0; x <= 1.0001; x += 0.05) {
+      const y = easeInOutCubic(x);
+      expect(y).toBeGreaterThan(prev);
+      prev = y;
     }
   });
 });
