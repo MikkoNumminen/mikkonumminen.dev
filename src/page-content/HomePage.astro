@@ -95,6 +95,29 @@ const personSchema = {
     aria-hidden="true"
     data-commit-messages={JSON.stringify(commitMessages)}></canvas>
 
+  {/* Loading gate. Shown only while <html> carries .field-loading — the
+      inline script below adds it pre-paint on the WebGL path and never
+      on small screens / reduced motion / no-JS, so fallback users are
+      never gated. The boot script reveals on measured readiness (warm
+      frames rendered) with a 2s hard cap. */}
+  <div class="field-gate" data-field-gate aria-hidden="true">
+    <span class="field-gate__rule"><span class="field-gate__fill"></span></span>
+    <span class="field-gate__caption">initialising · field</span>
+  </div>
+
+  <script is:inline data-astro-rerun>
+    (function () {
+      try {
+        if (window.matchMedia('(max-width: 640px)').matches) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        document.documentElement.classList.add('field-loading');
+        performance.mark('field:gate-shown');
+      } catch {
+        /* gate is progressive enhancement — never block the page */
+      }
+    })();
+  </script>
+
   <Hero />
   <Intro />
   <LatestEntries />
@@ -126,6 +149,97 @@ const personSchema = {
     .field-canvas {
       display: none;
     }
+  }
+
+  /* ── Loading gate ──────────────────────────────────────────────────
+     Flat ink with a thin sweeping rule and a mono caption in the
+     corner-frame voice. The caption stays hidden unless the warm-up
+     outlasts 300ms (.field-gate--slow), so fast machines see only an
+     imperceptible ink flash. Fixed and above everything, faded out by
+     .field-gate--done, then display collapses when .field-loading
+     leaves <html>. */
+  .field-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--color-ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    visibility: hidden;
+    opacity: 1;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+  }
+
+  :global(html.field-loading) .field-gate {
+    visibility: visible;
+  }
+
+  .field-gate--done {
+    opacity: 0;
+  }
+
+  .field-gate__rule {
+    width: 9rem;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+  }
+
+  .field-gate__fill {
+    display: block;
+    width: 40%;
+    height: 100%;
+    background: rgba(196, 212, 255, 0.7);
+    animation: field-gate-sweep 1.1s ease-in-out infinite;
+  }
+
+  @keyframes field-gate-sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(350%);
+    }
+  }
+
+  .field-gate__caption {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  :global(.field-gate--slow) .field-gate__caption {
+    opacity: 1;
+  }
+
+  /* Fallback paths are never gated, belt and braces with the inline
+     activation check. */
+  @media (max-width: 640px) {
+    .field-gate {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field-gate {
+      display: none;
+    }
+  }
+</style>
+
+<style is:global>
+  /* Scroll stays locked while the gate is up, so the first scroll input
+     a visitor can physically make lands on a warm, compiled scene. */
+  html.field-loading {
+    overflow: hidden;
   }
 </style>
 
@@ -180,6 +294,8 @@ const personSchema = {
     setDissolve: (p: number) => void;
     ripple: (clientX: number, clientY: number, strength?: number) => void;
     setMood: (hue: number, density: number, drift: number) => void;
+    whenReady: () => Promise<void>;
+    startIntro: () => void;
     dispose: () => void;
   };
 
@@ -286,6 +402,41 @@ const personSchema = {
     () => {
       let sceneHandle: HomeSceneHandle | null = null;
       let disposed = false;
+      let revealed = false;
+
+      // ── Gate orchestration ──────────────────────────────────────────
+      // The inline pre-paint script decides WHETHER the gate shows; this
+      // block decides WHEN it lifts: on measured scene readiness, or the
+      // hard cap — whichever comes first. Fallback users never had the
+      // gate, so none of this runs for them (gateActive false).
+      const html = document.documentElement;
+      const gateActive = html.classList.contains('field-loading');
+      const gate = document.querySelector<HTMLElement>('[data-field-gate]');
+      let slowTimer = 0;
+      let capTimer = 0;
+
+      const reveal = (): void => {
+        if (revealed) return;
+        revealed = true;
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(capTimer);
+        performance.mark('field:revealed');
+        gate?.classList.add('field-gate--done');
+        window.setTimeout(() => html.classList.remove('field-loading'), 380);
+        sceneHandle?.startIntro();
+      };
+
+      if (gateActive) {
+        // Caption only appears if the warm-up outlasts 300ms — a fast
+        // machine sees an imperceptible ink flash, not a loading screen.
+        slowTimer = window.setTimeout(
+          () => gate?.classList.add('field-gate--slow'),
+          300,
+        );
+        // Hard cap: never hold the page hostage. Reveal even if readiness
+        // was never proven (hidden tab, struggling GPU).
+        capTimer = window.setTimeout(reveal, 2000);
+      }
 
       // Timeline is synchronous; onScrollProgress reads sceneHandle lazily, so it
       // works even though the scene resolves asynchronously below.
@@ -304,10 +455,27 @@ const personSchema = {
           return;
         }
         sceneHandle = handle;
+        if (!handle) {
+          // Scene skipped or failed — lift the gate immediately; the
+          // static page must never wait on a scene that isn't coming.
+          reveal();
+          return;
+        }
+        if (gateActive && !revealed) {
+          void handle.whenReady().then(reveal);
+        } else {
+          // Gate never shown (or already hard-capped away) — release the
+          // intro now.
+          handle.startIntro();
+        }
       });
 
       return () => {
         disposed = true;
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(capTimer);
+        // Never leave the NEXT page scroll-locked behind a gone gate.
+        html.classList.remove('field-loading');
         sceneHandle?.dispose();
         sceneHandle = null;
         timeline.dispose();

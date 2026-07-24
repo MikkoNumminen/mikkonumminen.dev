@@ -20,6 +20,7 @@
  */
 import {
   Color,
+  HalfFloatType,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -27,6 +28,7 @@ import {
   Scene,
   SRGBColorSpace,
 } from 'three';
+import { BloomEffect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
 import { createRenderer } from './createRenderer';
 import { createResizeHandler } from './createResizeHandler';
 import { readPerfFlags } from '../debug/perfFlags';
@@ -80,6 +82,19 @@ export interface HomeSceneHandle {
   dispose: () => void;
   /** Re-fit the field after a viewport / orientation change. */
   resize: () => void;
+  /**
+   * Resolves once the scene has proven itself warm: shaders compiled and
+   * two consecutive real frames rendered under the jank threshold (or a
+   * frame-count cap, so a slow-but-steady machine still resolves). The
+   * loading gate reveals on this — measured ready, not assumed.
+   */
+  whenReady: () => Promise<void>;
+  /**
+   * Start the load-in choreography (galaxy hold → name formation).
+   * Called by the boot script at gate reveal so the formation never
+   * plays out invisibly behind the overlay. Idempotent.
+   */
+  startIntro: () => void;
 }
 
 const CAMERA_Z = 26;
@@ -138,6 +153,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const particleCount = perfFlags.lowPerf ? 8_000 : 24_000;
 
   const renderer = createRenderer(canvas, { maxPixelRatio });
+  // Opaque clear in the page's own ink (--color-ink). The canvas covers
+  // the whole viewport behind every section, so an opaque clear is
+  // pixel-identical to transparent-over-ink — and it sidesteps the
+  // premultiplied-alpha pitfalls of running a post chain on a
+  // transparent framebuffer.
+  renderer.setClearColor(0x0a0a0f, 1);
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(
@@ -200,6 +221,31 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   glow.renderOrder = 0;
   scene.add(glow);
 
+  // ── Post-processing: mipmap-blur bloom, skipped on the low tier ──────
+  // Intensity is state-driven per frame: loudest on the galaxy, calm on
+  // the formed name (legibility), near-off in the starfield so page text
+  // always wins.
+  let bloom: BloomEffect | null = null;
+  let composer: EffectComposer | null = null;
+  if (!perfFlags.lowPerf) {
+    // Half-float buffers keep the chain linear end-to-end — with the
+    // default byte buffers the ink clear colour round-trips through an
+    // sRGB encode twice and every black lifts to washed gray.
+    composer = new EffectComposer(renderer, { frameBufferType: HalfFloatType });
+    composer.addPass(new RenderPass(scene, camera));
+    // Tight radius + a firm threshold: the widest mip levels of the
+    // default settings smear the bright name across the entire viewport
+    // and lift the ink background to gray.
+    bloom = new BloomEffect({
+      intensity: 1.1,
+      luminanceThreshold: 0.32,
+      luminanceSmoothing: 0.25,
+      mipmapBlur: true,
+      radius: 0.45,
+    });
+    composer.addPass(new EffectPass(camera, bloom));
+  }
+
   // ── Scroll / state inputs (written by handle setters, read by tick) ──
   let scrollProgress = 0;
   let dissolve = 0;
@@ -208,6 +254,21 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   let formTime = 0;
   let form = 0;
   let formedNotified = false;
+  // Intro waits for the gate reveal — a formation that plays behind the
+  // loading overlay would be wasted choreography.
+  let introStartedAt = -1;
+
+  // ── Measured readiness (drives the loading gate's reveal) ────────────
+  let readyResolved = false;
+  let warmFrames = 0;
+  let goodStreak = 0;
+  let resolveReady: () => void = () => {};
+  const readyPromise = new Promise<void>((resolve) => {
+    resolveReady = resolve;
+  });
+  const READY_FRAME_MS = 20;
+  const READY_STREAK = 2;
+  const READY_FRAME_CAP = 20;
 
   // ── Section mood (written by the timeline's scrubbed crossfade) ──────
   let moodHue = 0;
@@ -293,6 +354,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       glow.scale.set(glowHalfWidth * 2.0, halfHeightAtGlowZ * 2.0, 1);
 
       field.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+      composer?.setSize(window.innerWidth, window.innerHeight);
     },
     maxPixelRatio,
   );
@@ -335,9 +397,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     u.uDissolve.value = dissolve;
 
     // Name formation — advances on its own clock after a short galaxy
-    // hold; an early scroll makes it race to completion under the
-    // dissolve instead of leaving two owners fighting over the morph.
-    if (form < 1 && elapsed > FORM_DELAY) {
+    // hold once the intro has been released by the gate reveal; an early
+    // scroll makes it race to completion under the dissolve instead of
+    // leaving two owners fighting over the morph.
+    if (form < 1 && introStartedAt >= 0 && elapsed - introStartedAt > FORM_DELAY) {
       formTime += delta * (dissolve > 0.02 ? FORM_CATCHUP : 1);
       form = easeOutCubic(Math.min(1, formTime / FORM_DURATION));
       if (form >= 1 && !formedNotified) {
@@ -381,7 +444,28 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
     glowMaterial.opacity = 1 - dissolve * 0.9;
 
-    renderer.render(scene, camera);
+    if (bloom) {
+      bloom.intensity = (1.1 + (0.35 - 1.1) * form) * (1 - dissolve) + 0.1 * dissolve;
+    }
+
+    if (composer) {
+      composer.render(delta);
+    } else {
+      renderer.render(scene, camera);
+    }
+
+    // Warm-up instrumentation: the first frames prove the scene renders
+    // under the jank threshold before the gate lets the user in.
+    if (!readyResolved) {
+      const frameCpu = performance.now() - now;
+      warmFrames++;
+      goodStreak = frameCpu < READY_FRAME_MS ? goodStreak + 1 : 0;
+      if (goodStreak >= READY_STREAK || warmFrames >= READY_FRAME_CAP) {
+        readyResolved = true;
+        resolveReady();
+      }
+    }
+
     perfOverlay?.tick(delta);
   };
 
@@ -396,6 +480,16 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     }
   };
   document.addEventListener('visibilitychange', onVisibilityChange);
+
+  // Compile every program off the critical path where the driver
+  // supports KHR_parallel_shader_compile, so the first rendered frame
+  // links instead of compiling from scratch. Raced with a timeout —
+  // compileAsync polls on rAF in some engines and a hidden tab must not
+  // wedge the boot forever.
+  await Promise.race([
+    renderer.compileAsync(scene, camera).catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, 1500)),
+  ]);
 
   tick();
 
@@ -414,6 +508,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       moodDensity = density;
       moodDrift = drift;
     },
+    whenReady: (): Promise<void> => readyPromise,
+    startIntro: (): void => {
+      if (introStartedAt < 0) introStartedAt = elapsedNow;
+    },
     resize: resize.handler,
     dispose: (): void => {
       if (disposed) return;
@@ -427,6 +525,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       perfOverlay?.dispose();
 
       scene.remove(field.points, glow);
+      composer?.dispose();
       field.dispose();
       glowGeometry.dispose();
       glowMaterial.dispose();
