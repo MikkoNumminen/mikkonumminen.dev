@@ -73,4 +73,32 @@ export const FIELD_TUNING = {
     /** Peak excursion, world units (~11 px). */
     strayDistance: 0.25,
   },
+
+  /**
+   * Clicking the formed name: a local strike, not the travelling ring
+   * the background ripple uses. Particles scatter and reassemble on
+   * per-particle timing so the name comes back together organically.
+   */
+  impulse: {
+    /** Falloff radius on the z=0 plane, world units (~134 px). */
+    radius: 3,
+    /** Peak radial displacement at the epicentre, world units (~80 px). */
+    push: 1.8,
+    /** Seconds to reach full displacement. Zero would be a teleport and
+     *  reads as a rendering glitch; ~4 frames reads as a strike. */
+    attack: 0.06,
+    /** Return window in seconds — each particle picks its own point in
+     *  this range from its seed, so the name doesn't snap back as a unit. */
+    returnMin: 1.5,
+    returnMax: 2.5,
+    /** Peak z displacement, world units, signed per particle. */
+    lift: 0.6,
+    /** Slack around the measured glyph box when hit-testing a click,
+     *  world units — a click just off a stroke still counts as the name. */
+    hitPadding: 0.5,
+    /** uForm floor / uDissolve ceiling for a click to count as a name
+     *  hit. Mid-formation or mid-scroll, the click is a background one. */
+    minForm: 0.9,
+    maxDissolve: 0.05,
+  },
 } as const;

@@ -75,6 +75,11 @@ export interface ParticleFieldUniforms {
    *  time in scene seconds, w = strength. Inactive slots park at a
    *  start time far in the past. */
   uRipples: { value: [Vector4, Vector4, Vector4, Vector4] };
+  /** Two name-click impulse slots: xy = origin on the z=0 plane, z =
+   *  start time in scene seconds, w = strength. Two rather than one so a
+   *  re-strike during a return adds to the decaying first instead of
+   *  restarting it from wherever the particle currently sits. */
+  uImpulses: { value: [Vector4, Vector4] };
   uCameraZ: { value: number };
   uGalaxySpin: { value: number };
   uGalaxyCenter: { value: Vector3 };
@@ -103,6 +108,7 @@ export interface ParticleFieldHandle {
 const GALAXY_TILT_EULER = new Euler(-Math.PI * 0.18, 0, Math.PI * 0.12);
 
 const M = FIELD_TUNING.microLife;
+const I = FIELD_TUNING.impulse;
 
 const VERTEX_SHADER = /* glsl */ `
 attribute vec3 aNamePos;
@@ -129,6 +135,7 @@ uniform vec3 uColorB;
 uniform vec3 uPointer;
 uniform float uPointerStrength;
 uniform vec4 uRipples[4];
+uniform vec4 uImpulses[2];
 uniform float uCameraZ;
 
 varying vec3 vColor;
@@ -162,6 +169,12 @@ const float STRAY_FRACTION = ${glslFloat(M.strayFraction)};
 const float STRAY_PERIOD = ${glslFloat(M.strayPeriod)};
 const float STRAY_DUTY = ${glslFloat(M.strayDuty)};
 const float STRAY_DISTANCE = ${glslFloat(M.strayDistance)};
+const float IMPULSE_RADIUS = ${glslFloat(I.radius)};
+const float IMPULSE_PUSH = ${glslFloat(I.push)};
+const float IMPULSE_ATTACK = ${glslFloat(I.attack)};
+const float IMPULSE_RETURN_MIN = ${glslFloat(I.returnMin)};
+const float IMPULSE_RETURN_MAX = ${glslFloat(I.returnMax)};
+const float IMPULSE_LIFT = ${glslFloat(I.lift)};
 
 const float PI = 3.14159265;
 const float TAU = 6.28318531;
@@ -217,7 +230,8 @@ void main() {
   // frozen field reads as a finished PNG. Everything below is masked to
   // glyph particles in the name state, and sized well under the ~0.43
   // world glyph stem so the letterforms never soften.
-  float glyph = form * (1.0 - dissolve) * (1.0 - aNameDim);
+  float nameState = form * (1.0 - dissolve);
+  float glyph = nameState * (1.0 - aNameDim);
 
   // Faster than the sway above and out of phase per particle: amplitude
   // alone just makes the name lean, frequency is what reads as shimmer.
@@ -271,6 +285,27 @@ void main() {
       if (rd > 1e-4) pos.xy += (d2 / rd) * band * env * RIPPLE_PUSH;
       pos.z += band * env * RIPPLE_LIFT;
     }
+  }
+
+  // Name-click impulse — a local strike, not a travelling ring: an
+  // immediate radial kick that eases back to the glyph target over a
+  // per-particle window, so the name reassembles organically instead of
+  // snapping back as a unit. Two slots, so a re-strike mid-return adds
+  // to the first rather than restarting it from a displaced position.
+  // Branchless on purpose: an inactive slot parks its start time far in
+  // the past, which clamps its envelope to zero.
+  for (int i = 0; i < 2; i++) {
+    vec4 im = uImpulses[i];
+    float life = IMPULSE_RETURN_MIN + aSeed.x * (IMPULSE_RETURN_MAX - IMPULSE_RETURN_MIN);
+    float age = uTime - im.z;
+    float k = clamp(age / life, 0.0, 1.0);
+    float settle = (1.0 - k) * (1.0 - k);
+    float env = smoothstep(0.0, IMPULSE_ATTACK, age) * settle * im.w * nameState;
+    vec2 d3 = eq - im.xy;
+    float id = length(d3);
+    float fall = smoothstep(IMPULSE_RADIUS, 0.0, id);
+    pos.xy += (d3 / max(id, 1e-4)) * fall * env * IMPULSE_PUSH;
+    pos.z += fall * env * IMPULSE_LIFT * (aSeed.w * 2.0 - 1.0);
   }
 
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
@@ -364,6 +399,9 @@ export function buildParticleField(opts: ParticleFieldOptions): ParticleFieldHan
         new Vector4(0, 0, -1e4, 0),
         new Vector4(0, 0, -1e4, 0),
       ],
+    },
+    uImpulses: {
+      value: [new Vector4(0, 0, -1e4, 0), new Vector4(0, 0, -1e4, 0)],
     },
     uCameraZ: { value: 26 },
     uGalaxySpin: { value: 0 },

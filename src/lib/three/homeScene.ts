@@ -43,6 +43,8 @@ import { buildParticleField } from './field/buildParticleField';
 import { generateGalaxyTargets } from './field/galaxyTargets';
 import { generateStarfieldTargets } from './field/starfieldTargets';
 import { rasterizeNameTargets } from './field/nameTargets';
+import { isInsideNameBounds } from './field/nameDistribution';
+import { FIELD_TUNING } from './field/tuning';
 import { makeRadialSpriteTexture } from './textures';
 import { easeOutCubic } from './easing';
 
@@ -154,6 +156,8 @@ const FORM_CATCHUP = 4;
 /** Glyph particles get a touch more presence than the galaxy so the
  *  formed name is unambiguously the brightest thing in the frame. */
 const NAME_BRIGHTNESS = 1.12;
+
+const IMPULSE = FIELD_TUNING.impulse;
 
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
   const { canvas, onRipple, onFormed } = opts;
@@ -331,9 +335,41 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     onRipple?.(clientX, clientY);
   };
 
+  // ── Name-click impulse ───────────────────────────────────────────────
+  // A click that lands on the formed letterforms is a different gesture
+  // from a click on the page behind them: it strikes the name rather
+  // than rippling the field. Two slots ping-pong so mashing adds up.
+  let nextImpulse = 0;
+
+  const launchImpulse = (clientX: number, clientY: number, strength: number): void => {
+    // Non-null: (non-negative int % 2) always lands inside the pair.
+    const slot = field.uniforms.uImpulses.value[nextImpulse % 2]!;
+    nextImpulse++;
+    slot.set(clientToWorldX(clientX), clientToWorldY(clientY), elapsedNow, strength);
+  };
+
+  const isNameHit = (clientX: number, clientY: number): boolean => {
+    if (form < IMPULSE.minForm || dissolve > IMPULSE.maxDissolve) return false;
+    return isInsideNameBounds(
+      nameTargets.bounds,
+      field.uniforms.uNameScale.value,
+      clientToWorldX(clientX),
+      clientToWorldY(clientY),
+      IMPULSE.hitPadding,
+    );
+  };
+
   const onPointerDown = (e: PointerEvent): void => {
     const target = e.target as Element | null;
     if (target?.closest(RIPPLE_EXCLUDE_SELECTOR)) return;
+    if (isNameHit(e.clientX, e.clientY)) {
+      // Deliberately no onRipple: the scatter IS the feedback here, and
+      // a commit popup rising through the letterforms would fight the
+      // legibility the name state exists to protect. Background clicks
+      // keep the popup easter egg untouched.
+      launchImpulse(e.clientX, e.clientY, 1);
+      return;
+    }
     const strength = target?.closest(TEXT_TARGET_SELECTOR) ? 1.25 : 1;
     launchRipple(e.clientX, e.clientY, strength);
   };

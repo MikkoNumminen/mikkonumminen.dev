@@ -26,12 +26,48 @@ export interface DistributeNameTargetsOptions {
   random?: () => number;
 }
 
+/** Axis-aligned box around the glyph ink at unit scale, world units.
+ *  Degenerate (all zeros) when there were no glyph candidates. */
+export interface NameBounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
 export interface NameTargetSet {
   /** World-space positions at unit scale (len = count*3). */
   positions: Float32Array;
   /** Per-particle dim flag: 0 = glyph (full brightness), 1 = dust
    *  (dimmed hard while the name is formed). len = count. */
   dim: Float32Array;
+  /** Where the letterforms actually are. Measured from the sampled ink
+   *  rather than hardcoded from the raster geometry, so it survives font
+   *  substitution and copy changes — the click hit-test reads it. */
+  bounds: NameBounds;
+}
+
+const EMPTY_BOUNDS: NameBounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+
+/**
+ * Is a world-space point inside the name's ink box at the given scale?
+ * `uNameScale` multiplies the whole name block in the shader, so the box
+ * scales with it. Pure so the hit-test is testable without a GL context.
+ */
+export function isInsideNameBounds(
+  bounds: NameBounds,
+  scale: number,
+  x: number,
+  y: number,
+  padding = 0,
+): boolean {
+  if (bounds.maxX <= bounds.minX || bounds.maxY <= bounds.minY) return false;
+  return (
+    x >= bounds.minX * scale - padding &&
+    x <= bounds.maxX * scale + padding &&
+    y >= bounds.minY * scale - padding &&
+    y <= bounds.maxY * scale + padding
+  );
 }
 
 export function distributeNameTargets(opts: DistributeNameTargetsOptions): NameTargetSet {
@@ -51,6 +87,24 @@ export function distributeNameTargets(opts: DistributeNameTargetsOptions): NameT
   const positions = new Float32Array(count * 3);
   const dim = new Float32Array(count);
   const glyphCount = candidateCount > 0 ? Math.round(count * (1 - dustFraction)) : 0;
+
+  // Measured over every candidate, not just the ones a particle lands
+  // on: the box describes where the letterforms ARE, independent of how
+  // many particles the field happens to be carrying.
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let c = 0; c < candidateCount; c++) {
+    const x = candidates[c * 2] ?? 0;
+    const y = candidates[c * 2 + 1] ?? 0;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  const bounds: NameBounds =
+    candidateCount > 0 ? { minX, maxX, minY, maxY } : { ...EMPTY_BOUNDS };
 
   for (let i = 0; i < count; i++) {
     const i3 = i * 3;
@@ -76,5 +130,5 @@ export function distributeNameTargets(opts: DistributeNameTargetsOptions): NameT
     }
   }
 
-  return { positions, dim };
+  return { positions, dim, bounds };
 }
