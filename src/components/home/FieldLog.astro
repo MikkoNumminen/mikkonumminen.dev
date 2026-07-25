@@ -128,7 +128,9 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
      through the scroll, which also parks it on top of the footer text at
      the bottom of the page — and because the toggle covers the whole
      block, a click meant for the footer opened the history instead.
-     Same two declarations as the open state, so they compose. */
+     Same two declarations as the open state, so they compose. The flag
+     itself is set by BaseLayout, since the same collision happens on
+     every page and this component only exists on one of them. */
   :global(html[data-footer-in-view]) .field-log {
     opacity: 0;
     visibility: hidden;
@@ -464,17 +466,16 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
       // Past the hero the log dims. Read the hero's own height rather than
       // a magic number, and set an attribute the stylesheet owns so the
       // opacity value stays in CSS.
+      // `data-footer-in-view` is set by the layout, not here — the
+      // collision is site-wide and this component is home-only. This
+      // handler is left with one job, and no layout read on the scroll
+      // path: hero height is measured once rather than per event.
       const hero = document.querySelector<HTMLElement>('[data-section-hero]');
-      const footer = document.querySelector<HTMLElement>('[data-site-footer]');
+      const heroThreshold = (hero?.clientHeight ?? window.innerHeight) * 0.6;
       const onScroll = (): void => {
-        const past = window.scrollY > (hero?.clientHeight ?? window.innerHeight) * 0.6;
-        document.documentElement.toggleAttribute('data-scrolled-past-hero', past);
-        // Park the log entirely once the footer is on screen: they share
-        // this corner, and the log wins the z-order.
-        const footerTop = footer?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
         document.documentElement.toggleAttribute(
-          'data-footer-in-view',
-          footerTop < window.innerHeight,
+          'data-scrolled-past-hero',
+          window.scrollY > heroThreshold,
         );
       };
       window.addEventListener('scroll', onScroll, { passive: true });
@@ -489,7 +490,6 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
         document.removeEventListener('pointerdown', onDocPointerDown, { capture: true });
         window.removeEventListener('scroll', onScroll);
         document.documentElement.removeAttribute('data-scrolled-past-hero');
-        document.documentElement.removeAttribute('data-footer-in-view');
         document.documentElement.removeAttribute('data-field-log-open');
       };
     },

@@ -221,6 +221,26 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
     </style>
 
     <script>
+      // Bottom-corner chrome is position:fixed and does not scroll away;
+      // the footer arrives underneath it at the end of every page. Marking
+      // <html> here, in the layout, rather than in any one component: the
+      // collision is site-wide, and the component that used to own this
+      // flag only exists on the home page.
+      import { observeFooterInView } from '../lib/utils/observeFooterInView';
+      import { onRoute } from '../lib/lifecycle';
+
+      onRoute(
+        () => !!document.querySelector('[data-site-footer]'),
+        () => {
+          const footer = document.querySelector('[data-site-footer]');
+          if (!footer) return;
+          const handle = observeFooterInView({ target: footer });
+          return () => handle.dispose();
+        },
+      );
+    </script>
+
+    <script>
       import { initObservability } from '../lib/observability/initObservability';
 
       // Once-only: Sentry.init must not repeat, so this runs on module load

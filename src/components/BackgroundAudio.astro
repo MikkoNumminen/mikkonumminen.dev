@@ -96,6 +96,7 @@ const t = getTranslations(locale);
     bottom: 2rem;
     left: 2rem;
     z-index: 40;
+    transition: opacity 0.3s ease;
     /* Theme tokens — overridden per `body[data-theme=…]` below. The
        fallback here matches the home palette so the control still has
        sensible colours on un-themed pages (e.g. 404). */
@@ -271,6 +272,27 @@ const t = getTranslations(locale);
     .bg-audio[data-state='on'] .bg-audio__wave--near,
     .bg-audio[data-state='on'] .bg-audio__wave--far {
       animation: none;
+    }
+  }
+
+  /* Steps aside for the footer. Fixed at bottom-left, this control sat
+     on top of the footer's copyright line — covering about 79% of that
+     run on any viewport narrower than ~1376px, which is most laptops.
+     The footer has no interactive content, so nothing was unclickable;
+     the attribution was simply illegible behind a blurred pill.
+
+     visibility as well as opacity, so the control also leaves the tab
+     order rather than staying focusable while invisible. The trade is
+     real and deliberate: the toggle is unavailable while the footer is
+     on screen, and returns as soon as any part of the page above it is. */
+  :global(html[data-footer-in-view]) .bg-audio {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-audio {
+      transition: none;
     }
   }
 </style>
