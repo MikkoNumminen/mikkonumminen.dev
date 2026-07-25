@@ -332,6 +332,7 @@ const personSchema = {
 
 <script>
   import { initHomeTimeline } from '../lib/gsap/homeTimeline';
+  import type { CommitPopupsHandle } from '../lib/home/commitPopups';
   import { emitFieldLog } from '../lib/home/fieldLogEvents';
   import { onRoute } from '../lib/lifecycle';
 
@@ -361,8 +362,11 @@ const personSchema = {
     const skipScene = !canvas || reducedMotion || isSmall;
 
     if (!skipScene && canvas) {
-      let popups: { spawn: (x: number, y: number) => void; dispose: () => void } | null =
-        null;
+      // Imported rather than restated: a hand-written structural copy of
+      // this shape silently went stale when spawn started returning the
+      // record it picked, and `tsc` does not check .astro files, so only
+      // `astro check` caught it.
+      let popups: CommitPopupsHandle | null = null;
       try {
         let commits: { hash: string; line: string }[] = [];
         const repo = canvas.dataset.commitRepo || undefined;
