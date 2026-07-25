@@ -13,7 +13,7 @@
 import { LOG_COPY, SHAPE_LABELS } from './fieldLogMessages';
 
 export type FieldLogEvent =
-  | { kind: 'gate'; phase: 'compiling' | 'reveal' }
+  | { kind: 'gate'; phase: 'compiling' | 'reveal' | 'revealCapped' }
   | { kind: 'formation'; phase: 'start' | 'stable' }
   | { kind: 'shape'; shape: number }
   | { kind: 'dissolve'; direction: 'out' | 'in' }

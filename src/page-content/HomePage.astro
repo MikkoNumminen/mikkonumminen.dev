@@ -484,13 +484,15 @@ const personSchema = {
       // Guarded on `disposed`: a reveal (or its unlock timer) arriving
       // after a quick home → away → home navigation must not strip the
       // NEXT visit's gate class mid-warm-up.
-      const reveal = (): void => {
+      const reveal = (measured = false): void => {
         if (revealed || disposed) return;
         revealed = true;
         window.clearTimeout(slowTimer);
         window.clearTimeout(capTimer);
         performance.mark('field:revealed');
-        emitFieldLog({ kind: 'gate', phase: 'reveal' });
+        // The cap and the scene-failure path both reveal WITHOUT warm-up
+        // having proved anything, so they must not report that it did.
+        emitFieldLog({ kind: 'gate', phase: measured ? 'reveal' : 'revealCapped' });
         gate?.classList.add('field-gate--done');
         unlockTimer = window.setTimeout(
           () => html.classList.remove('field-loading'),
@@ -510,12 +512,26 @@ const personSchema = {
 
       // Timeline is synchronous; onScrollProgress reads sceneHandle lazily, so it
       // works even though the scene resolves asynchronously below.
+      // Armed on the first real scroll, not at mount.
+      let sectionsArmed = false;
+      const armSections = (): void => {
+        sectionsArmed = true;
+        window.removeEventListener('scroll', armSections);
+      };
+      window.addEventListener('scroll', armSections, { passive: true, once: true });
+
       const timeline = initHomeTimeline({
         reducedMotion,
         onScrollProgress: (p) => sceneHandle?.setScrollProgress(p),
         onHeroProgress: (p) => sceneHandle?.setDissolve(p),
         onSectionMood: (h, d, dr) => sceneHandle?.setMood(h, d, dr),
-        onSectionEnter: (name) => emitFieldLog({ kind: 'section', name }),
+        onSectionEnter: (name) => {
+          // Suppressed until the reader has actually moved. ScrollTrigger
+          // fires for every marked section during its initial refresh, so
+          // a restored scroll position would otherwise recite every
+          // section above the viewport as if it had just been crossed.
+          if (sectionsArmed) emitFieldLog({ kind: 'section', name });
+        },
       });
 
       // If disposed (navigated away) before the async scene resolves, dispose the
@@ -550,7 +566,7 @@ const personSchema = {
           handle.setScrollProgress(Math.min(1, window.scrollY / scrollable));
         }
         if (gateActive && !revealed) {
-          void handle.whenReady().then(reveal);
+          void handle.whenReady().then(() => reveal(true));
         } else {
           // Gate never shown (or already hard-capped away) — release the
           // intro now.
@@ -560,6 +576,7 @@ const personSchema = {
 
       return () => {
         disposed = true;
+        window.removeEventListener('scroll', armSections);
         window.clearTimeout(slowTimer);
         window.clearTimeout(capTimer);
         window.clearTimeout(unlockTimer);

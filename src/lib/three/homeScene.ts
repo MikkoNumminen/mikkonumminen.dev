@@ -753,7 +753,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     startIntro: (): void => {
       if (introStartedAt < 0) {
         introStartedAt = elapsedNow;
-        emitFieldLog({ kind: 'formation', phase: 'start' });
+        // Not claimed on a restore: snapFormed() has already set form = 1
+        // and the formation will never run, so announcing it would be
+        // describing an animation that is structurally prevented.
+        if (form < 1) emitFieldLog({ kind: 'formation', phase: 'start' });
       }
     },
     snapFormed: (): void => {

@@ -25,7 +25,11 @@ export const LOG_COPY = {
 
   gate: {
     compiling: 'compiling field shaders',
+    /** Warm-up actually proved itself: two frames under the threshold. */
     reveal: 'warm-up ok · reveal',
+    /** The 2 s hard cap fired first, or the scene never came up. Saying
+     *  "warm-up ok" here would be the log's own instrument lying. */
+    revealCapped: 'warm-up timed out · reveal',
   },
 
   formation: {

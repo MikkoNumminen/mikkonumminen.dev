@@ -9,9 +9,13 @@
  * state change in the scene, dispatched as a `field:log` event. If the
  * scene does nothing, this writes nothing.
  *
- * Two states. RESTING is bare mono in the corner-frame register showing
- * the last few lines. EXPANDED is the full history since page load,
- * scrollable, opened by clicking or keyboard-activating the resting log.
+ * Two states, with different jobs. RESTING is a decorative preview in
+ * the corner-frame register — aria-hidden, because a live region fed by
+ * a cycle that never stops fails WCAG 2.2.2 at Level A and no pause
+ * control belongs on a corner marker. EXPANDED is the accessible
+ * surface: opened deliberately, announcing nothing by itself, at
+ * readable contrast, keyboard-scrollable.
+ *
  * Neither is a shell: there is no prompt and no input. The page's only
  * terminal is on the contact page.
  *
@@ -28,7 +32,7 @@
 import { LOG_COPY } from '../../lib/home/fieldLogMessages';
 ---
 
-<aside class="field-log" data-field-log data-no-ripple>
+<div class="field-log" data-field-log data-no-ripple>
   <p class="field-log__head">
     <span class="field-log__dot" aria-hidden="true"></span>
     <span class="field-log__channel">{LOG_COPY.header}</span>
@@ -36,11 +40,14 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     <span class="field-log__vol">vol. 26</span>
   </p>
   {
-    /* Lines are appended at runtime. aria-live polite so a screen reader
-      hears activity without being interrupted; empty on load because
-      nothing has happened yet, which is the point. */
+    /* Decorative preview, deliberately aria-hidden. It updates forever
+      on the cycle's own clock, and an aria-live region that cannot be
+      stopped fails WCAG 2.2.2 at Level A. The accessible surface is the
+      expanded history below: opened on purpose, announcing nothing by
+      itself, and at readable contrast. Marking this hidden also restores
+      the decorative-text exemption the dim corner register relies on. */
   }
-  <ol class="field-log__lines" data-field-log-lines aria-live="polite"></ol>
+  <ol class="field-log__lines" data-field-log-lines aria-hidden="true"></ol>
 
   {
     /* A real button rather than a click handler on the block: the old
@@ -57,12 +64,13 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
   >
     <span class="sr-only">{LOG_COPY.openHistory}</span>
   </button>
-</aside>
+</div>
 
 <section
   class="field-log-history"
   id="field-log-history"
   data-field-log-history
+  data-no-ripple
   tabindex="-1"
   aria-label={LOG_COPY.historyLabel}
   hidden
@@ -71,7 +79,18 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     <span>{LOG_COPY.historyLabel}</span>
     <span class="field-log-history__hint">esc</span>
   </p>
-  <ol class="field-log-history__lines" data-field-log-history-lines></ol>
+  {
+    /* tabindex 0 on the SCROLLER, not just the region: an overflow
+      container is not keyboard-scrollable without it, so arrow keys
+      would move the page behind the open panel. */
+  }
+  <ol
+    class="field-log-history__lines"
+    data-field-log-history-lines
+    tabindex="0"
+    role="log"
+  >
+  </ol>
 </section>
 
 <style>
@@ -225,6 +244,9 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     outline-offset: 2px;
   }
 
+  /* Contrast here is deliberately NOT the resting register's: the
+     expanded view is content someone opened in order to read, so it
+     meets 1.4.3 rather than borrowing the frame's decorative exemption. */
   .field-log-history__head {
     margin: 0;
     display: flex;
@@ -233,11 +255,11 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     font-size: 0.62rem;
     letter-spacing: 0.28em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.78);
   }
 
   .field-log-history__hint {
-    color: rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.62);
     letter-spacing: 0.14em;
   }
 
@@ -252,7 +274,7 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     font-size: 0.62rem;
     line-height: 1.5;
     letter-spacing: 0.08em;
-    color: rgba(255, 255, 255, 0.62);
+    color: rgba(255, 255, 255, 0.92);
   }
 
   /* Expanded lines may wrap — this is the state for reading them. */
@@ -262,7 +284,12 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
   }
 
   .field-log-history__empty {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .field-log-history__lines:focus-visible {
+    outline: 1px solid rgba(196, 212, 255, 0.5);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -350,6 +377,9 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
         appendTo(list, text);
         while (list.children.length > RESTING_LINES) list.firstElementChild?.remove();
 
+        // Clear the "nothing logged yet" placeholder the moment there is
+        // something logged, or it sits above the first real line forever.
+        historyList.querySelector('.field-log-history__empty')?.remove();
         appendTo(historyList, text);
         if (open && follow) historyList.scrollTop = historyList.scrollHeight;
       };
@@ -394,7 +424,9 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
           }
           follow = true;
           historyList.scrollTop = historyList.scrollHeight;
-          history.focus();
+          // Focus the scroller, so arrow keys drive the history rather
+          // than the page behind it.
+          historyList.focus();
         } else {
           toggle.focus();
         }

@@ -63,14 +63,23 @@ export interface CommitRecord {
 
 export interface CommitPopupsHandle {
   /** Show one popup at a viewport position. Rate-limited internally.
-   *  Returns the record it showed, or null when rate-limited — callers
-   *  use it to log the same commit the visitor just saw. */
+   *  Returns the record it showed, or null when rate-limited OR when the
+   *  pool is the sentinel fallback. Callers use the return value to log
+   *  the commit the visitor just saw, and a sentinel is not one: the
+   *  popup may show a plausible stand-in because it has always been
+   *  decoration, but the log states things as fact and must stay silent
+   *  rather than attribute a real-looking hash to a commit that does not
+   *  exist. */
   spawn: (clientX: number, clientY: number) => CommitRecord | null;
   dispose: () => void;
 }
 
 export function buildCommitPopups(messages: readonly CommitRecord[]): CommitPopupsHandle {
   const pick = createCommitPicker(messages);
+  // Empty means the build had no usable git history — a shallow clone,
+  // or no checkout at all. Everything the picker returns from here on is
+  // invented.
+  const isReal = messages.length > 0;
 
   const container = document.createElement('div');
   container.className = 'field-popups';
@@ -99,7 +108,7 @@ export function buildCommitPopups(messages: readonly CommitRecord[]): CommitPopu
       // reduced-motion kill-switch zeroes animation durations, and a
       // popup that never animates must still leave the DOM.
       window.setTimeout(() => el.remove(), POPUP_LIFETIME_MS);
-      return picked;
+      return isReal ? picked : null;
     },
     dispose: (): void => {
       disposed = true;
