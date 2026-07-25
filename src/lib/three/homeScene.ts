@@ -47,7 +47,7 @@ import { rasterizeNameTargets } from './field/nameTargets';
 import { isInsideNameBounds } from './field/nameDistribution';
 import { rasterizeWordmarkTargets } from './field/wordmarkTargets';
 import { createShapeCycle } from './field/shapeCycle';
-import { FIELD_TUNING } from './field/tuning';
+import { FIELD_TUNING, SHAPES } from './field/tuning';
 import { makeRadialSpriteTexture } from './textures';
 import { easeOutCubic } from './easing';
 
@@ -163,11 +163,13 @@ const NAME_BRIGHTNESS = 1.12;
 const IMPULSE = FIELD_TUNING.impulse;
 const CYCLE = FIELD_TUNING.cycle;
 
-/** Shape indices, mirroring SHAPES in tuning.ts and the shader's vec4. */
-const SHAPE_NAME = 0;
-const SHAPE_GALAXY = 1;
-const SHAPE_WORD = 2;
-const SHAPE_SPARSE = 3;
+/** Shape indices, derived from the single ordering in tuning.ts rather
+ *  than restated — the per-shape tables, the shader's weight vec4 and
+ *  these must agree, and three hand-kept copies is two too many. */
+const SHAPE_NAME = SHAPES.indexOf('name');
+const SHAPE_GALAXY = SHAPES.indexOf('galaxy');
+const SHAPE_WORD = SHAPES.indexOf('word');
+const SHAPE_SPARSE = SHAPES.indexOf('sparse');
 
 /** Rewrite a Vector4 in place as a one-hot over the four shapes. The
  *  tick loop must not allocate (ADR 0014). */
@@ -193,7 +195,7 @@ function blendShape(
   return a + (b - a) * (t * t * (3 - 2 * t));
 }
 
-/** The galaxy variant sits at z = ${CYCLE.galaxyVariant.z}, but clicks are
+/** The galaxy variant sits behind the z=0 plane, but clicks are
  *  converted to the z=0 plane — the same space the shader projects
  *  particles into before testing them. Its on-screen radius is therefore
  *  the world radius foreshortened by the camera, not the world radius. */
@@ -230,9 +232,9 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   // ── The field ────────────────────────────────────────────────────────
   const nameTargets = await rasterizeNameTargets({ count: particleCount });
-  // Second raster, behind the same gate. Null if it failed — the idle
-  // choreography then skips the wordmark formation rather than showing
-  // a stand-in that isn't the mark.
+  // Second raster, behind the same gate. Null if it failed — the cycle
+  // then skips the wordmark shape rather than showing a stand-in that
+  // isn't the mark.
   const wordTargets = rasterizeWordmarkTargets({ count: particleCount });
   const field = buildParticleField({
     count: particleCount,
@@ -394,10 +396,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     onRipple?.(clientX, clientY);
   };
 
-  // ── Name-click impulse ───────────────────────────────────────────────
-  // A click that lands on the formed letterforms is a different gesture
-  // from a click on the page behind them: it strikes the name rather
-  // than rippling the field. Two slots ping-pong so mashing adds up.
+  // ── Shape-click impulse ──────────────────────────────────────────────
+  // A click landing on whatever shape is on screen is a different
+  // gesture from a click on the page behind it: it strikes the shape
+  // rather than rippling the field, and the shape reassembles. Two slots
+  // ping-pong so mashing adds up.
   let nextImpulse = 0;
 
   const launchImpulse = (clientX: number, clientY: number, strength: number): void => {
@@ -559,7 +562,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // sets form = 1 directly on a back/forward restore and never enters
     // that branch, which would leave the cycle switched off for the
     // whole visit while the reducer kept advancing underneath.
-    u.uShape.value = form >= 1 ? 1 : 0;
+    // One switch, shared with the presentation blends below. It is a
+    // hard 0/1 rather than a ramp because the cycle holds the NAME row
+    // throughout the load-in, and every name-row value already equals
+    // the formed value it would ramp toward — so there is nothing to
+    // ramp, and ramping anyway squares `form` into the curve.
+    const shapeMix = form >= 1 ? 1 : 0;
+    u.uShape.value = shapeMix;
     // Clock held until the load-in hands the field over. Otherwise the
     // formation's ~2.7 s runs down the name's very first hold, and the
     // name a first-time visitor just watched assemble morphs away
@@ -623,7 +632,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // presentation value the dissolve mix does not already guard, so a
     // sparse shape left holding at the top would otherwise keep thinning
     // the starfield behind the scrolled page.
-    const landerDensity = 1 + (shapeDensity - 1) * form * (1 - dissolve);
+    const landerDensity = 1 + (shapeDensity - 1) * shapeMix * (1 - dissolve);
     u.uDensity.value = Math.max(
       0,
       Math.min(1, (1 - dissolve * 0.6) * moodDensity * landerDensity),
@@ -633,7 +642,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
     if (bloom) {
       const formedBloom = 1.1 + (0.35 - 1.1) * form;
-      const landerBloom = formedBloom + (shapeBloom - formedBloom) * form;
+      const landerBloom = formedBloom + (shapeBloom - formedBloom) * shapeMix;
       bloom.intensity = landerBloom * (1 - dissolve) + 0.1 * dissolve;
     }
 

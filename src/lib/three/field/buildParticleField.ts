@@ -272,16 +272,15 @@ void main() {
 
   vec3 pos = mix(g, aNamePos * uNameScale, form);
 
-  // Idle choreography: alternative formations the field cycles through
-  // when nobody is interacting. Three weighted targets rather than a
-  // swappable buffer or a branch, so ANY shape can cross-fade to any
-  // other — the cycle has consecutive alternatives, and routing each
-  // one through the name would flash the name mid-choreography.
+  // Weights over [name, galaxy, wordmark, sparse]. Four weighted targets
+  // rather than a swappable buffer or a branch, so ANY shape can
+  // cross-fade to any other; the rotation has consecutive alternatives,
+  // and routing each one through the name would flash the name
+  // mid-cycle. It all sits BEFORE the dissolve mix on purpose: scroll
+  // wins by construction, because at uDissolve 1 the starfield is the
+  // answer whatever shape the cycle holds.
   //
-  // The whole block sits BEFORE the dissolve mix on purpose: scroll wins
-  // by construction, because at uDissolve 1 the starfield is the answer
-  // no matter what idle is doing.
-  // Weights over [name, galaxy, wordmark, sparse]. The crossfade is
+  // The crossfade is
   // staggered PER PARTICLE, not blended on the CPU: that stagger is
   // what makes every morph sweep through the field instead of moving
   // as a rigid unit, and it is the field's dominant motion signature.
@@ -433,18 +432,23 @@ void main() {
   float twAmp = mix(mix(0.30, dot(w, SHAPE_TWINKLE), form), 0.22, dissolve);
   float tw = 1.0 - twAmp + twAmp * sin(uTime * (1.2 + aSeed.y) + sd * 6.2831);
 
-  // Brightness wave: a highlight travelling letter to letter across the
-  // formed name. Phase comes from NAME-space x, not the live position,
-  // so the crest tracks the letterforms rather than being dragged around
-  // by shimmer, cursor push and ripples.
-  // Frequency is per-shape: one constant sized for the name's ~10 world
-  // span paints repeating stripes across the far wider sparse cloud.
+  // Brightness wave: a highlight travelling across whatever shape is on
+  // screen. Phase comes from the shape's TARGET x, not the live
+  // position, so the crest tracks the shape rather than being dragged
+  // around by shimmer, cursor push and ripples. Frequency is per-shape:
+  // one constant sized for the name's ~10 world span paints repeating
+  // stripes across the far wider sparse cloud.
+  //
+  // Masked off the dimmed dust. This wave is the field's ONLY spatially
+  // coherent modulation — drift and twinkle both carry per-particle seed
+  // phase — so on dust spread evenly across the frame it reads as bands
+  // rather than as a highlight on the subject.
   float wavePhase = uTime * (TAU / WAVE_PERIOD) - shapeX * dot(w, SHAPE_WAVE_FREQ);
   float wave = pow(0.5 + 0.5 * cos(wavePhase), WAVE_SHARPNESS);
 
   vColor = mix(uColorA, uColorB, aSeed.w);
   vAlpha =
-    uBrightness * vis * tw * (1.0 - dust * 0.78) * (1.0 + WAVE_GAIN * wave * nameState);
+    uBrightness * vis * tw * (1.0 - dust * 0.78) * (1.0 + WAVE_GAIN * wave * nameState * (1.0 - shapeDust));
 }
 `;
 
