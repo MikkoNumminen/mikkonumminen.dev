@@ -19,6 +19,12 @@ export interface HomeTimelineOptions {
    * Small state changes only — a hue lean, a density/drift nudge.
    */
   onSectionMood?: (hue: number, density: number, drift: number) => void;
+  /**
+   * Fired ONCE as each marked section becomes the active one, unlike
+   * `onSectionMood` which is scrubbed and fires at scroll rate. Anything
+   * that records rather than renders — the field log — wants this.
+   */
+  onSectionEnter?: (name: string) => void;
   reducedMotion?: boolean;
 }
 
@@ -114,6 +120,7 @@ export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHa
     onScrollProgress,
     onHeroProgress,
     onSectionMood,
+    onSectionEnter,
     reducedMotion = prefersReducedMotion(),
   } = opts;
 
@@ -187,10 +194,13 @@ export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHa
     // mood to its own as its top travels 70% → 25% of the viewport. The
     // trigger windows of consecutive full-height sections don't overlap,
     // so the last writer is always the section actually arriving.
-    if (onSectionMood) {
+    if (onSectionMood || onSectionEnter) {
       const marked = Array.from(
         document.querySelectorAll<HTMLElement>('[data-field-section]'),
       );
+      // Latched so a scrub that wanders back and forth across one
+      // boundary announces the section once, not once per direction.
+      let activeSection = '';
       marked.forEach((el, i) => {
         const mood = SECTION_MOODS[el.dataset.fieldSection ?? ''] ?? NEUTRAL_MOOD;
         const prev =
@@ -205,11 +215,16 @@ export function initHomeTimeline(opts: HomeTimelineOptions = {}): HomeTimelineHa
             scrub: true,
             onUpdate: (self) => {
               const p = self.progress;
-              onSectionMood(
+              onSectionMood?.(
                 prev.hue + (mood.hue - prev.hue) * p,
                 prev.density + (mood.density - prev.density) * p,
                 prev.drift + (mood.drift - prev.drift) * p,
               );
+              const name = el.dataset.fieldSection ?? '';
+              if (onSectionEnter && p > 0.5 && name && name !== activeSection) {
+                activeSection = name;
+                onSectionEnter(name);
+              }
             },
           }),
         );

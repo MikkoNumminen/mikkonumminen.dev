@@ -9,10 +9,14 @@
  * a popup can never appear on its own schedule while someone is reading.
  * Rate-limited so click-mashing reads as ripples, not confetti.
  *
- * The data pipeline is unchanged from the meteor era: recent commit
- * subjects are baked into a data attribute at build time by
- * HomePage.astro and parsed by the boot script.
+ * Two-tier display: the popup shows a short glimpse of the commit
+ * subject, while `spawn` returns the record it picked so the caller can
+ * write the fuller line into the field log. Returning it — rather than
+ * letting the log pick its own — is what keeps the two agreeing about
+ * which commit a given ripple was about.
  */
+
+import { shortenForPopup } from './fieldLog';
 
 const POPUP_LIFETIME_MS = 1900;
 const MIN_SPAWN_INTERVAL_MS = 600;
@@ -21,17 +25,12 @@ const MIN_SPAWN_INTERVAL_MS = 600;
 // (e.g. site previewed outside a git checkout). Mirrors the type(scope)
 // shape of real entries so a fallback popup is indistinguishable from a
 // real one.
-const FALLBACK_COMMITS: string[] = [
-  'feat(home)',
-  'fix(home)',
-  'feat(projects)',
-  'fix(projects)',
-  'chore(lint)',
-  'feat(experience)',
-  'fix(contact)',
-  'feat(observability)',
-  'docs(audit)',
-  'fix(a11y)',
+const FALLBACK_COMMITS: CommitRecord[] = [
+  { hash: '0000000', line: 'feat(home): one continuous particle field' },
+  { hash: '0000000', line: 'fix(home): sync restored scroll into the field' },
+  { hash: '0000000', line: 'feat(projects): planet selection and zoom' },
+  { hash: '0000000', line: 'chore(deps): bump the production dependencies' },
+  { hash: '0000000', line: 'docs(decisions): record the field architecture' },
 ];
 
 /**
@@ -40,12 +39,12 @@ const FALLBACK_COMMITS: string[] = [
  * the unit test; `random` is injectable for determinism.
  */
 export function createCommitPicker(
-  messages: string[],
+  messages: readonly CommitRecord[],
   random: () => number = Math.random,
-): () => string {
+): () => CommitRecord {
   const pool = messages.length > 0 ? messages : FALLBACK_COMMITS;
   let lastIdx = -1;
-  return (): string => {
+  return (): CommitRecord => {
     if (pool.length === 1) return pool[0]!;
     let idx = Math.floor(random() * pool.length);
     if (idx === lastIdx) idx = (idx + 1) % pool.length;
@@ -55,14 +54,32 @@ export function createCommitPicker(
   };
 }
 
+/** A commit as baked in by HomePage.astro: short hash plus the first
+ *  line of the subject, truncated at build time. */
+export interface CommitRecord {
+  hash: string;
+  line: string;
+}
+
 export interface CommitPopupsHandle {
-  /** Show one popup at a viewport position. Rate-limited internally. */
-  spawn: (clientX: number, clientY: number) => void;
+  /** Show one popup at a viewport position. Rate-limited internally.
+   *  Returns the record it showed, or null when rate-limited OR when the
+   *  pool is the sentinel fallback. Callers use the return value to log
+   *  the commit the visitor just saw, and a sentinel is not one: the
+   *  popup may show a plausible stand-in because it has always been
+   *  decoration, but the log states things as fact and must stay silent
+   *  rather than attribute a real-looking hash to a commit that does not
+   *  exist. */
+  spawn: (clientX: number, clientY: number) => CommitRecord | null;
   dispose: () => void;
 }
 
-export function buildCommitPopups(messages: string[]): CommitPopupsHandle {
+export function buildCommitPopups(messages: readonly CommitRecord[]): CommitPopupsHandle {
   const pick = createCommitPicker(messages);
+  // Empty means the build had no usable git history — a shallow clone,
+  // or no checkout at all. Everything the picker returns from here on is
+  // invented.
+  const isReal = messages.length > 0;
 
   const container = document.createElement('div');
   container.className = 'field-popups';
@@ -73,15 +90,17 @@ export function buildCommitPopups(messages: string[]): CommitPopupsHandle {
   let disposed = false;
 
   return {
-    spawn: (clientX: number, clientY: number): void => {
-      if (disposed) return;
+    spawn: (clientX: number, clientY: number): CommitRecord | null => {
+      if (disposed) return null;
       const now = performance.now();
-      if (now - lastSpawn < MIN_SPAWN_INTERVAL_MS) return;
+      if (now - lastSpawn < MIN_SPAWN_INTERVAL_MS) return null;
       lastSpawn = now;
 
+      const picked = pick();
       const el = document.createElement('span');
       el.className = 'field-popup';
-      el.textContent = pick();
+      // The popup stays a glimpse; the log carries the full first line.
+      el.textContent = shortenForPopup(picked.line);
       el.style.left = `${clientX}px`;
       el.style.top = `${clientY}px`;
       container.appendChild(el);
@@ -89,6 +108,7 @@ export function buildCommitPopups(messages: string[]): CommitPopupsHandle {
       // reduced-motion kill-switch zeroes animation durations, and a
       // popup that never animates must still leave the DOM.
       window.setTimeout(() => el.remove(), POPUP_LIFETIME_MS);
+      return isReal ? picked : null;
     },
     dispose: (): void => {
       disposed = true;

@@ -48,6 +48,7 @@ import { isInsideNameBounds } from './field/nameDistribution';
 import { rasterizeWordmarkTargets } from './field/wordmarkTargets';
 import { createShapeCycle } from './field/shapeCycle';
 import { FIELD_TUNING, SHAPES } from './field/tuning';
+import { emitFieldLog } from '../home/fieldLogEvents';
 import { makeRadialSpriteTexture } from './textures';
 import { easeOutCubic } from './easing';
 
@@ -140,8 +141,8 @@ const GALAXY_BRIGHTNESS = 1.0;
 const STARFIELD_BRIGHTNESS = 0.5;
 
 // Elements whose clicks belong to real UI — never converted into field
-// ripples. `[data-no-ripple]` opts out anything else (e.g. the data-feed
-// widget, which has its own click response).
+// ripples. `[data-no-ripple]` opts out anything else (e.g. the field log,
+// which expands on click instead).
 const RIPPLE_EXCLUDE_SELECTOR =
   'a, button, input, textarea, select, summary, [data-no-ripple]';
 
@@ -161,6 +162,10 @@ const FORM_CATCHUP = 4;
 const NAME_BRIGHTNESS = 1.12;
 
 const IMPULSE = FIELD_TUNING.impulse;
+
+/** Dissolve level at which the log calls the field "starfield". Well
+ *  clear of 0 so a resting page at the top cannot flutter across it. */
+const DISSOLVE_LOG_THRESHOLD = 0.5;
 const CYCLE = FIELD_TUNING.cycle;
 
 /** Shape indices, derived from the single ordering in tuning.ts rather
@@ -373,6 +378,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const cycle = createShapeCycle();
   const wordReady = wordTargets !== null;
   let cycleGalaxySpin = 0;
+  // -1 so the first shape the cycle holds is reported like any other.
+  let lastLoggedShape = -1;
+  // Dissolve is scrubbed continuously; the log wants the CROSSING, once
+  // per direction, not a line per scroll event.
+  let dissolvedPastThreshold = false;
 
   const onPointerMove = (e: PointerEvent): void => {
     targetPointerX = clientToWorldX(e.clientX);
@@ -408,6 +418,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const slot = field.uniforms.uImpulses.value[nextImpulse % 2]!;
     nextImpulse++;
     slot.set(clientToWorldX(clientX), clientToWorldY(clientY), elapsedNow, strength);
+    emitFieldLog({ kind: 'impulse', x: clientX, y: clientY });
   };
 
   // Does a click land on the shape currently on screen? Every region is
@@ -552,6 +563,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       form = easeOutCubic(Math.min(1, formTime / FORM_DURATION));
       if (form >= 1 && !formedNotified) {
         formedNotified = true;
+        emitFieldLog({ kind: 'formation', phase: 'stable' });
         onFormed?.();
       }
     }
@@ -574,6 +586,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // name a first-time visitor just watched assemble morphs away
     // almost immediately.
     const cycleState = cycle.advance({ delta: form >= 1 ? delta : 0, wordReady });
+    // Emitted when the cycle COMMITS to a new target, not when the morph
+    // finishes: the log should say what the field is doing, and by the
+    // time a 3 s morph completes it has been visibly doing it for 3 s.
+    // Gated on `form`: the cycle's first target is the name from the very
+    // first frame, but the field on screen is still the load-in galaxy
+    // until the formation completes. Announcing the shape before then
+    // would have the log narrating something not yet visible.
+    if (form >= 1 && cycleState.to !== lastLoggedShape) {
+      lastLoggedShape = cycleState.to;
+      emitFieldLog({ kind: 'shape', shape: cycleState.to });
+    }
     setOneHot(u.uCrossFrom.value, cycleState.from);
     setOneHot(u.uCrossTo.value, cycleState.to);
     u.uCross.value = cycleState.cross;
@@ -670,6 +693,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const onVisibilityChange = (): void => {
     if (disposed) return;
     if (document.hidden) {
+      emitFieldLog({ kind: 'visibility', hidden: true });
       cancelAnimationFrame(raf);
       raf = 0;
     } else {
@@ -681,6 +705,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       // delta of the entire background stretch: enough to snap the name
       // into existence instead of forming it, and to hand the composer a
       // nonsense frame time.
+      emitFieldLog({ kind: 'visibility', hidden: false });
       lastFrame = performance.now();
       if (raf === 0) tick();
     }
@@ -708,6 +733,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     },
     setDissolve: (p: number): void => {
       dissolve = Math.max(0, Math.min(1, p));
+      // One line per direction crossing. ScrollTrigger calls this at
+      // scroll rate, so anything less selective would be a stutter.
+      const past = dissolve > DISSOLVE_LOG_THRESHOLD;
+      if (past !== dissolvedPastThreshold) {
+        dissolvedPastThreshold = past;
+        emitFieldLog({ kind: 'dissolve', direction: past ? 'out' : 'in' });
+      }
     },
     ripple: (clientX: number, clientY: number, strength = 1): void => {
       launchRipple(clientX, clientY, strength);
@@ -719,7 +751,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     },
     whenReady: (): Promise<void> => readyPromise,
     startIntro: (): void => {
-      if (introStartedAt < 0) introStartedAt = elapsedNow;
+      if (introStartedAt < 0) {
+        introStartedAt = elapsedNow;
+        // Not claimed on a restore: snapFormed() has already set form = 1
+        // and the formation will never run, so announcing it would be
+        // describing an animation that is structurally prevented.
+        if (form < 1) emitFieldLog({ kind: 'formation', phase: 'start' });
+      }
     },
     snapFormed: (): void => {
       formTime = FORM_DURATION;

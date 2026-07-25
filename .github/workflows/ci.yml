@@ -21,6 +21,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The home page bakes recent commit subjects into its HTML at
+          # build time (src/page-content/HomePage.astro). At checkout's
+          # default depth of 1 that git log returns a single commit, so a
+          # CI build produces a page that cannot represent what the
+          # feature does. 25 is enough history for the 20 it reads
+          # without cloning the whole repo on every run.
+          fetch-depth: 25
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc

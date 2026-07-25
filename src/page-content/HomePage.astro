@@ -1,39 +1,71 @@
 ---
 import { execSync } from 'node:child_process';
+import pkg from '../../package.json';
+import { shortenForPopup } from '../lib/home/fieldLog';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/home/Hero.astro';
 import Intro from '../components/home/Intro.astro';
 import LatestEntries from '../components/home/LatestEntries.astro';
 import NavCards from '../components/home/NavCards.astro';
+import FieldLog from '../components/home/FieldLog.astro';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
-// Recent commit subjects, baked in at build time. Drives the commit
-// popups that rise from field ripples when the background is clicked.
-// We strip each subject to its conventional-commit type+scope and only
-// keep the ones with an explicit (scope). NO dedup — the popup pool is
-// the latest ~40 prefixes in chronological order, repetitions and all,
-// so the rhythm reflects what was *actually* committed lately rather
-// than a historical hall-of-fame of every scope ever used. Falls back
-// to an empty array outside a git checkout; the scene then uses its
-// own hardcoded sentinel list.
-let commitMessages: string[] = [];
+// Recent commits, baked in at build time. These drive both the popup
+// that rises from a field ripple and the fuller line the field log
+// writes for the same ripple, so the two always agree about which
+// commit they are showing.
+//
+// Only the SHORT HASH and the FIRST LINE, truncated — commit bodies are
+// never baked into the public bundle, and an untruncated subject would
+// cost more payload than a corner marker is worth.
+const COMMIT_COUNT = 20;
+const COMMIT_LINE_MAX = 80;
+
+export interface CommitRecord {
+  hash: string;
+  line: string;
+}
+
+let commits: CommitRecord[] = [];
+let commitRepo = '';
 try {
-  const subjects = execSync('git log --pretty=format:%s -n 60', {
+  // %x1f is a unit separator — safe against any character a commit
+  // subject can legally contain.
+  commits = execSync(`git log --pretty=format:%h%x1f%s -n ${COMMIT_COUNT}`, {
     encoding: 'utf8',
   })
     .split('\n')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .filter((s) => !/^Merge /i.test(s))
-    .map((s) => s.split(':')[0]!.trim())
-    .filter((p) => /\([^()]+\)$/.test(p));
-  commitMessages = subjects.slice(0, 40);
+    .map((row) => row.split('\x1f'))
+    .filter(
+      (parts): parts is [string, string] =>
+        parts.length === 2 && !!parts[0] && !!parts[1],
+    )
+    .filter(([, subject]) => !/^Merge /i.test(subject))
+    .map(([hash, subject]) => ({
+      hash: hash.trim(),
+      // Word boundary, not a hard slice: a severed token ("(#40") reads
+      // as corruption rather than as truncation.
+      line: shortenForPopup(subject.trim(), COMMIT_LINE_MAX),
+    }));
+  // Carried once rather than per record: it is the same value on every
+  // row today, and the log omits the segment entirely when there is only
+  // one repo. Keeping it separate leaves the door open for a multi-repo
+  // source without paying for it 20 times.
+  //
+  // Read from package.json, NOT from the checkout directory name. A
+  // basename is whatever the build host cloned into — a git worktree
+  // reports the worktree's folder, and Vercel clones into a generated
+  // path — so it would ship a wrong repo name to production while
+  // looking correct locally.
+  commitRepo = pkg.name;
 } catch {
-  // Outside a git checkout (e.g. a history-less clone) — leave the empty
-  // initializer; the scene falls back to its hardcoded sentinel list.
+  // Outside a git checkout, or a clone too shallow to have history —
+  // leave the empty initializer. The popup falls back to its sentinel
+  // list and the log simply never writes a ripple line, which is the
+  // honest outcome: there is nothing true to say.
 }
 
 const personSchema = {
@@ -95,7 +127,8 @@ const personSchema = {
     id="home-canvas"
     class="field-canvas"
     aria-hidden="true"
-    data-commit-messages={JSON.stringify(commitMessages)}></canvas>
+    data-commits={JSON.stringify(commits)}
+    data-commit-repo={commitRepo}></canvas>
 
   {
     /* Loading gate. Shown only while <html> carries .field-loading — the
@@ -126,6 +159,7 @@ const personSchema = {
   <Intro />
   <LatestEntries />
   <NavCards />
+  <FieldLog />
 </BaseLayout>
 
 <style>
@@ -298,6 +332,8 @@ const personSchema = {
 
 <script>
   import { initHomeTimeline } from '../lib/gsap/homeTimeline';
+  import type { CommitPopupsHandle } from '../lib/home/commitPopups';
+  import { emitFieldLog } from '../lib/home/fieldLogEvents';
   import { onRoute } from '../lib/lifecycle';
 
   type HomeSceneHandle = {
@@ -326,16 +362,23 @@ const personSchema = {
     const skipScene = !canvas || reducedMotion || isSmall;
 
     if (!skipScene && canvas) {
-      let popups: { spawn: (x: number, y: number) => void; dispose: () => void } | null =
-        null;
+      // Imported rather than restated: a hand-written structural copy of
+      // this shape silently went stale when spawn started returning the
+      // record it picked, and `tsc` does not check .astro files, so only
+      // `astro check` caught it.
+      let popups: CommitPopupsHandle | null = null;
       try {
-        let commitMessages: string[] = [];
-        const raw = canvas.dataset.commitMessages;
+        let commits: { hash: string; line: string }[] = [];
+        const repo = canvas.dataset.commitRepo || undefined;
+        const raw = canvas.dataset.commits;
         if (raw) {
           try {
-            const parsed = JSON.parse(raw);
+            const parsed: unknown = JSON.parse(raw);
             if (Array.isArray(parsed)) {
-              commitMessages = parsed.filter((s): s is string => typeof s === 'string');
+              commits = parsed.filter(
+                (c): c is { hash: string; line: string } =>
+                  !!c && typeof c.hash === 'string' && typeof c.line === 'string',
+              );
             }
           } catch {
             // Bad JSON shouldn't kill the scene — popups fall back to defaults.
@@ -345,7 +388,7 @@ const personSchema = {
           import('../lib/three/homeScene'),
           import('../lib/home/commitPopups'),
         ]);
-        popups = buildCommitPopups(commitMessages);
+        popups = buildCommitPopups(commits);
         const boundPopups = popups;
 
         // Discoverability hint: once per SESSION (sessionStorage, same
@@ -367,7 +410,20 @@ const personSchema = {
         let fieldScene: Awaited<ReturnType<typeof createHomeScene>> | null = null;
         const scene = await createHomeScene({
           canvas,
-          onRipple: (x, y) => boundPopups.spawn(x, y),
+          onRipple: (x, y) => {
+            // One pick, two surfaces: the popup shows a glimpse and the
+            // log records the same commit in full. Null means the popup
+            // was rate-limited, in which case there is nothing to report.
+            const picked = boundPopups.spawn(x, y);
+            if (picked) {
+              emitFieldLog({
+                kind: 'ripple',
+                repo,
+                hash: picked.hash,
+                message: picked.line,
+              });
+            }
+          },
           onFormed: () => {
             try {
               if (sessionStorage.getItem(HINT_KEY)) return;
@@ -423,6 +479,7 @@ const personSchema = {
       // gate, so none of this runs for them (gateActive false).
       const html = document.documentElement;
       const gateActive = html.classList.contains('field-loading');
+      if (gateActive) emitFieldLog({ kind: 'gate', phase: 'compiling' });
       const gate = document.querySelector<HTMLElement>('[data-field-gate]');
       let slowTimer = 0;
       let capTimer = 0;
@@ -431,12 +488,15 @@ const personSchema = {
       // Guarded on `disposed`: a reveal (or its unlock timer) arriving
       // after a quick home → away → home navigation must not strip the
       // NEXT visit's gate class mid-warm-up.
-      const reveal = (): void => {
+      const reveal = (measured = false): void => {
         if (revealed || disposed) return;
         revealed = true;
         window.clearTimeout(slowTimer);
         window.clearTimeout(capTimer);
         performance.mark('field:revealed');
+        // The cap and the scene-failure path both reveal WITHOUT warm-up
+        // having proved anything, so they must not report that it did.
+        emitFieldLog({ kind: 'gate', phase: measured ? 'reveal' : 'revealCapped' });
         gate?.classList.add('field-gate--done');
         unlockTimer = window.setTimeout(
           () => html.classList.remove('field-loading'),
@@ -456,11 +516,26 @@ const personSchema = {
 
       // Timeline is synchronous; onScrollProgress reads sceneHandle lazily, so it
       // works even though the scene resolves asynchronously below.
+      // Armed on the first real scroll, not at mount.
+      let sectionsArmed = false;
+      const armSections = (): void => {
+        sectionsArmed = true;
+        window.removeEventListener('scroll', armSections);
+      };
+      window.addEventListener('scroll', armSections, { passive: true, once: true });
+
       const timeline = initHomeTimeline({
         reducedMotion,
         onScrollProgress: (p) => sceneHandle?.setScrollProgress(p),
         onHeroProgress: (p) => sceneHandle?.setDissolve(p),
         onSectionMood: (h, d, dr) => sceneHandle?.setMood(h, d, dr),
+        onSectionEnter: (name) => {
+          // Suppressed until the reader has actually moved. ScrollTrigger
+          // fires for every marked section during its initial refresh, so
+          // a restored scroll position would otherwise recite every
+          // section above the viewport as if it had just been crossed.
+          if (sectionsArmed) emitFieldLog({ kind: 'section', name });
+        },
       });
 
       // If disposed (navigated away) before the async scene resolves, dispose the
@@ -495,7 +570,7 @@ const personSchema = {
           handle.setScrollProgress(Math.min(1, window.scrollY / scrollable));
         }
         if (gateActive && !revealed) {
-          void handle.whenReady().then(reveal);
+          void handle.whenReady().then(() => reveal(true));
         } else {
           // Gate never shown (or already hard-capped away) — release the
           // intro now.
@@ -505,6 +580,7 @@ const personSchema = {
 
       return () => {
         disposed = true;
+        window.removeEventListener('scroll', armSections);
         window.clearTimeout(slowTimer);
         window.clearTimeout(capTimer);
         window.clearTimeout(unlockTimer);

@@ -1,0 +1,497 @@
+---
+/**
+ * The field log: a truthful record of what the page just did, written
+ * into the page frame rather than into a floating window.
+ *
+ * Replaces the old `.hero__data-feed` canvas widget, which typed out a
+ * hardcoded 15-line script on a timer — decorative text that looked like
+ * telemetry and reported nothing. Every line here is caused by an actual
+ * state change in the scene, dispatched as a `field:log` event. If the
+ * scene does nothing, this writes nothing.
+ *
+ * Two states, with different jobs. RESTING is a decorative preview in
+ * the corner-frame register — aria-hidden, because a live region fed by
+ * a cycle that never stops fails WCAG 2.2.2 at Level A and no pause
+ * control belongs on a corner marker. EXPANDED is the accessible
+ * surface: opened deliberately, announcing nothing by itself, at
+ * readable contrast, keyboard-scrollable.
+ *
+ * Neither is a shell: there is no prompt and no input. The page's only
+ * terminal is on the contact page.
+ *
+ * It lives OUTSIDE `.hero` (so it survives the scroll, where the old
+ * panel simply scrolled away with its parent) and outside
+ * `.hero__corners` (which carries `aria-hidden="true"` for the whole
+ * decorative frame — the log has to be announceable, and lifting that
+ * flag would have exposed the coordinates and volume marker too).
+ *
+ * It also absorbs the `vol. 26` marker that used to sit 15px below it,
+ * which is what removes the crowding in that corner: one element, one
+ * header line, instead of two markers sharing a gutter.
+ */
+import { LOG_COPY } from '../../lib/home/fieldLogMessages';
+---
+
+<div class="field-log" data-field-log data-no-ripple>
+  <p class="field-log__head">
+    <span class="field-log__dot" aria-hidden="true"></span>
+    <span class="field-log__channel">{LOG_COPY.header}</span>
+    <span class="field-log__rule" aria-hidden="true"></span>
+    <span class="field-log__vol">vol. 26</span>
+  </p>
+  {
+    /* Decorative preview, deliberately aria-hidden. It updates forever
+      on the cycle's own clock, and an aria-live region that cannot be
+      stopped fails WCAG 2.2.2 at Level A. The accessible surface is the
+      expanded history below: opened on purpose, announcing nothing by
+      itself, and at readable contrast. Marking this hidden also restores
+      the decorative-text exemption the dim corner register relies on. */
+  }
+  <ol class="field-log__lines" data-field-log-lines aria-hidden="true"></ol>
+
+  {
+    /* A real button rather than a click handler on the block: the old
+      panel was a clickable span with no tabindex, unreachable by
+      keyboard by construction. Overlaid rather than wrapping, because a
+      <button> may not contain a list. */
+  }
+  <button
+    class="field-log__toggle"
+    type="button"
+    data-field-log-toggle
+    aria-expanded="false"
+    aria-controls="field-log-history"
+  >
+    <span class="sr-only">{LOG_COPY.openHistory}</span>
+  </button>
+</div>
+
+<section
+  class="field-log-history"
+  id="field-log-history"
+  data-field-log-history
+  data-no-ripple
+  tabindex="-1"
+  aria-label={LOG_COPY.historyLabel}
+  hidden
+>
+  <p class="field-log-history__head">
+    <span>{LOG_COPY.historyLabel}</span>
+    <span class="field-log-history__hint">esc</span>
+  </p>
+  {
+    /* tabindex 0 on the SCROLLER, not just the region: an overflow
+      container is not keyboard-scrollable without it, so arrow keys
+      would move the page behind the open panel. */
+  }
+  <ol
+    class="field-log-history__lines"
+    data-field-log-history-lines
+    tabindex="0"
+    role="log"
+  >
+  </ol>
+</section>
+
+<style>
+  /* Fixed, not absolute-in-hero: the log persists for the whole scroll.
+     z-index sits below the commit popups (30) and the nav, above the
+     footer (20) — it is frame, not content. */
+  .field-log {
+    position: fixed;
+    right: 2rem;
+    bottom: 2rem;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+    opacity: 1;
+    transition: opacity 0.4s ease;
+  }
+
+  /* Past the hero the log is background information; drop it so a reader
+     of the About text is never pulled toward the corner. */
+  :global(html[data-scrolled-past-hero]) .field-log {
+    opacity: 0.6;
+  }
+
+  /* visibility, not just opacity: an opacity-0 button is still in the tab
+     order, so Tab out of the open history landed on a control nobody can
+     see. */
+  :global(html[data-field-log-open]) .field-log {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* The footer shares this corner. Fixed positioning keeps the log
+     through the scroll, which also parks it on top of the footer text at
+     the bottom of the page — and because the toggle covers the whole
+     block, a click meant for the footer opened the history instead.
+     Same two declarations as the open state, so they compose. */
+  :global(html[data-footer-in-view]) .field-log {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Corner-frame register, matched to .hero__corner exactly — same
+     family, size and tracking. The old panel's cyan label was the one
+     off-register element in the frame; it is neutral now. */
+  .field-log__head {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+  }
+
+  .field-log__dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(196, 212, 255, 0.75);
+    flex: none;
+  }
+
+  .field-log__rule {
+    width: 1.5rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.45;
+  }
+
+  /* Same treatment the other corner markers give their numerals. */
+  .field-log__vol {
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.14em;
+  }
+
+  .field-log__lines {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.3);
+    max-width: min(22rem, 40vw);
+  }
+
+  /* One line each, ellipsised. Resting state must stay quiet — the full
+     text is what the expanded history is for. */
+  .field-log__lines li {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.45;
+    transition: opacity 0.5s ease;
+  }
+
+  /* The arrival of a line IS the wake — no pulse, no flash. The newest
+     line simply enters brighter and the ones above it recede. */
+  .field-log__lines li:last-child {
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .field-log__lines li:nth-last-child(2) {
+    opacity: 0.6;
+  }
+
+  /* Covers the resting block so the whole thing is the target, while the
+     accessible name stays on a real button. Its label is visually hidden
+     but read out and shown on focus. */
+  .field-log__toggle {
+    position: absolute;
+    inset: -0.4rem;
+    border: 0;
+    padding: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .field-log__toggle:focus-visible {
+    outline: 1px solid rgba(196, 212, 255, 0.7);
+    outline-offset: 2px;
+  }
+
+  /* ── Expanded history ───────────────────────────────────────────────
+     Thin left rule and a subtle scrim for readability, nothing more —
+     the point of the redesign was to stop this being a window. */
+  .field-log-history {
+    position: fixed;
+    right: 2rem;
+    bottom: 2rem;
+    z-index: 26;
+    width: min(34rem, calc(100vw - 4rem));
+    max-height: min(22rem, 60vh);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem 1rem 0.9rem 1.1rem;
+    border-left: 1px solid rgba(196, 212, 255, 0.28);
+    background: rgba(6, 8, 18, 0.82);
+    font-family: var(--font-mono);
+  }
+
+  .field-log-history[hidden] {
+    display: none;
+  }
+
+  .field-log-history:focus-visible {
+    outline: 1px solid rgba(196, 212, 255, 0.5);
+    outline-offset: 2px;
+  }
+
+  /* Contrast here is deliberately NOT the resting register's: the
+     expanded view is content someone opened in order to read, so it
+     meets 1.4.3 rather than borrowing the frame's decorative exemption. */
+  .field-log-history__head {
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  .field-log-history__hint {
+    color: rgba(255, 255, 255, 0.62);
+    letter-spacing: 0.14em;
+  }
+
+  .field-log-history__lines {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.62rem;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  /* Expanded lines may wrap — this is the state for reading them. */
+  .field-log-history__lines li {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .field-log-history__empty {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .field-log-history__lines:focus-visible {
+    outline: 1px solid rgba(196, 212, 255, 0.5);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field-log,
+    .field-log__lines li {
+      transition: none;
+    }
+  }
+
+  /* Below the corner-frame breakpoint the whole decorative frame is
+     gone; the log goes with it rather than floating alone. */
+  @media (max-width: 640px) {
+    .field-log,
+    .field-log-history {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import { createFieldLog } from '../../lib/home/fieldLog';
+  import { onFieldLog } from '../../lib/home/fieldLogEvents';
+  import { LOG_COPY } from '../../lib/home/fieldLogMessages';
+  import { onRoute } from '../../lib/lifecycle';
+
+  /** Lines kept in the resting view. The rest live in history. */
+  const RESTING_LINES = 3;
+  /** Retry delay while the queue still has work the interval floor has not
+   *  released yet. The floor itself lives in the log. */
+  const PUMP_MS = 100;
+  /** Distance from the bottom of the history within which auto-follow
+   *  stays on. Anything larger means the reader has scrolled up on
+   *  purpose and must not be yanked back. */
+  const FOLLOW_SLACK_PX = 24;
+
+  onRoute(
+    () => !!document.querySelector('[data-field-log]'),
+    () => {
+      const root = document.querySelector<HTMLElement>('[data-field-log]');
+      const list = root?.querySelector<HTMLOListElement>('[data-field-log-lines]');
+      const toggle = root?.querySelector<HTMLButtonElement>('[data-field-log-toggle]');
+      const history = document.querySelector<HTMLElement>('[data-field-log-history]');
+      const historyList = history?.querySelector<HTMLOListElement>(
+        '[data-field-log-history-lines]',
+      );
+      if (!root || !list || !toggle || !history || !historyList) return;
+
+      // Where the scene never runs there is nothing true to report, so
+      // the log shows its header and stops. It does NOT fall back to
+      // invented content — that was the whole problem with what this
+      // replaced. The toggle goes too: an empty history is not worth a
+      // tab stop.
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const noScene = reducedMotion || window.matchMedia('(max-width: 860px)').matches;
+      if (noScene) {
+        root.dataset.mode = 'inert';
+        toggle.remove();
+        if (reducedMotion) {
+          const li = document.createElement('li');
+          li.textContent = LOG_COPY.inert;
+          list.appendChild(li);
+        }
+        return;
+      }
+
+      const log = createFieldLog();
+      const unsubscribe = onFieldLog((event) => {
+        log.push(event);
+        schedule();
+      });
+      let open = false;
+      /** Off only while the reader has deliberately scrolled up. */
+      let follow = true;
+
+      const appendTo = (target: HTMLOListElement, text: string): HTMLLIElement => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        target.appendChild(li);
+        return li;
+      };
+
+      // Append-only. Rebuilding the resting list would restart the CSS
+      // transition on every row and make the whole block flicker.
+      const render = (text: string): void => {
+        appendTo(list, text);
+        while (list.children.length > RESTING_LINES) list.firstElementChild?.remove();
+
+        // Clear the "nothing logged yet" placeholder the moment there is
+        // something logged, or it sits above the first real line forever.
+        historyList.querySelector('.field-log-history__empty')?.remove();
+        appendTo(historyList, text);
+        if (open && follow) historyList.scrollTop = historyList.scrollHeight;
+      };
+
+      // Drained on demand rather than by a permanent 10Hz timer: the log
+      // is silent most of the time, and a timer that only exists while
+      // something is queued costs nothing when nothing is happening.
+      let drainTimer = 0;
+      const drain = (): void => {
+        drainTimer = 0;
+        const line = log.pump(performance.now());
+        if (line) render(line.text);
+        if (log.pendingCount() > 0) schedule();
+      };
+      const schedule = (): void => {
+        if (drainTimer === 0) drainTimer = window.setTimeout(drain, PUMP_MS);
+      };
+
+      const onHistoryScroll = (): void => {
+        const distance =
+          historyList.scrollHeight - historyList.scrollTop - historyList.clientHeight;
+        follow = distance <= FOLLOW_SLACK_PX;
+      };
+      historyList.addEventListener('scroll', onHistoryScroll, { passive: true });
+
+      const setOpen = (next: boolean): void => {
+        if (next === open) return;
+        open = next;
+        history.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        document.documentElement.toggleAttribute('data-field-log-open', open);
+        if (open) {
+          // Seed from history rather than from the resting view, which
+          // only ever holds the last three.
+          historyList.replaceChildren();
+          const lines = log.history();
+          if (lines.length === 0) {
+            appendTo(historyList, LOG_COPY.historyEmpty).className =
+              'field-log-history__empty';
+          } else {
+            for (const line of lines) appendTo(historyList, line.text);
+          }
+          follow = true;
+          historyList.scrollTop = historyList.scrollHeight;
+          // Focus the scroller, so arrow keys drive the history rather
+          // than the page behind it.
+          historyList.focus();
+        } else {
+          toggle.focus();
+        }
+      };
+
+      const onToggleClick = (): void => setOpen(!open);
+      toggle.addEventListener('click', onToggleClick);
+
+      const onKeyDown = (e: KeyboardEvent): void => {
+        if (e.key === 'Escape' && open) setOpen(false);
+      };
+      document.addEventListener('keydown', onKeyDown);
+
+      // Outside click. Capture phase so it runs before the scene's own
+      // document-level pointerdown, and checks containment rather than
+      // the target alone so a click inside the history never closes it.
+      const onDocPointerDown = (e: PointerEvent): void => {
+        if (!open) return;
+        const target = e.target as Node | null;
+        if (target && (history.contains(target) || root.contains(target))) return;
+        setOpen(false);
+      };
+      document.addEventListener('pointerdown', onDocPointerDown, { capture: true });
+
+      // Past the hero the log dims. Read the hero's own height rather than
+      // a magic number, and set an attribute the stylesheet owns so the
+      // opacity value stays in CSS.
+      const hero = document.querySelector<HTMLElement>('[data-section-hero]');
+      const footer = document.querySelector<HTMLElement>('[data-site-footer]');
+      const onScroll = (): void => {
+        const past = window.scrollY > (hero?.clientHeight ?? window.innerHeight) * 0.6;
+        document.documentElement.toggleAttribute('data-scrolled-past-hero', past);
+        // Park the log entirely once the footer is on screen: they share
+        // this corner, and the log wins the z-order.
+        const footerTop = footer?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+        document.documentElement.toggleAttribute(
+          'data-footer-in-view',
+          footerTop < window.innerHeight,
+        );
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+
+      return () => {
+        unsubscribe();
+        window.clearTimeout(drainTimer);
+        historyList.removeEventListener('scroll', onHistoryScroll);
+        toggle.removeEventListener('click', onToggleClick);
+        document.removeEventListener('keydown', onKeyDown);
+        document.removeEventListener('pointerdown', onDocPointerDown, { capture: true });
+        window.removeEventListener('scroll', onScroll);
+        document.documentElement.removeAttribute('data-scrolled-past-hero');
+        document.documentElement.removeAttribute('data-footer-in-view');
+        document.documentElement.removeAttribute('data-field-log-open');
+      };
+    },
+  );
+</script>
