@@ -55,8 +55,10 @@ Replace the idle gate with a **continuous four-shape cycle**
   space clicks convert into and the space the shader projects particles into
   before applying interaction.
 - **Micro-life applies in every shape, scaled per shape.** The amplitudes in
-  ADR 0015 were sized against the name's ~0.43 world stroke; the wordmark's is
-  roughly a third of that, so unscaled shimmer visibly wobbles the mark.
+  ADR 0015 were sized against the name's ~0.43 world stroke. The wordmark is
+  set at 96 px / weight 600 against the name's 190 px / weight 800, so its
+  stroke is roughly 0.4 of the name's — which is exactly the scale factor the
+  wordmark carries — and unscaled shimmer visibly wobbles the mark.
 - **The sparse cloud drifts like the scroll transition.** It had inherited the
   name's tight 0.11 sway and read as a still image; it now uses the same 0.55
   the dissolve already uses.
