@@ -63,4 +63,13 @@ export const LOG_COPY = {
   /** Shown instead of log lines where the scene never runs, so the panel
    *  is present in the frame without inventing activity it cannot see. */
   inert: 'field disabled · reduced motion',
+
+  /** Accessible name for the control that expands the log. Visually
+   *  hidden — the resting block is the visible affordance. */
+  openHistory: 'Open field log history',
+  /** Label for the expanded region, and its visible heading. */
+  historyLabel: 'field log',
+  /** The expanded view before anything has happened. Silence is a real
+   *  state here, so it gets said rather than padded. */
+  historyEmpty: 'nothing logged yet',
 } as const;
