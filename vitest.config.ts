@@ -35,6 +35,7 @@ export default defineConfig({
         'src/lib/three/textures.ts',
         'src/lib/three/field/buildParticleField.ts',
         'src/lib/three/field/nameTargets.ts',
+        'src/lib/three/field/wordmarkTargets.ts',
         'src/lib/three/createGlowMaterial.ts',
         'src/lib/three/projects/buildPlanet.ts',
         'src/lib/three/projects/buildPlanetTexture.ts',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { distributeNameTargets } from './nameDistribution';
+import { distributeNameTargets, isInsideNameBounds } from './nameDistribution';
 
 /** Tiny deterministic LCG so assertions never flake. */
 function seededRandom(seed: number): () => number {
@@ -85,5 +85,71 @@ describe('distributeNameTargets', () => {
       random: seededRandom(4),
     });
     expect(dim.every((d) => d === 1)).toBe(true);
+  });
+});
+
+describe('name bounds', () => {
+  it('measures the box from the glyph candidates', () => {
+    // Deliberately lopsided so a wrong axis or a swapped min/max shows.
+    const candidates = new Float32Array([-4, 0.5, 2, -3, 0, 6]);
+    const { bounds } = distributeNameTargets({
+      candidates,
+      count: 10,
+      random: seededRandom(2),
+    });
+    expect(bounds).toEqual({ minX: -4, maxX: 2, minY: -3, maxY: 6 });
+  });
+
+  it('measures over every candidate, not just the ones particles land on', () => {
+    // Two particles, four candidates: the box must still be the full
+    // extent — it describes where the letterforms are, not where this
+    // particular field's particles ended up.
+    const { bounds } = distributeNameTargets({
+      candidates: CANDIDATES,
+      count: 2,
+      random: seededRandom(3),
+    });
+    expect(bounds).toEqual({ minX: -1, maxX: 1, minY: -1, maxY: 1 });
+  });
+
+  it('returns a degenerate box when there are no candidates', () => {
+    const { bounds } = distributeNameTargets({
+      candidates: new Float32Array(0),
+      count: 10,
+      random: seededRandom(4),
+    });
+    expect(bounds).toEqual({ minX: 0, maxX: 0, minY: 0, maxY: 0 });
+  });
+});
+
+describe('isInsideNameBounds', () => {
+  const bounds = { minX: -5, maxX: 5, minY: -2, maxY: 3 };
+
+  it('accepts points inside and rejects points outside', () => {
+    expect(isInsideNameBounds(bounds, 1, 0, 0)).toBe(true);
+    expect(isInsideNameBounds(bounds, 1, 5, 3)).toBe(true);
+    expect(isInsideNameBounds(bounds, 1, 5.1, 0)).toBe(false);
+    expect(isInsideNameBounds(bounds, 1, 0, -2.1)).toBe(false);
+  });
+
+  it('scales the box with uNameScale on both axes', () => {
+    // The shader multiplies the whole name block by uNameScale, so a
+    // point that misses at full size can hit at half — and vice versa.
+    expect(isInsideNameBounds(bounds, 0.5, 4, 0)).toBe(false);
+    expect(isInsideNameBounds(bounds, 0.5, 2, 1.4)).toBe(true);
+    expect(isInsideNameBounds(bounds, 0.5, 2, 1.6)).toBe(false);
+  });
+
+  it('applies padding outside the scaled box', () => {
+    expect(isInsideNameBounds(bounds, 1, 5.4, 0, 0.5)).toBe(true);
+    expect(isInsideNameBounds(bounds, 1, 5.6, 0, 0.5)).toBe(false);
+  });
+
+  it('never reports a hit on a degenerate box', () => {
+    // The rasteriser found no ink: there is no name to strike, and a
+    // click at exactly (0,0) must not be treated as one.
+    const empty = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    expect(isInsideNameBounds(empty, 1, 0, 0)).toBe(false);
+    expect(isInsideNameBounds(empty, 1, 0, 0, 2)).toBe(false);
   });
 });

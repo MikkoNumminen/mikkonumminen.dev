@@ -43,6 +43,10 @@ import { buildParticleField } from './field/buildParticleField';
 import { generateGalaxyTargets } from './field/galaxyTargets';
 import { generateStarfieldTargets } from './field/starfieldTargets';
 import { rasterizeNameTargets } from './field/nameTargets';
+import { isInsideNameBounds } from './field/nameDistribution';
+import { rasterizeWordmarkTargets } from './field/wordmarkTargets';
+import { createIdleChoreographer } from './field/idleChoreography';
+import { FIELD_TUNING } from './field/tuning';
 import { makeRadialSpriteTexture } from './textures';
 import { easeOutCubic } from './easing';
 
@@ -155,6 +159,9 @@ const FORM_CATCHUP = 4;
  *  formed name is unambiguously the brightest thing in the frame. */
 const NAME_BRIGHTNESS = 1.12;
 
+const IMPULSE = FIELD_TUNING.impulse;
+const IDLE = FIELD_TUNING.idle;
+
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
   const { canvas, onRipple, onFormed } = opts;
 
@@ -183,6 +190,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
 
   // ── The field ────────────────────────────────────────────────────────
   const nameTargets = await rasterizeNameTargets({ count: particleCount });
+  // Second raster, behind the same gate. Null if it failed — the idle
+  // choreography then skips the wordmark formation rather than showing
+  // a stand-in that isn't the mark.
+  const wordTargets = rasterizeWordmarkTargets({ count: particleCount });
   const field = buildParticleField({
     count: particleCount,
     galaxyPositions: generateGalaxyTargets({
@@ -191,6 +202,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     }),
     namePositions: nameTargets.positions,
     nameDim: nameTargets.dim,
+    wordPositions: wordTargets?.positions ?? new Float32Array(particleCount * 3),
+    wordDim: wordTargets?.dim ?? new Float32Array(particleCount),
     starPositions: generateStarfieldTargets({ count: particleCount }),
     galaxyCenter: [GALAXY_DESIGN_X, GALAXY_Y, GALAXY_Z],
     // Fewer particles on the low tier read sparser at the same size, so
@@ -309,12 +322,33 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const clientToWorldY = (clientY: number): number =>
     -(clientY / window.innerHeight - 0.5) * 2 * halfHeightAtZ0;
 
+  // ── Idle choreography ────────────────────────────────────────────────
+  // Runs only on the formed name at the top of the page. `idleInterrupt`
+  // is raised by any sign of a present visitor and consumed once per
+  // frame; the clock itself lives inside the choreographer and advances
+  // on the tick delta, so it pauses with the rAF loop when the tab hides
+  // rather than needing its own visibility bookkeeping.
+  const idle = createIdleChoreographer();
+  const wordReady = wordTargets !== null;
+  let idleInterrupt = false;
+  let idleGalaxySpin = 0;
+  const markInteraction = (): void => {
+    idleInterrupt = true;
+  };
+
   const onPointerMove = (e: PointerEvent): void => {
     targetPointerX = clientToWorldX(e.clientX);
     targetPointerY = clientToWorldY(e.clientY);
     pointerSeen = true;
+    markInteraction();
   };
   window.addEventListener('pointermove', onPointerMove, { passive: true });
+  // Wheel and keydown catch the inputs that produce no scroll and no
+  // pointer move — a wheel at the very top of the page, or tabbing
+  // through the nav. ScrollTrigger's own updates arrive via the handle
+  // setters below and mark an interaction there.
+  window.addEventListener('wheel', markInteraction, { passive: true });
+  window.addEventListener('keydown', markInteraction, { passive: true });
 
   // ── Click ripples ────────────────────────────────────────────────────
   // Document-level because the canvas is pointer-events: none behind the
@@ -331,9 +365,44 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     onRipple?.(clientX, clientY);
   };
 
+  // ── Name-click impulse ───────────────────────────────────────────────
+  // A click that lands on the formed letterforms is a different gesture
+  // from a click on the page behind them: it strikes the name rather
+  // than rippling the field. Two slots ping-pong so mashing adds up.
+  let nextImpulse = 0;
+
+  const launchImpulse = (clientX: number, clientY: number, strength: number): void => {
+    // Non-null: (non-negative int % 2) always lands inside the pair.
+    const slot = field.uniforms.uImpulses.value[nextImpulse % 2]!;
+    nextImpulse++;
+    slot.set(clientToWorldX(clientX), clientToWorldY(clientY), elapsedNow, strength);
+  };
+
+  const isNameHit = (clientX: number, clientY: number): boolean => {
+    if (form < IMPULSE.minForm || dissolve > IMPULSE.maxDissolve) return false;
+    return isInsideNameBounds(
+      nameTargets.bounds,
+      field.uniforms.uNameScale.value,
+      clientToWorldX(clientX),
+      clientToWorldY(clientY),
+      IMPULSE.hitPadding,
+    );
+  };
+
   const onPointerDown = (e: PointerEvent): void => {
+    // Before the exclusion check: a click on real UI is still a visitor
+    // who is plainly present, even though it produces no field effect.
+    markInteraction();
     const target = e.target as Element | null;
     if (target?.closest(RIPPLE_EXCLUDE_SELECTOR)) return;
+    if (isNameHit(e.clientX, e.clientY)) {
+      // Deliberately no onRipple: the scatter IS the feedback here, and
+      // a commit popup rising through the letterforms would fight the
+      // legibility the name state exists to protect. Background clicks
+      // keep the popup easter egg untouched.
+      launchImpulse(e.clientX, e.clientY, 1);
+      return;
+    }
     const strength = target?.closest(TEXT_TARGET_SELECTOR) ? 1.25 : 1;
     launchRipple(e.clientX, e.clientY, strength);
   };
@@ -390,6 +459,16 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // gain at this scene's motion frequencies.
   const TARGET_FRAME_MS = 1000 / 60 - 1;
 
+  // Ceiling on the frame delta anything time-based is allowed to
+  // integrate, seconds. Not every long gap between frames announces
+  // itself: a suspended machine resumes without a visibilitychange, and
+  // a page opened in a background tab reaches its first real frame with
+  // the whole background stretch behind it. Left unbounded, that single
+  // delta drives the formation past its own animation and jumps every
+  // accumulator. Far above a hitched frame, far below any of those gaps
+  // — so a genuinely slow frame still integrates truthfully.
+  const MAX_FRAME_DELTA = 0.25;
+
   // Scratch colours reused every frame — the palette lerp must not
   // allocate in the tick loop.
   const colorA = new Color();
@@ -402,7 +481,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const now = performance.now();
     if (now - lastFrame < TARGET_FRAME_MS) return;
     const elapsed = (now - startTime) / 1000;
-    const delta = (now - lastFrame) / 1000;
+    // Two deltas on purpose. `delta` drives simulation and is clamped;
+    // `rawDelta` is what actually elapsed and goes only to the perf
+    // overlay, which exists to report frame times honestly — clamping
+    // the number the instrument reads would hide exactly the hitches it
+    // was mounted to catch.
+    const rawDelta = (now - lastFrame) / 1000;
+    const delta = Math.min(rawDelta, MAX_FRAME_DELTA);
     lastFrame = now;
 
     const u = field.uniforms;
@@ -424,6 +509,46 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       }
     }
     u.uForm.value = form;
+
+    // Idle choreography. Armed only on a fully formed name at the very
+    // top: any scrub hands the morph back to the dissolve, and the
+    // choreographer collapses its own contribution fast when that
+    // happens so the two never own the field at once.
+    const idleState = idle.advance({
+      delta,
+      armed: form >= 1 && dissolve <= IDLE.maxDissolve,
+      interrupted: idleInterrupt,
+      wordReady,
+    });
+    idleInterrupt = false;
+    u.uIdle.value = idleState.mix;
+    const [wGalaxy, wWord, wSparse] = idleState.weights;
+    u.uIdleWeights.value.set(wGalaxy, wWord, wSparse);
+    // Accumulated rather than derived from `elapsed`, so it pauses with
+    // the loop. This variant is the one formation a visitor can see
+    // both before hiding a tab and after returning to it, so a spin
+    // derived from wall-clock time would resume visibly rotated. The
+    // load-in galaxy above keeps its wall clock deliberately: it is only
+    // ever on screen before the name forms, so there is no earlier
+    // orientation for anyone to notice it jumping from.
+    idleGalaxySpin += delta * IDLE.galaxyVariant.spinRate;
+    u.uIdleGalaxySpin.value = idleGalaxySpin;
+
+    // Per-shape presentation, blended by the same weights the shader
+    // uses for geometry — so the sparse field actually reads sparse
+    // instead of being the same 24k particles in a different arrangement.
+    const shapeBrightness =
+      wGalaxy * IDLE.shapeBrightness[0] +
+      wWord * IDLE.shapeBrightness[1] +
+      wSparse * IDLE.shapeBrightness[2];
+    const shapeDensity =
+      wGalaxy * IDLE.shapeDensity[0] +
+      wWord * IDLE.shapeDensity[1] +
+      wSparse * IDLE.shapeDensity[2];
+    const shapeBloom =
+      wGalaxy * IDLE.shapeBloom[0] +
+      wWord * IDLE.shapeBloom[1] +
+      wSparse * IDLE.shapeBloom[2];
 
     // Smooth pointer — the lerp keeps the avoidance feeling weighty
     // rather than glued to the cursor; strength eases in after the first
@@ -449,18 +574,26 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     u.uDriftSpeed.value = moodDrift;
     const formedBrightness =
       GALAXY_BRIGHTNESS + (NAME_BRIGHTNESS - GALAXY_BRIGHTNESS) * form;
+    const idleBrightness =
+      formedBrightness + (shapeBrightness - formedBrightness) * idleState.mix;
     u.uBrightness.value =
-      formedBrightness + (STARFIELD_BRIGHTNESS - formedBrightness) * dissolve;
+      idleBrightness + (STARFIELD_BRIGHTNESS - idleBrightness) * dissolve;
 
     // Starfield reads sparse: only ~40% of the field stays visible once
     // fully dissolved (density thresholds against the per-particle rank),
     // nudged by the active section's mood.
-    u.uDensity.value = Math.max(0, Math.min(1, (1 - dissolve * 0.6) * moodDensity));
+    const idleDensity = 1 + (shapeDensity - 1) * idleState.mix;
+    u.uDensity.value = Math.max(
+      0,
+      Math.min(1, (1 - dissolve * 0.6) * moodDensity * idleDensity),
+    );
 
     glowMaterial.opacity = 1 - dissolve * 0.9;
 
     if (bloom) {
-      bloom.intensity = (1.1 + (0.35 - 1.1) * form) * (1 - dissolve) + 0.1 * dissolve;
+      const formedBloom = 1.1 + (0.35 - 1.1) * form;
+      const idleBloom = formedBloom + (shapeBloom - formedBloom) * idleState.mix;
+      bloom.intensity = idleBloom * (1 - dissolve) + 0.1 * dissolve;
     }
 
     if (composer) {
@@ -481,7 +614,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       }
     }
 
-    perfOverlay?.tick(delta);
+    perfOverlay?.tick(rawDelta);
   };
 
   const onVisibilityChange = (): void => {
@@ -489,9 +622,19 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-    } else if (raf === 0) {
+    } else {
+      // Both of these are unconditional, and the `raf === 0` guard below
+      // is only about restarting the loop. A page opened in a background
+      // tab never had its first rAF fire, so `raf` is non-zero and needs
+      // no restart — but that pending frame is still holding a
+      // `lastFrame` from scene construction, and would arrive with a
+      // delta of the entire background stretch: enough to snap the name
+      // into existence instead of forming it, and to hand the composer a
+      // nonsense frame time. That arrival is also exactly the one that
+      // must meet the name rather than a transition already in flight.
       lastFrame = performance.now();
-      tick();
+      idle.reset();
+      if (raf === 0) tick();
     }
   };
   document.addEventListener('visibilitychange', onVisibilityChange);
@@ -512,11 +655,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   tick();
 
   return {
+    // Both setters mark an interaction: ScrollTrigger only calls them
+    // when scroll progress actually changed, so they are the scroll
+    // signal — no extra listener, and scroll cancels idle on the same
+    // frame it starts moving the field.
     setScrollProgress: (p: number): void => {
       scrollProgress = Math.max(0, Math.min(1, p));
+      markInteraction();
     },
     setDissolve: (p: number): void => {
       dissolve = Math.max(0, Math.min(1, p));
+      markInteraction();
     },
     ripple: (clientX: number, clientY: number, strength = 1): void => {
       launchRipple(clientX, clientY, strength);
@@ -543,6 +692,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       raf = 0;
       resize.dispose();
       window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('wheel', markInteraction);
+      window.removeEventListener('keydown', markInteraction);
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       perfOverlay?.dispose();

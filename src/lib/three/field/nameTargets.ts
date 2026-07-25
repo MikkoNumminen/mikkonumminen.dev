@@ -29,16 +29,20 @@ export interface NameTargetStubOptions {
   random?: () => number;
 }
 
+const STUB_SEMI_X = 9;
+const STUB_SEMI_Y = 3.5;
+const STUB_CENTER_Y = 0.5;
+
 /** Fallback shape when the rasteriser can't run: a flat ellipsoid where
  *  the name would sit, so a degenerate environment still shows a soft
  *  blob at the right screen position. */
 export function generateNameTargetsStub(opts: NameTargetStubOptions): Float32Array {
   const {
     count,
-    semiX = 9,
-    semiY = 3.5,
+    semiX = STUB_SEMI_X,
+    semiY = STUB_SEMI_Y,
     semiZ = 1.2,
-    centerY = 0.5,
+    centerY = STUB_CENTER_Y,
     random = Math.random,
   } = opts;
 
@@ -144,9 +148,19 @@ export async function rasterizeNameTargets(
     });
   } catch (err) {
     console.warn('nameTargets: rasterisation failed, using blob fallback', err);
+    // The blob fallback is still "the name" as far as the click
+    // hit-test is concerned, so hand back its own extents rather than a
+    // degenerate box — otherwise a degraded environment silently loses
+    // the impulse too.
     return {
       positions: generateNameTargetsStub({ count, random }),
       dim: new Float32Array(count),
+      bounds: {
+        minX: -STUB_SEMI_X,
+        maxX: STUB_SEMI_X,
+        minY: STUB_CENTER_Y - STUB_SEMI_Y,
+        maxY: STUB_CENTER_Y + STUB_SEMI_Y,
+      },
     };
   }
 }
