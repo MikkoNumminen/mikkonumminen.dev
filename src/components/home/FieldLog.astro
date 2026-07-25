@@ -1,0 +1,228 @@
+---
+/**
+ * The field log: a truthful record of what the page just did, written
+ * into the page frame rather than into a floating window.
+ *
+ * Replaces the old `.hero__data-feed` canvas widget, which typed out a
+ * hardcoded 15-line script on a timer — decorative text that looked like
+ * telemetry and reported nothing. Every line here is caused by an actual
+ * state change in the scene, dispatched as a `field:log` event. If the
+ * scene does nothing, this writes nothing.
+ *
+ * It lives OUTSIDE `.hero` (so it survives the scroll, where the old
+ * panel simply scrolled away with its parent) and outside
+ * `.hero__corners` (which carries `aria-hidden="true"` for the whole
+ * decorative frame — the log has to be announceable, and lifting that
+ * flag would have exposed the coordinates and volume marker too).
+ *
+ * It also absorbs the `vol. 26` marker that used to sit 15px below it,
+ * which is what removes the crowding in that corner: one element, one
+ * header line, instead of two markers sharing a gutter.
+ */
+import { LOG_COPY } from '../../lib/home/fieldLogMessages';
+---
+
+<aside class="field-log" data-field-log aria-label="Field activity log">
+  <p class="field-log__head">
+    <span class="field-log__dot" aria-hidden="true"></span>
+    <span class="field-log__channel">{LOG_COPY.header}</span>
+    <span class="field-log__rule" aria-hidden="true"></span>
+    <span class="field-log__vol">vol. 26</span>
+  </p>
+  {
+    /* Lines are appended here at runtime. aria-live polite so a screen
+      reader hears activity without being interrupted; the list is empty
+      on load because nothing has happened yet, which is the point. */
+  }
+  <ol class="field-log__lines" data-field-log-lines aria-live="polite"></ol>
+</aside>
+
+<style>
+  /* Fixed, not absolute-in-hero: the log persists for the whole scroll.
+     z-index sits below the commit popups (30) and the nav, above the
+     footer (20) — it is frame, not content. */
+  .field-log {
+    position: fixed;
+    right: 2rem;
+    bottom: 2rem;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+    pointer-events: none;
+    /* Past the hero the log is background information; drop it further
+       so a reader of the About text is never pulled toward the corner. */
+    opacity: 1;
+    transition: opacity 0.4s ease;
+  }
+
+  :global(html[data-scrolled-past-hero]) .field-log {
+    opacity: 0.6;
+  }
+
+  /* Corner-frame register, matched to .hero__corner exactly — same
+     family, size and tracking. The old panel's cyan label was the one
+     off-register element in the frame; it is neutral now. */
+  .field-log__head {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+  }
+
+  .field-log__dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(196, 212, 255, 0.75);
+    flex: none;
+  }
+
+  .field-log__rule {
+    width: 1.5rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.45;
+  }
+
+  /* Same treatment the other corner markers give their numerals. */
+  .field-log__vol {
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.14em;
+  }
+
+  .field-log__lines {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.3);
+    max-width: min(22rem, 40vw);
+  }
+
+  /* One line each, ellipsised. Resting state must stay quiet — the full
+     text is what the expanded history is for. */
+  .field-log__lines li {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.45;
+    transition: opacity 0.5s ease;
+  }
+
+  /* The arrival of a line IS the wake — no pulse, no flash. The newest
+     line simply enters brighter and the ones above it recede. */
+  .field-log__lines li:last-child {
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .field-log__lines li:nth-last-child(2) {
+    opacity: 0.6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field-log,
+    .field-log__lines li {
+      transition: none;
+    }
+  }
+
+  /* Below the corner-frame breakpoint the whole decorative frame is
+     gone; the log goes with it rather than floating alone. */
+  @media (max-width: 640px) {
+    .field-log {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import { createFieldLog } from '../../lib/home/fieldLog';
+  import { onFieldLog } from '../../lib/home/fieldLogEvents';
+  import { LOG_COPY } from '../../lib/home/fieldLogMessages';
+  import { onRoute } from '../../lib/lifecycle';
+
+  /** Lines kept in the resting view. The rest live in history, which the
+   *  expanded state reads. */
+  const RESTING_LINES = 3;
+  /** How often the queue is drained. The interval floor lives in the log
+   *  itself; this only decides how promptly a released line appears. */
+  const PUMP_MS = 100;
+
+  onRoute(
+    () => !!document.querySelector('[data-field-log]'),
+    () => {
+      const root = document.querySelector<HTMLElement>('[data-field-log]');
+      const list = root?.querySelector<HTMLOListElement>('[data-field-log-lines]');
+      if (!root || !list) return;
+
+      // Where the scene never runs there is nothing true to report, so
+      // the log shows its header and stops. It does NOT fall back to
+      // invented content — that was the whole problem with what this
+      // replaced.
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const noScene = reducedMotion || window.matchMedia('(max-width: 860px)').matches;
+      if (noScene) {
+        root.dataset.mode = 'inert';
+        if (reducedMotion) {
+          const li = document.createElement('li');
+          li.textContent = LOG_COPY.inert;
+          list.appendChild(li);
+        }
+        return;
+      }
+
+      const log = createFieldLog();
+      const unsubscribe = onFieldLog((event) => log.push(event));
+
+      // Rendering is append-only: one node per released line, oldest
+      // trimmed off the front. Rebuilding the list would restart the CSS
+      // transition on every row and make the whole block flicker.
+      const render = (text: string): void => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        list.appendChild(li);
+        while (list.children.length > RESTING_LINES) list.firstElementChild?.remove();
+      };
+
+      const pump = window.setInterval(() => {
+        const line = log.pump(performance.now());
+        if (line) render(line.text);
+      }, PUMP_MS);
+
+      // Past the hero the log dims. Read off the hero's own height rather
+      // than a magic number, and set an attribute the stylesheet owns so
+      // the opacity value stays in CSS.
+      const hero = document.querySelector<HTMLElement>('[data-section-hero]');
+      const onScroll = (): void => {
+        const past = window.scrollY > (hero?.clientHeight ?? window.innerHeight) * 0.6;
+        if (past) document.documentElement.setAttribute('data-scrolled-past-hero', '');
+        else document.documentElement.removeAttribute('data-scrolled-past-hero');
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+
+      return () => {
+        unsubscribe();
+        window.clearInterval(pump);
+        window.removeEventListener('scroll', onScroll);
+        document.documentElement.removeAttribute('data-scrolled-past-hero');
+      };
+    },
+  );
+</script>

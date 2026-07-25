@@ -50,17 +50,6 @@ const t = getTranslations(locale);
       <span class="hero__corner-rule hero__corner-rule--tr"></span>
       <span class="hero__corner-place">tampere · hervanta</span>
     </span>
-    <span class="hero__data-feed" data-data-feed data-no-ripple>
-      <span class="hero__data-feed-label">
-        <span class="hero__data-feed-pulse"></span>
-        <span>data · ch-01</span>
-      </span>
-      <canvas class="hero__data-feed-canvas" width="480" height="144" aria-hidden="true"
-      ></canvas>
-    </span>
-    <span class="hero__corner hero__corner--br">
-      <span class="hero__corner-num">vol. 26</span>
-    </span>
   </div>
 </section>
 
@@ -264,11 +253,6 @@ const t = getTranslations(locale);
     gap: 0.25rem;
   }
 
-  .hero__corner--br {
-    bottom: 2.5rem;
-    right: 2rem;
-  }
-
   @media (max-width: 860px) {
     .hero__corners {
       display: none;
@@ -290,121 +274,4 @@ const t = getTranslations(locale);
       top: 1.5rem;
     }
   }
-
-  /* Live data-feed widget. The cyan pulse + cascading glyphs read as
-     "this location is where data flows". Re-anchored to bottom-right so
-     it lives below the title's vertical band — no horizontal conflict
-     with the right-third chrome wordmark on any viewport. Sits just
-     above the "vol. 26" corner label, sharing the same right edge. */
-  .hero__data-feed {
-    position: absolute;
-    bottom: 5.25rem;
-    right: 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.4rem;
-    /* Discoverability — the widget is one of the click-to-animate
-       elements (alongside the 3D type and the galaxy). Per the
-       Mixed-cursor choice from the senior-designer review, the big
-       elements get a pointer cursor; the small Easter-egg ones (goat,
-       ring, star) stay hidden. */
-    cursor: pointer;
-    /* `.hero__corners` (this element's parent) sets `pointer-events:
-       none` so the chrome doesn't intercept canvas clicks. That value
-       propagates to descendants, so without re-enabling it here the
-       widget would be visually clickable (cursor + cursor: pointer)
-       but the `pointerdown` handler in the script below would never
-       fire and the click-to-animate ping line would silently drop. */
-    pointer-events: auto;
-  }
-
-  .hero__data-feed-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-family: var(--font-mono);
-    font-size: 0.58rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: rgba(180, 220, 255, 0.55);
-  }
-
-  .hero__data-feed-pulse {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #6fcfe0;
-    box-shadow: 0 0 6px rgba(111, 207, 224, 0.65);
-    animation: hero-data-feed-pulse 1.6s ease-in-out infinite;
-  }
-
-  @keyframes hero-data-feed-pulse {
-    0%,
-    100% {
-      opacity: 0.55;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
-
-  .hero__data-feed-canvas {
-    width: 14rem;
-    height: 4.4rem;
-    display: block;
-    border-bottom: 1px solid rgba(111, 207, 224, 0.18);
-    /* Soft fade on the left so the cascade doesn't read as a hard
-       rectangle dropped onto the page. */
-    mask-image: linear-gradient(to right, transparent, black 18%, black 100%);
-    -webkit-mask-image: linear-gradient(to right, transparent, black 18%, black 100%);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hero__data-feed-pulse {
-      animation: none;
-    }
-  }
 </style>
-
-<script>
-  import { buildDataFeedConsole } from '../../lib/home/dataFeedConsole';
-  import { onRoute } from '../../lib/lifecycle';
-
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  onRoute(
-    () => !!document.querySelector('[data-data-feed]'),
-    () => {
-      // Corner widgets are hidden via CSS at ≤860px; skip the console
-      // work on mobile so we don't burn CPU painting an invisible canvas.
-      if (window.matchMedia('(max-width: 860px)').matches) return;
-      const root = document.querySelector<HTMLElement>('[data-data-feed]');
-      if (!root) return;
-      const canvas = root.querySelector<HTMLCanvasElement>('.hero__data-feed-canvas');
-      if (!canvas) return;
-      const handle = buildDataFeedConsole(canvas, reducedMotion);
-
-      // Click-to-animate: clicking the widget injects a "ping" exchange
-      // into the typing queue. Mirrors the click responses on the scene
-      // elements — each clickable corner of the hero acknowledges the user.
-      // Uses `pointerdown` (not `click`) to match the 3D scene's snappy
-      // press-to-fire feel; otherwise the data-feed would lag behind a
-      // letter pop in side-by-side comparison. Reduced-motion clients get
-      // the no-op handle from buildDataFeedConsole, so pushLine is a no-op
-      // there.
-      const onPointerDown = (): void => {
-        handle.pushLine(
-          { text: '$ ping mikko', kind: 'cmd' },
-          { text: '> hi 0.01ms', kind: 'out' },
-        );
-      };
-      root.addEventListener('pointerdown', onPointerDown);
-
-      return () => {
-        root.removeEventListener('pointerdown', onPointerDown);
-        handle.dispose();
-      };
-    },
-  );
-</script>
