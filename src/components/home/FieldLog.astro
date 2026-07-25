@@ -124,6 +124,16 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     visibility: hidden;
   }
 
+  /* The footer shares this corner. Fixed positioning keeps the log
+     through the scroll, which also parks it on top of the footer text at
+     the bottom of the page — and because the toggle covers the whole
+     block, a click meant for the footer opened the history instead.
+     Same two declarations as the open state, so they compose. */
+  :global(html[data-footer-in-view]) .field-log {
+    opacity: 0;
+    visibility: hidden;
+  }
+
   /* Corner-frame register, matched to .hero__corner exactly — same
      family, size and tracking. The old panel's cyan label was the one
      off-register element in the frame; it is neutral now. */
@@ -455,9 +465,17 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
       // a magic number, and set an attribute the stylesheet owns so the
       // opacity value stays in CSS.
       const hero = document.querySelector<HTMLElement>('[data-section-hero]');
+      const footer = document.querySelector<HTMLElement>('[data-site-footer]');
       const onScroll = (): void => {
         const past = window.scrollY > (hero?.clientHeight ?? window.innerHeight) * 0.6;
         document.documentElement.toggleAttribute('data-scrolled-past-hero', past);
+        // Park the log entirely once the footer is on screen: they share
+        // this corner, and the log wins the z-order.
+        const footerTop = footer?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+        document.documentElement.toggleAttribute(
+          'data-footer-in-view',
+          footerTop < window.innerHeight,
+        );
       };
       window.addEventListener('scroll', onScroll, { passive: true });
       onScroll();
@@ -471,6 +489,7 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
         document.removeEventListener('pointerdown', onDocPointerDown, { capture: true });
         window.removeEventListener('scroll', onScroll);
         document.documentElement.removeAttribute('data-scrolled-past-hero');
+        document.documentElement.removeAttribute('data-footer-in-view');
         document.documentElement.removeAttribute('data-field-log-open');
       };
     },
