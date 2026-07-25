@@ -44,11 +44,27 @@ describe('FIELD_TUNING', () => {
 
   it('keeps name-state motion well under the glyph stem width', () => {
     // A stem of the formed name is ~0.43 world units. Slow sway is scaled
-    // by uDriftAmp (0.4) in the shader; shimmer is absolute. If this ever
-    // fails, the name has started to blur rather than shimmer.
+    // by uDriftAmp (0.4) in the shader; shimmer is absolute, then scaled
+    // per shape. If this fails, a text shape has started to blur.
     const m = FIELD_TUNING.microLife;
-    const peak = m.nameSway * 0.4 + m.nameShimmer;
-    expect(peak).toBeLessThan(0.43 / 4);
+    const c = FIELD_TUNING.cycle;
+    // Worst case is the text shape with the loosest sway, scaled by its
+    // own micro-life budget.
+    const textShapes = [0, 2];
+    for (const i of textShapes) {
+      const peak = (c.shapeSway[i] ?? 0) * 0.4 + m.shimmer * (c.shapeLife[i] ?? 0);
+      expect(peak, `shape ${i}`).toBeLessThan(0.43 / 4);
+    }
+  });
+
+  it('gives every per-shape table an entry for all four shapes', () => {
+    // A short table silently reads as 0 for the missing shape, which
+    // renders that shape at zero brightness / density / bloom.
+    const c = FIELD_TUNING.cycle;
+    for (const [key, table] of Object.entries(c)) {
+      if (!Array.isArray(table)) continue;
+      expect(table.length, key).toBe(4);
+    }
   });
 
   it('keeps strays a garnish, not a cloud', () => {
