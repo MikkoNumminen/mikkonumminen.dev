@@ -20,6 +20,7 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0012](0012-same-origin-chat-proxy.md)            | Same-origin `/api/rag/*` proxy for the RAG chat via Vercel external rewrites (builds on 0009) — the chat reveal and SSE stream ride the site's own origin, immune to content blockers | Accepted                                 |
 | [0013](0013-client-side-routing-persisted-audio.md) | Client-side routing (Astro ClientRouter) + `transition:persist` audio so the sound toggle persists continuously across views (builds on 0002) — every page's client init moves to an `onRoute` lifecycle helper; the custom canvas transition is removed | Accepted                                 |
 | [0014](0014-unified-home-particle-field.md)       | One uniform-driven particle field for the entire home page — galaxy → name formation → persistent starfield on a fixed opaque canvas, field-based interactivity, pmndrs bloom, and a measured-ready loading gate that moves shader compilation behind an overlay (cures a measured 306 ms first-scroll block) | Accepted                                 |
+| [0015](0015-home-field-name-state-life.md)        | Life in the home field's name state (builds on 0014) — shader micro-life, a dedicated click impulse on the letterforms, and a delta-driven idle choreography cycling alternative formations; one tuning block, frame delta bounded at source | Accepted                                 |
 
 ## Writing a new one
 
