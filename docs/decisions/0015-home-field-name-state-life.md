@@ -46,8 +46,12 @@ so it belongs to the name and fades out with it:
 - A higher-frequency jitter on top of the existing slow sway. Amplitude alone
   only makes the name lean; frequency is what reads as shimmer. Peak combined
   motion is ~0.065 world (~3 px) against a ~0.43 world (~19 px) glyph stem —
-  roughly a 6× legibility margin, verified visually down to a 730 px viewport
-  (the smallest name before the mobile fallback takes over).
+  roughly a 6× legibility margin, and the ratio holds as the block scales.
+  Verified visually at a 730 px-wide viewport, where the resize fit has already
+  taken `uNameScale` to ~0.89 — inside the band where the name shrinks, though
+  not at its floor: the narrowest viewport that still builds the scene is
+  641 px, one above the ≤640 px cutoff where the WebGL path is never
+  constructed at all.
 - A brightness highlight travelling letter to letter on an 8 s period, phased
   from **name-space x** (`aNamePos.x`) rather than live position, so the crest
   tracks the letterforms instead of being dragged around by shimmer, cursor push
