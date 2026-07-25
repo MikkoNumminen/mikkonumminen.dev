@@ -459,6 +459,16 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // gain at this scene's motion frequencies.
   const TARGET_FRAME_MS = 1000 / 60 - 1;
 
+  // Ceiling on the frame delta anything time-based is allowed to
+  // integrate, seconds. Not every long gap between frames announces
+  // itself: a suspended machine resumes without a visibilitychange, and
+  // a page opened in a background tab reaches its first real frame with
+  // the whole background stretch behind it. Left unbounded, that single
+  // delta drives the formation past its own animation and jumps every
+  // accumulator. Far above a hitched frame, far below any of those gaps
+  // — so a genuinely slow frame still integrates truthfully.
+  const MAX_FRAME_DELTA = 0.25;
+
   // Scratch colours reused every frame — the palette lerp must not
   // allocate in the tick loop.
   const colorA = new Color();
@@ -471,7 +481,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     const now = performance.now();
     if (now - lastFrame < TARGET_FRAME_MS) return;
     const elapsed = (now - startTime) / 1000;
-    const delta = (now - lastFrame) / 1000;
+    // Two deltas on purpose. `delta` drives simulation and is clamped;
+    // `rawDelta` is what actually elapsed and goes only to the perf
+    // overlay, which exists to report frame times honestly — clamping
+    // the number the instrument reads would hide exactly the hitches it
+    // was mounted to catch.
+    const rawDelta = (now - lastFrame) / 1000;
+    const delta = Math.min(rawDelta, MAX_FRAME_DELTA);
     lastFrame = now;
 
     const u = field.uniforms;
@@ -515,11 +531,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // load-in galaxy above keeps its wall clock deliberately: it is only
     // ever on screen before the name forms, so there is no earlier
     // orientation for anyone to notice it jumping from.
-    // Clamped like the choreographer's own advance: visibilitychange
-    // covers a hidden tab, but a suspended machine resumes without one,
-    // and an accumulator that swallows that delta lands right back in
-    // the jump this replaced.
-    idleGalaxySpin += Math.min(delta, IDLE.maxAdvance) * IDLE.galaxyVariant.spinRate;
+    idleGalaxySpin += delta * IDLE.galaxyVariant.spinRate;
     u.uIdleGalaxySpin.value = idleGalaxySpin;
 
     // Per-shape presentation, blended by the same weights the shader
@@ -602,7 +614,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       }
     }
 
-    perfOverlay?.tick(delta);
+    perfOverlay?.tick(rawDelta);
   };
 
   const onVisibilityChange = (): void => {

@@ -27,6 +27,15 @@ const CYCLE: readonly IdleShape[] = ['galaxy', 'word', 'sparse'];
 /** Position of each shape in the weight vector the shader reads. */
 const SHAPE_INDEX: Record<IdleShape, number> = { galaxy: 0, word: 1, sparse: 2 };
 
+/**
+ * Ceiling on the delta a single advance may consume, seconds. Deliberately
+ * NOT in FIELD_TUNING: that block is the choreography's knob panel, and
+ * this is a safety bound on the input, not a design choice anyone should
+ * be turning. Callers are expected to clamp their own frame delta too;
+ * this is the guarantee the schedule makes on its own behalf.
+ */
+const MAX_ADVANCE = 0.25;
+
 export type IdlePhase = 'waiting' | 'entering' | 'holding' | 'crossing' | 'returning';
 
 export interface IdleAdvanceInput {
@@ -123,11 +132,7 @@ export function createIdleChoreographer(
   return {
     advance: (input): IdleState => {
       const { armed, interrupted, wordReady } = input;
-      // Clamped here rather than at the call site: no single advance may
-      // skip more than one hitched frame's worth of schedule, whoever is
-      // driving. A page opened in a background tab reaches its first
-      // real frame with a delta of the whole time it sat there.
-      const delta = Math.min(input.delta, T.maxAdvance);
+      const delta = Math.min(input.delta, MAX_ADVANCE);
 
       if (interrupted) beginReturn(1, T.firstDelay);
       // Scroll wins outright: the dissolve is already taking the field
