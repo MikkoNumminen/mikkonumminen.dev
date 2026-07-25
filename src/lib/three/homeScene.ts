@@ -29,6 +29,7 @@ import {
   PlaneGeometry,
   Scene,
   SRGBColorSpace,
+  Vector4,
 } from 'three';
 import { BloomEffect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
 import { createRenderer } from './createRenderer';
@@ -45,7 +46,7 @@ import { generateStarfieldTargets } from './field/starfieldTargets';
 import { rasterizeNameTargets } from './field/nameTargets';
 import { isInsideNameBounds } from './field/nameDistribution';
 import { rasterizeWordmarkTargets } from './field/wordmarkTargets';
-import { createIdleChoreographer } from './field/idleChoreography';
+import { createShapeCycle } from './field/shapeCycle';
 import { FIELD_TUNING } from './field/tuning';
 import { makeRadialSpriteTexture } from './textures';
 import { easeOutCubic } from './easing';
@@ -160,7 +161,46 @@ const FORM_CATCHUP = 4;
 const NAME_BRIGHTNESS = 1.12;
 
 const IMPULSE = FIELD_TUNING.impulse;
-const IDLE = FIELD_TUNING.idle;
+const CYCLE = FIELD_TUNING.cycle;
+
+/** Shape indices, mirroring SHAPES in tuning.ts and the shader's vec4. */
+const SHAPE_NAME = 0;
+const SHAPE_GALAXY = 1;
+const SHAPE_WORD = 2;
+const SHAPE_SPARSE = 3;
+
+/** Rewrite a Vector4 in place as a one-hot over the four shapes. The
+ *  tick loop must not allocate (ADR 0014). */
+function setOneHot(v: Vector4, index: number): void {
+  v.set(
+    index === SHAPE_NAME ? 1 : 0,
+    index === SHAPE_GALAXY ? 1 : 0,
+    index === SHAPE_WORD ? 1 : 0,
+    index === SHAPE_SPARSE ? 1 : 0,
+  );
+}
+
+/** Blend a per-shape presentation table across the current morph.
+ *  Smoothstep rather than linear so it tracks the shader's staggered
+ *  geometry blend instead of running ahead of it at the ends. */
+function blendShape(
+  table: readonly number[],
+  state: { from: number; to: number; cross: number },
+): number {
+  const a = table[state.from] ?? 1;
+  const b = table[state.to] ?? 1;
+  const t = state.cross;
+  return a + (b - a) * (t * t * (3 - 2 * t));
+}
+
+/** The galaxy variant sits at z = ${CYCLE.galaxyVariant.z}, but clicks are
+ *  converted to the z=0 plane — the same space the shader projects
+ *  particles into before testing them. Its on-screen radius is therefore
+ *  the world radius foreshortened by the camera, not the world radius. */
+const GALAXY_HIT_RADIUS =
+  CYCLE.galaxyRadius *
+  CYCLE.galaxyVariant.scale *
+  (CAMERA_Z / (CAMERA_Z - CYCLE.galaxyVariant.z));
 
 export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeSceneHandle> {
   const { canvas, onRipple, onFormed } = opts;
@@ -322,33 +362,22 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const clientToWorldY = (clientY: number): number =>
     -(clientY / window.innerHeight - 0.5) * 2 * halfHeightAtZ0;
 
-  // ── Idle choreography ────────────────────────────────────────────────
-  // Runs only on the formed name at the top of the page. `idleInterrupt`
-  // is raised by any sign of a present visitor and consumed once per
-  // frame; the clock itself lives inside the choreographer and advances
-  // on the tick delta, so it pauses with the rAF loop when the tab hides
-  // rather than needing its own visibility bookkeeping.
-  const idle = createIdleChoreographer();
+  // ── Shape cycle ──────────────────────────────────────────────────────
+  // Runs continuously while the lander is mounted — reshaping is what
+  // the field DOES, not what it falls back on when the visitor leaves.
+  // Nothing here reads pointer or scroll state. The clock lives inside
+  // the cycle and advances on the tick delta, so it pauses with the rAF
+  // loop when the tab hides without its own visibility bookkeeping.
+  const cycle = createShapeCycle();
   const wordReady = wordTargets !== null;
-  let idleInterrupt = false;
-  let idleGalaxySpin = 0;
-  const markInteraction = (): void => {
-    idleInterrupt = true;
-  };
+  let cycleGalaxySpin = 0;
 
   const onPointerMove = (e: PointerEvent): void => {
     targetPointerX = clientToWorldX(e.clientX);
     targetPointerY = clientToWorldY(e.clientY);
     pointerSeen = true;
-    markInteraction();
   };
   window.addEventListener('pointermove', onPointerMove, { passive: true });
-  // Wheel and keydown catch the inputs that produce no scroll and no
-  // pointer move — a wheel at the very top of the page, or tabbing
-  // through the nav. ScrollTrigger's own updates arrive via the handle
-  // setters below and mark an interaction there.
-  window.addEventListener('wheel', markInteraction, { passive: true });
-  window.addEventListener('keydown', markInteraction, { passive: true });
 
   // ── Click ripples ────────────────────────────────────────────────────
   // Document-level because the canvas is pointer-events: none behind the
@@ -378,30 +407,45 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     slot.set(clientToWorldX(clientX), clientToWorldY(clientY), elapsedNow, strength);
   };
 
-  const isNameHit = (clientX: number, clientY: number): boolean => {
+  // Does a click land on the shape currently on screen? Every region is
+  // measured on the z=0 plane, because that is where clientToWorldX/Y
+  // put the click AND where the shader projects particles before
+  // applying any interaction — a region measured in a shape's own world
+  // depth would be the wrong size on screen.
+  const isShapeHit = (clientX: number, clientY: number, shape: number): boolean => {
     if (form < IMPULSE.minForm || dissolve > IMPULSE.maxDissolve) return false;
-    return isInsideNameBounds(
-      nameTargets.bounds,
-      field.uniforms.uNameScale.value,
-      clientToWorldX(clientX),
-      clientToWorldY(clientY),
-      IMPULSE.hitPadding,
-    );
+    const x = clientToWorldX(clientX);
+    const y = clientToWorldY(clientY);
+    const scale = field.uniforms.uNameScale.value;
+
+    if (shape === SHAPE_NAME) {
+      return isInsideNameBounds(nameTargets.bounds, scale, x, y, IMPULSE.hitPadding);
+    }
+    if (shape === SHAPE_WORD) {
+      // No bounds when the wordmark raster failed — the cycle skips the
+      // shape in that case, so this is belt and braces.
+      if (!wordTargets) return false;
+      return isInsideNameBounds(wordTargets.bounds, scale, x, y, IMPULSE.hitPadding);
+    }
+    const r = shape === SHAPE_GALAXY ? GALAXY_HIT_RADIUS : CYCLE.sparseHitRadius; // sparse: see the tuning note
+    const dx = x - (shape === SHAPE_GALAXY ? CYCLE.galaxyVariant.x : 0);
+    const dy = y - (shape === SHAPE_GALAXY ? CYCLE.galaxyVariant.y : 0);
+    return dx * dx + dy * dy <= (r + IMPULSE.hitPadding) * (r + IMPULSE.hitPadding);
   };
 
   const onPointerDown = (e: PointerEvent): void => {
-    // Before the exclusion check: a click on real UI is still a visitor
-    // who is plainly present, even though it produces no field effect.
-    markInteraction();
     const target = e.target as Element | null;
     if (target?.closest(RIPPLE_EXCLUDE_SELECTOR)) return;
-    if (isNameHit(e.clientX, e.clientY)) {
-      // Deliberately no onRipple: the scatter IS the feedback here, and
-      // a commit popup rising through the letterforms would fight the
-      // legibility the name state exists to protect. Background clicks
-      // keep the popup easter egg untouched.
+    const shape = cycle.current();
+    if (isShapeHit(e.clientX, e.clientY, shape)) {
       launchImpulse(e.clientX, e.clientY, 1);
-      return;
+      // Only the typographic shapes suppress the commit popup, and only
+      // for the reason ADR 0015 gave: a mono label rising through
+      // letterforms fights the legibility they exist to have. The galaxy
+      // and the sparse cloud have no legibility to protect, so they keep
+      // the easter egg — otherwise it would vanish for half of every
+      // cycle, which is not a trade anyone asked for.
+      if (shape === SHAPE_NAME || shape === SHAPE_WORD) return;
     }
     const strength = target?.closest(TEXT_TARGET_SELECTOR) ? 1.25 : 1;
     launchRipple(e.clientX, e.clientY, strength);
@@ -510,45 +554,36 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     }
     u.uForm.value = form;
 
-    // Idle choreography. Armed only on a fully formed name at the very
-    // top: any scrub hands the morph back to the dissolve, and the
-    // choreographer collapses its own contribution fast when that
-    // happens so the two never own the field at once.
-    const idleState = idle.advance({
-      delta,
-      armed: form >= 1 && dissolve <= IDLE.maxDissolve,
-      interrupted: idleInterrupt,
-      wordReady,
-    });
-    idleInterrupt = false;
-    u.uIdle.value = idleState.mix;
-    const [wGalaxy, wWord, wSparse] = idleState.weights;
-    u.uIdleWeights.value.set(wGalaxy, wWord, wSparse);
-    // Accumulated rather than derived from `elapsed`, so it pauses with
-    // the loop. This variant is the one formation a visitor can see
-    // both before hiding a tab and after returning to it, so a spin
-    // derived from wall-clock time would resume visibly rotated. The
-    // load-in galaxy above keeps its wall clock deliberately: it is only
-    // ever on screen before the name forms, so there is no earlier
-    // orientation for anyone to notice it jumping from.
-    idleGalaxySpin += delta * IDLE.galaxyVariant.spinRate;
-    u.uIdleGalaxySpin.value = idleGalaxySpin;
+    // Shape cycle. `uShape` is derived unconditionally from `form`
+    // rather than hooked to the formation-complete branch: snapFormed()
+    // sets form = 1 directly on a back/forward restore and never enters
+    // that branch, which would leave the cycle switched off for the
+    // whole visit while the reducer kept advancing underneath.
+    u.uShape.value = form >= 1 ? 1 : 0;
+    // Clock held until the load-in hands the field over. Otherwise the
+    // formation's ~2.7 s runs down the name's very first hold, and the
+    // name a first-time visitor just watched assemble morphs away
+    // almost immediately.
+    const cycleState = cycle.advance({ delta: form >= 1 ? delta : 0, wordReady });
+    setOneHot(u.uCrossFrom.value, cycleState.from);
+    setOneHot(u.uCrossTo.value, cycleState.to);
+    u.uCross.value = cycleState.cross;
 
-    // Per-shape presentation, blended by the same weights the shader
-    // uses for geometry — so the sparse field actually reads sparse
-    // instead of being the same 24k particles in a different arrangement.
-    const shapeBrightness =
-      wGalaxy * IDLE.shapeBrightness[0] +
-      wWord * IDLE.shapeBrightness[1] +
-      wSparse * IDLE.shapeBrightness[2];
-    const shapeDensity =
-      wGalaxy * IDLE.shapeDensity[0] +
-      wWord * IDLE.shapeDensity[1] +
-      wSparse * IDLE.shapeDensity[2];
-    const shapeBloom =
-      wGalaxy * IDLE.shapeBloom[0] +
-      wWord * IDLE.shapeBloom[1] +
-      wSparse * IDLE.shapeBloom[2];
+    // Accumulated rather than derived from `elapsed`, so it pauses with
+    // the loop. This variant is the one shape a visitor can see both
+    // before hiding a tab and after returning to it, so a wall-clock
+    // spin would resume visibly rotated. The load-in galaxy keeps its
+    // wall clock deliberately: it is only ever on screen before the name
+    // forms, so there is no earlier orientation to jump from.
+    cycleGalaxySpin += delta * CYCLE.galaxyVariant.spinRate;
+    u.uCycleGalaxySpin.value = cycleGalaxySpin;
+
+    // Per-shape presentation, blended by the same endpoints the shader
+    // uses for geometry. Unstaggered on purpose: brightness, density and
+    // bloom are whole-frame properties, not per-particle ones.
+    const shapeBrightness = blendShape(CYCLE.shapeBrightness, cycleState);
+    const shapeDensity = blendShape(CYCLE.shapeDensity, cycleState);
+    const shapeBloom = blendShape(CYCLE.shapeBloom, cycleState);
 
     // Smooth pointer — the lerp keeps the avoidance feeling weighty
     // rather than glued to the cursor; strength eases in after the first
@@ -574,26 +609,32 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     u.uDriftSpeed.value = moodDrift;
     const formedBrightness =
       GALAXY_BRIGHTNESS + (NAME_BRIGHTNESS - GALAXY_BRIGHTNESS) * form;
-    const idleBrightness =
-      formedBrightness + (shapeBrightness - formedBrightness) * idleState.mix;
+    // `form` is this value's ONLY route in. Collapsing the wrapper
+    // would render the load-in galaxy with the settled shape's exposure.
+    const landerBrightness =
+      formedBrightness + (shapeBrightness - formedBrightness) * form;
     u.uBrightness.value =
-      idleBrightness + (STARFIELD_BRIGHTNESS - idleBrightness) * dissolve;
+      landerBrightness + (STARFIELD_BRIGHTNESS - landerBrightness) * dissolve;
 
     // Starfield reads sparse: only ~40% of the field stays visible once
     // fully dissolved (density thresholds against the per-particle rank),
     // nudged by the active section's mood.
-    const idleDensity = 1 + (shapeDensity - 1) * idleState.mix;
+    // Faded by dissolve as well as form: uDensity is the one
+    // presentation value the dissolve mix does not already guard, so a
+    // sparse shape left holding at the top would otherwise keep thinning
+    // the starfield behind the scrolled page.
+    const landerDensity = 1 + (shapeDensity - 1) * form * (1 - dissolve);
     u.uDensity.value = Math.max(
       0,
-      Math.min(1, (1 - dissolve * 0.6) * moodDensity * idleDensity),
+      Math.min(1, (1 - dissolve * 0.6) * moodDensity * landerDensity),
     );
 
     glowMaterial.opacity = 1 - dissolve * 0.9;
 
     if (bloom) {
       const formedBloom = 1.1 + (0.35 - 1.1) * form;
-      const idleBloom = formedBloom + (shapeBloom - formedBloom) * idleState.mix;
-      bloom.intensity = idleBloom * (1 - dissolve) + 0.1 * dissolve;
+      const landerBloom = formedBloom + (shapeBloom - formedBloom) * form;
+      bloom.intensity = landerBloom * (1 - dissolve) + 0.1 * dissolve;
     }
 
     if (composer) {
@@ -630,10 +671,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       // `lastFrame` from scene construction, and would arrive with a
       // delta of the entire background stretch: enough to snap the name
       // into existence instead of forming it, and to hand the composer a
-      // nonsense frame time. That arrival is also exactly the one that
-      // must meet the name rather than a transition already in flight.
+      // nonsense frame time.
       lastFrame = performance.now();
-      idle.reset();
       if (raf === 0) tick();
     }
   };
@@ -655,17 +694,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   tick();
 
   return {
-    // Both setters mark an interaction: ScrollTrigger only calls them
-    // when scroll progress actually changed, so they are the scroll
-    // signal — no extra listener, and scroll cancels idle on the same
-    // frame it starts moving the field.
     setScrollProgress: (p: number): void => {
       scrollProgress = Math.max(0, Math.min(1, p));
-      markInteraction();
     },
     setDissolve: (p: number): void => {
       dissolve = Math.max(0, Math.min(1, p));
-      markInteraction();
     },
     ripple: (clientX: number, clientY: number, strength = 1): void => {
       launchRipple(clientX, clientY, strength);
@@ -692,8 +725,6 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       raf = 0;
       resize.dispose();
       window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('wheel', markInteraction);
-      window.removeEventListener('keydown', markInteraction);
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       perfOverlay?.dispose();

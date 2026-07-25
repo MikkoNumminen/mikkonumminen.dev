@@ -19,9 +19,10 @@
  * per-particle data after construction. This is the invariant that keeps
  * scroll handling off the critical path — preserve it.
  *
- * Numeric tuning for the name state's micro-life lives in `tuning.ts`
- * and is interpolated into the GLSL source below as compile-time
- * constants, so the knobs sit in one block outside the shader.
+ * The field cycles continuously through four shapes — name, galaxy,
+ * wordmark, sparse cloud — while the lander is mounted; `shapeCycle.ts`
+ * owns the schedule and `tuning.ts` owns every number, interpolated into
+ * the GLSL below as compile-time constants.
  */
 import {
   AdditiveBlending,
@@ -86,15 +87,23 @@ export interface ParticleFieldUniforms {
    *  re-strike during a return adds to the decaying first instead of
    *  restarting it from wherever the particle currently sits. */
   uImpulses: { value: [Vector4, Vector4] };
-  /** Idle-choreography blend: 0 = the name (or whatever the load-in and
-   *  scroll say), 1 = fully in the current idle formation. */
-  uIdle: { value: number };
-  /** Weights over the three idle formations [galaxy, word, sparse]. */
-  uIdleWeights: { value: Vector3 };
-  /** Idle galaxy variant: xyz = world anchor, w = scale. */
-  uIdleGalaxy: { value: Vector4 };
-  uIdleGalaxyTilt: { value: Matrix3 };
-  uIdleGalaxySpin: { value: number };
+  /** 0 during the load-in, 1 once the name has formed and the shape
+   *  cycle owns the field. */
+  uShape: { value: number };
+  /** One-hot weights over [name, galaxy, wordmark, sparse] for the shape
+   *  the current morph starts from and the one it ends at. The shader
+   *  blends between them with a PER-PARTICLE staggered progress, which
+   *  is why the two endpoints are uploaded rather than one blended
+   *  vector — blending on the CPU would flatten every morph into a rigid
+   *  unit lerp. */
+  uCrossFrom: { value: Vector4 };
+  uCrossTo: { value: Vector4 };
+  /** Raw morph progress 0→1, unstaggered. */
+  uCross: { value: number };
+  /** Cycle galaxy variant: xyz = world anchor, w = scale. */
+  uCycleGalaxy: { value: Vector4 };
+  uCycleGalaxyTilt: { value: Matrix3 };
+  uCycleGalaxySpin: { value: number };
   uCameraZ: { value: number };
   uGalaxySpin: { value: number };
   uGalaxyCenter: { value: Vector3 };
@@ -124,7 +133,7 @@ const GALAXY_TILT_EULER = new Euler(-Math.PI * 0.18, 0, Math.PI * 0.12);
 
 const M = FIELD_TUNING.microLife;
 const I = FIELD_TUNING.impulse;
-const D = FIELD_TUNING.idle;
+const C = FIELD_TUNING.cycle;
 
 const VERTEX_SHADER = /* glsl */ `
 attribute vec3 aNamePos;
@@ -154,11 +163,13 @@ uniform vec3 uPointer;
 uniform float uPointerStrength;
 uniform vec4 uRipples[4];
 uniform vec4 uImpulses[2];
-uniform float uIdle;
-uniform vec3 uIdleWeights;
-uniform vec4 uIdleGalaxy;
-uniform mat3 uIdleGalaxyTilt;
-uniform float uIdleGalaxySpin;
+uniform float uShape;
+uniform vec4 uCrossFrom;
+uniform vec4 uCrossTo;
+uniform float uCross;
+uniform vec4 uCycleGalaxy;
+uniform mat3 uCycleGalaxyTilt;
+uniform float uCycleGalaxySpin;
 uniform float uCameraZ;
 
 varying vec3 vColor;
@@ -180,12 +191,9 @@ const float RIPPLE_LIFT = 0.7;
 // Micro-life constants, injected from FIELD_TUNING (field/tuning.ts) so
 // every knob lives in one block outside the shader. Compile-time
 // literals — the driver folds them; none of this costs a uniform read.
-const float NAME_SWAY = ${glslFloat(M.nameSway)};
-const float NAME_SHIMMER = ${glslFloat(M.nameShimmer)};
-const float NAME_SHIMMER_SPEED = ${glslFloat(M.nameShimmerSpeed)};
-const float NAME_TWINKLE = ${glslFloat(M.nameTwinkle)};
+const float SHIMMER = ${glslFloat(M.shimmer)};
+const float SHIMMER_SPEED = ${glslFloat(M.shimmerSpeed)};
 const float WAVE_PERIOD = ${glslFloat(M.wavePeriod)};
-const float WAVE_FREQUENCY = ${glslFloat(M.waveFrequency)};
 const float WAVE_SHARPNESS = ${glslFloat(M.waveSharpness)};
 const float WAVE_GAIN = ${glslFloat(M.waveGain)};
 const float STRAY_FRACTION = ${glslFloat(M.strayFraction)};
@@ -198,9 +206,20 @@ const float IMPULSE_ATTACK = ${glslFloat(I.attack)};
 const float IMPULSE_RETURN_MIN = ${glslFloat(I.returnMin)};
 const float IMPULSE_RETURN_MAX = ${glslFloat(I.returnMax)};
 const float IMPULSE_LIFT = ${glslFloat(I.lift)};
-const float SPARSE_RADIUS = ${glslFloat(D.sparseRadius)};
-const float SPARSE_ASPECT = ${glslFloat(D.sparseAspect)};
-const float SPARSE_DEPTH = ${glslFloat(D.sparseDepth)};
+const float SPARSE_RADIUS = ${glslFloat(C.sparseRadius)};
+const float SPARSE_ASPECT = ${glslFloat(C.sparseAspect)};
+const float SPARSE_DEPTH = ${glslFloat(C.sparseDepth)};
+
+// Per-shape tables, ordered [name, galaxy, wordmark, sparse] to match
+// the weight vec4. Base micro-life amplitudes are sized against the
+// NAME's stroke; SHAPE_LIFE rescales them per shape, because the
+// wordmark's stroke is roughly a third as thick (unscaled shimmer
+// wobbles the mark) while the two non-typographic shapes have no
+// legibility budget to spend at all.
+const vec4 SHAPE_LIFE = vec4(${C.shapeLife.map(glslFloat).join(', ')});
+const vec4 SHAPE_SWAY = vec4(${C.shapeSway.map(glslFloat).join(', ')});
+const vec4 SHAPE_TWINKLE = vec4(${C.shapeTwinkle.map(glslFloat).join(', ')});
+const vec4 SHAPE_WAVE_FREQ = vec4(${C.shapeWaveFreq.map(glslFloat).join(', ')});
 
 const float PI = 3.14159265;
 const float TAU = 6.28318531;
@@ -223,11 +242,11 @@ float hash11(float p) {
   return fract(p);
 }
 
-// Idle formation (c): a calm centred cloud, derived from hashed seeds
+// The sparse shape: a calm centred cloud, derived from hashed seeds
 // rather than stored in an attribute — 24k particles' worth of free
 // positions. Hashed rather than read raw for the reason above: the
 // density rank is one of the seed components, and using it as a
-// coordinate would make the density drop this formation applies carve a
+// coordinate would make the density drop this shape applies carve a
 // spatially coherent slab out of the cloud instead of thinning it.
 vec3 sparseTarget(vec4 seed) {
   float r = pow(hash11(seed.x * 12.9898 + 78.233), 0.5) * SPARSE_RADIUS;
@@ -262,19 +281,34 @@ void main() {
   // The whole block sits BEFORE the dissolve mix on purpose: scroll wins
   // by construction, because at uDissolve 1 the starfield is the answer
   // no matter what idle is doing.
-  float idleMix = staggered(uIdle, sd);
-  if (uIdle > 0.0) {
-    float ic = cos(uIdleGalaxySpin);
-    float is = sin(uIdleGalaxySpin);
+  // Weights over [name, galaxy, wordmark, sparse]. The crossfade is
+  // staggered PER PARTICLE, not blended on the CPU: that stagger is
+  // what makes every morph sweep through the field instead of moving
+  // as a rigid unit, and it is the field's dominant motion signature.
+  vec4 w = mix(uCrossFrom, uCrossTo, staggered(uCross, sd));
+
+  if (uShape > 0.0) {
+    float ic = cos(uCycleGalaxySpin);
+    float is = sin(uCycleGalaxySpin);
     vec3 ig = position;
     ig.xy = mat2(ic, -is, is, ic) * ig.xy;
-    ig = uIdleGalaxyTilt * ig * uIdleGalaxy.w + uIdleGalaxy.xyz;
+    ig = uCycleGalaxyTilt * ig * uCycleGalaxy.w + uCycleGalaxy.xyz;
 
-    vec3 idle = uIdleWeights.x * ig
-      + uIdleWeights.y * (aWordPos * uNameScale)
-      + uIdleWeights.z * sparseTarget(aSeed);
-    pos = mix(pos, idle, idleMix);
+    vec3 shaped = w.x * (aNamePos * uNameScale)
+      + w.y * ig
+      + w.z * (aWordPos * uNameScale)
+      + w.w * sparseTarget(aSeed);
+    // uShape is 0 during the load-in and 1 once the name has formed.
+    // The snap is continuous because at that instant the cycle holds
+    // the name, so both operands of this mix are the same point.
+    pos = mix(pos, shaped, staggered(uShape, sd));
   }
+
+  // Where the shape WANTS this particle, before any drift or
+  // interaction moves it. The brightness wave is phased off this so its
+  // crest tracks the shape rather than being dragged around by shimmer,
+  // cursor push and ripples.
+  float shapeX = pos.x;
 
   pos = mix(pos, aStarPos, dissolve);
 
@@ -286,29 +320,34 @@ void main() {
     cos(t * 0.7 + sd * 9.0 + pos.x * 0.30),
     sin(t * 0.5 + aSeed.w * 6.2831)
   );
-  float amp = mix(mix(1.0, NAME_SWAY, form), 0.55, dissolve) * uDriftAmp;
+  float shapeSway = dot(w, SHAPE_SWAY);
+  float amp = mix(mix(1.0, shapeSway, form), 0.55, dissolve) * uDriftAmp;
   pos += wob * amp;
 
   // ── Micro-life ───────────────────────────────────────────────────────
   // The formed name is the one state with no motion of its own, and a
   // frozen field reads as a finished PNG. Everything below is masked to
-  // glyph particles in the name state, and sized well under the ~0.43
-  // world glyph stem so the letterforms never soften.
+  // whichever shape is on screen, scaled per shape and sized well under
+  // the name's ~0.43 world glyph stem so letterforms never soften.
   float nameState = form * (1.0 - dissolve);
-  // Micro-life belongs to the name and nothing else — it fades out as
-  // the field leaves for an idle formation and returns with it.
-  float glyph = nameState * (1.0 - aNameDim) * (1.0 - idleMix);
+  // Only the two typographic shapes carry background dust; the galaxy
+  // and the sparse cloud have no subject to protect, and their zero
+  // weight drops the dimming entirely.
+  float shapeDust = w.x * aNameDim + w.z * aWordDim;
+  // Micro-life now belongs to whatever shape is on screen, scaled by
+  // that shape's legibility budget.
+  float live = nameState * (1.0 - shapeDust) * dot(w, SHAPE_LIFE);
 
   // Faster than the sway above and out of phase per particle: amplitude
   // alone just makes the name lean, frequency is what reads as shimmer.
   vec3 shimmer = vec3(
-    sin(uTime * NAME_SHIMMER_SPEED + sd * 40.0),
-    cos(uTime * NAME_SHIMMER_SPEED * 1.13 + aSeed.w * 37.0),
-    sin(uTime * NAME_SHIMMER_SPEED * 0.87 + aSeed.y * 29.0)
+    sin(uTime * SHIMMER_SPEED + sd * 40.0),
+    cos(uTime * SHIMMER_SPEED * 1.13 + aSeed.w * 37.0),
+    sin(uTime * SHIMMER_SPEED * 0.87 + aSeed.y * 29.0)
   );
-  pos += shimmer * (NAME_SHIMMER * glyph);
+  pos += shimmer * (SHIMMER * live);
 
-  // Strays: a hashed slice of the glyph particles wanders off the
+  // Strays: a hashed slice of the live particles wanders off the
   // letterform and eases back on its own phase. sin^2 has zero slope at
   // both ends, so an excursion departs and lands without a visible kink.
   float strayOn = step(1.0 - STRAY_FRACTION, hash11(aSeed.x * 91.7 + aSeed.w * 13.3));
@@ -318,7 +357,7 @@ void main() {
   float strayCos = hash11(aSeed.x * 3.71 + 5.3) * 2.0 - 1.0;
   float straySin = sqrt(max(0.0, 1.0 - strayCos * strayCos));
   pos += vec3(straySin * cos(strayAz), straySin * sin(strayAz), strayCos) *
-    (strayEnv * strayEnv * STRAY_DISTANCE * glyph * strayOn);
+    (strayEnv * strayEnv * STRAY_DISTANCE * live * strayOn);
 
   // Scroll drift applies BEFORE the interaction block: the pointer and
   // ripple origins are converted from screen coordinates, so they refer
@@ -354,7 +393,7 @@ void main() {
   }
 
   // Name-click impulse — a local strike, not a travelling ring: an
-  // immediate radial kick that eases back to the glyph target over a
+  // immediate radial kick that eases back to the shape target over a
   // per-particle window, so the name reassembles organically instead of
   // snapping back as a unit. Two slots, so a re-strike mid-return adds
   // to the first rather than restarting it from a displaced position.
@@ -366,11 +405,7 @@ void main() {
     float age = uTime - im.z;
     float k = clamp(age / life, 0.0, 1.0);
     float settle = (1.0 - k) * (1.0 - k);
-    // Masked by idleMix as well as the name state: a strike belongs to
-    // the name, and a decaying one must not follow the field out into an
-    // idle formation if the idle delay is ever tuned below its lifetime.
-    float env =
-      smoothstep(0.0, IMPULSE_ATTACK, age) * settle * im.w * nameState * (1.0 - idleMix);
+    float env = smoothstep(0.0, IMPULSE_ATTACK, age) * settle * im.w * nameState;
     vec2 d3 = eq - im.xy;
     float id = length(d3);
     float fall = smoothstep(IMPULSE_RADIUS, 0.0, id);
@@ -389,25 +424,27 @@ void main() {
   // The wordmark formation hands that role to its own dust flag; the
   // galaxy and sparse formations have no subject to protect, and their
   // zero weight drops the dimming entirely.
-  float dust = mix(aNameDim, aWordDim * uIdleWeights.y, idleMix) * nameState;
+  float dust = shapeDust * nameState;
   float stateSize = mix(mix(1.0, 0.75, form), 0.7, dissolve) * (1.0 - dust * 0.35);
   gl_PointSize = uSize * aSeed.y * stateSize * vis * uPixelRatio * (12.0 / -mv.z);
 
   // Twinkle — loud in the galaxy, restrained in the name state so the
   // letterforms hold steady, gentle in the starfield.
-  float twAmp = mix(mix(0.30, NAME_TWINKLE, form), 0.22, dissolve);
+  float twAmp = mix(mix(0.30, dot(w, SHAPE_TWINKLE), form), 0.22, dissolve);
   float tw = 1.0 - twAmp + twAmp * sin(uTime * (1.2 + aSeed.y) + sd * 6.2831);
 
   // Brightness wave: a highlight travelling letter to letter across the
   // formed name. Phase comes from NAME-space x, not the live position,
   // so the crest tracks the letterforms rather than being dragged around
   // by shimmer, cursor push and ripples.
-  float wavePhase = uTime * (TAU / WAVE_PERIOD) - aNamePos.x * WAVE_FREQUENCY;
+  // Frequency is per-shape: one constant sized for the name's ~10 world
+  // span paints repeating stripes across the far wider sparse cloud.
+  float wavePhase = uTime * (TAU / WAVE_PERIOD) - shapeX * dot(w, SHAPE_WAVE_FREQ);
   float wave = pow(0.5 + 0.5 * cos(wavePhase), WAVE_SHARPNESS);
 
   vColor = mix(uColorA, uColorB, aSeed.w);
   vAlpha =
-    uBrightness * vis * tw * (1.0 - dust * 0.78) * (1.0 + WAVE_GAIN * wave * glyph);
+    uBrightness * vis * tw * (1.0 - dust * 0.78) * (1.0 + WAVE_GAIN * wave * nameState);
 }
 `;
 
@@ -463,9 +500,9 @@ export function buildParticleField(opts: ParticleFieldOptions): ParticleFieldHan
   // The idle variant's own lean — the same disk turned toward the
   // viewer, which is what makes it read as a variation rather than a
   // rewind of the load-in.
-  const idleTilt = new Matrix3().setFromMatrix4(
+  const cycleTilt = new Matrix3().setFromMatrix4(
     new Matrix4().makeRotationFromEuler(
-      new Euler(D.galaxyVariant.tiltX, 0, D.galaxyVariant.tiltZ),
+      new Euler(C.galaxyVariant.tiltX, 0, C.galaxyVariant.tiltZ),
     ),
   );
 
@@ -486,18 +523,20 @@ export function buildParticleField(opts: ParticleFieldOptions): ParticleFieldHan
     uImpulses: {
       value: [new Vector4(0, 0, -1e4, 0), new Vector4(0, 0, -1e4, 0)],
     },
-    uIdle: { value: 0 },
-    uIdleWeights: { value: new Vector3(1, 0, 0) },
-    uIdleGalaxy: {
+    uShape: { value: 0 },
+    uCrossFrom: { value: new Vector4(1, 0, 0, 0) },
+    uCrossTo: { value: new Vector4(1, 0, 0, 0) },
+    uCross: { value: 0 },
+    uCycleGalaxy: {
       value: new Vector4(
-        D.galaxyVariant.x,
-        D.galaxyVariant.y,
-        D.galaxyVariant.z,
-        D.galaxyVariant.scale,
+        C.galaxyVariant.x,
+        C.galaxyVariant.y,
+        C.galaxyVariant.z,
+        C.galaxyVariant.scale,
       ),
     },
-    uIdleGalaxyTilt: { value: idleTilt },
-    uIdleGalaxySpin: { value: 0 },
+    uCycleGalaxyTilt: { value: cycleTilt },
+    uCycleGalaxySpin: { value: 0 },
     uCameraZ: { value: 26 },
     uGalaxySpin: { value: 0 },
     uGalaxyCenter: { value: new Vector3(...opts.galaxyCenter) },
