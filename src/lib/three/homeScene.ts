@@ -141,8 +141,8 @@ const GALAXY_BRIGHTNESS = 1.0;
 const STARFIELD_BRIGHTNESS = 0.5;
 
 // Elements whose clicks belong to real UI — never converted into field
-// ripples. `[data-no-ripple]` opts out anything else (e.g. the data-feed
-// widget, which has its own click response).
+// ripples. `[data-no-ripple]` opts out anything else (e.g. the field log,
+// which expands on click instead).
 const RIPPLE_EXCLUDE_SELECTOR =
   'a, button, input, textarea, select, summary, [data-no-ripple]';
 

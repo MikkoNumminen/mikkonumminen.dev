@@ -53,8 +53,10 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     type="button"
     data-field-log-toggle
     aria-expanded="false"
-    aria-controls="field-log-history">{LOG_COPY.openHistory}</button
+    aria-controls="field-log-history"
   >
+    <span class="sr-only">{LOG_COPY.openHistory}</span>
+  </button>
 </aside>
 
 <section
@@ -95,9 +97,12 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     opacity: 0.6;
   }
 
+  /* visibility, not just opacity: an opacity-0 button is still in the tab
+     order, so Tab out of the open history landed on a control nobody can
+     see. */
   :global(html[data-field-log-open]) .field-log {
     opacity: 0;
-    pointer-events: none;
+    visibility: hidden;
   }
 
   /* Corner-frame register, matched to .hero__corner exactly — same
@@ -183,7 +188,6 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     border: 0;
     padding: 0;
     background: none;
-    color: transparent;
     font: inherit;
     cursor: pointer;
   }
@@ -286,8 +290,8 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
 
   /** Lines kept in the resting view. The rest live in history. */
   const RESTING_LINES = 3;
-  /** How often the queue is drained. The interval floor lives in the log
-   *  itself; this only decides how promptly a released line appears. */
+  /** Retry delay while the queue still has work the interval floor has not
+   *  released yet. The floor itself lives in the log. */
   const PUMP_MS = 100;
   /** Distance from the bottom of the history within which auto-follow
    *  stays on. Anything larger means the reader has scrolled up on
@@ -325,7 +329,10 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
       }
 
       const log = createFieldLog();
-      const unsubscribe = onFieldLog((event) => log.push(event));
+      const unsubscribe = onFieldLog((event) => {
+        log.push(event);
+        schedule();
+      });
       let open = false;
       /** Off only while the reader has deliberately scrolled up. */
       let follow = true;
@@ -347,10 +354,19 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
         if (open && follow) historyList.scrollTop = historyList.scrollHeight;
       };
 
-      const pump = window.setInterval(() => {
+      // Drained on demand rather than by a permanent 10Hz timer: the log
+      // is silent most of the time, and a timer that only exists while
+      // something is queued costs nothing when nothing is happening.
+      let drainTimer = 0;
+      const drain = (): void => {
+        drainTimer = 0;
         const line = log.pump(performance.now());
         if (line) render(line.text);
-      }, PUMP_MS);
+        if (log.pendingCount() > 0) schedule();
+      };
+      const schedule = (): void => {
+        if (drainTimer === 0) drainTimer = window.setTimeout(drain, PUMP_MS);
+      };
 
       const onHistoryScroll = (): void => {
         const distance =
@@ -416,7 +432,7 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
 
       return () => {
         unsubscribe();
-        window.clearInterval(pump);
+        window.clearTimeout(drainTimer);
         historyList.removeEventListener('scroll', onHistoryScroll);
         toggle.removeEventListener('click', onToggleClick);
         document.removeEventListener('keydown', onKeyDown);
