@@ -60,8 +60,32 @@ function scrollFooterTo(el: HTMLElement, top: number): void {
   setRect(el, top);
 }
 
+/** Elements handed to ResizeObserver.observe, and a way to fire it. */
+let observed: Element[] = [];
+let resizeObserverCallbacks: ResizeObserverCallback[] = [];
+function fireResizeObserver(): void {
+  for (const cb of resizeObserverCallbacks) {
+    cb([], {} as ResizeObserver);
+  }
+}
+
 beforeEach(() => {
   frames = [];
+  observed = [];
+  resizeObserverCallbacks = [];
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(cb: ResizeObserverCallback) {
+        resizeObserverCallbacks.push(cb);
+      }
+      observe(el: Element) {
+        observed.push(el);
+      }
+      disconnect() {}
+      unobserve() {}
+    },
+  );
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
     frames.push(cb);
     return frames.length;
@@ -181,6 +205,30 @@ describe('trackFooterOverlap', () => {
     setRect(el, VIEWPORT - 80);
     window.dispatchEvent(new Event('resize'));
     expect(h.lift()).toBe(80);
+  });
+
+  it('re-measures when the document grows without a resize event', () => {
+    // The real failure mode: a late image or a swapped webfont pushes the
+    // footer down the document while the viewport never changes size, so
+    // `resize` never fires and a cached position aims at where the footer
+    // used to be.
+    const el = footer();
+    const h = track({ target: el });
+    expect(h.lift()).toBe(0);
+
+    setRect(el, VIEWPORT - 90);
+    expect(observed).toContain(document.body);
+    fireResizeObserver();
+    expect(h.lift()).toBe(90);
+  });
+
+  it('survives an environment without ResizeObserver', () => {
+    vi.stubGlobal('ResizeObserver', undefined);
+    const el = footer();
+    scrollFooterTo(el, VIEWPORT - 70);
+    const h = track({ target: el });
+    expect(h.lift()).toBe(70);
+    expect(() => h.dispose()).not.toThrow();
   });
 
   it('clears the property on dispose', () => {

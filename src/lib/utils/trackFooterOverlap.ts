@@ -17,8 +17,14 @@
  * present and interactive; the footer simply slides underneath.
  *
  * No layout read on the scroll path. The footer's position in DOCUMENT
- * space is measured once at mount and on resize; per scroll this is
- * arithmetic on `scrollY`, and the write is coalesced onto a rAF.
+ * space is measured on mount, on resize, and whenever the document's own
+ * height changes; per scroll this is arithmetic on `scrollY`, and the
+ * write is coalesced onto a rAF.
+ *
+ * That last trigger is not redundant. A late image, a swapped webfont or
+ * an expanding section moves the footer down the document without the
+ * viewport changing size, so `resize` never fires and a cached position
+ * would send the chrome to where the footer used to be.
  */
 
 const PROPERTY = '--footer-lift';
@@ -83,11 +89,20 @@ export function trackFooterOverlap(opts: FooterOverlapOptions): FooterOverlapHan
   window.addEventListener('scroll', schedule, { passive: true });
   window.addEventListener('resize', onResize, { passive: true });
 
+  // Watching the body catches every way the document grows or shrinks
+  // after mount. Safe to write a property from inside the callback: the
+  // only thing that reads it is a `transform` on fixed elements, which
+  // cannot feed back into layout and re-trigger this.
+  const growth =
+    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onResize);
+  growth?.observe(document.body);
+
   return {
     lift: () => lift,
     remeasure: onResize,
     dispose: (): void => {
       if (frame !== 0) cancelAnimationFrame(frame);
+      growth?.disconnect();
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', onResize);
       // Cleared on teardown: under client-side routing a stale lift
