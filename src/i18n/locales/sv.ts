@@ -475,7 +475,7 @@ export const sv: Translations = {
     cmdDownloadOptionTranslations:
       'juli 2026 · översättningsgranskningen — en lokal finsk språkmodell läser om alla sidans 396 finska strängar mot den engelska källan; bara 2 av dess 276 föreslagna ändringar höll',
     cmdDownloadOptionDelegation:
-      'juli 2026 · betalar sig de billiga agenterna — sju instrumenterade delegeringar från en session; 3 av 7 fångade en defekt jag annars hade levererat, 1 var ett falskt fynd, och ingen besparing hävdas eftersom kontrafaktumet inte går att mäta',
+      'juli 2026 · betalar sig de billiga agenterna — sju instrumenterade delegeringar från en session; 3 av 7 fångade något jag hade missat, 1 var ett falskt fynd, och ingen besparing hävdas eftersom kontrafaktumet inte går att mäta',
     cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
       'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` eller `download --finnish`.',

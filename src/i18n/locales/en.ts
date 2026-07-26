@@ -467,7 +467,7 @@ export const en: Translations = {
     cmdDownloadOptionTranslations:
       "jul 2026 · the translation audit — a local Finnish model re-reads all 396 of the site's Finnish strings against their English source; only 2 of its 276 proposed rewrites held up",
     cmdDownloadOptionDelegation:
-      'jul 2026 · do the cheap agents pay for themselves — seven instrumented delegations from one session; 3 of 7 caught a defect I would have shipped, 1 was a false finding, and no saving is claimed because the counterfactual is not measurable',
+      'jul 2026 · do the cheap agents pay for themselves — seven instrumented delegations from one session; 3 of 7 caught something I had missed, 1 was a false finding, and no saving is claimed because the counterfactual is not measurable',
     cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
     cmdDownloadTryHint:
       'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration`, or `download --finnish`.',
