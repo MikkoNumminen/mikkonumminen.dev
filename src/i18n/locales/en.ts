@@ -446,7 +446,7 @@ export const en: Translations = {
     cmdDownloadOptionSkills:
       'jun 2026 · latest + broadest — 16 skills, cold-vs-skill A/B across 3 models; the current snapshot',
     cmdDownloadOptionResearch:
-      'the research — 10 pdfs: the skills suite + the rag finnish study + the poro findings + the translation audit (not a download)',
+      'the research — 11 pdfs: the skills suite + the rag finnish study + the poro findings + the translation audit + the agent delegation measurement (not a download)',
     cmdDownloadResearchIntro: 'the catalog + the studies, oldest → newest:',
     cmdDownloadOptionCatalog:
       'every skill across all 4 repos — the inventory, with measured (not guessed) costs',

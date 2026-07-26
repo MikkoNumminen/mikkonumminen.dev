@@ -453,7 +453,7 @@ export const fi: Translations = {
     cmdDownloadOptionSkills:
       'kesäkuu 2026 · uusin + laajin — 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
     cmdDownloadOptionResearch:
-      'tutkimus — 10 pdf:ää: skills-sarja + rag suomi -tutkimus + poro-löydökset + käännösauditointi (ei lataus)',
+      'tutkimus — 11 pdf:ää: skills-sarja + rag suomi -tutkimus + poro-löydökset + käännösauditointi + agenttidelegoinnin mittaus (ei lataus)',
     cmdDownloadResearchIntro: 'katalogi + tutkimukset, vanhimmasta uusimpaan:',
     cmdDownloadOptionCatalog:
       'jokainen skilli kaikista 4 reposta — inventaario, kustannukset mitattu (ei arvattu)',
@@ -465,12 +465,10 @@ export const fi: Translations = {
       'synteesi — mitä kaksi skilliauditoijaa maksoivat (~36 % halvempi ajaa) ja mitkä ansat ne paljastivat',
     cmdDownloadOptionFinnish:
       'kesäkuu 2026 · rag suomi -koe — 3 paikallista 8B-mallia suomen synteesistä vs hallinnasta, yksittäismuuttuja, €0',
-    // English placeholder — not localized yet
     cmdDownloadOptionMethodology:
-      'jun 2026 · finnish rag, the methodology — how the experiment caught and corrected its own mistake; the process, not the findings',
-    // English placeholder — not localized yet
+      'kesäkuu 2026 · rag suomi -tutkimus, menetelmä — miten koe huomasi ja korjasi oman virheensä; prosessi, ei löydökset',
     cmdDownloadOptionBlindTest:
-      'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
+      'heinäkuu 2026 · sokkotesti — äidinkielinen puhuja arvioi sokkona 3 paikallista mallia suomen luonnollisuudessa; Poro voittaa 26/30',
     cmdDownloadOptionPoro:
       'heinäkuu 2026 · Poro-2-8B tuotannossa — mitä kaksi projektia mittasi, miksi toinen otti sen käyttöön ja toinen ei, sekä sen ympärille rakennettu deterministinen kerros',
     cmdDownloadOptionTranslations:
@@ -497,9 +495,9 @@ export const fi: Translations = {
     cmdDownloadFinnishNotAvailable:
       'rag suomi -tutkimuksen pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadMethodologyNotAvailable:
-      'rag finnish methodology pdf not available right now — reach out and I will send it.',
+      'rag suomi -tutkimuksen menetelmän pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadBlindTestNotAvailable:
-      'rag blind test pdf not available right now — reach out and I will send it.',
+      'sokkotestin pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadPoroNotAvailable:
       'poro-löydösten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadTranslationsNotAvailable:

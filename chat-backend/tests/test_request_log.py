@@ -124,8 +124,15 @@ def test_build_returns_none_when_disabled() -> None:
     assert build_request_logger("") is None
 
 
-def test_build_returns_none_for_bad_path() -> None:
-    assert build_request_logger("/nonexistent/path/that/cannot/exist/rag.log") is None
+def test_build_returns_none_for_bad_path(tmp_path: Path) -> None:
+    # The path is placed UNDER a regular file, so `os.makedirs` raises
+    # NotADirectoryError. That holds for every user, including root — an
+    # absolute path like /nonexistent/... is merely unwritable, and root
+    # creates it happily, which made this assertion pass locally only for
+    # unprivileged users and fail inside a root container.
+    blocker = tmp_path / "not-a-directory"
+    blocker.write_text("", encoding="utf-8")
+    assert build_request_logger(str(blocker / "sub" / "rag.log")) is None
 
 
 def test_build_writes_one_json_line_per_call(tmp_path: Path) -> None:
