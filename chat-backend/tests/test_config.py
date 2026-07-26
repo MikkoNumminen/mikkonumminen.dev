@@ -423,14 +423,20 @@ def test_retrieval_exclude_doc_types_empty_disables_filter(
 
 
 def test_retrieval_diversity_max_per_project_default(clean_env: None) -> None:
-    assert Settings.from_env().retrieval_diversity_max_per_project == 1
+    # 3, not 1: at 1 a question that names no project got a single chunk from the
+    # project that owns the answer and five from unrelated ones, and the retrieved
+    # text held the answering phrase in only half the cases. Measured trade is
+    # recorded beside the setting in app/config.py.
+    assert Settings.from_env().retrieval_diversity_max_per_project == 3
 
 
 def test_retrieval_diversity_max_per_project_override(
     clean_env: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", "3")
-    assert Settings.from_env().retrieval_diversity_max_per_project == 3
+    # Deliberately NOT the default value — an override test that happens to
+    # assert the default passes even when the environment is ignored entirely.
+    monkeypatch.setenv("RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", "1")
+    assert Settings.from_env().retrieval_diversity_max_per_project == 1
 
 
 def test_retrieval_diversity_max_per_project_zero_raises(

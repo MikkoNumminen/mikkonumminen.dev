@@ -1,0 +1,122 @@
+{
+  "_comment": "Project-AMBIGUOUS golden set. Every question is specific enough to have exactly one correct answering document, but deliberately NEVER names its project (no alias from PROJECT_ALIASES or TECH_ALIASES appears). This is the case `_diversify` mishandles: with no project detected, retrieval treats the query as a survey and caps every project to RETRIEVAL_DIVERSITY_MAX_PER_PROJECT chunks, so the owning project cannot supply enough context to answer. A companion test asserts detect_projects() returns an empty set for each question here — if that ever fails, the case has stopped testing what it was written to test.",
+  "queries": [
+    {
+      "id": "unnamed-field-shape-count",
+      "question": "How many shapes does the home page star field cycle through, and how long is each one held before it changes?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/portfolio-deepdive.md"],
+      "expected_points": [
+        "Four shapes: the formed name, a galaxy variant, a wordmark, a sparse field",
+        "Held 5 seconds, morphs over 3 seconds"
+      ]
+    },
+    {
+      "id": "unnamed-dpr-cap",
+      "question": "Why is the device pixel ratio capped at 1.5 instead of the value the browser reports?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/portfolio-deepdive.md"],
+      "expected_points": [
+        "At DPR 2 the internal buffer is 4x the CSS-pixel area",
+        "The bloom mipmap chain scales with pixel count"
+      ]
+    },
+    {
+      "id": "unnamed-footer-chrome",
+      "question": "What happens to the fixed bottom-corner controls when the footer scrolls into view?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/portfolio-deepdive.md"],
+      "expected_points": [
+        "They lift by the footer's intrusion into the viewport",
+        "Hiding them was rejected because it removes the only audio control"
+      ]
+    },
+    {
+      "id": "unnamed-webgl-context-budget",
+      "question": "How is the browser's limit on live WebGL contexts respected when two rendering engines are on screen together?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/spacepotatis-deepdive.md"],
+      "expected_points": ["The context-budget invariant across the two-engine bridge"]
+    },
+    {
+      "id": "unnamed-save-wipe",
+      "question": "What caused players to lose their saved progress in May 2026, and how was it prevented afterwards?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/spacepotatis-deepdive.md"],
+      "expected_points": ["The May 2026 save wipe and its cause"]
+    },
+    {
+      "id": "unnamed-date-serialization",
+      "question": "What went wrong when cached values were serialized and dates came back as something other than dates?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/readlog-deepdive.md"],
+      "expected_points": ["The unstable_cache date serialization bug"]
+    },
+    {
+      "id": "unnamed-invisible-characters",
+      "question": "Why did text extracted from documents contain characters that were not visible on the page?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/audiobookmaker-deepdive.md"],
+      "expected_points": ["The invisible-character problem in extraction"]
+    },
+    {
+      "id": "unnamed-waiter-thread",
+      "question": "Why did a waiter thread break long jobs, and what replaced it?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/audiobookmaker-deepdive.md"],
+      "expected_points": ["The waiter thread that killed long books"]
+    },
+    {
+      "id": "unnamed-single-schema-tenancy",
+      "question": "How are separate customers kept isolated when they all share one database schema?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/hrm-deepdive.md"],
+      "expected_points": ["Multi-tenancy on a single schema"]
+    },
+    {
+      "id": "unnamed-ratelimit-no-redis",
+      "question": "How is request throttling implemented without an in-memory key-value store?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/hrm-deepdive.md"],
+      "expected_points": ["Rate limiting without Redis"]
+    },
+    {
+      "id": "unnamed-cpm-bpm",
+      "question": "What was the tempo-unit confusion that caused the first systemic bug in the music code?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/strudel-patterns-deepdive.md"],
+      "expected_points": ["cpm versus BPM"]
+    },
+    {
+      "id": "unnamed-masking-arrangement",
+      "question": "How does a single repeating pattern get arranged into the sections of a whole song?",
+      "category": "unnamed_project",
+      "depth": "shallow",
+      "expectation": "must_retrieve",
+      "expected_sources": ["projects/strudel-patterns-deepdive.md"],
+      "expected_points": ["Masking as arrangement"]
+    }
+  ]
+}
