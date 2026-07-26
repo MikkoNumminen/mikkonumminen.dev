@@ -196,7 +196,9 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     text-overflow: ellipsis;
     white-space: nowrap;
     opacity: 0.45;
-    transition: opacity 0.5s ease;
+    transition:
+      opacity 0.5s ease,
+      visibility 0.5s;
   }
 
   /* The arrival of a line IS the wake — no pulse, no flash. The newest
@@ -471,13 +473,26 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
       // handler is left with one job, and no layout read on the scroll
       // path: hero height is measured once rather than per event.
       const hero = document.querySelector<HTMLElement>('[data-section-hero]');
-      const heroThreshold = (hero?.clientHeight ?? window.innerHeight) * 0.6;
+      // Measured on resize rather than per scroll event — the hero is
+      // 100vh, so a frozen threshold dims the log early after a rotation,
+      // and re-measuring in the scroll handler would put a layout read
+      // back on the scroll path.
+      let heroThreshold = 0;
+      const measureHero = (): void => {
+        heroThreshold = (hero?.clientHeight ?? window.innerHeight) * 0.6;
+      };
+      measureHero();
       const onScroll = (): void => {
         document.documentElement.toggleAttribute(
           'data-scrolled-past-hero',
           window.scrollY > heroThreshold,
         );
       };
+      const onResize = (): void => {
+        measureHero();
+        onScroll();
+      };
+      window.addEventListener('resize', onResize, { passive: true });
       window.addEventListener('scroll', onScroll, { passive: true });
       onScroll();
 
@@ -489,6 +504,7 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
         document.removeEventListener('keydown', onKeyDown);
         document.removeEventListener('pointerdown', onDocPointerDown, { capture: true });
         window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
         document.documentElement.removeAttribute('data-scrolled-past-hero');
         document.documentElement.removeAttribute('data-field-log-open');
       };

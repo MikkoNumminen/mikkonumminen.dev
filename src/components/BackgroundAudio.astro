@@ -96,7 +96,9 @@ const t = getTranslations(locale);
     bottom: 2rem;
     left: 2rem;
     z-index: 40;
-    transition: opacity 0.3s ease;
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s;
     /* Theme tokens — overridden per `body[data-theme=…]` below. The
        fallback here matches the home palette so the control still has
        sensible colours on un-themed pages (e.g. 404). */
@@ -290,10 +292,15 @@ const t = getTranslations(locale);
     visibility: hidden;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .bg-audio {
-      transition: none;
-    }
+  /* Never pull focus out from under a keyboard user. visibility:hidden
+     makes a focused element non-focusable, so the browser blurs it and
+     focus lands on <body> with no indication. If focus is already inside
+     the control when the footer arrives, the control stays. Stable
+     rather than circular: style recalc still sees :focus-within match,
+     so the element never becomes hidden and the blur never fires. */
+  :global(html[data-footer-in-view]) .bg-audio:focus-within {
+    opacity: 1;
+    visibility: visible;
   }
 </style>
 

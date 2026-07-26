@@ -187,12 +187,19 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
       <slot />
     </main>
 
+    {
+      /* Before the footer in reading order, not after it. The control is
+        position:fixed so nothing moves visually, but it is the last
+        focusable element on the page and the last thing a linear read
+        reaches — and it now yields to the footer, so it has to come
+        first or a reader arrives at an empty corner. */
+    }
+    <BackgroundAudio />
+
     <footer class="site-footer" data-site-footer>
       <span>{t.navCards.footerCopyright}</span>
       <span>{t.navCards.footerBuiltWith}</span>
     </footer>
-
-    <BackgroundAudio />
 
     <style is:global>
       .site-footer {
