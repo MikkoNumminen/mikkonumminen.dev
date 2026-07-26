@@ -452,7 +452,7 @@ export const sv: Translations = {
     cmdDownloadOptionSkills:
       'juni 2026 · senaste + bredaste — 16 skills, kall-vs-skill A/B över 3 modeller; den aktuella ögonblicksbilden',
     cmdDownloadOptionResearch:
-      'forskningen — 10 pdf:er: skills-sviten + rag finska studien + poro-resultaten + översättningsgranskningen (ingen nedladdning)',
+      'forskningen — 11 pdf:er: skills-sviten + rag finska studien + poro-resultaten + översättningsgranskningen + agentdelegeringens mätning (ingen nedladdning)',
     cmdDownloadResearchIntro: 'katalogen + studierna, äldst → nyast:',
     cmdDownloadOptionCatalog:
       'varje skill i alla 4 repor — inventeringen, med uppmätta (inte gissade) kostnader',
@@ -464,12 +464,10 @@ export const sv: Translations = {
       'syntesen — vad de två skill-granskarna kostade (~36 % billigare att köra) och fällorna de avslöjade',
     cmdDownloadOptionFinnish:
       'juni 2026 · rag finska experimentet — 3 lokala 8B-modeller på finsk syntes vs begränsning, singelvariabel, €0',
-    // English placeholder — not localized yet
     cmdDownloadOptionMethodology:
-      'jun 2026 · finnish rag, the methodology — how the experiment caught and corrected its own mistake; the process, not the findings',
-    // English placeholder — not localized yet
+      'juni 2026 · rag finska studien, metoden — hur experimentet upptäckte och rättade sitt eget misstag; processen, inte resultaten',
     cmdDownloadOptionBlindTest:
-      'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
+      'juli 2026 · blindtestet — en modersmålstalare rangordnar blint 3 lokala modeller på finsk naturlighet; Poro vinner 26/30',
     cmdDownloadOptionPoro:
       'juli 2026 · Poro-2-8B i produktion — vad två projekt mätte, varför ett antog den och ett avstod, och det deterministiska lagret byggt runt den',
     cmdDownloadOptionTranslations:
@@ -496,9 +494,9 @@ export const sv: Translations = {
     cmdDownloadFinnishNotAvailable:
       'rag finska studiens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadMethodologyNotAvailable:
-      'rag finnish methodology pdf not available right now — reach out and I will send it.',
+      'rag finska studiens metodpdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadBlindTestNotAvailable:
-      'rag blind test pdf not available right now — reach out and I will send it.',
+      'blindtestets pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadPoroNotAvailable:
       'poro-resultatens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadTranslationsNotAvailable:
