@@ -24,6 +24,6 @@ Den var också fel tre gånger innan den blev rätt, på sätt mina egna tester 
 
 Sedan den enda delen som avgör något. Jag körde den igen på de 85 workflow-skript som ligger på den här maskinen från månader av verkligt arbete. Den flaggade 73 och var tyst om 12, och alla 12 är genuint fastlåsta. Så det är inte hypotetiskt. Den hade slagit till på den stora majoriteten av alla workflows jag någonsin kört, inklusive alla fem av de dyra.
 
-Agenterna, hooken och stegen som avgör vad som dirigeras vart är offentliga på [github.com/MikkoNumminen/claude-agents](https://github.com/MikkoNumminen/claude-agents).
+Agenterna, hooken och stegen som avgör vad som dirigeras vart är offentliga på [github.com/MikkoNumminen/claude-agents](https://github.com/MikkoNumminen/claude-agents). Senare instrumenterade jag en session för att se om de billiga nivåerna verkligen betalar sig, och sammanställde det jag kunde och inte kunde mäta i [en kort rapport](/agent-delegation.pdf).
 
 Förra gången var lärdomen att etiketten inte är mätningen. Den här sitter precis intill. Jag hade mätt en dörr noggrant och sedan beskrivit hela byggnaden. En fastlåsning som täcker en kodväg är värd exakt en kodväg, och allt bortom det var jag som generaliserade från ett sant resultat.

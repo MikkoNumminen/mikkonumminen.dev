@@ -57,6 +57,9 @@ of the expensive ones.
 
 The agents, the hook, and the ladder that decides what routes where are public at
 [github.com/MikkoNumminen/claude-agents](https://github.com/MikkoNumminen/claude-agents).
+I later instrumented a session to see whether the cheap tiers actually pay for
+themselves, and wrote up what I could and could not measure in
+[a short report](/agent-delegation.pdf).
 
 Last time the lesson was that the label is not the measurement. This one sits
 right next to it. I had measured one door carefully and then described the whole

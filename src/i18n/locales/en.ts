@@ -466,6 +466,8 @@ export const en: Translations = {
       'jul 2026 · Poro-2-8B in production — what two projects measured, why one adopted it and one passed, and the deterministic layer built around it',
     cmdDownloadOptionTranslations:
       "jul 2026 · the translation audit — a local Finnish model re-reads all 396 of the site's Finnish strings against their English source; only 2 of its 276 proposed rewrites held up",
+    cmdDownloadOptionDelegation:
+      'jul 2026 · do the cheap agents pay for themselves — seven instrumented delegations from one session; 3 of 7 caught something I had missed, 1 was a false finding, and no saving is claimed because the counterfactual is not measurable',
     cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
     cmdDownloadTryHint:
       'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration`, or `download --finnish`.',
@@ -493,6 +495,8 @@ export const en: Translations = {
       'poro findings pdf not available right now — reach out and I will send it.',
     cmdDownloadTranslationsNotAvailable:
       'translation audit pdf not available right now — reach out and I will send it.',
+    cmdDownloadDelegationNotAvailable:
+      'agent delegation measurement pdf not available right now — reach out and I will send it.',
     cmdDownloadMeantime: 'in the meantime, reach out:',
     cmdDownloadStarted: 'download started.',
     cmdClearDesc: 'clear the screen',

@@ -474,6 +474,8 @@ export const sv: Translations = {
       'juli 2026 · Poro-2-8B i produktion — vad två projekt mätte, varför ett antog den och ett avstod, och det deterministiska lagret byggt runt den',
     cmdDownloadOptionTranslations:
       'juli 2026 · översättningsgranskningen — en lokal finsk språkmodell läser om alla sidans 396 finska strängar mot den engelska källan; bara 2 av dess 276 föreslagna ändringar höll',
+    cmdDownloadOptionDelegation:
+      'juli 2026 · betalar sig de billiga agenterna — sju instrumenterade delegeringar från en session; 3 av 7 fångade något jag hade missat, 1 var ett falskt fynd, och ingen besparing hävdas eftersom kontrafaktumet inte går att mäta',
     cmdDownloadResearchHint: 'hämta vilken som helst direkt, t.ex. `download --catalog`.',
     cmdDownloadTryHint:
       'prova `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` eller `download --finnish`.',
@@ -501,6 +503,8 @@ export const sv: Translations = {
       'poro-resultatens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadTranslationsNotAvailable:
       'översättningsgranskningens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
+    cmdDownloadDelegationNotAvailable:
+      'agentdelegeringsmätningens pdf är inte tillgänglig just nu — hör av dig så skickar jag den.',
     cmdDownloadMeantime: 'under tiden, hör av dig:',
     cmdDownloadStarted: 'nedladdning startad.',
     cmdClearDesc: 'rensa skärmen',
