@@ -168,10 +168,28 @@ class Settings:
     # suppress architecture decision records from project-overview answers). Empty
     # tuple disables the filter. Toggle via RETRIEVAL_EXCLUDE_DOC_TYPES.
     retrieval_exclude_doc_types: tuple[str, ...]
-    # Per-project chunk cap for GENERIC queries (no project named). When a visitor
-    # asks "tell me about the projects", at most this many chunks from any single
+    # Per-project chunk cap for queries that name no project. When a visitor asks
+    # "tell me about the projects", at most this many chunks from any single
     # project appear in the top_k so showcased projects spread across the answer.
     # Named-project queries are never capped. Set via RETRIEVAL_DIVERSITY_MAX_PER_PROJECT.
+    #
+    # This was 1, on the assumption that naming no project means wanting a survey.
+    # That assumption is wrong for a specific question that merely omits the name
+    # ("how many shapes does the home page star field cycle through?"), and at 1
+    # the owning project got a single chunk while five slots went to the best
+    # chunk of five unrelated projects. Measured over evals/eval_set_unnamed_project.json,
+    # the retrieved text contained the answering phrase in only 6/12 cases — the
+    # model then answered confidently from a neighbouring project.
+    #
+    # Measured trade (see evals/unnamed_project_probe.py):
+    #   cap  answer-phrase present   distinct projects per survey query
+    #    1        6/12  (50%)                 4.00
+    #    2        8/12  (67%)                 3.00
+    #    3       10/12  (83%)                 2.75
+    #    6       10/12  (83%)                 --
+    # 3 is the knee: 6 buys more of the owning project but answers nothing extra.
+    # The golden set is unchanged at every value, because its questions name their
+    # projects and named-project queries are never capped.
     retrieval_diversity_max_per_project: int
     # On a research/recency intent ("latest research"), force this many newest
     # research posts (by doc_date) into the context so pure similarity plus the
@@ -274,7 +292,7 @@ class Settings:
             cors_allow_origins=_get_list("CORS_ALLOW_ORIGINS", ["*"]),
             retrieval_exclude_doc_types=_exclude_doc_types,
             retrieval_diversity_max_per_project=_get_int(
-                "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", 1
+                "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", 3
             ),
             research_coverage_top_n=_get_int("RESEARCH_COVERAGE_TOP_N", 3),
             weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.45),
