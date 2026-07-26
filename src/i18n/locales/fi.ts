@@ -475,6 +475,8 @@ export const fi: Translations = {
       'heinäkuu 2026 · Poro-2-8B tuotannossa — mitä kaksi projektia mittasi, miksi toinen otti sen käyttöön ja toinen ei, sekä sen ympärille rakennettu deterministinen kerros',
     cmdDownloadOptionTranslations:
       'heinäkuu 2026 · käännösauditointi — paikallinen suomen kielen malli lukee sivuston kaikki 396 suomenkielistä merkkijonoa englanninkielistä lähdettä vasten; sen 276 ehdotetusta muutoksesta vain 2 kesti',
+    cmdDownloadOptionDelegation:
+      'heinäkuu 2026 · maksavatko halvat agentit itsensä takaisin — seitsemän mitattua delegointia yhdestä istunnosta; 3 seitsemästä nappasi virheen jonka olisin muuten vienyt tuotantoon, 1 oli väärä löydös, eikä säästöä väitetä, koska vertailukohtaa ei voi mitata',
     cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
       'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` tai `download --finnish`.',
@@ -502,6 +504,8 @@ export const fi: Translations = {
       'poro-löydösten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadTranslationsNotAvailable:
       'käännösauditoinnin pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+    cmdDownloadDelegationNotAvailable:
+      'agenttidelegoinnin mittauksen pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',

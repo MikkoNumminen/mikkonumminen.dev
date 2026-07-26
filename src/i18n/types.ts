@@ -243,6 +243,7 @@ export interface Translations {
     cmdDownloadOptionBlindTest: string;
     cmdDownloadOptionPoro: string;
     cmdDownloadOptionTranslations: string;
+    cmdDownloadOptionDelegation: string;
     cmdDownloadResearchHint: string;
     cmdDownloadTryHint: string;
     cmdDownloadAmbiguous: string;
@@ -258,6 +259,7 @@ export interface Translations {
     cmdDownloadBlindTestNotAvailable: string;
     cmdDownloadPoroNotAvailable: string;
     cmdDownloadTranslationsNotAvailable: string;
+    cmdDownloadDelegationNotAvailable: string;
     cmdDownloadMeantime: string;
     cmdDownloadStarted: string;
     cmdClearDesc: string;
