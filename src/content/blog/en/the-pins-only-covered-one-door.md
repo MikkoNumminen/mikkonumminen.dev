@@ -41,12 +41,13 @@ rather than the code that blocks the call, because inheriting is sometimes the
 right answer. A final synthesis pass usually does want the session model. The
 point is to make the choice visible, not to make it for you.
 
-It was also wrong twice before it was right, in ways my own tests had not thought
-to ask about. It finds calls by scanning text, so an unpinned call whose prompt
-happened to contain the words model: read as pinned, and a nested call let the
-inner pin vouch for the outer one. Both came from treating the whole call as code.
-It now blanks out strings, template literals and comments first, and counts
-brackets over what is left.
+It was also wrong three times before it was right, in ways my own tests had not
+thought to ask about. It finds calls by scanning text, so an unpinned call whose
+prompt happened to contain the words model: read as pinned, a nested call let the
+inner pin vouch for the outer one, and a regex holding the characters agent(
+counted as a call in its own right. All three came from treating the whole call as
+code. It now blanks out strings, template literals, comments and regex literals
+first, and counts brackets over what is left.
 
 Then the only part that settles anything. I replayed it over the 85 workflow
 scripts sitting on this machine from months of real work. It flagged 73 and stayed
