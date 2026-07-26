@@ -11,7 +11,7 @@ This document covers the specific hard problems encountered building mikkonummin
 
 Each of the four pages runs its own Three.js scene. Under client-side routing (Astro `ClientRouter`, ADR 0013) pages swap without a browser reload, so each scene must mount idempotently on `astro:page-load` and dispose completely on `astro:before-swap`. The `onRoute` helper in `src/lib/lifecycle.ts` owns both races: a mount guard collapses the double-fire on a first arrival, and a generation token disposes an async scene that resolves after its page was already swapped away.
 
-The home scene (`src/lib/three/homeScene.ts`) is one particle field: a single `Points` draw call whose particles morph between a galaxy, the formed "MIKKO NUMMINEN" wordmark, and a persistent starfield (ADR 0014). Its `dispose()` frees the field's geometry, shader material, and sprite texture, the background glow plate (geometry, material, texture), the pmndrs `EffectComposer` (whose `dispose()` cascades through its passes and effects), and the `WebGLRenderer` itself. Missing one item leaves a GPU memory leak that accumulates each time a visitor navigates back to the page in the same tab.
+The home scene (`src/lib/three/homeScene.ts`) is one particle field: a single `Points` draw call whose particles morph between a galaxy, the formed "MIKKO NUMMINEN" name, a `mikkonumminen.dev` wordmark, a sparse field, and a persistent starfield (ADR 0014, ADR 0016). Its `dispose()` frees the field's geometry, shader material, and sprite texture, the background glow plate (geometry, material, texture), the pmndrs `EffectComposer` (whose `dispose()` cascades through its passes and effects), and the `WebGLRenderer` itself. Missing one item leaves a GPU memory leak that accumulates each time a visitor navigates back to the page in the same tab.
 
 Disposal also releases the WebGL context explicitly (`renderer.forceContextLoss()`): `dispose()` frees GPU objects but the browser only reclaims the context when the detached canvas is garbage-collected, and under client-side routing scenes are created and destroyed per navigation — without the explicit loss, contexts pile toward the browser's cap.
 
@@ -43,7 +43,7 @@ The validated accessors in `src/lib/three/userData.ts` (the projects scene reads
 
 ### The Offscreen Pauser
 
-The `IntersectionObserver`-based `createOffscreenPauser` (`src/lib/utils/createOffscreenPauser.ts`) cancels `requestAnimationFrame` for renderers whose canvas has scrolled out of view and resumes them when it returns, resetting `lastFrame` to `performance.now()` before re-entering `tick()` so the first `delta` after a long pause is not hours large. Two consumers use it today: the projects scene and the hero's 2D data-feed console. The home particle field deliberately does not — its canvas is fixed and full-viewport behind every section, so it is never off-screen; it pauses only on `visibilitychange` (tab hidden).
+The `IntersectionObserver`-based `createOffscreenPauser` (`src/lib/utils/createOffscreenPauser.ts`) cancels `requestAnimationFrame` for renderers whose canvas has scrolled out of view and resumes them when it returns, resetting `lastFrame` to `performance.now()` before re-entering `tick()` so the first `delta` after a long pause is not hours large. One consumer uses it today: the projects scene. The home particle field deliberately does not — its canvas is fixed and full-viewport behind every section, so it is never off-screen; it pauses only on `visibilitychange` (tab hidden).
 
 ### The First-Scroll Compile Burst and the Measured-Ready Gate
 
@@ -52,6 +52,38 @@ The home page used to stutter on its first scroll input. Profiling with buffered
 The particle-field rewrite (ADR 0014) attacks it twice. The compile surface shrank to about three programs under no lights, putting the first frame below the 50 ms detection threshold on the same setup. And a loading gate holds the page — scroll locked, `scrollbar-gutter: stable` so the unlock doesn't reflow — while the chunk loads, the name glyphs rasterise, `compileAsync` runs, and real warm-up frames render. The reveal is measured, not assumed: the gate lifts when two consecutive frames complete under 20 ms, with a 2-second hard cap so the page is never held hostage. Fallback visitors bypass the gate entirely. Verified end state: reveal around 300 ms on warm hardware and zero frames over 20 ms through a full scroll-and-reverse pass.
 
 A war story from the same rewrite: with the pmndrs post-processing composer active, every black on the page lifted to washed gray. Bloom was the obvious suspect and was innocent — forcing its intensity to zero left the wash intact. The cause was color-space handling around the composer: the fix pairs the composer with `renderer.outputColorSpace = LinearSRGBColorSpace` (the composer applies the single final sRGB encode; leaving the renderer's own conversion on encodes twice) and runs the canvas opaque (`alpha: false`, cleared in the page's ink color), which also removes the premultiplied-alpha compositing path entirely. The diagnostic discipline — isolate one variable per rebuild, compare against the composer-less low tier — is why the fix is three lines instead of a re-architecture.
+
+### The Continuous Shape Cycle and Why the Name Is Not the Resting State
+
+The field does not settle. It holds a shape for 5 seconds, morphs over 3 seconds, and moves on, cycling through four shapes — the formed name, a galaxy variant, a `mikkonumminen.dev` wordmark, and a sparse field (ADR 0016). The name is one shape of four rather than the state everything returns to, which is the whole design point: the formation animation had been better than its end state, so the end state was removed.
+
+The galaxy variant is the load-in galaxy turned to face the viewer and centred (`z: -8`, `scale: 1.35`, a slow `spinRate` of 0.06). Reusing the same object seen differently is what makes it read as a variation rather than as a rewind of the page load.
+
+Three properties of the implementation are load-bearing:
+
+- **The cycle is a pure delta-driven reducer** (`src/lib/three/field/shapeCycle.ts`). It emits `from`/`to`/raw `cross` rather than pre-blended weights, because the per-particle stagger lives in the shader and can only be applied to unstaggered progress. It returns one mutable object, since the tick loop must not allocate.
+- **Scroll always wins.** The shape morph is composed *before* the scroll dissolve in the vertex shader, so `pos = mix(pos, aStarPos, dissolve)` is the last operation. A visitor who scrolls mid-morph gets the starfield, not a fight between two timelines.
+- **Every tuning number lives in one file** (`src/lib/three/field/tuning.ts`) and is injected into the GLSL as compile-time `const float` literals rather than uploaded as uniforms. The driver constant-folds them, so a knob costs nothing per frame.
+
+Micro-life runs continuously on top (ADR 0015): a shimmer, a slow brightness wave travelling letter to letter, and a small fraction of stray particles, all seeded per-particle from an `aSeed` attribute. A click on the field scatters particles like struck billiard balls and eases them back with the same seed-driven stagger. Per-shape arrays in `tuning.ts` — indexed `[name, galaxy, wordmark, sparse]` — scale brightness, density, bloom, liveliness and sway independently, because a sparse field needs far more motion than a formed name to avoid reading as a still image.
+
+The frame delta is clamped for simulation but not for presentation: `const delta = Math.min(rawDelta, MAX_FRAME_DELTA)`, with the overlay reading `rawDelta`. Without the clamp, a tab restored after minutes advances the cycle by that entire gap in one frame.
+
+### The Field Log: Replacing Decorative Gibberish With a Truthful One
+
+The bottom-right corner used to render a decorative fake console. It now carries a log of what the page is actually doing — shape transitions, scene readiness, real commit messages pulled at build time — with no timers and no fabricated lines. Events are emitted as a document-level `field:log` `CustomEvent`, matching the existing `bg-audio:state` precedent, and the emitter enforces a ~300 ms floor with a 200-line history cap.
+
+Two constraints shaped it more than the visual design did. Under `prefers-reduced-motion` and at narrow widths the log renders its header only, and the fabricated-content path was deleted outright rather than kept as a fallback — an earlier version reported build-time sentinel commits as real ones, complete with a `@0000000` hash, in exactly the shallow-clone case that produces them. And the resting list is `aria-hidden` decorative preview while the expanded history is the accessible surface: a permanently auto-updating `aria-live` region with no pause, stop or hide control is a WCAG 2.2.2 failure at Level A.
+
+### Fixed Chrome That Rides the Footer
+
+The audio toggle and the field log are `position: fixed` in the bottom corners, so at the end of every page they sat on top of the footer — measured at 884 px, the toggle covered about 79% of the copyright line.
+
+The fix publishes a `--footer-lift` custom property on `<html>` equal to how far the footer has pushed into the viewport, and the fixed chrome translates up by exactly that much (`src/lib/utils/trackFooterOverlap.ts`). Because each control keeps its own bottom offset, lifting by the intrusion leaves that offset as the gap above the footer.
+
+The rejected alternative is the instructive part. Hiding the chrome while the footer is visible trades a legibility bug for a worse one: it removes the only audio control on the site at the bottom of every page, destroys focus if a keyboard user is inside it, and latches permanently on any page too short to scroll its footer away — `/404` shows its footer at scroll 0.
+
+There is no layout read on the scroll path. The footer's document position is measured at mount, on resize, and via a `ResizeObserver` on `document.body`; per scroll the work is arithmetic on `scrollY`, coalesced onto a rAF. The observer is not redundant with resize: a late image or a swapped webfont moves the footer down the document without the viewport ever changing size, and a cached position would then aim the lift at where the footer used to be.
 
 ---
 
