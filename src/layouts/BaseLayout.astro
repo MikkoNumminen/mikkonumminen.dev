@@ -187,12 +187,19 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
       <slot />
     </main>
 
+    {
+      /* Before the footer in reading order, not after it. The control is
+        position:fixed so nothing moves visually, but it is the last
+        focusable element on the page and the last thing a linear read
+        reaches — and it now yields to the footer, so it has to come
+        first or a reader arrives at an empty corner. */
+    }
+    <BackgroundAudio />
+
     <footer class="site-footer" data-site-footer>
       <span>{t.navCards.footerCopyright}</span>
       <span>{t.navCards.footerBuiltWith}</span>
     </footer>
-
-    <BackgroundAudio />
 
     <style is:global>
       .site-footer {
@@ -219,6 +226,32 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
         }
       }
     </style>
+
+    <script>
+      // Bottom-corner chrome is position:fixed and does not scroll away;
+      // the footer arrives underneath it at the end of every page. Rather
+      // than hiding the chrome — which would take the only audio control
+      // on the site with it, destroy focus if a keyboard user is inside
+      // it, and latch permanently on a page too short to scroll — publish
+      // how far the footer has intruded and let the chrome ride up on top
+      // of it. Nothing is ever taken away; the footer slides underneath.
+      //
+      // Owned by the layout, not a component: the collision is site-wide,
+      // and the component that used to own it only exists on the home
+      // page, so every other page had chrome sitting on its footer.
+      import { trackFooterOverlap } from '../lib/utils/trackFooterOverlap';
+      import { onRoute } from '../lib/lifecycle';
+
+      onRoute(
+        () => !!document.querySelector('[data-site-footer]'),
+        () => {
+          const footer = document.querySelector<HTMLElement>('[data-site-footer]');
+          if (!footer) return;
+          const handle = trackFooterOverlap({ target: footer });
+          return () => handle.dispose();
+        },
+      );
+    </script>
 
     <script>
       import { initObservability } from '../lib/observability/initObservability';

@@ -96,6 +96,15 @@ const t = getTranslations(locale);
     bottom: 2rem;
     left: 2rem;
     z-index: 40;
+    /* Rides up on top of the footer rather than being covered by it.
+       The lift is published by the layout as the footer's intrusion into
+       the viewport; because this control keeps its own 2rem bottom
+       offset, lifting by exactly that intrusion leaves a 2rem gap above
+       the footer — the same rhythm the corners already use.
+
+       No transition: this tracks scroll position, so it must not lag
+       behind the thing it is avoiding. */
+    transform: translateY(calc(var(--footer-lift, 0px) * -1));
     /* Theme tokens — overridden per `body[data-theme=…]` below. The
        fallback here matches the home palette so the control still has
        sensible colours on un-themed pages (e.g. 404). */

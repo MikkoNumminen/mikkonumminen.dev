@@ -108,6 +108,14 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     gap: 0.3rem;
     opacity: 1;
     transition: opacity 0.4s ease;
+    /* Rides up on top of the footer rather than being covered by it. The
+       lift is published by the layout as the footer's intrusion into the
+       viewport; because this block keeps its own 2rem bottom offset,
+       lifting by exactly that intrusion leaves a 2rem gap above the
+       footer — the same rhythm the corners already use. Untransitioned
+       because it tracks scroll position and must not lag the thing it is
+       avoiding. */
+    transform: translateY(calc(var(--footer-lift, 0px) * -1));
   }
 
   /* Past the hero the log is background information; drop it so a reader
@@ -120,16 +128,6 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
      order, so Tab out of the open history landed on a control nobody can
      see. */
   :global(html[data-field-log-open]) .field-log {
-    opacity: 0;
-    visibility: hidden;
-  }
-
-  /* The footer shares this corner. Fixed positioning keeps the log
-     through the scroll, which also parks it on top of the footer text at
-     the bottom of the page — and because the toggle covers the whole
-     block, a click meant for the footer opened the history instead.
-     Same two declarations as the open state, so they compose. */
-  :global(html[data-footer-in-view]) .field-log {
     opacity: 0;
     visibility: hidden;
   }
@@ -194,7 +192,9 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     text-overflow: ellipsis;
     white-space: nowrap;
     opacity: 0.45;
-    transition: opacity 0.5s ease;
+    transition:
+      opacity 0.5s ease,
+      visibility 0.5s;
   }
 
   /* The arrival of a line IS the wake — no pulse, no flash. The newest
@@ -240,6 +240,7 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.9rem 1rem 0.9rem 1.1rem;
+    transform: translateY(calc(var(--footer-lift, 0px) * -1));
     border-left: 1px solid rgba(196, 212, 255, 0.28);
     background: rgba(6, 8, 18, 0.82);
     font-family: var(--font-mono);
@@ -464,19 +465,31 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
       // Past the hero the log dims. Read the hero's own height rather than
       // a magic number, and set an attribute the stylesheet owns so the
       // opacity value stays in CSS.
+      // Footer avoidance is the layout's job — the collision is
+      // site-wide and this component is home-only. This handler is left
+      // with one job, and no layout read on the scroll path: the hero
+      // height is measured on resize rather than per event.
       const hero = document.querySelector<HTMLElement>('[data-section-hero]');
-      const footer = document.querySelector<HTMLElement>('[data-site-footer]');
+      // Measured on resize rather than per scroll event — the hero is
+      // 100vh, so a frozen threshold dims the log early after a rotation,
+      // and re-measuring in the scroll handler would put a layout read
+      // back on the scroll path.
+      let heroThreshold = 0;
+      const measureHero = (): void => {
+        heroThreshold = (hero?.clientHeight ?? window.innerHeight) * 0.6;
+      };
+      measureHero();
       const onScroll = (): void => {
-        const past = window.scrollY > (hero?.clientHeight ?? window.innerHeight) * 0.6;
-        document.documentElement.toggleAttribute('data-scrolled-past-hero', past);
-        // Park the log entirely once the footer is on screen: they share
-        // this corner, and the log wins the z-order.
-        const footerTop = footer?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
         document.documentElement.toggleAttribute(
-          'data-footer-in-view',
-          footerTop < window.innerHeight,
+          'data-scrolled-past-hero',
+          window.scrollY > heroThreshold,
         );
       };
+      const onResize = (): void => {
+        measureHero();
+        onScroll();
+      };
+      window.addEventListener('resize', onResize, { passive: true });
       window.addEventListener('scroll', onScroll, { passive: true });
       onScroll();
 
@@ -488,8 +501,8 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
         document.removeEventListener('keydown', onKeyDown);
         document.removeEventListener('pointerdown', onDocPointerDown, { capture: true });
         window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
         document.documentElement.removeAttribute('data-scrolled-past-hero');
-        document.documentElement.removeAttribute('data-footer-in-view');
         document.documentElement.removeAttribute('data-field-log-open');
       };
     },
