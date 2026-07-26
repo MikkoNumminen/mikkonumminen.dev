@@ -96,9 +96,15 @@ const t = getTranslations(locale);
     bottom: 2rem;
     left: 2rem;
     z-index: 40;
-    transition:
-      opacity 0.3s ease,
-      visibility 0.3s;
+    /* Rides up on top of the footer rather than being covered by it.
+       The lift is published by the layout as the footer's intrusion into
+       the viewport; because this control keeps its own 2rem bottom
+       offset, lifting by exactly that intrusion leaves a 2rem gap above
+       the footer — the same rhythm the corners already use.
+
+       No transition: this tracks scroll position, so it must not lag
+       behind the thing it is avoiding. */
+    transform: translateY(calc(var(--footer-lift, 0px) * -1));
     /* Theme tokens — overridden per `body[data-theme=…]` below. The
        fallback here matches the home palette so the control still has
        sensible colours on un-themed pages (e.g. 404). */
@@ -275,32 +281,6 @@ const t = getTranslations(locale);
     .bg-audio[data-state='on'] .bg-audio__wave--far {
       animation: none;
     }
-  }
-
-  /* Steps aside for the footer. Fixed at bottom-left, this control sat
-     on top of the footer's copyright line — covering about 79% of that
-     run on any viewport narrower than ~1376px, which is most laptops.
-     The footer has no interactive content, so nothing was unclickable;
-     the attribution was simply illegible behind a blurred pill.
-
-     visibility as well as opacity, so the control also leaves the tab
-     order rather than staying focusable while invisible. The trade is
-     real and deliberate: the toggle is unavailable while the footer is
-     on screen, and returns as soon as any part of the page above it is. */
-  :global(html[data-footer-in-view]) .bg-audio {
-    opacity: 0;
-    visibility: hidden;
-  }
-
-  /* Never pull focus out from under a keyboard user. visibility:hidden
-     makes a focused element non-focusable, so the browser blurs it and
-     focus lands on <body> with no indication. If focus is already inside
-     the control when the footer arrives, the control stays. Stable
-     rather than circular: style recalc still sees :focus-within match,
-     so the element never becomes hidden and the blur never fires. */
-  :global(html[data-footer-in-view]) .bg-audio:focus-within {
-    opacity: 1;
-    visibility: visible;
   }
 </style>
 

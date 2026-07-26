@@ -229,19 +229,25 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
 
     <script>
       // Bottom-corner chrome is position:fixed and does not scroll away;
-      // the footer arrives underneath it at the end of every page. Marking
-      // <html> here, in the layout, rather than in any one component: the
-      // collision is site-wide, and the component that used to own this
-      // flag only exists on the home page.
-      import { observeFooterInView } from '../lib/utils/observeFooterInView';
+      // the footer arrives underneath it at the end of every page. Rather
+      // than hiding the chrome — which would take the only audio control
+      // on the site with it, destroy focus if a keyboard user is inside
+      // it, and latch permanently on a page too short to scroll — publish
+      // how far the footer has intruded and let the chrome ride up on top
+      // of it. Nothing is ever taken away; the footer slides underneath.
+      //
+      // Owned by the layout, not a component: the collision is site-wide,
+      // and the component that used to own it only exists on the home
+      // page, so every other page had chrome sitting on its footer.
+      import { trackFooterOverlap } from '../lib/utils/trackFooterOverlap';
       import { onRoute } from '../lib/lifecycle';
 
       onRoute(
         () => !!document.querySelector('[data-site-footer]'),
         () => {
-          const footer = document.querySelector('[data-site-footer]');
+          const footer = document.querySelector<HTMLElement>('[data-site-footer]');
           if (!footer) return;
-          const handle = observeFooterInView({ target: footer });
+          const handle = trackFooterOverlap({ target: footer });
           return () => handle.dispose();
         },
       );
