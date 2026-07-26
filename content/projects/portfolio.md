@@ -12,7 +12,7 @@ This is the portfolio site you are reading from. It is fully static — no SSR, 
 
 The four pages each have a distinct interactive concept:
 
-- **Home (`/`)** — immersive scroll experience where a WebGL particle field forms the name, then settles into a starfield behind the content as you scroll; GSAP scroll triggers and parallax sections.
+- **Home (`/`)** — immersive scroll experience where a WebGL particle field reshapes continuously between the formed name, a galaxy, a wordmark and a sparse field, reacts to clicks, and dissolves into a starfield behind the content as you scroll; GSAP scroll triggers and parallax sections.
 - **Projects (`/projects`)** — interactive solar system where each project orbits a central sun. Hover a planet for its elevator pitch; click to zoom in.
 - **Experience (`/experience`)** — parallax mountain landscape. A goat climbs as you scroll; the sky shifts from pre-dawn to bright day. Timeline markers fade in along the way.
 - **Contact (`/contact`)** — terminal / CRT aesthetic with a real command parser, command history, tab completion, scan lines, and blinking cursor.

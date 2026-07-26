@@ -11,7 +11,7 @@ mikkonumminen.dev is a fully static personal portfolio for a full-stack develope
 
 The portfolio is a client-side-routed site (Astro `ClientRouter`) where each of four routes is its own self-contained visual experience:
 
-- **`/`** — a single WebGL particle field (`homeScene`) that forms the name and dissolves into a persistent starfield on scroll, GSAP scroll-trigger timelines, parallax nav cards.
+- **`/`** — a single WebGL particle field (`homeScene`) that cycles continuously through four shapes (the formed name, a galaxy variant, a `mikkonumminen.dev` wordmark, a sparse field) and dissolves into a persistent starfield on scroll, GSAP scroll-trigger timelines, parallax nav cards, and a corner log of what the page is actually doing.
 - **`/projects`** — interactive solar system (`projectsScene`); each project is an orbiting planet with hover labels and a zoom-in view.
 - **`/experience`** — parallax mountain landscape with a scrolling goat and timeline markers.
 - **`/contact`** — CRT terminal with a real command parser, tab completion, history, and the `skills` / `download --catalog` commands that serve the skills-registry data.
