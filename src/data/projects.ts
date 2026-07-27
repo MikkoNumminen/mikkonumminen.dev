@@ -98,19 +98,35 @@ export const connections: Connection[] = [
     kind: 'music',
     color: '#ec4899',
   },
+  // This site's music bed is a strudel-patterns piece.
+  {
+    sourceId: 'strudel-patterns',
+    targetId: 'portfolio',
+    kind: 'music',
+    color: '#ec4899',
+  },
+  // And its voiceover layers are AudiobookMaker output.
+  {
+    sourceId: 'audiobookmaker',
+    targetId: 'portfolio',
+    kind: 'voice',
+    color: '#fbbf24',
+  },
 ];
 
 export const projects: Project[] = [
   {
     id: 'hrm',
     name: 'HRM',
-    isSun: true,
-    scale: 1.0,
-    orbitRadius: 0.0,
-    orbitSpeed: 0.0,
+    tier: 1,
+    scale: 1.3,
+    orbitRadius: 6.8,
+    orbitSpeed: 0.061,
     phase: 0.2,
     tilt: 0.04,
     color: '#5b8def',
+    hasRing: true,
+    ringColor: '#9bb8ff',
     liveUrl: 'https://hr-manager-pearl.vercel.app',
     githubUrl: 'https://github.com/MikkoNumminen/HRManager',
     tech: [
@@ -166,10 +182,10 @@ export const projects: Project[] = [
   {
     id: 'portfolio',
     name: 'Portfolio',
-    tier: 1,
-    scale: 0.95,
-    orbitRadius: 6.8,
-    orbitSpeed: 0.061,
+    isSun: true,
+    scale: 1.0,
+    orbitRadius: 0.0,
+    orbitSpeed: 0.0,
     phase: 3.0,
     tilt: 0.08,
     color: '#4ade80',
