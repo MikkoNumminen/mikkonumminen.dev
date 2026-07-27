@@ -123,106 +123,97 @@ export const fi: Translations = {
   },
   projectsData: {
     hrm: {
-      tagline: 'Full-stack-henkilöstöhallintajärjestelmä',
+      tagline: 'Full-stack HR-järjestelmä',
       description:
-        'Tuotantovalmis HR-järjestelmä portfoliotasoisella toteutuksella. Kaksi tietokantaa (PostgreSQL rakenteelliselle datalle, MongoDB muuttumattomalle, hajautusketjutetulle auditlokille), 38 käyttöoikeutta käyttäjäkohtaisilla poikkeuksilla, TOTP-kaksivaiheinen tunnistautuminen, palvelinpuolen nopeusrajoitus, OpenTelemetry-jäljitys, 18 kieltä ja reaaliaikaiset toimintailmoitukset SSE:llä (polling-varavaihtoehdolla).',
-      highlights: ['2906+ testiä', '92,2 % rivikattavuus', 'PostgreSQL + MongoDB'],
+        'HR-järjestelmä, jossa tylsät osat on tehty kunnolla. Jokainen muutos kirjataan lokiin, johon voi vain lisätä, ja jokainen merkintä allekirjoitetaan edellistä vasten. Jos joku sorkkii historiaa, admin-päätepiste käy ketjun läpi ja kertoo, missä merkinnässä se katkesi. Tietokantoja on kaksi, koska henkilödata ja auditointidata haluavat eri asioita. Nopeusrajoitus pyörii Postgresissa, joten erillistä Redisiä ei tarvitse pitää hengissä.',
+      highlights: ['2910 testiä', '92,2 % kattavuus', 'Auditloki paljastaa peukaloinnin'],
     },
     platform: {
-      tagline: 'Yhteisöalusta HRM:n päälle rakennettuna',
+      tagline: 'Yhteisöalusta HRM:n päällä',
       description:
-        'Tuotantokäytössä oleva yhteisöalusta oikealle WoW-killalle osoitteessa vuohiliitto.com. Turborepo-monorepo jossa HRM git-alimoduulina. Monivuokrainen, WoW-henkinen pelillistäminen (XP, tasot, saavutukset, questit), välilehtipohjainen chatti whispereineen ja slash-komentoineen, Mythic+ -tiimiseuranta Raider.IO API:n kautta ja opastettu tutustumiskierros uusille jäsenille.',
-      highlights: ['Oikeita käyttäjiä', 'Monivuokrainen', '1388+ testiä'],
+        'World of Warcraft -killan yhteisösivusto, joka pyörii osoitteessa vuohiliitto.com. HRM on mukana git-alimoduulina, joten tilit, oikeudet ja auditointi tulivat valmiina ja loput rakennettiin päälle. Jäsenet keräävät XP:tä ja tasoja, juttelevat välilehtichatissa oikeine kuiskauksineen ja kokoavat Mythic+ -tiimejä hakemalla hahmojen tiedot Raider.IO:sta. Uusi jäsen saa opastetun kierroksen, ei seinällistä nappeja.',
+      highlights: ['Oikeita käyttäjiä', '1388 testiä', 'HRM alimoduulina'],
     },
     portfolio: {
       tagline: 'Tämä sivusto',
       description:
-        'Sivusto jota katsot nyt. Täysin staattinen, rakennettu Astrolla, Three.js:llä ja GSAP:lla. Visuaalinen näyte animaatio-osaamisesta, tarkoituksella eri teknologiapinolla kuin HRM ja Platform.',
+        'Sivusto, jota luet juuri nyt. Täysin staattinen, mikään palvelin ei tee mitään ovelaa. Projektisivu on aurinkokunta, jota voi pyöritellä, etusivu on hiukkaskenttä, joka järjestäytyy jatkuvasti uusiksi, ja yhteyssivulla on terminaali, johon voi kirjoittaa. Animaatiokokeilut asuvat täällä, jotta tuotantosovellusten ei tarvitse kantaa niitä.',
     },
     readlog: {
-      tagline: 'Pidä kirjaa jokaisesta lukemastasi kirjasta',
+      tagline: 'Pidä kirjaa lukemistasi kirjoista',
       description:
-        'Henkilökohtainen lukupäiväkirja. Hakee kirjatiedot Google Booksista ja Open Librarysta samanaikaisesti, joten kirjan lisääminen on nopeaa — valitset vain formaatin (paperi, e-kirja tai äänikirja), 0–5 tähden arvion ja milloin luit sen. Etusivulla näkyy mitä muut ovat lukeneet viime aikoina.',
-      highlights: ['90 testiä', 'Monilähde-haku'],
+        'Lukupäiväkirja. Hae kirja, kerro luitko sen paperilla, e-kirjana vai kuuntelitko, anna arvosana, valmis. Haku kysyy Open Librarya ja Google Booksia yhtä aikaa ja yhdistää vastaukset, koska kummallakaan ei ole kaikkea. Julkinen syöte näyttää, mitä muut ovat saaneet luettua viime aikoina, ilman nimiä.',
+      highlights: ['90 testiä', 'Hakee kahdesta kirja-API:sta kerralla'],
     },
     'readlog-dotnet': {
-      tagline: 'ReadLog käännettynä ASP.NET Coreen',
+      tagline: 'ReadLog uusiksi .NETillä',
       description:
-        'Idiomaattinen ASP.NET Core -käännös ReadLogista, käynnissä ilmaiseksi Azure App Servicessä. Sama lukupäiväkirjasovellus — hae Open Librarysta ja Google Booksista, kirjaa kirjat formaatilla, lukupäivämäärällä ja 0–5 tähden arviolla, selaa kirjastoasi ja julkista "viimeksi luettua" -syötettä — toteutettuna uudelleen .NET 8 Razor Pagesilla, EF Core + SQLitellä ja ASP.NET Core Identityllä (paikallinen ja Google-kirjautuminen). Kontitettu ja toimitettu tarkastajan hyväksymällä GitHub Actions -putkella GHCR:ään ja sieltä Azureen OIDC:n yli; EF Core -migraatiot ajetaan ensimmäisellä käynnistyksellä.',
+        'Sama lukupäiväkirja kirjoitettuna alusta asti uudelleen ASP.NET Corella, jotta selviäisi mitä porttaus oikeasti maksaa. Razor Pages Reactin tilalla, EF Core ja SQLite Prisman ja Postgresin tilalla. Pyörii Azuren ilmaistasolla, eli sovellus nukahtaa kahdenkymmenen minuutin päästä ja ensimmäinen käynti on hidas. Repoon on kirjattu jokainen kohta, jossa .NETin tapa ja Next.jsin tapa olivat eri mieltä.',
       highlights: [
-        'ASP.NET Core 8 -käännös',
-        'Live Azure App Servicessä',
-        'EF Core · SQLite · OIDC-julkaisu',
+        'Sama sovellus, toinen pino',
+        'Azuren ilmaistaso',
+        'Muistiinpanot joka valinnasta',
       ],
     },
     audiobookmaker: {
-      tagline: 'PDF → äänikirja',
+      tagline: 'Tekee kirjoista äänikirjoja',
       description:
-        'Työpöytäsovellus joka muuntaa PDF-, EPUB-, Word/DOCX- ja tekstitiedostot äänikirjoiksi; skannatut PDF:t ajetaan ensin Tesseract-OCR:n läpi. Neljä puhesynteesimoottoria: Edge-TTS (pilvi, 30+ ääntä kuudella kielellä), Piper (offline, ei vaadi GPU:ta), Chatterbox "Grandmom"-äänellä äänen kloonaukseen referenssinäytteestä ja VoxCPM2 zero-shot-äänenkloonaukseen ja -suunnitteluun tekstistä (vaatii NVIDIA-näytönohjaimen, vain kehittäjäasennus). Sama Chatterbox-moottori ääninäyttelee Spacepotatiksen pelin sisäisen tarinan. Englannin puhesynteesi toimii jo hyvin; suomi on vaikeampi syntetisoida käytettävissä olevilla resursseilla, joten sitä varten on rakennettu 19-vaiheinen normalisointiputki joka hoitaa numeroiden kontekstitaivutuksen, lyhenteiden purkamisen, yksikkösymbolien käsittelyn ja vierassanojen ääntämiskorjaukset — laatu paranee joka julkaisun myötä. Jaetaan Windows-asennusohjelmana automaattipäivityksillä ja 3000+ testillä.',
+        'Työpöytäsovellus, joka lukee PDF-, EPUB- tai Word-tiedoston ääneen ja tallentaa sen äänikirjaksi. Skannatut kirjat ajetaan ensin OCR:n läpi. Ääntä varten on neljä moottoria sen mukaan, haluatko ilmaisen, offline-version vai äänen, joka on kloonattu lyhyestä puhenäytteestä. Suomi on se vaikea osa, joten se siivotaan yhdeksässätoista vaiheessa ennen kuin sanaakaan lausutaan: suomen puhesynteesi sotkee numerot ja lyhenteet hyvin ennustettavilla tavoilla. Jaetaan Windows-asennuspakettina, jossa kaikki on mukana.',
       highlights: [
-        'Chatterbox-ääniklooni Grandmom-äänellä',
-        '19-vaiheinen suomen kielen normalisointi, 3000+ testiä',
-        'Antaa äänen Spacepotatiksen tarinalle',
+        '3000+ testiä',
+        'Yhdeksäntoista siivousvaihetta suomelle',
+        'Ääninäyttelee Spacepotatiksen tarinan',
       ],
     },
     spacepotatis: {
-      tagline: 'Selainampumapeli — perunasi vastaan galaksi',
+      tagline: 'Selainräiskintä: perunasi vastaan galaksi',
       description:
-        'Selainpeli, jossa suojakuplaan suljettu peruna ampuu hyönteisiä proseduraalisessa galaksissa. Käynnistyy kuin vanha terminaali, avautuu 3D-aurinkokunnaksi jota voit pyörittää ja zoomata, ja heittää sinut ylhäältä alas vyöryvään taisteluun Tyrian 2000:n hengessä. Next.js 16 + React 19 -kuori Phaser 4 -taistelukentän ympärillä, Three.js + GSAP galaksinäkymässä ja kamerasiirtymässä taisteluun, PostgreSQL Neonissa Kyselyn (tyypitetty SQL-rakentaja, ei ORM:ää) kautta. Kaikki äänet AudiobookMakerin tuottamia, kaikki musiikki kirjoitettu strudel-patterns-repoon. Mukana kokoelma omia Claude Code -skillejä .claude/skills/-hakemistossa — versionhallittuja, auditoituja, tuotantoartefaktien tavoin käsiteltyjä.',
-      highlights: [
-        'Next.js 16 + Phaser 4 + Three.js',
-        '~1300 testiä, CI joka pushissa',
-        'Omat Claude Code -skillit tuotantoartefakteina',
-      ],
+        'Selainpeli, jossa suojakuplassa istuva peruna ampuu ötököitä. Peli käynnistyy kuin vanha terminaali, avautuu 3D-aurinkokunnaksi, jota voi pyöritellä, ja pudottaa sitten ylhäältä kuvattuun taisteluun. Kaikki musiikki tulee strudel-patterns-reposta ja kaikki puhe AudiobookMakerista, kertojana Grandmom. Toukokuussa pelaajalta katosi tallennus, koska huijauksenesto tarkisti, etteivät luvut kasva liian nopeasti, mutta ei koskaan sitä, olivatko ne kutistuneet. Siitä tapauksesta on kirjoitettu runbook.',
+      highlights: ['~1170 testiä', 'Oma musiikki ja puhe', 'Häiriöstä on runbook'],
     },
     'strudel-patterns': {
-      tagline: 'Algoritminen musiikki Strudelilla',
+      tagline: 'Algoritmista musiikkia koodina',
       description:
-        'Live-koodattua elektronista musiikkia Strudelilla — JavaScript-pohjainen kuviomoottori, TidalCyclesin sukulainen. Jokainen kappale on yksi kompostoitavissa oleva ilmaisu: pinoja syntetisaattoreita, bassolinjoja, rumpukuvioita ja efektiketjuja. Sävelletty rakenteistetulla tekoälytyönkululla — luonnollinen kuvaus → generointi → kuuntelu → iterointi, päätökset kirjattu git-historian rinnalle. Valitut kappaleet säestävät Spacepotatista (galaksinäkymä, missioteemat, tarinan kerrontapohja) ja mikkonumminen.dev-aloitussivua. Uudelleenkäytettävä komponenttikirjasto, kuratoidut syntetisaattoriasetukset, sessiomuistiot iteraatioista.',
+        'Musiikkia Strudelilla, jossa kokonainen kappale on yksi JavaScript-lauseke, jota muokataan sen soidessa. Rummut, basso, syntikkakerrokset ja efektit ovat erillisiä palasia, joita voi pinota uusiksi kappaleiksi. Yhdeksän on kirjattu ylös, ja osa niistä päätyi Spacepotatiksen ääniraidaksi ja tämän etusivun musiikiksi. Jokainen sessio kirjataan git-historian rinnalle, joten kappaleen synnyn voi jäljittää.',
       highlights: [
-        'Live-koodattu Strudelilla',
-        'Tekoälyohjattu iterointi, kirjattuna gitiin',
-        'Spacepotatiksen ja mikkonumminen.devin ääniraita',
+        'Yhdeksän valmista kappaletta',
+        'Soi Spacepotatiksessa ja tällä sivustolla',
       ],
     },
     'claude-continue': {
-      tagline: 'Pidä Claude Code -ikkunat peräkkäin',
+      tagline: 'Pitää Claude Coden käynnissä putkeen',
       description:
-        'Alustariippumaton Python-työkalu — CLI ja yhden napin Tkinter-käyttöliittymä — joka pitää Claude Coden 5-tuntiset käyttöikkunat peräkkäin. Se lukee aktiivisen ikkunan nollautumisajan ccusagesta, odottaa vaihtumista ja jatkaa keskeytettyjä istuntoja — broadcast iTerm2:een macOS:llä, tmux-paneeleihin macOS:llä tai Linuxilla, tai headless-ajo Windowsilla/WSL:llä — ja virittyy seuraavaa ikkunaa varten. Toimii valvomatta launchd:n (macOS) tai Windowsin Task Schedulerin kautta. Rakennettu pitkiin autonomisiin agenttiajoihin — ja rehellinen siitä tarkastusvelasta, jota se synnyttää.',
-      highlights: [
-        'Python · Tkinter-GUI',
-        'macOS · Windows · WSL · Linux (tmux)',
-        'Valvomatta launchd / Task Scheduler',
-      ],
+        'Claude Code toimii viiden tunnin ikkunoissa. Tämä odottaa, että ikkuna vaihtuu, ja käynnistää seuraavan, joten aikaa ei valu hukkaan sillä välin kun nukut. Pythonia ilman ainuttakaan riippuvuutta, pyörii valvomatta launchd:n tai Task Schedulerin kautta, ja tarkistaa ennen kuin kirjoittaa mitään, ettei istunto ole kesken ajatuksen. README myöntää suoraan, että näin työskentely kasvattaa kasaa koodia, jota kukaan ei ole vielä katselmoinut.',
+      highlights: ['Ei riippuvuuksia', 'macOS, Windows, WSL, Linux', 'Pyörii valvomatta'],
     },
     passwordmanager: {
-      tagline: 'Nollatietomallin salasananhallinta Rustilla',
+      tagline: 'Nollatietoinen salasananhallinta Rustilla',
       description:
-        'Paikallislähtöinen salasananhallinta, jossa yksi ainoa Rust-kirjasto on ainoa paikka missä salaus tapahtuu — Argon2id-avaimenjohto ja XChaCha20-Poly1305-autentikoitu salaus, käännettynä sekä natiivisti että WebAssemblyksi. Neljä asiakassovellusta jakaa sen: offline-ensin CLI-holvi SQLitellä, synkronointipalvelin joka tallentaa vain salattua dataa, selaimessa toimiva WASM-asiakas ja Chrome-laajennus autofillillä ja tallennuksella kirjautuessa. Merkintäkohtaiset noncet ja AEAD sidottuna merkinnän id:hen ja aikaleimaan estävät tietueiden vaihtamisen; avaimet nollataan käytön jälkeen; pääsalasana ei koskaan poistu asiakkaalta. Jokainen turvallisuuspäätös on kirjattu ADR:ksi eksplisiittistä uhkamallia vasten, ja CI estää salaisuudet pääsemästä repoon samalla kun se ajaa formatoinnin, clippyn, koko työtilan testit ja wasm-käännöksen.',
+        'Kaikki salaus asuu yhdessä Rust-cratessa. CLI, selainversio, synkronointipalvelin ja Chrome-laajennus käyttävät samaa cratea käännettynä joko natiivisti tai WebAssemblyksi, joten mokattavaa on vain yhdessä paikassa. Palvelin näkee pelkkää salatekstiä. Lukituksen avaaminen kestää tahallaan noin 430 millisekuntia, koska avaimen johtaminen on viritetty reilusti kirjaston oletuksia kireämmälle. README listaa myös viisi asiaa, joilta se ei suojaa, mikä tuntui hyödyllisemmältä kuin teeskentely.',
       highlights: [
-        'Yksi salauskirjasto, neljä asiakassovellusta',
-        'Argon2id + XChaCha20-Poly1305',
-        'Palvelin tallentaa vain salattua dataa',
+        'Yksi salauscrate, neljä sovellusta',
+        'Palvelin näkee vain salatekstiä',
+        'Avaus ~430 ms, tarkoituksella',
       ],
     },
     'claude-agents': {
-      tagline: 'Kustannusreititetyt subagentit Claude Codelle',
+      tagline: 'Halvemmat mallit tylsiin töihin',
       description:
-        'Pieni globaali kokoelma Claude Code -subagentteja, joka lopettaa Opus-hintojen maksamisen työstä jonka halvempi malli hoitaa yhtä hyvin. Kaksitoista agenttia, joista jokainen kiinnittää sekä mallitason että päättelyponnistuksen frontmatterissaan: Haiku vain-luku-tiedusteluun (scout, log-miner, scribe, dep-checker, tidy), Sonnet spesifikaatio-ohjattuihin muokkauksiin (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect) ja kiinnittämätön architect joka perii istunnon mallin suunnittelutyötä varten. Agentit tunnistavat itse kunkin repon teknologiapinon — testiajurin, linterin, i18n-rakenteen — joten yksi kokoelma kattaa JS-, C#- ja Python-projektit. Asentuu Claude Code -pluginina jaetusta markkinapaikasta tai skriptillä. MIT-lisensoitu.',
+        'Neljätoista Claude Code -subagenttia, joista jokainen on kiinnitetty halvimpaan malliin, joka homman osaa. Lukeminen ja raportointi menee Haikulle, mekaaniset muokkaukset Sonnetille, ja vain suunnittelutyö saa kalliin mallin. Jokainen agentti selvittää itse, mitä repo käyttää, joten sama setti kattaa JavaScriptin, C#:n ja Pythonin ilman konfigurointia. Kaksi agenteista on olemassa siksi, että eräs katselmointityönkulku kulutti vaivihkaa 3,8 miljoonaa tokenia väärällä hinnalla.',
       highlights: [
-        '12 malliin kiinnitettyä agenttia',
-        'Erottaa mallitason päättelyponnistuksesta',
-        'Plugin- tai skriptiasennus',
+        '14 malliin kiinnitettyä agenttia',
+        'Sekä malli että päättelyteho kiinnitetty',
+        'MIT-lisenssi',
       ],
     },
     'feedback-intelligence': {
-      tagline: 'Perusteltua palauteanalyysia paikallisella LLM:llä',
+      tagline: 'Lukee asiakaspalautetta keksimättä omiaan',
       description:
-        'Palautteen älymoottori joka muuntaa sekavan vapaamuotoisen palautteen tilannekohtaiseksi signaaliksi päästämättä LLM:ää käsiksi lukuihin: deterministinen, sääntökoodattu hälytyskerros laskee jokaisen luvun ja trendin, ja LLM ainoastaan jäsentää syötteen ja syntetisoi teemakertomukset — jokainen väite sidottu takaisin palaute-id:ihin ja pudotetaan varajärjestelmään jos se ei läpäise validointia. Toimialat ovat liitettäviä moduuleja (ensimmäisenä: suomalainen ruoka- ja rautakaupan hybridivähittäiskauppa); konfiguraatioasetus vaihtaa toisen toimialan ilman ydinmuutoksia. .NET 8 paikallisen Poro 2 8B:n päällä Ollamassa — valittu 30 kierroksen sokkotestissä — ja live-demo Azure Static Web Appsissa joka tavoittaa paikallisen GPU:n Tailscale Funnelin kautta ilman pilvipäättelyn kustannuksia. GDPR-puhdas synteettinen korpus, kerroksittainen prompt-injektiosuoja, hermeettinen xUnit-testisarja CI:ssä.',
+        'Ottaa sotkuisen vapaan tekstipalautteen ja tekee siitä jotain, jonka pohjalta esihenkilö voi toimia. Kiinnostavinta on, miten vähän siitä on AI:ta: malli siistii ihmisten kirjoitukset ja etsii kasasta teemat, loput on tavallista koodia. Hälytykset ovat avainsanahakuja. Sentimentti on peruslaskentoa. Suomenkielinen malli pyörii kotikoneella, joten hostaus ei maksa mitään. Jokainen päätös siitä, mihin AI päästettiin, on kirjattu ylös, myös ne neljä kierrosta, joilla sitä väännettiin takaisin pois.',
       highlights: [
-        'Deterministiset hälytykset — LLM ei koskaan laske lukuja',
-        'Liitettävät toimialat, ei ydinmuutoksia',
-        'Live-demo Azuressa, päättely paikallisella GPU:lla',
+        'AI tasan kahdessa paikassa',
+        'Suomi edellä, pyörii paikallisesti',
+        'Hostaus ei maksa mitään',
       ],
     },
   },

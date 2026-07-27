@@ -24,4 +24,4 @@ Multi-tenancy runs on a single schema: every table carries a `sessionId` and que
 
 ## Outcome
 
-The corpus reports 2906+ tests at 92.2% line coverage, with Stryker mutation testing gating pull requests (failing below a 60% mutation score). The git history shows coverage being pushed from 88% to 99% in one large pass. It is live on Vercel (Vercel Postgres/Neon + MongoDB Atlas free tier), carries Kubernetes manifests and a Helm chart for production-grade deployment, and is embedded in the Platform monorepo as a submodule.
+The corpus reports 2910 tests at 92.2% line coverage, with Stryker mutation testing gating pull requests (failing below a 60% mutation score). The git history shows coverage being pushed from 88% to 99% in one large pass. It is live on Vercel (Vercel Postgres/Neon + MongoDB Atlas free tier), carries Kubernetes manifests and a Helm chart for production-grade deployment, and is embedded in the Platform monorepo as a submodule.

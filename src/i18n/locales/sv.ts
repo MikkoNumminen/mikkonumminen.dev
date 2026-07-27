@@ -127,7 +127,7 @@ export const sv: Translations = {
       tagline: 'Full-stack-system för personalhantering',
       description:
         'Produktionsklart HR-system byggt enligt portföljstandard. Två databaser (PostgreSQL för strukturerad data, MongoDB för en oföränderlig hash-kedjad granskningslogg), 38 finkorniga behörigheter med användarspecifika undantag, TOTP-tvåfaktorsautentisering, hastighetsbegränsning på serversidan, OpenTelemetry-spårning, 18 språk och realtidsaktivitetsnotiser via SSE (med pollning som reserv).',
-      highlights: ['2906+ tester', '92,2 % radtäckning', 'PostgreSQL + MongoDB'],
+      highlights: ['2910 tester', '92,2 % radtäckning', 'PostgreSQL + MongoDB'],
     },
     platform: {
       tagline: 'Communityplattform byggd ovanpå HRM',
@@ -172,7 +172,7 @@ export const sv: Translations = {
         'Live webbläsarspel där en potatis i en sköldbubbla skjuter buggar tvärs över en procedurell galax. Bootar som en vintage-terminal, öppnar sig till ett 3D-solsystem du drar och zoomar, släpper sedan dig i top-down vertikal strid i andan av Tyrian 2000. Next.js 16 + React 19-skal runt en Phaser 4-stridsscen; Three.js + GSAP driver galaxvyn och kameraövergången in i strid; PostgreSQL på Neon talas till via Kysely (typad SQL-byggare, ingen ORM). All röst genererad av AudiobookMaker; all musik skriven i strudel-patterns. Levereras med en uppsättning egna Claude Code-skills under .claude/skills/ — versionshanterade, granskade, behandlade som produktionsartefakter.',
       highlights: [
         'Next.js 16 + Phaser 4 + Three.js',
-        '~1300 tester, CI vid varje push',
+        '~1170 tester, CI vid varje push',
         'Egna Claude Code-skills som produktionsartefakter',
       ],
     },
@@ -209,9 +209,9 @@ export const sv: Translations = {
     'claude-agents': {
       tagline: 'Kostnadsroutade subagenter för Claude Code',
       description:
-        'En liten global uppsättning Claude Code-subagenter som slutar betala Opus-priser för arbete som en billigare modell klarar lika bra. Tolv agenter, var och en fixerar både modellnivå och resonemangsansträngning i sin frontmatter: Haiku för skrivskyddad rekognosering (scout, log-miner, scribe, dep-checker, tidy), Sonnet för specifikationsstyrda redigeringar (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect), och en ofixerad architect som ärver sessionens modell för designarbete. Agenterna känner självmant av varje repos stack — testkörare, linter, i18n-struktur — så en enda uppsättning täcker JS-, C#- och Python-projekt. Installeras som ett Claude Code-plugin från en delad marknadsplats eller via script. MIT-licensierat.',
+        'En liten global uppsättning Claude Code-subagenter som slutar betala Opus-priser för arbete som en billigare modell klarar lika bra. Fjorton agenter, var och en fixerar både modellnivå och resonemangsansträngning i sin frontmatter: Haiku för skrivskyddad rekognosering (scout, log-miner, scribe, dep-checker, tidy, refuter), Sonnet för specifikationsstyrda redigeringar (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect, reviewer), och en ofixerad architect som ärver sessionens modell för designarbete. Agenterna känner självmant av varje repos stack — testkörare, linter, i18n-struktur — så en enda uppsättning täcker JS-, C#- och Python-projekt. Installeras som ett Claude Code-plugin från en delad marknadsplats eller via script. MIT-licensierat.',
       highlights: [
-        '12 modellfixerade agenter',
+        '14 modellfixerade agenter',
         'Frikopplar modellnivå från resonemangsansträngning',
         'Plugin- eller skriptinstallation',
       ],

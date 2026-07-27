@@ -122,104 +122,96 @@ export const en: Translations = {
     hrm: {
       tagline: 'Full-stack HR management system',
       description:
-        'Production-ready HR system built to portfolio standards. Two databases (PostgreSQL for structured data, MongoDB for an immutable, hash-chained audit log), 38 granular permissions with per-user overrides, TOTP 2FA, server-side rate limiting, OpenTelemetry tracing, 18 languages, and real-time activity notifications over SSE (with polling fallback).',
-      highlights: ['2906+ tests', '92.2% coverage', 'PostgreSQL + MongoDB'],
+        'An HR system with the boring parts done properly. Every change is written to an append-only log, and each entry is signed against the one before it. If someone edits the history, an admin endpoint walks the chain and tells you the exact entry where it broke. Two databases, because people data and audit data want different things. Rate limiting runs on Postgres, so there is no Redis to keep alive.',
+      highlights: ['2910 tests', '92.2% coverage', 'Tamper-evident audit log'],
     },
     platform: {
       tagline: 'Community platform built on HRM',
       description:
-        'Live community platform serving a real WoW guild at vuohiliitto.com. Turborepo monorepo with HRM as a git submodule. Multi-tenant, with WoW-themed gamification (XP, levels, achievements, quests), tabbed chat with whispers and slash commands, a Mythic+ team tracker via the Raider.IO API, and a guided tour for new members.',
-      highlights: ['Real users', 'Multi-tenant', '1388+ tests'],
+        'A live community site for a World of Warcraft guild, running at vuohiliitto.com. HRM sits inside it as a git submodule, so accounts, permissions and auditing came for free and the rest got built on top. Members earn XP and levels, chat in tabs with proper whispers, and put together Mythic+ teams by pulling character stats from Raider.IO. New members get a guided tour instead of a wall of buttons.',
+      highlights: ['Real users', '1388 tests', 'HRM as a submodule'],
     },
     portfolio: {
       tagline: 'This site',
       description:
-        'The site you are looking at. Fully static, built with Astro, Three.js and GSAP. A visual showcase of motion craft, intentionally separate from the production stack used in HRM and Platform.',
+        'The site you are reading. Fully static, with no server doing anything clever. The projects page is a solar system you can drag around, the landing page is one particle field that keeps rearranging itself, and the contact page is a terminal you can type into. It is where the motion work happens, so the production apps do not have to carry it.',
     },
     readlog: {
       tagline: "Track every book you've read",
       description:
-        'Personal reading tracker. Searches Open Library and Google Books in parallel and deduplicates results, then lets you log books with format (paper / e-book / audiobook), a 0–5 star rating, and finish date. Public anonymous feed of recently logged books on the homepage.',
-      highlights: ['90 tests', 'Multi-source search'],
+        'A reading log. Search for a book, say whether you read it on paper, as an e-book or listened to it, give it a rating, done. It asks Open Library and Google Books at the same time and merges the answers, because neither of them has everything. There is a public feed of what people finished recently, with no names attached.',
+      highlights: ['90 tests', 'Searches two book APIs at once'],
     },
     'readlog-dotnet': {
-      tagline: 'ReadLog, ported to ASP.NET Core',
+      tagline: 'ReadLog, rebuilt in .NET',
       description:
-        'An idiomatic ASP.NET Core port of ReadLog, running live and free on Azure App Service. The same reading-log app — search Open Library and Google Books, log books with format, finish date, and a 0–5 rating, then browse your library and a public "recently read" feed — re-expressed in .NET 8 Razor Pages, EF Core + SQLite, and ASP.NET Core Identity (local and Google sign-in). Containerized and shipped by a reviewer-gated GitHub Actions pipeline to GHCR, then on to Azure over OIDC; EF Core migrations apply on first run.',
+        'The same reading log, written again from scratch in ASP.NET Core to find out what a port actually costs. Razor Pages instead of React, EF Core and SQLite instead of Prisma and Postgres. It runs on Azure free tier, which means it falls asleep after twenty minutes and the first visit is slow. The repo keeps notes on every decision where the .NET way and the Next.js way disagreed.',
       highlights: [
-        'ASP.NET Core 8 port',
-        'Live on Azure App Service',
-        'EF Core · SQLite · OIDC deploy',
+        'Same app, second stack',
+        'Free Azure tier',
+        'Porting notes for every decision',
       ],
     },
     audiobookmaker: {
-      tagline: 'PDF → audiobook',
+      tagline: 'Turns books into audiobooks',
       description:
-        'Desktop app that turns PDF, EPUB, Word/DOCX, or plain text files into audiobooks; scanned PDFs are run through Tesseract OCR first. Four TTS engines: Edge-TTS (cloud, 30+ voices in 6 languages), Piper (offline, no GPU needed), Chatterbox with the "Grandmom" voice for voice cloning from a short reference clip, and VoxCPM2 for zero-shot voice cloning and voice design from text (NVIDIA GPU, developer setup only). The same Chatterbox engine voices the in-game story of Spacepotatis. English output quality is already strong; Finnish is harder to synthesize with available resources, so it gets a dedicated 19-pass text normalization pipeline that handles governor-word number inflection, abbreviation expansion, unit agreement, and loanword respelling — advancing with every release. Ships as a Windows installer with auto-updates and 3000+ tests.',
+        'A desktop app that reads a PDF, EPUB or Word file out loud and saves it as an audiobook. Scanned books go through OCR first. Four voice engines to pick from, depending on whether you want it free, offline, or cloned from a short clip of someone speaking. Finnish is the hard part, so it gets its own nineteen-pass cleanup before a word is spoken: Finnish text-to-speech mangles numbers and abbreviations in very predictable ways. Ships as a Windows installer with everything bundled.',
       highlights: [
-        'Chatterbox voice cloning with the Grandmom voice',
-        '19-pass Finnish text normalization, 3000+ tests',
-        'Voices the in-game story of Spacepotatis',
+        '3000+ tests',
+        'Nineteen-pass Finnish text cleanup',
+        'Voices the story in Spacepotatis',
       ],
     },
     spacepotatis: {
-      tagline: 'Browser shooter — your potato vs the galaxy',
+      tagline: 'Browser shooter: your potato vs the galaxy',
       description:
-        'Live browser game where a potato in a shield bubble shoots bugs across a procedural galaxy. Boots like a vintage terminal, opens into a 3D solar system you drag and zoom, drops you into top-down vertical combat in the spirit of Tyrian 2000. Next.js 16 + React 19 wraps a Phaser 4 combat scene; Three.js + GSAP power the galaxy view and the camera transition into combat; PostgreSQL on Neon is talked to via Kysely (typed SQL builder, no ORM). All voice generated by AudiobookMaker; all music written in strudel-patterns. Ships a catalog of custom Claude Code skills under .claude/skills/ — version-controlled, audited, treated as production artifacts.',
-      highlights: [
-        'Next.js 16 + Phaser 4 + Three.js',
-        '~1300 tests, CI on every push',
-        'Custom Claude Code skills as production artifacts',
-      ],
+        'A browser game where a potato in a shield bubble shoots bugs. It boots like an old terminal, opens into a 3D solar system you can drag around, then drops you into a top-down fight. All the music comes from strudel-patterns and all the voice from AudiobookMaker, narrated by Grandmom. In May a player lost their save, because the anti-cheat checked that numbers had not grown too fast but never that they had shrunk. That one is written up as an incident runbook.',
+      highlights: ['~1170 tests', 'Original music and voice', 'Has an incident runbook'],
     },
     'strudel-patterns': {
-      tagline: 'Algorithmic music in Strudel',
+      tagline: 'Algorithmic music, written as code',
       description:
-        'Live-coded electronic music written in Strudel — a JavaScript pattern engine, port of TidalCycles. Every track is a single composable expression: stacked synths, basslines, drum patterns, and effect chains. Composed through a structured AI workflow — natural-language direction → generation → listen → iterate, with decisions logged alongside the git history. Selected tracks score Spacepotatis (galaxy overworld, mission themes, story narration bed) and the mikkonumminen.dev landing page. Reusable component library, curated synth presets, session notes per iteration.',
-      highlights: [
-        'Live-coded in Strudel',
-        'AI-directed iteration, logged in git',
-        'Soundtrack to Spacepotatis and mikkonumminen.dev',
-      ],
+        'Music written in Strudel, where a whole track is one JavaScript expression you edit while it is playing. Drums, bass, synth layers and effects live as separate pieces you can stack into new tracks. Nine are written up, and some of those ended up as the Spacepotatis soundtrack and the music on this landing page. Every session is logged next to the git history, so you can see how a track got where it did.',
+      highlights: ['Nine finished tracks', 'Scores Spacepotatis and this site'],
     },
     'claude-continue': {
-      tagline: 'Keep Claude Code windows back-to-back',
+      tagline: 'Keeps Claude Code running back to back',
       description:
-        "A cross-platform Python tool — a CLI plus a one-button Tkinter GUI — that keeps Claude Code's 5-hour usage windows running back-to-back. It reads the active window's reset time from ccusage, waits for the rollover, then resumes paused sessions — broadcasting to iTerm2 on macOS, typing into tmux panes on macOS or Linux, or a headless run on Windows/WSL — and re-arms for the next window. Runs unattended via launchd (macOS) or Windows Task Scheduler. Built for long autonomous agent runs, and honest about the review debt that pattern creates.",
+        'Claude Code works in five-hour windows. This waits for one to roll over and starts the next, so there is no dead time while you are asleep. Python with no dependencies at all, running unattended through launchd or Task Scheduler, and it checks whether a session is mid-thought before it types anything. The README is honest that working this way grows the pile of code nobody has reviewed yet.',
       highlights: [
-        'Python · Tkinter GUI',
-        'macOS · Windows · WSL · Linux (tmux)',
-        'Unattended via launchd / Task Scheduler',
+        'No runtime dependencies',
+        'macOS, Windows, WSL, Linux',
+        'Runs unattended',
       ],
     },
     passwordmanager: {
       tagline: 'Zero-knowledge password manager in Rust',
       description:
-        'Local-first password manager where a single Rust crate is the only place crypto exists — Argon2id key derivation and XChaCha20-Poly1305 authenticated encryption, compiled natively and to WebAssembly. Four clients share it: an offline-first CLI vault on SQLite, a sync server that stores ciphertext only, an in-browser WASM client, and a Chrome extension with autofill and save-on-login. Per-entry nonces and AEAD bound to entry id + timestamp block record swapping; keys are zeroized after use; the master password never leaves the client. Every security choice is recorded as an ADR against an explicit threat model, and CI guards secrets out of the repo while running format, clippy, the full workspace tests, and the wasm build.',
+        'All the crypto lives in one Rust crate. The CLI, the browser client, the sync server and the Chrome extension all use that same crate, compiled either natively or to WebAssembly, so there is only ever one place to get it wrong. The server only ever sees ciphertext. Unlocking takes about 430 milliseconds on purpose, because the key derivation is tuned well above the library defaults. The README also lists five things it will not protect you from, which seemed more useful than pretending.',
       highlights: [
         'One crypto crate, four clients',
-        'Argon2id + XChaCha20-Poly1305',
-        'Server stores ciphertext only',
+        'Server sees only ciphertext',
+        '~430ms unlock, on purpose',
       ],
     },
     'claude-agents': {
-      tagline: 'Cost-routing subagents for Claude Code',
+      tagline: 'Cheaper models for the boring work',
       description:
-        'A small global set of Claude Code subagents that stops paying Opus prices for work a cheaper model does just as well. Twelve agents, each pinning both model tier and reasoning effort in its frontmatter: Haiku for read-only recon (scout, log-miner, scribe, dep-checker, tidy), Sonnet for spec-driven edits (mechanic, test-writer, locale-translator, doc-scribe, migrator, bisect), and an unpinned architect that inherits the session model for design work. Agents auto-detect each repo’s stack — test runner, linter, i18n layout — so one set covers JS, C#, and Python projects. Installs as a Claude Code plugin from a shared marketplace or via script. MIT-licensed.',
+        'Fourteen Claude Code subagents, each pinned to the cheapest model that can do its job. Reading and reporting goes to Haiku, mechanical edits go to Sonnet, and only design work gets the expensive model. Each one works out what a repo uses on its own, so the same set covers JavaScript, C# and Python without configuration. Two of them exist because a review workflow quietly spent 3.8 million tokens at the wrong price.',
       highlights: [
-        '12 model-pinned agents',
-        'Decouples model tier from reasoning effort',
-        'Plugin or script install',
+        '14 model-pinned agents',
+        'Model and effort both pinned',
+        'MIT licensed',
       ],
     },
     'feedback-intelligence': {
-      tagline: 'Grounded feedback analysis with a local LLM',
+      tagline: 'Reads customer feedback without making things up',
       description:
-        'Feedback-intelligence engine that turns messy free-text feedback into situational signal without letting the LLM near the numbers: a deterministic, rule-coded alert layer computes every count and trend, and the LLM only structures input and synthesizes theme narratives — each claim cited back to feedback ids and dropped to a fallback if it fails validation. Domains are pluggable modules (first: Finnish hybrid grocery–hardware retail); a config flag swaps in another domain with zero core edits. .NET 8 over a local Poro 2 8B on Ollama — picked in a 30-round blind test — with a live demo on Azure Static Web Apps reaching the local GPU through a Tailscale Funnel at zero cloud-inference cost. GDPR-clean synthetic corpus, prompt-injection defense in depth, hermetic xUnit suite in CI.',
+        'Takes messy free-text feedback and turns it into something a manager can act on. The interesting part is how little of it is AI: the model tidies up what people typed and finds themes across a pile of it, and the rest is ordinary code. Alerts are keyword scans. Sentiment is arithmetic. It runs a Finnish model on a machine at home, so hosting costs nothing. Every decision about where AI was allowed is written down, including the four rounds of arguing it back out.',
       highlights: [
-        'Deterministic alerts — LLM never computes the numbers',
-        'Pluggable domains, zero core edits',
-        'Live demo on Azure, inference on a local GPU',
+        'AI in exactly two places',
+        'Finnish-first, runs locally',
+        'Costs nothing to host',
       ],
     },
   },
