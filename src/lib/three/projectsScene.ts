@@ -267,7 +267,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
   const planets: PlanetEntry[] = [];
   for (const project of planetProjects) {
-    const built = buildPlanet(project, { lowPerf: perfFlags.lowPerf });
+    const built = buildPlanet(project, { lowPerf: perfFlags.lowPerf, renderer });
     scene.add(built.rootGroup);
     planets.push(built.entry);
   }
@@ -278,7 +278,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   for (const project of moonProjects) {
     const parent = planets.find((p) => p.project.id === project.moonOf);
     if (!parent) continue;
-    const built = buildPlanet(project, { lowPerf: perfFlags.lowPerf });
+    const built = buildPlanet(project, { lowPerf: perfFlags.lowPerf, renderer });
     parent.group.add(built.rootGroup);
     moons.push(built.entry);
   }
@@ -928,6 +928,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       for (const p of orbiting) {
         p.mesh.geometry.dispose();
         disposeMaterial(p.mesh.material);
+        // A render target is GPU memory the material does not own.
+        p.surfaceTarget?.dispose();
         p.orbitLine.geometry.dispose();
         disposeMaterial(p.orbitLine.material);
         if (p.ring) {
