@@ -109,10 +109,11 @@ body[data-theme='projects'] .site-footer {
   backdrop-filter: blur(8px);
   pointer-events: auto;
   overflow: hidden;
-  /* Collapsed: a rail just wide enough for the toggle. Expanded: the list.
+  /* Collapsed: wide enough to read the toggle's own label, so the control says
+     what it opens instead of being an unlabelled chevron. Expanded: the list.
      Width is the animated property, so the scene is uncovered progressively
      rather than the panel popping out of existence. */
-  width: 3rem;
+  width: 8.5rem;
   transition:
     width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.45s ease,
@@ -165,17 +166,12 @@ body[data-theme='projects'] .site-footer {
   transform: rotate(135deg);
 }
 
+/* Visible in both states — it is the button's accessible name. */
 .projects-scene__list-toggle-label {
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.projects-scene__list[data-expanded='true'] .projects-scene__list-toggle-label {
-  opacity: 1;
 }
 
 .projects-scene__list:not([data-expanded='true']) .projects-scene__list-items {

@@ -88,7 +88,7 @@ describe('solar-system layout', () => {
   const byRadius = [...orbiting].sort((a, b) => a.orbitRadius - b.orbitRadius);
 
   it('has exactly one star', () => {
-    expect(sun.map((p) => p.id)).toEqual(['hrm']);
+    expect(sun.map((p) => p.id)).toEqual(['portfolio']);
   });
 
   it('every moon names a parent that is itself an orbiting planet', () => {
