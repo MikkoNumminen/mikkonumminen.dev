@@ -8,7 +8,6 @@ import {
   FogExp2,
   Mesh,
   PerspectiveCamera,
-  PointLight,
   type Object3D,
   Raycaster,
   Scene,
@@ -31,6 +30,7 @@ import {
 import { buildStarfield } from './projects/buildStarfield';
 import { buildSun } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
+import { NIGHT_FLOOR, NIGHT_FLOOR_HOVERED } from './projects/buildPlanetMaterial';
 import { PLANET_BASE_RADIUS } from './projects/constants';
 import {
   buildConnections,
@@ -228,20 +228,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   scene.add(sun.group);
 
   // ── Lighting ────────────────────────────────────────────────────────
-  // One source, at the star, with no distance falloff so the outer belt is not
-  // dimmer than the inner one for reasons the viewer cannot see.
-  //
-  // What used to be here as well: an ambient fill, a cool counter-rim, and a
-  // directional light repositioned onto the camera every frame. All three
-  // existed to guarantee every planet was lit no matter where it sat, and
-  // together they erased the terminator — a planet between camera and star
-  // showed the same flat face as one beside it. Readability now comes from the
-  // planet shader instead: a night-side floor, a view-dependent rim, and a lift
-  // on whatever is hovered. That arrives with the planet materials in the next
-  // commit; until then this single light is what shades them.
-  const sunLight = new PointLight(0xffd6a0, 3.6, 0, 0);
-  sunLight.position.set(0, 0, 0);
-  scene.add(sunLight);
+  // There is none, in the THREE.Light sense. Every surface in this scene is a
+  // shader that knows where the star is, so a light object would only be read
+  // by materials that no longer exist. See buildPlanetMaterial for why the
+  // ambient fill, the counter-rim and the camera-tracked directional light
+  // were removed rather than retuned.
+  const sunWorldPos = new Vector3(0, 0, 0);
 
   // ── Bodies ──────────────────────────────────────────────────────────
   // One project is the star, one is a moon of another, the rest are planets.
@@ -252,7 +244,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
   const planets: PlanetEntry[] = [];
   for (const project of planetProjects) {
-    const built = buildPlanet(project);
+    const built = buildPlanet(project, { lowPerf: perfFlags.lowPerf });
     scene.add(built.rootGroup);
     planets.push(built.entry);
   }
@@ -263,7 +255,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   for (const project of moonProjects) {
     const parent = planets.find((p) => p.project.id === project.moonOf);
     if (!parent) continue;
-    const built = buildPlanet(project);
+    const built = buildPlanet(project, { lowPerf: perfFlags.lowPerf });
     parent.group.add(built.rootGroup);
     moons.push(built.entry);
   }
@@ -453,6 +445,24 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
   canvas.style.touchAction = 'none';
 
+  const nightFloorTweens = new Map<FocusTarget, { v: number }>();
+  const setNightFloor = (target: FocusTarget, to: number): void => {
+    const entry = orbiting.find((e) => e.project.id === target.project.id);
+    if (!entry) return; // the star is emissive; it has no night side
+    const holder = nightFloorTweens.get(target) ?? {
+      v: entry.material.uniforms.uNightFloor!.value as number,
+    };
+    nightFloorTweens.set(target, holder);
+    gsap.to(holder, {
+      v: to,
+      duration: 0.35,
+      ease: 'power2.out',
+      onUpdate: () => {
+        entry.material.uniforms.uNightFloor!.value = holder.v;
+      },
+    });
+  };
+
   const focusById = (id: string | undefined): FocusTarget | null => {
     if (!id) return null;
     return focusTargets.find((f) => f.project.id === id) ?? null;
@@ -562,6 +572,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
     sun.tick(elapsed);
 
+    // Every planet shades against the star's actual position, so a body on the
+    // far side of the system is lit from the far side.
+    for (const entry of orbiting) {
+      entry.material.uniforms.uSunPos!.value = sunWorldPos;
+    }
+
     // Planets orbit. The selected planet's angle stays frozen — the
     // camera lerp toward it (factor 0.06 below) takes ~1 s to settle,
     // and if the planet keeps moving during that time the click target
@@ -612,8 +628,13 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
             duration: 0.35,
             ease: 'power2.out',
           });
+          setNightFloor(hovered, NIGHT_FLOOR);
         }
         if (newHovered) {
+          // Physically the dark side stays dark; a portfolio still has to let
+          // you read the thing you are pointing at. Lifting only the hovered
+          // body keeps the terminator honest everywhere else.
+          setNightFloor(newHovered, NIGHT_FLOOR_HOVERED);
           gsap.to(newHovered.mesh.scale, {
             x: newHovered.hoverScale,
             y: newHovered.hoverScale,
@@ -790,6 +811,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       for (const f of focusTargets) {
         gsap.killTweensOf(f.mesh.scale);
       }
+      for (const holder of nightFloorTweens.values()) gsap.killTweensOf(holder);
+      nightFloorTweens.clear();
 
       // Reset hover-driven DOM state so nothing is left behind on teardown.
       canvas.style.cursor = '';
@@ -798,12 +821,6 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       for (const p of orbiting) {
         p.mesh.geometry.dispose();
         disposeMaterial(p.mesh.material);
-        // Material.dispose() does NOT walk attached textures, so the
-        // procedural surface + bump textures must be freed explicitly.
-        p.surfaceMap.dispose();
-        p.bumpMap.dispose();
-        p.glow.geometry.dispose();
-        disposeMaterial(p.glow.material);
         p.orbitLine.geometry.dispose();
         disposeMaterial(p.orbitLine.material);
         if (p.ring) {
@@ -822,9 +839,6 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       scene.remove(connectionsBundle.group);
       disposeExternalIndicators(externalIndicators);
       planetLabels.dispose();
-
-      scene.remove(sunLight);
-      sunLight.dispose();
 
       scene.fog = null;
       scene.clear();

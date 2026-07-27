@@ -8,32 +8,32 @@ import {
   LineBasicMaterial,
   Mesh,
   MeshBasicMaterial,
-  MeshStandardMaterial,
   RingGeometry,
+  ShaderMaterial,
   SphereGeometry,
-  type CanvasTexture,
 } from 'three';
 import type { LocalizedProject } from '../../../data/projects';
-import { createGlowMaterial } from '../createGlowMaterial';
 import { PLANET_BASE_RADIUS, TIER_TWO_DIM } from './constants';
-import { buildPlanetTexture } from './buildPlanetTexture';
+import { createPlanetMaterial } from './buildPlanetMaterial';
 
 export interface PlanetEntry {
   project: LocalizedProject;
   /** The orbit-positioned wrapper that holds mesh, glow, and optional ring. */
   group: Group;
   mesh: Mesh;
-  glow: Mesh;
   orbitLine: Line;
   ring?: Mesh;
-  /** Procedural surface textures — owned by the entry so dispose can free them. */
-  surfaceMap: CanvasTexture;
-  bumpMap: CanvasTexture;
+  /** The surface shader, so hover can lift its night side and the tick can
+   *  keep its idea of where the star is. */
+  material: ShaderMaterial;
 }
 
 const ORBIT_SEGMENTS = 128;
 
-export function buildPlanet(project: LocalizedProject): {
+export function buildPlanet(
+  project: LocalizedProject,
+  opts: { lowPerf?: boolean } = {},
+): {
   entry: PlanetEntry;
   /** The tilted parent group that should be added to the scene. */
   rootGroup: Group;
@@ -47,57 +47,17 @@ export function buildPlanet(project: LocalizedProject): {
   const tierDim = project.tier === 2 ? TIER_TWO_DIM : 1;
 
   const radius = PLANET_BASE_RADIUS * project.scale;
-  const geometry = new SphereGeometry(radius, 48, 48);
-  const baseColor = new Color(project.color);
-  // Procedural surface texture + bump map — gives each planet a distinct
-  // identity (gas giant bands, lava ridges, ice frost, vegetation,
-  // craters) instead of a flat coloured sphere. `bumpScale` is per-style:
-  // gas giants stay near 0 (cloud bands aren't surface relief), rocky /
-  // volcanic worlds push higher.
-  const {
-    map: surfaceMap,
-    bumpMap,
-    bumpScale,
-  } = buildPlanetTexture(project.id, baseColor.getHex());
-  const material = new MeshStandardMaterial({
-    map: surfaceMap,
-    bumpMap,
-    bumpScale,
-    // White multiplier so the texture's colors come through unmuddied.
-    color: 0xffffff,
-    // Heavy matte (Spacepotatis uses 0.95) so specular highlights from
-    // the sun don't blow out the texture detail across the whole face.
-    roughness: 0.95,
-    metalness: 0.0,
-    // Self-illuminate using the surface texture itself rather than a
-    // flat colour. Earlier flat-brand-colour emissive at 0.06 painted
-    // over the gas-giant bands / lava ridges; using the map as the
-    // emissive source preserves every per-pixel detail and just lifts
-    // the shadowed hemisphere so planets that orbit between camera
-    // and sun still read as textured bodies, not black silhouettes.
-    emissiveMap: surfaceMap,
-    emissive: 0xffffff,
-    emissiveIntensity: 0.18 * tierDim,
-  });
+  const geometry = new SphereGeometry(
+    radius,
+    opts.lowPerf ? 24 : 48,
+    opts.lowPerf ? 24 : 48,
+  );
+  const material = createPlanetMaterial(project, { lowPerf: opts.lowPerf });
   const mesh = new Mesh(geometry, material);
   mesh.userData.projectId = project.id;
 
-  // Glow tightened from 1.55× → 1.18× radius and intensity 0.9 → 0.5.
-  // The earlier values made the halo bigger than the planet body, which
-  // (combined with the small default zoom) hid the procedural surface
-  // texture entirely — every planet read as a soft glowing dot. Smaller
-  // halo lets the textured sphere dominate the visual.
-  const glowMaterial = createGlowMaterial({
-    color: project.color,
-    falloff: 0.6,
-    intensity: 0.5 * tierDim,
-  });
-  const glow = new Mesh(new SphereGeometry(radius * 1.18, 24, 24), glowMaterial);
-  glow.userData.projectId = project.id;
-
   const planetWrap = new Group();
   planetWrap.add(mesh);
-  planetWrap.add(glow);
   planetWrap.position.set(
     Math.cos(project.phase) * project.orbitRadius,
     0,
@@ -143,11 +103,9 @@ export function buildPlanet(project: LocalizedProject): {
     project,
     group: planetWrap,
     mesh,
-    glow,
     orbitLine,
     ring,
-    surfaceMap,
-    bumpMap,
+    material,
   };
 
   return { entry, rootGroup };
