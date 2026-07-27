@@ -49,11 +49,20 @@ export interface FooterOverlapHandle {
 export function trackFooterOverlap(opts: FooterOverlapOptions): FooterOverlapHandle {
   const root = opts.root ?? document.documentElement;
   let footerTopInDocument = 0;
+  let footerRendered = true;
   let lift = 0;
   let frame = 0;
 
   const measure = (): void => {
-    footerTopInDocument = opts.target.getBoundingClientRect().top + window.scrollY;
+    const rect = opts.target.getBoundingClientRect();
+    // A footer that is not rendered at all reports a zero rect, which reads as
+    // "its top edge sits at document position 0" — i.e. fully intruded — and
+    // lifts the chrome by an entire viewport height, straight off the top of
+    // the screen. The projects scene hides the site footer and shows its own
+    // credits, so this is not hypothetical: it took the audio toggle with it.
+    // Nothing rendered means nothing to avoid.
+    footerRendered = rect.width > 0 || rect.height > 0;
+    footerTopInDocument = rect.top + window.scrollY;
   };
 
   const apply = (): void => {
@@ -61,7 +70,9 @@ export function trackFooterOverlap(opts: FooterOverlapOptions): FooterOverlapHan
     // How far the footer's top edge has risen above the bottom of the
     // viewport. Negative until the footer appears, which clamps to zero.
     const footerTopInViewport = footerTopInDocument - window.scrollY;
-    const next = Math.max(0, Math.round(window.innerHeight - footerTopInViewport));
+    const next = footerRendered
+      ? Math.max(0, Math.round(window.innerHeight - footerTopInViewport))
+      : 0;
     if (next === lift) return;
     lift = next;
     // The chrome keeps its own bottom offset, so lifting by the full
