@@ -113,6 +113,13 @@ export interface ProjectsSceneHandle {
    * hover and let raycast take over again.
    */
   hoverById: (id: string | null) => void;
+  /**
+   * Resolves once the scene has proved it renders under the jank threshold.
+   * The page's loading gate reveals on this — measured, not assumed, and not a
+   * timer: the point is that the visitor is not dropped into a scene that is
+   * still compiling shaders.
+   */
+  whenReady: () => Promise<void>;
   /** Re-fit the renderer + camera to the viewport. */
   resize: () => void;
   /** Tear the scene down — release the WebGL context, GPU resources, and listeners. Call once on unmount. */
@@ -145,6 +152,13 @@ const FIT_MARGIN = 2.6;
 const CONNECTION_FADE_DAMPING = 0.12;
 /** The star's label clears its corona rather than its core. */
 const SUN_LABEL_LIFT = 3.4;
+
+// Warm-up gate. Same shape as the home field: a couple of consecutive frames
+// under the jank threshold, or a hard cap so a slow machine is let in rather
+// than held at a loading screen forever.
+const READY_FRAME_MS = 20;
+const READY_STREAK = 2;
+const READY_FRAME_CAP = 20;
 
 /**
  * Build and mount the projects "solar system": one planet per project orbiting
@@ -614,6 +628,15 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   );
   resize.handler();
 
+  // ── Measured readiness (drives the loading gate's reveal) ────────────
+  let readyResolved = false;
+  let warmFrames = 0;
+  let goodStreak = 0;
+  let resolveReady: () => void = () => {};
+  const readyPromise = new Promise<void>((resolve) => {
+    resolveReady = resolve;
+  });
+
   // ── Animation loop ──────────────────────────────────────────────────
   const startTime = performance.now();
   let lastFrame = startTime;
@@ -804,6 +827,18 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     if (composer) composer.render(delta);
     else renderer.render(scene, camera);
 
+    // The first frames have to prove the scene renders under the jank
+    // threshold before the gate lets the visitor in.
+    if (!readyResolved) {
+      const frameCpu = performance.now() - now;
+      warmFrames++;
+      goodStreak = frameCpu < READY_FRAME_MS ? goodStreak + 1 : 0;
+      if (goodStreak >= READY_STREAK || warmFrames >= READY_FRAME_CAP) {
+        readyResolved = true;
+        resolveReady();
+      }
+    }
+
     perfOverlay?.tick(delta);
   };
 
@@ -855,8 +890,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       }
       forcedHovered = focusById(id ?? undefined);
     },
+    whenReady: (): Promise<void> => readyPromise,
     resize: resize.handler,
     dispose: (): void => {
+      // A gate waiting on a scene that is being torn down would hold the page
+      // forever; release it before anything else.
+      resolveReady();
       if (disposed) return;
       disposed = true;
       cancelAnimationFrame(raf);

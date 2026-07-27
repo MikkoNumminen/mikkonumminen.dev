@@ -465,3 +465,96 @@ body[data-theme='projects'] .site-footer {
 .projects-fallback[data-active='true'] {
   display: block;
 }
+
+/* ── Loading gate ──────────────────────────────────────────────────────
+   PARALLEL TO the field gate in HomePage.astro — same mechanism, same
+   reasoning. The scene build blocks the main thread for over a second on a
+   cold load, and without a gate the visitor spends that time clicking into a
+   frozen page and concluding the site is broken.
+
+   The caption only fades in if the wait outlasts 300ms, so a fast machine
+   sees a brief plate rather than a loading screen. `display` collapses only
+   after the fade, so the gate never eats a pointer event on its way out. */
+.projects-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: radial-gradient(ellipse at center, #050818 0%, #02040c 60%, #010206 100%);
+  transition: opacity 0.38s ease;
+}
+
+/* Plain descendant selector, NOT :global(). This file is a global stylesheet;
+   :global() is an Astro scoped-style construct and matches nothing here, which
+   is how the first version of this gate shipped invisible while still setting
+   its class. The home field's copy sits inside a scoped <style> block, where
+   the wrapper is required — the idiom does not travel. */
+html.projects-loading .projects-gate {
+  display: flex;
+}
+
+.projects-gate--done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.projects-gate__rule {
+  position: relative;
+  width: min(14rem, 40vw);
+  height: 1px;
+  overflow: hidden;
+  background: rgba(120, 170, 255, 0.14);
+}
+
+.projects-gate__fill {
+  position: absolute;
+  inset: 0;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, rgba(160, 200, 255, 0.85), transparent);
+  animation: projects-gate-sweep 1.1s ease-in-out infinite;
+}
+
+@keyframes projects-gate-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(363%);
+  }
+}
+
+.projects-gate__caption {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(196, 212, 255, 0.5);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.projects-gate--slow .projects-gate__caption {
+  opacity: 1;
+}
+
+/* Fallback paths are never gated. The inline script already declines to add
+   the class, but the scene itself is display:none here, so this is belt and
+   braces against the class surviving a client-side navigation. */
+@media (max-width: 860px) {
+  .projects-gate {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projects-gate {
+    display: none !important;
+  }
+  .projects-gate__fill {
+    animation: none;
+  }
+}
