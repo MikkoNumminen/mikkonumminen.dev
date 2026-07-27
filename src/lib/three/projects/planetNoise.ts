@@ -35,17 +35,6 @@ export function derivePalette(baseColor: number): readonly [Rgb, Rgb, Rgb, Rgb] 
   ) as unknown as readonly [Rgb, Rgb, Rgb, Rgb];
 }
 
-/** Sample a 4-stop palette at `t` in [0,1] (clamped), linearly across the three segments. */
-export function sampleRamp(palette: readonly [Rgb, Rgb, Rgb, Rgb], t: number): Rgb {
-  const [p0, p1, p2, p3] = palette;
-  const f = Math.max(0, Math.min(1, t)) * 3;
-  const i = Math.min(Math.floor(f), 2);
-  const k = f - i;
-  const a = i === 0 ? p0 : i === 1 ? p1 : p2;
-  const b = i === 0 ? p1 : i === 1 ? p2 : p3;
-  return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-}
-
 /** FNV-1a string hash → uint32. Stable across runs; used to seed per-planet noise. */
 export function hashString(s: string): number {
   let h = 2166136261;

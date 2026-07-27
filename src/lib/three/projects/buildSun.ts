@@ -34,8 +34,15 @@ export interface SunHandle {
   tick: (elapsed: number) => void;
 }
 
-export const SUN_CORE_RADIUS = 2.1;
+const SUN_CORE_RADIUS = 2.1;
 const SUN_CORONA_RADIUS = 3.8;
+
+/**
+ * Camera stand-off when the star is the focused body. Derived from the corona
+ * rather than picked: framing it like a planet puts the camera inside the
+ * shell.
+ */
+export const SUN_FOCUS_DISTANCE = SUN_CORONA_RADIUS * 2.9;
 
 /** Photosphere palette, coolest edge to hottest centre. */
 const SUN_EDGE = 0xb04a18;

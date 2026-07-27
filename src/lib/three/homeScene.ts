@@ -293,6 +293,10 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   scene.add(glow);
 
   // ── Post-processing: mipmap-blur bloom, skipped on the low tier ──────
+  // PARALLEL TO src/lib/three/projects/../projectsScene.ts — the projects scene
+  // runs the same composer shape at different tuning. The LinearSRGBColorSpace
+  // pairing below in particular is load-bearing in both; fix it here, fix it
+  // there.
   // Intensity is state-driven per frame: loudest on the galaxy, calm on
   // the formed name (legibility), near-off in the starfield so page text
   // always wins.

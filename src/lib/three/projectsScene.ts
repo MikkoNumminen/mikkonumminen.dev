@@ -37,7 +37,7 @@ import {
   type PerfOverlayHandle,
 } from '../debug/perfOverlay';
 import { buildStarfield } from './projects/buildStarfield';
-import { buildSun } from './projects/buildSun';
+import { buildSun, SUN_FOCUS_DISTANCE } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
 import { NIGHT_FLOOR, NIGHT_FLOOR_HOVERED } from './projects/buildPlanetMaterial';
 import { PLANET_BASE_RADIUS } from './projects/constants';
@@ -291,8 +291,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       // Gentler than a planet's: the star already dominates, and 1.18x on a
       // body this size reads as a lurch rather than a highlight.
       hoverScale: 1.06,
-      // Far enough back to clear the corona shell, which extends to 3.1.
-      focusDistance: 11,
+      focusDistance: SUN_FOCUS_DISTANCE,
       labelLift: SUN_LABEL_LIFT,
     });
   }

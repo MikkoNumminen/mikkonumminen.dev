@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { derivePalette, hashString, sampleRamp, type Rgb } from './planetNoise';
+import { derivePalette, hashString, type Rgb } from './planetNoise';
 
 // Palette derivation and the seed hash, which survived the move of the surface
 // noise to GLSL. Every function is pure; these pin the determinism, ranges, and interpolation that drive every planet's surface.
@@ -15,27 +15,6 @@ describe('hashString', () => {
 
   it('differs for different strings', () => {
     expect(hashString('a')).not.toBe(hashString('b'));
-  });
-});
-
-describe('sampleRamp', () => {
-  const pal: readonly [Rgb, Rgb, Rgb, Rgb] = [
-    [0, 0, 0],
-    [10, 10, 10],
-    [20, 20, 20],
-    [30, 30, 30],
-  ];
-
-  it('returns the first stop at t≤0 and the last at t≥1 (clamped)', () => {
-    expect(sampleRamp(pal, 0)).toEqual([0, 0, 0]);
-    expect(sampleRamp(pal, 1)).toEqual([30, 30, 30]);
-    expect(sampleRamp(pal, -1)).toEqual([0, 0, 0]);
-    expect(sampleRamp(pal, 2)).toEqual([30, 30, 30]);
-  });
-
-  it('interpolates linearly within a segment', () => {
-    // t = 1/6 → f = 0.5 → halfway between stop 0 and stop 1
-    expect(sampleRamp(pal, 1 / 6)).toEqual([5, 5, 5]);
   });
 });
 
