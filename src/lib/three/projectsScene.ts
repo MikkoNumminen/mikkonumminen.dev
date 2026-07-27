@@ -592,6 +592,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
         planetAngles.set(entry, next);
       }
       const angle = planetAngles.get(entry)!;
+      entry.orbitMaterial.uniforms.uAngle!.value = angle;
       entry.group.position.set(
         Math.cos(angle) * entry.project.orbitRadius,
         0,

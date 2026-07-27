@@ -5,7 +5,6 @@ import {
   DoubleSide,
   Group,
   Line,
-  LineBasicMaterial,
   Mesh,
   MeshBasicMaterial,
   RingGeometry,
@@ -22,6 +21,8 @@ export interface PlanetEntry {
   group: Group;
   mesh: Mesh;
   orbitLine: Line;
+  /** Carries `uAngle`, which the tick advances with the planet. */
+  orbitMaterial: ShaderMaterial;
   ring?: Mesh;
   /** The surface shader, so hover can lift its night side and the tick can
    *  keep its idea of where the star is. */
@@ -81,20 +82,53 @@ export function buildPlanet(
 
   rootGroup.add(planetWrap);
 
-  // Orbit ring (a circle in the planet's tilted reference frame).
+  // Orbit ring. A uniform-opacity ellipse reads as wireframe: twelve of them
+  // is a diagram, not a sky. Each vertex carries its own angle around the
+  // circle, and the shader compares it against the planet's current angle, so
+  // the ring brightens into a wake behind the body and fades away opposite.
+  //
+  // The angle is an attribute and the planet's position is one float uniform,
+  // so nothing here is rebuilt per frame — the CPU cost is a single uniform
+  // write per planet.
   const orbitGeometry = new BufferGeometry();
   const orbitPositions = new Float32Array((ORBIT_SEGMENTS + 1) * 3);
+  const orbitAngles = new Float32Array(ORBIT_SEGMENTS + 1);
   for (let i = 0; i <= ORBIT_SEGMENTS; i++) {
     const angle = (i / ORBIT_SEGMENTS) * Math.PI * 2;
     orbitPositions[i * 3] = Math.cos(angle) * project.orbitRadius;
     orbitPositions[i * 3 + 1] = 0;
     orbitPositions[i * 3 + 2] = Math.sin(angle) * project.orbitRadius;
+    orbitAngles[i] = angle;
   }
   orbitGeometry.setAttribute('position', new BufferAttribute(orbitPositions, 3));
-  const orbitMaterial = new LineBasicMaterial({
-    color: new Color(project.color),
+  orbitGeometry.setAttribute('aAngle', new BufferAttribute(orbitAngles, 1));
+  const orbitMaterial = new ShaderMaterial({
+    uniforms: {
+      uAngle: { value: project.phase },
+      uColor: { value: new Color(project.color) },
+      uOpacity: { value: 0.42 * tierDim },
+    },
+    vertexShader: `
+      attribute float aAngle;
+      uniform float uAngle;
+      varying float vTrail;
+      void main() {
+        // Fractional distance travelled since the planet passed this vertex.
+        float d = fract((uAngle - aAngle) / 6.2831853);
+        vTrail = pow(1.0 - d, 3.0);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uOpacity;
+      varying float vTrail;
+      void main() {
+        gl_FragColor = vec4(uColor, vTrail * uOpacity);
+      }
+    `,
     transparent: true,
-    opacity: 0.18 * tierDim,
+    depthWrite: false,
   });
   const orbitLine = new Line(orbitGeometry, orbitMaterial);
   rootGroup.add(orbitLine);
@@ -104,6 +138,7 @@ export function buildPlanet(
     group: planetWrap,
     mesh,
     orbitLine,
+    orbitMaterial,
     ring,
     material,
   };
