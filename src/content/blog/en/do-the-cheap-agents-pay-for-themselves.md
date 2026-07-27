@@ -16,15 +16,15 @@ So I instrumented one working session. Seven delegations across two repositories
 
 ## The headline numbers
 
-- **Delegations** — 7
-- **Tokens, Haiku tier** — 231,369
-- **Tokens, Sonnet tier** — 92,457
-- **Tokens, total** — 323,826
-- **Tool calls made by agents** — 122
-- **Agent wall-clock** — 22.9 min
-- **Cost as delegated, upper bound** — $2.08
-- **Same tokens at Opus 5 rates, upper bound** — $8.10
-- **Delegated cost as a share of that** — 26%
+- **Delegations**: 7
+- **Tokens, Haiku tier**: 231,369
+- **Tokens, Sonnet tier**: 92,457
+- **Tokens, total**: 323,826
+- **Tool calls made by agents**: 122
+- **Agent wall-clock**: 22.9 min
+- **Cost as delegated, upper bound**: $2.08
+- **Same tokens at Opus 5 rates, upper bound**: $8.10
+- **Delegated cost as a share of that**: 26%
 
 *Figure 1, cost of the same 323,826 tokens.* As delegated, $2.08. All at Opus 5 rates, $8.10.
 
@@ -34,9 +34,9 @@ Both cost figures are upper bounds, because the runtime reports one token total 
 
 The repository's own pitch is "stop paying Opus prices for work a cheaper model does just as well." That framing dates from Opus 4.1 at $15/$75 per million tokens, where Haiku was one fifteenth the price. It is no longer true.
 
-- **Claude Opus 5** — $5 input, $25 output
-- **Claude Sonnet 5** — $2 input, $10 output, two fifths of Opus 5
-- **Claude Haiku 4.5** — $1 input, $5 output, one fifth of Opus 5
+- **Claude Opus 5**: $5 input, $25 output
+- **Claude Sonnet 5**: $2 input, $10 output, two fifths of Opus 5
+- **Claude Haiku 4.5**: $1 input, $5 output, one fifth of Opus 5
 
 The ceiling on delegation savings is now **5x**, and only for the Haiku tier. Sonnet work saves 60%, not 87%. Any claim resting on "roughly fifteen times cheaper" is quoting retired pricing.
 
@@ -58,9 +58,9 @@ Here is the breakdown that actually decides whether the routing earns its place.
 
 *Figure 2, outcome of each delegation (n = 7).*
 
-- **Found something I had missed** — 3, all used
-- **Usable output, no independent find** — 3, all used, one as a merge
-- **Net negative, correct observation with a rejected recommendation** — 1, not used
+- **Found something I had missed**: 3, all used
+- **Usable output, no independent find**: 3, all used, one as a merge
+- **Net negative, correct observation with a rejected recommendation**: 1, not used
 
 The three finds are the case for delegation, and none of them were things I was going to catch:
 
@@ -109,6 +109,8 @@ Everything above measures the delegations I made deliberately. While measuring t
 Nothing announced it. It shows in one place only, in each agent's own metadata, where the type reads `workflow-subagent` instead of the agent's name, which is where I happened to look while gathering the per-delegation token counts for this report. I have written that story up separately in [The pins only covered one door](/blog/the-pins-only-covered-one-door).
 
 The bill dwarfs the one this report set out to measure. Across this repository's workflow subagents, orchestrator-tier calls account for **3,755,242 tokens** on the same input-plus-output basis used everywhere else here. At Opus 5 rates and the same upper-bound convention, every token charged at the $25/M output rate, that is **$93.88, upper bound**. The seven deliberate delegations this report is about cost $2.08. The path I was not watching cost roughly forty-five times the one I was.
+
+This report is also published as a PDF, [the same document rendered from the same markdown](/agent-delegation.pdf).
 
 The repair is three things: the gap is written down in the repository README, two review-shaped agents give a fan-out something cheap to point at, and an opt-in hook reads a workflow script before it runs and names the calls that pin nothing.
 

@@ -16,15 +16,15 @@ Så jag instrumenterade en arbetssession. Sju delegeringar över två repositori
 
 ## Huvudsiffrorna
 
-- **Delegeringar** — 7
-- **Tokens, Haiku-nivån** — 231 369
-- **Tokens, Sonnet-nivån** — 92 457
-- **Tokens, totalt** — 323 826
-- **Verktygsanrop gjorda av agenter** — 122
-- **Agenternas klocktid** — 22,9 min
-- **Kostnad som delegerad, övre gräns** — 2,08 $
-- **Samma tokens till Opus 5-priser, övre gräns** — 8,10 $
-- **Delegerad kostnad som andel av det** — 26 %
+- **Delegeringar**: 7
+- **Tokens, Haiku-nivån**: 231 369
+- **Tokens, Sonnet-nivån**: 92 457
+- **Tokens, totalt**: 323 826
+- **Verktygsanrop gjorda av agenter**: 122
+- **Agenternas klocktid**: 22,9 min
+- **Kostnad som delegerad, övre gräns**: 2,08 $
+- **Samma tokens till Opus 5-priser, övre gräns**: 8,10 $
+- **Delegerad kostnad som andel av det**: 26 %
 
 *Figur 1, kostnaden för samma 323 826 tokens.* Som delegerad, 2,08 $. Allt till Opus 5-priser, 8,10 $.
 
@@ -34,9 +34,9 @@ Båda kostnadssiffrorna är övre gränser, eftersom körtiden rapporterar en to
 
 Repositoriets egen säljpitch är "sluta betala Opus-priser för arbete som en billigare modell gör precis lika bra". Den formuleringen härrör från Opus 4.1 med 15/75 $ per miljon tokens, där Haiku kostade en femtondel. Det stämmer inte längre.
 
-- **Claude Opus 5** — 5 $ in, 25 $ ut
-- **Claude Sonnet 5** — 2 $ in, 10 $ ut, två femtedelar av Opus 5
-- **Claude Haiku 4.5** — 1 $ in, 5 $ ut, en femtedel av Opus 5
+- **Claude Opus 5**: 5 $ in, 25 $ ut
+- **Claude Sonnet 5**: 2 $ in, 10 $ ut, två femtedelar av Opus 5
+- **Claude Haiku 4.5**: 1 $ in, 5 $ ut, en femtedel av Opus 5
 
 Taket för delegeringsbesparingar är nu **5x**, och bara för Haiku-nivån. Sonnet-arbete sparar 60 %, inte 87 %. Varje påstående som vilar på "ungefär femton gånger billigare" citerar pensionerad prissättning.
 
@@ -58,9 +58,9 @@ Här är uppdelningen som faktiskt avgör om dirigeringen förtjänar sin plats.
 
 *Figur 2, utfall för varje delegering (n = 7).*
 
-- **Hittade något jag missat** — 3, alla användes
-- **Användbart resultat, inget självständigt fynd** — 3, alla användes, ett som sammanslagning
-- **Nettonegativ, korrekt observation men avvisad rekommendation** — 1, användes inte
+- **Hittade något jag missat**: 3, alla användes
+- **Användbart resultat, inget självständigt fynd**: 3, alla användes, ett som sammanslagning
+- **Nettonegativ, korrekt observation men avvisad rekommendation**: 1, användes inte
 
 De tre fynden är argumentet för delegering, och inget av dem var något jag skulle ha fångat själv:
 
@@ -109,6 +109,8 @@ Allt ovan mäter de delegeringar jag gjorde medvetet. Medan jag mätte dem hitta
 Ingenting annonserade det. Det syns på ett enda ställe, i varje agents egen metadata, där typen står som `workflow-subagent` i stället för agentens namn, vilket är precis dit jag råkade titta när jag samlade in tokensiffror per delegering till den här rapporten. Jag har skrivit upp den historien separat i [Fastlåsningarna täckte bara en dörr](/sv/blog/the-pins-only-covered-one-door).
 
 Notan dvärgar den som rapporten gav sig ut för att mäta. Bland det här repositoriets workflow-underagenter står anrop på orkestreringsnivå för **3 755 242 tokens** på samma in-plus-ut-basis som används överallt annars här. Till Opus 5-priser och samma övre gräns-konvention, varje token debiterad till utpriset 25 $/M, blir det **93,88 $, övre gräns**. De sju medvetna delegeringar rapporten handlar om kostade 2,08 $. Vägen jag inte bevakade kostade ungefär fyrtiofem gånger den jag bevakade.
+
+Rapporten publiceras även som PDF, [samma dokument renderat från samma markdown](/agent-delegation.pdf).
 
 Reparationen är tre saker: luckan är nedskriven i repositoriets README, två granskningsformade agenter ger en utfördelning något billigt att peka på, och en frivillig hook läser ett workflow-skript innan det körs och namnger de anrop som inte låser fast något.
 

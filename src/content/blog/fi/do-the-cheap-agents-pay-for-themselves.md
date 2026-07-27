@@ -16,15 +16,15 @@ Joten instrumentoin yhden työistunnon. Seitsemän delegointia kahden repositori
 
 ## Pääluvut
 
-- **Delegointeja** — 7
-- **Tokeneita, Haiku-taso** — 231 369
-- **Tokeneita, Sonnet-taso** — 92 457
-- **Tokeneita yhteensä** — 323 826
-- **Agenttien tekemiä työkalukutsuja** — 122
-- **Agenttien kelloaika** — 22,9 min
-- **Kustannus delegoituna, yläraja** — 2,08 $
-- **Samat tokenit Opus 5:n hinnoilla, yläraja** — 8,10 $
-- **Delegoitu kustannus osuutena siitä** — 26 %
+- **Delegointeja**: 7
+- **Tokeneita, Haiku-taso**: 231 369
+- **Tokeneita, Sonnet-taso**: 92 457
+- **Tokeneita yhteensä**: 323 826
+- **Agenttien tekemiä työkalukutsuja**: 122
+- **Agenttien kelloaika**: 22,9 min
+- **Kustannus delegoituna, yläraja**: 2,08 $
+- **Samat tokenit Opus 5:n hinnoilla, yläraja**: 8,10 $
+- **Delegoitu kustannus osuutena siitä**: 26 %
 
 *Kuva 1, saman 323 826 tokenin kustannus.* Delegoituna 2,08 $. Kaikki Opus 5:n hinnoilla 8,10 $.
 
@@ -34,9 +34,9 @@ Molemmat kustannusluvut ovat ylärajoja, koska ajoympäristö raportoi agenttia 
 
 Repositorion oma myyntipuhe on "lakkaa maksamasta Opus-hintoja työstä, jonka halvempi malli tekee aivan yhtä hyvin". Se kehystys on peräisin Opus 4.1:n ajalta hinnoilla 15/75 $ miljoonalta tokenilta, jolloin Haiku oli viidestoistaosa hinnasta. Se ei enää pidä paikkaansa.
 
-- **Claude Opus 5** — 5 $ syöte, 25 $ tuloste
-- **Claude Sonnet 5** — 2 $ syöte, 10 $ tuloste, kaksi viidesosaa Opus 5:stä
-- **Claude Haiku 4.5** — 1 $ syöte, 5 $ tuloste, yksi viidesosa Opus 5:stä
+- **Claude Opus 5**: 5 $ syöte, 25 $ tuloste
+- **Claude Sonnet 5**: 2 $ syöte, 10 $ tuloste, kaksi viidesosaa Opus 5:stä
+- **Claude Haiku 4.5**: 1 $ syöte, 5 $ tuloste, yksi viidesosa Opus 5:stä
 
 Delegointisäästöjen katto on nyt **5x**, ja vain Haiku-tasolla. Sonnet-työ säästää 60 %, ei 87 %. Mikä tahansa väite, joka nojaa "noin viisitoista kertaa halvempaan", lainaa poistunutta hinnoittelua.
 
@@ -58,9 +58,9 @@ Tässä on erittely, joka todella ratkaisee, ansaitseeko reititys paikkansa.
 
 *Kuva 2, kunkin delegoinnin lopputulos (n = 7).*
 
-- **Löysi jotain, mikä minulta oli jäänyt huomaamatta** — 3, kaikki käytettiin
-- **Käyttökelpoinen tuotos, ei itsenäistä löytöä** — 3, kaikki käytettiin, yksi yhdistelmänä
-- **Nettonegatiivinen, oikea havainto mutta hylätty suositus** — 1, ei käytetty
+- **Löysi jotain, mikä minulta oli jäänyt huomaamatta**: 3, kaikki käytettiin
+- **Käyttökelpoinen tuotos, ei itsenäistä löytöä**: 3, kaikki käytettiin, yksi yhdistelmänä
+- **Nettonegatiivinen, oikea havainto mutta hylätty suositus**: 1, ei käytetty
 
 Nuo kolme löytöä ovat delegoinnin puolustus, eikä yksikään niistä ollut sellainen, jonka olisin itse huomannut:
 
@@ -109,6 +109,8 @@ Kaikki edellä mittaa niitä delegointeja, jotka tein tarkoituksella. Niitä mit
 Mikään ei ilmoittanut tästä. Se näkyy vain yhdessä paikassa, kunkin agentin omassa metatiedossa, jossa tyyppinä lukee `workflow-subagent` agentin nimen sijaan, ja juuri sinne satuin katsomaan kerätessäni tähän raporttiin delegointikohtaisia tokenimääriä. Olen kirjoittanut tuon tarinan erikseen tekstiin [Kiinnitykset kattoivat vain yhden oven](/fi/blog/the-pins-only-covered-one-door).
 
 Lasku kääpiöittää sen, jota tämä raportti lähti mittaamaan. Tämän repositorion workflow-aliagenteista orkestroijatason kutsut muodostavat **3 755 242 tokenia** samalla syöte-plus-tuloste-perusteella, jota käytetään kaikkialla muualla täällä. Opus 5:n hinnoilla ja samalla ylärajakäytännöllä, jossa jokainen token veloitetaan 25 $/M tulostehinnalla, se on **93,88 $, yläraja**. Ne seitsemän tarkoituksellista delegointia, joista tämä raportti kertoo, maksoivat 2,08 $. Polku, jota en katsonut, maksoi noin neljäkymmentäviisi kertaa sen, mitä katsomani.
+
+Tämä raportti julkaistaan myös PDF-muodossa, [sama dokumentti samasta markdownista renderöitynä](/agent-delegation.pdf).
 
 Korjaus on kolme asiaa: puute on kirjattu repositorion README-tiedostoon, kaksi katselmoinnin muotoista agenttia antaa levitykselle jotain halpaa osoitettavaksi, ja valinnainen hook lukee workflow-skriptin ennen sen ajoa ja nimeää kutsut, jotka eivät kiinnitä mitään.
 
