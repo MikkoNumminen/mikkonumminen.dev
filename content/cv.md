@@ -25,7 +25,7 @@ AI-native development is part of the toolchain, not a side note. I maintain a ca
 
 - **Platform** — live community site for a WoW guild (vuohiliitto.com). Turborepo monorepo with HRM as a git submodule. Multi-tenant, Raider.IO API integration, tabbed chat, gamification (XP, levels, achievements, quests), guided onboarding. 1,300+ tests. [vuohiliitto.com](https://vuohiliitto.com)
 
-- **Spacepotatis** — live browser game. Next.js 16 + Phaser 4 + Three.js. Empty repo to live in 12 days, 475 commits, ~1300 tests. PostgreSQL via Kysely, Google OAuth, cloud saves, leaderboard. [spacepotatis.vercel.app](https://spacepotatis.vercel.app)
+- **Spacepotatis** — live browser game. Next.js 16 + Phaser 4 + Three.js. Empty repo to live in 12 days, 475 commits, ~1170 tests. PostgreSQL via Kysely, Google OAuth, cloud saves, leaderboard. [spacepotatis.vercel.app](https://spacepotatis.vercel.app)
 
 - **AudiobookMaker** — Windows desktop app. PDF/EPUB/text → audiobook via five TTS engines (Edge-TTS cloud, Piper offline, Chatterbox voice cloning, VoxCPM2, Qwen VoiceDesign). 16-pass Finnish text normalization. 3000+ tests. Ships via GitHub Releases with auto-updates.
 

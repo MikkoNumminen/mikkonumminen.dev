@@ -16,12 +16,12 @@ All voice and story narration in the game was generated using AudiobookMaker (Ch
 
 The repo ships a catalog of custom Claude Code skills under `.claude/skills/` — version-controlled, audited, and treated as production artifacts. Each skill encodes a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so the agent goes straight to the work rather than re-scouting the codebase on every task.
 
-Spacepotatis went from empty repo to live browser game in 12 days: 475 commits, approximately 1300 tests, full Next.js + Phaser 4 + Three.js stack.
+Spacepotatis went from empty repo to live browser game in 12 days: 475 commits, approximately 1170 tests, full Next.js + Phaser 4 + Three.js stack.
 
 ## Highlights
 
 - Next.js 16 + Phaser 4 + Three.js in one project
-- Approximately 1300 tests, CI on every push
+- Approximately 1170 tests, CI on every push
 - Custom Claude Code skills as production artifacts
 
 ## Tech stack
