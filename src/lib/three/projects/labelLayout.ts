@@ -12,7 +12,9 @@
  * frame. Nearest is the right tiebreak because the nearer body is the one
  * drawn on top, so its label is the one the eye expects to find.
  *
- * Pure and framework-free so the packing rule is testable without a camera.
+ * This runs every frame, so it allocates nothing: the caller owns both the
+ * output and the scratch ordering, and they are reused across frames. The
+ * sibling connection code goes to the same trouble for the same reason.
  */
 
 export interface LabelBox {
@@ -21,7 +23,11 @@ export interface LabelBox {
   y: number;
   width: number;
   height: number;
-  /** Distance from the camera; smaller wins a collision. */
+  /**
+   * Distance from the camera; smaller wins a collision. Use `Infinity` to mark
+   * a label that is not on screen this frame — those sort to the end and are
+   * skipped rather than needing a separate list.
+   */
   depth: number;
 }
 
@@ -44,23 +50,48 @@ function overlaps(a: LabelBox, b: LabelBox, gutter: number): boolean {
 /**
  * Decide which labels are drawn this frame.
  *
- * Returns the indices of `boxes` that should be visible, nearest-first. A box
- * with a non-positive width is treated as unmeasured and always kept — a label
- * whose size is not known yet must not be culled by a comparison against zero.
+ * Writes into `visible`, parallel to `boxes`. `order` is scratch, also parallel;
+ * both are caller-owned so this allocates nothing.
+ *
+ * A box with a non-positive size is treated as unmeasured and always kept — a
+ * label whose size is not known yet must not be culled by a comparison against
+ * zero, or it would be hidden while the webfont loads and stay hidden, since a
+ * hidden element keeps reporting zero.
  */
-export function packLabels(boxes: LabelBox[], gutter = LABEL_GUTTER): number[] {
-  const order = boxes.map((_, i) => i).sort((a, b) => boxes[a]!.depth - boxes[b]!.depth);
-  const placed: LabelBox[] = [];
-  const visible: number[] = [];
-  for (const i of order) {
+export function packLabels(
+  boxes: LabelBox[],
+  visible: boolean[],
+  order: number[],
+  gutter = LABEL_GUTTER,
+): void {
+  const n = boxes.length;
+  order.length = n;
+  for (let i = 0; i < n; i++) {
+    order[i] = i;
+    visible[i] = false;
+  }
+  order.sort((a, b) => boxes[a]!.depth - boxes[b]!.depth);
+
+  for (let oi = 0; oi < n; oi++) {
+    const i = order[oi]!;
     const box = boxes[i]!;
+    // Off-screen labels sort to the end, so the first one ends the pass.
+    if (!Number.isFinite(box.depth)) break;
     if (box.width <= 0 || box.height <= 0) {
-      visible.push(i);
+      visible[i] = true;
       continue;
     }
-    if (placed.some((p) => overlaps(box, p, gutter))) continue;
-    placed.push(box);
-    visible.push(i);
+    let clash = false;
+    // Compared against labels already kept, never against ones already
+    // dropped — otherwise one collision cascades and hides an innocent third.
+    for (let oj = 0; oj < oi; oj++) {
+      const j = order[oj]!;
+      if (!visible[j]) continue;
+      if (overlaps(box, boxes[j]!, gutter)) {
+        clash = true;
+        break;
+      }
+    }
+    visible[i] = !clash;
   }
-  return visible;
 }

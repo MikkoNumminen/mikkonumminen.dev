@@ -49,7 +49,10 @@ export function createPlanetLabels(
   const projection = new Vector3();
   let hidden = false;
 
-  // Reused across frames so the per-frame path allocates nothing.
+  // Reused across frames, along with the packer's output and scratch below, so
+  // the per-frame path allocates nothing. An earlier version of this built a
+  // Set and three arrays every frame, which is the kind of render-loop garbage
+  // the connection code goes out of its way to avoid.
   const boxes: LabelBox[] = planets.map(() => ({
     x: 0,
     y: 0,
@@ -57,7 +60,8 @@ export function createPlanetLabels(
     height: 0,
     depth: 0,
   }));
-  const onScreen: number[] = [];
+  const labelVisible: boolean[] = planets.map(() => false);
+  const packOrder: number[] = planets.map((_, i) => i);
   // Sizes only change when the text or the font does, neither of which happens
   // without a remount. Zero means not yet measurable (webfont still loading),
   // so it is retried rather than cached.
@@ -65,7 +69,6 @@ export function createPlanetLabels(
 
   const update = (camera: Camera): void => {
     if (hidden) return;
-    onScreen.length = 0;
 
     for (let i = 0; i < planets.length; i++) {
       const planet = planets[i]!;
@@ -78,7 +81,10 @@ export function createPlanetLabels(
       projection.copy(worldPos).project(camera);
       // `project()` returns z > 1 for points behind the camera. Hide
       // those rather than smearing the label across the screen edge.
+      const box = boxes[i]!;
       if (projection.z > 1) {
+        // Infinity parks it at the end of the packing order and out of the pass.
+        box.depth = Number.POSITIVE_INFINITY;
         el.style.opacity = '0';
         continue;
       }
@@ -87,22 +93,19 @@ export function createPlanetLabels(
         size.w = el.offsetWidth;
         size.h = el.offsetHeight;
       }
-      const box = boxes[i]!;
       box.x = (projection.x * 0.5 + 0.5) * window.innerWidth;
       box.y = (-projection.y * 0.5 + 0.5) * window.innerHeight;
       box.width = size.w;
       box.height = size.h;
       box.depth = depth;
       el.style.transform = `translate(${box.x}px, ${box.y}px) translate(-50%, -100%)`;
-      onScreen.push(i);
     }
 
     // Nearest body wins a collision; the loser sits out this frame.
-    const visible = new Set(
-      packLabels(onScreen.map((i) => boxes[i]!)).map((k) => onScreen[k]!),
-    );
-    for (const i of onScreen) {
-      elements[i]!.style.opacity = visible.has(i) ? '1' : '0';
+    packLabels(boxes, labelVisible, packOrder);
+    for (let i = 0; i < planets.length; i++) {
+      if (!Number.isFinite(boxes[i]!.depth)) continue; // already hidden above
+      elements[i]!.style.opacity = labelVisible[i] ? '1' : '0';
     }
   };
 
