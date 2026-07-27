@@ -488,7 +488,12 @@ body[data-theme='projects'] .site-footer {
   transition: opacity 0.38s ease;
 }
 
-:global(html.projects-loading) .projects-gate {
+/* Plain descendant selector, NOT :global(). This file is a global stylesheet;
+   :global() is an Astro scoped-style construct and matches nothing here, which
+   is how the first version of this gate shipped invisible while still setting
+   its class. The home field's copy sits inside a scoped <style> block, where
+   the wrapper is required — the idiom does not travel. */
+html.projects-loading .projects-gate {
   display: flex;
 }
 
