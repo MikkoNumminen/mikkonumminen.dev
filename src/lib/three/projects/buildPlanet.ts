@@ -10,10 +10,12 @@ import {
   RingGeometry,
   ShaderMaterial,
   SphereGeometry,
+  type WebGLRenderTarget,
 } from 'three';
 import type { LocalizedProject } from '../../../data/projects';
 import { PLANET_BASE_RADIUS, TIER_TWO_DIM } from './constants';
 import { createPlanetMaterial } from './buildPlanetMaterial';
+import { bakePlanetSurface } from './bakePlanetSurface';
 
 export interface PlanetEntry {
   project: LocalizedProject;
@@ -27,13 +29,18 @@ export interface PlanetEntry {
   /** The surface shader, so hover can lift its night side and the tick can
    *  keep its idea of where the star is. */
   material: ShaderMaterial;
+  /**
+   * The baked surface target. GPU memory that `Material.dispose()` does not
+   * walk, so the entry carries it and teardown frees it explicitly.
+   */
+  surfaceTarget?: WebGLRenderTarget;
 }
 
 const ORBIT_SEGMENTS = 128;
 
 export function buildPlanet(
   project: LocalizedProject,
-  opts: { lowPerf?: boolean } = {},
+  opts: { lowPerf?: boolean; renderer?: import('three').WebGLRenderer } = {},
 ): {
   entry: PlanetEntry;
   /** The tilted parent group that should be added to the scene. */
@@ -53,7 +60,17 @@ export function buildPlanet(
     opts.lowPerf ? 24 : 48,
     opts.lowPerf ? 24 : 48,
   );
-  const material = createPlanetMaterial(project, { lowPerf: opts.lowPerf });
+  // Baked once, here, so the draw shader carries no noise. Without a
+  // renderer there is no GL context to bake into; the material still builds,
+  // it just has nothing to sample.
+  const baked = opts.renderer
+    ? bakePlanetSurface(opts.renderer, project, { lowPerf: opts.lowPerf })
+    : null;
+  const material = createPlanetMaterial(project, {
+    surface: baked?.texture ?? null,
+    surfaceWidth: baked?.width,
+    surfaceHeight: baked?.height,
+  });
   const mesh = new Mesh(geometry, material);
   mesh.userData.projectId = project.id;
 
@@ -141,6 +158,7 @@ export function buildPlanet(
     orbitMaterial,
     ring,
     material,
+    surfaceTarget: baked?.target,
   };
 
   return { entry, rootGroup };
