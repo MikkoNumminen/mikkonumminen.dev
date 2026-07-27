@@ -37,6 +37,16 @@ const localizedList = localizeProjects(t);
       <span><code>scroll</code> {t.projectsPage.legendZoom}</span>
     </div>
 
+    <!-- Loading gate. Shown only while <html> carries .projects-loading, which
+         the inline script adds pre-paint and never on the fallback paths, so
+         reduced-motion and small-screen visitors are never gated. Revealed on
+         measured readiness, with a hard cap so a slow machine is let in rather
+         than held. PARALLEL TO the field gate in HomePage.astro. -->
+    <div class="projects-gate" data-projects-gate aria-hidden="true">
+      <span class="projects-gate__rule"><span class="projects-gate__fill"></span></span>
+      <span class="projects-gate__caption">initialising · system</span>
+    </div>
+
     <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
     </div>
 
@@ -100,6 +110,18 @@ const localizedList = localizeProjects(t);
     <ProjectsVoiceover />
   </div>
 
+  <script is:inline data-astro-rerun>
+    (function () {
+      try {
+        if (window.matchMedia('(max-width: 860px)').matches) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        document.documentElement.classList.add('projects-loading');
+      } catch {
+        /* the gate is progressive enhancement — never block the page */
+      }
+    })();
+  </script>
+
   <!-- Mobile / no-JS / reduced-motion fallback -->
   <div class="projects-fallback" data-projects-fallback>
     <ProjectGrid />
@@ -136,13 +158,83 @@ const localizedList = localizeProjects(t);
       let sceneHandle: {
         selectById: (id: string | null) => void;
         hoverById: (id: string | null) => void;
+        whenReady: () => Promise<void>;
         dispose: () => void;
       } | null = null;
       let drawer: ReturnType<typeof initProjectDrawer> | null = null;
       let disposed = false;
 
+      // Panel wiring, immediately. This used to live inside the deferred WebGL
+      // boot, which meant a pure-HTML control had no click handler until a
+      // Three.js scene had loaded — the button did nothing on arrival, and the
+      // click that finally woke it also kicked off the scene build that froze
+      // the main thread. The panel is markup; it works before any of that.
+      const wirePanel = (): HTMLElement | null => {
+        const panel = document.querySelector<HTMLElement>('[data-list]');
+        const listToggle =
+          document.querySelector<HTMLButtonElement>('[data-list-toggle]');
+        const listItems = document.getElementById('projects-jump-list');
+        if (!panel || !listToggle || !listItems) return null;
+
+        const setListExpanded = (expanded: boolean, persist = true) => {
+          panel.setAttribute('data-expanded', String(expanded));
+          listToggle.setAttribute('aria-expanded', String(expanded));
+          // The button's own text is its accessible name — an aria-label here
+          // would override the visible words for screen-reader users.
+          const label = listToggle.querySelector('[data-list-toggle-label]');
+          if (label) label.textContent = expanded ? tp.listToggleHide : tp.listToggleShow;
+          listItems.inert = !expanded;
+          if (persist) sessionStorage.setItem('projects:list-expanded', String(expanded));
+        };
+        setListExpanded(
+          sessionStorage.getItem('projects:list-expanded') === 'true',
+          false,
+        );
+        listToggle.addEventListener('click', () => {
+          setListExpanded(panel.getAttribute('data-expanded') !== 'true');
+        });
+        return panel;
+      };
+      const list = wirePanel();
+
       const sceneRoot = document.querySelector<HTMLElement>('[data-projects-scene]');
       const fallback = document.querySelector<HTMLElement>('[data-projects-fallback]');
+
+      // Gate lifecycle. The scene build blocks the main thread for over a
+      // second on a cold load; without this the visitor spends that time
+      // clicking into a frozen page. Revealed on the scene's own measured
+      // readiness, capped so a slow machine is never held indefinitely, and
+      // guarded on `disposed` so a reveal arriving after a fast
+      // away-and-back navigation cannot strip the next visit's gate.
+      const html = document.documentElement;
+      const gateActive = html.classList.contains('projects-loading');
+      const gate = document.querySelector<HTMLElement>('[data-projects-gate]');
+      let revealed = false;
+      let slowTimer = 0;
+      let capTimer = 0;
+      let unlockTimer = 0;
+      const reveal = () => {
+        if (revealed || disposed) return;
+        revealed = true;
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(capTimer);
+        gate?.classList.add('projects-gate--done');
+        unlockTimer = window.setTimeout(
+          () => html.classList.remove('projects-loading'),
+          380,
+        );
+      };
+      if (gateActive) {
+        // The caption only appears if the wait outlasts 300ms, so a fast
+        // machine sees a flash rather than a loading screen.
+        slowTimer = window.setTimeout(
+          () => gate?.classList.add('projects-gate--slow'),
+          300,
+        );
+        capTimer = window.setTimeout(reveal, 4000);
+      } else {
+        revealed = true;
+      }
 
       const bootProjectsScene = async () => {
         if (reducedMotion || isSmall || !sceneRoot) {
@@ -152,6 +244,7 @@ const localizedList = localizeProjects(t);
           // implicit consequence of the WebGL canvas being hidden.
           sceneRoot?.setAttribute('data-fallback-active', 'true');
           fallback?.setAttribute('data-active', 'true');
+          reveal();
           return;
         }
 
@@ -167,43 +260,15 @@ const localizedList = localizeProjects(t);
         const intro = document.querySelector<HTMLElement>('[data-intro]');
         const legend = document.querySelector<HTMLElement>('[data-legend]');
         const credits = document.querySelector<HTMLElement>('[data-credits]');
-        const list = document.querySelector<HTMLElement>('[data-list]');
 
-        if (!canvas || !hoverLabel || !planetLabels || !detail || !closeBtn) return;
+        if (!canvas || !hoverLabel || !planetLabels || !detail || !closeBtn) {
+          reveal();
+          return;
+        }
 
-        // Jump-panel collapse. Collapsed by default so the solar system owns
-        // the viewport; the choice is remembered for the session so it doesn't
-        // reset on every navigation back to this page. `inert` keeps the
-        // hidden project buttons out of the tab order.
-        const listToggle =
-          document.querySelector<HTMLButtonElement>('[data-list-toggle]');
-        const listItems = document.getElementById('projects-jump-list');
-        const setListExpanded = (expanded: boolean, persist = true) => {
-          if (!list || !listToggle || !listItems) return;
-          list.setAttribute('data-expanded', String(expanded));
-          listToggle.setAttribute('aria-expanded', String(expanded));
-          // The button's own text is its accessible name — an aria-label here
-          // would override the visible words for screen-reader users.
-          const label = listToggle.querySelector('[data-list-toggle-label]');
-          if (label) label.textContent = expanded ? tp.listToggleHide : tp.listToggleShow;
-          listItems.inert = !expanded;
-          if (persist) sessionStorage.setItem('projects:list-expanded', String(expanded));
-        };
-        setListExpanded(
-          sessionStorage.getItem('projects:list-expanded') === 'true',
-          false,
-        );
-        listToggle?.addEventListener('click', () => {
-          setListExpanded(list?.getAttribute('data-expanded') !== 'true');
-        });
-
-        // Mark the list item that matches the currently selected project so
-        // when the drawer closes the user can see which project was just
-        // opened. `scrollIntoView` keeps it in view if the list overflows.
-        // Modern browsers respect prefers-reduced-motion for CSSOM smooth
-        // scroll, but explicit fallback to instant scroll is belt-and-
-        // suspenders and matches the rest of the page's reduced-motion
-        // policy.
+        // Mark the list item matching the selected project, so closing the
+        // drawer leaves visible which one was just open. scrollIntoView keeps
+        // it in view when the list overflows.
         const scrollBehavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
         const setListSelected = (id: string | null) => {
           if (!list) return;
@@ -272,8 +337,12 @@ const localizedList = localizeProjects(t);
               /* triggered by drawer.close via onClose */
             },
           });
+          // Reveal on the scene's own measured readiness — warm frames under
+          // the jank threshold — rather than on a timer that would guess.
+          void sceneHandle.whenReady().then(reveal);
         } catch (err) {
           console.warn('projects scene failed to init', err);
+          reveal();
           sceneRoot.setAttribute('data-fallback-active', 'true');
           fallback?.setAttribute('data-active', 'true');
           drawer?.dispose();
@@ -284,6 +353,10 @@ const localizedList = localizeProjects(t);
 
       return () => {
         disposed = true;
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(capTimer);
+        window.clearTimeout(unlockTimer);
+        html.classList.remove('projects-loading');
         bootHandle.cancel();
         sceneHandle?.dispose();
         drawer?.dispose();
