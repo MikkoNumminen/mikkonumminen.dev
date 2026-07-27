@@ -37,7 +37,7 @@ import {
   type PerfOverlayHandle,
 } from '../debug/perfOverlay';
 import { buildStarfield } from './projects/buildStarfield';
-import { buildSun, SUN_FOCUS_DISTANCE } from './projects/buildSun';
+import { buildSun, SUN_CORONA_RADIUS, SUN_FOCUS_DISTANCE } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
 import { NIGHT_FLOOR, NIGHT_FLOOR_HOVERED } from './projects/buildPlanetMaterial';
 import { PLANET_BASE_RADIUS } from './projects/constants';
@@ -334,10 +334,28 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // Each planet that connects to an outside service gets an orbiting
   // satellite and concentric pulse rings — visual shorthand for
   // "this planet talks to the outside world".
+  // A satellite may not reach into whatever sits either side of its planet:
+  // the neighbouring orbits, or the star's corona for the innermost one. Only
+  // the scene knows those distances, so it computes the allowance per planet.
+  const orbitRadii = planets.map((p) => p.project.orbitRadius).sort((a, b) => a - b);
+  const clearanceFor = (radius: number): number => {
+    const i = orbitRadii.indexOf(radius);
+    const inner = i > 0 ? radius - orbitRadii[i - 1]! : radius - SUN_CORONA_RADIUS;
+    const outer =
+      i < orbitRadii.length - 1 ? orbitRadii[i + 1]! - radius : Number.POSITIVE_INFINITY;
+    // 0.85 of the tighter side, so the satellite stops short of the line
+    // rather than grazing it.
+    return Math.max(0, Math.min(inner, outer)) * 0.85;
+  };
+
   const externalIndicators: ExternalIndicator[] = [];
   for (const planet of planets) {
     if (planet.project.externalApis && planet.project.externalApis.length > 0) {
-      externalIndicators.push(buildExternalIndicator(planet));
+      externalIndicators.push(
+        buildExternalIndicator(planet, {
+          maxReach: clearanceFor(planet.project.orbitRadius),
+        }),
+      );
     }
   }
 

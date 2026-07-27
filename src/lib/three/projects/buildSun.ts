@@ -35,7 +35,7 @@ export interface SunHandle {
 }
 
 const SUN_CORE_RADIUS = 2.1;
-const SUN_CORONA_RADIUS = 3.8;
+export const SUN_CORONA_RADIUS = 3.8;
 
 /**
  * Camera stand-off when the star is the focused body. Derived from the corona
@@ -44,11 +44,20 @@ const SUN_CORONA_RADIUS = 3.8;
  */
 export const SUN_FOCUS_DISTANCE = SUN_CORONA_RADIUS * 2.9;
 
-/** Photosphere palette, coolest edge to hottest centre. */
-const SUN_EDGE = 0xb04a18;
-const SUN_MID = 0xffb257;
-const SUN_HOT = 0xfff4d6;
-const CORONA_COLOR = 0xff9a4a;
+/**
+ * Photosphere palette, coolest edge to hottest centre.
+ *
+ * Pulled back from the first pass, which read as lava against a scene that is
+ * otherwise entirely cool blue: the star was the most saturated thing on
+ * screen by a wide margin and dragged the eye off the planets it exists to
+ * light. The hue is unchanged — a star should be warm — but the mid and edge
+ * stops carry less chroma, and more of the disc reaches the near-white centre,
+ * so the body reads as bright rather than orange.
+ */
+const SUN_EDGE = 0x9c5432;
+const SUN_MID = 0xf5c489;
+const SUN_HOT = 0xfff6e2;
+const CORONA_COLOR = 0xffb27a;
 
 /**
  * How far past white the photosphere is driven. Above 1.0 only means anything
@@ -104,7 +113,7 @@ const CORE_FRAGMENT = /* glsl */ `
     float h = clamp(n * 0.72 + g * 0.28, 0.0, 1.0);
 
     vec3 col = mix(uEdge, uMid, smoothstep(0.18, 0.56, h));
-    col = mix(col, uHot, smoothstep(0.48, 0.86, h));
+    col = mix(col, uHot, smoothstep(0.38, 0.80, h));
 
     // Limb darkening. The single most important term here: without it the disc
     // has a hard, flat edge that no amount of surface noise disguises.
