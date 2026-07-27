@@ -12,9 +12,27 @@ export interface Project {
   id: string;
   /** Brand name — never translated. */
   name: string;
+  /**
+   * Visual rank among the planets. Tier 1 rides the inner orbits and renders
+   * larger and brighter; tier 2 sits further out, smaller and dimmer. Absent
+   * for the star and for moons, which are ranked by what they orbit.
+   */
+  tier?: 1 | 2;
+  /**
+   * Renders as the system's star rather than a planet. Still a first-class
+   * project everywhere else — the terminal, the fallback grid and the timeline
+   * linkifier all read this list, so the star is not allowed to leave it.
+   */
+  isSun?: boolean;
+  /**
+   * Renders as a moon of the named project instead of claiming its own orbit,
+   * for the case where two entries are one piece of work built twice. The
+   * entry stays in this list for the same reason `isSun` does.
+   */
+  moonOf?: string;
   /** Visual scale on the solar system. Larger = more important. */
   scale: number;
-  /** Orbit radius in scene units. */
+  /** Orbit radius in scene units. For a moon, the radius around its parent. */
   orbitRadius: number;
   /** Orbit angular speed (radians per second). */
   orbitSpeed: number;
@@ -80,27 +98,19 @@ export const connections: Connection[] = [
     kind: 'music',
     color: '#ec4899',
   },
-  // ReadLog re-implemented in ASP.NET Core — the same app, a second stack.
-  {
-    sourceId: 'readlog',
-    targetId: 'readlog-dotnet',
-    kind: 'port',
-    color: '#a78bfa',
-  },
 ];
 
 export const projects: Project[] = [
   {
     id: 'hrm',
     name: 'HRM',
-    scale: 1.6,
-    orbitRadius: 7.5,
-    orbitSpeed: 0.14,
+    isSun: true,
+    scale: 1.0,
+    orbitRadius: 0.0,
+    orbitSpeed: 0.0,
     phase: 0.2,
     tilt: 0.04,
     color: '#5b8def',
-    hasRing: true,
-    ringColor: '#9bb8ff',
     liveUrl: 'https://hr-manager-pearl.vercel.app',
     githubUrl: 'https://github.com/MikkoNumminen/HRManager',
     tech: [
@@ -128,9 +138,10 @@ export const projects: Project[] = [
   {
     id: 'platform',
     name: 'Platform',
-    scale: 1.3,
-    orbitRadius: 11,
-    orbitSpeed: 0.09,
+    tier: 1,
+    scale: 1.25,
+    orbitRadius: 4.9,
+    orbitSpeed: 0.1,
     phase: 1.5,
     tilt: -0.05,
     color: '#f5a25b',
@@ -155,9 +166,10 @@ export const projects: Project[] = [
   {
     id: 'portfolio',
     name: 'Portfolio',
-    scale: 0.9,
-    orbitRadius: 14.5,
-    orbitSpeed: 0.07,
+    tier: 1,
+    scale: 0.95,
+    orbitRadius: 6.8,
+    orbitSpeed: 0.061,
     phase: 3.0,
     tilt: 0.08,
     color: '#4ade80',
@@ -169,9 +181,10 @@ export const projects: Project[] = [
   {
     id: 'readlog',
     name: 'ReadLog',
+    tier: 2,
     scale: 0.7,
-    orbitRadius: 18,
-    orbitSpeed: 0.05,
+    orbitRadius: 14.6,
+    orbitSpeed: 0.019,
     phase: 4.5,
     tilt: -0.03,
     color: '#a78bfa',
@@ -193,9 +206,10 @@ export const projects: Project[] = [
   {
     id: 'readlog-dotnet',
     name: 'ReadLog .NET',
-    scale: 0.72,
-    orbitRadius: 32,
-    orbitSpeed: 0.026,
+    moonOf: 'readlog',
+    scale: 0.34,
+    orbitRadius: 1.7,
+    orbitSpeed: 0.85,
     phase: 10.6,
     tilt: 0.03,
     color: '#7c5cff',
@@ -220,9 +234,10 @@ export const projects: Project[] = [
   {
     id: 'audiobookmaker',
     name: 'AudiobookMaker',
-    scale: 1.05,
-    orbitRadius: 21.5,
-    orbitSpeed: 0.04,
+    tier: 1,
+    scale: 1.1,
+    orbitRadius: 8.7,
+    orbitSpeed: 0.042,
     phase: 6.0,
     tilt: 0.06,
     color: '#22d3ee',
@@ -256,9 +271,10 @@ export const projects: Project[] = [
   {
     id: 'spacepotatis',
     name: 'Spacepotatis',
-    scale: 1.15,
-    orbitRadius: 25,
-    orbitSpeed: 0.035,
+    tier: 2,
+    scale: 0.68,
+    orbitRadius: 17.2,
+    orbitSpeed: 0.015,
     phase: 7.5,
     tilt: -0.07,
     color: '#ef4444',
@@ -284,9 +300,10 @@ export const projects: Project[] = [
   {
     id: 'strudel-patterns',
     name: 'Strudel Patterns',
-    scale: 0.55,
-    orbitRadius: 28.5,
-    orbitSpeed: 0.03,
+    tier: 2,
+    scale: 0.58,
+    orbitRadius: 18.6,
+    orbitSpeed: 0.014,
     phase: 9.0,
     tilt: 0.05,
     color: '#ec4899',
@@ -297,9 +314,10 @@ export const projects: Project[] = [
   {
     id: 'claude-continue',
     name: 'claude-continue',
-    scale: 0.55,
-    orbitRadius: 35.5,
-    orbitSpeed: 0.022,
+    tier: 2,
+    scale: 0.6,
+    orbitRadius: 20.0,
+    orbitSpeed: 0.012,
     phase: 12.1,
     tilt: -0.04,
     color: '#e07a5f',
@@ -322,9 +340,10 @@ export const projects: Project[] = [
   {
     id: 'passwordmanager',
     name: 'PasswordManager',
-    scale: 1.0,
-    orbitRadius: 39,
-    orbitSpeed: 0.019,
+    tier: 1,
+    scale: 1.15,
+    orbitRadius: 10.6,
+    orbitSpeed: 0.031,
     phase: 13.6,
     tilt: 0.05,
     color: '#eab308',
@@ -349,9 +368,10 @@ export const projects: Project[] = [
   {
     id: 'claude-agents',
     name: 'claude-agents',
-    scale: 0.6,
-    orbitRadius: 42.5,
-    orbitSpeed: 0.017,
+    tier: 2,
+    scale: 0.62,
+    orbitRadius: 21.4,
+    orbitSpeed: 0.011,
     phase: 15.1,
     tilt: -0.06,
     color: '#cc785c',
@@ -369,9 +389,10 @@ export const projects: Project[] = [
   {
     id: 'feedback-intelligence',
     name: 'Feedback Intelligence',
-    scale: 0.95,
-    orbitRadius: 46,
-    orbitSpeed: 0.015,
+    tier: 1,
+    scale: 1.05,
+    orbitRadius: 12.5,
+    orbitSpeed: 0.025,
     phase: 16.6,
     tilt: 0.04,
     color: '#2dd4bf',

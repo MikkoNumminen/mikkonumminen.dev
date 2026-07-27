@@ -3,7 +3,7 @@ import {
   CanvasTexture,
   Color,
   Mesh,
-  MeshStandardMaterial,
+  MeshBasicMaterial,
   SphereGeometry,
   Sprite,
   SpriteMaterial,
@@ -41,7 +41,7 @@ interface PulseEntry {
 export interface ExternalIndicator {
   /** Tiny mesh orbiting the planet, "broadcasting". */
   satellite: Mesh;
-  satelliteMaterial: MeshStandardMaterial;
+  satelliteMaterial: MeshBasicMaterial;
   satelliteGeometry: SphereGeometry;
   pulses: PulseEntry[];
   /** Local orbit radius of the satellite around its planet center. */
@@ -59,12 +59,13 @@ export function buildExternalIndicator(planet: PlanetEntry): ExternalIndicator {
   const baseColor = 0x80c8ff;
 
   const satelliteGeometry = new SphereGeometry(0.075, 14, 14);
-  const satelliteMaterial = new MeshStandardMaterial({
+  // Unlit. There are no lights in this scene any more — every surface is a
+  // shader that knows where the star is — so a PBR material here would run the
+  // whole lighting path to render a self-lit dot that receives nothing. The
+  // emissive colour it used to rely on IS the colour, so this is the same
+  // output for a fraction of the shader.
+  const satelliteMaterial = new MeshBasicMaterial({
     color: new Color(baseColor),
-    emissive: new Color(baseColor),
-    emissiveIntensity: 1.1,
-    roughness: 0.35,
-    metalness: 0.1,
     transparent: true,
     opacity: 1,
   });
@@ -122,8 +123,9 @@ export function updateExternalIndicator(
     Math.sin(angle * 0.42) * r * 0.32,
     Math.sin(angle) * r,
   );
+  // Opacity alone carries the fade now. The emissive channel it used to drive
+  // alongside it belonged to a PBR material that no longer exists.
   indicator.satelliteMaterial.opacity = visibility;
-  indicator.satelliteMaterial.emissiveIntensity = 1.1 * visibility;
 
   // Pulse rings expand from the satellite. Each pulse cycles through
   // [0, 1), peaks in opacity midway, and rides a sin-shaped envelope.

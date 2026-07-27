@@ -36,6 +36,62 @@ export function damp(current: number, target: number, factor: number): number {
   return current + (target - current) * factor;
 }
 
+/** Angular samples around the outermost orbit when solving the camera fit. */
+const FIT_SAMPLES = 72;
+
+/**
+ * The camera distance at which the whole system fits inside the frustum.
+ *
+ * Two things make this more than "divide the radius by the frustum angle".
+ *
+ * The system is a disc rather than a sphere, seen at an angle: it spans its
+ * full diameter horizontally but only a foreshortened fraction vertically.
+ * Treating the orbit radius as a vertical half-extent pushes the camera about
+ * twice as far back as it needs to go on a landscape viewport and leaves the
+ * system a small island in the middle of the screen.
+ *
+ * And the projection is perspective, not orthographic, so the near edge of the
+ * disc magnifies. A point can sit inside the frustum measured at the origin's
+ * depth and still project off-screen because it is closer to the camera than
+ * the origin is — which is exactly how the outer belt escaped the viewport
+ * after the first, flatter version of this.
+ *
+ * So the fit is solved around the orbit: for each sample angle, the distance at
+ * which that point clears both frustum planes, taking its own depth into
+ * account. The largest wins.
+ */
+export function fitRadius(
+  maxOrbitRadius: number,
+  margin: number,
+  fovDegrees: number,
+  aspect: number,
+  /** Camera polar angle from +Y, radians. */
+  polar: number,
+  minRadius: number,
+  maxRadius: number,
+): number {
+  const tanHalfFov = Math.tan((fovDegrees * Math.PI) / 180 / 2);
+  // Camera elevation above the ecliptic. cos(polar) is the vertical squash of
+  // the disc; sin(polar) is how much of a point's offset lies along the view
+  // axis, i.e. how much closer to the camera it is than the origin.
+  const vertical = Math.abs(Math.cos(polar));
+  const towardCamera = Math.abs(Math.sin(polar));
+
+  let needed = minRadius;
+  for (let i = 0; i < FIT_SAMPLES; i++) {
+    const a = (i / FIT_SAMPLES) * Math.PI * 2;
+    // Point on the outermost orbit, in a frame where the camera looks down -z.
+    const lateral = Math.abs(maxOrbitRadius * Math.cos(a));
+    const depthOffset = maxOrbitRadius * Math.sin(a) * towardCamera;
+    const rise = Math.abs(maxOrbitRadius * Math.sin(a) * vertical);
+    // Clearing width and height at this point's own depth.
+    const byWidth = (lateral + margin) / (tanHalfFov * aspect) + depthOffset;
+    const byHeight = (rise + margin) / tanHalfFov + depthOffset;
+    needed = Math.max(needed, byWidth, byHeight);
+  }
+  return needed > maxRadius ? maxRadius : needed;
+}
+
 /** Project spherical orbit coords (azimuth, polar, radius) to a Cartesian offset. */
 export function sphericalToCartesian(
   azimuth: number,

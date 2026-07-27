@@ -1,17 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { Group, PerspectiveCamera } from 'three';
-import type { PlanetEntry } from './buildPlanet';
-import { createPlanetLabels } from './createPlanetLabels';
+import { createPlanetLabels, type LabelledBody } from './createPlanetLabels';
 
-// createPlanetLabels manages floating DOM name-tags that track each planet via
+// createPlanetLabels manages floating DOM name-tags that track each body via
 // CPU projection (Vector3.project + Group.getWorldPosition — both jsdom-safe).
-// A minimal fake planet (the handle only reads group + project.{id,name,scale})
+// A minimal fake (the handle only reads group + project.{id,name} + labelLift)
 // avoids buildPlanet's CanvasTextures.
 
-function fakePlanet(id: string, name: string, z: number, scale = 1): PlanetEntry {
+function fakePlanet(id: string, name: string, z: number, labelLift = 1): LabelledBody {
   const group = new Group();
   group.position.set(0, 0, z);
-  return { group, project: { id, name, scale } } as unknown as PlanetEntry;
+  return { group, project: { id, name }, labelLift };
 }
 
 function frontCamera() {

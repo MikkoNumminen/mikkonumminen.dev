@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Color, type BufferAttribute } from 'three';
-import { buildStarfield } from './buildStarfield';
+import { buildStarfield, STAR_MAX_LUMINANCE } from './buildStarfield';
 
-// buildStarfield scatters 1800 stars on a spherical shell with palette colors.
+// buildStarfield scatters 1100 stars on a spherical shell with palette colors.
 // Three's BufferGeometry/Points construct headless, so the distribution
 // invariants (count, radius bounds, palette membership) are unit-testable.
 // Math.random is the only nondeterminism and is stubbable.
@@ -14,10 +14,10 @@ afterEach(() => {
 const arr = (a: BufferAttribute) => a.array;
 
 describe('buildStarfield', () => {
-  it('builds 1800 points with matching position and color counts', () => {
+  it('builds 1100 points with matching position and color counts', () => {
     const { geometry } = buildStarfield();
-    expect((geometry.getAttribute('position') as BufferAttribute).count).toBe(1800);
-    expect((geometry.getAttribute('color') as BufferAttribute).count).toBe(1800);
+    expect((geometry.getAttribute('position') as BufferAttribute).count).toBe(1100);
+    expect((geometry.getAttribute('color') as BufferAttribute).count).toBe(1100);
   });
 
   it('places every star within the [60, 200] radius shell', () => {
@@ -64,7 +64,30 @@ describe('buildStarfield', () => {
     expect(material.vertexColors).toBe(true);
     expect(material.depthWrite).toBe(false);
     expect(material.transparent).toBe(true);
-    expect(material.opacity).toBeCloseTo(0.95, 5);
-    expect(material.size).toBeCloseTo(0.18, 5);
+    expect(material.opacity).toBeCloseTo(STAR_MAX_LUMINANCE, 5);
+    expect(material.size).toBeCloseTo(0.4, 5);
+  });
+});
+
+describe('starfield low tier', () => {
+  it('halves the point count on the cheap path', () => {
+    const full = buildStarfield();
+    const low = buildStarfield({ lowPerf: true });
+    expect(low.geometry.getAttribute('position').count).toBeLessThan(
+      full.geometry.getAttribute('position').count,
+    );
+  });
+});
+
+describe('starfield brightness', () => {
+  it('stays below the bloom threshold so the backdrop never glows', () => {
+    // The composer blooms above 0.55. A star that crosses it competes with the
+    // planets and lifts the frame off black, which is the one thing the
+    // backdrop must not do.
+    const BLOOM_THRESHOLD = 0.55;
+    const { material } = buildStarfield();
+    expect(STAR_MAX_LUMINANCE).toBeLessThan(BLOOM_THRESHOLD);
+    // Palette entries are at most white, so opacity bounds rendered luminance.
+    expect(material.opacity).toBeLessThanOrEqual(STAR_MAX_LUMINANCE);
   });
 });

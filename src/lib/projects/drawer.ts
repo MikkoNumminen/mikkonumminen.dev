@@ -33,7 +33,6 @@ export interface DrawerOpts {
   intro: HTMLElement | null;
   legend: HTMLElement | null;
   credits: HTMLElement | null;
-  key: HTMLElement | null;
   list: HTMLElement | null;
   labels: DrawerLabels;
   /** Called after the drawer closes so the scene can deselect the planet. */
@@ -149,7 +148,7 @@ function populateDetail(
  * should invoke `dispose` on `beforeunload` or when tearing down the page.
  */
 export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
-  const { detail, closeBtn, intro, legend, credits, key, list, labels } = opts;
+  const { detail, closeBtn, intro, legend, credits, list, labels } = opts;
 
   let lastFocused: HTMLElement | null = null;
   // Trigger element to use as `lastFocused` on the next `open()` call,
@@ -193,7 +192,6 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
     intro?.classList.add('is-hidden');
     legend?.classList.add('is-hidden');
     credits?.classList.add('is-hidden');
-    key?.classList.add('is-hidden');
     list?.classList.add('is-hidden');
     detail.addEventListener('keydown', trapTab);
     // Move focus to the close button once the drawer is open so keyboard
@@ -207,7 +205,6 @@ export function initProjectDrawer(opts: DrawerOpts): DrawerHandle {
     intro?.classList.remove('is-hidden');
     legend?.classList.remove('is-hidden');
     credits?.classList.remove('is-hidden');
-    key?.classList.remove('is-hidden');
     list?.classList.remove('is-hidden');
     detail.removeEventListener('keydown', trapTab);
     opts.onClose?.();

@@ -54,7 +54,6 @@ describe('updateExternalIndicator', () => {
     });
     updateExternalIndicator(ind, 0.7, 0.4);
     expect(ind.satelliteMaterial.opacity).toBeCloseTo(0.4, 6);
-    expect(ind.satelliteMaterial.emissiveIntensity).toBeCloseTo(1.1 * 0.4, 6);
   });
 
   it('drives the pulse scale and sin-envelope opacity from its phase', () => {

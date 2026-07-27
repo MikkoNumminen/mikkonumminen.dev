@@ -4,7 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectDetail from '../components/projects/ProjectDetail.astro';
 import ProjectGrid from '../components/projects/ProjectGrid.astro';
 import ProjectsVoiceover from '../components/projects/ProjectsVoiceover.astro';
-import { connections, localizeProjects } from '../data/projects';
+import { localizeProjects } from '../data/projects';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -14,16 +14,6 @@ const t = getTranslations(locale);
 // `selectById` flow as clicking the matching planet, so users can jump
 // to any project without having to chase a moving target.
 const localizedList = localizeProjects(t);
-
-// Legend rows show only the *kind* of relation (submodule / voice /
-// music). Earlier iterations named the endpoints ("HRM ↔ Platform"),
-// but the hover/click affordances on the planets themselves already
-// surface that detail — keeping the legend general avoids stating the
-// same fact twice and lets the box stay narrow.
-const connectionLegendEntries = connections.map((c) => ({
-  color: c.color,
-  kindLabel: t.projectsPage.connectionKindLabels[c.kind],
-}));
 ---
 
 <BaseLayout
@@ -52,9 +42,29 @@ const connectionLegendEntries = connections.map((c) => ({
 
     <div class="planet-labels" id="planet-labels" aria-hidden="true"></div>
 
-    <nav class="projects-scene__list" data-list aria-label={t.projectsPage.listAriaLabel}>
-      <p class="projects-scene__list-heading">{t.projectsPage.listHeading}</p>
-      <ul class="projects-scene__list-items">
+    <!-- Collapsed to a rail by default: at thirteen projects an always-open
+         panel of names *and* taglines covered a third of the viewport, which
+         is the same third the outer orbits need. Names only when open; the
+         tagline is revealed per-row on hover (and in the planet's hover card,
+         which the row's forced-hover already triggers). -->
+    <nav
+      class="projects-scene__list"
+      data-list
+      data-expanded="false"
+      aria-label={t.projectsPage.listAriaLabel}
+    >
+      <button
+        type="button"
+        class="projects-scene__list-toggle"
+        data-list-toggle
+        aria-expanded="false"
+        aria-controls="projects-jump-list"
+      >
+        <span class="projects-scene__list-toggle-icon" aria-hidden="true"></span>
+        <span class="projects-scene__list-toggle-label">{t.projectsPage.listHeading}</span
+        >
+      </button>
+      <ul class="projects-scene__list-items" id="projects-jump-list">
         {
           localizedList.map((p) => (
             <li>
@@ -67,7 +77,9 @@ const connectionLegendEntries = connections.map((c) => ({
                 <span class="projects-scene__list-dot" aria-hidden="true" />
                 <span class="projects-scene__list-text">
                   <span class="projects-scene__list-name">{p.name}</span>
-                  <span class="projects-scene__list-tagline">{p.tagline}</span>
+                  <span class="projects-scene__list-tagline">
+                    <span>{p.tagline}</span>
+                  </span>
                 </span>
               </button>
             </li>
@@ -75,69 +87,6 @@ const connectionLegendEntries = connections.map((c) => ({
         }
       </ul>
     </nav>
-
-    <aside class="projects-scene__key" data-key aria-label={t.projectsPage.keyHeading}>
-      <p class="projects-scene__key-heading">{t.projectsPage.keyHeading}</p>
-
-      <p class="projects-scene__key-section">{t.projectsPage.keyConnectionsLabel}</p>
-      <ul class="projects-scene__key-list">
-        {
-          connectionLegendEntries.map((entry) => (
-            <li class="projects-scene__key-row">
-              <span
-                class="projects-scene__key-line"
-                style={`--line-color:${entry.color}`}
-                aria-hidden="true"
-              />
-              <span class="projects-scene__key-text">{entry.kindLabel}</span>
-            </li>
-          ))
-        }
-      </ul>
-
-      <p class="projects-scene__key-section">{t.projectsPage.externalApisLabel}</p>
-      <ul class="projects-scene__key-list">
-        <li class="projects-scene__key-row">
-          <svg
-            class="projects-scene__key-satellite"
-            viewBox="-16 -16 32 32"
-            width="28"
-            height="28"
-            aria-hidden="true"
-          >
-            <circle cx="0" cy="0" r="5" fill="rgba(196, 212, 255, 0.45)"></circle>
-            <circle cx="9" cy="-3" r="1.6" fill="#80c8ff"></circle>
-            <circle
-              cx="9"
-              cy="-3"
-              r="3.2"
-              stroke="#80c8ff"
-              stroke-width="0.5"
-              fill="none"
-              opacity="0.7"></circle>
-            <circle
-              cx="9"
-              cy="-3"
-              r="5"
-              stroke="#80c8ff"
-              stroke-width="0.4"
-              fill="none"
-              opacity="0.4"></circle>
-            <circle
-              cx="9"
-              cy="-3"
-              r="6.6"
-              stroke="#80c8ff"
-              stroke-width="0.3"
-              fill="none"
-              opacity="0.2"></circle>
-          </svg>
-          <span class="projects-scene__key-text">
-            {t.projectsPage.keyExternalDesc}
-          </span>
-        </li>
-      </ul>
-    </aside>
 
     <div class="projects-scene__credits" data-credits aria-hidden="true">
       <span>{t.navCards.footerCopyright}</span>
@@ -217,10 +166,35 @@ const connectionLegendEntries = connections.map((c) => ({
         const intro = document.querySelector<HTMLElement>('[data-intro]');
         const legend = document.querySelector<HTMLElement>('[data-legend]');
         const credits = document.querySelector<HTMLElement>('[data-credits]');
-        const key = document.querySelector<HTMLElement>('[data-key]');
         const list = document.querySelector<HTMLElement>('[data-list]');
 
         if (!canvas || !hoverLabel || !planetLabels || !detail || !closeBtn) return;
+
+        // Jump-panel collapse. Collapsed by default so the solar system owns
+        // the viewport; the choice is remembered for the session so it doesn't
+        // reset on every navigation back to this page. `inert` keeps the
+        // hidden project buttons out of the tab order.
+        const listToggle =
+          document.querySelector<HTMLButtonElement>('[data-list-toggle]');
+        const listItems = document.getElementById('projects-jump-list');
+        const setListExpanded = (expanded: boolean, persist = true) => {
+          if (!list || !listToggle || !listItems) return;
+          list.setAttribute('data-expanded', String(expanded));
+          listToggle.setAttribute('aria-expanded', String(expanded));
+          listToggle.setAttribute(
+            'aria-label',
+            expanded ? tp.listToggleCollapse : tp.listToggleExpand,
+          );
+          listItems.inert = !expanded;
+          if (persist) sessionStorage.setItem('projects:list-expanded', String(expanded));
+        };
+        setListExpanded(
+          sessionStorage.getItem('projects:list-expanded') === 'true',
+          false,
+        );
+        listToggle?.addEventListener('click', () => {
+          setListExpanded(list?.getAttribute('data-expanded') !== 'true');
+        });
 
         // Mark the list item that matches the currently selected project so
         // when the drawer closes the user can see which project was just
@@ -248,7 +222,6 @@ const connectionLegendEntries = connections.map((c) => ({
           intro,
           legend,
           credits,
-          key,
           list,
           labels: { liveDemo: tp.liveDemo, githubLink: tp.githubLink },
           onClose: () => {

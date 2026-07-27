@@ -117,17 +117,10 @@ export const fi: Translations = {
     gridAria: 'Projektit',
     gridLede:
       'Projektini. Työpöytänäkymässä ne näkyvät interaktiivisena aurinkokuntana — tässä luettavana listana.',
-    keyHeading: 'Selitykset',
-    keyConnectionsLabel: 'Yhteydet',
-    keyExternalDesc: 'kiertoradalla oleva satelliitti — yhteys ulkoiseen palveluun',
     listHeading: 'Hyppää projektiin',
     listAriaLabel: 'Projektiluettelo',
-    connectionKindLabels: {
-      submodule: 'alimoduuli',
-      voice: 'ääni',
-      music: 'musiikki',
-      port: 'porttaus',
-    },
+    listToggleExpand: 'Näytä projektiluettelo',
+    listToggleCollapse: 'Piilota projektiluettelo',
   },
   projectsData: {
     hrm: {

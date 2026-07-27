@@ -7,8 +7,20 @@ import type { Connection } from '../../../data/projects';
 import type { PlanetEntry } from './buildPlanet';
 
 const ARC_SEGMENTS = 48;
-const ARC_LIFT = 2.4;
 const FLOW_SPEED = 1.1;
+
+/**
+ * Arc lift is proportional to the span between the two planets, not constant.
+ * A flat lift is invisible on a long arc — a 60-unit span raised 2.4 units has
+ * no perceptible curvature and reads as a straight line slashed across the
+ * composition — while being far too tall on a short one.
+ */
+const ARC_LIFT_RATIO = 0.15;
+const ARC_LIFT_MIN = 0.8;
+const ARC_LIFT_MAX = 3.0;
+
+/** Below this the group is not worth drawing at all. */
+export const CONNECTION_VISIBLE_EPSILON = 0.01;
 
 export interface ConnectionEntry {
   connection: Connection;
@@ -46,6 +58,15 @@ export interface ConnectionEntry {
   coreDistances: Float32Array;
   baseHaloOpacity: number;
   baseCoreOpacity: number;
+  /**
+   * Damped per-edge visibility in [0,1]. Connections are hover-only: at rest
+   * every edge is fully transparent, and only the edges touching the planet
+   * under the cursor (or the focused one) fade up. Thirteen projects' worth of
+   * permanently-drawn arcs read as a tangle, and the relationships they encode
+   * are only interesting while you're asking about one specific project.
+   */
+  visCurrent: number;
+  visTarget: number;
 }
 
 export interface ConnectionsBundle {
@@ -158,7 +179,12 @@ export function buildConnections(
       coreDistances,
       baseHaloOpacity: haloMaterial.opacity,
       baseCoreOpacity: coreMaterial.opacity,
+      visCurrent: 0,
+      visTarget: 0,
     });
+    // Start fully faded out — nothing is hovered on arrival.
+    haloMaterial.opacity = 0;
+    coreMaterial.opacity = 0;
   }
 
   // Populate the position buffers with real planet coordinates immediately.
@@ -184,7 +210,8 @@ export function updateConnections(entries: ConnectionEntry[]): void {
     // Quadratic Bézier: midpoint lifted above the ecliptic so the arc
     // is visible even when both planets sit on the same side of the sun.
     _mid.copy(_src).add(_tgt).multiplyScalar(0.5);
-    _mid.y += ARC_LIFT;
+    const span = _src.distanceTo(_tgt);
+    _mid.y += Math.min(ARC_LIFT_MAX, Math.max(ARC_LIFT_MIN, span * ARC_LIFT_RATIO));
 
     // Mutate the interleaved buffer in place. Each segment occupies six
     // floats: three for the start vertex, three for the end vertex. The
@@ -273,15 +300,32 @@ export function animateConnectionFlow(entries: ConnectionEntry[], elapsed: numbe
 }
 
 /**
- * Smoothly fade connections in/out. Used to dim them while a planet is
- * selected (so they don't crowd the close-up detail view). `t` runs from
- * 0 (fully dimmed) to 1 (fully visible).
+ * Damp every edge toward lit-or-hidden for the currently active project and
+ * apply the result to the materials. An edge is lit when `activeId` is one of
+ * its two endpoints; pass `null` (nothing hovered or focused) to fade them all
+ * out.
+ *
+ * Returns true while any edge is still worth drawing, so the caller can skip
+ * both the draw calls and the per-frame arc rebuild in the common resting case.
  */
-export function fadeConnections(entries: ConnectionEntry[], t: number): void {
+export function updateConnectionVisibility(
+  entries: ConnectionEntry[],
+  activeId: string | null,
+  damping: number,
+): boolean {
+  let anyVisible = false;
   for (const e of entries) {
-    e.haloMaterial.opacity = e.baseHaloOpacity * t;
-    e.coreMaterial.opacity = e.baseCoreOpacity * t;
+    e.visTarget =
+      activeId !== null &&
+      (e.connection.sourceId === activeId || e.connection.targetId === activeId)
+        ? 1
+        : 0;
+    e.visCurrent += (e.visTarget - e.visCurrent) * damping;
+    if (e.visCurrent > CONNECTION_VISIBLE_EPSILON) anyVisible = true;
+    e.haloMaterial.opacity = e.baseHaloOpacity * e.visCurrent;
+    e.coreMaterial.opacity = e.baseCoreOpacity * e.visCurrent;
   }
+  return anyVisible;
 }
 
 export function resizeConnections(

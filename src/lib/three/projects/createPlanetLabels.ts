@@ -1,6 +1,15 @@
-import { Camera, Vector3 } from 'three';
-import type { PlanetEntry } from './buildPlanet';
-import { PLANET_BASE_RADIUS } from './constants';
+import { Camera, Object3D, Vector3 } from 'three';
+
+/**
+ * The minimum a body needs to carry a floating name label. Planets, moons and
+ * the star all satisfy it, and each supplies its own lift because a label that
+ * clears a planet would sit inside the star's corona.
+ */
+export interface LabelledBody {
+  project: { id: string; name: string };
+  group: Object3D;
+  labelLift: number;
+}
 
 export interface PlanetLabelsHandle {
   /** Per-frame screen-space reposition of every planet label. */
@@ -19,7 +28,7 @@ export interface PlanetLabelsHandle {
  */
 export function createPlanetLabels(
   container: HTMLElement,
-  planets: PlanetEntry[],
+  planets: LabelledBody[],
 ): PlanetLabelsHandle {
   const labels = new Map<string, HTMLElement>();
   for (const planet of planets) {
@@ -40,9 +49,9 @@ export function createPlanetLabels(
       const el = labels.get(planet.project.id);
       if (!el) continue;
       planet.group.getWorldPosition(worldPos);
-      // Lift the label one scaled-radius above the planet centre so it
-      // sits just above the body's apparent top edge.
-      worldPos.y += PLANET_BASE_RADIUS * planet.project.scale * 1.5;
+      // Sits just above the body's apparent top edge; the body decides how
+      // far that is, since a star's corona reaches well past its core.
+      worldPos.y += planet.labelLift;
       projection.copy(worldPos).project(camera);
       // `project()` returns z > 1 for points behind the camera. Hide
       // those rather than smearing the label across the screen edge.
