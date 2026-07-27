@@ -1,135 +1,195 @@
 /**
- * The central sun of the projects "solar system": an emissive core sphere, a
- * Fresnel-glow shell, and additive corona sprites (halo + flare) that breathe
- * on independent sine pulses. `SunHandle.tick` drives the per-frame pulsing.
+ * The central star of the projects "solar system": a shader-driven photosphere
+ * that churns, wrapped in a noise-modulated corona shell.
+ *
+ * The previous build was a flat-coloured sphere plus two additive sprites. It
+ * rendered as a featureless white disc, and the reason was tone mapping rather
+ * than the lack of noise: ACES at exposure 1.05 puts a near-white emissive at
+ * the shoulder of the curve, so any detail shaded onto it compresses to the
+ * same value. Two things fix that. Limb darkening drops the edge well below the
+ * shoulder, which is what makes the body read as a sphere at all. And the
+ * output is scaled past 1.0, so once the bloom composer lands (with its
+ * half-float buffer) the highlights have somewhere above white to live.
  */
 import {
   AdditiveBlending,
-  CanvasTexture,
+  BackSide,
+  Color,
   Group,
   Mesh,
-  MeshBasicMaterial,
   ShaderMaterial,
   SphereGeometry,
-  Sprite,
-  SpriteMaterial,
-  type Texture,
 } from 'three';
-import { createGlowMaterial } from '../createGlowMaterial';
+import { FBM, SIMPLEX_3D } from './shaderNoise';
 
 export interface SunHandle {
   group: Group;
   core: Mesh;
-  coreMaterial: MeshBasicMaterial;
+  coreMaterial: ShaderMaterial;
   coreGeometry: SphereGeometry;
-  glow: Mesh;
-  glowMaterial: ShaderMaterial;
-  glowGeometry: SphereGeometry;
-  halo: Sprite;
-  haloMaterial: SpriteMaterial;
-  haloTexture: Texture;
-  flare: Sprite;
-  flareMaterial: SpriteMaterial;
-  flareTexture: Texture;
+  corona: Mesh;
+  coronaMaterial: ShaderMaterial;
+  coronaGeometry: SphereGeometry;
+  /** Advance the churn. Call once per frame with seconds since start. */
+  tick: (elapsed: number) => void;
 }
 
-function makeRadialTexture(stops: Array<[number, string]>, size = 256): CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Failed to acquire 2D context for sun halo');
-  const gradient = ctx.createRadialGradient(
-    size / 2,
-    size / 2,
-    0,
-    size / 2,
-    size / 2,
-    size / 2,
-  );
-  for (const [stop, color] of stops) gradient.addColorStop(stop, color);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-  const tex = new CanvasTexture(canvas);
-  tex.needsUpdate = true;
-  return tex;
-}
+export const SUN_CORE_RADIUS = 2.1;
+const SUN_CORONA_RADIUS = 3.8;
 
-export function buildSun(): SunHandle {
+/** Photosphere palette, coolest edge to hottest centre. */
+const SUN_EDGE = 0xb04a18;
+const SUN_MID = 0xffb257;
+const SUN_HOT = 0xfff4d6;
+const CORONA_COLOR = 0xff9a4a;
+
+/**
+ * How far past white the photosphere is driven. Above 1.0 only means anything
+ * once the composer's half-float buffer exists to carry it; below that the tone
+ * mapping clips it back, which is why this is tuned to read without bloom
+ * rather than relying on it.
+ */
+const SUN_INTENSITY = 1.45;
+
+/** Octaves in the warp and detail passes. Halved on the low tier. */
+const SUN_OCTAVES = 4;
+const SUN_OCTAVES_LOW = 2;
+
+const VERTEX = /* glsl */ `
+  varying vec3 vObjPos;
+  varying vec3 vNormalW;
+  varying vec3 vViewDir;
+  void main() {
+    vObjPos = position;
+    vNormalW = normalize(normalMatrix * normal);
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vViewDir = -mv.xyz;
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const CORE_FRAGMENT = /* glsl */ `
+  uniform float uTime;
+  uniform float uIntensity;
+  uniform vec3 uEdge;
+  uniform vec3 uMid;
+  uniform vec3 uHot;
+  varying vec3 vObjPos;
+  varying vec3 vNormalW;
+  varying vec3 vViewDir;
+
+  ${SIMPLEX_3D}
+  ${FBM}
+
+  void main() {
+    vec3 p = normalize(vObjPos);
+
+    // Domain warp: sample fbm through a vector that is itself fbm. One pass
+    // scrolls; two passes boil, which is what a photosphere actually does.
+    vec3 q = vec3(
+      fbm(p * 2.1 + vec3(0.0, uTime * 0.05, 0.0), OCTAVES),
+      fbm(p * 2.1 + vec3(5.2, 1.3, uTime * 0.04), OCTAVES),
+      fbm(p * 2.1 + vec3(1.7, 9.2, uTime * 0.06), OCTAVES)
+    );
+    float n = fbm(p * 3.2 + q * 1.6, OCTAVES);
+    // Granulation: a faster, finer layer over the convective cells.
+    float g = fbm(p * 11.0 + q * 0.6 + vec3(uTime * 0.11), 3);
+    float h = clamp(n * 0.72 + g * 0.28, 0.0, 1.0);
+
+    vec3 col = mix(uEdge, uMid, smoothstep(0.18, 0.56, h));
+    col = mix(col, uHot, smoothstep(0.48, 0.86, h));
+
+    // Limb darkening. The single most important term here: without it the disc
+    // has a hard, flat edge that no amount of surface noise disguises.
+    float ndv = max(dot(normalize(vNormalW), normalize(vViewDir)), 0.0);
+    col *= mix(0.42, 1.0, pow(ndv, 0.45));
+
+    gl_FragColor = vec4(col * uIntensity, 1.0);
+  }
+`;
+
+const CORONA_FRAGMENT = /* glsl */ `
+  uniform float uTime;
+  uniform float uIntensity;
+  uniform vec3 uColor;
+  varying vec3 vObjPos;
+  varying vec3 vNormalW;
+  varying vec3 vViewDir;
+
+  ${SIMPLEX_3D}
+  ${FBM}
+
+  void main() {
+    // This shell is rendered back-side, so the visible fragments are the far
+    // hemisphere and their outward normals point AWAY from the camera: the
+    // usual 1 - max(dot(N, V), 0) fresnel evaluates to 1 across the entire
+    // disc and paints a solid ball rather than a corona.
+    //
+    // Signed depth instead. d runs 0 at the shell's silhouette to -1 straight
+    // behind the star, so -d is thickest near the core and thins to nothing at
+    // the outer edge, which is the direction a corona actually falls off. The
+    // core writes depth, so the innermost part is occluded by the star itself.
+    float d = dot(normalize(vNormalW), normalize(vViewDir));
+    float falloff = pow(clamp(-d, 0.0, 1.0), 2.6);
+    // Modulated so the corona churns rather than pulsing as one uniform ring,
+    // which is how the old sine-driven sprites read.
+    float n = fbm(normalize(vObjPos) * 2.6 + vec3(0.0, uTime * 0.07, 0.0), 3);
+    gl_FragColor = vec4(uColor, falloff * (0.35 + 0.65 * n) * uIntensity);
+  }
+`;
+
+export function buildSun(opts: { lowPerf?: boolean } = {}): SunHandle {
+  const defines = { OCTAVES: opts.lowPerf ? SUN_OCTAVES_LOW : SUN_OCTAVES };
+
   const group = new Group();
 
-  // Near-white-hot core. Pure cream (#fff0c8) read as a beige disc once
-  // tone mapping compressed it; pushing the core toward white lets the
-  // additive corona/flare layers paint the warm amber halo around it
-  // without the body itself looking dull.
-  const coreGeometry = new SphereGeometry(1.85, 48, 48);
-  const coreMaterial = new MeshBasicMaterial({ color: 0xfff8e0 });
+  const coreGeometry = new SphereGeometry(SUN_CORE_RADIUS, 64, 64);
+  const coreMaterial = new ShaderMaterial({
+    defines,
+    uniforms: {
+      uTime: { value: 0 },
+      uIntensity: { value: SUN_INTENSITY },
+      uEdge: { value: new Color(SUN_EDGE) },
+      uMid: { value: new Color(SUN_MID) },
+      uHot: { value: new Color(SUN_HOT) },
+    },
+    vertexShader: VERTEX,
+    fragmentShader: CORE_FRAGMENT,
+  });
   const core = new Mesh(coreGeometry, coreMaterial);
   group.add(core);
 
-  const glowMaterial = createGlowMaterial({
-    color: 0xffb858,
-    falloff: 0.55,
-    intensity: 1.75,
-  });
-  const glowGeometry = new SphereGeometry(3.1, 48, 48);
-  const glow = new Mesh(glowGeometry, glowMaterial);
-  group.add(glow);
-
-  // Wide, hot halo. Saturated amber inner stop with an extra warm-white
-  // inner ring gives the sun a real corona presence rather than a thin
-  // fringe.
-  const haloTexture = makeRadialTexture([
-    [0, 'rgba(255, 240, 200, 1)'],
-    [0.18, 'rgba(255, 210, 140, 0.85)'],
-    [0.45, 'rgba(255, 170, 90, 0.35)'],
-    [0.75, 'rgba(255, 140, 70, 0.10)'],
-    [1, 'rgba(255, 130, 70, 0)'],
-  ]);
-  const haloMaterial = new SpriteMaterial({
-    map: haloTexture,
+  const coronaGeometry = new SphereGeometry(SUN_CORONA_RADIUS, 48, 48);
+  const coronaMaterial = new ShaderMaterial({
+    defines,
+    uniforms: {
+      uTime: { value: 0 },
+      uIntensity: { value: 0.85 },
+      uColor: { value: new Color(CORONA_COLOR) },
+    },
+    vertexShader: VERTEX,
+    fragmentShader: CORONA_FRAGMENT,
+    transparent: true,
     blending: AdditiveBlending,
     depthWrite: false,
-    transparent: true,
-    opacity: 1.0,
+    side: BackSide,
   });
-  const halo = new Sprite(haloMaterial);
-  halo.scale.set(11.5, 11.5, 1);
-  group.add(halo);
+  const corona = new Mesh(coronaGeometry, coronaMaterial);
+  group.add(corona);
 
-  // Tight white-hot flare bloom over the core — pushes the visible
-  // brightness past the core's tone-mapped ceiling so the sun reads
-  // as actively radiating, not just a coloured ball.
-  const flareTexture = makeRadialTexture([
-    [0, 'rgba(255, 254, 245, 1)'],
-    [0.22, 'rgba(255, 235, 195, 0.7)'],
-    [0.5, 'rgba(255, 200, 140, 0.18)'],
-    [1, 'rgba(255, 180, 120, 0)'],
-  ]);
-  const flareMaterial = new SpriteMaterial({
-    map: flareTexture,
-    blending: AdditiveBlending,
-    depthWrite: false,
-    transparent: true,
-    opacity: 1.0,
-  });
-  const flare = new Sprite(flareMaterial);
-  flare.scale.set(5.6, 5.6, 1);
-  group.add(flare);
+  const tick = (elapsed: number): void => {
+    coreMaterial.uniforms.uTime!.value = elapsed;
+    coronaMaterial.uniforms.uTime!.value = elapsed;
+  };
 
   return {
     group,
     core,
     coreMaterial,
     coreGeometry,
-    glow,
-    glowMaterial,
-    glowGeometry,
-    halo,
-    haloMaterial,
-    haloTexture,
-    flare,
-    flareMaterial,
-    flareTexture,
+    corona,
+    coronaMaterial,
+    coronaGeometry,
+    tick,
   };
 }

@@ -5,8 +5,6 @@
  */
 import {
   ACESFilmicToneMapping,
-  AmbientLight,
-  DirectionalLight,
   FogExp2,
   Mesh,
   PerspectiveCamera,
@@ -226,42 +224,24 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // HRM is the star, not a planet: it is the hub the rest of the system hangs
   // off, and ranking by size alone understated that.
   const sunProject = projects.find((p) => p.isSun) ?? null;
-  const sun = buildSun();
+  const sun = buildSun({ lowPerf: perfFlags.lowPerf });
   scene.add(sun.group);
 
   // ── Lighting ────────────────────────────────────────────────────────
-  // Sun radiates outward without distance falloff so outer planets
-  // aren't visibly dimmer than inner ones. Intensity tuned so the lit
-  // hemisphere reads bright against the starfield without blowing out
-  // the procedural surface texture detail.
+  // One source, at the star, with no distance falloff so the outer belt is not
+  // dimmer than the inner one for reasons the viewer cannot see.
+  //
+  // What used to be here as well: an ambient fill, a cool counter-rim, and a
+  // directional light repositioned onto the camera every frame. All three
+  // existed to guarantee every planet was lit no matter where it sat, and
+  // together they erased the terminator — a planet between camera and star
+  // showed the same flat face as one beside it. Readability now comes from the
+  // planet shader instead: a night-side floor, a view-dependent rim, and a lift
+  // on whatever is hovered. That arrives with the planet materials in the next
+  // commit; until then this single light is what shades them.
   const sunLight = new PointLight(0xffd6a0, 3.6, 0, 0);
   sunLight.position.set(0, 0, 0);
   scene.add(sunLight);
-
-  // Ambient lifts the dark hemispheres just enough that planets read
-  // as 3D bodies rather than crescent silhouettes. Cool blue tint so
-  // the dark side feels like reflected starlight, not a flat fill.
-  const ambient = new AmbientLight(0x2a3a60, 0.3);
-  scene.add(ambient);
-  // Cool counter-rim catches the side opposite the sun and gives the
-  // planets a defined edge against the deep-space backdrop.
-  const rimLight = new DirectionalLight(0x6a8cc0, 0.32);
-  rimLight.position.set(-10, -2, -8);
-  scene.add(rimLight);
-
-  // Camera-tracked fill light. Planets orbiting between camera and
-  // sun show their dark hemisphere to the viewer — physically correct
-  // but a portfolio scene needs every planet readable. This light
-  // follows the camera each frame so the side facing the viewer is
-  // always lit. Cool blue-white tint keeps the deep-space mood
-  // intact rather than reading as studio fill.
-  const cameraFill = new DirectionalLight(0x9cb6e0, 0.55);
-  // Target stays at scene origin; updating cameraFill.position each
-  // frame aims the directional ray camera→origin. Adding the target
-  // to the scene is the documented three.js pattern — it ensures
-  // matrixWorld updates correctly if anyone later enables shadows or
-  // moves the target.
-  scene.add(cameraFill, cameraFill.target);
 
   // ── Bodies ──────────────────────────────────────────────────────────
   // One project is the star, one is a moon of another, the rest are planets.
@@ -580,17 +560,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     const delta = (now - lastFrame) / 1000;
     lastFrame = now;
 
-    // Sun spin
-    sun.core.rotation.y = elapsed * 0.2;
-    // ShaderMaterial uniforms are typed as Record<string, IUniform>; the
-    // `intensity` key is set in createGlowMaterial so the lookup is safe.
-    sun.glowMaterial.uniforms.intensity!.value = 1.75 + Math.sin(elapsed * 1.8) * 0.18;
-    // Independent sine pulses on the corona sprites give the sun a sense
-    // of life. Halo breathes slow, flare flickers faster.
-    const haloScale = 11.5 + Math.sin(elapsed * 0.9) * 0.6;
-    sun.halo.scale.set(haloScale, haloScale, 1);
-    const flareScale = 5.6 + Math.sin(elapsed * 2.3) * 0.45;
-    sun.flare.scale.set(flareScale, flareScale, 1);
+    sun.tick(elapsed);
 
     // Planets orbit. The selected planet's angle stays frozen — the
     // camera lerp toward it (factor 0.06 below) takes ~1 s to settle,
@@ -740,10 +710,6 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     // Starfield slow drift (parallax)
     starfield.points.rotation.y = elapsed * 0.005;
 
-    // Camera-tracked fill follows the camera each frame so whichever
-    // hemisphere of each planet is facing the viewer stays lit.
-    cameraFill.position.copy(camera.position);
-
     // Planet name labels — projected screen-space follow each planet.
     planetLabels.update(camera);
 
@@ -848,12 +814,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
       sun.coreGeometry.dispose();
       sun.coreMaterial.dispose();
-      sun.glowGeometry.dispose();
-      sun.glowMaterial.dispose();
-      sun.haloMaterial.dispose();
-      sun.haloTexture.dispose();
-      sun.flareMaterial.dispose();
-      sun.flareTexture.dispose();
+      sun.coronaGeometry.dispose();
+      sun.coronaMaterial.dispose();
       starfield.geometry.dispose();
       starfield.material.dispose();
       disposeConnections(connectionsBundle.entries);
@@ -861,11 +823,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       disposeExternalIndicators(externalIndicators);
       planetLabels.dispose();
 
-      scene.remove(sunLight, ambient, rimLight, cameraFill, cameraFill.target);
+      scene.remove(sunLight);
       sunLight.dispose();
-      ambient.dispose();
-      rimLight.dispose();
-      cameraFill.dispose();
 
       scene.fog = null;
       scene.clear();
