@@ -39,6 +39,16 @@ const MAP = [
   { pub: 'skills-optim-study.pdf', re: /^skills-optim-study-(\d{4}-\d{2}-\d{2})\.md$/ },
   { pub: 'skills-optim-study-replicates.pdf', re: /^skills-optim-study-(\d{4}-\d{2}-\d{2})-replicates\.md$/ },
   { pub: 'skills-results.pdf', re: /^skills-results-(\d{4}-\d{2}-\d{2})\.md$/ },
+  // Sourced outside docs/audits: this report's .md lives with the corpus posts,
+  // which is what the RAG index reads. Duplicating it into docs/audits purely to
+  // satisfy the regex convention would reintroduce exactly the drift this driver
+  // exists to prevent, so `src` names the real source and `dated` the canonical
+  // PDF the regex would otherwise have derived from the filename.
+  {
+    pub: 'agent-delegation.pdf',
+    src: 'content/posts/agent-delegation-measured.md',
+    dated: 'AGENT-DELEGATION-2026-07-26.pdf',
+  },
 ];
 
 function latestMd(names, re) {
@@ -66,14 +76,27 @@ function main() {
   const missing = [];
   const failed = [];
 
-  for (const { pub, re } of MAP) {
-    const mdName = latestMd(names, re);
-    if (!mdName) {
-      missing.push(pub);
-      continue;
+  for (const { pub, re, src, dated } of MAP) {
+    let mdName;
+    let mdPath;
+    let datedPdf;
+    if (src) {
+      mdPath = path.join(ROOT, src);
+      if (!fs.existsSync(mdPath)) {
+        missing.push(pub);
+        continue;
+      }
+      mdName = path.basename(src);
+      datedPdf = path.join(AUDITS_DIR, dated);
+    } else {
+      mdName = latestMd(names, re);
+      if (!mdName) {
+        missing.push(pub);
+        continue;
+      }
+      mdPath = path.join(AUDITS_DIR, mdName);
+      datedPdf = path.join(AUDITS_DIR, mdName.replace(/\.md$/, '.pdf'));
     }
-    const mdPath = path.join(AUDITS_DIR, mdName);
-    const datedPdf = path.join(AUDITS_DIR, mdName.replace(/\.md$/, '.pdf'));
     const pubPdf = path.join(PUBLIC_DIR, pub);
 
     // Default (prebuild) mode: only re-render when the source .md is newer than the
