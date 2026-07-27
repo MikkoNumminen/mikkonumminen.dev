@@ -36,6 +36,28 @@ export function damp(current: number, target: number, factor: number): number {
   return current + (target - current) * factor;
 }
 
+/**
+ * The orbit radius at which the whole system fits inside the frustum.
+ *
+ * The frustum's horizontal half-extent is the vertical one scaled by the
+ * aspect ratio, so a portrait viewport is width-bound while a landscape one is
+ * height-bound; `min(aspect, 1)` picks whichever actually binds. Without this
+ * the default camera distance is a constant tuned against one window, and every
+ * other shape clips the outer orbits.
+ */
+export function fitRadius(
+  maxOrbitRadius: number,
+  margin: number,
+  fovDegrees: number,
+  aspect: number,
+  minRadius: number,
+  maxRadius: number,
+): number {
+  const halfExtent = Math.tan((fovDegrees * Math.PI) / 180 / 2) * Math.min(aspect, 1);
+  const needed = (maxOrbitRadius + margin) / halfExtent;
+  return needed < minRadius ? minRadius : needed > maxRadius ? maxRadius : needed;
+}
+
 /** Project spherical orbit coords (azimuth, polar, radius) to a Cartesian offset. */
 export function sphericalToCartesian(
   azimuth: number,

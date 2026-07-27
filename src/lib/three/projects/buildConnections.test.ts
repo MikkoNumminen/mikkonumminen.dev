@@ -1,42 +1,74 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
-  fadeConnections,
+  updateConnectionVisibility,
   animateConnectionFlow,
   resizeConnections,
 } from './buildConnections';
 import type { ConnectionEntry } from './buildConnections';
 
-// fadeConnections / animateConnectionFlow / resizeConnections are pure scalar
-// writes over an entry's materials. Real entries need Line2/LineMaterial
-// (three/examples), so we use fake entries exposing only the fields these
-// functions touch — the contract is the opacity scaling, dash drift, and
-// resolution propagation.
+// updateConnectionVisibility / animateConnectionFlow / resizeConnections are
+// pure scalar writes over an entry's materials. Real entries need
+// Line2/LineMaterial (three/examples), so we use fake entries exposing only
+// the fields these functions touch — the contract is the per-edge fade, dash
+// drift, and resolution propagation.
 
-function fakeEntry(baseHalo: number, baseCore: number) {
+function fakeEntry(baseHalo: number, baseCore: number, sourceId = 'a', targetId = 'b') {
   return {
+    connection: { sourceId, targetId },
     baseHaloOpacity: baseHalo,
     baseCoreOpacity: baseCore,
+    visCurrent: 0,
+    visTarget: 0,
     haloMaterial: { opacity: 0, resolution: { set: vi.fn() } },
     coreMaterial: { opacity: 0, dashOffset: 0, resolution: { set: vi.fn() } },
   };
 }
 
-describe('fadeConnections', () => {
-  it('scales both opacities by t against their base values', () => {
-    const e = fakeEntry(0.4, 0.8);
-    fadeConnections([e] as unknown as ConnectionEntry[], 0.5);
-    expect(e.haloMaterial.opacity).toBeCloseTo(0.2, 6);
-    expect(e.coreMaterial.opacity).toBeCloseTo(0.4, 6);
+describe('updateConnectionVisibility', () => {
+  const settle = (entries: unknown[], activeId: string | null, steps = 200) => {
+    let visible = false;
+    for (let i = 0; i < steps; i++) {
+      visible = updateConnectionVisibility(entries as ConnectionEntry[], activeId, 0.12);
+    }
+    return visible;
+  };
+
+  it('lights an edge when the active project is either endpoint', () => {
+    for (const activeId of ['a', 'b']) {
+      const e = fakeEntry(0.4, 0.8, 'a', 'b');
+      expect(settle([e], activeId), activeId).toBe(true);
+      expect(e.haloMaterial.opacity).toBeCloseTo(0.4, 4);
+      expect(e.coreMaterial.opacity).toBeCloseTo(0.8, 4);
+    }
   });
 
-  it('t=1 restores base opacities; t=0 zeroes them', () => {
-    const e = fakeEntry(0.4, 0.8);
-    fadeConnections([e] as unknown as ConnectionEntry[], 1);
-    expect(e.haloMaterial.opacity).toBeCloseTo(0.4, 6);
-    expect(e.coreMaterial.opacity).toBeCloseTo(0.8, 6);
-    fadeConnections([e] as unknown as ConnectionEntry[], 0);
-    expect(e.haloMaterial.opacity).toBe(0);
-    expect(e.coreMaterial.opacity).toBe(0);
+  it('leaves edges that do not touch the active project dark', () => {
+    const e = fakeEntry(0.4, 0.8, 'a', 'b');
+    expect(settle([e], 'unrelated')).toBe(false);
+    expect(e.haloMaterial.opacity).toBeCloseTo(0, 4);
+    expect(e.coreMaterial.opacity).toBeCloseTo(0, 4);
+  });
+
+  it('fades everything out when nothing is active', () => {
+    const e = fakeEntry(0.4, 0.8, 'a', 'b');
+    settle([e], 'a');
+    expect(settle([e], null)).toBe(false);
+    expect(e.coreMaterial.opacity).toBeCloseTo(0, 4);
+  });
+
+  it('lights only the edges touching the active project', () => {
+    const touching = fakeEntry(0.4, 0.8, 'a', 'b');
+    const other = fakeEntry(0.4, 0.8, 'c', 'd');
+    expect(settle([touching, other], 'a')).toBe(true);
+    expect(touching.coreMaterial.opacity).toBeCloseTo(0.8, 4);
+    expect(other.coreMaterial.opacity).toBeCloseTo(0, 4);
+  });
+
+  it('eases rather than snapping, so a single step is partial', () => {
+    const e = fakeEntry(0.4, 0.8, 'a', 'b');
+    updateConnectionVisibility([e] as unknown as ConnectionEntry[], 'a', 0.12);
+    expect(e.visCurrent).toBeGreaterThan(0);
+    expect(e.visCurrent).toBeLessThan(1);
   });
 });
 

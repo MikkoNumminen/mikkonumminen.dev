@@ -36,7 +36,7 @@ import {
   buildConnections,
   updateConnections,
   animateConnectionFlow,
-  fadeConnections,
+  updateConnectionVisibility,
   resizeConnections,
   disposeConnections,
 } from './projects/buildConnections';
@@ -53,6 +53,7 @@ import {
   zoomRadius,
   exceedsDragThreshold,
   damp,
+  fitRadius,
   sphericalToCartesian,
 } from './projects/cameraControls';
 
@@ -91,20 +92,29 @@ export interface ProjectsSceneHandle {
 }
 
 const FOG_COLOR = 0x020512;
-const SOLAR_CAMERA_POS = new Vector3(0, 8, 28);
+/** Only the direction matters — the distance is derived per viewport, see FIT_MARGIN. */
+const SOLAR_CAMERA_DIR = new Vector3(0, 8, 28);
 const SOLAR_LOOK_AT = new Vector3(0, 0, 0);
 
 // Camera-control tuning. Spherical coords (azimuth, polar, radius) are
 // damped each frame toward their target values, which the user nudges
 // via drag (rotate) and wheel (zoom).
+const CAMERA_FOV = 52;
 const SPHERICAL_DAMPING = 0.18;
 const ROTATE_SPEED = 0.005;
 const ZOOM_SPEED = 0.0015;
-const MIN_RADIUS = 12;
-const MAX_RADIUS = 60;
+const MIN_RADIUS = 9;
+const MAX_RADIUS = 68;
 const MIN_POLAR = 0.25;
 const MAX_POLAR = Math.PI - 0.25;
 const DRAG_THRESHOLD = 4;
+/**
+ * World-unit gap left between the outermost orbit and the frustum edge at the
+ * default zoom, covering the planet's own radius and its floating name label.
+ */
+const FIT_MARGIN = 2.6;
+/** Per-frame damping of each connection's hover fade. */
+const CONNECTION_FADE_DAMPING = 0.12;
 
 /**
  * Build and mount the projects "solar system": one planet per project orbiting
@@ -157,13 +167,26 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   scene.fog = new FogExp2(FOG_COLOR, 0.012);
 
   const camera = new PerspectiveCamera(
-    52,
+    CAMERA_FOV,
     window.innerWidth / window.innerHeight,
     0.1,
     500,
   );
-  camera.position.copy(SOLAR_CAMERA_POS);
-  camera.lookAt(SOLAR_LOOK_AT);
+
+  // The default camera distance is derived from the viewport, not fixed: the
+  // outermost orbit has to fit inside the frustum on every window shape, and
+  // portrait viewports are bound by width where landscape ones are bound by
+  // height. A constant distance frames exactly one window and clips the rest.
+  const maxOrbitRadius = projects.reduce((m, p) => Math.max(m, p.orbitRadius), 0);
+  const computeFitRadius = (): number =>
+    fitRadius(
+      maxOrbitRadius,
+      FIT_MARGIN,
+      CAMERA_FOV,
+      camera.aspect,
+      MIN_RADIUS,
+      MAX_RADIUS,
+    );
 
   // ── Starfield ───────────────────────────────────────────────────────
   const starfield = buildStarfield();
@@ -244,7 +267,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     height: window.innerHeight,
   });
   scene.add(connectionsBundle.group);
-  let connectionVisibility = 1;
+  // Nothing is hovered on arrival, so no edge is lit and the group starts dark.
+  connectionsBundle.group.visible = false;
+  let indicatorVisibility = 1;
 
   // ── External-API indicators ────────────────────────────────────────
   // Each planet that connects to an outside service gets an orbiting
@@ -280,16 +305,17 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   window.addEventListener('pointerleave', onPointerLeave);
 
   // ── Camera-control state ────────────────────────────────────────────
-  // Initial spherical derived from SOLAR_CAMERA_POS (0, 8, 28).
-  const initialRadius = Math.sqrt(
-    SOLAR_CAMERA_POS.x ** 2 + SOLAR_CAMERA_POS.y ** 2 + SOLAR_CAMERA_POS.z ** 2,
-  );
+  // Viewing angle comes from SOLAR_CAMERA_DIR; the distance is fitted.
+  const dirLength = SOLAR_CAMERA_DIR.length();
   const sphericalCurrent = {
-    azimuth: Math.atan2(SOLAR_CAMERA_POS.x, SOLAR_CAMERA_POS.z),
-    polar: Math.acos(SOLAR_CAMERA_POS.y / initialRadius),
-    radius: initialRadius,
+    azimuth: Math.atan2(SOLAR_CAMERA_DIR.x, SOLAR_CAMERA_DIR.z),
+    polar: Math.acos(SOLAR_CAMERA_DIR.y / dirLength),
+    radius: computeFitRadius(),
   };
   const sphericalTarget = { ...sphericalCurrent };
+  // Once the user has zoomed, a resize must not yank them back to the fitted
+  // default — re-framing someone's chosen view on a window drag is hostile.
+  let userZoomed = false;
 
   let dragging = false;
   let dragMoved = false;
@@ -351,6 +377,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const onCanvasWheel = (e: WheelEvent): void => {
     if (selected) return;
     e.preventDefault();
+    userZoomed = true;
     sphericalTarget.radius = zoomRadius(
       sphericalTarget.radius,
       e.deltaY,
@@ -392,7 +419,14 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   canvas.addEventListener('click', onClick);
 
   // ── Camera tween state ──────────────────────────────────────────────
-  const cameraTarget = SOLAR_CAMERA_POS.clone();
+  const initialCamera = sphericalToCartesian(
+    sphericalCurrent.azimuth,
+    sphericalCurrent.polar,
+    sphericalCurrent.radius,
+  );
+  camera.position.set(initialCamera.x, initialCamera.y, initialCamera.z);
+  camera.lookAt(SOLAR_LOOK_AT);
+  const cameraTarget = camera.position.clone();
   const lookAtCurrent = SOLAR_LOOK_AT.clone();
 
   function selectPlanet(entry: PlanetEntry): void {
@@ -438,6 +472,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     camera,
     (w, h) => {
       resizeConnections(connectionsBundle.entries, w, h);
+      // Re-fit only while the user is still on the default framing.
+      if (!userZoomed) sphericalTarget.radius = computeFitRadius();
     },
     maxPixelRatio,
   );
@@ -499,19 +535,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       entry.mesh.rotation.y += delta * 0.4;
     }
 
-    // Connections — recompute arc positions from current planet world
-    // positions, advance the dash flow, and dim while a planet is selected.
-    updateConnections(connectionsBundle.entries);
-    animateConnectionFlow(connectionsBundle.entries, elapsed);
-    const targetVisibility = selected ? 0.18 : 1;
-    connectionVisibility += (targetVisibility - connectionVisibility) * 0.08;
-    fadeConnections(connectionsBundle.entries, connectionVisibility);
-
-    // External-API indicators — orbit the satellite and pulse the rings.
-    // Reuse the same fade factor as connections so the scene dims
-    // consistently while a planet is selected.
+    // External-API indicators — orbit the satellite and pulse the rings,
+    // dimmed while a planet is selected so they don't crowd the close-up.
+    const targetIndicatorVisibility = selected ? 0.18 : 1;
+    indicatorVisibility += (targetIndicatorVisibility - indicatorVisibility) * 0.08;
     for (const ind of externalIndicators) {
-      updateExternalIndicator(ind, elapsed, connectionVisibility);
+      updateExternalIndicator(ind, elapsed, indicatorVisibility);
     }
 
     // Raycast hover (skip while a planet is selected). Forced hover from
@@ -563,6 +592,23 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       }
     } else {
       hoverLabelHandle.hide();
+    }
+
+    // Connections are hover-only: only the edges touching the planet under
+    // the cursor (or the focused one) are drawn. Runs after the hover block
+    // so it reacts in the same frame the hover changes. When nothing is lit
+    // the whole group is skipped — that drops its draw calls AND the
+    // per-frame Bézier/arc-length rebuild, which is the resting state.
+    const activeEntry = forcedHovered ?? hovered ?? selected;
+    const connectionsVisible = updateConnectionVisibility(
+      connectionsBundle.entries,
+      activeEntry?.project.id ?? null,
+      CONNECTION_FADE_DAMPING,
+    );
+    connectionsBundle.group.visible = connectionsVisible;
+    if (connectionsVisible) {
+      updateConnections(connectionsBundle.entries);
+      animateConnectionFlow(connectionsBundle.entries, elapsed);
     }
 
     // Camera target

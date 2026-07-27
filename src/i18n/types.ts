@@ -105,17 +105,10 @@ export interface Translations {
     githubLink: string;
     gridAria: string;
     gridLede: string;
-    keyHeading: string;
-    keyConnectionsLabel: string;
-    keyExternalDesc: string;
     listHeading: string;
     listAriaLabel: string;
-    connectionKindLabels: {
-      submodule: string;
-      voice: string;
-      music: string;
-      port: string;
-    };
+    listToggleExpand: string;
+    listToggleCollapse: string;
   };
   projectsData: Record<
     string,
