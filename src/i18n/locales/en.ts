@@ -239,8 +239,18 @@ export const en: Translations = {
     },
     kasvulabs: {
       title: 'Kasvu Labs Oy',
-      body: 'First paid programming role. Node.js backend, React frontend, working with large sets of open data. Full-stack development, UI design, database management on Azure, product maintenance.',
-      tags: ['Node.js', 'React', 'Open data', 'PostgreSQL', 'Azure'],
+      body: 'Two years of full-stack work, in three phases.\n\nFirst, open data. I built a TypeScript tool that pulls public statistics and reshapes them, and it stayed in use at the company after I left. It fed a kiosk-network app: sales per kiosk and per product, who was responsible for what, and a map of Finland with every kiosk laid over municipal age, income and employment data. The question it answered was where there should be more kiosks, and where fewer.\n\nThen the client project, taking full-stack tickets off a kanban board. Mostly frontend, but regularly the whole path: a PgTyped query, the REST endpoint for it, the wiring, and the Recharts view with tests.\n\nI owned the monthly data updates as well. There was no direct database access, so I went in through the Kubernetes cluster and ran psql in a pod against production.\n\nThe last phase was a medical research project. Same stack, same end-to-end shape.',
+      tags: [
+        'TypeScript',
+        'React',
+        'Node.js',
+        'PostgreSQL',
+        'PgTyped',
+        'Recharts',
+        'Kubernetes',
+        'Azure',
+        'Open data',
+      ],
     },
     father: {
       title: 'Becoming a father',
