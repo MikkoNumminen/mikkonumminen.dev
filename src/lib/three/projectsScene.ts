@@ -11,6 +11,7 @@ import {
   Mesh,
   PerspectiveCamera,
   PointLight,
+  type Object3D,
   Raycaster,
   Scene,
   Vector2,
@@ -32,6 +33,7 @@ import {
 import { buildStarfield } from './projects/buildStarfield';
 import { buildSun } from './projects/buildSun';
 import { buildPlanet, type PlanetEntry } from './projects/buildPlanet';
+import { PLANET_BASE_RADIUS } from './projects/constants';
 import {
   buildConnections,
   updateConnections,
@@ -56,6 +58,25 @@ import {
   fitRadius,
   sphericalToCartesian,
 } from './projects/cameraControls';
+
+/**
+ * Anything on the canvas the pointer can inspect or focus. Planets, moons and
+ * the star differ in how they are built and where they sit, but hover, click,
+ * labelling and camera framing treat them identically — this is the shape that
+ * lets one code path do all four.
+ */
+interface FocusTarget {
+  project: LocalizedProject;
+  /** World-positioned holder, used for label placement and camera framing. */
+  group: Object3D;
+  /** Raycast and hover-scale target. */
+  mesh: Mesh;
+  hoverScale: number;
+  /** Camera stand-off distance when this body is focused. */
+  focusDistance: number;
+  /** How far above the body centre its HTML label floats, in world units. */
+  labelLift: number;
+}
 
 export interface ProjectsSceneOptions {
   canvas: HTMLCanvasElement;
@@ -115,6 +136,8 @@ const DRAG_THRESHOLD = 4;
 const FIT_MARGIN = 2.6;
 /** Per-frame damping of each connection's hover fade. */
 const CONNECTION_FADE_DAMPING = 0.12;
+/** The star's label clears its corona rather than its core. */
+const SUN_LABEL_LIFT = 3.4;
 
 /**
  * Build and mount the projects "solar system": one planet per project orbiting
@@ -177,13 +200,20 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // outermost orbit has to fit inside the frustum on every window shape, and
   // portrait viewports are bound by width where landscape ones are bound by
   // height. A constant distance frames exactly one window and clips the rest.
-  const maxOrbitRadius = projects.reduce((m, p) => Math.max(m, p.orbitRadius), 0);
-  const computeFitRadius = (): number =>
+  const initialPolar = Math.acos(SOLAR_CAMERA_DIR.y / SOLAR_CAMERA_DIR.length());
+  const maxOrbitRadius = projects.reduce(
+    (m, p) => (p.isSun || p.moonOf ? m : Math.max(m, p.orbitRadius)),
+    0,
+  );
+  // Polar is passed in rather than read off the camera state: the first call
+  // happens while that state is still being initialised.
+  const computeFitRadius = (polar: number): number =>
     fitRadius(
       maxOrbitRadius,
       FIT_MARGIN,
       CAMERA_FOV,
       camera.aspect,
+      polar,
       MIN_RADIUS,
       MAX_RADIUS,
     );
@@ -193,6 +223,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   scene.add(starfield.points);
 
   // ── Sun ─────────────────────────────────────────────────────────────
+  // HRM is the star, not a planet: it is the hub the rest of the system hangs
+  // off, and ranking by size alone understated that.
+  const sunProject = projects.find((p) => p.isSun) ?? null;
   const sun = buildSun();
   scene.add(sun.group);
 
@@ -230,15 +263,61 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // moves the target.
   scene.add(cameraFill, cameraFill.target);
 
-  // ── Planets ─────────────────────────────────────────────────────────
+  // ── Bodies ──────────────────────────────────────────────────────────
+  // One project is the star, one is a moon of another, the rest are planets.
+  // Every project stays in `projects` regardless — the terminal, the fallback
+  // grid and the timeline linkifier all read that same list.
+  const planetProjects = projects.filter((p) => !p.isSun && !p.moonOf);
+  const moonProjects = projects.filter((p) => p.moonOf);
+
   const planets: PlanetEntry[] = [];
-  for (const project of projects) {
+  for (const project of planetProjects) {
     const built = buildPlanet(project);
     scene.add(built.rootGroup);
     planets.push(built.entry);
   }
+
+  // Moons hang off their parent's positioned group, so they ride the parent's
+  // orbit for free and only have to track their own local angle.
+  const moons: PlanetEntry[] = [];
+  for (const project of moonProjects) {
+    const parent = planets.find((p) => p.project.id === project.moonOf);
+    if (!parent) continue;
+    const built = buildPlanet(project);
+    parent.group.add(built.rootGroup);
+    moons.push(built.entry);
+  }
+
+  // Anything the pointer can inspect or focus: planets, moons, and the star.
+  // The star is a project like any other, so it answers to hover, click, the
+  // side-panel list and the drawer through exactly the same path.
+  const orbiting = [...planets, ...moons];
+  const focusTargets: FocusTarget[] = orbiting.map((entry) => ({
+    project: entry.project,
+    group: entry.group,
+    mesh: entry.mesh,
+    hoverScale: 1.18,
+    focusDistance: 4.5 + entry.project.scale * 1.5,
+    labelLift: PLANET_BASE_RADIUS * entry.project.scale * 1.5,
+  }));
+
+  if (sunProject) {
+    sun.core.userData.projectId = sunProject.id;
+    focusTargets.push({
+      project: sunProject,
+      group: sun.group,
+      mesh: sun.core,
+      // Gentler than a planet's: the star already dominates, and 1.18x on a
+      // body this size reads as a lurch rather than a highlight.
+      hoverScale: 1.06,
+      // Far enough back to clear the corona shell, which extends to 3.1.
+      focusDistance: 11,
+      labelLift: SUN_LABEL_LIFT,
+    });
+  }
+
   // Cached once so the raycaster doesn't allocate per frame and per click.
-  const planetMeshes: Mesh[] = planets.map((p) => p.mesh);
+  const raycastTargets: Mesh[] = focusTargets.map((f) => f.mesh);
 
   // Runtime orbital angle per planet, advanced delta-style each frame.
   // The original formula was `project.phase + elapsed * speed * scale`
@@ -250,7 +329,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // the value persists across the selection and resumes seamlessly on
   // deselect.
   const planetAngles = new Map<PlanetEntry, number>();
-  for (const entry of planets) {
+  for (const entry of orbiting) {
     planetAngles.set(entry, entry.project.phase);
   }
 
@@ -259,7 +338,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // hovering. Repositioned per frame from the planet's projected screen
   // position; hidden while the drawer is open to keep focus on the
   // selected project.
-  const planetLabels = createPlanetLabels(planetLabelsContainer, planets);
+  const planetLabels = createPlanetLabels(planetLabelsContainer, focusTargets);
 
   // ── Connections (semantic edges between related projects) ──────────
   const connectionsBundle = buildConnections(connections, planets, {
@@ -288,11 +367,11 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   // ── Raycasting state ────────────────────────────────────────────────
   const raycaster = new Raycaster();
   const pointer = new Vector2(-1, -1);
-  let hovered: PlanetEntry | null = null;
-  let selected: PlanetEntry | null = null;
+  let hovered: FocusTarget | null = null;
+  let selected: FocusTarget | null = null;
   // Set by `hoverById` from the side-panel list. When non-null, overrides
   // raycast hover so list-item hovers highlight the matching planet.
-  let forcedHovered: PlanetEntry | null = null;
+  let forcedHovered: FocusTarget | null = null;
 
   const onPointerMove = (e: PointerEvent): void => {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -310,7 +389,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const sphericalCurrent = {
     azimuth: Math.atan2(SOLAR_CAMERA_DIR.x, SOLAR_CAMERA_DIR.z),
     polar: Math.acos(SOLAR_CAMERA_DIR.y / dirLength),
-    radius: computeFitRadius(),
+    radius: computeFitRadius(initialPolar),
   };
   const sphericalTarget = { ...sphericalCurrent };
   // Once the user has zoomed, a resize must not yank them back to the fitted
@@ -394,9 +473,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
   canvas.style.touchAction = 'none';
 
-  const planetById = (id: string | undefined): PlanetEntry | null => {
+  const focusById = (id: string | undefined): FocusTarget | null => {
     if (!id) return null;
-    return planets.find((p) => p.project.id === id) ?? null;
+    return focusTargets.find((f) => f.project.id === id) ?? null;
   };
 
   const onClick = (e: MouseEvent): void => {
@@ -407,12 +486,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(planetMeshes);
+    const hits = raycaster.intersectObjects(raycastTargets);
     if (hits.length > 0) {
       // `userData.projectId` is a string we set ourselves in buildPlanet;
       // userDataString guards the Record<string, any> read.
       const id = userDataString(hits[0]!.object, 'projectId');
-      const entry = planetById(id);
+      const entry = focusById(id);
       if (entry) selectPlanet(entry);
     }
   };
@@ -429,7 +508,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const cameraTarget = camera.position.clone();
   const lookAtCurrent = SOLAR_LOOK_AT.clone();
 
-  function selectPlanet(entry: PlanetEntry): void {
+  function selectPlanet(entry: FocusTarget): void {
     // Reset any in-progress hover state before locking the camera onto
     // the new selection. Without this the previously-hovered planet
     // keeps its 1.18× scale through the drawer's lifetime (the raycast
@@ -473,7 +552,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     (w, h) => {
       resizeConnections(connectionsBundle.entries, w, h);
       // Re-fit only while the user is still on the default framing.
-      if (!userZoomed) sphericalTarget.radius = computeFitRadius();
+      if (!userZoomed) sphericalTarget.radius = computeFitRadius(sphericalCurrent.polar);
     },
     maxPixelRatio,
   );
@@ -520,8 +599,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     // drifting at the reduced 0.18× speed so the scene stays alive.
     const baseOrbitScale = reducedMotion ? 0.25 : 1.0;
     const orbitSpeedScale = (selected ? 0.18 : 1.0) * baseOrbitScale;
-    for (const entry of planets) {
-      if (entry !== selected) {
+    for (const entry of orbiting) {
+      if (entry.project.id !== selected?.project.id) {
         const next =
           planetAngles.get(entry)! + delta * entry.project.orbitSpeed * orbitSpeedScale;
         planetAngles.set(entry, next);
@@ -549,9 +628,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     // the cursor actually sits in the canvas.
     if (!selected) {
       raycaster.setFromCamera(pointer, camera);
-      const hits = raycaster.intersectObjects(planetMeshes);
+      const hits = raycaster.intersectObjects(raycastTargets);
       const raycastHovered =
-        hits.length > 0 ? planetById(userDataString(hits[0]!.object, 'projectId')) : null;
+        hits.length > 0 ? focusById(userDataString(hits[0]!.object, 'projectId')) : null;
       const newHovered = forcedHovered ?? raycastHovered;
 
       if (newHovered !== hovered) {
@@ -566,9 +645,9 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
         }
         if (newHovered) {
           gsap.to(newHovered.mesh.scale, {
-            x: 1.18,
-            y: 1.18,
-            z: 1.18,
+            x: newHovered.hoverScale,
+            y: newHovered.hoverScale,
+            z: newHovered.hoverScale,
             duration: 0.35,
             ease: 'power2.out',
           });
@@ -619,7 +698,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       selected.group.getWorldPosition(planetWorldPos);
       const offsetX = 2.0;
       const offsetY = 1.4;
-      const offsetZ = 4.5 + selected.project.scale * 1.5;
+      const offsetZ = selected.focusDistance;
       cameraTarget.set(
         planetWorldPos.x + offsetX,
         planetWorldPos.y + offsetY,
@@ -709,7 +788,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
         if (selected) deselect();
         return;
       }
-      const entry = planetById(id);
+      const entry = focusById(id);
       if (entry && entry !== selected) selectPlanet(entry);
     },
     hoverById: (id: string | null): void => {
@@ -719,7 +798,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
         forcedHovered = null;
         return;
       }
-      forcedHovered = planetById(id ?? undefined);
+      forcedHovered = focusById(id ?? undefined);
     },
     resize: resize.handler,
     dispose: (): void => {
@@ -742,15 +821,15 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
 
       // Kill any in-flight hover tweens before the Vector3s they target are
       // freed alongside the meshes below.
-      for (const p of planets) {
-        gsap.killTweensOf(p.mesh.scale);
+      for (const f of focusTargets) {
+        gsap.killTweensOf(f.mesh.scale);
       }
 
       // Reset hover-driven DOM state so nothing is left behind on teardown.
       canvas.style.cursor = '';
       hoverLabelHandle.reset();
 
-      for (const p of planets) {
+      for (const p of orbiting) {
         p.mesh.geometry.dispose();
         disposeMaterial(p.mesh.material);
         // Material.dispose() does NOT walk attached textures, so the

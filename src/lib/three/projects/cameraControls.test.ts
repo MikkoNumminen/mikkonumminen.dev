@@ -56,43 +56,72 @@ describe('damp', () => {
 describe('fitRadius', () => {
   const FOV = 52;
   const R_MAX = 21.4;
-  const MARGIN = 1.6;
+  const MARGIN = 2.6;
+  // The scene's default view: camera at (0, 8, 28), about 16 degrees above the
+  // ecliptic.
+  const POLAR = Math.acos(8 / Math.hypot(0, 8, 28));
+  const tanHalf = Math.tan((FOV * Math.PI) / 180 / 2);
 
-  /** Half-width of the frustum in world units at a given camera distance. */
-  const halfWidthAt = (radius: number, aspect: number) =>
-    Math.tan((FOV * Math.PI) / 180 / 2) * radius * aspect;
+  /**
+   * Worst-case screen offset of the outermost orbit, as a fraction of the
+   * half-extent, accounting for perspective. <= 1 means nothing clips.
+   */
+  function worstFill(radius: number, aspect: number, polar: number, rMax = R_MAX) {
+    const vertical = Math.abs(Math.cos(polar));
+    const toward = Math.abs(Math.sin(polar));
+    let wx = 0;
+    let wy = 0;
+    for (let i = 0; i < 360; i++) {
+      const a = (i / 360) * Math.PI * 2;
+      const depth = radius - rMax * Math.sin(a) * toward;
+      if (depth <= 0.01) return Infinity;
+      wx = Math.max(wx, Math.abs(rMax * Math.cos(a)) / (tanHalf * aspect * depth));
+      wy = Math.max(wy, Math.abs(rMax * Math.sin(a) * vertical) / (tanHalf * depth));
+    }
+    return Math.max(wx, wy);
+  }
 
-  it('frames the outermost orbit with the requested margin (landscape)', () => {
-    const r = fitRadius(R_MAX, MARGIN, FOV, 16 / 9, 9, 200);
-    // Landscape is height-bound, so the vertical half-extent is the limit.
-    const halfHeight = Math.tan((FOV * Math.PI) / 180 / 2) * r;
-    expect(halfHeight).toBeCloseTo(R_MAX + MARGIN, 6);
-    expect(halfWidthAt(r, 16 / 9)).toBeGreaterThan(R_MAX + MARGIN);
-  });
-
-  it('pulls further back on portrait viewports, which are width-bound', () => {
-    const landscape = fitRadius(R_MAX, MARGIN, FOV, 16 / 9, 9, 200);
-    const portrait = fitRadius(R_MAX, MARGIN, FOV, 0.75, 9, 200);
-    expect(portrait).toBeGreaterThan(landscape);
-    expect(halfWidthAt(portrait, 0.75)).toBeCloseTo(R_MAX + MARGIN, 6);
-  });
-
-  it('never lets the outermost orbit fall outside the frustum, at any aspect', () => {
+  it('keeps the whole outermost orbit on screen, at every aspect', () => {
     for (const aspect of [0.5, 0.75, 1, 1.33, 1.78, 2.4, 3.5]) {
-      const r = fitRadius(R_MAX, MARGIN, FOV, aspect, 9, 200);
-      expect(halfWidthAt(r, aspect), `aspect ${aspect}`).toBeGreaterThanOrEqual(R_MAX);
+      const r = fitRadius(R_MAX, MARGIN, FOV, aspect, POLAR, 9, 400);
+      expect(worstFill(r, aspect, POLAR), `aspect ${aspect}`).toBeLessThanOrEqual(1);
     }
   });
 
+  it('accounts for the near edge magnifying, not just the flat radius', () => {
+    // A fit that ignores perspective lands here and clips the near side.
+    const flat = (R_MAX + MARGIN) / (tanHalf * (16 / 9));
+    const r = fitRadius(R_MAX, MARGIN, FOV, 16 / 9, POLAR, 9, 400);
+    expect(r).toBeGreaterThan(flat);
+    expect(worstFill(flat, 16 / 9, POLAR)).toBeGreaterThan(1);
+  });
+
+  it('does not pull back as if the system were a sphere', () => {
+    const asSphere = (R_MAX + MARGIN) / tanHalf;
+    const r = fitRadius(R_MAX, MARGIN, FOV, 16 / 9, POLAR, 9, 400);
+    expect(r).toBeLessThan(asSphere);
+  });
+
+  it('pulls further back on portrait viewports, which are width-bound', () => {
+    const landscape = fitRadius(R_MAX, MARGIN, FOV, 16 / 9, POLAR, 9, 400);
+    const portrait = fitRadius(R_MAX, MARGIN, FOV, 0.75, POLAR, 9, 400);
+    expect(portrait).toBeGreaterThan(landscape);
+  });
+
+  it('handles a top-down view, where the disc is seen face-on', () => {
+    const r = fitRadius(R_MAX, MARGIN, FOV, 1, 0, 9, 400);
+    expect(worstFill(r, 1, 0)).toBeLessThanOrEqual(1);
+  });
+
   it('grows with the system it has to frame', () => {
-    expect(fitRadius(30, MARGIN, FOV, 1.5, 9, 200)).toBeGreaterThan(
-      fitRadius(20, MARGIN, FOV, 1.5, 9, 200),
+    expect(fitRadius(30, MARGIN, FOV, 1.5, POLAR, 9, 400)).toBeGreaterThan(
+      fitRadius(20, MARGIN, FOV, 1.5, POLAR, 9, 400),
     );
   });
 
   it('clamps to [min, max]', () => {
-    expect(fitRadius(1, MARGIN, FOV, 1.5, 20, 200)).toBe(20);
-    expect(fitRadius(500, MARGIN, FOV, 1.5, 9, 68)).toBe(68);
+    expect(fitRadius(0.01, MARGIN, FOV, 1.5, POLAR, 20, 400)).toBe(20);
+    expect(fitRadius(500, MARGIN, FOV, 1.5, POLAR, 9, 68)).toBe(68);
   });
 });
 

@@ -15,7 +15,7 @@ import {
 } from 'three';
 import type { LocalizedProject } from '../../../data/projects';
 import { createGlowMaterial } from '../createGlowMaterial';
-import { PLANET_BASE_RADIUS } from './constants';
+import { PLANET_BASE_RADIUS, TIER_TWO_DIM } from './constants';
 import { buildPlanetTexture } from './buildPlanetTexture';
 
 export interface PlanetEntry {
@@ -40,6 +40,11 @@ export function buildPlanet(project: LocalizedProject): {
 } {
   const rootGroup = new Group();
   rootGroup.rotation.x = project.tilt;
+
+  // Projects are not equals. Tier 2 keeps the same materials as tier 1 and is
+  // pulled back on brightness only, so the ranking reads as distance and light
+  // rather than as two different kinds of object.
+  const tierDim = project.tier === 2 ? TIER_TWO_DIM : 1;
 
   const radius = PLANET_BASE_RADIUS * project.scale;
   const geometry = new SphereGeometry(radius, 48, 48);
@@ -72,7 +77,7 @@ export function buildPlanet(project: LocalizedProject): {
     // and sun still read as textured bodies, not black silhouettes.
     emissiveMap: surfaceMap,
     emissive: 0xffffff,
-    emissiveIntensity: 0.18,
+    emissiveIntensity: 0.18 * tierDim,
   });
   const mesh = new Mesh(geometry, material);
   mesh.userData.projectId = project.id;
@@ -85,7 +90,7 @@ export function buildPlanet(project: LocalizedProject): {
   const glowMaterial = createGlowMaterial({
     color: project.color,
     falloff: 0.6,
-    intensity: 0.5,
+    intensity: 0.5 * tierDim,
   });
   const glow = new Mesh(new SphereGeometry(radius * 1.18, 24, 24), glowMaterial);
   glow.userData.projectId = project.id;
@@ -129,7 +134,7 @@ export function buildPlanet(project: LocalizedProject): {
   const orbitMaterial = new LineBasicMaterial({
     color: new Color(project.color),
     transparent: true,
-    opacity: 0.18,
+    opacity: 0.18 * tierDim,
   });
   const orbitLine = new Line(orbitGeometry, orbitMaterial);
   rootGroup.add(orbitLine);
