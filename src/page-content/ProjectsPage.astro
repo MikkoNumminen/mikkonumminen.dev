@@ -61,7 +61,8 @@ const localizedList = localizeProjects(t);
         aria-controls="projects-jump-list"
       >
         <span class="projects-scene__list-toggle-icon" aria-hidden="true"></span>
-        <span class="projects-scene__list-toggle-label">{t.projectsPage.listHeading}</span
+        <span class="projects-scene__list-toggle-label" data-list-toggle-label
+          >{t.projectsPage.listToggleShow}</span
         >
       </button>
       <ul class="projects-scene__list-items" id="projects-jump-list">
@@ -181,10 +182,10 @@ const localizedList = localizeProjects(t);
           if (!list || !listToggle || !listItems) return;
           list.setAttribute('data-expanded', String(expanded));
           listToggle.setAttribute('aria-expanded', String(expanded));
-          listToggle.setAttribute(
-            'aria-label',
-            expanded ? tp.listToggleCollapse : tp.listToggleExpand,
-          );
+          // The button's own text is its accessible name — an aria-label here
+          // would override the visible words for screen-reader users.
+          const label = listToggle.querySelector('[data-list-toggle-label]');
+          if (label) label.textContent = expanded ? tp.listToggleHide : tp.listToggleShow;
           listItems.inert = !expanded;
           if (persist) sessionStorage.setItem('projects:list-expanded', String(expanded));
         };

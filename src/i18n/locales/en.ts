@@ -114,10 +114,9 @@ export const en: Translations = {
     gridAria: 'Projects',
     gridLede:
       'Things I have built. The desktop view shows them as an interactive solar system — here is the readable list.',
-    listHeading: 'Jump to project',
     listAriaLabel: 'Project list',
-    listToggleExpand: 'Show the project list',
-    listToggleCollapse: 'Hide the project list',
+    listToggleShow: 'Projects',
+    listToggleHide: 'Hide',
   },
   projectsData: {
     hrm: {

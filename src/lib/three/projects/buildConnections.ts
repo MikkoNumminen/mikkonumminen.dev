@@ -1,10 +1,20 @@
-import { Color, Group, Vector3 } from 'three';
+import { Color, Group, Object3D, Vector3 } from 'three';
 import type { InterleavedBuffer, InterleavedBufferAttribute } from 'three';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import type { Connection } from '../../../data/projects';
-import type { PlanetEntry } from './buildPlanet';
+
+/**
+ * Anything an arc can attach to. Deliberately structural rather than
+ * `PlanetEntry`: the star is a project like any other and can be either end of
+ * a relationship, but it is not built as a planet. Requiring PlanetEntry meant
+ * an edge naming the star silently drew nothing.
+ */
+export interface ConnectableBody {
+  project: { id: string };
+  group: Object3D;
+}
 
 const ARC_SEGMENTS = 48;
 const FLOW_SPEED = 1.1;
@@ -24,8 +34,8 @@ export const CONNECTION_VISIBLE_EPSILON = 0.01;
 
 export interface ConnectionEntry {
   connection: Connection;
-  source: PlanetEntry;
-  target: PlanetEntry;
+  source: ConnectableBody;
+  target: ConnectableBody;
   /** Soft underglow drawn first; gives the line a halo. */
   haloLine: Line2;
   haloMaterial: LineMaterial;
@@ -76,7 +86,7 @@ export interface ConnectionsBundle {
 
 export function buildConnections(
   connections: Connection[],
-  planets: PlanetEntry[],
+  bodies: ConnectableBody[],
   resolution: { width: number; height: number },
 ): ConnectionsBundle {
   const group = new Group();
@@ -84,8 +94,8 @@ export function buildConnections(
   const entries: ConnectionEntry[] = [];
 
   for (const c of connections) {
-    const source = planets.find((p) => p.project.id === c.sourceId);
-    const target = planets.find((p) => p.project.id === c.targetId);
+    const source = bodies.find((b) => b.project.id === c.sourceId);
+    const target = bodies.find((b) => b.project.id === c.targetId);
     if (!source || !target) continue;
 
     // setPositions takes a list of vertex xyz triples. We pass a zero-filled

@@ -118,10 +118,9 @@ export const sv: Translations = {
     gridAria: 'Projekt',
     gridLede:
       'Saker jag har byggt. Skrivbordsvyn visar dem som ett interaktivt solsystem — här är den läsbara listan.',
-    listHeading: 'Hoppa till projekt',
     listAriaLabel: 'Projektlista',
-    listToggleExpand: 'Visa projektlistan',
-    listToggleCollapse: 'Dölj projektlistan',
+    listToggleShow: 'Projekt',
+    listToggleHide: 'Dölj',
   },
   projectsData: {
     hrm: {

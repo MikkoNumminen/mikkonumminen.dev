@@ -252,3 +252,41 @@ describe('trackFooterOverlap', () => {
     expect(lifted()).toBe('');
   });
 });
+
+describe('a footer that is not rendered', () => {
+  /** display:none reports an all-zero rect, the shape jsdom gives too. */
+  function hidden(): HTMLElement {
+    const el = document.createElement('footer');
+    el.getBoundingClientRect = () =>
+      ({
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: 0,
+        height: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    return el;
+  }
+
+  it('publishes no lift at all', () => {
+    // Read naively, a zero rect says the footer's top edge is at document
+    // position 0, i.e. fully intruded — which lifts the chrome by an entire
+    // viewport and pushes it off the top of the screen. The projects scene
+    // hides the site footer, so this is the live case, not a corner one.
+    const h = track({ target: hidden() });
+    expect(h.lift()).toBe(0);
+    expect(lifted()).toBe('');
+  });
+
+  it('still publishes no lift once scrolled', () => {
+    const el = hidden();
+    const h = track({ target: el });
+    setScrollY(500);
+    h.remeasure();
+    expect(h.lift()).toBe(0);
+  });
+});

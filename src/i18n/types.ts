@@ -105,10 +105,10 @@ export interface Translations {
     githubLink: string;
     gridAria: string;
     gridLede: string;
-    listHeading: string;
     listAriaLabel: string;
-    listToggleExpand: string;
-    listToggleCollapse: string;
+    /** Toggle label while the panel is collapsed, and while it is open. */
+    listToggleShow: string;
+    listToggleHide: string;
   };
   projectsData: Record<
     string,

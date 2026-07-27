@@ -321,7 +321,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const planetLabels = createPlanetLabels(planetLabelsContainer, focusTargets);
 
   // ── Connections (semantic edges between related projects) ──────────
-  const connectionsBundle = buildConnections(connections, planets, {
+  const connectionsBundle = buildConnections(connections, focusTargets, {
     width: window.innerWidth,
     height: window.innerHeight,
   });

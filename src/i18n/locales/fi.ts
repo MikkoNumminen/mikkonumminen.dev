@@ -117,10 +117,9 @@ export const fi: Translations = {
     gridAria: 'Projektit',
     gridLede:
       'Projektini. Työpöytänäkymässä ne näkyvät interaktiivisena aurinkokuntana — tässä luettavana listana.',
-    listHeading: 'Hyppää projektiin',
     listAriaLabel: 'Projektiluettelo',
-    listToggleExpand: 'Näytä projektiluettelo',
-    listToggleCollapse: 'Piilota projektiluettelo',
+    listToggleShow: 'Projektit',
+    listToggleHide: 'Piilota',
   },
   projectsData: {
     hrm: {
