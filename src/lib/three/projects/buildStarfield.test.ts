@@ -65,7 +65,17 @@ describe('buildStarfield', () => {
     expect(material.depthWrite).toBe(false);
     expect(material.transparent).toBe(true);
     expect(material.opacity).toBeCloseTo(STAR_MAX_LUMINANCE, 5);
-    expect(material.size).toBeCloseTo(0.22, 5);
+    expect(material.size).toBeCloseTo(0.4, 5);
+  });
+});
+
+describe('starfield low tier', () => {
+  it('halves the point count on the cheap path', () => {
+    const full = buildStarfield();
+    const low = buildStarfield({ lowPerf: true });
+    expect(low.geometry.getAttribute('position').count).toBeLessThan(
+      full.geometry.getAttribute('position').count,
+    );
   });
 });
 

@@ -6,6 +6,8 @@
 import {
   ACESFilmicToneMapping,
   FogExp2,
+  HalfFloatType,
+  LinearSRGBColorSpace,
   Mesh,
   PerspectiveCamera,
   type Object3D,
@@ -14,6 +16,13 @@ import {
   Vector2,
   Vector3,
 } from 'three';
+import {
+  BloomEffect,
+  EffectComposer,
+  EffectPass,
+  RenderPass,
+  VignetteEffect,
+} from 'postprocessing';
 import { gsap } from 'gsap';
 import { connections, type LocalizedProject } from '../../data/projects';
 import { createRenderer } from './createRenderer';
@@ -217,7 +226,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     );
 
   // ── Starfield ───────────────────────────────────────────────────────
-  const starfield = buildStarfield();
+  const starfield = buildStarfield({ lowPerf: perfFlags.lowPerf });
   scene.add(starfield.points);
 
   // ── Sun ─────────────────────────────────────────────────────────────
@@ -331,6 +340,45 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     if (planet.project.externalApis && planet.project.externalApis.length > 0) {
       externalIndicators.push(buildExternalIndicator(planet));
     }
+  }
+
+  // ── Post-processing ─────────────────────────────────────────────────
+  // PARALLEL TO src/lib/three/homeScene.ts — same composer shape, different
+  // tuning. Second use of this pattern, so it stays duplicated rather than
+  // extracted; if a third scene needs it, that is the time to share it.
+  //
+  // The threshold is much higher than the home field's 0.32. There, the bloom
+  // IS the effect. Here only two things should glow: the star, which is driven
+  // past 1.0 for exactly this reason, and the brightest planet rims. Everything
+  // else — orbit trails, the backdrop, the satellites — has to stay under it,
+  // which is what the starfield's asserted luminance ceiling protects.
+  // Unlike the home field, nothing here drives bloom intensity per frame — the
+  // star's brightness is a property of its own shader — so the effect needs no
+  // handle beyond the pass it lives in.
+  let composer: EffectComposer | null = null;
+  if (!perfFlags.lowPerf) {
+    // The renderer's own output conversion MUST be off while the composer is
+    // active: pmndrs applies the sRGB encode in its final screen pass, and with
+    // both on every frame is encoded twice and all blacks lift to grey. Learned
+    // the hard way on the home scene; the same pairing applies here.
+    renderer.outputColorSpace = LinearSRGBColorSpace;
+    composer = new EffectComposer(renderer, { frameBufferType: HalfFloatType });
+    composer.addPass(new RenderPass(scene, camera));
+    // Both effects in ONE pass: pmndrs merges them into a single fragment
+    // shader, where two passes would be a second full-screen draw for nothing.
+    composer.addPass(
+      new EffectPass(
+        camera,
+        new BloomEffect({
+          intensity: 0.85,
+          luminanceThreshold: 0.55,
+          luminanceSmoothing: 0.2,
+          mipmapBlur: true,
+          radius: 0.55,
+        }),
+        new VignetteEffect({ offset: 0.35, darkness: 0.5 }),
+      ),
+    );
   }
 
   // ── Hover label ─────────────────────────────────────────────────────
@@ -541,6 +589,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     camera,
     (w, h) => {
       resizeConnections(connectionsBundle.entries, w, h);
+      composer?.setSize(w, h);
       // Re-fit only while the user is still on the default framing.
       if (!userZoomed) sphericalTarget.radius = computeFitRadius(sphericalCurrent.polar);
     },
@@ -735,7 +784,8 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     // Planet name labels — projected screen-space follow each planet.
     planetLabels.update(camera);
 
-    renderer.render(scene, camera);
+    if (composer) composer.render(delta);
+    else renderer.render(scene, camera);
 
     perfOverlay?.tick(delta);
   };
@@ -841,6 +891,7 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
       disposeExternalIndicators(externalIndicators);
       planetLabels.dispose();
 
+      composer?.dispose();
       scene.fog = null;
       scene.clear();
       renderer.dispose();

@@ -21,6 +21,7 @@ export interface Starfield {
 }
 
 const STAR_COUNT = 1100;
+const STAR_COUNT_LOW = 600;
 
 /**
  * Ceiling on a star's rendered luminance, held under the composer's bloom
@@ -35,11 +36,12 @@ const STAR_PALETTE: readonly Color[] = [
   new Color(0xfff0c8),
 ];
 
-export function buildStarfield(): Starfield {
-  const positions = new Float32Array(STAR_COUNT * 3);
-  const colors = new Float32Array(STAR_COUNT * 3);
+export function buildStarfield(opts: { lowPerf?: boolean } = {}): Starfield {
+  const count = opts.lowPerf ? STAR_COUNT_LOW : STAR_COUNT;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
 
-  for (let i = 0; i < STAR_COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const i3 = i * 3;
     const radius = STAR_RADIUS_MIN + Math.random() * STAR_RADIUS_RANGE;
     const theta = Math.random() * Math.PI * 2;
@@ -56,7 +58,7 @@ export function buildStarfield(): Starfield {
   }
 
   const material = new PointsMaterial({
-    size: 0.22,
+    size: 0.4,
     sizeAttenuation: true,
     vertexColors: true,
     transparent: true,
