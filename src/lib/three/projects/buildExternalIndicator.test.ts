@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Vector3 } from 'three';
 import {
+  satelliteOrbitRadius,
   updateExternalIndicator,
   type ExternalIndicator,
 } from './buildExternalIndicator';
@@ -82,5 +83,39 @@ describe('updateExternalIndicator', () => {
     updateExternalIndicator(ind, 2.1, 0);
     expect(ind.satelliteMaterial.opacity).toBe(0);
     for (const p of ind.pulses) expect(p.material.opacity).toBe(0);
+  });
+});
+
+describe('satelliteOrbitRadius', () => {
+  it('uses the preferred stand-off when there is room', () => {
+    expect(satelliteOrbitRadius(1, 100)).toBeCloseTo(2.6, 6);
+  });
+
+  it('pulls the satellite in when the neighbouring orbit is close', () => {
+    // The largest planets overreach: a fixed multiple of a big radius crosses
+    // a gap that does not grow with it. HRM, radius 1.43, wanted 3.72 with
+    // 1.9 of room either side. The clamp has to fit inside the allowance AND
+    // stay outside the body, which for the biggest planet is a narrow window.
+    const allowance = 1.9 * 0.85;
+    const r = satelliteOrbitRadius(1.43, allowance);
+    expect(r).toBeLessThanOrEqual(allowance);
+    expect(r).toBeGreaterThan(1.43);
+  });
+
+  it('never pulls the satellite inside its own planet, however tight the gap', () => {
+    // The floor wins here, and the satellite crosses the line. That is the
+    // right trade: a satellite inside its planet is a rendering bug, whereas
+    // one crossing a faint orbit line is a cosmetic overlap.
+    expect(satelliteOrbitRadius(1.43, 0.01)).toBeGreaterThan(1.43);
+  });
+
+  it('is unbounded when no allowance is given', () => {
+    expect(satelliteOrbitRadius(1)).toBeCloseTo(2.6, 6);
+  });
+
+  it('leaves small planets untouched, since they already fit', () => {
+    // A tier-2 planet at radius 0.77 wants 2.0 and has 1.4 of gap; clamping
+    // must not drag every satellite in just because one planet overreached.
+    expect(satelliteOrbitRadius(0.77, 2.6 * 0.85)).toBeCloseTo(2.002, 3);
   });
 });

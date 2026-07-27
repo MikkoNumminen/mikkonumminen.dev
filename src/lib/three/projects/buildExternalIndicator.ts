@@ -52,9 +52,48 @@ export interface ExternalIndicator {
   basePhase: number;
 }
 
-export function buildExternalIndicator(planet: PlanetEntry): ExternalIndicator {
+/** Preferred stand-off from the planet surface, as a multiple of its radius. */
+const SATELLITE_STANDOFF = 2.6;
+/**
+ * Never closer than this, so the satellite stays outside its own planet. Kept
+ * just clear of the surface rather than comfortably clear: on the largest
+ * planet the room between neighbouring orbits is barely wider than the body,
+ * and a generous floor would win the clamp and put the satellite back through
+ * the line the clamp exists to respect.
+ */
+const SATELLITE_MIN_STANDOFF = 1.12;
+
+/**
+ * How far from its planet a satellite orbits: the preferred stand-off, clamped
+ * into whatever room the neighbouring orbits leave, and never inside the body.
+ *
+ * Pure, and exported for that reason — the builder itself allocates a
+ * CanvasTexture, which has no 2D context under jsdom.
+ */
+export function satelliteOrbitRadius(planetRadius: number, maxReach?: number): number {
+  const preferred = planetRadius * SATELLITE_STANDOFF;
+  const floor = planetRadius * SATELLITE_MIN_STANDOFF;
+  const ceiling = maxReach ?? Number.POSITIVE_INFINITY;
+  return Math.max(floor, Math.min(preferred, ceiling));
+}
+
+export interface ExternalIndicatorOptions {
+  /**
+   * How far from its planet the satellite may swing, in world units. The scene
+   * derives this from the gap to the neighbouring orbits, because the indicator
+   * cannot see them: a fixed multiple of the planet radius put the largest
+   * planets' satellites straight through their neighbours' orbit lines, and
+   * for the innermost planet, into the star's corona.
+   */
+  maxReach?: number;
+}
+
+export function buildExternalIndicator(
+  planet: PlanetEntry,
+  opts: ExternalIndicatorOptions = {},
+): ExternalIndicator {
   const planetRadius = PLANET_BASE_RADIUS * planet.project.scale;
-  const orbitRadius = planetRadius * 2.6;
+  const orbitRadius = satelliteOrbitRadius(planetRadius, opts.maxReach);
   const pulseMaxScale = 1.4 + planet.project.scale * 0.7;
   const baseColor = 0x80c8ff;
 
