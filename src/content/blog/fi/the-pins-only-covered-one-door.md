@@ -24,6 +24,6 @@ Se oli myös kolmesti väärässä ennen kuin se oli oikeassa, tavoilla, joita o
 
 Sitten se ainoa osa, joka ratkaisee mitään. Ajoin sen uudelleen 85 workflow-skriptin yli, jotka ovat tällä koneella kuukausien todellisesta työstä. Se merkitsi 73 ja pysyi hiljaa 12:sta, ja kaikki 12 ovat aidosti kiinnitettyjä. Se ei siis ole hypoteettista. Se olisi lauennut suuren enemmistön kohdalla kaikista workflow'ista, joita olen koskaan ajanut, mukaan lukien kaikki viisi kallista.
 
-Agentit, hook ja tikapuut, jotka päättävät, mikä reititetään minne, ovat julkisia osoitteessa [github.com/MikkoNumminen/claude-agents](https://github.com/MikkoNumminen/claude-agents). Myöhemmin instrumentoin istunnon nähdäkseni, maksavatko halvat tasot itsensä takaisin, ja kokosin sen, minkä pystyin mittaamaan ja minkä en, [lyhyeksi raportiksi](/agent-delegation.pdf).
+Agentit, hook ja tikapuut, jotka päättävät, mikä reititetään minne, ovat julkisia osoitteessa [github.com/MikkoNumminen/claude-agents](https://github.com/MikkoNumminen/claude-agents). Myöhemmin instrumentoin istunnon nähdäkseni, maksavatko halvat tasot itsensä takaisin, ja kokosin sen, minkä pystyin mittaamaan ja minkä en, [lyhyeksi raportiksi](/fi/blog/do-the-cheap-agents-pay-for-themselves).
 
 Viime kerralla opetus oli, että merkintä ei ole mittaus. Tämä istuu aivan sen vierellä. Olin mitannut yhden oven huolellisesti ja kuvaillut sitten koko rakennuksen. Kiinnitys, joka kattaa yhden koodipolun, on täsmälleen yhden koodipolun arvoinen, ja kaikki sen jälkeen oli minua yleistämässä todesta tuloksesta.
