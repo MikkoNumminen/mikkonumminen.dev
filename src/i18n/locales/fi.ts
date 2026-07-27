@@ -174,9 +174,9 @@ export const fi: Translations = {
     'strudel-patterns': {
       tagline: 'Algoritmista musiikkia koodina',
       description:
-        'Musiikkia Strudelilla, jossa kokonainen kappale on yksi JavaScript-lauseke, jota muokataan sen soidessa. Rummut, basso, syntikkakerrokset ja efektit ovat erillisiä palasia, joita voi pinota uusiksi kappaleiksi. Yhdeksän on tarpeeksi valmiita julkaistavaksi, ja osa niistä päätyi Spacepotatiksen ääniraidaksi ja tämän etusivun musiikiksi. Jokainen sessio kirjataan git-historian rinnalle, joten kappaleen synnyn voi jäljittää.',
+        'Musiikkia Strudelilla, jossa kokonainen kappale on yksi JavaScript-lauseke, jota muokataan sen soidessa. Rummut, basso, syntikkakerrokset ja efektit ovat erillisiä palasia, joita voi pinota uusiksi kappaleiksi. Yhdeksän on kirjattu ylös, ja osa niistä päätyi Spacepotatiksen ääniraidaksi ja tämän etusivun musiikiksi. Jokainen sessio kirjataan git-historian rinnalle, joten kappaleen synnyn voi jäljittää.',
       highlights: [
-        'Yhdeksän julkaistua kappaletta',
+        'Yhdeksän valmista kappaletta',
         'Soi Spacepotatiksessa ja tällä sivustolla',
       ],
     },

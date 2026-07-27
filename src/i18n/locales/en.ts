@@ -171,8 +171,8 @@ export const en: Translations = {
     'strudel-patterns': {
       tagline: 'Algorithmic music, written as code',
       description:
-        'Music written in Strudel, where a whole track is one JavaScript expression you edit while it is playing. Drums, bass, synth layers and effects live as separate pieces you can stack into new tracks. Nine are finished enough to publish, and some of those ended up as the Spacepotatis soundtrack and the music on this landing page. Every session is logged next to the git history, so you can see how a track got where it did.',
-      highlights: ['Nine published tracks', 'Scores Spacepotatis and this site'],
+        'Music written in Strudel, where a whole track is one JavaScript expression you edit while it is playing. Drums, bass, synth layers and effects live as separate pieces you can stack into new tracks. Nine are written up, and some of those ended up as the Spacepotatis soundtrack and the music on this landing page. Every session is logged next to the git history, so you can see how a track got where it did.',
+      highlights: ['Nine finished tracks', 'Scores Spacepotatis and this site'],
     },
     'claude-continue': {
       tagline: 'Keeps Claude Code running back to back',
