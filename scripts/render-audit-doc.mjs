@@ -124,6 +124,41 @@ function mdToBlocks(md) {
     .filter((b) => b.length);
 }
 
+// A table whose caption paragraph is bolded "**Figure N — …**" is rendered as a
+// horizontal bar chart instead of a grid. The measurement reports lean on a
+// couple of at-a-glance comparisons (cost as delegated vs at orchestrator
+// rates, outcome counts), and a three-row table states those numbers without
+// showing the ratio that is the whole point of them.
+const FIGURE_CAPTION = /^\*\*Figure\s+\d+\s*[—-]\s*(.+?)\*\*$/i;
+
+/** First cell that parses as a number, ignoring $, %, commas and spaces. */
+function firstNumber(cells) {
+  for (let i = 1; i < cells.length; i++) {
+    const n = Number(String(cells[i]).replace(/[$,%\s]/g, ''));
+    if (Number.isFinite(n) && String(cells[i]).trim() !== '') return { value: n, label: cells[i] };
+  }
+  return null;
+}
+
+function renderFigure(caption, tableBlock) {
+  const split = (line) => line.replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+  const rows = tableBlock.slice(2).map(split);
+  const bars = rows
+    .map((cells) => ({ name: cells[0] ?? '', num: firstNumber(cells) }))
+    .filter((r) => r.num !== null);
+  if (bars.length === 0) return `<p class="figure-caption">${inline(caption)}</p>${renderTable(tableBlock)}`;
+  const max = Math.max(...bars.map((b) => b.num.value));
+  const items = bars
+    .map((b) => {
+      const pct = max > 0 ? Math.max(1.5, (b.num.value / max) * 100) : 1.5;
+      return `<div class="figure-row"><div class="figure-label">${inline(b.name)}</div>` +
+        `<div class="figure-track"><div class="figure-bar" style="width:${pct.toFixed(1)}%"></div></div>` +
+        `<div class="figure-value">${inline(b.num.label)}</div></div>`;
+    })
+    .join('\n');
+  return `<figure class="figure"><figcaption>${inline(caption)}</figcaption>\n${items}\n</figure>`;
+}
+
 function renderBody(md) {
   const blocks = mdToBlocks(md);
   const out = [];
@@ -134,8 +169,17 @@ function renderBody(md) {
       listType = null;
     }
   };
-  for (const block of blocks) {
+  for (let bi = 0; bi < blocks.length; bi++) {
+    const block = blocks[bi];
     const first = block[0];
+    const figCaption = block.length === 1 ? FIGURE_CAPTION.exec(first) : null;
+    const next = blocks[bi + 1];
+    if (figCaption && next && /^\|/.test(next[0])) {
+      closeList();
+      out.push(renderFigure(figCaption[1], next));
+      bi += 1; // the table was consumed by the figure
+      continue;
+    }
     if (/^#{1,3}\s/.test(first)) {
       closeList();
       const level = first.match(/^(#{1,3})\s/)[1].length;
@@ -224,6 +268,13 @@ export function buildHtml(md, title) {
   .pos { color: #1a7f37; }
   .neg { color: #c0392b; }
   td.pos, td.neg { font-weight: 600; }
+  .figure { margin: 8pt 0 14pt; padding: 0; page-break-inside: avoid; }
+  .figure figcaption { font-size: 8pt; letter-spacing: 0.08em; text-transform: uppercase; color: #666; margin-bottom: 5pt; }
+  .figure-row { display: flex; align-items: center; gap: 8pt; margin: 3pt 0; font-size: 8.5pt; }
+  .figure-label { flex: 0 0 42%; }
+  .figure-track { flex: 1 1 auto; background: #f0f0f0; height: 10pt; border-radius: 2pt; }
+  .figure-bar { background: #b45341; height: 10pt; border-radius: 2pt; }
+  .figure-value { flex: 0 0 auto; font-weight: 600; min-width: 40pt; text-align: right; }
   .legend { font-size: 8.5pt; color: #555; margin: 0 0 12pt; }
   footer { color: #888; font-size: 8pt; margin-top: 16pt; border-top: 1px solid #eee; padding-top: 4pt; }
 </style>
