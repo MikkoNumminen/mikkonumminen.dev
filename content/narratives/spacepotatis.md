@@ -26,4 +26,4 @@ Every sprite is generated programmatically in `BootScene.generateTextures` via P
 
 ## Outcome
 
-Live at spacepotatis.vercel.app. The architecture doc cites approximately 1,300 Vitest tests on every CI push, with security regression tests as a dedicated CI step and a documented GDPR right-to-erasure runbook. The history through late May into early June shows sustained hardening — a batch of security SEC-* fixes, a save-architecture v2, and god-file refactors split into barrel modules.
+Live at spacepotatis.vercel.app. The architecture doc cites approximately 1,170 Vitest tests on every CI push, with security regression tests as a dedicated CI step and a documented GDPR right-to-erasure runbook. The history through late May into early June shows sustained hardening — a batch of security SEC-* fixes, a save-architecture v2, and god-file refactors split into barrel modules.
