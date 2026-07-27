@@ -168,9 +168,13 @@ describe('solar-system layout', () => {
   });
 
   it('gives the star no orbit of its own', () => {
+    // Phase and tilt describe a path around something. The star has none, so
+    // non-zero values there are stale layout data pretending to be real.
     for (const p of sun) {
       expect(p.orbitRadius).toBe(0);
       expect(p.orbitSpeed).toBe(0);
+      expect(p.phase).toBe(0);
+      expect(p.tilt).toBe(0);
     }
   });
 });
