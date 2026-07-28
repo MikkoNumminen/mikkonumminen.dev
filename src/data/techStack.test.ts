@@ -143,9 +143,12 @@ const DELIBERATELY_OMITTED: Readonly<Record<string, string>> = {
   'Claude Haiku': 'model name',
   'Poro 2 8B': 'model name',
   ccusage: 'third-party usage dashboard',
-  launchd: 'OS utility',
-  'Task Scheduler': 'OS utility',
-  tmux: 'OS utility',
+  // launchd and Task Scheduler left this list when the box gained their
+  // installers under Packaging — using a scheduler is an OS utility, shipping
+  // the thing that registers with it is not. tmux stays: that path is
+  // send-keys subprocess calls, with no engineered surface comparable to the
+  // AppleScript layer, and the bare name reads as daily tooling.
+  tmux: 'driven with send-keys; no evaluable surface, and the name reads as daily tooling',
   num2words: 'commodity library — a number-to-words helper',
   pydub: 'thin wrapper over ffmpeg, which is listed',
   pygame: 'used only as an audio backend; implies a game that is not in Python',
