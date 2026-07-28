@@ -82,7 +82,13 @@ const wearsBadge = (context?: TechContext): boolean =>
        collapses to zero once the viewport is narrower than the max-width, and
        the box would sit flush against both screen edges. */
     width: min(60rem, 100% - 2rem);
-    margin: 0 auto 6rem;
+    /* Top margin clears the fixed nav pill. This box is the first block on the
+       page now, so at scroll 0 its heading would otherwise sit behind the nav —
+       and `scroll-margin-top` cannot help there, because there is no room above
+       0 to scroll into. The matching `scroll-margin-top` is for arrivals via
+       the `#technologies` link from further down. */
+    margin: 6rem auto 6rem;
+    scroll-margin-top: 6rem;
     padding: 2rem 1.75rem 2.25rem;
     border-radius: 12px;
     background: rgba(15, 12, 22, 0.65);

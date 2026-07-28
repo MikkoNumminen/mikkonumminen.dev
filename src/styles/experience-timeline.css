@@ -78,6 +78,12 @@
    every reader sees, so both routes are stated rather than implied: climb, or
    jump straight to the stack at the top. The old cue was a 14px mouse glyph at
    0.5 alpha, which asked the reader to infer a whole navigation model. */
+/* Focused programmatically on arrival so focus and viewport stay together.
+   Never a mouse or keyboard focus, so it must not paint a ring. */
+.timeline__header:focus {
+  outline: none;
+}
+
 .timeline__start {
   display: flex;
   flex-wrap: wrap;
