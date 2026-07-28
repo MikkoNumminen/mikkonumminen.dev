@@ -51,6 +51,11 @@
       "permanent": false
     },
     {
+      "source": "/feedback/desk",
+      "destination": "https://red-ground-0bacf9c03.7.azurestaticapps.net/desk.html",
+      "permanent": false
+    },
+    {
       "source": "/audiobookmaker",
       "destination": "https://github.com/MikkoNumminen/AudiobookMaker/releases",
       "permanent": false
