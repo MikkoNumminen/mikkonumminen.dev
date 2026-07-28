@@ -325,6 +325,17 @@ export function initExperienceTimeline(
     const top = Math.max(0, climbBottom - window.innerHeight);
     window.scrollTo({ top, behavior: 'instant' });
     lastProgrammaticTop = Math.round(window.scrollY);
+
+    // Focus follows the viewport. Base camp is the LAST thing in the document,
+    // so without this a keyboard user who arrives there still tabs from the
+    // document start — through the whole Technologies box — before reaching the
+    // "skip to the tech stack" link sitting on their screen. Moving the page
+    // without moving focus is what splits the two apart; this puts them back
+    // together, and gives a screen reader the page heading on arrival rather
+    // than a stack list.
+    document
+      .querySelector<HTMLElement>('[data-base-camp]')
+      ?.focus({ preventScroll: true });
   };
 
   if (!honourDeepLink) {

@@ -222,6 +222,7 @@ export const fi: Translations = {
     title: 'Kokemus',
     lede: 'Scrollaa vuorta ylöspäin. Jokainen merkki on askel sinne missä olen tänään.',
     scrollHint: 'vieritä',
+    skipToTech: 'hyppää teknologioihin',
     kindFoundation: 'perusta',
     kindWork: 'työ',
     kindLife: 'elämä',

@@ -123,6 +123,8 @@ export interface Translations {
     title: string;
     lede: string;
     scrollHint: string;
+    /** Base-camp link that jumps to the tech stack at the top of the page. */
+    skipToTech: string;
     kindFoundation: string;
     kindWork: string;
     kindLife: string;

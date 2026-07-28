@@ -125,29 +125,38 @@ function ghostYear(year: string): string {
     }
   </ol>
 
-  <footer class="timeline__header" data-goat-anchor="foot">
+  <footer class="timeline__header" data-goat-anchor="foot" data-base-camp tabindex="-1">
     <p class="timeline__eyebrow">
       <span class="timeline__eyebrow-bar" aria-hidden="true"></span>
       <span class="timeline__eyebrow-text">{t.experiencePage.eyebrow}</span>
     </p>
     <h1 class="timeline__title">{t.experiencePage.title}</h1>
     <p class="timeline__lede">{t.experiencePage.lede}</p>
-    <p class="timeline__hint" aria-hidden="true">
-      <span>{t.experiencePage.scrollHint}</span>
-      <svg
-        width="14"
-        height="22"
-        viewBox="0 0 14 22"
-        fill="none"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"
-        ></rect>
-        <circle cx="7" cy="15" r="1.5" fill="currentColor" class="timeline__scroll-circle"
-        ></circle>
-      </svg>
-    </p>
+    <div class="timeline__start">
+      <p class="timeline__hint" aria-hidden="true">
+        <svg
+          class="timeline__hint-arrow"
+          width="20"
+          height="26"
+          viewBox="0 0 20 26"
+          fill="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M10 25V3M10 3 3 10M10 3l7 7"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        <span>{t.experiencePage.scrollHint}</span>
+      </p>
+      <a class="timeline__skip" href="#technologies">
+        {t.experiencePage.skipToTech}
+        <span aria-hidden="true">&#8593;</span>
+      </a>
+    </div>
   </footer>
 </div>
 
@@ -158,16 +167,16 @@ function ghostYear(year: string): string {
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-8px);
+      transform: translateY(-6px);
     }
   }
 
-  .timeline__scroll-circle {
+  .timeline__hint-arrow {
     animation: timeline-scroll-bob 2s ease-in-out infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .timeline__scroll-circle {
+    .timeline__hint-arrow {
       animation: none;
     }
   }
