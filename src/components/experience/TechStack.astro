@@ -222,26 +222,24 @@ const byProject = projects.map((project) => ({
     color: rgba(243, 238, 217, 0.85);
   }
 
-  #tech-view-overall:checked ~ .tech__views [for='tech-view-overall'],
-  #tech-view-project:checked ~ .tech__views [for='tech-view-project'] {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(243, 238, 217, 0.95);
+  /* Reaches THROUGH `.tech__controls`. These rules used to target
+     `~ .tech__views`, which worked while the toggle was a direct sibling of
+     the inputs and silently stopped when it was wrapped: `~` matches siblings,
+     and the wrapper became the sibling. The panel-swap rules below kept
+     working because the grids are still siblings, so the control switched
+     views while showing no selected state at all. */
+  #tech-view-overall:checked ~ .tech__controls [for='tech-view-overall'],
+  #tech-view-project:checked ~ .tech__controls [for='tech-view-project'] {
+    background: rgba(243, 238, 217, 0.92);
+    color: rgba(18, 14, 30, 0.95);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
   }
 
   /* The ring belongs on the label, since the input it belongs to is hidden. */
-  .tech__view-input:focus-visible ~ .tech__views [for='tech-view-overall'],
-  .tech__view-input:focus-visible ~ .tech__views [for='tech-view-project'] {
-    outline: 2px solid rgba(243, 238, 217, 0.7);
+  #tech-view-overall:focus-visible ~ .tech__controls [for='tech-view-overall'],
+  #tech-view-project:focus-visible ~ .tech__controls [for='tech-view-project'] {
+    outline: 2px solid rgba(243, 238, 217, 0.75);
     outline-offset: 2px;
-  }
-
-  .tech__view-input:focus-visible#tech-view-overall
-    ~ .tech__views
-    [for='tech-view-project'],
-  .tech__view-input:focus-visible#tech-view-project
-    ~ .tech__views
-    [for='tech-view-overall'] {
-    outline: none;
   }
 
   .tech__grid {
