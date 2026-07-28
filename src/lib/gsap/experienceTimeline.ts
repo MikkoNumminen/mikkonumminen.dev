@@ -352,7 +352,24 @@ export function initExperienceTimeline(
     window.addEventListener('scroll', noteScrolled, { passive: true });
   }
 
+  // An in-page pointer is navigation, not a deep link. Following one leaves
+  // `#technologies` in the address bar, and from then on every reload honours
+  // it — so a reader who once clicked "skip to the tech stack" never sees base
+  // camp again. The jump itself is native and must stay that way (it works
+  // with JavaScript off); only the trace it leaves behind is removed, after
+  // the fact, so a hash the reader actually ARRIVED with is still read at
+  // mount and still wins.
+  const dropInPageHash = (event: Event): void => {
+    const link = (event.target as HTMLElement | null)?.closest?.('a[href^="#"]');
+    if (!link) return;
+    requestAnimationFrame(() => {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    });
+  };
+  document.addEventListener('click', dropInPageHash);
+
   const restoreScrollOwnership = (): void => {
+    document.removeEventListener('click', dropInPageHash);
     window.removeEventListener('load', goToBaseCamp);
     window.removeEventListener('wheel', noteReaderScrolled);
     window.removeEventListener('touchstart', noteReaderScrolled);
