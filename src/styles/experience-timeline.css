@@ -709,12 +709,13 @@
 
 /* ── Summit (CTA) ──────────────────────────────────────────────── */
 
-/* First block on the page now that the climb runs upward. The content sits at
-   the FOOT of its own block rather than centred: at full day the sun is high,
+/* The content keeps to the FOOT of the block: at full day the sun is high,
    and centring put the summit line and its call to action directly behind it.
-   The space above is deliberate open sky over the peak. */
+   The 8rem above is that clearance — sky between the stack and the summit
+   line. No min-height on purpose: the block used to carry 78vh of open sky,
+   which pushed the Technologies box a full viewport above the last card —
+   a reader who reached the top saw sky and never learned the page continued. */
 .timeline__summit {
-  min-height: 78vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -722,10 +723,10 @@
   text-align: center;
   gap: 1.75rem;
   padding-top: 8rem;
-  /* Sits higher in its own block than it used to. This is the last thing a
-     reader meets before the stack, so it gets room above the fold rather than
-     being pinned to the very bottom of the section. */
-  padding-bottom: 7rem;
+  /* Tight below: the summit line is the signpost between the climb and the
+     stack, not a screen of its own — it shares the view with the last card
+     so the card, the line, and the stack's lower edge read as one ascent. */
+  padding-bottom: 2.5rem;
 }
 
 /* The onward route out of the summit. Shipped in #443 with markup but no
