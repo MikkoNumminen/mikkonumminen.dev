@@ -59,18 +59,50 @@ describe('techStack (structural data)', () => {
     }
   });
 
-  it('no technology is listed twice anywhere in the box', () => {
-    const seen = new Map<string, string>();
+  it('primary names are unique across the whole box', () => {
+    const primaries = techStack.flatMap((c) => c.primaries.map((p) => p.name));
+    const seen = new Set<string>();
+    for (const name of primaries) {
+      expect(seen.has(name.toLowerCase()), `${name} is a primary twice`).toBe(false);
+      seen.add(name.toLowerCase());
+    }
+  });
+
+  // A secondary may appear under more than one primary, because a secondary
+  // answers "what sits under this heading" rather than claiming one true home
+  // — pgvector genuinely belongs to both PostgreSQL and RAG. But an unintended
+  // repeat looks identical to a deliberate one, so each is named here.
+  it('every repeated secondary is a deliberate cross-listing', () => {
+    const CROSS_LISTED: ReadonlySet<string> = new Set([
+      'pgvector',
+      'fastapi',
+      'ollama',
+      'tailscale funnel',
+    ]);
+    const homes = new Map<string, string[]>();
     for (const c of techStack) {
       for (const p of c.primaries) {
-        for (const item of [p, ...(p.secondaries ?? [])]) {
-          const key = item.name.toLowerCase();
-          expect(seen.has(key), `${item.name} also appears in ${seen.get(key)}`).toBe(
-            false,
-          );
-          seen.set(key, c.id);
+        for (const s of p.secondaries ?? []) {
+          const key = s.name.toLowerCase();
+          homes.set(key, [...(homes.get(key) ?? []), `${c.id}/${p.name}`]);
         }
       }
+    }
+    const primaryNames = new Set(
+      techStack.flatMap((c) => c.primaries.map((p) => p.name.toLowerCase())),
+    );
+    for (const [key, where] of homes) {
+      const repeated = where.length > 1 || primaryNames.has(key);
+      if (!repeated) continue;
+      expect(CROSS_LISTED.has(key), `${key} appears in ${where.join(', ')}`).toBe(true);
+    }
+    // And the reverse: a cross-listing that stopped being one is stale.
+    for (const key of CROSS_LISTED) {
+      const where = homes.get(key) ?? [];
+      expect(
+        where.length > 1 || primaryNames.has(key),
+        `${key} is marked cross-listed but appears once`,
+      ).toBe(true);
     }
   });
 

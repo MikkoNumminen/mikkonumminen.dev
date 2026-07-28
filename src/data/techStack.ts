@@ -208,9 +208,24 @@ export const techStack: TechCategory[] = [
       },
       { name: 'Anthropic API' },
       { name: 'Ollama' },
+      // Deliberately gathers the whole pipeline in one place, including four
+      // items that also live in their own categories. Scattered across
+      // Backend, AI and Platform, the most distinctive thing here — a local
+      // GPU running inference behind a Tailscale funnel, answering from a
+      // static site — read as five unrelated rows. A reader scanning Backend
+      // should still find FastAPI there; a reader asking "has he built RAG?"
+      // should get the whole answer without assembling it themselves.
       {
         name: 'RAG',
-        secondaries: [{ name: 'fastembed' }, { name: 'lingua' }],
+        secondaries: [
+          { name: 'pgvector' },
+          { name: 'fastembed' },
+          { name: 'BM25' },
+          { name: 'lingua' },
+          { name: 'FastAPI' },
+          { name: 'Ollama' },
+          { name: 'Tailscale Funnel' },
+        ],
       },
       {
         name: 'Text-to-speech',
