@@ -117,6 +117,8 @@ export const techStack: TechCategory[] = [
         secondaries: [
           { name: 'Tokio' },
           { name: 'axum' },
+          { name: 'Dioxus' },
+          { name: 'zbus' },
           { name: 'WebAssembly' },
           { name: 'Argon2id' },
           { name: 'XChaCha20-Poly1305' },
@@ -208,13 +210,17 @@ export const techStack: TechCategory[] = [
       },
       { name: 'Anthropic API' },
       { name: 'Ollama' },
-      // Deliberately gathers the whole pipeline in one place, including four
-      // items that also live in their own categories. Scattered across
-      // Backend, AI and Platform, the most distinctive thing here — a local
-      // GPU running inference behind a Tailscale funnel, answering from a
-      // static site — read as five unrelated rows. A reader scanning Backend
-      // should still find FastAPI there; a reader asking "has he built RAG?"
-      // should get the whole answer without assembling it themselves.
+      // Covers two separate systems, which is why it gathers items that also
+      // live in their own categories. One is Python: pgvector and fastembed
+      // behind FastAPI, hybrid dense + BM25 retrieval, a local GPU serving it
+      // through a Tailscale funnel to a static site. The other is .NET, in the
+      // retail feedback work sample, where grounding is enforced by validation
+      // rather than by a vector store.
+      //
+      // Scattered across Backend, AI and Platform these read as unrelated
+      // rows and nobody would assemble the architecture from them. A reader
+      // scanning Backend should still find FastAPI there; a reader asking
+      // "has he built RAG?" should get the whole answer in one place.
       {
         name: 'RAG',
         secondaries: [
@@ -225,6 +231,7 @@ export const techStack: TechCategory[] = [
           { name: 'FastAPI' },
           { name: 'Ollama' },
           { name: 'Tailscale Funnel' },
+          { name: 'Microsoft.Extensions.AI' },
         ],
       },
       {

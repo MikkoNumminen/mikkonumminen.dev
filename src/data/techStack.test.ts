@@ -78,6 +78,7 @@ describe('techStack (structural data)', () => {
       'fastapi',
       'ollama',
       'tailscale funnel',
+      'microsoft.extensions.ai',
     ]);
     const homes = new Map<string, string[]>();
     for (const c of techStack) {
