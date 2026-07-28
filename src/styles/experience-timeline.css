@@ -709,20 +709,67 @@
 
 /* ── Summit (CTA) ──────────────────────────────────────────────── */
 
-/* First block on the page now that the climb runs upward. The content sits at
-   the FOOT of its own block rather than centred: at full day the sun is high,
+/* The content keeps to the FOOT of the block: at full day the sun is high,
    and centring put the summit line and its call to action directly behind it.
-   The space above is deliberate open sky over the peak. */
+   The 8rem above is that clearance — sky between the stack and the summit
+   line. No min-height on purpose: the block used to carry 78vh of open sky,
+   which pushed the Technologies box a full viewport above the last card —
+   a reader who reached the top saw sky and never learned the page continued. */
 .timeline__summit {
-  min-height: 78vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   text-align: center;
-  gap: 1.5rem;
+  gap: 1.75rem;
   padding-top: 8rem;
-  padding-bottom: 4rem;
+  /* Tight below: the summit line is the signpost between the climb and the
+     stack, not a screen of its own — it shares the view with the last card
+     so the card, the line, and the stack's lower edge read as one ascent. */
+  padding-bottom: 0.75rem;
+}
+
+/* The onward route out of the summit. Shipped in #443 with markup but no
+   styling at all, so it rendered as a bare line of text and read as a caption
+   rather than as the way on. Deliberately heavier than its twin inside the
+   Technologies box: there the toggle is the main event and this is a footnote,
+   here it is the only thing to do next.
+
+   PARALLEL TO `.timeline__skip` at base camp — the two are the same kind of
+   control at opposite ends of the climb and should stay visually matched. */
+.timeline__onward {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+  background: rgba(18, 14, 30, 0.55);
+  backdrop-filter: blur(6px);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(243, 238, 217, 0.95);
+  text-decoration: none;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.timeline__onward:hover,
+.timeline__onward:focus-visible {
+  background: rgba(32, 26, 52, 0.78);
+  border-color: rgba(255, 255, 255, 0.55);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline__onward:hover,
+  .timeline__onward:focus-visible {
+    transform: none;
+  }
 }
 
 .timeline__summit p {
@@ -730,8 +777,16 @@
   font-size: 0.78rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: rgba(243, 238, 217, 0.6);
+  color: rgba(243, 238, 217, 0.88);
   margin: 0;
+  /* The only element up here without a solid backing, and the sun passes
+     directly behind it once the summit sits tight against the stack. A plate
+     would make a caption look like a button, so it carries its own shadow
+     instead — dark enough to hold the letterforms against the sun's core. */
+  text-shadow:
+    0 0 6px rgba(8, 6, 16, 0.95),
+    0 0 16px rgba(8, 6, 16, 0.85),
+    0 1px 2px rgba(8, 6, 16, 0.9);
 }
 
 .timeline__cta {
