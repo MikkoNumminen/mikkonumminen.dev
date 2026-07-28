@@ -227,6 +227,7 @@ export const en: Translations = {
     kindProject: 'project',
     kindCraft: 'craft',
     kindNow: 'now',
+    onwardToTech: 'the tech stack',
     summit: 'The top of the climb, so far.',
     cta: 'drop into the terminal →',
     lessonsAriaLabel: 'Lessons from this chapter',
@@ -244,6 +245,7 @@ export const en: Translations = {
     },
     viewOverall: 'by technology',
     viewByProject: 'by project',
+    onwardToTerminal: 'the terminal',
     workBadge: 'work',
     legend:
       'work = used in client work. Everything else is from my own production projects.',

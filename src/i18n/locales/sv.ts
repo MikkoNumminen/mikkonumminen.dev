@@ -239,6 +239,7 @@ export const sv: Translations = {
     kindProject: 'projekt',
     kindCraft: 'hantverk',
     kindNow: 'nu',
+    onwardToTech: 'teknikstacken',
     summit: 'Du nådde toppen.',
     cta: 'hoppa in i terminalen →',
     lessonsAriaLabel: 'Lärdomar från detta kapitel',
@@ -256,6 +257,7 @@ export const sv: Translations = {
     },
     viewOverall: 'per teknik',
     viewByProject: 'per projekt',
+    onwardToTerminal: 'terminalen',
     workBadge: 'jobb',
     legend:
       'jobb = använt i kundarbete. Resten kommer från mina egna produktionsprojekt.',
