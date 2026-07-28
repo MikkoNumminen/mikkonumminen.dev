@@ -233,6 +233,19 @@ export const fi: Translations = {
     lessonsAriaLabel: 'Tämän luvun opit',
     yearNow: 'Nyt',
   },
+  techStack: {
+    title: 'Teknologiat',
+    lede: 'Millä olen oikeasti rakentanut. Avaa rivi nähdäksesi mitä sen alla on.',
+    categories: {
+      languages: 'Kielet',
+      frontend: 'Frontend',
+      backend: 'Backend ja data',
+      ai: 'AI ja kielimallit',
+      platform: 'Alusta',
+    },
+    workBadge: 'työ',
+    legend: 'työ = käytetty asiakastyössä. Muut ovat omista tuotantoprojekteistani.',
+  },
   timelineData: {
     'hardware-retail': {
       title: 'Rautakauppa',
