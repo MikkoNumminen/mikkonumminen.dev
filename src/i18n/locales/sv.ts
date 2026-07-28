@@ -232,6 +232,7 @@ export const sv: Translations = {
     title: 'Erfarenhet',
     lede: 'Scrolla uppför berget. Varje markering är ett steg från baslägret till där jag står idag.',
     scrollHint: 'scrolla',
+    skipToTech: 'hoppa till teknikstacken',
     kindFoundation: 'grund',
     kindWork: 'arbete',
     kindLife: 'liv',

@@ -220,6 +220,7 @@ export const en: Translations = {
     title: 'Experience',
     lede: 'Scroll up the mountain. Each marker is a step from base camp to where I stand today.',
     scrollHint: 'scroll up',
+    skipToTech: 'skip to the tech stack',
     kindFoundation: 'foundation',
     kindWork: 'work',
     kindLife: 'life',
