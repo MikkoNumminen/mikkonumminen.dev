@@ -21,19 +21,19 @@ AI-native development is part of the toolchain, not a side note. I maintain a ca
 
 ## Projects
 
-- **HRM** — production HR system. Next.js, React, TypeScript, PostgreSQL + MongoDB (dual-database: relational + immutable audit log), 38 permissions, TOTP 2FA, OpenTelemetry, 18 languages, SSE notifications. 1828+ tests, 91.9% coverage, Stryker mutation testing. [hr-manager-pearl.vercel.app](https://hr-manager-pearl.vercel.app)
+- **HRM** — production HR system. Next.js, React, TypeScript, PostgreSQL + MongoDB (dual-database: relational + immutable audit log), 38 permissions, TOTP 2FA, OpenTelemetry, 18 languages, SSE notifications. 2910 tests, 92.2% coverage, Stryker mutation testing. [hr-manager-pearl.vercel.app](https://hr-manager-pearl.vercel.app)
 
-- **Platform** — live community site for a WoW guild (vuohiliitto.com). Turborepo monorepo with HRM as a git submodule. Multi-tenant, Raider.IO API integration, tabbed chat, gamification (XP, levels, achievements, quests), guided onboarding. 1,300+ tests. [vuohiliitto.com](https://vuohiliitto.com)
+- **Platform** — live community site for a WoW guild (vuohiliitto.com). Turborepo monorepo with HRM as a git submodule. Multi-tenant, Raider.IO API integration, tabbed chat, gamification (XP, levels, achievements, quests), guided onboarding. 1388 tests. [vuohiliitto.com](https://vuohiliitto.com)
 
 - **Spacepotatis** — live browser game. Next.js 16 + Phaser 4 + Three.js. Empty repo to live in 12 days, 475 commits, ~1170 tests. PostgreSQL via Kysely, Google OAuth, cloud saves, leaderboard. [spacepotatis.vercel.app](https://spacepotatis.vercel.app)
 
-- **AudiobookMaker** — Windows desktop app. PDF/EPUB/text → audiobook via five TTS engines (Edge-TTS cloud, Piper offline, Chatterbox voice cloning, VoxCPM2, Qwen VoiceDesign). 16-pass Finnish text normalization. 3000+ tests. Ships via GitHub Releases with auto-updates.
+- **AudiobookMaker** — Windows desktop app. PDF/EPUB/text → audiobook via five TTS engines (Edge-TTS cloud, Piper offline, Chatterbox voice cloning, VoxCPM2, Qwen VoiceDesign). 19-pass Finnish text normalization. 3000+ tests. Ships via GitHub Releases with auto-updates.
 
 - **ReadLog** — reading tracker. Next.js, PostgreSQL, parallel multi-source book search (Open Library + Google Books) with deduplication. [read-log-pi.vercel.app](https://read-log-pi.vercel.app)
 
 - **Strudel Patterns** — algorithmic music library in Strudel (JS port of TidalCycles). Scores Spacepotatis and this portfolio site.
 
-- **Portfolio** — this site. Astro, Three.js, GSAP, Tailwind CSS v4. Four pages, each a distinct interactive concept. Fully static.
+- **Portfolio** — this site. Astro, Three.js, GSAP, Tailwind CSS v4. Four pages, each a distinct interactive concept. The pages are static; the contact terminal talks to a self-hosted LLM (FastAPI, pgvector, hybrid retrieval) running on my own GPU behind a Tailscale funnel.
 
 
 
