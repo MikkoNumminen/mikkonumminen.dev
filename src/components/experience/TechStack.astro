@@ -222,12 +222,6 @@ const byProject = projects.map((project) => ({
     color: rgba(243, 238, 217, 0.85);
   }
 
-  /* The selected label owns the light fill, so hover on the OTHER one must not
-     read as a second selection. */
-  .tech__view-input:checked + .tech__controls .tech__view-label:hover {
-    background: transparent;
-  }
-
   /* Reaches THROUGH `.tech__controls`. These rules used to target
      `~ .tech__views`, which worked while the toggle was a direct sibling of
      the inputs and silently stopped when it was wrapped: `~` matches siblings,
