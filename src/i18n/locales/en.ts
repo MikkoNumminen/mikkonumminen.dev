@@ -233,7 +233,7 @@ export const en: Translations = {
     kindCraft: 'craft',
     kindNow: 'now',
     summit: 'The top of the climb, so far.',
-    summitNote: 'You have reached the top of the page. From here, two ways onward.',
+    summitNote: 'You have reached the end. From here, two ways onward.',
     summitBlogLink: 'read the blog',
     summitContactLink: 'get in touch',
     lessonsAriaLabel: 'Lessons from this chapter',
