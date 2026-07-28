@@ -3,35 +3,49 @@
  *
  * Two levels, never three. A primary is something worth naming on its own; a
  * secondary only makes sense underneath its primary, and stays hidden until
- * the primary is opened. That hierarchy is what stops a stack list reading as
- * padding: `num2words` does not sit beside `TypeScript` competing for the same
- * attention, it sits under Python as evidence of what the Python work involved.
+ * the primary is opened.
  *
  * `context` records where a technology was actually used. `own` is the default
  * and is omitted, because self-built production is the norm here; `work` and
  * `both` are marked. The badge carries that distinction, not colour, so it
  * survives a colourblind reader, a screen reader and a printout.
  *
- * Every name below is sourced, not remembered. The primary source is each
- * project's own repository — its package.json, requirements.txt, pyproject,
- * .csproj or Cargo.toml — read from disk rather than from this site's
- * description of it. That direction matters: `projects.ts` is a hand-maintained
- * summary and had drifted, so deriving the box from it alone made the box
- * inherit its gaps (Neon, framer-motion, axum, the Anthropic SDK in HRM).
+ * Every name is sourced from the project's own repository — its package.json,
+ * requirements.txt, pyproject, .csproj or Cargo.toml — read from disk rather
+ * than from this site's description of it. Supplementary sources, for what a
+ * manifest cannot say: the Kasvu Labs card in `src/i18n/locales/en.ts` for the
+ * `work` marks, `content/cv.md` for capabilities named in prose, and
+ * AudiobookMaker's `engine_installer.py`, because the TTS engines install into
+ * per-engine venvs and never appear in the top-level requirements.
  *
- * Supplementary sources, for what a manifest cannot say:
- *   - the Kasvu Labs card in `src/i18n/locales/en.ts`, for the `work` marks
- *   - `content/cv.md`, for capabilities named in prose rather than in a dep
- *   - AudiobookMaker's `engine_installer.py`, because the TTS engines install
- *     into per-engine venvs and never appear in the top-level requirements
+ * ─────────────────────────────────────────────────────────────────────────
+ * THE BAR FOR INCLUSION
  *
- * A few primaries are groupings rather than products — Text-to-speech,
- * Retrieval, Testing, Observability, Packaging, Unattended runs. Nothing real
- * sits above those secondaries, and inventing a parent beat promoting five leaf
- * tools to the same weight as PostgreSQL.
+ * This list is curated, not exhaustive, and the curation is the point. A
+ * hiring surface is judged by its weakest entry: a reader who finds `tmux` or
+ * `Husky` here discounts the `XChaCha20-Poly1305` two rows up, because both
+ * now look like they were transcribed from a lockfile.
  *
- * Everything in the twelve projects' `tech` arrays appears here except
- * `Markdown`, which is a file format rather than a skill.
+ * So a name earns its place only if it names a capability someone could
+ * evaluate. Four things are excluded on principle, and the exclusions matter
+ * more than the inclusions:
+ *
+ *   1. Model names. `Claude Opus`, `qwen2.5`, `bge-small-en-v1.5` — which
+ *      model got called is not a skill, it dates instantly, and it reads as a
+ *      subscription rather than an engineering decision. What was *built*
+ *      around the models is listed instead.
+ *   2. Commodity libraries every practitioner in that language already uses:
+ *      serde and clap in Rust, PyYAML and Pillow in Python, a linter, a
+ *      formatter, a git-hook runner.
+ *   3. Implementation details of something already listed: uvicorn under
+ *      FastAPI, tower under axum, dagre under ReactFlow.
+ *   4. OS utilities and managed-hosting vendors. Scheduling a task and
+ *      clicking a provisioning button are not differentiators.
+ *
+ * `src/data/techStack.test.ts` carries the list of technologies deliberately
+ * omitted from `projects.ts`, so a genuinely new one still fails the test
+ * while these stay out on purpose.
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
 import type { Translations } from '../i18n/types';
@@ -67,23 +81,23 @@ export const techStack: TechCategory[] = [
   {
     id: 'languages',
     primaries: [
-      { name: 'TypeScript', context: 'both', secondaries: [{ name: 'Zod' }] },
+      // One entry, not two. A separate `JavaScript` primary beside TypeScript
+      // claims a second skill for the same one, but the bare word still has to
+      // be findable by anyone scanning for it.
+      {
+        name: 'TypeScript / JavaScript',
+        context: 'both',
+        secondaries: [{ name: 'Zod' }],
+      },
       {
         name: 'Python',
         secondaries: [
           { name: 'PyTorch' },
           { name: 'PyMuPDF' },
           { name: 'ebooklib' },
-          { name: 'ocrmypdf' },
           { name: 'Tesseract' },
-          { name: 'num2words' },
-          { name: 'pydub' },
-          { name: 'pygame' },
           { name: 'ffmpeg' },
           { name: 'CustomTkinter' },
-          { name: 'Pillow' },
-          { name: 'beautifulsoup4' },
-          { name: 'PyYAML' },
         ],
       },
       {
@@ -94,47 +108,44 @@ export const techStack: TechCategory[] = [
           { name: 'Razor Pages' },
           { name: 'ASP.NET Identity' },
           { name: 'EF Core' },
-          { name: 'HtmlSanitizer' },
         ],
       },
+      // Trimmed to the crates that carry the security argument. A Cargo.toml
+      // dump would bury Argon2id and XChaCha20-Poly1305 among nine utilities.
       {
         name: 'Rust',
         secondaries: [
           { name: 'Tokio' },
           { name: 'axum' },
-          { name: 'tower' },
-          { name: 'serde' },
-          { name: 'clap' },
+          { name: 'Dioxus' },
+          { name: 'zbus' },
           { name: 'WebAssembly' },
-          { name: 'wasm-bindgen' },
           { name: 'Argon2id' },
           { name: 'XChaCha20-Poly1305' },
-          { name: 'getrandom' },
-          { name: 'sha2' },
-          { name: 'reqwest' },
           { name: 'zeroize' },
-          { name: 'secrecy' },
-          { name: 'subtle' },
         ],
       },
-      { name: 'JavaScript', context: 'both' },
       { name: 'Bash' },
     ],
   },
   {
     id: 'frontend',
     primaries: [
+      // The framework behind five of the twelve projects and the paid client
+      // work. It spent one release hidden as React's first child.
+      {
+        name: 'Next.js',
+        context: 'both',
+        secondaries: [{ name: 'NextAuth' }, { name: 'next-intl' }],
+      },
       {
         name: 'React',
         context: 'both',
         secondaries: [
-          { name: 'Next.js', context: 'both' },
           { name: 'MUI', context: 'both' },
           { name: 'Recharts', context: 'work' },
           { name: 'ReactFlow' },
-          { name: 'dagre' },
           { name: 'framer-motion' },
-          { name: 'next-intl' },
         ],
       },
       { name: 'Astro' },
@@ -147,10 +158,7 @@ export const techStack: TechCategory[] = [
         name: 'Web Audio API',
         secondaries: [{ name: 'Strudel' }],
       },
-      {
-        name: 'Tailwind CSS',
-        secondaries: [{ name: 'Bootstrap 5' }],
-      },
+      { name: 'Tailwind CSS' },
       { name: 'Chrome Extension (MV3)' },
     ],
   },
@@ -164,7 +172,6 @@ export const techStack: TechCategory[] = [
           { name: 'Prisma' },
           { name: 'PgTyped', context: 'work' },
           { name: 'Kysely' },
-          { name: 'Neon' },
           { name: 'pgvector' },
           { name: 'pg-boss' },
         ],
@@ -174,43 +181,59 @@ export const techStack: TechCategory[] = [
         context: 'both',
         secondaries: [{ name: 'Pino' }],
       },
-      {
-        name: 'Authentication',
-        secondaries: [
-          { name: 'NextAuth' },
-          { name: 'Google OAuth' },
-          { name: 'TOTP 2FA' },
-        ],
-      },
       { name: 'MongoDB' },
       { name: 'SQLite' },
       {
         name: 'FastAPI',
-        secondaries: [{ name: 'uvicorn' }, { name: 'asyncpg' }, { name: 'httpx' }],
+        secondaries: [{ name: 'asyncpg' }],
       },
     ],
   },
   {
     id: 'ai',
     primaries: [
+      // The secondaries are the surface area actually built against, not the
+      // models called. The counts behind them are real: 14 subagents in the
+      // published claude-agents repo, 16 skills in claude-skills plus 7 scoped
+      // to this repo, and 69 global permission rules.
       {
         name: 'Claude Code',
         secondaries: [
-          { name: 'Claude Opus' },
-          { name: 'Claude Sonnet' },
-          { name: 'Claude Haiku' },
-          { name: 'ccusage' },
-        ],
-      },
-      {
-        name: 'Ollama',
-        secondaries: [
-          { name: 'Poro 2 8B' },
-          { name: 'qwen2.5' },
-          { name: 'OllamaSharp' },
+          { name: 'Subagents' },
+          { name: 'Skills' },
+          { name: 'Hooks' },
+          { name: 'MCP' },
+          { name: 'Plugins' },
+          { name: 'Permission allowlists' },
+          { name: 'Skill calibration' },
         ],
       },
       { name: 'Anthropic API' },
+      { name: 'Ollama' },
+      // Covers two separate systems, which is why it gathers items that also
+      // live in their own categories. One is Python: pgvector and fastembed
+      // behind FastAPI, hybrid dense + BM25 retrieval, a local GPU serving it
+      // through a Tailscale funnel to a static site. The other is .NET, in the
+      // retail feedback work sample, where grounding is enforced by validation
+      // rather than by a vector store.
+      //
+      // Scattered across Backend, AI and Platform these read as unrelated
+      // rows and nobody would assemble the architecture from them. A reader
+      // scanning Backend should still find FastAPI there; a reader asking
+      // "has he built RAG?" should get the whole answer in one place.
+      {
+        name: 'RAG',
+        secondaries: [
+          { name: 'pgvector' },
+          { name: 'fastembed' },
+          { name: 'BM25' },
+          { name: 'lingua' },
+          { name: 'FastAPI' },
+          { name: 'Ollama' },
+          { name: 'Tailscale Funnel' },
+          { name: 'Microsoft.Extensions.AI' },
+        ],
+      },
       {
         name: 'Text-to-speech',
         secondaries: [
@@ -219,14 +242,6 @@ export const techStack: TechCategory[] = [
           { name: 'Chatterbox' },
           { name: 'VoxCPM2' },
           { name: 'Qwen VoiceDesign' },
-        ],
-      },
-      {
-        name: 'Retrieval',
-        secondaries: [
-          { name: 'fastembed' },
-          { name: 'bge-small-en-v1.5' },
-          { name: 'lingua' },
         ],
       },
       { name: 'Microsoft.Extensions.AI' },
@@ -265,30 +280,12 @@ export const techStack: TechCategory[] = [
         ],
       },
       {
-        name: 'Linting & types',
-        secondaries: [
-          { name: 'ESLint' },
-          { name: 'Prettier' },
-          { name: 'ruff' },
-          { name: 'mypy' },
-          { name: 'Husky' },
-        ],
-      },
-      {
         name: 'Observability',
-        secondaries: [
-          { name: 'OpenTelemetry' },
-          { name: 'Sentry' },
-          { name: 'web-vitals' },
-        ],
+        secondaries: [{ name: 'OpenTelemetry' }, { name: 'Sentry' }],
       },
       {
         name: 'Packaging',
         secondaries: [{ name: 'PyInstaller' }, { name: 'Inno Setup' }],
-      },
-      {
-        name: 'Unattended runs',
-        secondaries: [{ name: 'launchd' }, { name: 'Task Scheduler' }, { name: 'tmux' }],
       },
       { name: 'Turborepo' },
       { name: 'Tailscale Funnel' },
