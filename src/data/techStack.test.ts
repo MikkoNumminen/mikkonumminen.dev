@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { techStack, type TechContext } from './techStack';
 import { projects } from './projects';
+import { techProjects } from './techProjects';
 import { getTranslations, LOCALES } from '../i18n';
 
 // Mirrors projects.test.ts and timeline.test.ts: the structural backstop the
@@ -183,5 +184,57 @@ describe('techStack curation', () => {
         false,
       );
     }
+  });
+});
+
+describe('techProjects (attribution behind the by-project view)', () => {
+  const projectIds = new Set(projects.map((p) => p.id));
+  const techNames = new Set(allItems.map((i) => i.name));
+
+  it('every technology in the box has an attribution entry', () => {
+    const missing = [...techNames].filter((n) => !(n in techProjects)).sort();
+    expect(missing, 'technologies with no entry in techProjects').toEqual([]);
+  });
+
+  it('has no entry for a technology the box does not show', () => {
+    const orphans = Object.keys(techProjects)
+      .filter((n) => !techNames.has(n))
+      .sort();
+    expect(orphans, 'attributions for technologies not in the box').toEqual([]);
+  });
+
+  it('only references real project ids', () => {
+    for (const [tech, ids] of Object.entries(techProjects)) {
+      for (const id of ids) {
+        expect(projectIds.has(id), `${tech} -> unknown project "${id}"`).toBe(true);
+      }
+    }
+  });
+
+  it('lists no project twice for one technology', () => {
+    for (const [tech, ids] of Object.entries(techProjects)) {
+      expect(new Set(ids).size, `${tech} repeats a project`).toBe(ids.length);
+    }
+  });
+
+  // The by-project view is a pivot of this map. A project that pivots to
+  // nothing would render as an empty row, which reads as a mistake rather
+  // than as information.
+  it('every project pivots to at least one technology', () => {
+    const empty = projects
+      .filter((p) => !Object.values(techProjects).some((ids) => ids.includes(p.id)))
+      .map((p) => p.id);
+    expect(empty, 'projects that would render an empty row').toEqual([]);
+  });
+
+  // An unattributed technology is allowed, but only deliberately: it means
+  // client work with no project behind it, or a repo that is not a listed
+  // project. Anything else is a gap.
+  it('only these technologies are deliberately unattributed', () => {
+    const unattributed = Object.entries(techProjects)
+      .filter(([, ids]) => ids.length === 0)
+      .map(([name]) => name)
+      .sort();
+    expect(unattributed).toEqual(['Dioxus', 'Kubernetes', 'PgTyped', 'Recharts', 'zbus']);
   });
 });

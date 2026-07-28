@@ -242,6 +242,8 @@ export const en: Translations = {
       ai: 'AI & LLM',
       platform: 'Platform',
     },
+    viewOverall: 'by technology',
+    viewByProject: 'by project',
     workBadge: 'work',
     legend:
       'work = used in client work. Everything else is from my own production projects.',
