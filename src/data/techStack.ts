@@ -40,7 +40,9 @@
  *   3. Implementation details of something already listed: uvicorn under
  *      FastAPI, tower under axum, dagre under ReactFlow.
  *   4. OS utilities and managed-hosting vendors. Scheduling a task and
- *      clicking a provisioning button are not differentiators.
+ *      clicking a provisioning button are not differentiators. Shipping the
+ *      installer that does the scheduling is one — which is why launchd and
+ *      Task Scheduler sit under Packaging while tmux stays out.
  *
  * `src/data/techStack.test.ts` carries the list of technologies deliberately
  * omitted from `projects.ts`, so a genuinely new one still fails the test
@@ -126,6 +128,15 @@ export const techStack: TechCategory[] = [
         ],
       },
       { name: 'Bash' },
+      // Not a dotfile: claude-continue *generates* AppleScript — session
+      // matching, string escaping, a busy guard on iTerm2's `is processing`
+      // so a resume never types into a mid-flight turn — and runs it through
+      // osascript. The language is the capability; the terminal being driven
+      // is the secondary.
+      {
+        name: 'AppleScript',
+        secondaries: [{ name: 'iTerm2 automation' }],
+      },
     ],
   },
   {
@@ -250,8 +261,21 @@ export const techStack: TechCategory[] = [
   {
     id: 'platform',
     primaries: [
-      { name: 'Docker' },
-      { name: 'Kubernetes', context: 'work' },
+      {
+        name: 'Docker',
+        // Compose is the orchestration surface, not a Docker flag: the RAG
+        // stack is four services with a GPU device reservation and a one-shot
+        // model pull the backend is healthcheck-gated behind.
+        secondaries: [{ name: 'Docker Compose' }],
+      },
+      {
+        name: 'Kubernetes',
+        context: 'work',
+        // The `work` badge is the client clusters. The Helm chart is HRM's
+        // own — HPA, PDB, an existingSecret indirection — and claims chart
+        // authoring, not a production deployment.
+        secondaries: [{ name: 'Helm' }],
+      },
       {
         name: 'Azure',
         context: 'both',
@@ -283,9 +307,22 @@ export const techStack: TechCategory[] = [
         name: 'Observability',
         secondaries: [{ name: 'OpenTelemetry' }, { name: 'Sentry' }],
       },
+      // Both halves of shipping a desktop tool, on both desktops: the build
+      // (PyInstaller into a versioned .app bundle on macOS, an Inno Setup
+      // installer on Windows) and the install (a launchd KeepAlive agent
+      // whose baked PATH survives node upgrades, a schtasks registration
+      // quoted for cmd.exe and CommandLineToArgvW in series). launchd and
+      // Task Scheduler spent a release in the omitted list as OS utilities;
+      // shipping their installers is what earned them back in.
       {
         name: 'Packaging',
-        secondaries: [{ name: 'PyInstaller' }, { name: 'Inno Setup' }],
+        secondaries: [
+          { name: 'PyInstaller' },
+          { name: 'macOS .app bundle' },
+          { name: 'launchd' },
+          { name: 'Inno Setup' },
+          { name: 'Task Scheduler' },
+        ],
       },
       { name: 'Turborepo' },
       { name: 'Tailscale Funnel' },
