@@ -298,19 +298,33 @@ export function initExperienceTimeline(
   const previousRestoration = history.scrollRestoration;
   const honourDeepLink = window.location.hash.length > 1;
   let readerHasScrolled = false;
+  // Where the last jump put them. A `scroll` that does not match it came from
+  // the reader, which catches the cases no input event does: a scrollbar drag,
+  // a trackpad fling still decelerating, an assistive tool moving the page.
+  let lastProgrammaticTop = -1;
   const noteReaderScrolled = (): void => {
     readerHasScrolled = true;
+  };
+  const noteScrolled = (): void => {
+    if (lastProgrammaticTop >= 0 && Math.abs(window.scrollY - lastProgrammaticTop) > 2) {
+      readerHasScrolled = true;
+    }
   };
   const goToBaseCamp = (): void => {
     if (honourDeepLink || readerHasScrolled) return;
     // Base camp is the FOOT OF THE CLIMB, not the foot of the document — the
     // Technologies box sits below it. Land with the climb's last screen
     // filling the viewport and the stack appendix just out of sight.
-    const climbBottom = climb.offsetTop + climb.offsetHeight;
-    window.scrollTo({
-      top: Math.max(0, climbBottom - window.innerHeight),
-      behavior: 'instant',
-    });
+    //
+    // Measured through the viewport rather than with `offsetTop`: the track is
+    // `position: relative`, so it is the offsetParent and `offsetTop` counts
+    // from the track rather than from the document. The two agree only while
+    // the track starts at y=0 — anything ever placed above it (a banner, a
+    // notice) would silently land the reader at the wrong scroll position.
+    const climbBottom = climb.getBoundingClientRect().bottom + window.scrollY;
+    const top = Math.max(0, climbBottom - window.innerHeight);
+    window.scrollTo({ top, behavior: 'instant' });
+    lastProgrammaticTop = Math.round(window.scrollY);
   };
 
   if (!honourDeepLink) {
@@ -324,6 +338,7 @@ export function initExperienceTimeline(
     window.addEventListener('wheel', noteReaderScrolled, { passive: true });
     window.addEventListener('touchstart', noteReaderScrolled, { passive: true });
     window.addEventListener('keydown', noteReaderScrolled);
+    window.addEventListener('scroll', noteScrolled, { passive: true });
   }
 
   const restoreScrollOwnership = (): void => {
@@ -331,6 +346,7 @@ export function initExperienceTimeline(
     window.removeEventListener('wheel', noteReaderScrolled);
     window.removeEventListener('touchstart', noteReaderScrolled);
     window.removeEventListener('keydown', noteReaderScrolled);
+    window.removeEventListener('scroll', noteScrolled);
     try {
       history.scrollRestoration = previousRestoration;
     } catch {
