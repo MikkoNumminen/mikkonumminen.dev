@@ -153,6 +153,7 @@ const DELIBERATELY_OMITTED: Readonly<Record<string, string>> = {
   pydub: 'thin wrapper over ffmpeg, which is listed',
   pygame: 'used only as an audio backend; implies a game that is not in Python',
   ocrmypdf: 'Tesseract orchestration; listing both double-counts one capability',
+  Neon: 'a managed Postgres vendor; provisioning is not a skill',
   'Bootstrap 5': 'a Tailwind competitor, not a sub-technology, and dated',
   'wasm-bindgen': 'implementation detail of WebAssembly + Rust, both listed',
 };
