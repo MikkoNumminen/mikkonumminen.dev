@@ -59,10 +59,6 @@ const byProject = projects.map((project) => ({
       <label class="tech__view-label" for="tech-view-overall">{copy.viewOverall}</label>
       <label class="tech__view-label" for="tech-view-project">{copy.viewByProject}</label>
     </div>
-    <a class="tech__onward" href="#summit-exit">
-      <span aria-hidden="true">&#8593;</span>
-      {copy.onwardToTerminal}
-    </a>
   </div>
 
   <div class="tech__grid tech__grid--overall">
@@ -143,15 +139,14 @@ const byProject = projects.map((project) => ({
        collapses to zero once the viewport is narrower than the max-width, and
        the box would sit flush against both screen edges. */
     width: min(60rem, 100% - 2rem);
-    /* Top margin clears the fixed nav pill. This box is the first block on the
-       page now, so at scroll 0 its heading would otherwise sit behind the nav —
-       and `scroll-margin-top` cannot help there, because there is no room above
-       0 to scroll into. The matching `scroll-margin-top` is for arrivals via
-       the `#technologies` link from further down. The bottom margin is small
-       on purpose: the summit block sits directly below, and the box's lower
-       edge has to peek into the summit view so a climber at the last card can
-       see the page continues above. */
-    margin: 6rem auto 0;
+    /* The summit panel above owns the top of the page and clears the fixed
+       nav pill, so the box only needs a breath of sky before it. The
+       `scroll-margin-top` keeps arrivals via the `#technologies` link clear
+       of the nav. The bottom margin stays small on purpose: the climb's
+       newest card sits directly below, and the box's lower edge has to peek
+       into that view so a climber at the last card can see the page
+       continues above. */
+    margin: 2.5rem auto 0;
     scroll-margin-top: 6rem;
     padding: 2rem 1.75rem 2.25rem;
     border-radius: 12px;
@@ -198,23 +193,6 @@ const byProject = projects.map((project) => ({
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1.75rem;
-  }
-
-  .tech__onward {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(243, 238, 217, 0.62);
-    text-decoration: none;
-    border-bottom: 1px solid rgba(243, 238, 217, 0.28);
-    padding-bottom: 0.15rem;
-    transition: color 0.2s ease;
-  }
-
-  .tech__onward:hover,
-  .tech__onward:focus-visible {
-    color: rgba(243, 238, 217, 0.95);
   }
 
   .tech__views {

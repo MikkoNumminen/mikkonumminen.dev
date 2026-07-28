@@ -146,6 +146,9 @@
   display: flex;
   flex-direction: column;
   gap: 25vh;
+  /* Sky between the Technologies box above and the newest card, so the last
+     stretch of the climb keeps the same rhythm as the card spacing below. */
+  padding-top: 25vh;
   padding-bottom: 25vh;
 }
 
@@ -180,10 +183,6 @@
     /* Static here (no reveal animation, `.is-visible` is never added), so
        drop the compositor hint the :not(.is-visible) rule would otherwise pin. */
     will-change: auto;
-  }
-  .timeline__cta:hover,
-  .timeline__cta:focus-visible {
-    transform: none !important;
   }
 }
 
@@ -704,167 +703,5 @@
   }
   .timeline__entry[data-active='true'] .timeline__dot {
     transform: none;
-  }
-}
-
-/* ── Summit (CTA) ──────────────────────────────────────────────── */
-
-/* The content keeps to the FOOT of the block: at full day the sun is high,
-   and centring put the summit line and its call to action directly behind it.
-   The 8rem above is that clearance — sky between the stack and the summit
-   line. No min-height on purpose: the block used to carry 78vh of open sky,
-   which pushed the Technologies box a full viewport above the last card —
-   a reader who reached the top saw sky and never learned the page continued. */
-.timeline__summit {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  text-align: center;
-  gap: 1.75rem;
-  padding-top: 8rem;
-  /* Tight below: the summit line is the signpost between the climb and the
-     stack, not a screen of its own — it shares the view with the last card
-     so the card, the line, and the stack's lower edge read as one ascent. */
-  padding-bottom: 0.75rem;
-}
-
-/* The onward route out of the summit. Shipped in #443 with markup but no
-   styling at all, so it rendered as a bare line of text and read as a caption
-   rather than as the way on. Deliberately heavier than its twin inside the
-   Technologies box: there the toggle is the main event and this is a footnote,
-   here it is the only thing to do next.
-
-   PARALLEL TO `.timeline__skip` at base camp — the two are the same kind of
-   control at opposite ends of the climb and should stay visually matched. */
-.timeline__onward {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.85rem 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 999px;
-  background: rgba(18, 14, 30, 0.55);
-  backdrop-filter: blur(6px);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(243, 238, 217, 0.95);
-  text-decoration: none;
-  transition:
-    background 0.25s ease,
-    border-color 0.25s ease,
-    transform 0.25s ease;
-}
-
-.timeline__onward:hover,
-.timeline__onward:focus-visible {
-  background: rgba(32, 26, 52, 0.78);
-  border-color: rgba(255, 255, 255, 0.55);
-  transform: translateY(-2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .timeline__onward:hover,
-  .timeline__onward:focus-visible {
-    transform: none;
-  }
-}
-
-.timeline__summit p {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: rgba(243, 238, 217, 0.88);
-  margin: 0;
-  /* The only element up here without a solid backing, and the sun passes
-     directly behind it once the summit sits tight against the stack. A plate
-     would make a caption look like a button, so it carries its own shadow
-     instead — dark enough to hold the letterforms against the sun's core. */
-  text-shadow:
-    0 0 6px rgba(8, 6, 16, 0.95),
-    0 0 16px rgba(8, 6, 16, 0.85),
-    0 1px 2px rgba(8, 6, 16, 0.9);
-}
-
-.timeline__cta {
-  position: relative;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  color: #fff;
-  text-decoration: none;
-  padding: 0.85rem 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 999px;
-  /* Dark backing rather than a tint of the sky. This sits over a background
-     that runs from near-black at base camp to a bright sun at full day, and
-     white-on-transparent stopped being legible the moment the summit block
-     moved to the top of the page and met the sun. Matches the card language
-     used elsewhere on the page. */
-  background: rgba(18, 14, 30, 0.55);
-  backdrop-filter: blur(6px);
-  transition:
-    background 0.3s ease,
-    border-color 0.3s ease,
-    transform 0.3s ease;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.timeline__cta-text {
-  position: relative;
-  z-index: 1;
-}
-
-/* Pulsing accent halo behind the CTA — a slow breathing ring that
-   primes the eye toward the "drop into the terminal" call to action.
-   Sits behind the text via z-index. */
-.timeline__cta-glow {
-  position: absolute;
-  inset: -2px;
-  border-radius: 999px;
-  background: radial-gradient(
-    circle,
-    rgba(255, 224, 112, 0.35) 0%,
-    rgba(255, 224, 112, 0) 70%
-  );
-  opacity: 0.6;
-  z-index: 0;
-  animation: timeline-cta-pulse 2.4s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes timeline-cta-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.45;
-  }
-  50% {
-    transform: scale(1.12);
-    opacity: 0.85;
-  }
-}
-
-.timeline__cta:hover,
-.timeline__cta:focus-visible {
-  background: rgba(255, 224, 112, 0.18);
-  border-color: rgba(255, 224, 112, 0.7);
-  transform: translateY(-2px);
-  outline: none;
-}
-
-.timeline__cta:hover .timeline__cta-glow,
-.timeline__cta:focus-visible .timeline__cta-glow {
-  opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .timeline__cta-glow {
-    animation: none;
-    opacity: 0.5;
   }
 }
