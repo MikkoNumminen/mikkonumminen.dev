@@ -422,11 +422,29 @@ export function initExperienceTimeline(
       };
       window.addEventListener('resize', onResize);
 
+      // The goat is `position: fixed` and, on this path, placed exactly once.
+      // That is fine while the reader is on the mountain and wrong the moment
+      // they reach the Technologies box above it, where a goat pinned to a
+      // viewport coordinate simply sits on the stack list. Reduced motion asks
+      // for less movement, not for the goat to follow you into an appendix, so
+      // the same visibility rule applies here — it is a state change, and the
+      // fade is disabled in CSS for this preference anyway.
+      const syncOffPiste = (): void => {
+        const rect = climb.getBoundingClientRect();
+        goat.dataset.offpiste = String(
+          rect.top >= window.innerHeight || rect.bottom <= 0,
+        );
+      };
+      syncOffPiste();
+      window.addEventListener('scroll', syncOffPiste, { passive: true });
+
       return {
         dispose: (): void => {
           window.clearTimeout(resizeTimer);
           window.removeEventListener('resize', onResize);
+          window.removeEventListener('scroll', syncOffPiste);
           GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
+          delete goat.dataset.offpiste;
           restoreScrollOwnership();
         },
       };
@@ -483,6 +501,7 @@ export function initExperienceTimeline(
   let goatTargetX = 0;
   let goatTargetY = 0;
   let goatInitialized = false;
+  let goatOffPiste = false;
   let activeEntry: HTMLElement | null = null;
 
   /**
@@ -533,6 +552,18 @@ export function initExperienceTimeline(
     }
 
     if (!goat) return;
+
+    // The Technologies box and the summit panel sit ABOVE the climb, so a
+    // reader up there has every anchor below the viewport. The goat would
+    // clamp to the bottom edge and stand on the stack list. It belongs to the
+    // mountain, so once the mountain is out of view it goes with it.
+    const climbRect = climb.getBoundingClientRect();
+    const offPiste = climbRect.top >= window.innerHeight || climbRect.bottom <= 0;
+    if (offPiste !== goatOffPiste) {
+      goatOffPiste = offPiste;
+      goat.dataset.offpiste = String(offPiste);
+    }
+    if (offPiste) return;
 
     const anchor = nearestToViewportCentre(goatAnchors) ?? active;
     goatTargetX = Math.max(GOAT_LEFT_CLAMP_PX, anchor.rect.left - GOAT_GAP_PX);
@@ -614,6 +645,7 @@ export function initExperienceTimeline(
       // we clean up by hand.
       if (goat) {
         GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
+        delete goat.dataset.offpiste;
       }
       activeEntry?.removeAttribute('data-active');
       activeEntry = null;
