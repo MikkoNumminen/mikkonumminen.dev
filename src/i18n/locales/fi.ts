@@ -245,7 +245,6 @@ export const fi: Translations = {
     },
     workBadge: 'työ',
     legend: 'työ = käytetty asiakastyössä. Muut ovat omista tuotantoprojekteistani.',
-    revealAria: 'Näytä mitä {tech}:n alla on',
   },
   timelineData: {
     'hardware-retail': {

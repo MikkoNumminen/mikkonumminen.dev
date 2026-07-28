@@ -244,7 +244,6 @@ export const en: Translations = {
     workBadge: 'work',
     legend:
       'work = used in client work. Everything else is from my own production projects.',
-    revealAria: 'Show what sits under {tech}',
   },
   timelineData: {
     'hardware-retail': {

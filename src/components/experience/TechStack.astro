@@ -9,19 +9,17 @@
  * and a tap is just a click. Reaching for JavaScript would have meant
  * reimplementing all of it slightly worse.
  *
- * Primaries with nothing underneath render as a plain span, not an inert
+ * Primaries with nothing underneath render as a paragraph, not an inert
  * summary, so a keyboard user never tabs to something that does not respond.
  */
-import { techStack } from '../../data/techStack';
+import { techStack, type TechContext } from '../../data/techStack';
 import { asLocale, getTranslations } from '../../i18n';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 const copy = t.techStack;
-const categoryName = (id: string): string =>
-  copy.categories[id as keyof typeof copy.categories] ?? id;
 /** `work` and `both` both mean it was used in client work; the badge says so. */
-const wearsBadge = (context?: string): boolean =>
+const wearsBadge = (context?: TechContext): boolean =>
   context === 'work' || context === 'both';
 ---
 
@@ -33,7 +31,7 @@ const wearsBadge = (context?: string): boolean =>
     {
       techStack.map((category) => (
         <div class="tech__category">
-          <h3 class="tech__category-name">{categoryName(category.id)}</h3>
+          <h3 class="tech__category-name">{copy.categories[category.id]}</h3>
           <ul class="tech__primaries">
             {category.primaries.map((primary) => (
               <li>
@@ -45,9 +43,6 @@ const wearsBadge = (context?: string): boolean =>
                         <span class="tech__badge">{copy.workBadge}</span>
                       )}
                       <span class="tech__marker" aria-hidden="true" />
-                      <span class="tech__sr">
-                        {copy.revealAria.replace('{tech}', primary.name)}
-                      </span>
                     </summary>
                     <ul class="tech__secondaries">
                       {primary.secondaries.map((secondary) => (
@@ -122,7 +117,10 @@ const wearsBadge = (context?: string): boolean =>
     font-size: 0.7rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: rgba(243, 238, 217, 0.45);
+    /* 0.45 measured 4.03:1 on the composited card background — under AA at
+       this size. These three tokens are the box's small text; they get the
+       alpha that clears 4.5, not the one that looked right. */
+    color: rgba(243, 238, 217, 0.58);
   }
 
   .tech__primaries,
@@ -173,7 +171,7 @@ const wearsBadge = (context?: string): boolean =>
     font-family: var(--font-mono);
     font-size: 0.75rem;
     line-height: 1;
-    color: rgba(243, 238, 217, 0.4);
+    color: rgba(243, 238, 217, 0.62);
   }
 
   .tech__marker::before {
@@ -230,17 +228,7 @@ const wearsBadge = (context?: string): boolean =>
     padding-top: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     font-size: 0.75rem;
-    color: rgba(243, 238, 217, 0.45);
-  }
-
-  .tech__sr {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
+    color: rgba(243, 238, 217, 0.58);
   }
 
   @keyframes tech-reveal {

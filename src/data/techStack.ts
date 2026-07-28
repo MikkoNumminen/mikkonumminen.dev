@@ -28,6 +28,15 @@
  * `Markdown`, which is a file format rather than a skill.
  */
 
+import type { Translations } from '../i18n/types';
+
+/**
+ * Derived from the translation keys rather than restated, so a category here
+ * with no string there (or the reverse) is a compile error, not a heading that
+ * silently renders its own id.
+ */
+export type TechCategoryId = keyof Translations['techStack']['categories'];
+
 /** Where a technology was used. Absent means `own`. */
 export type TechContext = 'work' | 'own' | 'both';
 
@@ -44,8 +53,7 @@ export interface PrimaryTech extends TechItem {
 }
 
 export interface TechCategory {
-  /** Key into `t.techStack.categories`. */
-  id: string;
+  id: TechCategoryId;
   primaries: PrimaryTech[];
 }
 

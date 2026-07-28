@@ -152,8 +152,6 @@ export interface Translations {
     workBadge: string;
     /** One legend line under the box. */
     legend: string;
-    /** Accessible name for a primary's expand control, `{tech}` substituted. */
-    revealAria: string;
   };
   /** Single lesson inside a timeline entry's optional sub-timeline. */
   timelineData: Record<
