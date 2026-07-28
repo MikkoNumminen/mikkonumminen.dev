@@ -1,0 +1,269 @@
+---
+/**
+ * The technology box that closes `/experience`.
+ *
+ * Built on `<details>`/`<summary>` rather than a button and a script. That is
+ * not minimalism for its own sake: the native element already answers every
+ * requirement here — Enter and Space toggle it, the open state is exposed to
+ * assistive technology without an `aria-expanded` I would have to keep in sync,
+ * and a tap is just a click. Reaching for JavaScript would have meant
+ * reimplementing all of it slightly worse.
+ *
+ * Primaries with nothing underneath render as a plain span, not an inert
+ * summary, so a keyboard user never tabs to something that does not respond.
+ */
+import { techStack } from '../../data/techStack';
+import { asLocale, getTranslations } from '../../i18n';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+const copy = t.techStack;
+const categoryName = (id: string): string =>
+  copy.categories[id as keyof typeof copy.categories] ?? id;
+/** `work` and `both` both mean it was used in client work; the badge says so. */
+const wearsBadge = (context?: string): boolean =>
+  context === 'work' || context === 'both';
+---
+
+<section class="tech" aria-labelledby="tech-heading">
+  <h2 class="tech__heading" id="tech-heading">{copy.title}</h2>
+  <p class="tech__lede">{copy.lede}</p>
+
+  <div class="tech__grid">
+    {
+      techStack.map((category) => (
+        <div class="tech__category">
+          <h3 class="tech__category-name">{categoryName(category.id)}</h3>
+          <ul class="tech__primaries">
+            {category.primaries.map((primary) => (
+              <li>
+                {primary.secondaries && primary.secondaries.length > 0 ? (
+                  <details class="tech__group">
+                    <summary class="tech__primary">
+                      <span class="tech__name">{primary.name}</span>
+                      {wearsBadge(primary.context) && (
+                        <span class="tech__badge">{copy.workBadge}</span>
+                      )}
+                      <span class="tech__marker" aria-hidden="true" />
+                      <span class="tech__sr">
+                        {copy.revealAria.replace('{tech}', primary.name)}
+                      </span>
+                    </summary>
+                    <ul class="tech__secondaries">
+                      {primary.secondaries.map((secondary) => (
+                        <li class="tech__secondary">
+                          <span class="tech__name">{secondary.name}</span>
+                          {wearsBadge(secondary.context) && (
+                            <span class="tech__badge tech__badge--sm">
+                              {copy.workBadge}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : (
+                  <p class="tech__primary tech__primary--leaf">
+                    <span class="tech__name">{primary.name}</span>
+                    {wearsBadge(primary.context) && (
+                      <span class="tech__badge">{copy.workBadge}</span>
+                    )}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+
+  <p class="tech__legend">{copy.legend}</p>
+</section>
+
+<style>
+  .tech {
+    /* The gutter has to come from the width, not from a margin: `margin: auto`
+       collapses to zero once the viewport is narrower than the max-width, and
+       the box would sit flush against both screen edges. */
+    width: min(60rem, 100% - 2rem);
+    margin: 0 auto 6rem;
+    padding: 2rem 1.75rem 2.25rem;
+    border-radius: 12px;
+    background: rgba(15, 12, 22, 0.65);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.7);
+  }
+
+  .tech__heading {
+    margin: 0;
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    letter-spacing: 0.02em;
+  }
+
+  .tech__lede {
+    margin: 0.5rem 0 1.75rem;
+    max-width: 42ch;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: rgba(243, 238, 217, 0.62);
+  }
+
+  .tech__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.75rem 2rem;
+  }
+
+  .tech__category-name {
+    margin: 0 0 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(243, 238, 217, 0.45);
+  }
+
+  .tech__primaries,
+  .tech__secondaries {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tech__primaries > li + li {
+    margin-top: 0.35rem;
+  }
+
+  .tech__primary {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.28rem 0.1rem;
+    font-size: 0.95rem;
+    color: rgba(243, 238, 217, 0.92);
+  }
+
+  /* A summary is focusable and clickable; a leaf primary is neither. */
+  summary.tech__primary {
+    cursor: pointer;
+    list-style: none;
+    border-radius: 4px;
+    transition: color 140ms ease;
+  }
+
+  summary.tech__primary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary.tech__primary:hover .tech__name,
+  summary.tech__primary:focus-visible .tech__name {
+    color: var(--color-accent, #f3eed9);
+  }
+
+  summary.tech__primary:focus-visible {
+    outline: 2px solid rgba(243, 238, 217, 0.7);
+    outline-offset: 3px;
+  }
+
+  .tech__marker {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1;
+    color: rgba(243, 238, 217, 0.4);
+  }
+
+  .tech__marker::before {
+    content: '+';
+  }
+
+  [open] > .tech__primary .tech__marker::before {
+    content: '\2212'; /* minus */
+  }
+
+  .tech__badge {
+    flex: none;
+    padding: 0.08rem 0.36rem;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    color: rgba(243, 238, 217, 0.6);
+  }
+
+  .tech__badge--sm {
+    font-size: 0.55rem;
+  }
+
+  .tech__secondaries {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0.15rem 0 0.5rem;
+    padding-left: 0.85rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    animation: tech-reveal 180ms ease-out;
+  }
+
+  /* Visibly lighter and smaller than a primary, so the level is never in doubt. */
+  .tech__secondary {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.16rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: rgba(243, 238, 217, 0.66);
+  }
+
+  .tech__legend {
+    margin: 1.75rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.75rem;
+    color: rgba(243, 238, 217, 0.45);
+  }
+
+  .tech__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @keyframes tech-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tech__secondaries {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .tech {
+      padding: 1.5rem 1.25rem 1.75rem;
+    }
+
+    .tech__grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+  }
+</style>

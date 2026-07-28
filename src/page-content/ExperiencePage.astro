@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import MountainScene from '../components/experience/MountainScene.astro';
 import Goat from '../components/experience/Goat.astro';
 import TimelineContent from '../components/experience/TimelineContent.astro';
+import TechStack from '../components/experience/TechStack.astro';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -25,6 +26,7 @@ const t = getTranslations(locale);
   <!-- The scrollable track. Total height drives the parallax progress 0..1. -->
   <div class="experience-track" data-experience-track>
     <TimelineContent />
+    <TechStack />
   </div>
 </BaseLayout>
 

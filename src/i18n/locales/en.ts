@@ -231,6 +231,21 @@ export const en: Translations = {
     lessonsAriaLabel: 'Lessons from this chapter',
     yearNow: 'Now',
   },
+  techStack: {
+    title: 'Technologies',
+    lede: 'What I have actually built with. Open a row to see what sits underneath it.',
+    categories: {
+      languages: 'Languages',
+      frontend: 'Frontend',
+      backend: 'Backend & data',
+      ai: 'AI & LLM',
+      platform: 'Platform',
+    },
+    workBadge: 'work',
+    legend:
+      'work = used in client work. Everything else is from my own production projects.',
+    revealAria: 'Show what sits under {tech}',
+  },
   timelineData: {
     'hardware-retail': {
       title: 'Hardware retail',
@@ -243,6 +258,7 @@ export const en: Translations = {
       tags: [
         'TypeScript',
         'React',
+        'Next.js',
         'Node.js',
         'PostgreSQL',
         'PgTyped',

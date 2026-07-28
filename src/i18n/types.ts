@@ -137,6 +137,24 @@ export interface Translations {
     /** Localized label for the sentinel year value 'NOW' in timeline entries. */
     yearNow: string;
   };
+  /** The technology box at the end of /experience. Tech names are never translated. */
+  techStack: {
+    title: string;
+    lede: string;
+    categories: {
+      languages: string;
+      frontend: string;
+      backend: string;
+      ai: string;
+      platform: string;
+    };
+    /** Badge on items used in client work. */
+    workBadge: string;
+    /** One legend line under the box. */
+    legend: string;
+    /** Accessible name for a primary's expand control, `{tech}` substituted. */
+    revealAria: string;
+  };
   /** Single lesson inside a timeline entry's optional sub-timeline. */
   timelineData: Record<
     string,

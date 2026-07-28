@@ -243,6 +243,21 @@ export const sv: Translations = {
     lessonsAriaLabel: 'Lärdomar från detta kapitel',
     yearNow: 'Nu',
   },
+  techStack: {
+    title: 'Teknologier',
+    lede: 'Vad jag faktiskt har byggt med. Öppna en rad för att se vad som ligger under.',
+    categories: {
+      languages: 'Språk',
+      frontend: 'Frontend',
+      backend: 'Backend och data',
+      ai: 'AI och språkmodeller',
+      platform: 'Plattform',
+    },
+    workBadge: 'jobb',
+    legend:
+      'jobb = använt i kundarbete. Resten kommer från mina egna produktionsprojekt.',
+    revealAria: 'Visa vad som ligger under {tech}',
+  },
   timelineData: {
     'hardware-retail': {
       title: 'Järnhandel',
