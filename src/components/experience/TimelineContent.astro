@@ -1,7 +1,7 @@
 ---
 import '../../styles/experience-timeline.css';
 import { localizeTimeline } from '../../data/timeline';
-import { asLocale, getTranslations, localizePath } from '../../i18n';
+import { asLocale, getTranslations } from '../../i18n';
 import LinkifiedText from '../LinkifiedText.astro';
 
 const locale = asLocale(Astro.currentLocale);
@@ -39,9 +39,9 @@ function ghostYear(year: string): string {
 <div class="timeline" data-timeline>
   <header class="timeline__summit">
     <p>{t.experiencePage.summit}</p>
-    <a href={localizePath('/contact', locale)} class="timeline__cta">
-      <span class="timeline__cta-glow" aria-hidden="true"></span>
-      <span class="timeline__cta-text">{t.experiencePage.cta}</span>
+    <a class="timeline__onward" href="#technologies">
+      <span aria-hidden="true">&#8593;</span>
+      {t.experiencePage.onwardToTech}
     </a>
   </header>
 

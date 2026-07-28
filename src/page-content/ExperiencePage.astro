@@ -4,6 +4,7 @@ import MountainScene from '../components/experience/MountainScene.astro';
 import Goat from '../components/experience/Goat.astro';
 import TimelineContent from '../components/experience/TimelineContent.astro';
 import TechStack from '../components/experience/TechStack.astro';
+import SummitExit from '../components/experience/SummitExit.astro';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -31,6 +32,7 @@ const t = getTranslations(locale);
        view, which the previous arrangement (appendix below base camp) did
        not. -->
   <div class="experience-track" data-experience-track>
+    <SummitExit />
     <TechStack />
     <TimelineContent />
   </div>

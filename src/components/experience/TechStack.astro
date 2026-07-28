@@ -54,9 +54,15 @@ const byProject = projects.map((project) => ({
     checked
   />
   <input class="tech__view-input" type="radio" name="tech-view" id="tech-view-project" />
-  <div class="tech__views">
-    <label class="tech__view-label" for="tech-view-overall">{copy.viewOverall}</label>
-    <label class="tech__view-label" for="tech-view-project">{copy.viewByProject}</label>
+  <div class="tech__controls">
+    <div class="tech__views">
+      <label class="tech__view-label" for="tech-view-overall">{copy.viewOverall}</label>
+      <label class="tech__view-label" for="tech-view-project">{copy.viewByProject}</label>
+    </div>
+    <a class="tech__onward" href="#summit-exit">
+      <span aria-hidden="true">&#8593;</span>
+      {copy.onwardToTerminal}
+    </a>
   </div>
 
   <div class="tech__grid tech__grid--overall">
@@ -182,10 +188,35 @@ const byProject = projects.map((project) => ({
     pointer-events: none;
   }
 
+  .tech__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .tech__onward {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(243, 238, 217, 0.62);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(243, 238, 217, 0.28);
+    padding-bottom: 0.15rem;
+    transition: color 0.2s ease;
+  }
+
+  .tech__onward:hover,
+  .tech__onward:focus-visible {
+    color: rgba(243, 238, 217, 0.95);
+  }
+
   .tech__views {
     display: inline-flex;
     gap: 0.25rem;
-    margin-bottom: 1.75rem;
     padding: 0.25rem;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.04);

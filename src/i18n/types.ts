@@ -131,6 +131,8 @@ export interface Translations {
     kindProject: string;
     kindCraft: string;
     kindNow: string;
+    /** Summit pointer up to the tech stack. */
+    onwardToTech: string;
     summit: string;
     cta: string;
     /** ARIA label for the nested lessons sub-timeline rendered inside an
@@ -153,6 +155,8 @@ export interface Translations {
     /** Labels on the two-way view toggle. */
     viewOverall: string;
     viewByProject: string;
+    /** Link out of the tech box, up to the terminal CTA. */
+    onwardToTerminal: string;
     /** Badge on items used in client work. */
     workBadge: string;
     /** One legend line under the box. */
