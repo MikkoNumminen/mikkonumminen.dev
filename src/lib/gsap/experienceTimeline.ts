@@ -22,6 +22,12 @@ const GOAT_GAP_PX = 56; // visual gap between goat center and card's left edge
 const GOAT_DAMPING = 0.14; // higher = snappier; lower = more glide
 const GOAT_LEFT_CLAMP_PX = 44; // never let the goat go off the viewport left
 const GOAT_VERTICAL_PADDING = 80; // keep the goat at least this far from top/bottom
+// How far above an anchor's lower edge a `foot` anchor parks the goat. Base
+// camp is a full-height block with its text vertically centred, so its centre
+// is exactly where the title is — on a narrow viewport there is no room to sit
+// beside it and the goat lands on the words. Its lower third is empty on every
+// viewport, which is also where a goat would actually stand.
+const GOAT_FOOT_INSET_PX = 140;
 
 // Inline custom properties written by the goat ticker. Tracked so dispose
 // can `removeProperty` each one and not leak inline state across HMR /
@@ -29,7 +35,12 @@ const GOAT_VERTICAL_PADDING = 80; // keep the goat at least this far from top/bo
 const GOAT_PROPS = ['--goat-x', '--goat-y'] as const;
 
 /**
- * Color phases mapped to scroll progress.
+ * Color phases mapped to CLIMB progress — 0 at base camp, 1 at the summit.
+ *
+ * Climb progress is NOT scroll progress. The page is read from the bottom up,
+ * so ScrollTrigger's 0-at-the-top progress runs backwards relative to the
+ * climb. `climbProgress` does that inversion once and everything downstream
+ * consumes it rather than `self.progress`.
  *
  *   0.00  pre-dawn (deep purple, stars visible, sun below horizon)
  *   0.30  dawn     (pink/orange horizon, sun rising)
@@ -219,6 +230,15 @@ function applyPhase(progress: number, root: HTMLElement): void {
  * the viewport edge — without this clamp the goat would translate
  * off-screen along with the card.
  */
+/**
+ * Scroll progress (0 at the top of the document) to climb progress (0 at the
+ * bottom, where the reader starts). One place, so nothing downstream has to
+ * remember which way round the page runs.
+ */
+function climbProgress(scrollProgress: number): number {
+  return 1 - scrollProgress;
+}
+
 function clampGoatY(y: number): number {
   const min = GOAT_VERTICAL_PADDING;
   const max = window.innerHeight - GOAT_VERTICAL_PADDING;
@@ -235,15 +255,88 @@ export function initExperienceTimeline(
   // absent, the goat-driving code below is skipped but the rest of the
   // parallax + timeline reveal logic continues to run.
   const goat = document.querySelector<HTMLElement>('[data-goat]');
-  const trigger = document.querySelector<HTMLElement>('[data-experience-track]');
+  const track = document.querySelector<HTMLElement>('[data-experience-track]');
+  // The climb is the timeline, not the whole track — the Technologies box
+  // sits below base camp as an appendix and must not stretch the phase
+  // mapping, or the sky would still be brightening while the reader is
+  // reading a stack list.
+  const climb = document.querySelector<HTMLElement>('[data-timeline]') ?? track;
   const timelineEntries = Array.from(
     document.querySelectorAll<HTMLElement>('[data-timeline-entry]'),
   );
-  if (!sceneRoot || !trigger) {
+  // The goat tracks one more thing than the active-card highlight does: base
+  // camp. The reader arrives with the full-height header filling the viewport
+  // and no card on screen at all, so tracking cards alone would clamp the goat
+  // to the top edge — leaving it standing in the star field above the
+  // mountains. Base camp gives it ground to stand on at the one scroll
+  // position where nothing else is in view.
+  const goatAnchors = [
+    ...timelineEntries,
+    ...Array.from(document.querySelectorAll<HTMLElement>('[data-goat-anchor]')),
+  ];
+  if (!sceneRoot || !track || !climb) {
     return { dispose: (): void => {} };
   }
 
   const { reducedMotion = prefersReducedMotion() } = options;
+
+  // ── Start at base camp ────────────────────────────────────────────────
+  // The climb runs upward, so the opening view is the FOOT of the document.
+  // Three things otherwise decide the scroll position for us and all three
+  // have to be handled:
+  //
+  //   - the browser's own scroll restoration on reload / back, which is why
+  //     `scrollRestoration` is taken over and handed back in dispose;
+  //   - a deep link to `#some-id`, which the reader asked for explicitly and
+  //     must win over base camp;
+  //   - late layout growth (web fonts, images) landing after the first jump,
+  //     which leaves an "at the bottom" scroll no longer at the bottom. The
+  //     `load` re-pin covers it, and stops the moment the reader takes over.
+  //
+  // `scrollTo` is instant on purpose: smooth-scrolling a whole page on
+  // arrival would look like a bug, and would fight the reader's first gesture.
+  const previousRestoration = history.scrollRestoration;
+  const honourDeepLink = window.location.hash.length > 1;
+  let readerHasScrolled = false;
+  const noteReaderScrolled = (): void => {
+    readerHasScrolled = true;
+  };
+  const goToBaseCamp = (): void => {
+    if (honourDeepLink || readerHasScrolled) return;
+    // Base camp is the FOOT OF THE CLIMB, not the foot of the document — the
+    // Technologies box sits below it. Land with the climb's last screen
+    // filling the viewport and the stack appendix just out of sight.
+    const climbBottom = climb.offsetTop + climb.offsetHeight;
+    window.scrollTo({
+      top: Math.max(0, climbBottom - window.innerHeight),
+      behavior: 'instant',
+    });
+  };
+
+  if (!honourDeepLink) {
+    try {
+      history.scrollRestoration = 'manual';
+    } catch {
+      // Safari private mode throws on the setter; the jump below still works.
+    }
+    goToBaseCamp();
+    window.addEventListener('load', goToBaseCamp, { once: true });
+    window.addEventListener('wheel', noteReaderScrolled, { passive: true });
+    window.addEventListener('touchstart', noteReaderScrolled, { passive: true });
+    window.addEventListener('keydown', noteReaderScrolled);
+  }
+
+  const restoreScrollOwnership = (): void => {
+    window.removeEventListener('load', goToBaseCamp);
+    window.removeEventListener('wheel', noteReaderScrolled);
+    window.removeEventListener('touchstart', noteReaderScrolled);
+    window.removeEventListener('keydown', noteReaderScrolled);
+    try {
+      history.scrollRestoration = previousRestoration;
+    } catch {
+      // See above.
+    }
+  };
 
   // ── Reduced-motion static fallback ────────────────────────────────────
   // Drop the user into a sensible mid-morning state with timeline cards
@@ -254,12 +347,22 @@ export function initExperienceTimeline(
     applyPhase(0.6, sceneRoot);
     timelineEntries.forEach((el) => el.classList.add('is-visible'));
 
-    const firstEntry = timelineEntries[0];
-    if (goat && firstEntry) {
+    // Base camp is the bottom of the page, and where the reader starts.
+    // Prefer the base-camp anchor over the last card: the card sits a full
+    // screen above the arrival view, so pinning to it clamps the goat to the
+    // top edge and leaves it standing in the sky. Pinning to `[0]` would be
+    // worse still — that is the summit, a whole page away.
+    const baseCampEntry =
+      goatAnchors[goatAnchors.length - 1] ?? timelineEntries[timelineEntries.length - 1];
+    if (goat && baseCampEntry) {
       const positionGoat = (): void => {
-        const rect = firstEntry.getBoundingClientRect();
+        const rect = baseCampEntry.getBoundingClientRect();
         const x = Math.max(GOAT_LEFT_CLAMP_PX, rect.left - GOAT_GAP_PX);
-        const y = clampGoatY(rect.top + rect.height / 2);
+        const y = clampGoatY(
+          baseCampEntry.dataset.goatAnchor === 'foot'
+            ? rect.bottom - GOAT_FOOT_INSET_PX
+            : rect.top + rect.height / 2,
+        );
         goat.style.setProperty('--goat-x', `${x}px`);
         goat.style.setProperty('--goat-y', `${y}px`);
       };
@@ -280,11 +383,12 @@ export function initExperienceTimeline(
           window.clearTimeout(resizeTimer);
           window.removeEventListener('resize', onResize);
           GOAT_PROPS.forEach((prop) => goat.style.removeProperty(prop));
+          restoreScrollOwnership();
         },
       };
     }
 
-    return { dispose: (): void => {} };
+    return { dispose: restoreScrollOwnership };
   }
 
   // Initialize with phase 0
@@ -304,11 +408,11 @@ export function initExperienceTimeline(
   const scope = createScope(() => {
     // ── Master scroll progress: drives color phase, sun, parallax, goat ──
     ScrollTrigger.create({
-      trigger,
+      trigger: climb,
       start: 'top top',
       end: 'bottom bottom',
       onUpdate: (self) => {
-        const progress = self.progress;
+        const progress = climbProgress(self.progress);
         applyPhase(progress, sceneRoot);
 
         // Layer parallax — each layer drifts down faster than the last so the
@@ -337,42 +441,58 @@ export function initExperienceTimeline(
   let goatInitialized = false;
   let activeEntry: HTMLElement | null = null;
 
-  const tickActiveAndGoat = (): void => {
-    if (timelineEntries.length === 0) return;
+  /**
+   * Where on an anchor the goat stands. Cards get their centre; a block marked
+   * `data-goat-anchor="foot"` gets its lower edge, because such a block is
+   * full-height with centred text and the centre is occupied.
+   */
+  const anchorY = (el: HTMLElement, rect: DOMRect): number =>
+    el.dataset.goatAnchor === 'foot'
+      ? rect.bottom - GOAT_FOOT_INSET_PX
+      : rect.top + rect.height / 2;
 
-    // Find the timeline entry whose centre is closest to the viewport
-    // centre. Linear scan — fine for the 7-15 entries we ever expect.
+  /** Element whose centre is nearest the viewport centre, with its rect. */
+  const nearestToViewportCentre = (
+    candidates: HTMLElement[],
+  ): { el: HTMLElement; rect: DOMRect } | null => {
     const viewportCenter = window.innerHeight / 2;
     let closest: HTMLElement | null = null;
     let closestRect: DOMRect | null = null;
     let closestDist = Infinity;
-    for (const el of timelineEntries) {
+    for (const el of candidates) {
       const rect = el.getBoundingClientRect();
-      const center = rect.top + rect.height / 2;
-      const dist = Math.abs(center - viewportCenter);
+      const dist = Math.abs(rect.top + rect.height / 2 - viewportCenter);
       if (dist < closestDist) {
         closestDist = dist;
         closest = el;
         closestRect = rect;
       }
     }
-    if (!closest || !closestRect) return;
+    return closest && closestRect ? { el: closest, rect: closestRect } : null;
+  };
+
+  const tickActiveAndGoat = (): void => {
+    if (timelineEntries.length === 0) return;
+
+    // The highlight only ever lands on a real card; the goat may also stand at
+    // base camp. Two scans, because they answer different questions.
+    const active = nearestToViewportCentre(timelineEntries);
+    if (!active) return;
 
     // Update the active-entry attribute only when it actually changes,
     // so the CSS transitions on the card glow / dot scale aren't being
     // restarted every frame.
-    if (closest !== activeEntry) {
+    if (active.el !== activeEntry) {
       activeEntry?.removeAttribute('data-active');
-      closest.setAttribute('data-active', 'true');
-      activeEntry = closest;
+      active.el.setAttribute('data-active', 'true');
+      activeEntry = active.el;
     }
 
     if (!goat) return;
 
-    // Reuse the rect measured in the scan loop above rather than forcing a
-    // second layout read on `closest` every frame.
-    goatTargetX = Math.max(GOAT_LEFT_CLAMP_PX, closestRect.left - GOAT_GAP_PX);
-    goatTargetY = clampGoatY(closestRect.top + closestRect.height / 2);
+    const anchor = nearestToViewportCentre(goatAnchors) ?? active;
+    goatTargetX = Math.max(GOAT_LEFT_CLAMP_PX, anchor.rect.left - GOAT_GAP_PX);
+    goatTargetY = clampGoatY(anchorY(anchor.el, anchor.rect));
 
     if (!goatInitialized) {
       // First frame: snap to target so we don't see the goat fly in from
@@ -413,9 +533,11 @@ export function initExperienceTimeline(
       // (long after earlier ones) a huge transition-delay, leaving it
       // invisible for up to ~1s. Sort the intersecting entries by their top
       // edge so the cascade reads top-down regardless of observer order.
+      // Bottom-most first: the reader climbs upward, so a batch entering
+      // together cascades in the direction of travel.
       const intersecting = records
         .filter((rec) => rec.isIntersecting)
-        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        .sort((a, b) => b.boundingClientRect.top - a.boundingClientRect.top);
       intersecting.forEach((rec, i) => {
         const target = rec.target as HTMLElement;
         target.style.transitionDelay = `${Math.min(i, 4) * 80}ms`;
@@ -423,7 +545,10 @@ export function initExperienceTimeline(
         io.unobserve(target);
       });
     },
-    { rootMargin: '0px 0px -20% 0px', threshold: 0.1 },
+    // Shrink the TOP of the root, not the bottom: cards arrive over the top
+    // edge on an upward scroll, and this margin exists to hold the reveal
+    // until a card is properly on screen.
+    { rootMargin: '-20% 0px 0px 0px', threshold: 0.1 },
   );
   entries.forEach((e) => io.observe(e));
 
@@ -457,6 +582,8 @@ export function initExperienceTimeline(
       entries.forEach((entry) => {
         entry.style.removeProperty('transition-delay');
       });
+
+      restoreScrollOwnership();
     },
   };
 }

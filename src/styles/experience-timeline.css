@@ -658,15 +658,20 @@
 
 /* ── Summit (CTA) ──────────────────────────────────────────────── */
 
+/* First block on the page now that the climb runs upward. The content sits at
+   the FOOT of its own block rather than centred: at full day the sun is high,
+   and centring put the summit line and its call to action directly behind it.
+   The space above is deliberate open sky over the peak. */
 .timeline__summit {
-  min-height: 60vh;
+  min-height: 78vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   text-align: center;
   gap: 1.5rem;
-  padding-bottom: 6rem;
+  padding-top: 8rem;
+  padding-bottom: 4rem;
 }
 
 .timeline__summit p {
