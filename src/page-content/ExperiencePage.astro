@@ -4,7 +4,7 @@ import MountainScene from '../components/experience/MountainScene.astro';
 import Goat from '../components/experience/Goat.astro';
 import TimelineContent from '../components/experience/TimelineContent.astro';
 import TechStack from '../components/experience/TechStack.astro';
-import SummitExit from '../components/experience/SummitExit.astro';
+import SummitPanel from '../components/experience/SummitPanel.astro';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -27,12 +27,12 @@ const t = getTranslations(locale);
   <!-- The scrollable track. Total height drives the parallax progress 0..1. -->
   <!-- Technologies sits ABOVE the climb. The page opens at base camp, the
        foot of the document, and everything is reached by scrolling up: the
-       history first, the summit, then the stack at the very top. That also
+       history first, the stack, then the summit panel at the very top. That also
        means the reader only ever has one direction to go from the opening
        view, which the previous arrangement (appendix below base camp) did
        not. -->
   <div class="experience-track" data-experience-track>
-    <SummitExit />
+    <SummitPanel />
     <TechStack />
     <TimelineContent />
   </div>
