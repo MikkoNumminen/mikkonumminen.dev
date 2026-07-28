@@ -104,6 +104,23 @@
     pointer-events: none;
     transform: translate(var(--goat-x, 50vw), var(--goat-y, 50vh)) translate(-50%, -50%);
     will-change: transform;
+    /* Opacity, unlike position, IS transitioned. The lerp smooths movement;
+       leaving the climb is a state change and wants a fade, not a slide. */
+    transition: opacity 320ms ease;
+  }
+
+  /* Set once the climb is entirely out of view — the reader has gone above it
+     into the Technologies box and the summit panel. The goat belongs to the
+     mountain: with no card left to stand on it was clamping to the viewport
+     edge and pasting itself over the stack list. */
+  .goat-wrap[data-offpiste='true'] {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .goat-wrap {
+      transition: none;
+    }
   }
 
   .goat {
