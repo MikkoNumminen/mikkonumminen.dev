@@ -150,6 +150,9 @@ export interface Translations {
       ai: string;
       platform: string;
     };
+    /** Labels on the two-way view toggle. */
+    viewOverall: string;
+    viewByProject: string;
     /** Badge on items used in client work. */
     workBadge: string;
     /** One legend line under the box. */

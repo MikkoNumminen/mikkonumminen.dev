@@ -13,6 +13,8 @@
  * summary, so a keyboard user never tabs to something that does not respond.
  */
 import { techStack, type TechContext } from '../../data/techStack';
+import { techProjects } from '../../data/techProjects';
+import { projects } from '../../data/projects';
 import { asLocale, getTranslations } from '../../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -21,13 +23,43 @@ const copy = t.techStack;
 /** `work` and `both` both mean it was used in client work; the badge says so. */
 const wearsBadge = (context?: TechContext): boolean =>
   context === 'work' || context === 'both';
+
+// The project view is a pivot of the same curated list, not a second list.
+// Ordering follows `techStack`, so a technology sits in the same relative
+// place whichever way the box is read.
+const techOrder = new Map(
+  techStack
+    .flatMap((c) => c.primaries.flatMap((pr) => [pr, ...(pr.secondaries ?? [])]))
+    .map((item, i) => [item.name, i] as const),
+);
+const byProject = projects.map((project) => ({
+  id: project.id,
+  name: project.name,
+  tech: Object.entries(techProjects)
+    .filter(([, ids]) => ids.includes(project.id))
+    .map(([name]) => name)
+    .sort((a, b) => (techOrder.get(a) ?? 0) - (techOrder.get(b) ?? 0)),
+}));
 ---
 
 <section class="tech" id="technologies" aria-labelledby="tech-heading">
   <h2 class="tech__heading" id="tech-heading">{copy.title}</h2>
   <p class="tech__lede">{copy.lede}</p>
 
-  <div class="tech__grid">
+  <input
+    class="tech__view-input"
+    type="radio"
+    name="tech-view"
+    id="tech-view-overall"
+    checked
+  />
+  <input class="tech__view-input" type="radio" name="tech-view" id="tech-view-project" />
+  <div class="tech__views">
+    <label class="tech__view-label" for="tech-view-overall">{copy.viewOverall}</label>
+    <label class="tech__view-label" for="tech-view-project">{copy.viewByProject}</label>
+  </div>
+
+  <div class="tech__grid tech__grid--overall">
     {
       techStack.map((category) => (
         <div class="tech__category">
@@ -73,6 +105,29 @@ const wearsBadge = (context?: TechContext): boolean =>
     }
   </div>
 
+  <div class="tech__grid tech__grid--project">
+    {
+      byProject.map((project) => (
+        <div class="tech__category">
+          <details class="tech__group">
+            <summary class="tech__primary">
+              <span class="tech__name">{project.name}</span>
+              <span class="tech__count">{project.tech.length}</span>
+              <span class="tech__marker" aria-hidden="true" />
+            </summary>
+            <ul class="tech__secondaries">
+              {project.tech.map((name) => (
+                <li class="tech__secondary">
+                  <span class="tech__name">{name}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      ))
+    }
+  </div>
+
   <p class="tech__legend">{copy.legend}</p>
 </section>
 
@@ -111,10 +166,90 @@ const wearsBadge = (context?: TechContext): boolean =>
     color: rgba(243, 238, 217, 0.62);
   }
 
+  /* The two readings share one box rather than stacking. Two panels down the
+     page would be two screens of scrolling and would ask the reader to hold
+     the first in their head while looking at the second; sharing the space
+     makes the comparison free. Driven by radio inputs and `:checked ~`, for
+     the same reason `<details>` is used above: arrow-key navigation and
+     labels come free, and it works with JavaScript off. `display: none` on
+     the inactive panel takes it out of the accessibility tree, so a screen
+     reader is never read both. */
+  .tech__view-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .tech__views {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin-bottom: 1.75rem;
+    padding: 0.25rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .tech__view-label {
+    padding: 0.42rem 0.95rem;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(243, 238, 217, 0.58);
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .tech__view-label:hover {
+    color: rgba(243, 238, 217, 0.85);
+  }
+
+  #tech-view-overall:checked ~ .tech__views [for='tech-view-overall'],
+  #tech-view-project:checked ~ .tech__views [for='tech-view-project'] {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(243, 238, 217, 0.95);
+  }
+
+  /* The ring belongs on the label, since the input it belongs to is hidden. */
+  .tech__view-input:focus-visible ~ .tech__views [for='tech-view-overall'],
+  .tech__view-input:focus-visible ~ .tech__views [for='tech-view-project'] {
+    outline: 2px solid rgba(243, 238, 217, 0.7);
+    outline-offset: 2px;
+  }
+
+  .tech__view-input:focus-visible#tech-view-overall
+    ~ .tech__views
+    [for='tech-view-project'],
+  .tech__view-input:focus-visible#tech-view-project
+    ~ .tech__views
+    [for='tech-view-overall'] {
+    outline: none;
+  }
+
   .tech__grid {
-    display: grid;
+    display: none;
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
     gap: 1.75rem 2rem;
+  }
+
+  #tech-view-overall:checked ~ .tech__grid--overall,
+  #tech-view-project:checked ~ .tech__grid--project {
+    display: grid;
+  }
+
+  /* How many technologies the project uses — a size cue the category view
+     does not need, because there the count is the visible row length. */
+  .tech__count {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: rgba(243, 238, 217, 0.45);
   }
 
   .tech__category-name {

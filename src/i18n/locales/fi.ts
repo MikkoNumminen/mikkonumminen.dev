@@ -244,6 +244,8 @@ export const fi: Translations = {
       ai: 'AI ja kielimallit',
       platform: 'Alusta',
     },
+    viewOverall: 'teknologioittain',
+    viewByProject: 'projekteittain',
     workBadge: 'työ',
     legend: 'työ = käytetty asiakastyössä. Muut ovat omista tuotantoprojekteistani.',
   },

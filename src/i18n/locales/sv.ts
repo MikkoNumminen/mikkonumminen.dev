@@ -254,6 +254,8 @@ export const sv: Translations = {
       ai: 'AI och språkmodeller',
       platform: 'Plattform',
     },
+    viewOverall: 'per teknik',
+    viewByProject: 'per projekt',
     workBadge: 'jobb',
     legend:
       'jobb = använt i kundarbete. Resten kommer från mina egna produktionsprojekt.',
