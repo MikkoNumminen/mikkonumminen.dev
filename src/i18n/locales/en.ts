@@ -134,7 +134,12 @@ export const en: Translations = {
     portfolio: {
       tagline: 'This site',
       description:
-        'The site you are reading. Fully static, with no server doing anything clever. The projects page is a solar system you can drag around, the landing page is one particle field that keeps rearranging itself, and the contact page is a terminal you can type into. It is where the motion work happens, so the production apps do not have to carry it.',
+        'The site you are reading. The pages themselves are static, with nothing running behind them, but the terminal on the contact page is wired to a language model on a machine in my house. Ask it something and a FastAPI service answers from my own repositories, retrieving over pgvector with a Finnish language router in front, reached through a Tailscale funnel. The projects page is a solar system you can drag around and the landing page is one particle field that keeps rearranging itself. It is where the motion work happens, so the production apps do not have to carry it.',
+      highlights: [
+        'Self-hosted LLM on a home GPU',
+        'Answers only from my own corpus',
+        'Static build, no SSR',
+      ],
     },
     readlog: {
       tagline: "Track every book you've read",
