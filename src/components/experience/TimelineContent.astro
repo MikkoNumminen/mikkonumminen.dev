@@ -3,6 +3,7 @@ import '../../styles/experience-timeline.css';
 import { localizeTimeline } from '../../data/timeline';
 import { asLocale, getTranslations } from '../../i18n';
 import LinkifiedText from '../LinkifiedText.astro';
+import TechStack from './TechStack.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
@@ -37,6 +38,11 @@ function ghostYear(year: string): string {
 ---
 
 <div class="timeline" data-timeline>
+  <!-- Inside the timeline container on purpose: it inherits the 760px shell
+       and the entry grid, so it is the same width as every card by
+       construction rather than by a copied number. -->
+  <TechStack />
+
   <ol class="timeline__list">
     {
       climbOrder.map((entry) => (
