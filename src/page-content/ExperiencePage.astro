@@ -3,7 +3,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import MountainScene from '../components/experience/MountainScene.astro';
 import Goat from '../components/experience/Goat.astro';
 import TimelineContent from '../components/experience/TimelineContent.astro';
-import TechStack from '../components/experience/TechStack.astro';
 import SummitPanel from '../components/experience/SummitPanel.astro';
 import { asLocale, getTranslations } from '../i18n';
 
@@ -33,7 +32,6 @@ const t = getTranslations(locale);
        not. -->
   <div class="experience-track" data-experience-track>
     <SummitPanel />
-    <TechStack />
     <TimelineContent />
   </div>
 </BaseLayout>
@@ -64,6 +62,9 @@ const t = getTranslations(locale);
 
   .experience-track {
     position: relative;
-    z-index: 1;
+    /* Above the goat (z-index 5), which is a SIBLING of this element rather
+       than a child — so `.timeline`'s own z-index could never lift content
+       over it. The goat still sits above the fixed mountain scene at 0. */
+    z-index: 6;
   }
 </style>
