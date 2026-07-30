@@ -42,8 +42,11 @@ function ghostYear(year: string): string {
 <div class="timeline" data-timeline>
   <ol class="timeline__list">
     <!-- The closing card: the timeline's `now` entry, whose content is the
-         technology stack. First in the list because the climb is read upward,
-         so this is its top. -->
+         technology stack. It must stay FIRST — it is the anchor target of the
+         base-camp skip link, the only entry without a slide-in reveal, and the
+         element `scroll-margin-top` is tuned against. Anything added to this
+         view goes BELOW it, after the mapped entries or between them; never
+         above. `e2e/scenes.spec.ts` fails if that ever changes. -->
     <TechStack />
 
     {

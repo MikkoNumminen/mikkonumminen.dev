@@ -62,3 +62,30 @@ for (const p of PAGES) {
     expect(errors, errors.join('\n')).toEqual([]);
   });
 }
+
+/**
+ * The closing card must stay the first thing in the timeline.
+ *
+ * It is the page's top box: the anchor target of "skip to the tech stack", the
+ * only entry without a slide-in reveal, and the element `scroll-margin-top`
+ * is tuned against. Anything added to this view belongs BELOW it, and a
+ * comment in the markup is not an enforcement — this is.
+ *
+ * Asserted on DOM order rather than a CSS `order` override on purpose: DOM
+ * order is what also fixes reading order and focus order, so keeping the
+ * three aligned is the property worth pinning. A future box inserted above
+ * this card fails here, which is the signal to move it down.
+ */
+test('the technology card is the first timeline entry', async ({ page }) => {
+  await page.goto('/experience');
+  await page.waitForLoadState('load');
+
+  const entries = page.locator('.timeline__list .timeline__entry');
+  await expect(entries.first()).toHaveClass(/timeline__entry--tech/);
+
+  // And it is the only one: a second copy would make "first" ambiguous.
+  await expect(page.locator('.timeline__entry--tech')).toHaveCount(1);
+
+  // It sits in the `now` slot, which is the top of the climb.
+  await expect(entries.first()).toHaveAttribute('data-kind', 'now');
+});
