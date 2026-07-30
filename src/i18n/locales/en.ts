@@ -232,16 +232,12 @@ export const en: Translations = {
     kindProject: 'project',
     kindCraft: 'craft',
     kindNow: 'now',
-    summit: 'The top of the climb, so far.',
-    summitNote: 'You have reached the end. From here, two ways onward.',
     summitBlogLink: 'read the blog',
     summitContactLink: 'get in touch',
     lessonsAriaLabel: 'Lessons from this chapter',
     yearNow: 'Now',
   },
   techStack: {
-    title: 'Technologies',
-    lede: 'What I have actually built with. Open a row to see what sits underneath it.',
     categories: {
       languages: 'Languages',
       frontend: 'Frontend',
@@ -253,7 +249,7 @@ export const en: Translations = {
     viewByProject: 'by project',
     workBadge: 'work',
     legend:
-      'work = used in client work. Everything else is from my own production projects.',
+      'work = used in client work. Everything else is from my own production projects. Open a row to see what sits underneath it.',
   },
   timelineData: {
     'hardware-retail': {
@@ -385,8 +381,8 @@ export const en: Translations = {
       ],
     },
     now: {
-      title: 'Looking up',
-      body: 'Available now. Open to ambitious full-stack roles where craft and velocity both matter. Nine solo-shipped projects this year — proof of both.',
+      title: 'Building with these',
+      body: 'Available now, and open to ambitious full-stack roles where craft and velocity both matter.',
       tags: ['Available', 'Remote / Finland'],
     },
   },

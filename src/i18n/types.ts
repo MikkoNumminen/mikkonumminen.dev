@@ -131,9 +131,6 @@ export interface Translations {
     kindProject: string;
     kindCraft: string;
     kindNow: string;
-    summit: string;
-    /** Line under the summit line in the top panel: the page ends here. */
-    summitNote: string;
     /** Labels on the top panel's two routes onward. */
     summitBlogLink: string;
     summitContactLink: string;
@@ -145,8 +142,6 @@ export interface Translations {
   };
   /** The technology box at the end of /experience. Tech names are never translated. */
   techStack: {
-    title: string;
-    lede: string;
     categories: {
       languages: string;
       frontend: string;

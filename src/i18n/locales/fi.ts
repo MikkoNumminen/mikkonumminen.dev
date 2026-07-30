@@ -229,16 +229,12 @@ export const fi: Translations = {
     kindProject: 'projekti',
     kindCraft: 'käsityö',
     kindNow: 'nyt',
-    summit: 'Nousun huippu, toistaiseksi.',
-    summitNote: 'Sivu päättyy tähän. Tästä eteenpäin on kaksi reittiä.',
     summitBlogLink: 'lue blogia',
     summitContactLink: 'ota yhteyttä',
     lessonsAriaLabel: 'Tämän luvun opit',
     yearNow: 'Nyt',
   },
   techStack: {
-    title: 'Teknologiat',
-    lede: 'Millä olen oikeasti rakentanut. Avaa rivi nähdäksesi mitä sen alla on.',
     categories: {
       languages: 'Kielet',
       frontend: 'Frontend',
@@ -249,7 +245,8 @@ export const fi: Translations = {
     viewOverall: 'teknologioittain',
     viewByProject: 'projekteittain',
     workBadge: 'työ',
-    legend: 'työ = käytetty asiakastyössä. Muut ovat omista tuotantoprojekteistani.',
+    legend:
+      'työ = käytetty asiakastyössä. Muut ovat omista tuotantoprojekteistani. Avaa rivi nähdäksesi mitä sen alla on.',
   },
   timelineData: {
     'hardware-retail': {
@@ -381,8 +378,8 @@ export const fi: Translations = {
       ],
     },
     now: {
-      title: 'Katse ylöspäin',
-      body: 'Saatavilla nyt. Avoin kunnianhimoisille full-stack-rooleille, joissa sekä laatu että vauhti ratkaisevat. Yhdeksän tänä vuonna yksin tuotantoon vietyä projektia — todiste molemmista.',
+      title: 'Näillä rakennan',
+      body: 'Saatavilla nyt, ja avoin kunnianhimoisille full-stack-rooleille, joissa sekä laatu että vauhti ratkaisevat.',
       tags: ['Saatavilla', 'Etänä / Suomi'],
     },
   },
