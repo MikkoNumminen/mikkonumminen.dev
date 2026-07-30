@@ -326,6 +326,9 @@ export interface Translations {
     cmdRmRefusal: string;
     // --- RAG chat (Phase 3 progressive enhancement) ---
     /** "…thinking" placeholder shown while the model responds. */
+    /** Announced once in the output when the chat backend comes online. */
+    chatIntroReady: string;
+    chatIntroHow: string;
     chatThinking: string;
     /** Shell-style line shown when a chat turn fails; chat then degrades. */
     chatError: string;
