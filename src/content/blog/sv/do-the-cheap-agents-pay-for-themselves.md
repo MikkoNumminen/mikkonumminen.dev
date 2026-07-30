@@ -5,6 +5,7 @@ date: 2026-07-26
 locale: sv
 slug: do-the-cheap-agents-pay-for-themselves
 aiGenerated: false
+hasAudio: false
 tags: ['measurement', 'agents', 'cost-routing']
 ---
 

@@ -5,6 +5,7 @@ date: 2026-07-26
 locale: en
 slug: the-pins-only-covered-one-door
 aiGenerated: true
+hasAudio: false
 tags: ['Claude Code', 'agents', 'cost-routing', 'workflows']
 ---
 

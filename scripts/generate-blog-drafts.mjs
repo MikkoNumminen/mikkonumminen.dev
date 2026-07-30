@@ -374,6 +374,7 @@ date: ${yamlString(group.newest)}
 locale: en
 slug: ${yamlString(kebab(group.key))}
 aiGenerated: true
+hasAudio: false
 draft: true
 tags: ${yamlStringList(tags)}
 ---
@@ -391,6 +392,8 @@ ${evidence}
 \`scripts/generate-blog-drafts.mjs\` generated this file from git history. Everything above is a count and a list. It is not a reflection on the work and does not claim to be one, because a script that reads commit subjects has no access to why any of them were written.
 
 Rewrite the summary as an account of what the work actually was: what broke, what the constraint turned out to be, what the fix cost. Rewrite the title and description to match. Then set \`draft: false\`.
+
+An entry is not finished when the English prose is. It still needs the Finnish and Swedish translations at the matching path under \`src/content/blog/\`, and a narration for each locale at \`public/audio/blog/<slug>-<locale>.mp3\` with \`hasAudio\` flipped to \`true\` in that locale's frontmatter. See \`public/audio/blog/README.md\`.
 `;
 }
 

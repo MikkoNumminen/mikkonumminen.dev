@@ -5,6 +5,7 @@ date: 2026-07-20
 locale: fi
 slug: build-that-rewrote-itself
 aiGenerated: true
+hasAudio: false
 tags: ['build', 'skills-pdf']
 ---
 

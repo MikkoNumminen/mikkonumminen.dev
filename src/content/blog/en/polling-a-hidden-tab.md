@@ -5,6 +5,7 @@ date: 2026-07-19
 locale: en
 slug: polling-a-hidden-tab
 aiGenerated: true
+hasAudio: false
 tags: ['rag', 'frontend']
 ---
 
