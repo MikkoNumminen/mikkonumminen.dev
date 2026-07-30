@@ -15,11 +15,18 @@
 import { techStack, type TechContext } from '../../data/techStack';
 import { techProjects } from '../../data/techProjects';
 import { projects } from '../../data/projects';
-import { asLocale, getTranslations } from '../../i18n';
+import { asLocale, getTranslations, localizePath } from '../../i18n';
+import { localizeTimeline } from '../../data/timeline';
+import LinkifiedText from '../LinkifiedText.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 const copy = t.techStack;
+
+// This card IS the timeline's `now` entry. The entry stays in `timeline.ts`
+// and TimelineContent skips it in the list, so its text lives in one place
+// and `timeline.test.ts` keeps asserting it exists.
+const now = localizeTimeline(t).find((entry) => entry.id === 'now');
 /** `work` and `both` both mean it was used in client work; the badge says so. */
 const wearsBadge = (context?: TechContext): boolean =>
   context === 'work' || context === 'both';
@@ -42,7 +49,12 @@ const byProject = projects.map((project) => ({
 }));
 ---
 
-<div class="timeline__entry timeline__entry--tech" data-kind="craft">
+<li
+  class="timeline__entry timeline__entry--tech"
+  data-timeline-entry
+  data-altitude={now?.altitude}
+  data-kind="now"
+>
   <div class="timeline__marker" aria-hidden="true">
     <span class="timeline__dot">
       <span class="timeline__dot-ring"></span>
@@ -51,9 +63,26 @@ const byProject = projects.map((project) => ({
   </div>
 
   <section class="timeline__card tech" id="technologies" aria-labelledby="tech-heading">
-    <span class="timeline__year-bg" aria-hidden="true">TECH</span>
-    <h2 class="timeline__heading" id="tech-heading">{copy.title}</h2>
-    <p class="tech__lede">{copy.lede}</p>
+    <span class="timeline__year-bg" aria-hidden="true">{now?.year}</span>
+    <div class="timeline__meta">
+      <span class="timeline__year">{now?.year}</span>
+      <span class="timeline__kind">{t.experiencePage.kindNow}</span>
+    </div>
+    <h2 class="timeline__heading" id="tech-heading">{now?.title}</h2>
+    <div class="timeline__body">
+      <p>
+        <LinkifiedText text={now?.body ?? ''} opensInNewTab={t.common.opensInNewTab} />
+      </p>
+    </div>
+    {
+      now?.tags && (
+        <ul class="timeline__tags">
+          {now.tags.map((tag) => (
+            <li>{tag}</li>
+          ))}
+        </ul>
+      )
+    }
 
     <input
       class="tech__view-input"
@@ -147,8 +176,19 @@ const byProject = projects.map((project) => ({
     </div>
 
     <p class="tech__legend">{copy.legend}</p>
+
+    <div class="tech__routes">
+      <a class="tech__route" href={localizePath('/blog', locale)}>
+        {t.experiencePage.summitBlogLink}
+        <span aria-hidden="true">&#8594;</span>
+      </a>
+      <a class="tech__route" href={localizePath('/contact', locale)}>
+        {t.experiencePage.summitContactLink}
+        <span aria-hidden="true">&#8594;</span>
+      </a>
+    </div>
   </section>
-</div>
+</li>
 
 <style>
   /* Chrome, width and padding all come from `.timeline__card`. Nothing is
@@ -159,28 +199,49 @@ const byProject = projects.map((project) => ({
     scroll-margin-top: 6rem;
   }
 
-  /* Not a `[data-timeline-entry]`, so the IntersectionObserver never reveals
-     it and it is not a goat anchor or an active-card candidate. That keeps
-     behaviour identical; it just has to opt out of the hidden start state
-     `.timeline__entry` sets for the cards it animates. */
+  /* It is a real `[data-timeline-entry]` now, so it reveals, anchors the goat
+     and highlights when centred exactly like every other card. The list's own
+     `gap` supplies the spacing that a hard-coded 25vh margin used to. */
   .timeline__entry--tech {
-    opacity: 1;
-    transform: none;
-    margin-bottom: 25vh;
+    scroll-margin-top: 6rem;
+  }
+
+  .tech__routes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  .tech__route {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.15rem;
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
+    border-radius: 999px;
+    background: rgba(var(--accent-rgb), 0.08);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(var(--accent-rgb), 0.95);
+    text-decoration: none;
+    transition:
+      background 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .tech__route:hover,
+  .tech__route:focus-visible {
+    background: rgba(var(--accent-rgb), 0.16);
+    border-color: rgba(var(--accent-rgb), 0.7);
   }
 
   .tech__heading {
     margin: 0;
     font-size: clamp(1.35rem, 3vw, 1.75rem);
     letter-spacing: 0.02em;
-  }
-
-  .tech__lede {
-    margin: 0.35rem 0 1.25rem;
-    max-width: 42ch;
-    font-size: 0.9rem;
-    line-height: 1.55;
-    color: rgba(243, 238, 217, 0.62);
   }
 
   /* The two readings share one box rather than stacking. Two panels down the
@@ -199,7 +260,11 @@ const byProject = projects.map((project) => ({
     pointer-events: none;
   }
 
+  /* Separates the card's identity block (meta, title, availability, tags)
+     from the stack controls below it. Without this the toggle reads as a
+     third row of tags. */
   .tech__controls {
+    margin-top: 1.5rem;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -433,10 +498,6 @@ const byProject = projects.map((project) => ({
     .tech {
       padding-left: 1.1rem;
       padding-right: 1.1rem;
-    }
-
-    .timeline__entry--tech {
-      margin-bottom: 18vh;
     }
   }
 </style>

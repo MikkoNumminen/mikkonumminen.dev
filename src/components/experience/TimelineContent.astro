@@ -12,7 +12,9 @@ const t = getTranslations(locale);
 // upward, so the DOM has to run the other way. Reversing here rather than in
 // the data keeps visual order, reading order and focus order identical, which
 // a CSS-only flip could not do.
-const climbOrder = [...localizeTimeline(t)].reverse();
+// `now` is rendered by TechStack as the closing card, so it is skipped here
+// rather than removed from the data.
+const climbOrder = [...localizeTimeline(t)].reverse().filter((e) => e.id !== 'now');
 
 const kindLabel: Record<string, string> = {
   foundation: t.experiencePage.kindFoundation,
@@ -38,12 +40,12 @@ function ghostYear(year: string): string {
 ---
 
 <div class="timeline" data-timeline>
-  <!-- Inside the timeline container on purpose: it inherits the 760px shell
-       and the entry grid, so it is the same width as every card by
-       construction rather than by a copied number. -->
-  <TechStack />
-
   <ol class="timeline__list">
+    <!-- The closing card: the timeline's `now` entry, whose content is the
+         technology stack. First in the list because the climb is read upward,
+         so this is its top. -->
+    <TechStack />
+
     {
       climbOrder.map((entry) => (
         <li

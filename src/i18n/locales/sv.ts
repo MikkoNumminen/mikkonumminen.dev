@@ -239,16 +239,12 @@ export const sv: Translations = {
     kindProject: 'projekt',
     kindCraft: 'hantverk',
     kindNow: 'nu',
-    summit: 'Toppen av klättringen, så här långt.',
-    summitNote: 'Sidan slutar här. Härifrån finns två vägar vidare.',
     summitBlogLink: 'läs bloggen',
     summitContactLink: 'hör av dig',
     lessonsAriaLabel: 'Lärdomar från detta kapitel',
     yearNow: 'Nu',
   },
   techStack: {
-    title: 'Teknologier',
-    lede: 'Vad jag faktiskt har byggt med. Öppna en rad för att se vad som ligger under.',
     categories: {
       languages: 'Språk',
       frontend: 'Frontend',
@@ -260,7 +256,7 @@ export const sv: Translations = {
     viewByProject: 'per projekt',
     workBadge: 'jobb',
     legend:
-      'jobb = använt i kundarbete. Resten kommer från mina egna produktionsprojekt.',
+      'jobb = använt i kundarbete. Resten kommer från mina egna produktionsprojekt. Öppna en rad för att se vad som ligger under.',
   },
   timelineData: {
     'hardware-retail': {
@@ -392,8 +388,8 @@ export const sv: Translations = {
       ],
     },
     now: {
-      title: 'Blickar uppåt',
-      body: 'Tillgänglig nu. Öppen för ambitiösa full-stack-roller där både hantverk och tempo räknas. Nio solo-levererade projekt i år — bevis på båda.',
+      title: 'Med dessa bygger jag',
+      body: 'Tillgänglig nu, och öppen för ambitiösa full-stack-roller där både hantverk och tempo räknas.',
       tags: ['Tillgänglig', 'Distans / Finland'],
     },
   },

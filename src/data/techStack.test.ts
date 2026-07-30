@@ -120,8 +120,11 @@ describe('techStack (structural data)', () => {
 
   it('the legend and work badge are translated in every locale', () => {
     for (const locale of LOCALES) {
-      const { legend, workBadge, title, lede } = getTranslations(locale).techStack;
-      for (const [key, value] of Object.entries({ legend, workBadge, title, lede })) {
+      // `title` and `lede` were retired when the box became the timeline's
+      // closing card: its heading is now the `now` entry's title, and the
+      // lede's reveal hint moved into the legend.
+      const { legend, workBadge } = getTranslations(locale).techStack;
+      for (const [key, value] of Object.entries({ legend, workBadge })) {
         expect(value.trim(), `${locale}.techStack.${key}`).toBeTruthy();
       }
     }
