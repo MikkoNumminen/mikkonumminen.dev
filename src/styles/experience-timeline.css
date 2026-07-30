@@ -146,9 +146,13 @@
   display: flex;
   flex-direction: column;
   gap: 25vh;
-  /* Sky between the Technologies box above and the newest card, so the last
-     stretch of the climb keeps the same rhythm as the card spacing below. */
-  padding-top: 25vh;
+  /* Clears the fixed nav pill, which overlays the top of the document. This
+     was 25vh when the Technologies box sat ABOVE the list and needed the
+     climb's rhythm between them; the box is now the list's first item, so the
+     only job left is the nav, and 25vh left 171px of empty sky above the
+     card. A fixed value because the thing being cleared is a fixed height,
+     not a fraction of the viewport. */
+  padding-top: 6rem;
   padding-bottom: 25vh;
 }
 
