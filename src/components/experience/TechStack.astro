@@ -204,6 +204,13 @@ const byProject = projects.map((project) => ({
      `gap` supplies the spacing that a hard-coded 25vh margin used to. */
   .timeline__entry--tech {
     scroll-margin-top: 6rem;
+    /* No slide-in for this one, only the fade. Every other entry starts at
+       `translateY(50px)`, which is invisible for a card you scroll past but
+       wrong for the target of a jump link: the anchor resolves against the
+       pre-reveal position, so the browser stops 50px low and the reveal then
+       lifts the card up under the nav pill. Removing the translate makes the
+       scroll land exactly where `scroll-margin-top` says. */
+    transform: none;
   }
 
   .tech__routes {
