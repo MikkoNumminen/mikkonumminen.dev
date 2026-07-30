@@ -14,7 +14,7 @@ Under ungefär tio dagar byggde jag om varje sida på den här webbplatsen. Det 
 
 Förstasidan är där merparten av de tio dagarna gick, och det är förändringen jag skulle visa först.
 
-Det som fanns där tidigare var en hög. Mitt namn stod högst upp som fasta 3D-bokstäver i ett krommaterial, belyst av åtta separata ljus. Bakom det snurrade en spiralgalax. Meteorer for förbi och blixtrade till vid nedslag. Commit-meddelanden dök upp på en slumpmässig timer. Bokstäverna bar dekorationer: ett berg med snö på M:et, en ring runt O:et, en get. Det fanns en linsöverstrålning. Var och en var sitt eget system, och de delade sidans övre del på samma sätt som rumskompisar delar ett kylskåp. Under det, en vanlig platt sida, med en gradient som dolde linjen där 3D:n slutade.
+Det som fanns där tidigare var en hög. Mitt namn stod högst upp som fasta 3D-bokstäver i ett krommaterial, belyst av åtta separata ljus. Bakom det snurrade en spiralgalax. Meteorer for förbi och blixtrade till vid nedslag. Commit-meddelanden dök upp på en slumpmässig timer. Bokstäverna bar dekorationer: ett berg med snö på M:et, en ring runt O:et, en get. Det fanns en linsöverstrålning. Var och en var sitt eget system, och de skrek alla över varandra på samma övre del av sidan. Under det, en vanlig platt sida, med en gradient som dolde linjen där 3D:n slutade.
 
 Jag tog bort alltihop. Det som ersatte det är en enda sak: ett fält av 24 000 partiklar som täcker hela sidan, ligger bakom allt och aldrig försvinner.
 
@@ -38,17 +38,15 @@ Det stämde också innan, i teorin. Sen mätte jag det. Vid standardkamerapositi
 
 Alla tolv syns nu på skärmen, oavsett fönstrets form, och var och en av dem går att nå. Webbplatsen själv sitter i mitten som solen, med projekten kretsande runt den.
 
-Sidan startar också mycket snabbare. Den första bildrutan brukade frysa webbläsaren i 1 159 millisekunder, vilket är tillräckligt länge för att undra om fliken har dött. Fixen som fungerade var trist: beräkna varje planets yta en gång och återanvänd den, i stället för att räkna om varje pixel varje bildruta. Det tog bort 69 procent av frysningen. Två självsäkra teorier misslyckades innan den, och den mer självsäkra av de två, att slå ihop ritprogrammen till ett enda, gjorde frysningen 230 millisekunder värre. Jag behåller den siffran som en påminnelse om att självsäkerhet inte är en mätning.
+Sidan startar också mycket snabbare. Den första bildrutan brukade frysa webbläsaren i 1 159 millisekunder, vilket är tillräckligt länge för att undra om fliken har dött. Fixen som fungerade var trist: beräkna varje planets yta en gång och återanvänd den, i stället för att räkna om varje pixel varje bildruta. Det tog bort 69 procent av frysningen. Två självsäkra teorier misslyckades innan den, och den mer självsäkra av de två, att slå ihop ritprogrammen till ett enda, gjorde frysningen 230 millisekunder värre.
 
 ## Erfarenhet
 
 Förstasidans enda rival om den största förbättringen sitter i slutet av erfarenhetssidan: ett kort som listar de 107 teknologier jag faktiskt bygger med, i fem grupper (språk, frontend, backend och data, AI och LLM, plattform). Varje rad öppnas för att visa vad som ligger under den. Öppna Rust och du ser kryptografibiblioteken. Öppna Python och du ser dokument- och talbiblioteken.
 
-Två saker gör kortet ovanligt.
+Kortet har en växel mellan två läsningar av samma data: efter teknologi, eller efter projekt. Vänd på den, och samma information omorganiseras till tolv projekt, var och en visar vad den är byggd av. Båda vyerna kommer från en enda lista, så de kan aldrig motsäga varandra.
 
-För det första har det en växel mellan två läsningar av samma data: efter teknologi, eller efter projekt. Vänd på den, och samma information omorganiseras till tolv projekt, var och en visar vad den är byggd av. Båda vyerna kommer från en enda lista, så de kan aldrig motsäga varandra. Den ena vyn säger vad jag kan. Den andra säger var jag har använt det.
-
-För det andra skrevs listan inte ur minnet. Den lästes ur de faktiska beroendefilerna för femton repositorier på min dator. Minnet smickrar; beroendefiler gör det inte. Sen skars resultatet ner hårt. Modellnamn och operativsystemsverktyg försvann. Det gjorde också de vanliga bibliotek som varenda utvecklare på jorden använder. En lista som innehåller trivialiteter får de seriösa raderna att se ut som utfyllnad, och jag visar hellre 107 rader jag kan försvara än 300 som ser imponerande ut. En liten "work"-markering visar allt som använts i betalt kunduppdrag snarare än i mina egna projekt.
+Listan skrevs inte heller ur minnet. Den lästes ur de faktiska beroendefilerna för femton repositorier på min dator. Sen skars resultatet ner hårt. Modellnamn och operativsystemsverktyg försvann. Det gjorde också de vanliga bibliotek som varenda utvecklare på jorden använder. En lista som innehåller trivialiteter får de seriösa raderna att se ut som utfyllnad, och jag visar hellre 107 rader jag kan försvara än 300 som ser imponerande ut. En liten "work"-markering visar allt som använts i betalt kunduppdrag snarare än i mina egna projekt.
 
 Resten av sidan ritar mitt yrkesliv som en bergsklättring, från 24 år inom järnhandeln längst ner till idag på toppen. Den brukade gå åt fel håll, så att klättra innebar att skrolla nedåt. Nu går den uppåt, som klättring brukar göra. Sidan brukade också avsluta med ett meddelande som sa att du hade nått slutet, följt av ytterligare två avsnitt. Nu finns det ett enda avslutande kort.
 

@@ -15,7 +15,7 @@ much was true. The sentence I built on top of it was bigger than the thing I had
 measured.
 
 The pins live in frontmatter, one file per agent, and the Agent tool honours them.
-That is one way to spawn a subagent. It is not the only one. A workflow script
+That is only one way to spawn a subagent. A workflow script
 fans work out with `agent(prompt, options)` calls, and those take a different code
 path. A call that names no model gets a generic worker that inherits the
 orchestrating session's model and effort instead.
@@ -49,7 +49,7 @@ counted as a call in its own right. All three came from treating the whole call 
 code. It now blanks out strings, template literals, comments and regex literals
 first, and counts brackets over what is left.
 
-Then the only part that settles anything. I replayed it over the 85 workflow
+Then I replayed it over the 85 workflow
 scripts sitting on this machine from months of real work. It flagged 73 and stayed
 quiet on 12, and all 12 are genuinely pinned. So it is not hypothetical. It would
 have fired on the large majority of workflows I have ever run, including all five

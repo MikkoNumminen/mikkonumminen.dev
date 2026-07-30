@@ -14,7 +14,7 @@ Over roughly ten days I rebuilt every page of this site. This is what changed, p
 
 The front page is where most of the ten days went, and it is the change I would show first.
 
-What was there before was a pile. My name stood at the top as solid 3D letters in a chrome material, lit by eight separate lights. Behind it spun a spiral galaxy. Meteors streaked across and flashed on impact. Commit messages popped up on a random timer. The letters carried decorations: a mountain with snow on the M, a ring around the O, a goat. There was a lens flare. Each was its own system, sharing the top of the page the way flatmates share a fridge. Below that, ordinary flat page, with a gradient hiding the line where the 3D stopped.
+What was there before was a pile. My name stood at the top as solid 3D letters in a chrome material, lit by eight separate lights. Behind it spun a spiral galaxy. Meteors streaked across and flashed on impact. Commit messages popped up on a random timer. The letters carried decorations: a mountain with snow on the M, a ring around the O, a goat. There was a lens flare. Each was its own system, all shouting over the others from the same top of the page. Below that, ordinary flat page, with a gradient hiding the line where the 3D stopped.
 
 I deleted the lot. What replaced it is one thing: a field of 24,000 particles that covers the whole page, sits behind everything, and never goes away.
 
@@ -38,17 +38,15 @@ That was true before too, in theory. Then I measured it. At the default camera p
 
 All twelve are on screen now, whatever the shape of your window, and every one of them can be reached. The site itself sits at the centre as the sun, with the projects orbiting it.
 
-The page also starts much faster. The first frame used to freeze the browser for 1,159 milliseconds, which is long enough to wonder whether the tab has died. The fix that worked was dull: compute each planet's surface once and reuse it, instead of recomputing every pixel on every frame. That removed 69 percent of the freeze. Two confident theories failed before that one, and the more confident of the two, combining the drawing programs into a single one, made the freeze 230 milliseconds worse. I keep that number around as a reminder that confidence is not a measurement.
+The page also starts much faster. The first frame used to freeze the browser for 1,159 milliseconds, which is long enough to wonder whether the tab has died. The fix that worked was dull: compute each planet's surface once and reuse it, instead of recomputing every pixel on every frame. That removed 69 percent of the freeze. Two confident theories failed before that one, and the more confident of the two, combining the drawing programs into a single one, made the freeze 230 milliseconds worse.
 
 ## Experience
 
 The front page's only rival for biggest improvement sits at the end of the experience page: one card listing the 107 technologies I actually build with, in five groups (languages, frontend, backend and data, AI and LLM, platform). Every row opens to show what sits underneath it. Open Rust and you see the cryptography libraries. Open Python and you see the document and speech libraries.
 
-Two things make the card unusual.
+The card has a toggle between two readings of the same data: by technology, or by project. Flip it and the same information reorganises into twelve projects, each showing what it is built from. Both views come from one list, so they can never disagree with each other.
 
-First, it has a toggle between two readings of the same data: by technology, or by project. Flip it and the same information reorganises into twelve projects, each showing what it is built from. Both views come from one list, so they can never disagree with each other. One view says what I know. The other says where I have used it.
-
-Second, the list was not written from memory. It was read out of the actual dependency files of fifteen repositories on my machine. Memory flatters; dependency files do not. Then the result was cut back hard. Model names and operating system utilities went. So did the ordinary libraries every developer on earth uses. A list that includes trivia makes the serious entries look like padding, and I would rather show 107 rows I can defend than 300 that look impressive. A small "work" badge marks anything used in paid client work rather than in my own projects.
+The list was also not written from memory. It was read out of the actual dependency files of fifteen repositories on my machine. Then the result was cut back hard. Model names and operating system utilities went. So did the ordinary libraries every developer on earth uses. A list that includes trivia makes the serious entries look like padding, and I would rather show 107 rows I can defend than 300 that look impressive. A small "work" badge marks anything used in paid client work rather than in my own projects.
 
 The rest of the page draws my working life as a mountain climb, from 24 years in hardware retail at the bottom to today at the top. It used to run the wrong way round, so climbing meant scrolling down. It now runs upward, as climbing tends to. The page also used to finish with a message saying you had reached the end, followed by two more sections. There is one closing card now.
 
