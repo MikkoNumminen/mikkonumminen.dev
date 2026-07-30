@@ -249,11 +249,24 @@ export async function initTerminal(
   const narrowViewport =
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(max-width: 640px)').matches;
+  // The hints row and the starter chips are easy to miss: they read as chrome
+  // rather than as an announcement. When the backend comes up, say so in the
+  // output where the boot lines are, once, so it is obvious that plain language
+  // now works. Printed here rather than in `runBoot` because the health probe
+  // resolves after boot has finished, and blocking boot on a network call would
+  // hold the terminal on a backend that may never answer.
+  let conversationAnnounced = false;
   if (!narrowViewport) {
     startChatAvailabilityPolling(
       (available, model) => {
         if (signal.aborted) return;
         if (available) {
+          if (!conversationAnnounced) {
+            conversationAnnounced = true;
+            ctx.print(t.terminal.chatIntroReady, 'accent');
+            ctx.print(t.terminal.chatIntroHow, 'dim');
+            ctx.print('');
+          }
           revealChatHint(root, t);
           revealStarters(root, submitStarter, signal);
         } else {

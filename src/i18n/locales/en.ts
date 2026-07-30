@@ -555,6 +555,8 @@ export const en: Translations = {
     cmdSudoDenied: 'nice try. this incident will (not) be reported.',
     cmdRmDesc: 'remove files',
     cmdRmRefusal: "i'm afraid i can't let you do that. nothing here is yours to delete.",
+    chatIntroReady: 'conversation mode online.',
+    chatIntroHow: 'ask about the projects in your own words, no command needed.',
     chatThinking: '...thinking',
     chatError: 'connection lost — back to scripted mode.',
     chatAskUsage: 'usage: ask "your question about the projects"',

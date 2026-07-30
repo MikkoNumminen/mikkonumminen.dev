@@ -558,6 +558,8 @@ export const fi: Translations = {
     cmdRmDesc: 'poista tiedostoja',
     cmdRmRefusal:
       'pelkäänpä etten voi antaa sinun tehdä niin. mikään täällä ei ole sinun poistettavissasi.',
+    chatIntroReady: 'keskustelutila päällä.',
+    chatIntroHow: 'kysy projekteista omin sanoin, komentoa ei tarvita.',
     chatThinking: '...ajatellaan',
     chatError: 'yhteys katkesi — palataan käsikirjoitettuun tilaan.',
     chatAskUsage: 'käyttö: ask "kysymyksesi projekteista"',

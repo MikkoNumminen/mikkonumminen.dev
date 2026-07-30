@@ -567,6 +567,8 @@ export const sv: Translations = {
     cmdRmDesc: 'ta bort filer',
     cmdRmRefusal:
       'jag är rädd att jag inte kan låta dig göra det. ingenting här är ditt att radera.',
+    chatIntroReady: 'konversationsläge aktivt.',
+    chatIntroHow: 'fråga om projekten med egna ord, inget kommando behövs.',
     chatThinking: '...tänker',
     chatError: 'anslutningen bröts — återgår till skriptat läge.',
     chatAskUsage: 'användning: ask "din fråga om projekten"',
