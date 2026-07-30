@@ -10,7 +10,7 @@ tags: ['Claude Code', 'agents', 'cost-routing', 'workflows']
 
 För fem dagar sedan kontrollerade jag om mina cost-routing-agenter verkligen körde på de modeller jag hade fastlåst dem till. Det gjorde de. Jag läste modellen som fanns registrerad på de faktiska API-svaren, inte etiketten i gränssnittet, och varje fastlåsning höll. Så mycket var sant. Meningen jag byggde ovanpå det var större än det jag faktiskt hade mätt.
 
-Fastlåsningarna finns i frontmatter, en fil per agent, och Agent tool respekterar dem. Det är ett sätt att starta en subagent. Det är inte det enda. Ett workflow-skript delar ut arbete med `agent(prompt, options)`-anrop, och de tar en annan kodväg. Ett anrop som inte namnger någon modell får istället en generisk arbetare som ärver den orkestrerande sessionens modell och effort.
+Fastlåsningarna finns i frontmatter, en fil per agent, och Agent tool respekterar dem. Det är bara ett sätt att starta en subagent. Ett workflow-skript delar ut arbete med `agent(prompt, options)`-anrop, och de tar en annan kodväg. Ett anrop som inte namnger någon modell får istället en generisk arbetare som ärver den orkestrerande sessionens modell och effort.
 
 Så medan jag bekräftade att scout kördes på Haiku, delade mina review-workflows ut ett dussin agenter åt gången, var och en på vad sessionen än råkade vara. Det var Opus på hög effort, eftersom det är vad jag sätter för det arbete jag medvetet håller kvar i huvudsessionen.
 
@@ -22,7 +22,7 @@ Hooken är avsiktligt bara varnande. Den avslutas med koden som visar ett meddel
 
 Den var också fel tre gånger innan den blev rätt, på sätt mina egna tester inte hade tänkt att fråga om. Den hittar anrop genom att skanna text, så ett ofastlåst anrop vars prompt råkade innehålla orden model: lästes som fastlåst, ett nästlat anrop lät den inre fastlåsningen gå i god för den yttre, och ett regex som innehöll tecknen agent( räknades som ett anrop i sig. Alla tre berodde på att hela anropet behandlades som kod. Nu tömmer den först strängar, template literals, kommentarer och regex literals, och räknar parenteser på det som blir kvar.
 
-Sedan den enda delen som avgör något. Jag körde den igen på de 85 workflow-skript som ligger på den här maskinen från månader av verkligt arbete. Den flaggade 73 och var tyst om 12, och alla 12 är genuint fastlåsta. Så det är inte hypotetiskt. Den hade slagit till på den stora majoriteten av alla workflows jag någonsin kört, inklusive alla fem av de dyra.
+Sedan körde jag den igen på de 85 workflow-skript som ligger på den här maskinen från månader av verkligt arbete. Den flaggade 73 och var tyst om 12, och alla 12 är genuint fastlåsta. Så det är inte hypotetiskt. Den hade slagit till på den stora majoriteten av alla workflows jag någonsin kört, inklusive alla fem av de dyra.
 
 Agenterna, hooken och stegen som avgör vad som dirigeras vart är offentliga på [github.com/MikkoNumminen/claude-agents](https://github.com/MikkoNumminen/claude-agents). Senare instrumenterade jag en session för att se om de billiga nivåerna verkligen betalar sig, och sammanställde det jag kunde och inte kunde mäta i [en kort rapport](/sv/blog/do-the-cheap-agents-pay-for-themselves).
 
