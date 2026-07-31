@@ -1,0 +1,125 @@
+---
+// Blog-post narration. PARALLEL TO HeroVoiceover.astro and
+// ProjectsVoiceover.astro: same contract with `BackgroundAudio.astro` (the
+// global sound toggle, the `bg-audio:state` event, the AbortController +
+// `onRoute` lifecycle), so a fix to the play/pause handshake in any of the
+// three belongs in all three.
+//
+// Two deliberate differences from the other two, both because this narration
+// is a reading of the post rather than a short spoken flourish:
+//
+// - NO idle replay. The other two recycle a ~20 second clip after 50 seconds
+//   of stillness. These recordings run from 1.4 to 13.5 minutes, and a reader
+//   who sits still is listening, not idle. Restarting a thirteen minute
+//   narration because nobody moved the mouse would be a bug, so the idle
+//   timer, its four activity listeners and the `ended` handler are all absent
+//   rather than tuned to a longer window.
+//
+// - NOT gated on `prefers-reduced-motion`. The other two suppress themselves
+//   there, and the stated reason is that they add a RECURRING spoken layer on
+//   top of the page. This one does not recur, and it cannot start unless the
+//   visitor has already turned sound on themselves. Suppressing it would take
+//   a reading aid away from the group most likely to want one, on the strength
+//   of a preference about motion.
+//
+// Rendered only when the entry's frontmatter says a recording exists, so the
+// element is absent rather than 404ing for the locales not yet narrated.
+import { asLocale } from '../../i18n';
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const locale = asLocale(Astro.currentLocale);
+const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
+---
+
+<audio id="blog-voice" preload="metadata" playsinline aria-hidden="true">
+  <source src={voiceSrc} type="audio/mpeg" />
+</audio>
+
+<script>
+  import { onRoute } from '../../lib/lifecycle';
+
+  // Matches ProjectsVoiceover: the music bed runs at a constant 0.5 off the
+  // home page, so the voice sits just above it.
+  const VOICE_VOLUME = 0.7;
+
+  onRoute(
+    () => !!document.getElementById('blog-voice'),
+    () => {
+      const voice = document.getElementById('blog-voice') as HTMLAudioElement | null;
+      // Rendered by BaseLayout's BackgroundAudio, persisted across navigation.
+      const bgAudio = document.querySelector<HTMLElement>('.bg-audio');
+      if (!voice || !bgAudio) return;
+
+      const controller = new AbortController();
+      const { signal } = controller;
+
+      voice.volume = VOICE_VOLUME;
+
+      // `'on'` is the only resolved-on state. `'loading'` is the pre-resolve
+      // value and has to wait for the event, or the dispatch that follows a
+      // successful autoplay restarts the narration from zero mid-sentence.
+      let wantOn = bgAudio.dataset.state === 'on';
+
+      const playFresh = async (): Promise<void> => {
+        if (!wantOn) return;
+        try {
+          voice.currentTime = 0;
+          voice.volume = VOICE_VOLUME;
+          await voice.play();
+          if (!wantOn) voice.pause();
+        } catch {
+          /* autoplay blocked, source missing, or play interrupted */
+        }
+      };
+
+      const playResume = async (): Promise<void> => {
+        if (!wantOn) return;
+        try {
+          voice.volume = VOICE_VOLUME;
+          await voice.play();
+          if (!wantOn) voice.pause();
+        } catch {
+          /* autoplay blocked, source missing, or play interrupted */
+        }
+      };
+
+      document.addEventListener(
+        'bg-audio:state',
+        (e: Event) => {
+          const detail = (e as CustomEvent<{ on: boolean }>).detail;
+          wantOn = detail.on;
+          if (detail.on) {
+            // Already playing — leave it alone, or the resolved `on` dispatch
+            // would restart the narration.
+            if (!voice.paused) return;
+            // Resuming matters more here than on the other two: toggling sound
+            // off at minute seven of a thirteen minute reading and back on has
+            // to continue, not start the post again.
+            if (voice.currentTime > 0 && !voice.ended) {
+              void playResume();
+            } else {
+              void playFresh();
+            }
+          } else {
+            voice.pause();
+          }
+        },
+        { signal },
+      );
+
+      // Sound already on, e.g. switched on elsewhere and persisted across a
+      // client-side navigation into this post. No state change fires on
+      // arrival, so start here or the post stays silent.
+      if (wantOn) void playFresh();
+
+      return () => {
+        controller.abort();
+        voice.pause();
+      };
+    },
+  );
+</script>
