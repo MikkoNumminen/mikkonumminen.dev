@@ -4,6 +4,7 @@ description: PDF:en för skills-registret genererades om vid varje bygge, vilket
 date: 2026-07-20
 locale: sv
 slug: build-that-rewrote-itself
+project: portfolio
 aiGenerated: true
 hasAudio: false
 tags: ['build', 'skills-pdf']

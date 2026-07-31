@@ -4,9 +4,10 @@ description: 'Every one of my agents was pinned to a cheap model. Then I found t
 date: 2026-07-26
 locale: en
 slug: the-pins-only-covered-one-door
+project: claude-agents
 aiGenerated: true
 hasAudio: false
-tags: ['Claude Code', 'agents', 'cost-routing', 'workflows']
+tags: ['claude-code', 'agents', 'cost-routing', 'workflows']
 ---
 
 Five days ago I checked whether my cost-routing agents were really running on the

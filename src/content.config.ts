@@ -1,5 +1,9 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { projects } from './data/projects';
+import { BLOG_TAGS } from './data/blogTags';
+
+const PROJECT_IDS = projects.map((p) => p.id);
 
 /**
  * The site's first content collection. Everything else here is authored as
@@ -38,6 +42,18 @@ import { glob } from 'astro/loaders';
  * player that 404s, and a `false` beside a real file hides work already paid
  * for. `blogAudio.test.ts` asserts the two agree and fails the suite if they
  * do not.
+ *
+ * `project` names which project an entry is about, and is validated against
+ * the ids in `src/data/projects.ts` rather than being a free string in `tags`.
+ * A tag can be misspelled, capitalised two ways, or pluralised, and nothing
+ * notices; `tags` already carries both `rag` and `ragctl` for two posts about
+ * the same subsystem, which is exactly that failure. An id checked against the
+ * project list cannot drift, and it means a post and the planet it belongs to
+ * are joined by the same key everything else already uses.
+ *
+ * It is optional because not every entry is about one project. It is not part
+ * of `tags` because tags describe subject matter, which is a different
+ * question from which repository the work happened in.
  */
 const blog = defineCollection({
   loader: glob({
@@ -58,9 +74,25 @@ const blog = defineCollection({
      * `public/audio/blog/<slug>-<locale>.mp3`. Required, no default.
      */
     hasAudio: z.boolean(),
+    /**
+     * Which project the entry is about, as an id from `src/data/projects.ts`.
+     * Optional, but a value that is not a real project fails the build rather
+     * than rendering a chip nothing can resolve.
+     */
+    project: z
+      .string()
+      .refine((id) => PROJECT_IDS.includes(id), {
+        message: `must be one of: ${PROJECT_IDS.join(', ')}`,
+      })
+      .optional(),
     /** Set by the draft generator. Draft entries never reach a built page. */
     draft: z.boolean().default(false),
-    tags: z.array(z.string()).default([]),
+    /**
+     * Subject tags, from the closed list in `src/data/blogTags.ts`. Closed
+     * because the open version drifted: two posts about one subsystem ended up
+     * tagged `rag` and `ragctl` with nothing in common.
+     */
+    tags: z.array(z.enum(BLOG_TAGS)).default([]),
   }),
 });
 

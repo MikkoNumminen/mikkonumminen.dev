@@ -4,9 +4,10 @@ description: 'Cost-routing-agenttini näyttivät kaikki pyörivän Opuksella. Jo
 date: 2026-07-21
 locale: fi
 slug: the-label-said-opus
+project: claude-agents
 aiGenerated: false
 hasAudio: false
-tags: ['Claude Code', 'agents', 'measurement', 'cost-routing']
+tags: ['claude-code', 'agents', 'measurement', 'cost-routing']
 ---
 
 Pyöritän pientä joukkoa subagenteja Claude Codelle, jotka reitittävät työn kustannusten mukaan. Jokainen niistä on kiinnitetty halvimpaan mallitasoon, joka pystyy tekemään sen työn. Haku ja mekaaniset muokkaukset menevät Haikulle, spesifikaation muotoiset muutokset Sonnetille, ja vain todellinen harkinta pääsee Opukselle. Tarkoitus on lopettaa Opus-hintojen maksaminen grepistä.

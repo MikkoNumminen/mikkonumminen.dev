@@ -4,9 +4,10 @@ description: 'My cost-routing agents all appeared to be running on Opus. Every e
 date: 2026-07-21
 locale: en
 slug: the-label-said-opus
+project: claude-agents
 aiGenerated: false
 hasAudio: false
-tags: ['Claude Code', 'agents', 'measurement', 'cost-routing']
+tags: ['claude-code', 'agents', 'measurement', 'cost-routing']
 ---
 
 I run a small set of subagents for Claude Code that route work by cost. Each one

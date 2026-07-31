@@ -4,9 +4,10 @@ description: 'Varenda en av mina agenter var fastlåst till en billig modell. Se
 date: 2026-07-26
 locale: sv
 slug: the-pins-only-covered-one-door
+project: claude-agents
 aiGenerated: true
 hasAudio: false
-tags: ['Claude Code', 'agents', 'cost-routing', 'workflows']
+tags: ['claude-code', 'agents', 'cost-routing', 'workflows']
 ---
 
 För fem dagar sedan kontrollerade jag om mina cost-routing-agenter verkligen körde på de modeller jag hade fastlåst dem till. Det gjorde de. Jag läste modellen som fanns registrerad på de faktiska API-svaren, inte etiketten i gränssnittet, och varje fastlåsning höll. Så mycket var sant. Meningen jag byggde ovanpå det var större än det jag faktiskt hade mätt.
