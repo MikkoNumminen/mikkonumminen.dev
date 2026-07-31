@@ -6,7 +6,7 @@ locale: fi
 slug: the-label-said-opus
 project: claude-agents
 aiGenerated: false
-hasAudio: false
+hasAudio: true
 tags: ['claude-code', 'agents', 'measurement', 'cost-routing']
 ---
 
