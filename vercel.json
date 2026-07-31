@@ -116,10 +116,6 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
     },
     {
-      "source": "/manifest.webmanifest",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
-    },
-    {
       "source": "/(.*)\\.pdf",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
     },
@@ -139,7 +135,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src 'self'; connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://paskamyrsky.tail6ed53b.ts.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; worker-src 'none'; manifest-src 'self'; frame-src 'none'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src 'self'; connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://paskamyrsky.tail6ed53b.ts.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; worker-src 'none'; manifest-src 'none'; frame-src 'none'; upgrade-insecure-requests"
         }
       ]
     }

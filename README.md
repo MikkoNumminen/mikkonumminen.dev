@@ -153,7 +153,7 @@ npm run check:env     # verify Node version + deps are ready on a fresh clone
 npm run lint          # eslint
 npm run format        # prettier --write across src/
 npm run format:check  # prettier --check (CI-friendly)
-npm run build:og      # rasterize OG cards + manifest icons from the source SVGs
+npm run build:og      # rasterize the OG cards from the source SVGs
 npm run sync:skills-registry  # copy latest dated SKILL-REGISTRY-*.json → public/data/
 npm run validate:registry     # check public/data/skills-registry.json against its JSON schema
 npm run build:skills-pdf      # regenerate public/skills-registry.pdf via local Chrome
@@ -161,7 +161,7 @@ npm test              # run the Vitest suite (src + scripts unit tests)
 npm run test:watch    # Vitest in watch mode for TDD
 ```
 
-`build:og` reads `public/og-*.svg` and `public/favicon.svg` and writes the PNGs referenced by `<head>` meta and `public/manifest.webmanifest`. Run it whenever any of those source SVGs change.
+`build:og` reads `public/og-*.svg` and writes the PNGs referenced by `<head>` meta. Run it whenever any of those source SVGs change.
 
 `prebuild` runs `validate:registry && render:audit-pdfs && build:skills-pdf` automatically on every `npm run build`. `validate:registry` checks the committed `public/data/skills-registry.json` against [`public/data/skills-registry.schema.json`](public/data/skills-registry.schema.json) (dependency-free schema validation, so a malformed registry fails the build instead of silently breaking the terminal). The two renderers use the local Chrome's `--print-to-pdf` flag and skip silently in CI environments, where the committed PDFs are the canonical artifacts for hosted builds. The skills-registry JSON the terminal fetches is likewise a canonical committed artifact: `apply-measurement-overlay` and `build-review-stats` layer transcript-measured receipts and A/B buckets onto it from local `~/.claude` data that can't be read on a build server, so `sync:skills-registry` is the first step of the manual `/skill-localUpdate` refresh chain rather than a prebuild step — auto-syncing the raw dated registry would overwrite that enrichment. Rationale in [`docs/decisions/0005-skill-registry-pdf-surface.md`](docs/decisions/0005-skill-registry-pdf-surface.md).
 
@@ -187,11 +187,11 @@ src/
   data/           Project metadata, timeline entries
   i18n/           Locale dictionaries and locale-aware path helpers
   styles/         global.css (Tailwind v4 + CSS vars) and per-component CSS
-public/           Static assets — favicon, manifest, OG images, robots, icons
+public/           Static assets — favicon, OG images, robots, audio
   data/           Build-synced registry JSON consumed by the terminal `skills` command
 scripts/
   check-env.mjs                Fresh-clone sanity check: Node version + deps (npm run check:env)
-  build-og.mjs                 OG image + manifest icon rasterizer
+  build-og.mjs                 OG image rasterizer
   sync-skill-registry.mjs      Copy latest dated SKILL-REGISTRY-*.json into public/data/
   apply-measurement-overlay.mjs  Layer transcript measurements onto the registry
   build-review-stats.mjs       Per-invocation /review token stats (reads ~/.claude)
@@ -284,7 +284,7 @@ base-uri 'self';
 form-action 'self';
 object-src 'none';
 worker-src 'none';
-manifest-src 'self';
+manifest-src 'none';
 frame-src 'none';
 upgrade-insecure-requests
 ```
