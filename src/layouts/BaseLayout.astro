@@ -119,6 +119,15 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
       - If the user already manually picked a language, never auto-redirect.
       - Otherwise read navigator.languages and redirect to the matching
         locale subtree (fi → /fi/..., sv → /sv/..., anything else → /...).
+
+      TESTING: this moves you off a locale route your browser did not ask
+      for, and it does so in the page. The server response for /fi/... is a
+      plain 200 with no redirect header and the file really is in dist, so
+      curl, the build output and every server-side check all look correct
+      while an automated browser silently ends up on the English page. A
+      Playwright run that opens /fi/... in a default context measures the
+      English page and reports success. Set the context locale instead:
+      browser.newContext({ locale: 'fi-FI' }).
     -->
     <script is:inline>
       (function () {
