@@ -59,8 +59,10 @@ from .guardrails import (
     is_weak_retrieval,
     looks_finnish,
     looks_non_english,
+    requests_finnish_answer,
     research_coverage_footer,
     smalltalk_route,
+    truncation_notice,
     unsupported_years,
 )
 from .prompts import build_messages
@@ -183,6 +185,7 @@ class SupportsStreamChat(Protocol):
         messages: Sequence[dict[str, str]],
         *,
         usage_out: dict[str, int] | None = None,
+        finish_out: dict[str, str] | None = None,
         temperature: float | None = None,
     ) -> AsyncIterator[str]: ...
 
@@ -236,7 +239,15 @@ async def chat_event_stream(
     # gates the answer and the acceptance language check (guardrails.looks_finnish),
     # so routing and the test can't disagree. When off (or the query isn't Finnish)
     # this is False and every path below is byte-identical to the English-only flow.
-    answer_in_finnish = allow_finnish and looks_finnish(query)
+    # Finnish when the query IS Finnish, or when it ASKS for Finnish in any
+    # language. The second half was missing: an English sentence requesting a
+    # Finnish answer is not Finnish text, so it routed to English and the
+    # visitor was ignored. `requests_finnish_answer` only picks the answer's
+    # language; the translation task gate still runs first and still declines
+    # "translate X to Finnish", so this cannot reach it.
+    answer_in_finnish = allow_finnish and (
+        looks_finnish(query) or requests_finnish_answer(query)
+    )
 
     # Small-talk fast path: a standalone greeting or thanks is ANSWERED by template
     # with NO retrieval and NO model. Conservative whole-message match — a real
@@ -498,8 +509,11 @@ async def chat_event_stream(
         tokens = 0
         response_parts: list[str] = []
         usage: dict[str, int] = {}
+        finish: dict[str, str] = {}
         try:
-            async for token in llm.stream_chat(messages, usage_out=usage):
+            async for token in llm.stream_chat(
+                messages, usage_out=usage, finish_out=finish
+            ):
                 cleaned = _strip_markup(token)
                 if cleaned:
                     tokens += 1
@@ -568,6 +582,19 @@ async def chat_event_stream(
                 yield sse.sse_token(footer)
         except Exception:
             logger.exception("research-coverage footer failed")
+
+        # Truncation, said out loud. The model hitting LLM_NUM_PREDICT used to be
+        # indistinguishable from the model finishing: the stream just stopped, so a
+        # sentence ending mid-word read as a broken bot. Kept OUT of response_parts
+        # like the two suffixes above, so the logged and remembered answer stays the
+        # substantive text and a later turn is not primed with our own apology.
+        # Guarded: a notice must never be the thing that breaks a delivered answer.
+        try:
+            notice = truncation_notice(finish.get("reason"), finnish=answer_in_finnish)
+            if notice:
+                yield sse.sse_token(notice)
+        except Exception:
+            logger.exception("truncation notice failed")
 
         # Context bar (Phase 6): the session's REAL fill — prompt_eval_count +
         # eval_count from the model's usage chunk, against the served context

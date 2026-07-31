@@ -47,6 +47,34 @@ WEAK_RETRIEVAL_REPLY_FI = (
 # rephrase rather than leaving a bare refusal. Never shown on a successful answer.
 ENGLISH_ONLY_HINT = "\n\nTip: I answer in English — try asking in English."
 
+# Appended when the model hit LLM_NUM_PREDICT instead of finishing its sentence.
+# Measured before this existed: 169 of 2547 answers ended at exactly the cap, and
+# a visitor saw three in a row stop mid-word ("...voidaan tarkastaa ket"). Nothing
+# downstream could tell a truncated answer from a finished one, so the visitor was
+# left to assume the thing was broken. Saying so is cheaper than pretending, and
+# it is honest about WHY, so "ask for less at a time" is an obvious next move.
+TRUNCATED_NOTICE = (
+    "\n\n[Answer cut off at the length limit. "
+    "Ask for a narrower slice of it to see the rest.]"
+)
+TRUNCATED_NOTICE_FI = (
+    "\n\n[Vastaus katkesi pituusrajaan. "
+    "Kysy rajatumpaa osaa, niin näet loput.]"
+)
+
+
+def truncation_notice(finish_reason: str | None, *, finnish: bool) -> str | None:
+    """The suffix to append when generation was cut off, or None.
+
+    Only "length" means truncation. "stop" is a model that finished, and an
+    absent reason is an older Ollama that streams none — neither should be
+    reported as cut off, because a false "I was truncated" on a complete answer
+    is worse than the silence this replaces.
+    """
+    if finish_reason != "length":
+        return None
+    return TRUNCATED_NOTICE_FI if finnish else TRUNCATED_NOTICE
+
 
 def looks_non_english(query: str) -> bool:
     """Cheap heuristic: the query carries a non-ASCII letter (e.g. Finnish/Swedish
@@ -163,6 +191,56 @@ _CODE_TOKEN_RE = re.compile(
     r"|\b[a-z]+(?:[A-Z]\w*)+\b"
     r"|\b[A-Z]\w*[a-z]\w*(?:[A-Z]\w*)+\b"
 )
+
+
+# An explicit request for a Finnish ANSWER, written in any language.
+#
+# `looks_finnish` answers "is this text Finnish", which is a different question
+# from "does this ask for Finnish". A visitor who typed "Can you tellme about the
+# site in finnish?" and then "But in finnish?" was answered in English both
+# times, because both messages are English. Asking twice and being ignored reads
+# worse than a wrong answer.
+#
+# Two shapes, both anchored at the end of the message, because that is where a
+# language request lands ("...about the site in finnish?"). The anchor is what
+# keeps "tell me about the tests in Finnish translations" out: there, "in
+# Finnish" modifies a noun in the middle of the question rather than directing
+# the reply. Questions ABOUT Finnish content carry no request verb at all ("is
+# the site available in finnish?") and match neither shape.
+_ASK_FI_DIRECTED_RE = re.compile(
+    r"\b(answer|reply|respond|say\s+it|tell\s*me|explain|write|put\s+it|give\s+it)\b"
+    r"[^.?!]{0,80}?\bin\s+finnish\b\s*(please|thanks|kiitos)?\s*[.?!]*\s*$",
+    re.IGNORECASE,
+)
+# A bare follow-up after an answer came back in the wrong language.
+_ASK_FI_BARE_RE = re.compile(
+    r"^\s*(and|but|ok|okay|now|so|also)?\s*(also\s+)?in\s+finnish\s*"
+    r"(please|thanks|kiitos)?\s*[.?!]*\s*$",
+    re.IGNORECASE,
+)
+
+
+def requests_finnish_answer(text: str) -> bool:
+    """True when the message asks for the ANSWER in Finnish, in any language.
+
+    Deliberately narrow. This only decides which language a grounded answer is
+    written in; it never unlocks a capability. "Translate X to Finnish" is a
+    different thing and is declined earlier by `is_translation_request`, which
+    runs before retrieval — so widening this cannot be used to reach the
+    translator the task gate exists to refuse.
+
+    The Finnish word for it is a signal on its own: someone writing `suomeksi`
+    in an otherwise English sentence is asking for Finnish, and if the whole
+    message were Finnish `looks_finnish` would already have routed it.
+    """
+    stripped = text.strip()
+    if not stripped:
+        return False
+    if re.search(r"\bsuomeksi\b", stripped, re.IGNORECASE):
+        return True
+    return bool(_ASK_FI_BARE_RE.match(stripped)) or bool(
+        _ASK_FI_DIRECTED_RE.search(stripped)
+    )
 
 
 def looks_finnish(text: str) -> bool:

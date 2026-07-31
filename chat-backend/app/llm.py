@@ -46,6 +46,34 @@ def parse_stream_line(line: str) -> str | None:
     return content if isinstance(content, str) and content else None
 
 
+def parse_finish_reason(line: str) -> str | None:
+    """Extract `finish_reason` from one streaming `data:` line, or None.
+
+    "stop" means the model chose to end. "length" means it was cut off at
+    `max_tokens` mid-sentence. Without reading this the two are
+    indistinguishable downstream: the SSE stream simply ends either way, so a
+    truncated answer looks exactly like a finished one to the terminal and to
+    anyone reading the request log. Pure — unit-tested.
+    """
+    if not line.startswith("data:"):
+        return None
+    payload = line[len("data:") :].strip()
+    if not payload or payload == "[DONE]":
+        return None
+    try:
+        obj = json.loads(payload)
+    except json.JSONDecodeError:
+        return None
+    choices = obj.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return None
+    first = choices[0]
+    if not isinstance(first, dict):
+        return None
+    reason = first.get("finish_reason")
+    return reason if isinstance(reason, str) and reason else None
+
+
 def parse_usage_line(line: str) -> dict[str, int] | None:
     """Extract {prompt, completion} REAL token counts from a streaming `data:` line.
 
@@ -144,6 +172,7 @@ class LLMClient:
         messages: Sequence[dict[str, str]],
         *,
         usage_out: dict[str, int] | None = None,
+        finish_out: dict[str, str] | None = None,
         temperature: float | None = None,
     ) -> AsyncIterator[str]:
         """Yield answer tokens as the model generates them.
@@ -163,6 +192,13 @@ class LLMClient:
                     if token is not None:
                         yield token
                         continue
+                    # A chunk carrying no token can still carry the reason the
+                    # stream ended. Checked before usage because the two ride
+                    # different chunks and only one of them is optional.
+                    if finish_out is not None:
+                        reason = parse_finish_reason(line)
+                        if reason is not None:
+                            finish_out["reason"] = reason
                     if usage_out is not None:
                         usage = parse_usage_line(line)
                         if usage is not None:
