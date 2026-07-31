@@ -4,9 +4,10 @@ description: Jag byggde om varje sida på den här webbplatsen på tio dagar. F�
 date: 2026-07-31
 locale: sv
 slug: ten-days-four-pages
+project: portfolio
 aiGenerated: true
 hasAudio: false
-tags: ['portfolio', 'three.js', 'design']
+tags: ['three.js', 'design']
 ---
 
 Under ungefär tio dagar byggde jag om varje sida på den här webbplatsen. Det här är vad som ändrades, sida för sida, skrivet för människor som inte bryr sig om vad en shader är.

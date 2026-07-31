@@ -4,9 +4,10 @@ description: En vakthund för Tailscale Funnel som ligger framför RAG-chatten, 
 date: 2026-07-21
 locale: sv
 slug: funnel-watchdog
+project: portfolio
 aiGenerated: true
 hasAudio: false
-tags: ['ragctl', 'ops']
+tags: ['rag', 'ragctl', 'ops']
 ---
 
 Chatten på kontaktsidan körs på en maskin hemma. Trafiken kommer dit via en Tailscale Funnel, som är en publik ingång som mappar ett värdnamn till en lokal port. Det fungerar tills det inte gör det, och felet är tyst. Tunneln förblir registrerad, så allt ser konfigurerat ut, men den slutar vidarebefordra. Utifrån sett ser det ut som en chattruta som aldrig svarar.

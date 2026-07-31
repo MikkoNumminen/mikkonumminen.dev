@@ -393,6 +393,8 @@ ${evidence}
 
 Rewrite the summary as an account of what the work actually was: what broke, what the constraint turned out to be, what the fix cost. Rewrite the title and description to match. Then set \`draft: false\`.
 
+Add a \`project:\` line to the frontmatter naming which project this is about, using an id from \`src/data/projects.ts\`. The generator cannot guess it, because a group of commits can span more than one repository, and an id that is not on that list fails the build.
+
 An entry is not finished when the English prose is. It still needs the Finnish and Swedish translations at the matching path under \`src/content/blog/\`, and a narration for each locale at \`public/audio/blog/<slug>-<locale>.mp3\` with \`hasAudio\` flipped to \`true\` in that locale's frontmatter. See \`public/audio/blog/README.md\`.
 `;
 }

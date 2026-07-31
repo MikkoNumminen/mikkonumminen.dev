@@ -4,6 +4,7 @@ description: Skills-rekisterin PDF generoitiin uudelleen jokaisella buildilla, m
 date: 2026-07-20
 locale: fi
 slug: build-that-rewrote-itself
+project: portfolio
 aiGenerated: true
 hasAudio: false
 tags: ['build', 'skills-pdf']

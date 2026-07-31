@@ -4,6 +4,7 @@ description: Yhteydenottosivu jatkoi chat-backendin pollaamista piilotetuissa v√
 date: 2026-07-19
 locale: fi
 slug: polling-a-hidden-tab
+project: portfolio
 aiGenerated: true
 hasAudio: false
 tags: ['rag', 'frontend']

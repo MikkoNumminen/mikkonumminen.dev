@@ -4,9 +4,10 @@ description: 'Jokainen agenttini oli kiinnitetty halpaan malliin. Sitten löysin
 date: 2026-07-26
 locale: fi
 slug: the-pins-only-covered-one-door
+project: claude-agents
 aiGenerated: true
 hasAudio: false
-tags: ['Claude Code', 'agents', 'cost-routing', 'workflows']
+tags: ['claude-code', 'agents', 'cost-routing', 'workflows']
 ---
 
 Viisi päivää sitten tarkistin, pyörivätkö cost-routing-agenttini todella niillä malleilla, joihin olin ne kiinnittänyt. Pyörivät. Luin mallin, joka oli tallennettu todellisiin API-vastauksiin, en käyttöliittymän merkintää, ja jokainen kiinnitys piti. Sen verran oli totta. Lause, jonka rakensin sen päälle, oli suurempi kuin se, minkä olin mitannut.

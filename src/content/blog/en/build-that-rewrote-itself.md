@@ -4,6 +4,7 @@ description: The skills registry PDF was regenerated on every build, producing a
 date: 2026-07-20
 locale: en
 slug: build-that-rewrote-itself
+project: portfolio
 aiGenerated: true
 hasAudio: false
 tags: ['build', 'skills-pdf']

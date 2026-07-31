@@ -4,6 +4,7 @@ description: 'Sju instrumenterade delegeringar, tre verkliga fynd, en rekommenda
 date: 2026-07-26
 locale: sv
 slug: do-the-cheap-agents-pay-for-themselves
+project: claude-agents
 aiGenerated: false
 hasAudio: false
 tags: ['measurement', 'agents', 'cost-routing']
