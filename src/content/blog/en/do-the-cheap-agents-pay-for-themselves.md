@@ -6,7 +6,7 @@ locale: en
 slug: do-the-cheap-agents-pay-for-themselves
 project: claude-agents
 aiGenerated: false
-hasAudio: false
+hasAudio: true
 tags: ['measurement', 'agents', 'cost-routing']
 ---
 

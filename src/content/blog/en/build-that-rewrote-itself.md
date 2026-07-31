@@ -6,7 +6,7 @@ locale: en
 slug: build-that-rewrote-itself
 project: portfolio
 aiGenerated: true
-hasAudio: false
+hasAudio: true
 tags: ['build', 'skills-pdf']
 ---
 

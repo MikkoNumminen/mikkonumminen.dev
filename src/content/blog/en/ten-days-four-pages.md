@@ -6,7 +6,7 @@ locale: en
 slug: ten-days-four-pages
 project: portfolio
 aiGenerated: true
-hasAudio: false
+hasAudio: true
 tags: ['three.js', 'design']
 ---
 

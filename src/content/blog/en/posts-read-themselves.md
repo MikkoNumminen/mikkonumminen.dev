@@ -16,7 +16,7 @@ The voice belongs to the page you are on. Move to another view and it stops ther
 
 The recordings were made with AudiobookMaker, which is one of the projects listed on this site. It exists to turn text into speech, so it was the obvious thing to point at my own writing.
 
-English and Finnish are recorded. Swedish is not, and I am not going to invent a date for it.
+English is recorded. Finnish and Swedish are not, and I am not going to invent a date for them.
 
 One detail under the surface. Each post has to declare whether a recording exists for it, and the test suite checks that claim against the files on disk in both directions. A post that claims audio it does not have fails the build. So does a recording that no post admits to.
 

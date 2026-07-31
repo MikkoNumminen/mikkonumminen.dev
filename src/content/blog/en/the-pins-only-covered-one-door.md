@@ -6,7 +6,7 @@ locale: en
 slug: the-pins-only-covered-one-door
 project: claude-agents
 aiGenerated: true
-hasAudio: false
+hasAudio: true
 tags: ['claude-code', 'agents', 'cost-routing', 'workflows']
 ---
 
