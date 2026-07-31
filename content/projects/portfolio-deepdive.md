@@ -23,7 +23,9 @@ The DPR cap is another non-obvious resource decision. The default cap is 1.5 rat
 
 `prefers-reduced-motion: reduce` is honored by completely skipping the Three.js scenes rather than just slowing them: the boot script never constructs a scene, the canvas is hidden by CSS, and a static DOM title takes the hero's place. The same gate covers small screens (≤640 px). Because the skip happens before construction, the home scene carries no internal reduced-motion branching at all — and the loading gate is bypassed the same way, so a fallback visitor never waits behind a WebGL warm-up they will not see. A separate performance tier (`?perf=low`, or automatic on 4K-class pixel budgets) keeps the scene but halves the particle count, clamps DPR to 1, and skips the bloom composer entirely — the post chain is the single most expensive part of the rendering path.
 
-Voiceover layers (home and projects pages) mirror the same gate: the `HeroVoiceover.astro` script reads `window.matchMedia('(prefers-reduced-motion: reduce)').matches` at load time and branches entirely, so no audio is ever loaded or played for reduced-motion users from the voice layer. Music continues because it is ambient rather than attention-demanding; the voiceover gate is deliberately separate from the music toggle.
+The home and projects voiceovers mirror the same gate: the `HeroVoiceover.astro` script reads `window.matchMedia('(prefers-reduced-motion: reduce)').matches` at load time and branches entirely, so no audio is ever loaded or played for reduced-motion users from those two layers. Music continues because it is ambient rather than attention-demanding; the voiceover gate is deliberately separate from the music toggle.
+
+The third voice layer, blog narration, deliberately does NOT take that gate, and the reason is written into its header. The other two add a recurring spoken layer on top of a page the visitor did not ask for: a twenty second clip that replays every fifty idle seconds is attention-demanding in exactly the way the preference is about. A blog narration recurs never, and it cannot begin unless the visitor has already turned sound on themselves. Suppressing it under a motion preference would remove a reading aid from the group most likely to want one, so the gate is absent by decision rather than by oversight.
 
 ### Responsive Layout Math and the Frustum-Fit Problem
 
@@ -116,16 +118,36 @@ Playhead persistence across navigations used to be a `sessionStorage` save on `b
 
 ### The Voiceover Layer
 
-`HeroVoiceover.astro` (home page) and `ProjectsVoiceover.astro` (projects page) each add a locale-keyed narration on top of the music bed. The two files are intentionally duplicated (not abstracted into a shared component) and carry `// PARALLEL TO` header comments so bug fixes mirror correctly.
+`HeroVoiceover.astro` (home page), `ProjectsVoiceover.astro` (projects page) and `blog/BlogVoiceover.astro` (any blog post with a recording) each add a locale-keyed narration on top of the music bed. All three are intentionally duplicated rather than abstracted into a shared component, and all three carry `// PARALLEL TO` header comments naming the other two so bug fixes mirror correctly.
+
+The third one is the point at which the rule of three would normally force an extraction, and it was deliberately not done. The differences between blog narration and the other two are absences rather than parameters: the shared part is roughly thirty lines of play, pause and resume, while each caller keeps its own idle timer, its own gates and its own volume rule. A helper plus three call sites each overriding half of it would trade duplication a reader can see for indirection they cannot.
 
 The voiceover coordinates with the music through a single `bg-audio:state` custom event dispatched by `BackgroundAudio` on every toggle. The voiceover never eagerly auto-plays; it waits for the `bg-audio:state` event with `detail.on === true`. This avoids two races the doc-block describes explicitly:
 
 1. On first visit with autoplay permitted, the voiceover would start, then `bg-audio:state` would fire again when `tryPlay()` settled, restarting the clip mid-sentence.
 2. On a click that both unlocks autoplay and toggles the toggle, `BackgroundAudio`'s `tryPlay()` and its toggle handler both emit the event on one click; without the `if (!voice.paused) return` guard, the second dispatch would restart the voice from zero.
 
-The idle-replay timer rearms the voiceover after the user has been still for 50 seconds (pointerdown / touchstart / keydown / scroll reset the clock; `pointermove` is deliberately excluded because a drifting mouse would prevent the timer from ever firing). An actively scrolling or clicking visitor never gets re-narrated; a tab-parked visitor eventually hears the clip again.
+The idle-replay timer, which exists on the home and projects clips only, rearms the voiceover after the user has been still for 50 seconds (pointerdown / touchstart / keydown / scroll reset the clock; `pointermove` is deliberately excluded because a drifting mouse would prevent the timer from ever firing). An actively scrolling or clicking visitor never gets re-narrated; a tab-parked visitor eventually hears the clip again.
 
 A Safari edge case in the voiceover: if the audio source file 404s (a locale without a recorded narration), Safari's `<audio>` element is in `HAVE_NOTHING` state and throws `InvalidStateError` on any `currentTime` write. The `playFresh` and `playResume` helpers wrap `currentTime`, `volume`, and `play()` inside a `try/catch` so a missing locale file degrades silently.
+
+### The Blog, and Posts That Read Themselves
+
+The blog is an Astro content collection at `src/content/blog/<locale>/<slug>.md`. Locale and slug are both explicit frontmatter fields even though the path already implies them, because every locale of an entry deliberately shares one slug: the language switcher and the hreflang alternates pair translations by querying the collection for that slug. The loader's `generateId` is overridden for the same reason. The default returns frontmatter `slug` verbatim when present, which would collapse all three locales of an entry onto one id and keep only whichever loaded last, and that failure is near-silent: one WARN line, a build that still exits 0, and two thirds of the entries simply absent from the site.
+
+Four frontmatter fields exist to make an omission loud rather than convenient.
+
+`aiGenerated` is a required boolean with no default. An entry has to say out loud whether a machine wrote it, and a flag that silently defaults to false is exactly the failure the field exists to prevent. When true the post renders a badge and a standing disclosure notice.
+
+`hasAudio` is required for the same reason pointed at a different gap: an entry is not finished when its English prose is. It is per locale rather than per entry, because a post can be narrated in English months before anyone records the Finnish. Nothing derives it from the filesystem, so it can drift in both directions, and both failures are invisible until someone loads the page. A `true` with no recording renders a player whose source 404s; a `false` beside a real file hides work already paid for. `src/content/blogAudio.test.ts` reconciles the two and fails the suite either way, and also rejects a filename outside the convention so a typo in a slug surfaces as a failed test rather than a silent 404.
+
+`project` names which project an entry is about, validated against the ids in `src/data/projects.ts` rather than being a free string in `tags`. The distinction is deliberate: a tag can be misspelled, capitalised two ways or pluralised and nothing notices, whereas an unknown project id fails the build with the twelve valid ones printed. The evidence for needing that was already in the repository. Two posts about the same RAG subsystem had ended up tagged `rag` and `ragctl` with no tag in common, so the grouping the tags existed for never happened and nothing reported it.
+
+`tags` draws from a closed list in `src/data/blogTags.ts` for the same reason. The bar for adding one is written into that file: a subject rather than a place, groups at least two entries, lowercase kebab, and not implied by the collection, since everything there is a blog post and `blog` therefore says nothing.
+
+Narration itself is one recording per post per locale at `public/audio/blog/<slug>-<locale>.mp3`. Slug is shared across locales and locale is not, so the pair is unique per entry. Sixteen recordings ship today, eight English and eight Finnish, about seventy minutes and 66 MB, all 24 kHz mono at 128 kbps to match the two older voice clips. Swedish carries no recordings and renders no audio element at all.
+
+There is no separate player and no second control. The site's existing sound toggle turns narration on and off together with the music bed, exactly as the home and projects voices already work, so a visitor who wants a post read aloud presses the same button they would press for music. The voice belongs to the view: it is created on arrival at a post and destroyed on leaving, while the music element is `transition:persist`ed and simply keeps playing. Moving between views therefore cuts the speaker without interrupting the music, and only one voice element exists in the document at any moment, so a post's narration can never bleed into the next page. Toggling sound off at minute seven of a thirteen minute reading and back on resumes rather than restarting, because the state handler distinguishes a paused mid-clip element from an ended one. Leaving the post entirely does lose the position.
 
 ---
 
