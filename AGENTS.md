@@ -32,6 +32,7 @@ These are non-negotiable. A change that violates one is wrong even if it builds.
   `requestAnimationFrame`, and honour `prefers-reduced-motion` on every animated surface.
   Three.js scenes and GSAP timelines are isolated modules exposing an explicit `init` +
   `dispose` contract; preserve that contract.
+- **The running RAG stack is not in this repo, and neither are its logs.** The live clone, its `.env`, its containers and its request log all live inside WSL at `~/mikkonumminen.dev`. The request log is `~/mikkonumminen.dev/rag-logs/requests.jsonl` at the REPO ROOT, not under `chat-backend/`; the `/srv/rag-logs/...` path in `.env` is the path inside the container. Reach all of it with `wsl.exe -e bash -lc '...'` rather than asking a human to run commands. Full map in the `rag-backend` skill under WHERE THINGS ACTUALLY ARE.
 - **The site stays 100% static (ADR 0002 is unchanged).** The RAG chat backend is a
   separate, optional, fully-local service; the Astro build remains `output: 'static'` with
   no SSR, no edge functions, no runtime secrets.
