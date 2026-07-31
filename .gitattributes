@@ -3,3 +3,9 @@
 # several of them and is worked on from Windows, where a stray core.autocrlf
 # would corrupt them silently. Declare it rather than rely on the heuristic.
 *.pdf binary
+
+# Same reasoning for the narration audio: several megabytes of MP3 per post,
+# committed, and worked on from Windows where a stray core.autocrlf would
+# corrupt them silently.
+*.mp3 binary
+*.ogg binary
