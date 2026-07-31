@@ -7,7 +7,7 @@ slug: the-label-said-opus
 project: claude-agents
 aiGenerated: false
 hasAudio: false
-tags: ['Claude Code', 'agents', 'measurement', 'cost-routing']
+tags: ['claude-code', 'agents', 'measurement', 'cost-routing']
 ---
 
 I run a small set of subagents for Claude Code that route work by cost. Each one

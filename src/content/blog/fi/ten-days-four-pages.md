@@ -7,7 +7,7 @@ slug: ten-days-four-pages
 project: portfolio
 aiGenerated: true
 hasAudio: false
-tags: ['portfolio', 'three.js', 'design']
+tags: ['three.js', 'design']
 ---
 
 Rakensin tämän sivuston jokaisen sivun uudelleen noin kymmenessä päivässä. Kerron, mitä muuttui, sivu sivulta, ihmisille, joita ei kiinnosta, mikä shader on.

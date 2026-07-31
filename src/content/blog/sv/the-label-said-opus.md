@@ -7,7 +7,7 @@ slug: the-label-said-opus
 project: claude-agents
 aiGenerated: false
 hasAudio: false
-tags: ['Claude Code', 'agents', 'measurement', 'cost-routing']
+tags: ['claude-code', 'agents', 'measurement', 'cost-routing']
 ---
 
 Jag kör en liten uppsättning subagenter för Claude Code som dirigerar arbete efter kostnad. Var och en är fastlåst till den billigaste modellnivå som klarar sitt jobb. Sökning och mekaniska ändringar går till Haiku, spec-formade ändringar till Sonnet, och bara verkligt omdöme når Opus. Poängen är att sluta betala Opus-priser för grep.

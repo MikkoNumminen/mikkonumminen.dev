@@ -7,7 +7,7 @@ slug: ten-days-four-pages
 project: portfolio
 aiGenerated: true
 hasAudio: false
-tags: ['portfolio', 'three.js', 'design']
+tags: ['three.js', 'design']
 ---
 
 Over roughly ten days I rebuilt every page of this site. This is what changed, page by page, written for people who do not care what a shader is.

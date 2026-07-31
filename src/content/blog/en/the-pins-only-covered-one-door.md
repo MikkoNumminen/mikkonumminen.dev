@@ -7,7 +7,7 @@ slug: the-pins-only-covered-one-door
 project: claude-agents
 aiGenerated: true
 hasAudio: false
-tags: ['Claude Code', 'agents', 'cost-routing', 'workflows']
+tags: ['claude-code', 'agents', 'cost-routing', 'workflows']
 ---
 
 Five days ago I checked whether my cost-routing agents were really running on the

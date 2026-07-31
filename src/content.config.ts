@@ -1,6 +1,7 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { projects } from './data/projects';
+import { BLOG_TAGS } from './data/blogTags';
 
 const PROJECT_IDS = projects.map((p) => p.id);
 
@@ -86,7 +87,12 @@ const blog = defineCollection({
       .optional(),
     /** Set by the draft generator. Draft entries never reach a built page. */
     draft: z.boolean().default(false),
-    tags: z.array(z.string()).default([]),
+    /**
+     * Subject tags, from the closed list in `src/data/blogTags.ts`. Closed
+     * because the open version drifted: two posts about one subsystem ended up
+     * tagged `rag` and `ragctl` with nothing in common.
+     */
+    tags: z.array(z.enum(BLOG_TAGS)).default([]),
   }),
 });
 
