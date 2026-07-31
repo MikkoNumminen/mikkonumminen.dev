@@ -6,7 +6,7 @@ locale: fi
 slug: posts-read-themselves
 project: portfolio
 aiGenerated: false
-hasAudio: false
+hasAudio: true
 tags: ['audio', 'text-to-speech']
 ---
 
