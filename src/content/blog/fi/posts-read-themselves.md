@@ -7,7 +7,7 @@ slug: posts-read-themselves
 project: portfolio
 aiGenerated: false
 hasAudio: false
-tags: ['audio', 'blog', 'AudiobookMaker']
+tags: ['audio', 'text-to-speech']
 ---
 
 Jokaisen kirjoituksen täällä voi nyt kuunnella ääneen luettuna, eikä mitään uutta tarvitse klikata. Sivustolla on yksi äänipainike, sama painike, joka on tähänkin asti laittanut musiikin soimaan. Kun laitat sen päälle kirjoitusta lukiessasi, ääni alkaa lukea sitä sinulle.

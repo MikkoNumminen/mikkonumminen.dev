@@ -7,7 +7,7 @@ slug: posts-read-themselves
 project: portfolio
 aiGenerated: false
 hasAudio: false
-tags: ['audio', 'blog', 'AudiobookMaker']
+tags: ['audio', 'text-to-speech']
 ---
 
 Varje inlägg här kan nu läsas upp, och det finns inget nytt att klicka på. Sajten har en enda ljudknapp, samma knapp som alltid har satt på musiken. Slå på den medan du läser ett inlägg, så börjar en röst läsa upp just det inlägget för dig.

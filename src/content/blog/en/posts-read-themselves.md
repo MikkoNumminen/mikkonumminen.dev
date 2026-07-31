@@ -7,7 +7,7 @@ slug: posts-read-themselves
 project: portfolio
 aiGenerated: false
 hasAudio: false
-tags: ['audio', 'blog', 'AudiobookMaker']
+tags: ['audio', 'text-to-speech']
 ---
 
 Every post here can now be read aloud, and there is nothing new to click. The site has one sound button, the same one that has always turned the music on. Turn it on while you are reading a post and a voice starts reading that post to you.
