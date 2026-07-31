@@ -24,6 +24,14 @@ interface Entry {
   hasAudio: boolean;
   draft: boolean;
   audioFile: string;
+  /**
+   * Whether the frontmatter BLOCK declares the field as a bare lowercase
+   * boolean. Scoped to the block on purpose: this repo writes posts about its
+   * own build mechanics, so `hasAudio: true` is likely to appear in prose one
+   * day, and a whole-file scan would let that body text vouch for frontmatter
+   * that is missing, misspelled, `True`, or quoted.
+   */
+  declared: boolean;
 }
 
 function readEntries(): Entry[] {
@@ -35,16 +43,20 @@ function readEntries(): Entry[] {
       const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw)?.[1] ?? '';
       const field = (key: string) =>
         new RegExp(`^${key}:\\s*(.+?)\\s*$`, 'm').exec(frontmatter)?.[1];
-      const slug = field('slug')?.replace(/^['"]|['"]$/g, '');
       // A missing slug is its own failure, asserted below rather than thrown
       // here, so the report names the file instead of dying on a bad regex.
+      // One variable feeds both the entry and the filename, or a slugless
+      // entry reports `undefined-en.mp3` from one line and `-en.mp3` from
+      // the next.
+      const slug = field('slug')?.replace(/^['"]|['"]$/g, '') ?? '';
       out.push({
         file: `${locale}/${name}`,
         locale,
-        slug: slug ?? '',
+        slug,
         hasAudio: field('hasAudio') === 'true',
         draft: field('draft') === 'true',
         audioFile: `${slug}-${locale}.mp3`,
+        declared: /^hasAudio:\s*(true|false)\s*$/m.test(frontmatter),
       });
     }
   }
@@ -61,11 +73,20 @@ describe('blog audio', () => {
   it('every entry declares hasAudio explicitly', () => {
     // The schema enforces this at build time, but the suite runs without a
     // build and a missing field would otherwise read as `false` here.
-    const missing = entries.filter((e) => {
-      const raw = readFileSync(join(BLOG_DIR, e.file), 'utf8');
-      return !/^hasAudio:\s*(true|false)\s*$/m.test(raw);
-    });
-    expect(missing.map((e) => e.file)).toEqual([]);
+    expect(entries.filter((e) => !e.declared).map((e) => e.file)).toEqual([]);
+  });
+
+  it('every entry has a slug', () => {
+    // The audio filename is built from it, so a blank slug would quietly
+    // point every check at the same wrong path.
+    expect(entries.filter((e) => !e.slug).map((e) => e.file)).toEqual([]);
+  });
+
+  it('the audio directory exists', () => {
+    // Guarded assertions below early-return when it is missing, and an
+    // early return in vitest passes. The directory is committed (it holds
+    // the convention README), so its absence is itself the defect.
+    expect(existsSync(AUDIO_DIR)).toBe(true);
   });
 
   it('every entry with hasAudio: true has its recording on disk', () => {

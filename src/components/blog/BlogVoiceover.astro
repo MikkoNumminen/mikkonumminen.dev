@@ -24,6 +24,16 @@
 //
 // Rendered only when the entry's frontmatter says a recording exists, so the
 // element is absent rather than 404ing for the locales not yet narrated.
+//
+// This is the third copy of the handshake, which is the point at which the
+// rule of three says extract a shared helper. Deliberately not done yet. The
+// two differences above are not parameters, they are absences: the shared part
+// would be the ~30 lines of play/pause/resume, and the callers would still own
+// their own idle timers, their own gates and their own volume rules. Squeezing
+// three files into a helper plus three call sites that each override half of
+// it trades duplication a reader can see for indirection they cannot, and it
+// puts a refactor through two components that currently work. Revisit when a
+// fourth arrives, or when a bug forces the same edit in all three.
 import { asLocale } from '../../i18n';
 
 interface Props {

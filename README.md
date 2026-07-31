@@ -21,9 +21,11 @@ Available in English, Finnish, and Swedish — served from `/`, `/fi`, and `/sv`
 
 ## Audio
 
-A looping music bed plays across every page, dual-decked and crossfaded so the loop join is inaudible. On `/` and `/projects` a locale-specific voiceover narration is layered on top of the music. A single floating **sound on/off** button in `BackgroundAudio.astro` controls both tracks via a custom `bg-audio:state` event; on/off preference and music playhead persist across navigation through `sessionStorage`. Voice clips don't autostart — they kick in after the audio toggle resolves and recycle on a 50-second idle window so an active visitor isn't re-narrated at. Both narration layers respect `prefers-reduced-motion: reduce` and stay silent; music still plays.
+A looping music bed plays across every page, dual-decked and crossfaded so the loop join is inaudible. On `/`, on `/projects`, and on any blog post that has a recording, a locale-specific voice is layered on top of the music. A single floating **sound on/off** button in `BackgroundAudio.astro` controls both tracks via a custom `bg-audio:state` event; on/off preference and music playhead persist across navigation through `sessionStorage`. No voice autostarts — they kick in after the audio toggle resolves.
 
-Assets live in [`public/audio/`](public/audio/) and are keyed by locale: `voice-landing-{en|fi|sv}.mp3` (home) and `voice-projects-{en|fi|sv}.mp3` (galaxy view). Locales without a recording 404 the audio element silently and the page stays usable.
+The home and projects clips are short spoken flourishes: they recycle on a 50-second idle window so an active visitor isn't re-narrated at, and they respect `prefers-reduced-motion: reduce` by staying silent. Blog narration is a reading of the post, minutes rather than seconds long, so it does neither. It never replays, because a reader sitting still is listening rather than idle, and it is not suppressed by reduced motion, because it does not recur and cannot start unless the visitor turned sound on themselves. It resumes rather than restarting if the toggle goes off and back on partway through. Music plays in all cases.
+
+Assets live in [`public/audio/`](public/audio/) and are keyed by locale: `voice-landing-{en|fi|sv}.mp3` (home) and `voice-projects-{en|fi|sv}.mp3` (galaxy view). Blog narration is keyed by entry as well as locale, at `public/audio/blog/<slug>-<locale>.mp3`; see [`public/audio/blog/README.md`](public/audio/blog/README.md) for the convention and the `hasAudio` frontmatter flag that registers it. A locale without a recording 404s the audio element silently on home and projects, and on a blog post renders no element at all, since the flag says whether the file is there.
 
 ## RAG chat (optional, fully local)
 

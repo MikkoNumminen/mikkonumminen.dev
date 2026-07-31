@@ -55,8 +55,15 @@ hasAudio: true
 rejects filenames outside the convention above, so a typo in a slug surfaces
 as a failed test rather than as a silent 404 in a browser.
 
-## What is not here yet
+## How a recording reaches a visitor
 
-No player. Nothing on the site reads these files today. The flag, the
-convention and the tests exist so recordings have somewhere correct to land;
-wiring the audio into the post page is separate work.
+`src/components/blog/BlogVoiceover.astro` renders an `<audio>` element on a
+post whose frontmatter says `hasAudio: true`, and nothing at all on a post
+that says otherwise. There is no separate player and no second control: the
+site's existing sound toggle turns the narration on and off together with the
+music bed, the same way the home and projects voices already work.
+
+The narration does not replay when it ends, and it resumes rather than
+restarting if the toggle goes off and on partway through. It is not
+suppressed by `prefers-reduced-motion`, unlike the other two voices, because
+it does not recur and cannot start unless the visitor turned sound on.
