@@ -16,7 +16,7 @@ Rösten hör till sidan du är på. Går du vidare till en annan vy tystnar den 
 
 Inspelningarna gjordes med AudiobookMaker, som är ett av projekten som visas på den här sajten. Hela dess poäng är att göra text till tal, så det var självklart att rikta det mot mina egna texter.
 
-Engelska är inspelat. Finska och svenska är det inte, och jag tänker inte hitta på ett datum för dem.
+Engelska och finska är inspelade. Svenska är det inte, och jag tänker inte hitta på ett datum för det.
 
 En detalj under ytan. Varje inlägg måste ange om det finns en inspelning till det, och testsviten kontrollerar det påståendet mot filerna på disken åt båda hållen. Ett inlägg som påstår sig ha ljud det inte har stoppar bygget. Det gör också en inspelning som inget inlägg vill kännas vid.
 

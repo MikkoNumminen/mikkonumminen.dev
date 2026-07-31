@@ -6,7 +6,7 @@ locale: fi
 slug: polling-a-hidden-tab
 project: portfolio
 aiGenerated: true
-hasAudio: false
+hasAudio: true
 tags: ['rag', 'frontend']
 ---
 

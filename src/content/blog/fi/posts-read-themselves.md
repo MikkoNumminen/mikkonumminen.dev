@@ -16,7 +16,7 @@ Jokaisen kirjoituksen täällä voi nyt kuunnella ääneen luettuna, eikä mitä
 
 Äänitteet on tehty AudiobookMakerilla, joka on yksi tällä sivustolla esitellyistä projekteista. Sen koko idea on muuttaa teksti puheeksi, joten oli luontevaa osoittaa sillä omia kirjoituksiani.
 
-Englanti on äänitetty. Suomea ja ruotsia ei ole, enkä aio keksiä niille päivämäärää.
+Englanti ja suomi on äänitetty. Ruotsia ei ole, enkä aio keksiä sille päivämäärää.
 
 Yksi yksityiskohta pinnan alta. Jokaisen kirjoituksen on kerrottava, onko sille olemassa äänite, ja testit tarkistavat väitteen levyllä olevia tiedostoja vasten molempiin suuntiin. Jos kirjoitus väittää, että sillä on äänite, jota ei oikeasti ole, sivusto ei suostu rakentumaan. Sama tapahtuu, jos levyltä löytyy äänite, jota yksikään kirjoitus ei tunnusta omakseen.
 

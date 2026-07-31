@@ -6,7 +6,7 @@ locale: fi
 slug: funnel-watchdog
 project: portfolio
 aiGenerated: true
-hasAudio: false
+hasAudio: true
 tags: ['rag', 'ragctl', 'ops']
 ---
 
