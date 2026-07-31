@@ -131,14 +131,22 @@ async def _translate_for_retrieval(
         # request, and everything downstream (retrieval, CV route, the gate)
         # inherits that variance - measured live as an intermittent refusal of
         # a question that usually answers.
+        finish: dict[str, str] = {}
         async for token in llm.stream_chat(
             [
                 {"role": "system", "content": _TRANSLATE_SYSTEM},
                 {"role": "user", "content": query},
             ],
             temperature=0.0,
+            finish_out=finish,
         ):
             parts.append(token)
+        # A translation cut off at the cap is a mangled retrieval query, and
+        # short enough to slip past the runaway check below. Same treatment
+        # as any other suspect translation: drop it and retrieve with the
+        # original. Never user-visible, so no notice.
+        if finish.get("reason") == "length":
+            return None
     except Exception:
         logger.exception("retrieval translation failed")
         return None
@@ -360,7 +368,13 @@ async def chat_event_stream(
             # detection). Best-effort: any failure falls back to the original
             # query, byte-identical to the flag-off flow.
             retrieval_query = query
-            if translate_retrieval and answer_in_finnish:
+            # Gated on the query being FINNISH, not on the answer being
+            # Finnish. Since an English question can now ask for a Finnish
+            # answer, keying this on answer_in_finnish would send an English
+            # query through an English-to-English 'translation': a wasted
+            # generation slot on the single GPU, and a chance to mangle a
+            # query that was already in the index's language.
+            if translate_retrieval and looks_finnish(query):
                 translated = await _translate_for_retrieval(
                     llm, query, semaphore, acquire_timeout
                 )
@@ -539,6 +553,23 @@ async def chat_event_stream(
             yield sse.sse_error("generation unavailable")
             return
 
+        # Truncation, said out loud, and said FIRST. The model hitting
+        # LLM_NUM_PREDICT used to be indistinguishable from the model finishing:
+        # the stream just stopped, so a sentence ending mid-word read as a broken
+        # bot. This goes immediately after the cut text and before the two
+        # suffixes below, because "...voidaan tarkastaa ket" followed by an
+        # unrelated offer and a citation, and only THEN an explanation, reads
+        # worse than no explanation at all. Kept OUT of response_parts like those
+        # suffixes, so the logged and remembered answer stays the substantive
+        # text and a later turn is never primed with our own apology. Guarded: a
+        # notice must never be the thing that breaks a delivered answer.
+        try:
+            notice = truncation_notice(finish.get("reason"), finnish=answer_in_finnish)
+            if notice:
+                yield sse.sse_token(notice)
+        except Exception:
+            logger.exception("truncation notice failed")
+
         # Progressive-disclosure offer: after a normal (non-expansion) answer about a
         # single project that HAS a narrative, offer to go deeper. A deterministic
         # suffix (never LLM-generated); the concise answer came FIRST, so value is
@@ -582,19 +613,6 @@ async def chat_event_stream(
                 yield sse.sse_token(footer)
         except Exception:
             logger.exception("research-coverage footer failed")
-
-        # Truncation, said out loud. The model hitting LLM_NUM_PREDICT used to be
-        # indistinguishable from the model finishing: the stream just stopped, so a
-        # sentence ending mid-word read as a broken bot. Kept OUT of response_parts
-        # like the two suffixes above, so the logged and remembered answer stays the
-        # substantive text and a later turn is not primed with our own apology.
-        # Guarded: a notice must never be the thing that breaks a delivered answer.
-        try:
-            notice = truncation_notice(finish.get("reason"), finnish=answer_in_finnish)
-            if notice:
-                yield sse.sse_token(notice)
-        except Exception:
-            logger.exception("truncation notice failed")
 
         # Context bar (Phase 6): the session's REAL fill — prompt_eval_count +
         # eval_count from the model's usage chunk, against the served context

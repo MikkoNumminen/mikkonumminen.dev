@@ -1478,3 +1478,21 @@ def test_the_widened_routing_does_nothing_when_the_flag_is_off() -> None:
         force_english=False,
     )
     assert "KOKO vastaus suomeksi" not in msgs[-1]["content"]
+
+
+def test_the_truncation_notice_comes_before_the_other_suffixes() -> None:
+    # A cut-off sentence followed by an unrelated offer and a citation, with the
+    # explanation arriving last, reads worse than no explanation. The notice
+    # belongs next to the text it explains.
+    frames = _collect(
+        "tell me about hrm",
+        db=FakeDB([_row("projects/hrm.md")]),
+        llm=FakeLLM(["an answer that stops mid-"], finish="length"),
+    )
+    body = "".join(frames)
+    notice_at = body.find("cut off at the length limit")
+    assert notice_at != -1
+    for later in (EXPANSION_OFFER, "Latest research"):
+        at = body.find(later)
+        if at != -1:
+            assert notice_at < at, f"notice should precede {later!r}"

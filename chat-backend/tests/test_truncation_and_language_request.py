@@ -71,6 +71,9 @@ class TestTruncationNotice:
 
 
 class TestRequestsFinnishAnswer:
+    """Every case here came from adversarially testing the first attempt, which
+    was one anchored regex. It failed all four SERIOUS ways below."""
+
     @pytest.mark.parametrize(
         "query",
         [
@@ -83,7 +86,22 @@ class TestRequestsFinnishAnswer:
             "in finnish please",
             "And in Finnish?",
             "Sama suomeksi?",
-            "Tell me about HRM, suomeksi",
+            "vastaa suomeksi",
+            # Topic first, language second, as its own sentence. The single most
+            # natural phrasing, and the first attempt missed all of these.
+            "Tell me about HRM. In Finnish.",
+            "Tell me about HRM in Finnish. Thanks.",
+            "What tech stack does HRM use? Also, in Finnish please.",
+            "Tell me about HRM.\nIn Finnish.",
+            # Trailing politeness, punctuation and emoji.
+            "in Finnish, please",
+            "Answer in Finnish, if you can",
+            "Could you answer in Finnish this time?",
+            "answer me in Finnish!",
+            "Answer in Finnish 🙂",
+            # Terse forms.
+            "same in finnish",
+            "can you do that in finnish",
         ],
     )
     def test_asks_for_finnish(self, query: str) -> None:
@@ -92,15 +110,34 @@ class TestRequestsFinnishAnswer:
     @pytest.mark.parametrize(
         "query",
         [
-            # Questions ABOUT Finnish content must not change the answer's
-            # language. They carry no request directed at the assistant.
+            # NEGATION. The first attempt answered these in Finnish, which is
+            # the single most visible way to misbehave: doing the one thing the
+            # message says not to do.
+            "Don't answer in Finnish",
+            "Please don't reply in Finnish",
+            "I don't want the answer in Finnish",
+            "No need to answer in Finnish",
+            # A QUESTION ABOUT BEHAVIOUR is not a request. The subject is the
+            # system, not the assistant.
+            "Does the RAG answer in Finnish?",
             "Is the site available in finnish?",
+            "Which blog posts are available in Finnish?",
+            "Is the blind study write-up published in Finnish?",
+            # Questions ABOUT Finnish content.
             "Do you have Finnish translations?",
-            "Which projects have Finnish localisation?",
             "Tell me about the Finnish blind study",
-            "What did the Finnish evaluation measure?",
-            # "in Finnish" modifying a noun mid-sentence, not directing the reply.
+            "Compare the English and Finnish versions",
+            "How good is the Finnish translation?",
+            # The word merely MENTIONED. This site's own language switcher is
+            # labelled "Suomeksi", so a visitor asking about the nav trips a
+            # bare substring test.
+            "What does suomeksi mean?",
+            "The button says Suomeksi",
+            "Why does the language switcher say Suomeksi instead of Finnish?",
+            # "in Finnish" modifying a noun mid-sentence.
             "Tell me about the tests in Finnish translations and how they run",
+            # Translation trivia asks for one word, not a change of language.
+            "How do you write thank you in Finnish?",
             "",
             "   ",
             "Tell me about the site",

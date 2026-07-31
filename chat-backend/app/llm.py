@@ -188,17 +188,22 @@ class LLMClient:
             ) as resp:
                 resp.raise_for_status()
                 async for line in resp.aiter_lines():
-                    token = parse_stream_line(line)
-                    if token is not None:
-                        yield token
-                        continue
-                    # A chunk carrying no token can still carry the reason the
-                    # stream ended. Checked before usage because the two ride
-                    # different chunks and only one of them is optional.
+                    # Checked FIRST, on every line, including lines that also
+                    # carry a token. The OpenAI wire format permits a chunk to
+                    # hold both the last content delta and finish_reason, and
+                    # some servers do exactly that. Reading it only on empty
+                    # chunks would miss truncation entirely against those, which
+                    # is the very bug this exists to catch, reintroduced
+                    # invisibly. Ollama happens to send them separately today;
+                    # depending on that is what made the original bug invisible.
                     if finish_out is not None:
                         reason = parse_finish_reason(line)
                         if reason is not None:
                             finish_out["reason"] = reason
+                    token = parse_stream_line(line)
+                    if token is not None:
+                        yield token
+                        continue
                     if usage_out is not None:
                         usage = parse_usage_line(line)
                         if usage is not None:
