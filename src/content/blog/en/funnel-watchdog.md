@@ -5,6 +5,7 @@ date: 2026-07-21
 locale: en
 slug: funnel-watchdog
 aiGenerated: true
+hasAudio: false
 tags: ['ragctl', 'ops']
 ---
 

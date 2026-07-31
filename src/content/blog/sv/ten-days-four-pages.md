@@ -5,6 +5,7 @@ date: 2026-07-31
 locale: sv
 slug: ten-days-four-pages
 aiGenerated: true
+hasAudio: false
 tags: ['portfolio', 'three.js', 'design']
 ---
 

@@ -5,6 +5,7 @@ date: 2026-07-21
 locale: fi
 slug: the-label-said-opus
 aiGenerated: false
+hasAudio: false
 tags: ['Claude Code', 'agents', 'measurement', 'cost-routing']
 ---
 

@@ -2,6 +2,7 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AiBadge from '../components/blog/AiBadge.astro';
+import BlogVoiceover from '../components/blog/BlogVoiceover.astro';
 import { asLocale, getTranslations, localizePath, LOCALES } from '../i18n';
 import { formatEntryDate } from '../lib/blog/entryDate';
 
@@ -10,7 +11,7 @@ interface Props {
 }
 
 const { entry } = Astro.props;
-const { title, description, date, aiGenerated, tags, slug } = entry.data;
+const { title, description, date, aiGenerated, hasAudio, tags, slug } = entry.data;
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
@@ -43,6 +44,8 @@ const documentTitle = `${title} — Mikko Numminen`;
   publishedTime={date.toISOString()}
   availableLocales={availableLocales}
 >
+  {hasAudio && <BlogVoiceover slug={slug} />}
+
   <article class="blog-post">
     <header class="blog-post__header">
       <p class="blog-post__meta">

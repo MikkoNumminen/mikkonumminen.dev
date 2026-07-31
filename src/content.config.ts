@@ -24,6 +24,20 @@ import { glob } from 'astro/loaders';
  * `aiGenerated` is deliberately required with no default. An entry has to say
  * out loud whether a machine wrote it — an omitted flag silently defaulting to
  * `false` is exactly the failure this field exists to prevent.
+ *
+ * `hasAudio` is required for the same reason, pointed at a different gap. An
+ * entry is not finished when its English prose is: it also needs the other two
+ * locales and a narration for each. A field that defaults to `false` lets an
+ * author forget the recording ever existed as a step; a field they must type
+ * makes the missing narration visible in the file itself. It is per locale
+ * rather than per entry because a post can be narrated in English months
+ * before anyone records the Finnish.
+ *
+ * Nothing derives `hasAudio` from the filesystem, so it can drift from the
+ * files on disk in both directions: a `true` with no recording renders a
+ * player that 404s, and a `false` beside a real file hides work already paid
+ * for. `blogAudio.test.ts` asserts the two agree and fails the suite if they
+ * do not.
  */
 const blog = defineCollection({
   loader: glob({
@@ -39,6 +53,11 @@ const blog = defineCollection({
     /** Shared across every locale of the same entry; drives the URL. */
     slug: z.string(),
     aiGenerated: z.boolean(),
+    /**
+     * Whether a narration exists for THIS locale, at
+     * `public/audio/blog/<slug>-<locale>.mp3`. Required, no default.
+     */
+    hasAudio: z.boolean(),
     /** Set by the draft generator. Draft entries never reach a built page. */
     draft: z.boolean().default(false),
     tags: z.array(z.string()).default([]),
