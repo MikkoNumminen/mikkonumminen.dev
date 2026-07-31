@@ -98,10 +98,12 @@ class FakeLLM:
         tokens: list[str],
         fail: bool = False,
         usage: dict[str, int] | None = None,
+        finish: str | None = None,
     ) -> None:
         self._tokens = tokens
         self._fail = fail
         self._usage = usage
+        self._finish = finish
         self.called = False
         self.messages: Sequence[dict[str, str]] = []
 
@@ -110,6 +112,7 @@ class FakeLLM:
         messages: Sequence[dict[str, str]],
         *,
         usage_out: dict[str, int] | None = None,
+        finish_out: dict[str, str] | None = None,
         temperature: float | None = None,
     ) -> AsyncIterator[str]:
         self.called = True
@@ -122,6 +125,8 @@ class FakeLLM:
             yield token
         if usage_out is not None and self._usage is not None:
             usage_out.update(self._usage)
+        if finish_out is not None and self._finish is not None:
+            finish_out['reason'] = self._finish
 
 
 def _row(
@@ -489,6 +494,7 @@ def test_force_english_threads_into_the_assembled_messages() -> None:
             messages: Sequence[dict[str, str]],
             *,
             usage_out: dict[str, int] | None = None,
+            finish_out: dict[str, str] | None = None,
         ) -> AsyncIterator[str]:
             captured["messages"] = messages
             yield "ok"
@@ -956,6 +962,7 @@ class TranslatingLLM(FakeLLM):
         messages: Sequence[dict[str, str]],
         *,
         usage_out: dict[str, int] | None = None,
+        finish_out: dict[str, str] | None = None,
         temperature: float | None = None,
     ) -> AsyncIterator[str]:
         self.call_messages.append(list(messages))
@@ -1068,6 +1075,7 @@ def test_failed_translation_falls_back_to_the_original_query() -> None:
             messages: Sequence[dict[str, str]],
             *,
             usage_out: dict[str, int] | None = None,
+            finish_out: dict[str, str] | None = None,
             temperature: float | None = None,
         ) -> AsyncIterator[str]:
             self.call_messages.append(list(messages))
@@ -1368,3 +1376,123 @@ def test_personal_trivia_declined_deterministically_fi_and_en() -> None:
         llm=FakeLLM(["no"]),
     )
     assert "I don't have anything on that" in _token_text(frames)
+
+
+class TestTruncationIsVisible:
+    """Wiring, not parts. The helper is unit-tested elsewhere; these prove the
+    pipeline actually reads the finish reason off the stream and puts the notice
+    in front of the visitor. Before this, 169 of 2547 live answers ended at the
+    cap and nothing downstream could tell."""
+
+    def test_a_cut_off_answer_says_so(self) -> None:
+        frames = _collect(
+            "tell me about hrm",
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=FakeLLM(["a partial answer that stops mid-"], finish="length"),
+        )
+        body = "".join(frames)
+        assert "cut off at the length limit" in body
+
+    def test_a_finished_answer_says_nothing(self) -> None:
+        frames = _collect(
+            "tell me about hrm",
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=FakeLLM(["a complete answer."], finish="stop"),
+        )
+        assert "cut off at the length limit" not in "".join(frames)
+
+    def test_an_older_ollama_streaming_no_reason_says_nothing(self) -> None:
+        # finish_out stays empty. Silence is correct: claiming truncation on an
+        # answer that may well be complete is worse than the old behaviour.
+        frames = _collect(
+            "tell me about hrm",
+            db=FakeDB([_row("projects/hrm.md")]),
+            llm=FakeLLM(["an answer."]),
+        )
+        assert "cut off at the length limit" not in "".join(frames)
+
+    def test_the_notice_is_not_stored_as_part_of_the_answer(self) -> None:
+        # It rides the SSE stream but must stay out of the logged/remembered
+        # text, like the other two deterministic suffixes, so a later turn is
+        # never primed with our own apology.
+        logged: dict[str, str] = {}
+
+        def log(query, distances, route, response, role, classes, **kw) -> None:  # type: ignore[no-untyped-def]
+            logged["response"] = response
+
+        async def run() -> list[str]:
+            gen = chat_event_stream(
+                "tell me about hrm",
+                [],
+                embedder=FakeEmbedder(),
+                db=FakeDB([_row("projects/hrm.md")]),
+                llm=FakeLLM(["partial"], finish="length"),
+                top_k=5,
+                weak_retrieval_distance=0.7,
+                log_request=log,
+            )
+            return [f async for f in gen]
+
+        frames = asyncio.run(run())
+        assert "cut off at the length limit" in "".join(frames)
+        assert "cut off" not in logged.get("response", "")
+
+
+def test_an_english_request_for_finnish_now_gets_the_finnish_anchor() -> None:
+    # The visitor's real message, 2026-07-30 16:06 UTC. It is English text, so
+    # looks_finnish said no and the answer came back in English. He asked again
+    # and was ignored again. Routing now asks whether the message REQUESTS
+    # Finnish, not only whether it IS Finnish.
+    msgs = _llm_messages(
+        "Can you tellme about the site in finnish?",
+        allow_finnish=True,
+        force_english=False,
+    )
+    assert "KOKO vastaus suomeksi" in msgs[-1]["content"]
+
+
+def test_the_bare_follow_up_also_switches() -> None:
+    msgs = _llm_messages("But in finnish?", allow_finnish=True, force_english=False)
+    assert "KOKO vastaus suomeksi" in msgs[-1]["content"]
+
+
+def test_a_question_about_finnish_content_stays_english() -> None:
+    # Asking WHETHER something exists in Finnish is a question about the
+    # portfolio, not a request to be answered in Finnish. Getting this wrong
+    # would flip the answer language on a large class of ordinary questions.
+    msgs = _llm_messages(
+        "Is the site available in finnish?",
+        allow_finnish=True,
+        force_english=False,
+    )
+    assert "KOKO vastaus suomeksi" not in msgs[-1]["content"]
+
+
+def test_the_widened_routing_does_nothing_when_the_flag_is_off() -> None:
+    # RAG_ALLOW_FINNISH still governs. With it off, the request is ignored
+    # exactly as before, so the change cannot alter a deployment that has not
+    # opted into the Finnish path.
+    msgs = _llm_messages(
+        "Can you tell me about the site in finnish?",
+        allow_finnish=False,
+        force_english=False,
+    )
+    assert "KOKO vastaus suomeksi" not in msgs[-1]["content"]
+
+
+def test_the_truncation_notice_comes_before_the_other_suffixes() -> None:
+    # A cut-off sentence followed by an unrelated offer and a citation, with the
+    # explanation arriving last, reads worse than no explanation. The notice
+    # belongs next to the text it explains.
+    frames = _collect(
+        "tell me about hrm",
+        db=FakeDB([_row("projects/hrm.md")]),
+        llm=FakeLLM(["an answer that stops mid-"], finish="length"),
+    )
+    body = "".join(frames)
+    notice_at = body.find("cut off at the length limit")
+    assert notice_at != -1
+    for later in (EXPANSION_OFFER, "Latest research"):
+        at = body.find(later)
+        if at != -1:
+            assert notice_at < at, f"notice should precede {later!r}"

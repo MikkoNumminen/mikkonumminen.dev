@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from app.llm import LLMClient, parse_stream_line, parse_usage_line
+from app.llm import (
+    LLMClient,
+    parse_finish_reason,
+    parse_stream_line,
+    parse_usage_line,
+)
 
 
 def _data(payload: str) -> str:
@@ -77,3 +82,15 @@ def test_chat_payload_applies_effort_knobs() -> None:
     uncapped = LLMClient("http://x/v1", "m", 60)._chat_payload([])
     assert "max_tokens" not in uncapped
     assert uncapped["temperature"] == 0.4
+
+
+def test_finish_reason_is_read_even_when_the_chunk_also_carries_content() -> None:
+    # The OpenAI wire format permits the last content delta and finish_reason on
+    # ONE chunk, and some servers do that. Reading finish_reason only on empty
+    # chunks would miss truncation entirely against those, which is exactly the
+    # bug the detector exists to catch, reintroduced invisibly.
+    line = (
+        'data: {"choices":[{"delta":{"content":"tail"},"finish_reason":"length"}]}'
+    )
+    assert parse_stream_line(line) == "tail"
+    assert parse_finish_reason(line) == "length"

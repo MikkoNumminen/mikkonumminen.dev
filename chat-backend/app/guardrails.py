@@ -47,6 +47,34 @@ WEAK_RETRIEVAL_REPLY_FI = (
 # rephrase rather than leaving a bare refusal. Never shown on a successful answer.
 ENGLISH_ONLY_HINT = "\n\nTip: I answer in English — try asking in English."
 
+# Appended when the model hit LLM_NUM_PREDICT instead of finishing its sentence.
+# Measured before this existed: 169 of 2547 answers ended at exactly the cap, and
+# a visitor saw three in a row stop mid-word ("...voidaan tarkastaa ket"). Nothing
+# downstream could tell a truncated answer from a finished one, so the visitor was
+# left to assume the thing was broken. Saying so is cheaper than pretending, and
+# it is honest about WHY, so "ask for less at a time" is an obvious next move.
+TRUNCATED_NOTICE = (
+    "\n\n[Answer cut off at the length limit. "
+    "Ask for a narrower slice of it to see the rest.]"
+)
+TRUNCATED_NOTICE_FI = (
+    "\n\n[Vastaus katkesi pituusrajaan. "
+    "Kysy rajatumpaa osaa, niin näet loput.]"
+)
+
+
+def truncation_notice(finish_reason: str | None, *, finnish: bool) -> str | None:
+    """The suffix to append when generation was cut off, or None.
+
+    Only "length" means truncation. "stop" is a model that finished, and an
+    absent reason is an older Ollama that streams none — neither should be
+    reported as cut off, because a false "I was truncated" on a complete answer
+    is worse than the silence this replaces.
+    """
+    if finish_reason != "length":
+        return None
+    return TRUNCATED_NOTICE_FI if finnish else TRUNCATED_NOTICE
+
 
 def looks_non_english(query: str) -> bool:
     """Cheap heuristic: the query carries a non-ASCII letter (e.g. Finnish/Swedish
@@ -163,6 +191,123 @@ _CODE_TOKEN_RE = re.compile(
     r"|\b[a-z]+(?:[A-Z]\w*)+\b"
     r"|\b[A-Z]\w*[a-z]\w*(?:[A-Z]\w*)+\b"
 )
+
+
+# An explicit request for a Finnish ANSWER, written in any language.
+#
+# `looks_finnish` answers "is this text Finnish", which is a different question
+# from "does this ask for Finnish". A visitor who typed "Can you tellme about the
+# site in finnish?" and then "But in finnish?" was answered in English both
+# times, because both messages are English. Asking twice and being ignored reads
+# worse than a wrong answer.
+#
+# Written as explicit steps rather than one regex. The first attempt WAS one
+# anchored regex and it failed four ways at once, each visible to an ordinary
+# visitor: it ignored negation, so "Don't answer in Finnish" switched TO Finnish;
+# it fired on any mention of the word "suomeksi", which is the label on this
+# site's own language switcher; it missed the most natural phrasing there is,
+# "Tell me about HRM. In Finnish."; and it could not tell a request from a
+# question about behaviour, so "Does the RAG answer in Finnish?" flipped the
+# language of an English visitor's answer.
+_FI_PHRASE_RE = re.compile(r"\b(in\s+finnish|suomeksi)\b", re.IGNORECASE)
+
+# Politeness and filler allowed to trail the language phrase while the request
+# still counts as ending the sentence. The wide character ranges cover emoji.
+_FI_TRAILER_RE = re.compile(
+    r"^[\s,!.? -㌀\U0001F000-\U0001FAFF]*"
+    r"(please|thanks|thank\s+you|kiitos|if\s+you\s+can|for\s+me|this\s+time"
+    r"|too|as\s+well)?"
+    r"[\s,!.? -㌀\U0001F000-\U0001FAFF]*$",
+    re.IGNORECASE,
+)
+
+# Any of these before the language phrase means the visitor is DECLINING it.
+_FI_NEGATION_RE = re.compile(
+    r"\b(don'?t|do\s+not|doesn'?t|no\s+need|not|without|never|rather\s+not"
+    r"|instead\s+of|en\s+halua|ei\s+tarvitse|älä)\b",
+    re.IGNORECASE,
+)
+
+# The sentence has to point the request at the assistant. `write` excludes
+# "write-up": the hyphen is a word boundary, so a bare \bwrite\b matches inside a
+# noun with nothing to do with authoring ("is the write-up published in Finnish?").
+_FI_DIRECTIVE_RE = re.compile(
+    r"\b(you|answer|reply|respond|say|tell|explain|write(?!-)|put|give|do|make"
+    r"|same|sama|vastaa|kerro|kirjoita|selitä)\b",
+    re.IGNORECASE,
+)
+
+# An interrogative whose subject is NOT the assistant asks ABOUT something rather
+# than requesting it. "Does the RAG answer in Finnish?" describes; "Can you answer
+# in Finnish?" requests. Only the second should change the answer's language.
+_FI_THIRD_PARTY_QUESTION_RE = re.compile(
+    r"^\s*(does|do|did|is|are|was|were|will|would|can|could|has|have|which|what"
+    r"|how\s+many)\b(?!\s+(you|u)\b)",
+    re.IGNORECASE,
+)
+
+# Translation trivia asks for one word, not for the whole reply to change
+# language. is_translation_request declines these before retrieval; this stops
+# them ALSO flipping the answer language on the way.
+_FI_TRANSLATION_TRIVIA_RE = re.compile(
+    r"\bhow\s+(do|would)\s+you\s+(say|write|spell|pronounce)\b", re.IGNORECASE
+)
+
+# Connectors a follow-up opens with. They carry no request of their own, so a
+# sentence that is only a connector plus the language phrase is still bare.
+_FI_CONNECTOR_RE = re.compile(
+    r"^(and|but|ok|okay|now|so|also|then|ja|mutta)\b", re.IGNORECASE
+)
+
+_SENTENCE_SPLIT_RE = re.compile(r"[.?!\n]+")
+
+
+def _sentence_requests_finnish(sentence: str) -> bool:
+    """True when this one sentence is itself a request to answer in Finnish."""
+    match = _FI_PHRASE_RE.search(sentence)
+    if match is None:
+        return False
+    before, after = sentence[: match.start()], sentence[match.end() :]
+    # The phrase has to END the sentence. Mid-sentence it modifies a noun ("the
+    # tests in Finnish translations") instead of directing the reply.
+    if not _FI_TRAILER_RE.match(after):
+        return False
+    if _FI_NEGATION_RE.search(before):
+        return False
+    if _FI_TRANSLATION_TRIVIA_RE.search(sentence):
+        return False
+    if _FI_THIRD_PARTY_QUESTION_RE.match(sentence.strip()):
+        return False
+    # A bare "In Finnish." is a complete request by itself, and so is one behind
+    # a connector: "But in finnish?" was the visitor's actual second message, and
+    # "...use? Also, in Finnish please." is the same shape one sentence along.
+    # Anything longer has to actually point at the assistant.
+    lead = _FI_CONNECTOR_RE.sub("", before.strip(" ,;:"), count=1).strip(" ,;:")
+    if not lead:
+        return True
+    return bool(_FI_DIRECTIVE_RE.search(before))
+
+
+def requests_finnish_answer(text: str) -> bool:
+    """True when the message asks for the ANSWER in Finnish, in any language.
+
+    Deliberately narrow. This only decides which language a grounded answer is
+    written in; it never unlocks a capability. "Translate X to Finnish" is a
+    different thing and is declined earlier by `is_translation_request`, which
+    runs before retrieval — so widening this cannot be used to reach the
+    translator the task gate exists to refuse.
+
+    Checked per sentence, because people put the topic first and the language
+    second: "Tell me about HRM. In Finnish." is two sentences, and the request is
+    the short one.
+    """
+    if not text.strip():
+        return False
+    return any(
+        _sentence_requests_finnish(part)
+        for part in _SENTENCE_SPLIT_RE.split(text)
+        if part.strip()
+    )
 
 
 def looks_finnish(text: str) -> bool:
