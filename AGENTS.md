@@ -35,6 +35,22 @@ These are non-negotiable. A change that violates one is wrong even if it builds.
 - **The site stays 100% static (ADR 0002 is unchanged).** The RAG chat backend is a
   separate, optional, fully-local service; the Astro build remains `output: 'static'` with
   no SSR, no edge functions, no runtime secrets.
+- **Three voice layers share one contract.** `HeroVoiceover`, `ProjectsVoiceover` and
+  `blog/BlogVoiceover` all listen to the `bg-audio:state` event from `BackgroundAudio`,
+  mount through `onRoute`, and wrap `play()` in try/catch. They carry `PARALLEL TO`
+  headers naming each other; a fix to that handshake belongs in all three. Blog narration
+  deliberately differs in two ways, documented in its header: no idle replay, and no
+  `prefers-reduced-motion` gate.
+- **Blog narration is flag-gated, not filesystem-derived.** A post declares `hasAudio` per
+  locale and the recording lives at `public/audio/blog/<slug>-<locale>.mp3`.
+  `src/content/blogAudio.test.ts` fails the suite if the two disagree in either direction,
+  so never "fix" a missing player by editing the flag alone. Encoding matches the rest of
+  the site: 24 kHz mono, 128 kbps.
+- **Testing a non-default locale needs the browser locale set.** `BaseLayout` redirects in
+  the page based on `navigator.languages`, so a default Chrome opening `/fi/...` ends up
+  on the English page while the HTTP response, the dist file and every server-side check
+  still look correct. Use `browser.newContext({ locale: 'fi-FI' })` or the test measures
+  the wrong page and passes.
 - **Chat is progressive enhancement, never a regression.** `PUBLIC_CHAT_API_URL` unset (the
   default — including all CI builds) means the terminal is byte-for-byte identical to today:
   no chat affordance, no chat hint, no error shown. When the var is set at build time, the
