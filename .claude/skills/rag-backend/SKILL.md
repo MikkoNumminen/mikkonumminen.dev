@@ -7,6 +7,52 @@ description: Architecture map for the local RAG chat backend (chat-backend/) —
 
 The `/contact` terminal's chat is a **fully local retrieval-augmented-generation** service in [`chat-backend/`](chat-backend/). This skill is the pre-gathered map — read it instead of re-mapping the backend (which costs ~300k tokens of parallel reading). Deep references when you need them: [`docs/rag-chat.md`](docs/rag-chat.md) (as-built tour + config table), ADRs [0009](docs/decisions/0009-rag-chat-backend.md)/[0010](docs/decisions/0010-rag-containment.md)/[0011](docs/decisions/0011-hybrid-retrieval-and-code-corpus.md), [`chat-backend/README.md`](chat-backend/README.md) (dev/ops), [`AGENTS.md`](AGENTS.md) (agent guide).
 
+## WHERE THINGS ACTUALLY ARE (read this first)
+
+**The running system is not in this repository.** This checkout is the source. The live stack, its `.env`, its containers and its logs all live inside WSL, in a separate clone. Every path in this section is a WSL path.
+
+| What | Where | Notes |
+| --- | --- | --- |
+| Live clone | `~/mikkonumminen.dev` (`/home/vandroy/mikkonumminen.dev`) | NOT the Windows `D:` checkout, which can lag |
+| Live config | `~/mikkonumminen.dev/.env` | Overrides `.env.example`. See the drift warning below. |
+| **Request log** | `~/mikkonumminen.dev/rag-logs/requests.jsonl` | **Repo root, NOT `chat-backend/rag-logs/`** |
+| `RAG_LOG_FILE` value | `/srv/rag-logs/requests.jsonl` | That is the path **inside the container**. There is no `/srv` on the host; it is bind-mounted from the row above. Reading the env var and going looking for that path is the trap. |
+| Corpus | `~/mikkonumminen.dev/content/` | Bind-mounted read-only into the container |
+
+### Reaching it from Windows
+
+Claude Code runs on the Windows side. WSL interop works, so there is no need to ask a human to run commands by hand:
+
+```bash
+wsl.exe -e bash -lc 'cd ~/mikkonumminen.dev && wc -l rag-logs/requests.jsonl'
+wsl.exe -e bash -lc 'cd ~/mikkonumminen.dev && grep -E "^LLM_MODEL|^FORCE_ENGLISH" .env'
+wsl.exe -e bash -lc 'cd ~/mikkonumminen.dev && docker ps --format "{{.Names}} {{.Status}}"'
+```
+
+Gotchas that will otherwise cost a round of guessing:
+
+- UNC paths of the `wsl.localhost` or `wsl$` form do **not** resolve from Git Bash. Use `wsl.exe`.
+- WSL interop eats `$VAR` and `$$` when the command crosses from Windows. Prefer single-quoted `bash -lc` bodies, and pipe Python in through a quoted heredoc (`<<PYEOF`).
+- Windows drives are visible from WSL under `/mnt/`, so a script written to `D:\tmp\x.py` runs as `python3 /mnt/d/tmp/x.py`. That is the easiest way to run a non-trivial analysis against the log.
+
+### The live config drifts from this repo's defaults
+
+Read the real `.env` before reasoning about behaviour. As of 2026-07-31 the live values differ from both `.env.example` and the config table further down this file:
+
+| Knob | Repo default | Live |
+| --- | --- | --- |
+| `LLM_MODEL` | `qwen2.5:7b` | `hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q4_K_M` (Poro, Finnish) |
+| `FORCE_ENGLISH` | `true` | `0` |
+| `RAG_LOG_TEXT` | `false` | `1` (query and answer text logged, truncated; still no IP and no identity) |
+
+### The log's own shape
+
+One JSON object per line. Operational fields are always present; `query` and `response` only when `RAG_LOG_TEXT` is on.
+
+`ts` · `route` (`answered`, `weak_retrieval`, `greeting`, `generative`, `busy`, …) · `gated` · `model` · `latency_ms` · `prompt_eval_count` · `eval_count` · `best_distance` · `distances` · `role` · `classifications` · `answer_lang` · `query` · `response`
+
+`eval_count` is the tokens generated, so `eval_count == LLM_NUM_PREDICT` is a deterministic truncation detector: the model was cut off rather than choosing to stop.
+
 ## Stack (confirmed from code — do not assume)
 
 - **FastAPI + uvicorn**, single process. Endpoints: `POST /chat` (SSE), `GET /health`, `GET /usage`.
