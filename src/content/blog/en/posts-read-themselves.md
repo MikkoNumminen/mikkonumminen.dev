@@ -4,6 +4,7 @@ description: Turn on the sound button while you are reading and a voice reads th
 date: 2026-07-31
 locale: en
 slug: posts-read-themselves
+project: portfolio
 aiGenerated: false
 hasAudio: false
 tags: ['audio', 'blog', 'AudiobookMaker']

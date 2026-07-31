@@ -4,6 +4,7 @@ description: Laita äänipainike päälle lukemisen aikana, niin ääni lukee ki
 date: 2026-07-31
 locale: fi
 slug: posts-read-themselves
+project: portfolio
 aiGenerated: false
 hasAudio: false
 tags: ['audio', 'blog', 'AudiobookMaker']

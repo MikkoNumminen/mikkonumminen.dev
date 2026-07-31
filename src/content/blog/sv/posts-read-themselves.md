@@ -4,6 +4,7 @@ description: Slå på ljudknappen medan du läser, så läser en röst upp inlä
 date: 2026-07-31
 locale: sv
 slug: posts-read-themselves
+project: portfolio
 aiGenerated: false
 hasAudio: false
 tags: ['audio', 'blog', 'AudiobookMaker']
