@@ -4,9 +4,10 @@ description: A watchdog for the Tailscale Funnel that fronts the RAG chat, and t
 date: 2026-07-21
 locale: en
 slug: funnel-watchdog
+project: portfolio
 aiGenerated: true
 hasAudio: false
-tags: ['ragctl', 'ops']
+tags: ['rag', 'ragctl', 'ops']
 ---
 
 The chat on the contact page runs on a machine at home. Traffic gets there through a Tailscale Funnel, which is a public ingress that maps a hostname onto a local port. It works until it doesn't, and the failure is quiet. The tunnel stays registered, so everything looks configured, but it stops forwarding. From the outside that reads as a chat box that never answers.

@@ -4,6 +4,7 @@ description: 'Varenda en av mina agenter var fastlåst till en billig modell. Se
 date: 2026-07-26
 locale: sv
 slug: the-pins-only-covered-one-door
+project: claude-agents
 aiGenerated: true
 hasAudio: false
 tags: ['Claude Code', 'agents', 'cost-routing', 'workflows']

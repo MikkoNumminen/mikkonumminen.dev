@@ -4,9 +4,10 @@ description: Vahtikoira Tailscale Funnelille, joka toimii RAG-chatin edessä, ja
 date: 2026-07-21
 locale: fi
 slug: funnel-watchdog
+project: portfolio
 aiGenerated: true
 hasAudio: false
-tags: ['ragctl', 'ops']
+tags: ['rag', 'ragctl', 'ops']
 ---
 
 Yhteydenottosivun chat pyörii kotikoneella. Liikenne pääsee sinne Tailscale Funnelin kautta, joka on julkinen sisääntulo, joka ohjaa hostnamen paikalliseen porttiin. Se toimii, kunnes ei toimi, ja vikaantuminen on hiljainen. Tunneli pysyy rekisteröitynä, joten kaikki näyttää olevan kunnossa, mutta se lakkaa välittämästä liikennettä. Ulkopuolelta se näyttää chat-laatikolta, joka ei koskaan vastaa.

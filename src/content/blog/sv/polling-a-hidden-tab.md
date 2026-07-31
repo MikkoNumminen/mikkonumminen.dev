@@ -4,6 +4,7 @@ description: Kontaktsidan fortsatte att pinga chat-backend i dolda flikar, och a
 date: 2026-07-19
 locale: sv
 slug: polling-a-hidden-tab
+project: portfolio
 aiGenerated: true
 hasAudio: false
 tags: ['rag', 'frontend']

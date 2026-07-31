@@ -4,6 +4,7 @@ description: 'Jokainen agenttini oli kiinnitetty halpaan malliin. Sitten löysin
 date: 2026-07-26
 locale: fi
 slug: the-pins-only-covered-one-door
+project: claude-agents
 aiGenerated: true
 hasAudio: false
 tags: ['Claude Code', 'agents', 'cost-routing', 'workflows']

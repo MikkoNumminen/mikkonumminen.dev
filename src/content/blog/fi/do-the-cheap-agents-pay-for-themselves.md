@@ -4,6 +4,7 @@ description: 'Seitsemän instrumentoitua delegointia, kolme aitoa löytöä, yks
 date: 2026-07-26
 locale: fi
 slug: do-the-cheap-agents-pay-for-themselves
+project: claude-agents
 aiGenerated: false
 hasAudio: false
 tags: ['measurement', 'agents', 'cost-routing']

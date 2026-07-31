@@ -4,6 +4,7 @@ description: 'Mina cost-routing-agenter verkade alla köra på Opus. Varje förk
 date: 2026-07-21
 locale: sv
 slug: the-label-said-opus
+project: claude-agents
 aiGenerated: false
 hasAudio: false
 tags: ['Claude Code', 'agents', 'measurement', 'cost-routing']

@@ -4,6 +4,7 @@ description: The contact page kept probing the chat backend in hidden tabs, and 
 date: 2026-07-19
 locale: en
 slug: polling-a-hidden-tab
+project: portfolio
 aiGenerated: true
 hasAudio: false
 tags: ['rag', 'frontend']

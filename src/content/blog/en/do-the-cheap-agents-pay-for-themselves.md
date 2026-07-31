@@ -4,6 +4,7 @@ description: 'Seven instrumented delegations, three real catches, one recommenda
 date: 2026-07-26
 locale: en
 slug: do-the-cheap-agents-pay-for-themselves
+project: claude-agents
 aiGenerated: false
 hasAudio: false
 tags: ['measurement', 'agents', 'cost-routing']
