@@ -2,38 +2,37 @@
 // Blog-post narration. PARALLEL TO HeroVoiceover.astro and
 // ProjectsVoiceover.astro: same contract with `BackgroundAudio.astro` (the
 // global sound toggle, the `bg-audio:state` event, the AbortController +
-// `onRoute` lifecycle), so a fix to the play/pause handshake in any of the
-// three belongs in all three.
+// `onRoute` lifecycle), and the same `prefers-reduced-motion` gate, so a fix
+// to any of that belongs in all three.
 //
-// Two deliberate differences from the other two, both because this narration
-// is a reading of the post rather than a short spoken flourish:
+// One deliberate difference, and one addition, both because this narration is
+// a reading of the post rather than a short spoken flourish:
 //
 // - NO idle replay. The other two recycle a ~20 second clip after 50 seconds
-//   of stillness. These recordings run from 1.4 to 13.5 minutes, and a reader
-//   who sits still is listening, not idle. Restarting a thirteen minute
-//   narration because nobody moved the mouse would be a bug, so the idle
-//   timer, its four activity listeners and the `ended` handler are all absent
-//   rather than tuned to a longer window.
+//   of stillness. These recordings run from 1.4 to 16 minutes, and a reader
+//   who sits still is listening, not idle. Restarting a sixteen minute
+//   narration because nobody moved the mouse would be a bug, so the idle timer
+//   and its four activity listeners are absent rather than tuned to a longer
+//   window. A finished reading stays finished for the same reason: cycling the
+//   sound toggle afterwards must not turn it into a replay control.
 //
-// - NOT gated on `prefers-reduced-motion`. The other two suppress themselves
-//   there, and the stated reason is that they add a RECURRING spoken layer on
-//   top of the page. This one does not recur, and it cannot start unless the
-//   visitor has already turned sound on themselves. Suppressing it would take
-//   a reading aid away from the group most likely to want one, on the strength
-//   of a preference about motion.
+// - IT REMEMBERS WHERE YOU WERE. The other two are short enough that starting
+//   over costs nothing. Losing your place seven minutes into a sixteen minute
+//   reading, with no scrub control to get back, is a different experience. The
+//   position rides `sessionStorage` per post and locale, the same scope and
+//   mechanism the music deck already uses for its playhead.
 //
 // Rendered only when the entry's frontmatter says a recording exists, so the
-// element is absent rather than 404ing for the locales not yet narrated.
+// element is absent rather than 404ing for a locale that is not narrated.
 //
 // This is the third copy of the handshake, which is the point at which the
-// rule of three says extract a shared helper. Deliberately not done yet. The
-// two differences above are not parameters, they are absences: the shared part
-// would be the ~30 lines of play/pause/resume, and the callers would still own
-// their own idle timers, their own gates and their own volume rules. Squeezing
-// three files into a helper plus three call sites that each override half of
-// it trades duplication a reader can see for indirection they cannot, and it
-// puts a refactor through two components that currently work. Revisit when a
-// fourth arrives, or when a bug forces the same edit in all three.
+// rule of three says extract a shared helper. Deliberately not done yet: the
+// shared part would be the ~30 lines of play/pause/resume, and the callers
+// would still own their own idle timers, their own volume rules and, here,
+// their own persistence. Squeezing three files into a helper plus three call
+// sites that each override half of it trades duplication a reader can see for
+// indirection they cannot. Revisit when a fourth arrives, or when a bug forces
+// the same edit in all three.
 import { asLocale } from '../../i18n';
 
 interface Props {
@@ -45,7 +44,14 @@ const locale = asLocale(Astro.currentLocale);
 const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
 ---
 
-<audio id="blog-voice" preload="metadata" playsinline aria-hidden="true">
+<audio
+  id="blog-voice"
+  preload="metadata"
+  playsinline
+  aria-hidden="true"
+  data-slug={slug}
+  data-locale={locale}
+>
   <source src={voiceSrc} type="audio/mpeg" />
 </audio>
 
@@ -56,8 +62,27 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
   // home page, so the voice sits just above it.
   const VOICE_VOLUME = 0.7;
 
+  // Below this, resuming is worse than restarting: it drops the listener into
+  // the middle of the opening sentence for no benefit.
+  const MIN_RESUME_SECONDS = 5;
+
+  // How close to the end still counts as finished. Resuming into the last
+  // couple of seconds would play a fragment and stop.
+  const END_MARGIN_SECONDS = 2;
+
+  // Minimum playback distance between two stored positions. See the throttle
+  // on the `timeupdate` handler below.
+  const SAVE_INTERVAL_SECONDS = 5;
+
+  // Honour reduced-motion the same way the other two voice layers do: skip the
+  // narration entirely, music unaffected. The alternative was to treat a
+  // one-shot reading as different from a recurring clip, which is arguable,
+  // but one rule across all three layers is the one that can be stated in a
+  // sentence without asking anyone to trust that distinction.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   onRoute(
-    () => !!document.getElementById('blog-voice'),
+    () => !reducedMotion && !!document.getElementById('blog-voice'),
     () => {
       const voice = document.getElementById('blog-voice') as HTMLAudioElement | null;
       // Rendered by BaseLayout's BackgroundAudio, persisted across navigation.
@@ -67,6 +92,38 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
       const controller = new AbortController();
       const { signal } = controller;
 
+      // Keyed by post AND locale: the same post in two languages is two
+      // recordings of different lengths, so one shared key would drop a
+      // Finnish offset into the middle of the English reading.
+      const key = `mn_blogvoice_${voice.dataset.slug ?? ''}_${voice.dataset.locale ?? ''}`;
+
+      // Every storage call is wrapped: Safari in private browsing throws on
+      // sessionStorage access, and a convenience must never break a working
+      // player.
+      const readSaved = (): number => {
+        try {
+          const raw = window.sessionStorage.getItem(key);
+          const value = raw === null ? NaN : Number(raw);
+          return Number.isFinite(value) && value > 0 ? value : 0;
+        } catch {
+          return 0;
+        }
+      };
+      const save = (seconds: number): void => {
+        try {
+          window.sessionStorage.setItem(key, String(seconds));
+        } catch {
+          /* storage unavailable */
+        }
+      };
+      const clear = (): void => {
+        try {
+          window.sessionStorage.removeItem(key);
+        } catch {
+          /* storage unavailable */
+        }
+      };
+
       voice.volume = VOICE_VOLUME;
 
       // `'on'` is the only resolved-on state. `'loading'` is the pre-resolve
@@ -74,10 +131,24 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
       // successful autoplay restarts the narration from zero mid-sentence.
       let wantOn = bgAudio.dataset.state === 'on';
 
-      const playFresh = async (): Promise<void> => {
+      /** Where this post should start, given what was stored. 0 means the top. */
+      const resumeAt = (): number => {
+        const saved = readSaved();
+        if (saved < MIN_RESUME_SECONDS) return 0;
+        // `duration` is NaN until metadata loads; treat that as "trust the
+        // stored value" rather than discarding a real offset.
+        const duration = voice.duration;
+        if (Number.isFinite(duration) && saved > duration - END_MARGIN_SECONDS) {
+          clear();
+          return 0;
+        }
+        return saved;
+      };
+
+      const startPlaying = async (from: number): Promise<void> => {
         if (!wantOn) return;
         try {
-          voice.currentTime = 0;
+          voice.currentTime = from;
           voice.volume = VOICE_VOLUME;
           await voice.play();
           if (!wantOn) voice.pause();
@@ -86,7 +157,8 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
         }
       };
 
-      const playResume = async (): Promise<void> => {
+      /** Continue exactly where the element already is, without seeking. */
+      const continuePlaying = async (): Promise<void> => {
         if (!wantOn) return;
         try {
           voice.volume = VOICE_VOLUME;
@@ -96,6 +168,32 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
           /* autoplay blocked, source missing, or play interrupted */
         }
       };
+
+      // Persisted as it plays rather than only on the way out: a closed tab, a
+      // crash, or a hard navigation never runs the disposer.
+      //
+      // Throttled because `timeupdate` fires about four times a second, and
+      // `sessionStorage` is a synchronous main-thread write. Unthrottled, a
+      // sixteen minute reading would serialise and store a number ~3,800
+      // times. At 5 seconds the worst case is losing 5 seconds of position,
+      // which is below the resolution anyone listening would notice, and the
+      // two paths that matter — toggling off and leaving the post — write
+      // immediately rather than waiting for the next tick.
+      let lastSaved = 0;
+      voice.addEventListener(
+        'timeupdate',
+        () => {
+          if (voice.paused || voice.currentTime <= MIN_RESUME_SECONDS) return;
+          if (Math.abs(voice.currentTime - lastSaved) < SAVE_INTERVAL_SECONDS) return;
+          lastSaved = voice.currentTime;
+          save(voice.currentTime);
+        },
+        { signal },
+      );
+
+      // A finished reading has no position worth keeping, and leaving one
+      // behind would make the next visit resume at the very end.
+      voice.addEventListener('ended', clear, { signal });
 
       document.addEventListener(
         'bg-audio:state',
@@ -106,16 +204,22 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
             // Already playing — leave it alone, or the resolved `on` dispatch
             // would restart the narration.
             if (!voice.paused) return;
-            // Resuming matters more here than on the other two: toggling sound
-            // off at minute seven of a thirteen minute reading and back on has
-            // to continue, not start the post again.
-            if (voice.currentTime > 0 && !voice.ended) {
-              void playResume();
+            // A reading that already finished stays finished. Without this the
+            // toggle behaves as a replay control: reach the end of a sixteen
+            // minute post, switch sound off and on again for the music, and the
+            // whole narration starts over. That is the same failure the missing
+            // idle timer exists to prevent, arriving by a different route.
+            if (voice.ended) return;
+            // Toggling sound off at minute seven and back on has to continue,
+            // not start the post again.
+            if (voice.currentTime > 0) {
+              void continuePlaying();
             } else {
-              void playFresh();
+              void startPlaying(resumeAt());
             }
           } else {
             voice.pause();
+            if (voice.currentTime > MIN_RESUME_SECONDS) save(voice.currentTime);
           }
         },
         { signal },
@@ -124,10 +228,15 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
       // Sound already on, e.g. switched on elsewhere and persisted across a
       // client-side navigation into this post. No state change fires on
       // arrival, so start here or the post stays silent.
-      if (wantOn) void playFresh();
+      if (wantOn) void startPlaying(resumeAt());
 
       return () => {
         controller.abort();
+        // Leaving the post is the common way a reading gets interrupted, so
+        // this is the write that matters most.
+        if (voice.currentTime > MIN_RESUME_SECONDS && !voice.ended) {
+          save(voice.currentTime);
+        }
         voice.pause();
       };
     },
