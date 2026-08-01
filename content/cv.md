@@ -9,12 +9,14 @@ kind: cv
 
 numminen.mikko.petteri@gmail.com · [github.com/MikkoNumminen](https://github.com/MikkoNumminen)
 
-Available now. Open to ambitious full-stack roles where craft and velocity both matter. Remote-friendly.
+Open to full-stack and AI engineering roles. Remote-friendly.
 
 
 ## Summary
 
-I ship full-stack production apps end to end — SQL to ops. As of 2026, seven solo projects shipped in twelve months: real users, real CI, full ownership from schema to deploy. The work spans a multi-tenant community platform serving a live WoW guild, a browser game built from empty repo to live in 12 days, a Windows desktop app for audiobook generation, a reading tracker, and this portfolio site. Every repo runs CI on every push.
+I work on systems built around language models, with a focus on what happens when the model is wrong. I keep deterministic work deterministic, put the model only where language genuinely cannot be rule-coded, and enforce grounding through validation rather than prompt wording. I measure results and publish corrections when a measurement turns out to be broken.
+
+Underneath that is ordinary full-stack work, end to end, SQL to ops. Twelve projects carry it: a multi-tenant community platform serving a live WoW guild, a browser game built from an empty repo to live in 12 days, a Windows desktop app for audiobook generation, a reading tracker built twice in two ecosystems, a zero-knowledge password manager in Rust, and this site. Every repo runs CI on every push.
 
 AI-native development is part of the toolchain, not a side note. I maintain a catalog of custom Claude Code skills — version-controlled, audited, and treated as production artifacts. A 2026-05-22 A/B calibration across 13 Spacepotatis skills (Sonnet only) measured a ~22% aggregate token saving versus cold scouting; a later portfolio-wide calibration across Sonnet, Opus, and Haiku covered 34 skills (33 calibrated) for a +17% aggregate save, ~327K tokens.
 
@@ -50,4 +52,4 @@ TypeScript, React, Next.js, PostgreSQL, Prisma, Python, Astro, Three.js, GSAP, T
 
 **AI-native workflows** (2025–2026) — agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills as production artifacts. Parallel subagent orchestration, measured A/B calibration.
 
-**The 2026 build** (2026) — seven full-stack projects shipped solo. Real users, real ops, full ownership across schema, app code, CI, deploys, and signed Windows installers.
+**The 2026 build** (2026) — twelve projects carried from empty repo to running system. Real users, real ops, full ownership across schema, app code, CI, deploys, and signed Windows installers.
