@@ -118,6 +118,21 @@ class Settings:
     llm_timeout_seconds: int
     # Generation tuning — the CLI's "effort" knobs. Temperature stays low by
     # default for grounded RAG; num_predict <= 0 means "no cap" (model default).
+    #
+    # The cap is 1024, raised from 512 after the request log showed 169 of 2547
+    # answers ending at exactly 512, i.e. cut off rather than finished. It is
+    # set so both languages get the same ANSWER, not the same token count:
+    # Finnish is agglutinative and costs roughly twice the tokens of the same
+    # content, which is why it was truncated 9.3% of the time against English's
+    # 0.7%. English is unaffected either way, because its p99 answer is 502
+    # tokens: it stops on its own well inside the old cap, and a cap only binds
+    # a model that wants to keep going.
+    #
+    # 1024 is also the largest round value that still fits: the longest prompt
+    # ever logged was 6816 tokens against an 8192 context, so 6816 + 1024 = 7840
+    # leaves 352 tokens of headroom. Raising this further without also raising
+    # OLLAMA_CONTEXT_LENGTH would start evicting context on the longest prompts,
+    # which fails silently and costs grounding rather than length.
     llm_temperature: float
     llm_num_predict: int
     # Force every answer into English regardless of the question's language.
@@ -275,7 +290,7 @@ class Settings:
             llm_model=_get_str("LLM_MODEL", _DEFAULT_LLM_MODEL),
             llm_timeout_seconds=_get_int("LLM_TIMEOUT_SECONDS", 60),
             llm_temperature=_get_float("LLM_TEMPERATURE", 0.4),
-            llm_num_predict=_get_int("LLM_NUM_PREDICT", 512),
+            llm_num_predict=_get_int("LLM_NUM_PREDICT", 1024),
             force_english=_get_bool("FORCE_ENGLISH", True),
             rag_allow_finnish=_get_bool("RAG_ALLOW_FINNISH", False),
             rag_translate_retrieval=_get_bool("RAG_TRANSLATE_RETRIEVAL", False),

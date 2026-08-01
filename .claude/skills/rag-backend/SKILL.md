@@ -67,7 +67,7 @@ One JSON object per line. Operational fields are always present; `query` and `re
 2. **Hybrid retrieve** (`retrieval.retrieve`): dense pgvector cosine **+** lexical BM25 (`db.search_lexical`, `websearch_to_tsquery`/`ts_rank`) fused with **reciprocal rank fusion** (`RRF_K=60`, dense/lexical weights 1.0) — **with the hard per-project filter applied _inside_ `retrieve()`** (`PROJECT_FILTER_STRICT`, default on, **fails open**) restricting to the named project when `query_projects.detect_projects` matches. `HYBRID_ENABLED=false` → pure dense.
 3. **Prose-anchored weak-retrieval gate** (`guardrails.is_weak_retrieval`): gates on the best **prose**-chunk cosine distance (code chunks can lower off-topic distances, so gating on prose is the honest signal); `db.closest_prose` is fetched explicitly when the top-k is all code. Threshold `WEAK_RETRIEVAL_DISTANCE=0.45`. Off-corpus → fixed `WEAK_RETRIEVAL_REPLY`, no LLM call.
 4. **Concurrency semaphore** (`LLM_MAX_CONCURRENCY=2`) around generation only — shed with a busy reply, never queue.
-5. **Grounded prompt** (`prompts.build_messages`) + FORCE_ENGLISH → Ollama stream (capped at `LLM_NUM_PREDICT=512`, markdown stripped) → SSE `sources` / `token` / `done`.
+5. **Grounded prompt** (`prompts.build_messages`) + FORCE_ENGLISH → Ollama stream (capped at `LLM_NUM_PREDICT=1024`, markdown stripped) → SSE `sources` / `token` / `done`.
 
 ## app/ file map
 
@@ -91,7 +91,7 @@ One JSON object per line. Operational fields are always present; `query` and `re
 
 ## Config knobs (validated env — `app/config.py`, `chat-backend/.env.example`)
 
-`TOP_K=6` · `WEAK_RETRIEVAL_DISTANCE=0.45` · `LLM_NUM_PREDICT=512` · `INPUT_MAX_CHARS=800` · `LLM_MAX_CONCURRENCY=2` · `LLM_ACQUIRE_TIMEOUT_SECONDS=0.5` · `HYBRID_ENABLED=true` · `RRF_K=60` · `RETRIEVAL_DENSE_WEIGHT=1.0` · `RETRIEVAL_LEXICAL_WEIGHT=1.0` · `PROJECT_FILTER_STRICT=true` · `RAG_LOG_FILE` (empty=off) · `MAX_BODY_BYTES=16384` · `RATE_LIMIT_REQUESTS=30` · `RATE_LIMIT_WINDOW_SECONDS=60` · `FORCE_ENGLISH=true` · `CORS_ALLOW_ORIGINS` · chunk-size knobs. **The compose only passes `LLM_MODEL`; everything else uses these defaults.**
+`TOP_K=6` · `WEAK_RETRIEVAL_DISTANCE=0.45` · `LLM_NUM_PREDICT=1024` · `INPUT_MAX_CHARS=800` · `LLM_MAX_CONCURRENCY=2` · `LLM_ACQUIRE_TIMEOUT_SECONDS=0.5` · `HYBRID_ENABLED=true` · `RRF_K=60` · `RETRIEVAL_DENSE_WEIGHT=1.0` · `RETRIEVAL_LEXICAL_WEIGHT=1.0` · `PROJECT_FILTER_STRICT=true` · `RAG_LOG_FILE` (empty=off) · `MAX_BODY_BYTES=16384` · `RATE_LIMIT_REQUESTS=30` · `RATE_LIMIT_WINDOW_SECONDS=60` · `FORCE_ENGLISH=true` · `CORS_ALLOW_ORIGINS` · chunk-size knobs. **The compose only passes `LLM_MODEL`; everything else uses these defaults.**
 
 ## Containment (architectural, defense-in-depth — ADR 0010)
 
