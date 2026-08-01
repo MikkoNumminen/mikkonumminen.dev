@@ -323,7 +323,7 @@ export const en: Translations = {
         },
         {
           title: 'Mutation testing > coverage',
-          body: 'HRM runs Stryker on every PR. 91.9% line coverage means the lines ran; the mutation score means the assertions actually catch bugs.',
+          body: 'HRM runs Stryker on every PR. 92.2% line coverage means the lines ran; the mutation score means the assertions actually catch bugs.',
         },
         {
           title: 'Fix upstream, not locally',

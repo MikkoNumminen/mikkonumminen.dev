@@ -320,7 +320,7 @@ export const fi: Translations = {
         },
         {
           title: 'Mutaatiotestaus > kattavuus',
-          body: 'HRM ajaa Strykerin jokaisessa PR:ssä. 91,9 % rivikattavuus tarkoittaa että rivit ajettiin; mutaatiopistemäärä tarkoittaa että assertiot oikeasti löytävät bugit.',
+          body: 'HRM ajaa Strykerin jokaisessa PR:ssä. 92,2 % rivikattavuus tarkoittaa että rivit ajettiin; mutaatiopistemäärä tarkoittaa että assertiot oikeasti löytävät bugit.',
         },
         {
           title: 'Korjaa upstreamissa, ei paikallisesti',

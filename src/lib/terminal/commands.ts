@@ -108,8 +108,8 @@ export function buildCommands(
         ctx.print('');
         ctx.print(tt.cmdWhoamiIntro);
         const largestStats = tt.cmdWhoamiLargestStats
-          .replace('{tests}', '1828')
-          .replace('{coverage}', '91.9%');
+          .replace('{tests}', '2910')
+          .replace('{coverage}', '92.2%');
         ctx.printHTML(
           `<span class="line">${escape(tt.cmdWhoamiLargest)} <a href="https://hr-manager-pearl.vercel.app" target="_blank" rel="noopener noreferrer">hr-manager-pearl.vercel.app</a> — ${escape(largestStats)}</span>`,
         );
