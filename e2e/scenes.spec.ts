@@ -34,7 +34,7 @@ for (const p of PAGES) {
       if (msg.type() !== 'error') return;
       const text = msg.text();
       // Network resource errors aren't scene-boot failures. The notable one is
-      // `astro preview`'s strict trailing-slash 404 on the prefetched /fi//sv/
+      // `astro preview`'s strict trailing-slash 404 on the prefetched /fi/
       // locale alternates (Vercel redirects these in prod). We only fail on
       // genuine JS errors; a WebGL/init failure surfaces as a pageerror below.
       if (text.includes('Failed to load resource')) return;
