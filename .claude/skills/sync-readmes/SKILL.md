@@ -1,6 +1,6 @@
 ---
 name: sync-readmes
-description: Audit project data against sibling repos' READMEs and open a PR with drift corrections. Runs parallel Sonnet diff agents (one per sibling repo), synthesizes drift, applies en+fi+sv corrections plus tech-list updates, and lands a PR for review on GitHub.
+description: Audit project data against sibling repos' READMEs and open a PR with drift corrections. Runs parallel Sonnet diff agents (one per sibling repo), synthesizes drift, applies en+fi corrections plus tech-list updates, and lands a PR for review on GitHub.
 ---
 
 # README sync skill
@@ -12,7 +12,7 @@ Detect drift between the portfolio's project data and the canonical READMEs of t
 1. Reads [src/data/projects.ts](src/data/projects.ts) to discover sibling repos.
 2. Spawns one parallel Sonnet agent per repo to diff its README against current portfolio data.
 3. Synthesizes the structured drift reports.
-4. Creates a worktree, applies edits to `projects.ts` + `en.ts` + `fi.ts` + `sv.ts`, runs CI checks, opens a PR.
+4. Creates a worktree, applies edits to `projects.ts` + `en.ts` + `fi.ts`, runs CI checks, opens a PR.
 5. Returns the PR URL. The maintainer reviews on GitHub.
 
 End-to-end with no pauses. If nothing meaningful drifted, no PR is opened — just report "no drift."
@@ -24,7 +24,7 @@ End-to-end with no pauses. If nothing meaningful drifted, no PR is opened — ju
 **Files edited:**
 
 - [src/data/projects.ts](src/data/projects.ts) — `tech` arrays, `externalApis`, `status`
-- [src/i18n/locales/en.ts](src/i18n/locales/en.ts), [fi.ts](src/i18n/locales/fi.ts), [sv.ts](src/i18n/locales/sv.ts) — `projectsData[id]` (`tagline`, `description`, `highlights`)
+- [src/i18n/locales/en.ts](src/i18n/locales/en.ts), [fi.ts](src/i18n/locales/fi.ts) — `projectsData[id]` (`tagline`, `description`, `highlights`)
 
 **NOT in scope (v1):** `timelineData`, `src/lib/terminal/commands.ts`, `src/lib/timeline/linkify.ts`, portfolio's own `README.md`. A v2 of this skill could add a grep pass for each project's `id` and `name` across `src/**` to surface stale mentions in those locations.
 
@@ -82,14 +82,14 @@ For each project with applicable drift:
 
 - Update `projects.ts` entry (`tech` array, `externalApis`, `status`).
 - Update `en.ts` `projectsData[id]` (`description`, `highlights`, `tagline`).
-- **Mirror factual corrections to `fi.ts` and `sv.ts`.** Mechanical fact swaps (numerals, engine counts, version mentions) are safe. New sentences need proper translation — match the existing fi/sv prose tone in the same entry. The maintainer reviews fi/sv prose on the PR.
+- **Mirror factual corrections to `fi.ts`.** Mechanical fact swaps (numerals, engine counts, version mentions) are safe. New sentences need proper translation — match the existing Finnish prose tone in the same entry. The maintainer reviews the Finnish prose on the PR.
 
 ### 7. CI checks (in worktree)
 
 ```bash
 npm run typecheck
 npm run lint
-npx prettier --check src/data/projects.ts src/i18n/locales/en.ts src/i18n/locales/fi.ts src/i18n/locales/sv.ts
+npx prettier --check src/data/projects.ts src/i18n/locales/en.ts src/i18n/locales/fi.ts
 # Format-fix if needed:
 npx prettier --write <changed files>
 ```
@@ -99,7 +99,7 @@ If any check fails non-trivially, abort and report — do not commit broken code
 ### 8. Commit + push
 
 ```bash
-git add src/data/projects.ts src/i18n/locales/en.ts src/i18n/locales/fi.ts src/i18n/locales/sv.ts
+git add src/data/projects.ts src/i18n/locales/en.ts src/i18n/locales/fi.ts
 git commit -m "chore(projects): sync project data with sibling README sources
 
 [per-project change summary]"
@@ -117,7 +117,7 @@ Use `gh pr create` with the template below. Return the PR URL.
 
 Sync project data (`src/data/projects.ts` + i18n `projectsData`) against the canonical READMEs of {N} sibling repos. Caught by a {N}-way parallel README audit.
 
-### Factual corrections (en/fi/sv)
+### Factual corrections (en/fi)
 [per project: numerals, engine counts, version mentions in prose]
 
 ### Tech-list additions (`projects.ts`, locale-agnostic)
@@ -132,14 +132,14 @@ Sync project data (`src/data/projects.ts` + i18n `projectsData`) against the can
 - [x] `npm run typecheck` passes
 - [x] `npm run lint` passes
 - [x] `npm run format:check` passes on changed files
-- [ ] Visual: `/projects`, `/fi/projects`, `/sv/projects` planet descriptions
+- [ ] Visual: `/projects`, `/fi/projects` planet descriptions
 ```
 
 PR title: `chore(projects): sync project data with sibling README sources` (or `chore(projects,i18n)` if scope feels broad — match the recent file convention).
 
 ### 10. Done
 
-Print the PR URL. **Do not merge** — the maintainer reviews fi/sv prose (translation risk is the only thing a human catches that the agent can't) and merges manually.
+Print the PR URL. **Do not merge** — the maintainer reviews the Finnish prose (translation risk is the only thing a human catches that the agent can't) and merges manually.
 
 ---
 

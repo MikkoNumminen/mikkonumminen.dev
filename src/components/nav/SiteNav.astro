@@ -39,7 +39,7 @@ const langLinks = availableLocales.map((l) => ({
 }));
 
 const isActive = (href: string) => {
-  if (href === '/' || href === '/fi' || href === '/sv') {
+  if (href === '/' || href === '/fi') {
     return current === href;
   }
   return current === href || current.startsWith(href + '/');
@@ -228,7 +228,7 @@ const isActive = (href: string) => {
     color: var(--color-term-green-bright);
   }
 
-  /* Narrow phones: the centered pill's content (four links + EN/FI/SV) is wider
+  /* Narrow phones: the centered pill's content (four links + EN/FI) is wider
      than the viewport, so it overflowed and clipped both ends ("home" -> "e").
      Cap the pill to the viewport, tighten the touch padding (which was actually
      LARGER on mobile than desktop), and let the row scroll as a last resort so

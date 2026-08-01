@@ -569,7 +569,6 @@ export const fi: Translations = {
     label: 'Kieli',
     en: 'EN',
     fi: 'FI',
-    sv: 'SV',
   },
   notFound: {
     title: 'Sivua ei löytynyt · mikkonumminen.dev',

@@ -8,8 +8,8 @@ Drop narrated blog audio here.
 <slug>-<locale>.mp3
 ```
 
-`slug` is the shared `slug:` from the post's frontmatter, identical across all
-three locales. `locale` is `en`, `fi` or `sv`. So the English narration of
+`slug` is the shared `slug:` from the post's frontmatter, identical across both
+locales. `locale` is `en` or `fi`. So the English narration of
 `/blog/ten-days-four-pages` is:
 
 ```

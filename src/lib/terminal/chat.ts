@@ -620,7 +620,7 @@ export const PROJECT_URLS: Record<string, string> = Object.fromEntries(
  * Locale-aware on-site path to the /projects galaxy, carrying the project id as a
  * `?id=` query. The galaxy doesn't focus by id on load today, so this currently
  * lands on /projects generally — it's forward-compatible if a focus-on-load
- * handler is added, and the locale prefix keeps fi/sv visitors on their locale.
+ * handler is added, and the locale prefix keeps Finnish visitors on their locale.
  */
 function onsiteProjectPath(projectId: string): string {
   const lang = document.documentElement.lang;

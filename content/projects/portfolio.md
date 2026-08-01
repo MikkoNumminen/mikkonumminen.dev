@@ -17,7 +17,7 @@ The four pages each have a distinct interactive concept:
 - **Experience (`/experience`)** — parallax mountain landscape. A goat climbs as you scroll; the sky shifts from pre-dawn to bright day. Timeline markers fade in along the way.
 - **Contact (`/contact`)** — terminal / CRT aesthetic with a real command parser, command history, tab completion, scan lines, and blinking cursor.
 
-Page-to-page navigation is client-side (Astro's ClientRouter) with the built-in view transition, so the music bed plays continuously across pages. The site is available in English, Finnish, and Swedish.
+Page-to-page navigation is client-side (Astro's ClientRouter) with the built-in view transition, so the music bed plays continuously across pages. The site is available in English and Finnish.
 
 Audio is a first-class feature: a looping music bed plays across every page, with locale-specific voiceover narration layered on top on the home and projects pages. Both layers respect `prefers-reduced-motion`. Three.js scenes are skipped entirely on small viewports and when `prefers-reduced-motion: reduce` is set.
 

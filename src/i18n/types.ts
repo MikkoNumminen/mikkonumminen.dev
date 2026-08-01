@@ -341,7 +341,6 @@ export interface Translations {
     label: string;
     en: string;
     fi: string;
-    sv: string;
   };
   notFound: {
     title: string;

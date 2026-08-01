@@ -93,10 +93,7 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
     <meta property="og:type" content={ogType} />
     {publishedTime && <meta property="article:published_time" content={publishedTime} />}
     <meta property="og:site_name" content="mikkonumminen.dev" />
-    <meta
-      property="og:locale"
-      content={locale === 'en' ? 'en_US' : locale === 'fi' ? 'fi_FI' : 'sv_SE'}
-    />
+    <meta property="og:locale" content={locale === 'fi' ? 'fi_FI' : 'en_US'} />
     <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -153,7 +150,7 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
           if (target === current) return;
 
           // Strip current locale prefix to get the bare path.
-          let bare = path.replace(/^\/(fi|sv)(\/|$)/, '/');
+          let bare = path.replace(/^\/fi(\/|$)/, '/');
           if (bare === '') bare = '/';
 
           let next;
