@@ -15,7 +15,9 @@ import { describe, expect, it } from 'vitest';
 
 const BLOG_DIR = join(process.cwd(), 'src', 'content', 'blog');
 const AUDIO_DIR = join(process.cwd(), 'public', 'audio', 'blog');
-const LOCALES = ['en', 'fi', 'sv'] as const;
+// Imported, not restated: a second copy of the locale list is how a locale
+// removal leaves a test still checking for it.
+import { LOCALES } from '../i18n';
 
 interface Entry {
   file: string;

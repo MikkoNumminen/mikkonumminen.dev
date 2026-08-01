@@ -1,6 +1,6 @@
-export type Locale = 'en' | 'fi' | 'sv';
+export type Locale = 'en' | 'fi';
 
-export const LOCALES: Locale[] = ['en', 'fi', 'sv'];
+export const LOCALES: Locale[] = ['en', 'fi'];
 export const DEFAULT_LOCALE: Locale = 'en';
 
 export interface ReceiptLink {
@@ -341,7 +341,6 @@ export interface Translations {
     label: string;
     en: string;
     fi: string;
-    sv: string;
   };
   notFound: {
     title: string;

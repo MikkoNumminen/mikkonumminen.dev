@@ -24,7 +24,7 @@ interface Props {
   publishedTime?: string;
   /**
    * Locales this page actually exists in. Routes built from static data exist
-   * in all three by construction, so the default is correct for them. Routes
+   * in every locale by construction, so the default is correct for them. Routes
    * built from content do not: an entry published in one locale only would
    * otherwise advertise a switcher link and an hreflang alternate to a URL
    * the build never generated.
@@ -93,10 +93,7 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
     <meta property="og:type" content={ogType} />
     {publishedTime && <meta property="article:published_time" content={publishedTime} />}
     <meta property="og:site_name" content="mikkonumminen.dev" />
-    <meta
-      property="og:locale"
-      content={locale === 'en' ? 'en_US' : locale === 'fi' ? 'fi_FI' : 'sv_SE'}
-    />
+    <meta property="og:locale" content={locale === 'fi' ? 'fi_FI' : 'en_US'} />
     <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -118,7 +115,7 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
       Browser language detection. Runs once per session before paint.
       - If the user already manually picked a language, never auto-redirect.
       - Otherwise read navigator.languages and redirect to the matching
-        locale subtree (fi → /fi/..., sv → /sv/..., anything else → /...).
+        locale subtree (fi → /fi/..., anything else → /...).
 
       TESTING: this moves you off a locale route your browser did not ask
       for, and it does so in the page. The server response for /fi/... is a
@@ -139,13 +136,12 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
           const path = location.pathname;
           let current = 'en';
           if (path === '/fi' || path.indexOf('/fi/') === 0) current = 'fi';
-          else if (path === '/sv' || path.indexOf('/sv/') === 0) current = 'sv';
 
           const langs = navigator.languages || [navigator.language || 'en'];
           let target = null;
           for (let i = 0; i < langs.length; i++) {
             const l = (langs[i] || '').toLowerCase().slice(0, 2);
-            if (l === 'fi' || l === 'sv' || l === 'en') {
+            if (l === 'fi' || l === 'en') {
               target = l;
               break;
             }
@@ -154,7 +150,7 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
           if (target === current) return;
 
           // Strip current locale prefix to get the bare path.
-          let bare = path.replace(/^\/(fi|sv)(\/|$)/, '/');
+          let bare = path.replace(/^\/fi(\/|$)/, '/');
           if (bare === '') bare = '/';
 
           let next;

@@ -51,7 +51,6 @@ function splitPath(path: string): { pathname: string; suffix: string } {
  *
  *   localizePath('/projects', 'en')       -> '/projects'
  *   localizePath('/projects', 'fi')       -> '/fi/projects'
- *   localizePath('/',         'sv')       -> '/sv'
  *   localizePath('/projects?id=1', 'fi')  -> '/fi/projects?id=1'
  *   localizePath('/#top',      'fi')      -> '/fi#top'
  */
@@ -77,7 +76,6 @@ export function localizePath(path: string, locale: Locale): string {
  *
  *   stripLocale('/fi/projects')         -> '/projects'
  *   stripLocale('/projects')            -> '/projects'
- *   stripLocale('/sv/')                 -> '/'
  *   stripLocale('fi/projects')          -> '/projects'
  *   stripLocale('/fi/projects?id=1')    -> '/projects?id=1'
  *   stripLocale('/fi#top')              -> '/#top'

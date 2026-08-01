@@ -89,9 +89,16 @@ def looks_non_english(query: str) -> bool:
 # queries real visitors type ("Onko projekteja?", "Työkokemus?", "Listaa
 # projektit") — every leak meant another hand-added marker. Lingua scores 104/104
 # on the eval sets and 12/12 on the terse set, offline and CPU-only. Candidates
-# restricted to EN/FI/SV: the only languages the site speaks, and a smaller set is
-# both faster and harder to confuse. Built lazily — the models are ~100MB and must
-# not load at import (unit tests of unrelated guardrails would pay for it).
+# restricted to EN/FI/SV, and a smaller set is both faster and harder to
+# confuse. SWEDISH stays a candidate even though the site dropped Swedish in
+# 2026-08, and that is deliberate: detecting a language is not the same as
+# serving it. With SV removed from this tuple the detector has only two
+# options left and reads Swedish as Finnish, so "Vilket projekt är mest
+# komplext?" came back in FINNISH — measured. Keeping SV means a Swedish
+# question fails looks_finnish and gets ENGLISH, which is the language a
+# Swedish speaker is far likelier to read. Built lazily — the models are
+# ~100MB and must not load at import (unit tests of unrelated guardrails
+# would pay for it).
 _LANGUAGES = (Language.ENGLISH, Language.FINNISH, Language.SWEDISH)
 _detector: LanguageDetector | None = None
 
@@ -174,8 +181,8 @@ _ENGLISH_OVERRIDE_WORDS = frozenset(
 # identifiers (sha256), camelCase and PascalCase (exportMyData, HeroVoiceover —
 # but not acronyms like HRM or names like Mikko, which need no internal case
 # change). Bare kebab compounds ("real-time", Finnish "linja-auto") are
-# deliberately NOT stripped: they are ordinary prose in all three site
-# languages, and only the extension-bearing kebab shape is unambiguously code.
+# deliberately NOT stripped: they are ordinary prose in the site's languages,
+# and only the extension-bearing kebab shape is unambiguously code.
 # Identifiers are language-neutral, yet their character n-grams drag
 # statistical language ID off Finnish — measured live 2026-07-10:
 # "kerro exportMyData funktiosta" detected as SWEDISH and was answered in
