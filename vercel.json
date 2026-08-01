@@ -20,6 +20,8 @@
     }
   ],
   "redirects": [
+    { "source": "/sv", "destination": "/", "permanent": true },
+    { "source": "/sv/:path*", "destination": "/:path*", "permanent": true },
     {
       "source": "/hrm",
       "destination": "https://hr-manager-pearl.vercel.app",
