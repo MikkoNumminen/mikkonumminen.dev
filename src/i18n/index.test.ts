@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { asLocale, getTranslations, LOCALES, DEFAULT_LOCALE } from './index';
 
 describe('LOCALES', () => {
-  it('contains exactly en, fi, sv', () => {
-    expect(LOCALES).toEqual(['en', 'fi', 'sv']);
+  it('contains exactly en, fi', () => {
+    expect(LOCALES).toEqual(['en', 'fi']);
   });
 
   it('treats en as the default locale', () => {
@@ -15,7 +15,6 @@ describe('asLocale', () => {
   it('returns a known locale unchanged', () => {
     expect(asLocale('en')).toBe('en');
     expect(asLocale('fi')).toBe('fi');
-    expect(asLocale('sv')).toBe('sv');
   });
 
   it('falls back to English for an unknown string', () => {
@@ -44,12 +43,9 @@ describe('getTranslations', () => {
   it('returns a distinct dictionary for each known locale', () => {
     const en = getTranslations('en');
     const fi = getTranslations('fi');
-    const sv = getTranslations('sv');
     // The nav labels differ between locales — a reliable signal that we got
     // the right dict and not a shared reference to the English fallback.
     expect(fi.nav.home).not.toBe(en.nav.home);
-    expect(sv.nav.home).not.toBe(en.nav.home);
-    expect(fi.nav.home).not.toBe(sv.nav.home);
   });
 
   it('falls back to English for an unknown locale string', () => {

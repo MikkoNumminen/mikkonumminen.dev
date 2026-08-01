@@ -21,7 +21,8 @@ const PROJECT_IDS = projects.map((p) => p.id);
  * `generateId` is explicit because the glob loader's default returns frontmatter
  * `slug` verbatim when the field is present, ignoring the file path entirely.
  * Since every locale of an entry deliberately shares one slug, the default
- * collapses all three onto a single id and keeps only whichever loaded last.
+ * collapses every locale of an entry onto a single id and keeps only whichever
+ * loaded last.
  * That failure is near-silent: one WARN line, a build that still exits 0, and
  * two thirds of the entries simply absent from the site.
  *
@@ -65,7 +66,7 @@ const blog = defineCollection({
     title: z.string(),
     description: z.string(),
     date: z.coerce.date(),
-    locale: z.enum(['en', 'fi', 'sv']),
+    locale: z.enum(['en', 'fi']),
     /** Shared across every locale of the same entry; drives the URL. */
     slug: z.string(),
     aiGenerated: z.boolean(),

@@ -15,7 +15,7 @@
 //     argument shape of the one allowlisted subcommand that can also write, so
 //     a later edit that reaches for `add`/`commit`/`push` throws instead of
 //     staging work.
-//   - Writes only into src/content/blog/en/. Never fi/ or sv/ — a machine
+//   - Writes only into src/content/blog/en/. Never fi/ — a machine
 //     summary of English commits is not a translation.
 //   - Never overwrites prose a person wrote. An existing path is skipped and
 //     logged; --force rewrites only files that carry `aiGenerated: true`, which

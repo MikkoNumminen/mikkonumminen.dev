@@ -566,7 +566,6 @@ export const en: Translations = {
     label: 'Language',
     en: 'EN',
     fi: 'FI',
-    sv: 'SV',
   },
   notFound: {
     title: 'Page not found · mikkonumminen.dev',

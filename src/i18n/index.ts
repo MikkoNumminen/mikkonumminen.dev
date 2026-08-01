@@ -1,6 +1,5 @@
 import { en } from './locales/en';
 import { fi } from './locales/fi';
-import { sv } from './locales/sv';
 import { LOCALES, DEFAULT_LOCALE, type Locale, type Translations } from './types';
 
 export { LOCALES, DEFAULT_LOCALE } from './types';
@@ -12,7 +11,7 @@ export type { Locale, Translations, TimelineLesson } from './types';
 // callers (Astro frontmatter, components) that import from the barrel.
 export { localizePath, stripLocale } from './routing';
 
-const dictionaries: Record<Locale, Translations> = { en, fi, sv };
+const dictionaries: Record<Locale, Translations> = { en, fi };
 
 // Validated set of known locales. Using a Set<Locale> lets us narrow a raw
 // `string` input to the `Locale` union without an unchecked cast — `has`

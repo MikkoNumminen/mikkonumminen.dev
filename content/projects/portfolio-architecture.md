@@ -18,7 +18,7 @@ The portfolio is a client-side-routed site (Astro `ClientRouter`) where each of 
 
 Page-to-page navigation is Astro's `ClientRouter` (view transitions): the document survives the swap, each page's enhancements mount and dispose through the `onRoute` lifecycle helper (`src/lib/lifecycle.ts`), and the persisted audio element plays continuously across views.
 
-The site is available in three locales (English, Finnish, Swedish) via separate pre-rendered HTML trees at `/`, `/fi/`, and `/sv/`. Locale negotiation runs client-side: an inline script in `BaseLayout.astro` reads `navigator.languages` and redirects once per session (guarded by `sessionStorage`).
+The site is available in two locales (English and Finnish) via separate pre-rendered HTML trees at `/` and `/fi/`. Swedish was removed in 2026-08: it was machine-translated and never reviewed by anyone who reads it. Locale negotiation runs client-side: an inline script in `BaseLayout.astro` reads `navigator.languages` and redirects once per session (guarded by `sessionStorage`).
 
 The source tree is a single-repo layout with no submodules:
 

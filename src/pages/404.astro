@@ -8,9 +8,8 @@ import { getTranslations, localizePath, type Locale } from '../i18n';
 // based on the URL prefix the user actually hit.
 const en = getTranslations('en');
 const fi = getTranslations('fi');
-const sv = getTranslations('sv');
 
-const localeStrings = { en: en.notFound, fi: fi.notFound, sv: sv.notFound };
+const localeStrings = { en: en.notFound, fi: fi.notFound };
 
 // Pre-localized link hrefs per locale, so the inline script never has to
 // re-derive them.
@@ -26,12 +25,6 @@ const linkPaths: Record<Locale, Record<string, string>> = {
     projects: localizePath('/projects', 'fi'),
     experience: localizePath('/experience', 'fi'),
     contact: localizePath('/contact', 'fi'),
-  },
-  sv: {
-    home: localizePath('/', 'sv'),
-    projects: localizePath('/projects', 'sv'),
-    experience: localizePath('/experience', 'sv'),
-    contact: localizePath('/contact', 'sv'),
   },
 };
 ---
@@ -84,7 +77,7 @@ const linkPaths: Record<Locale, Record<string, string>> = {
     linkExperience: string;
     linkContact: string;
   }
-  type Locale = 'en' | 'fi' | 'sv';
+  type Locale = 'en' | 'fi';
   interface NotFoundData {
     strings: Record<Locale, NotFoundStrings>;
     links: Record<Locale, Record<string, string>>;
@@ -96,7 +89,6 @@ const linkPaths: Record<Locale, Record<string, string>> = {
   const path = location.pathname;
   let locale: Locale = 'en';
   if (path === '/fi' || path.startsWith('/fi/')) locale = 'fi';
-  else if (path === '/sv' || path.startsWith('/sv/')) locale = 'sv';
 
   const dataEl = document.getElementById('not-found-locales');
   const notFound = document.querySelector<HTMLElement>('.not-found');
