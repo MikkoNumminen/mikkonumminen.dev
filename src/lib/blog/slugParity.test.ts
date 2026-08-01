@@ -104,7 +104,15 @@ describe('blog content on disk', () => {
     }
   });
 
-  it('publishes every non-draft slug in all three locales', () => {
+  // Swedish is deliberately outside this invariant since 2026-08-01. It is
+  // batched occasionally rather than written per entry, so requiring it would
+  // block every new post on a translation nobody has scheduled — which is the
+  // opposite of what the rule was for. The rule itself stands for the locales
+  // that ARE written per entry: English and Finnish must both ship, so a
+  // half-translated entry still cannot reach the site.
+  const REQUIRED_LOCALES = LOCALES.filter((l) => l !== 'sv');
+
+  it('publishes every non-draft slug in English and Finnish', () => {
     const publishedIn = new Map<string, Set<string>>();
     for (const f of files) {
       if (f.draft || f.slug === undefined) continue;
@@ -114,12 +122,28 @@ describe('blog content on disk', () => {
     }
 
     for (const [slug, locales] of publishedIn) {
-      for (const locale of LOCALES) {
+      for (const locale of REQUIRED_LOCALES) {
         expect(
           locales.has(locale),
           `slug "${slug}" is published in [${[...locales].sort().join(', ')}] but src/content/blog/${locale}/${slug}.md is missing or still a draft`,
         ).toBe(true);
       }
     }
+  });
+
+  // Swedish is optional, but not half-done. A Swedish file that exists while
+  // stuck on draft is an entry someone started and abandoned, and it reads as
+  // "no Swedish" to the site while looking like "Swedish exists" in the repo.
+  it('never leaves a Swedish entry stranded as a draft', () => {
+    const publishedSlugs = new Set(
+      files.filter((f) => !f.draft && f.dirLocale !== 'sv').map((f) => f.slug),
+    );
+    const stranded = files.filter(
+      (f) => f.dirLocale === 'sv' && f.draft && publishedSlugs.has(f.slug),
+    );
+    expect(
+      stranded.map((f) => f.path),
+      'a Swedish entry is a draft while the same slug is published elsewhere',
+    ).toEqual([]);
   });
 });
