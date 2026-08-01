@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
-    "@sentry/astro": "^10.69.0",
+    "@sentry/browser": "^10.69.0",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.1.6",
     "gsap": "^3.15.0",
