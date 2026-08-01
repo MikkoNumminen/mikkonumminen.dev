@@ -2,8 +2,9 @@
 // PARALLEL TO HeroVoiceover.astro and blog/BlogVoiceover.astro. All three
 // share the `bg-audio:state` handshake, the AbortController + `onRoute`
 // lifecycle and the try/catch around play(), so a fix to any of that belongs
-// in all three. BlogVoiceover deliberately drops the idle replay and the
-// reduced-motion gate; its header says why.
+// in all three, including the reduced-motion gate. BlogVoiceover deliberately
+// drops the idle replay and adds sessionStorage position memory; its header
+// says why.
 //
 // Projects-page (galaxy view) voiceover. Mirrors HeroVoiceover.astro's
 // behaviour — sits on top of the looping music bed managed by

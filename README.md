@@ -23,7 +23,7 @@ Available in English and Finnish, served from `/` and `/fi`. English is the defa
 
 A looping music bed plays across every page, dual-decked and crossfaded so the loop join is inaudible. On `/`, on `/projects`, and on any blog post that has a recording, a locale-specific voice is layered on top of the music. A single floating **sound on/off** button in `BackgroundAudio.astro` controls both tracks via a custom `bg-audio:state` event; on/off preference and music playhead persist across navigation through `sessionStorage`. No voice autostarts — they kick in after the audio toggle resolves.
 
-The home and projects clips are short spoken flourishes: they recycle on a 50-second idle window so an active visitor isn't re-narrated at, and they respect `prefers-reduced-motion: reduce` by staying silent. Blog narration is a reading of the post, minutes rather than seconds long, so it does neither. It never replays, because a reader sitting still is listening rather than idle, and it is not suppressed by reduced motion, because it does not recur and cannot start unless the visitor turned sound on themselves. It resumes rather than restarting if the toggle goes off and back on partway through. Music plays in all cases.
+All three respect `prefers-reduced-motion: reduce` by staying silent; music plays in all cases. Beyond that, the home and projects clips are short spoken flourishes and recycle on a 50-second idle window so an active visitor isn't re-narrated at. Blog narration is a reading of the post, minutes rather than seconds long, so it never replays — a reader sitting still is listening rather than idle. It also remembers where you were: the position rides `sessionStorage`, keyed by post and locale, so leaving a sixteen-minute reading at minute seven and coming back resumes there instead of starting over. Toggling sound off and on partway through continues rather than restarting, and finishing a post clears the mark.
 
 Assets live in [`public/audio/`](public/audio/) and are keyed by locale: `voice-landing-{en|fi}.mp3` (home) and `voice-projects-{en|fi}.mp3` (galaxy view). Blog narration is keyed by entry as well as locale, at `public/audio/blog/<slug>-<locale>.mp3`; see [`public/audio/blog/README.md`](public/audio/blog/README.md) for the convention and the `hasAudio` frontmatter flag that registers it. A locale without a recording 404s the audio element silently on home and projects, and on a blog post renders no element at all, since the flag says whether the file is there.
 
@@ -219,7 +219,7 @@ Several `scripts/` and `scripts/lib/` modules have co-located `*.test.mjs` suite
 
 - Three.js is dynamically imported and only loaded on the pages that need it
 - Three.js scenes are skipped entirely on small screens and when `prefers-reduced-motion: reduce` is set, with a static fallback
-- All animations respect `prefers-reduced-motion`; the home and projects voiceovers also skip narration on RM (music still plays)
+- All animations respect `prefers-reduced-motion`; all three voiceovers (home, projects, blog) also skip narration on RM (music still plays)
 - Skip-link, semantic landmarks, ARIA labels, focus-visible rings per theme
 - All Three.js resources are explicitly disposed on client-side navigation away from a scene's page
 

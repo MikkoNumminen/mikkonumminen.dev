@@ -39,9 +39,10 @@ These are non-negotiable. A change that violates one is wrong even if it builds.
 - **Three voice layers share one contract.** `HeroVoiceover`, `ProjectsVoiceover` and
   `blog/BlogVoiceover` all listen to the `bg-audio:state` event from `BackgroundAudio`,
   mount through `onRoute`, and wrap `play()` in try/catch. They carry `PARALLEL TO`
-  headers naming each other; a fix to that handshake belongs in all three. Blog narration
-  deliberately differs in two ways, documented in its header: no idle replay, and no
-  `prefers-reduced-motion` gate.
+  headers naming each other; a fix to that handshake belongs in all three, including the
+  `prefers-reduced-motion` gate that silences all three. Blog narration deliberately
+  differs in two ways, documented in its header: no idle replay, and it remembers its
+  position per post and locale in `sessionStorage`.
 - **Blog narration is flag-gated, not filesystem-derived.** A post declares `hasAudio` per
   locale and the recording lives at `public/audio/blog/<slug>-<locale>.mp3`.
   `src/content/blogAudio.test.ts` fails the suite if the two disagree in either direction,
