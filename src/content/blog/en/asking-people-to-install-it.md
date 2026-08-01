@@ -6,7 +6,7 @@ locale: en
 slug: asking-people-to-install-it
 project: portfolio
 aiGenerated: false
-hasAudio: false
+hasAudio: true
 tags: ['frontend']
 ---
 
