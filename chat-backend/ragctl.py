@@ -82,7 +82,17 @@ DOCKER_DESKTOP_EXE = "/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
 
 # "effort" presets -> (temperature, num_predict). Low temperature for grounded
 # RAG; effort mainly buys answer length (num_predict = max output tokens).
-EFFORT_PRESETS = {"quick": (0.2, 256), "balanced": (0.4, 512), "thorough": (0.6, 1024)}
+#
+# "balanced" MUST track Settings.llm_num_predict's default. `ragctl model`
+# defaults to this preset and writes LLM_NUM_PREDICT into the live .env
+# unconditionally, so a stale value here silently pins the cap back on the next
+# model swap and undoes whatever the code default says. That is how a fix
+# reverts itself months later with nothing in the diff to show for it.
+EFFORT_PRESETS = {
+    "quick": (0.2, 512),
+    "balanced": (0.4, 1024),
+    "thorough": (0.6, 2048),
+}
 # "context" presets -> served context window (num_ctx). More context = more VRAM.
 CONTEXT_PRESETS = {"4k": 4096, "8k": 8192, "16k": 16384}
 

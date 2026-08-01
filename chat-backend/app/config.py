@@ -119,14 +119,18 @@ class Settings:
     # Generation tuning — the CLI's "effort" knobs. Temperature stays low by
     # default for grounded RAG; num_predict <= 0 means "no cap" (model default).
     #
-    # The cap is 1024, raised from 512 after the request log showed 169 of 2547
-    # answers ending at exactly 512, i.e. cut off rather than finished. It is
+    # The cap is 1024, raised from 512 after the request log showed answers
+    # ending at exactly 512, i.e. cut off rather than finished, on 4.8% of
+    # requests to the DEPLOYED model (52/1084 Poro). The whole-log figure is
+    # 169/2547, but that spans four models and two thirds of it is qwen3:8b
+    # experiment traffic, so it overstates what a visitor meets. It is
     # set so both languages get the same ANSWER, not the same token count:
     # Finnish is agglutinative and costs roughly twice the tokens of the same
     # content, which is why it was truncated 9.3% of the time against English's
-    # 0.7%. English is unaffected either way, because its p99 answer is 502
-    # tokens: it stops on its own well inside the old cap, and a cap only binds
-    # a model that wants to keep going.
+    # 0.7%. English is all but unaffected: its p99 answer is 502 tokens, so it
+    # stops on its own inside the old cap, and a cap only binds a model that
+    # wants to keep going. One English answer in 138 did hit 512 and will now
+    # run longer, and p99 from 138 samples is a thin tail, not a stable floor.
     #
     # 1024 is also the largest round value that still fits: the longest prompt
     # ever logged was 6816 tokens against an 8192 context, so 6816 + 1024 = 7840
