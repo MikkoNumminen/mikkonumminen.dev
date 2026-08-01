@@ -276,7 +276,10 @@ def test_llm_tuning_defaults_and_overrides(
     assert defaults.llm_temperature == 0.4
     # Caps generation length by default (a 0 here let answers run away into
     # whole-document dumps); still overridable, incl. back to 0 for no cap.
-    assert defaults.llm_num_predict == 512
+    # 1024, not 512: the request log showed 169 of 2547 answers ending at
+    # exactly the old cap. Pinned because the number is a measurement (see
+    # config.py), not a preference someone can nudge without redoing it.
+    assert defaults.llm_num_predict == 1024
     monkeypatch.setenv("LLM_TEMPERATURE", "0.7")
     monkeypatch.setenv("LLM_NUM_PREDICT", "256")
     tuned = Settings.from_env()

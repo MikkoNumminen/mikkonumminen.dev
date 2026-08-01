@@ -84,7 +84,7 @@ prompt:
   _task_ requests the small model would otherwise just perform: generative asks
   ("write me a poem/story/song/joke…") and translation asks
   ("translate <text> to <language>").
-- **Hard output cap.** `LLM_NUM_PREDICT` (default 512) bounds generation, so no
+- **Hard output cap.** `LLM_NUM_PREDICT` (default 1024) bounds generation, so no
   single answer can dump a whole document regardless of the prompt.
 - **Input cap.** `INPUT_MAX_CHARS` (default 800; over-length → HTTP 400) plus a Pydantic length
   backstop and a byte-size cap in middleware.

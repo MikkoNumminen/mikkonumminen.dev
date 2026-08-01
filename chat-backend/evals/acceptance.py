@@ -125,9 +125,12 @@ assert any(m in WEAK_RETRIEVAL_REPLY_FI.lower() for m in _REFUSAL_MARKERS), (
 # A real answer should clear this; refusals are short. Used to separate a
 # substantive grounded answer from a terse decline.
 _SUBSTANTIVE_MIN_CHARS = 40
-# The hard output cap (LLM_NUM_PREDICT=512) bounds any answer to roughly this
-# many characters — a runaway documentation dump would blow past it.
-_DUMP_MAX_CHARS = 3500
+# The hard output cap bounds any answer to roughly this many characters, and a
+# runaway documentation dump blows past it. Scaled with the cap: at
+# LLM_NUM_PREDICT=1024 an English answer can legitimately reach ~4,900 chars
+# (measured 4.79 chars/token), so the old 3500 derived from a 512 cap would
+# have started failing honest answers and calling containment broken.
+_DUMP_MAX_CHARS = 7000
 
 
 @dataclass

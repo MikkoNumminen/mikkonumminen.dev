@@ -583,7 +583,7 @@
         "The weights are fixed and public; a determined user can out-argue any wording, so prompt instructions are a real layer but cannot be the only line of defense for a publicly exposed endpoint.",
         "The design uses controls that sit in code around the model rather than relying on prompt wording alone, so a breach of any one layer is caught by another (defense in depth).",
         "Two deterministic pre-retrieval task gates (is_generative_request and is_translation_request) decline requests before retrieval, because these task requests often name an on-corpus topic so retrieval alone would not catch them.",
-        "LLM_NUM_PREDICT (default 512) is a hard num_predict cap, so no single answer can dump a large document regardless of what the prompt is talked into."
+        "LLM_NUM_PREDICT (default 1024) is a hard num_predict cap, so no single answer can dump a large document regardless of what the prompt is talked into."
       ]
     },
     {
