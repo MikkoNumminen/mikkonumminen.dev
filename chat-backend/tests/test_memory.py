@@ -94,10 +94,17 @@ def test_reset_clears_one_session_only() -> None:
 
 
 def test_record_truncates_stored_text() -> None:
+    # The question and the answer have DIFFERENT budgets. Both are bounded, but
+    # the answer is bounded tighter, because history is threaded into every
+    # later prompt and so the answer cap multiplies by max_turns.
     m = SessionMemory(2, 10, 1000)
     big = "x" * 5000
     m.record("s", big, big, now=1.0)
-    assert all(len(msg["content"]) == 4000 for msg in m.history("s", now=2.0))
+    stored = m.history("s", now=2.0)
+    question = next(msg["content"] for msg in stored if msg["role"] == "user")
+    answer = next(msg["content"] for msg in stored if msg["role"] == "assistant")
+    assert len(question) == 4000
+    assert len(answer) == 1500
 
 
 def test_record_with_no_session_id_is_a_noop() -> None:
@@ -113,3 +120,19 @@ def test_bad_bounds_raise() -> None:
         SessionMemory(2, 0, 100)
     with pytest.raises(ValueError):
         SessionMemory(2, 10, 0)
+
+
+def test_a_stored_answer_is_capped_tighter_than_the_delivery_cap() -> None:
+    # What is delivered and what is remembered are different budgets. Measured
+    # from the request log: Finnish runs 2.69 chars per token, English 4.79, so
+    # at max_turns=6 raising the delivered cap from 512 to 1024 tokens would
+    # have taken six turns of history from roughly 4,400 to roughly 7,500 tokens
+    # against an 8,192 context that also holds the system prompt, the retrieved
+    # chunks and the new question. History would crowd out the grounding it
+    # exists to support, and the eviction that follows is silent.
+    m = SessionMemory(6, 10, 600)
+    m.record("s", "q", "x" * 9000, now=0.0)
+    answer = next(
+        msg["content"] for msg in m.history("s", now=1.0) if msg["role"] == "assistant"
+    )
+    assert len(answer) == 1500

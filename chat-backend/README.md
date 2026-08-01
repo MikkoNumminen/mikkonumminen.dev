@@ -189,7 +189,7 @@ pipeline, in order:
    the LLM** and returns the fixed out-of-scope reply.
 7. **Grounded generation** — a hardened system prompt (answer only from the
    retrieved context, `FORCE_ENGLISH`) feeds the local Ollama model, whose
-   output is hard-capped at `LLM_NUM_PREDICT` (default 512) tokens.
+   output is hard-capped at `LLM_NUM_PREDICT` (default 1024) tokens.
 
 The answer **streams** back as Server-Sent Events:
 
@@ -289,7 +289,7 @@ All configuration is environment-driven and validated at startup; see
 | `RETRIEVAL_LEXICAL_WEIGHT`    | `1.0`                           | RRF weight on the lexical (BM25-style full-text) result list.                                                       |
 | `PROJECT_FILTER_STRICT`       | `true`                          | Hard per-project retrieval filter; fails **open** if the named project is empty.                                    |
 | `WEAK_RETRIEVAL_DISTANCE`     | `0.45`                          | Best **prose**-distance threshold for the pre-LLM out-of-scope gate.                                                |
-| `LLM_NUM_PREDICT`             | `512`                           | Hard `num_predict` cap on generated tokens (output cap).                                                            |
+| `LLM_NUM_PREDICT`             | `1024`                          | Hard `num_predict` cap on generated tokens (output cap).                                                            |
 | `INPUT_MAX_CHARS`             | `800`                           | Max `message` length; over → HTTP 400.                                                                              |
 | `LLM_MAX_CONCURRENCY`         | `2`                             | Semaphore permits around Ollama generation.                                                                         |
 | `LLM_ACQUIRE_TIMEOUT_SECONDS` | (must be `> 0`)                 | Bounded wait for a permit; on timeout the request is shed with a busy reply.                                        |

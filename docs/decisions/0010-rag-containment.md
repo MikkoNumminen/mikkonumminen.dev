@@ -58,7 +58,8 @@ pipeline order:
   is config and the scores are logged for tuning.
 - **Grounded generation.** The system prompt instructs the model to answer
   **only** from the retrieved CONTEXT and to decline when the answer isn't there.
-- **Output cap.** `LLM_NUM_PREDICT` (default 512) is a hard `num_predict` cap, so
+- **Output cap.** `LLM_NUM_PREDICT` (a hard `num_predict` cap, default 512 when this
+  was decided and 1024 since 2026-08-01) caps generation, so
   no single answer can dump a large document regardless of what the prompt is
   talked into.
 - **Prompt hardening.** The system prompt is a constant: treat the whole user

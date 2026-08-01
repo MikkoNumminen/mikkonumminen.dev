@@ -23,6 +23,25 @@ from dataclasses import dataclass
 # but this is a hard backstop independent of those.
 _MAX_STORED_CHARS = 4000
 
+# The ANSWER gets a tighter cap than that backstop, and it is deliberately
+# decoupled from LLM_NUM_PREDICT: what is DELIVERED and what is REMEMBERED are
+# different budgets.
+#
+# History is threaded into every later prompt, so the answer cap multiplies.
+# Measured from the request log: Finnish runs 2.69 chars per token and English
+# 4.79, so at MEMORY_MAX_TURNS=6 raising the answer cap from 512 to 1024 would
+# have taken six turns of history from roughly 4,100-4,400 tokens to roughly
+# 6,400-7,500 — against an 8,192 context that also has to hold the system
+# prompt, the retrieved chunks and the new question. History would have started
+# crowding out the grounding it exists to support, and the eviction that follows
+# is silent.
+#
+# 1500 chars keeps six turns of history inside the budget the OLD cap produced
+# (Finnish ~5,100 tokens against ~4,900 before; English ~3,000 against ~4,100),
+# so the delivered answer doubles without the prompt following it. Memory exists to carry the TOPIC, not to replay the
+# answer: the expansion path re-retrieves rather than reading it back.
+_MAX_STORED_ANSWER_CHARS = 1500
+
 
 @dataclass
 class _Session:
@@ -82,7 +101,9 @@ class SessionMemory:
             session = _Session(turns=deque(maxlen=self._max_turns), last_access=now)
             self._sessions[session_id] = session
         # deque(maxlen) drops the oldest turn automatically when full.
-        session.turns.append((query[:_MAX_STORED_CHARS], answer[:_MAX_STORED_CHARS]))
+        session.turns.append(
+            (query[:_MAX_STORED_CHARS], answer[:_MAX_STORED_ANSWER_CHARS])
+        )
         session.last_access = now
         self._sessions.move_to_end(session_id)
         while len(self._sessions) > self._max_sessions:
