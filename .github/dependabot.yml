@@ -9,16 +9,23 @@ updates:
     open-pull-requests-limit: 5
     ignore:
       # typescript 7 (major) is held: `npm run typecheck` runs astro check via
-      # @astrojs/check (latest 0.9.9), whose typescript peer is "^5 || ^6", so a
-      # TS7 bump makes `npm ci` fail on the ERESOLVE peer conflict (this is what
-      # turned the first dev-group PR red in ~7s, before any script ran). Remove
-      # this entry once @astrojs/check ships a release that peers typescript 7.
+      # @astrojs/check, whose typescript peer is "^5 || ^6", so a TS7 bump makes
+      # `npm ci` fail on the ERESOLVE peer conflict (this is what turned the
+      # first dev-group PR red in ~7s, before any script ran). Remove this entry
+      # once @astrojs/check ships a release that peers typescript 7.
+      # Re-checked 2026-08-02 against 0.9.10 (latest): peer is still
+      # "^5.0.0 || ^6.0.0", so the hold stands. Verify with
+      # `npm view @astrojs/check peerDependencies` before removing it — a bump
+      # to @astrojs/check alone is not evidence the peer moved.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
       # three is held at 0.185.x: `postprocessing` (the home field's bloom)
       # peers "three >= 0.168 < 0.186", so a 0.186+ bump makes `npm ci` fail
       # on the ERESOLVE peer conflict. Remove this entry once
       # pmndrs/postprocessing ships a release that widens the peer range.
+      # Re-checked 2026-08-02 against 6.39.4 (latest): peer is still
+      # ">= 0.168.0 < 0.186.0", so the hold stands. Verify with
+      # `npm view postprocessing peerDependencies` before removing it.
       - dependency-name: 'three'
         update-types:
           ['version-update:semver-minor', 'version-update:semver-major']
