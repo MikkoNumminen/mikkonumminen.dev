@@ -17,7 +17,7 @@ Page-to-page navigation is client-side (Astro `ClientRouter`), animated with the
 
 ## Languages
 
-Available in English, Finnish, and Swedish — served from `/`, `/fi`, and `/sv` respectively. English is the default locale and is served without a prefix. Translations live under `src/i18n/locales/`.
+Available in English and Finnish, served from `/` and `/fi`. English is the default locale and is served without a prefix. Translations live under `src/i18n/locales/`. Swedish was removed in 2026-08: it was machine-translated and never reviewed by anyone who reads it, and a third locale taxed every feature that ships copy.
 
 ## Audio
 
@@ -25,7 +25,7 @@ A looping music bed plays across every page, dual-decked and crossfaded so the l
 
 The home and projects clips are short spoken flourishes: they recycle on a 50-second idle window so an active visitor isn't re-narrated at, and they respect `prefers-reduced-motion: reduce` by staying silent. Blog narration is a reading of the post, minutes rather than seconds long, so it does neither. It never replays, because a reader sitting still is listening rather than idle, and it is not suppressed by reduced motion, because it does not recur and cannot start unless the visitor turned sound on themselves. It resumes rather than restarting if the toggle goes off and back on partway through. Music plays in all cases.
 
-Assets live in [`public/audio/`](public/audio/) and are keyed by locale: `voice-landing-{en|fi|sv}.mp3` (home) and `voice-projects-{en|fi|sv}.mp3` (galaxy view). Blog narration is keyed by entry as well as locale, at `public/audio/blog/<slug>-<locale>.mp3`; see [`public/audio/blog/README.md`](public/audio/blog/README.md) for the convention and the `hasAudio` frontmatter flag that registers it. A locale without a recording 404s the audio element silently on home and projects, and on a blog post renders no element at all, since the flag says whether the file is there.
+Assets live in [`public/audio/`](public/audio/) and are keyed by locale: `voice-landing-{en|fi}.mp3` (home) and `voice-projects-{en|fi}.mp3` (galaxy view). Blog narration is keyed by entry as well as locale, at `public/audio/blog/<slug>-<locale>.mp3`; see [`public/audio/blog/README.md`](public/audio/blog/README.md) for the convention and the `hasAudio` frontmatter flag that registers it. A locale without a recording 404s the audio element silently on home and projects, and on a blog post renders no element at all, since the flag says whether the file is there.
 
 ## RAG chat (optional, fully local)
 
@@ -172,7 +172,7 @@ src/
   layouts/        BaseLayout — shared head, nav, client router
   components/     One folder per page (home, projects, experience, contact, nav)
   page-content/   Page-level composition (one .astro per page, wrapped by the routed file)
-  pages/          One file per route (.astro), including /fi and /sv mirrors
+  pages/          One file per route (.astro), including the /fi mirror
   lib/
     three/        Core Three.js helpers + scene entry points (homeScene, projectsScene)
     home/         Home-page DOM layers (data-feed console, commit popups)
@@ -229,7 +229,7 @@ Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/) — versi
 
 ### Skills shipped in this repo
 
-- **`/sync-readmes`** — audits this site's project data (`src/data/projects.ts` + en/fi/sv `projectsData`) against the canonical READMEs of all 6 sibling repos in parallel. Opens a PR with drift corrections — factual fixes mirrored to all three locales, tech-list additions in `projects.ts`.
+- **`/sync-readmes`** — audits this site's project data (`src/data/projects.ts` + en/fi `projectsData`) against the canonical READMEs of all 6 sibling repos in parallel. Opens a PR with drift corrections — factual fixes mirrored to both locales, tech-list additions in `projects.ts`.
   - **Token economics per run:** ~140K Sonnet input across 6 parallel sub-agents, ~10K kept on the orchestrator's main context (vs ~31K if read inline), ~45s parallel wall-clock, ~$0.80 in API spend.
   - **Results to date** (2 runs): 15 factually wrong copy fixes across three locales (test counts, engine counts, normalization-pass counts), 14 missing tech tags across 5 projects, 4 cross-project link gaps caught.
 - **`/skill-registry`** — walks every sibling repo in the workspace (resolved as the parent of this repo), finds each `.claude/skills/*/SKILL.md`, and emits a consolidated JSON registry (name, description, redirect flag, token-savings receipt where one exists). One Sonnet sub-agent per repo, in parallel; main thread aggregates and writes [`.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json`](.claude/agent-verdicts/). The JSON is the source of truth for "what skills the portfolio operates today" — other Claude sessions read it without re-running the scan. The `/skill-localUpdate` chain syncs the latest dated JSON into `public/data/` and layers measured receipts on top, so the contact-page terminal's `skills` and `download --catalog` commands serve the enriched committed registry. (It is not auto-synced at build time — that would overwrite the enrichment with the raw scan.)

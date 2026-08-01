@@ -16,7 +16,9 @@ import { projects } from '../data/projects';
  */
 
 const BLOG_DIR = join(process.cwd(), 'src', 'content', 'blog');
-const LOCALES = ['en', 'fi', 'sv'] as const;
+// Imported, not restated: a second copy of the locale list is how a locale
+// removal leaves a test still checking for it.
+import { LOCALES } from '../i18n';
 const PROJECT_IDS = new Set(projects.map((p) => p.id));
 
 interface Entry {

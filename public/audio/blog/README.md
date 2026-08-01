@@ -33,7 +33,7 @@ Match the existing voice files in `public/audio/`:
 128 kbps, but they are 29 and 19 seconds long. Blog narration is not: the
 fourteen English and Finnish posts run about 63 minutes in total, which at
 128 kbps is roughly 60 MB of committed binary against a 34 MB `.git` and an
-11 MB `public/`. Adding Swedish takes it past 85 MB. At 64 kbps the same
+11 MB `public/`. At 64 kbps the same
 audio is about 30 MB and at 48 kbps about 22 MB, both of which are ample for
 a mono speech recording. Pick the bitrate deliberately rather than inheriting
 128 kbps from two short clips.

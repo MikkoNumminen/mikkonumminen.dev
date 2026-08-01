@@ -104,7 +104,7 @@ describe('blog content on disk', () => {
     }
   });
 
-  it('publishes every non-draft slug in all three locales', () => {
+  it('publishes every non-draft slug in every locale', () => {
     const publishedIn = new Map<string, Set<string>>();
     for (const f of files) {
       if (f.draft || f.slug === undefined) continue;

@@ -14,19 +14,17 @@ describe('localizePath', () => {
 
   it('prefixes non-default locales', () => {
     expect(localizePath('/projects', 'fi')).toBe('/fi/projects');
-    expect(localizePath('/projects', 'sv')).toBe('/sv/projects');
   });
 
   it('localizes the root path without a trailing slash (trailingSlash: never)', () => {
     expect(localizePath('/', 'fi')).toBe('/fi');
-    expect(localizePath('/', 'sv')).toBe('/sv');
   });
 
   it('strips an existing locale prefix before re-localizing', () => {
-    // Already-localized Finnish path re-localized to Swedish.
-    expect(localizePath('/fi/projects', 'sv')).toBe('/sv/projects');
-    // Already-localized path back to English (default = no prefix).
-    expect(localizePath('/sv/projects', 'en')).toBe('/projects');
+    // Already-localized Finnish path back to English (default = no prefix).
+    expect(localizePath('/fi/projects', 'en')).toBe('/projects');
+    // ...and English back to Finnish, so the strip runs in both directions.
+    expect(localizePath('/projects', 'fi')).toBe('/fi/projects');
   });
 
   it('preserves query strings', () => {
@@ -47,7 +45,6 @@ describe('localizePath', () => {
 describe('stripLocale', () => {
   it('strips known locale prefixes', () => {
     expect(stripLocale('/fi/projects')).toBe('/projects');
-    expect(stripLocale('/sv/projects')).toBe('/projects');
   });
 
   it('leaves paths without a locale prefix unchanged', () => {
@@ -56,7 +53,6 @@ describe('stripLocale', () => {
   });
 
   it('strips the locale from a localized root path', () => {
-    expect(stripLocale('/sv/')).toBe('/');
     expect(stripLocale('/fi/')).toBe('/');
   });
 
