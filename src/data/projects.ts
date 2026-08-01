@@ -13,6 +13,19 @@ export interface Project {
   /** Brand name — never translated. */
   name: string;
   /**
+   * Whether the thing presents an interface a person uses, or is run from a
+   * terminal and a config file. Named `category` rather than `kind` because
+   * `Connection.kind` is twenty lines below with an unrelated union, and one
+   * word meaning two things in one file is a grep that lies.
+   *
+   * The rule is deliberately about SHAPE, not about audience. "Who is it for"
+   * was the alternative and it splits the same twelve 7/5 instead of 9/3, by
+   * moving AudiobookMaker and PasswordManager across on the grounds that you
+   * run them for yourself. Shape is the one a reader can check against a
+   * screenshot without knowing anything about the author.
+   */
+  category: 'app' | 'tool';
+  /**
    * Visual rank among the planets. Tier 1 rides the inner orbits and renders
    * larger and brighter; tier 2 sits further out, smaller and dimmer. Absent
    * for the star and for moons, which are ranked by what they orbit.
@@ -118,6 +131,7 @@ export const projects: Project[] = [
   {
     id: 'hrm',
     name: 'HRM',
+    category: 'app',
     tier: 1,
     scale: 1.3,
     orbitRadius: 6.8,
@@ -159,6 +173,7 @@ export const projects: Project[] = [
   {
     id: 'platform',
     name: 'Platform',
+    category: 'app',
     tier: 1,
     scale: 1.25,
     orbitRadius: 4.9,
@@ -190,6 +205,7 @@ export const projects: Project[] = [
   {
     id: 'portfolio',
     name: 'Portfolio',
+    category: 'app',
     isSun: true,
     scale: 1.0,
     orbitRadius: 0.0,
@@ -225,6 +241,7 @@ export const projects: Project[] = [
   {
     id: 'readlog',
     name: 'ReadLog',
+    category: 'app',
     tier: 2,
     scale: 0.7,
     orbitRadius: 14.6,
@@ -252,6 +269,7 @@ export const projects: Project[] = [
   {
     id: 'readlog-dotnet',
     name: 'ReadLog .NET',
+    category: 'app',
     moonOf: 'readlog',
     scale: 0.34,
     orbitRadius: 1.7,
@@ -280,6 +298,7 @@ export const projects: Project[] = [
   {
     id: 'audiobookmaker',
     name: 'AudiobookMaker',
+    category: 'app',
     tier: 1,
     scale: 1.1,
     orbitRadius: 8.7,
@@ -319,6 +338,7 @@ export const projects: Project[] = [
   {
     id: 'spacepotatis',
     name: 'Spacepotatis',
+    category: 'app',
     tier: 2,
     scale: 0.68,
     orbitRadius: 17.2,
@@ -352,6 +372,7 @@ export const projects: Project[] = [
   {
     id: 'strudel-patterns',
     name: 'Strudel Patterns',
+    category: 'tool',
     tier: 2,
     scale: 0.58,
     orbitRadius: 18.6,
@@ -366,6 +387,7 @@ export const projects: Project[] = [
   {
     id: 'claude-continue',
     name: 'claude-continue',
+    category: 'tool',
     tier: 2,
     scale: 0.6,
     orbitRadius: 20.0,
@@ -392,6 +414,7 @@ export const projects: Project[] = [
   {
     id: 'passwordmanager',
     name: 'PasswordManager',
+    category: 'app',
     tier: 1,
     scale: 1.15,
     orbitRadius: 10.6,
@@ -422,6 +445,7 @@ export const projects: Project[] = [
   {
     id: 'claude-agents',
     name: 'claude-agents',
+    category: 'tool',
     tier: 2,
     scale: 0.62,
     orbitRadius: 21.4,
@@ -443,6 +467,7 @@ export const projects: Project[] = [
   {
     id: 'feedback-intelligence',
     name: 'Feedback Intelligence',
+    category: 'app',
     tier: 1,
     scale: 1.05,
     orbitRadius: 12.5,
