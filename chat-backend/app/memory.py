@@ -38,8 +38,9 @@ _MAX_STORED_CHARS = 4000
 #
 # 1500 chars keeps six turns of history inside the budget the OLD cap produced
 # (Finnish ~5,100 tokens against ~4,900 before; English ~3,000 against ~4,100),
-# so the delivered answer doubles without the prompt following it. Memory exists to carry the TOPIC, not to replay the
-# answer: the expansion path re-retrieves rather than reading it back.
+# so the delivered answer doubles without the prompt following it. Memory exists
+# to carry the TOPIC, not to replay the answer: the expansion path re-retrieves
+# rather than reading the stored text back.
 _MAX_STORED_ANSWER_CHARS = 1500
 
 
