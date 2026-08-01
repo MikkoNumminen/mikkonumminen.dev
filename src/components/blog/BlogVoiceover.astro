@@ -13,7 +13,8 @@
 //   who sits still is listening, not idle. Restarting a sixteen minute
 //   narration because nobody moved the mouse would be a bug, so the idle timer
 //   and its four activity listeners are absent rather than tuned to a longer
-//   window.
+//   window. A finished reading stays finished for the same reason: cycling the
+//   sound toggle afterwards must not turn it into a replay control.
 //
 // - IT REMEMBERS WHERE YOU WERE. The other two are short enough that starting
 //   over costs nothing. Losing your place seven minutes into a sixteen minute
@@ -68,6 +69,10 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
   // How close to the end still counts as finished. Resuming into the last
   // couple of seconds would play a fragment and stop.
   const END_MARGIN_SECONDS = 2;
+
+  // Minimum playback distance between two stored positions. See the throttle
+  // on the `timeupdate` handler below.
+  const SAVE_INTERVAL_SECONDS = 5;
 
   // Honour reduced-motion the same way the other two voice layers do: skip the
   // narration entirely, music unaffected. The alternative was to treat a
@@ -166,12 +171,22 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
 
       // Persisted as it plays rather than only on the way out: a closed tab, a
       // crash, or a hard navigation never runs the disposer.
+      //
+      // Throttled because `timeupdate` fires about four times a second, and
+      // `sessionStorage` is a synchronous main-thread write. Unthrottled, a
+      // sixteen minute reading would serialise and store a number ~3,800
+      // times. At 5 seconds the worst case is losing 5 seconds of position,
+      // which is below the resolution anyone listening would notice, and the
+      // two paths that matter — toggling off and leaving the post — write
+      // immediately rather than waiting for the next tick.
+      let lastSaved = 0;
       voice.addEventListener(
         'timeupdate',
         () => {
-          if (!voice.paused && voice.currentTime > MIN_RESUME_SECONDS) {
-            save(voice.currentTime);
-          }
+          if (voice.paused || voice.currentTime <= MIN_RESUME_SECONDS) return;
+          if (Math.abs(voice.currentTime - lastSaved) < SAVE_INTERVAL_SECONDS) return;
+          lastSaved = voice.currentTime;
+          save(voice.currentTime);
         },
         { signal },
       );
@@ -189,9 +204,15 @@ const voiceSrc = `/audio/blog/${slug}-${locale}.mp3`;
             // Already playing — leave it alone, or the resolved `on` dispatch
             // would restart the narration.
             if (!voice.paused) return;
+            // A reading that already finished stays finished. Without this the
+            // toggle behaves as a replay control: reach the end of a sixteen
+            // minute post, switch sound off and on again for the music, and the
+            // whole narration starts over. That is the same failure the missing
+            // idle timer exists to prevent, arriving by a different route.
+            if (voice.ended) return;
             // Toggling sound off at minute seven and back on has to continue,
             // not start the post again.
-            if (voice.currentTime > 0 && !voice.ended) {
+            if (voice.currentTime > 0) {
               void continuePlaying();
             } else {
               void startPlaying(resumeAt());

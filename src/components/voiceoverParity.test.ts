@@ -34,9 +34,15 @@ const sources = Object.fromEntries(
   Object.entries(COMPONENTS).map(([name, path]) => [name, readFileSync(path, 'utf8')]),
 ) as Record<keyof typeof COMPONENTS, string>;
 
-/** Strips `//` line comments so prose about a gate can't stand in for the gate. */
+/**
+ * Strips comments so prose about a gate can't stand in for the gate. Both
+ * forms: these files carry long `//` headers AND `/** *\/` doc blocks, and a
+ * stripper that only knew about one of them would let the other vouch for
+ * behaviour that isn't there.
+ */
 function code(source: string): string {
   return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
     .split('\n')
     .filter((line) => !/^\s*\/\//.test(line))
     .join('\n');
@@ -80,8 +86,8 @@ describe('voiceover parity', () => {
   it('only the blog layer omits the idle replay', () => {
     // The deliberate difference, asserted in both directions so removing the
     // idle timer from home/projects is as loud as adding one to blog.
-    expect(code(sources.hero)).toMatch(/IDLE|idleTimer|idle/i);
-    expect(code(sources.projects)).toMatch(/IDLE|idleTimer|idle/i);
+    expect(code(sources.hero)).toMatch(/idleTimer/);
+    expect(code(sources.projects)).toMatch(/idleTimer/);
     expect(code(sources.blog)).not.toMatch(/idleTimer/);
   });
 
@@ -100,6 +106,24 @@ describe('voiceover parity', () => {
     // only channel. Losing either attribute degrades to one shared key.
     expect(sources.blog).toMatch(/data-slug=\{slug\}/);
     expect(sources.blog).toMatch(/data-locale=\{locale\}/);
+  });
+
+  it('the blog layer refuses to replay a finished reading', () => {
+    // Review finding. Without the `voice.ended` early return, the sound toggle
+    // doubles as a replay control: finish a sixteen minute post, cycle the
+    // toggle for the music, and the whole narration starts over — the exact
+    // failure the missing idle timer exists to prevent.
+    expect(code(sources.blog)).toMatch(/if\s*\(voice\.ended\)\s*return;/);
+  });
+
+  it('the blog layer throttles its position writes', () => {
+    // Review finding. `timeupdate` fires ~4x/second and sessionStorage is a
+    // synchronous main-thread write, so the unthrottled version stored a
+    // number ~3,800 times over one long post.
+    const body = code(sources.blog);
+    expect(body).toMatch(/SAVE_INTERVAL_SECONDS/);
+    // Present but unused would read as fixed while still writing every tick.
+    expect((body.match(/SAVE_INTERVAL_SECONDS/g) ?? []).length).toBeGreaterThan(1);
   });
 
   it('no sessionStorage access in the blog layer sits outside a try', () => {
