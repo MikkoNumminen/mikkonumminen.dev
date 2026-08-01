@@ -73,7 +73,7 @@ describe('voiceover parity', () => {
       const body = code(source);
       expect(body.includes("'bg-audio:state'"), name).toBe(true);
       expect(body.includes('new AbortController()'), name).toBe(true);
-      expect(body.includes("onRoute("), name).toBe(true);
+      expect(body.includes('onRoute('), name).toBe(true);
     }
   });
 
@@ -102,12 +102,15 @@ describe('voiceover parity', () => {
     expect(sources.blog).toMatch(/data-locale=\{locale\}/);
   });
 
-  it('every sessionStorage access in the blog layer is inside a try', () => {
+  it('no sessionStorage access in the blog layer sits outside a try', () => {
     // Safari in private browsing throws on access. An unguarded read would
     // take the whole narration down with it.
-    const body = code(sources.blog);
-    const guarded = body.match(/try\s*\{[^}]*sessionStorage[^}]*\}/g) ?? [];
-    const total = body.match(/sessionStorage/g) ?? [];
-    expect(guarded.length).toBe(total.length);
+    //
+    // Written as "delete the try blocks, assert nothing is left" rather than
+    // "count the guarded ones": a try block holding two accesses is one match
+    // for two occurrences, and the counting version failed a control that had
+    // correctly guarded both.
+    const withoutTryBlocks = code(sources.blog).replace(/try\s*\{[^}]*\}/g, '');
+    expect(withoutTryBlocks).not.toMatch(/sessionStorage/);
   });
 });
