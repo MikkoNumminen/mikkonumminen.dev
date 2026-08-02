@@ -4,17 +4,17 @@ import astro from 'eslint-plugin-astro';
 import globals from 'globals';
 
 export default [
-  // `.claude/` holds local agent scratch (worktrees, etc.) — gitignored,
-  // never reaches CI. Listing it here keeps `npm run lint` locally honest
-  // about what the codebase actually contains.
+  // `.claude/` and `.local/` are gitignored local scratch: agent worktrees in
+  // one, TTS generation and eval bundles in the other. Neither reaches CI, and
+  // their contents differ per machine, so linting them can only ever fail where
+  // CI says green. That is the wrong way round — it trains you to read past the
+  // word `error`. (`.local/blog-tts/generate.mjs` did exactly that for days: it
+  // is a Node script living outside the `scripts/**` glob below, so `console`
+  // was undefined and `npm run lint` exited 1 on every local run.)
+  //
   // `content/code/` is curated third-party project source indexed by the RAG
   // backend — it is corpus data, not this site's code, so it is excluded from
   // lint/format/typecheck (it has its own repos' deps, styles, and rules).
-  //
-  // `.local/` is gitignored scratch (TTS generation, eval bundles, study data).
-  // It never reaches CI, so linting it could only ever fail on the developer's
-  // machine and never on a PR — which is the wrong way round: it trains you to
-  // ignore a red gate that CI says is green.
   {
     ignores: [
       'dist/',
