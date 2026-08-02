@@ -24,9 +24,9 @@ Varsinainen muutos on se, ettei nimeni ole enää tekstiä. Etusivulla ei ole yh
 
 Koska kenttä on maalattu sivun omalla taustavärillä ja peittää kaiken, vanhaa värisaumaa yläosan ja muun sivun välillä ei enää paikata. Sitä ei voi enää ollakaan.
 
-Muodostunut nimi ei ole liikkumaton kuva. Se välkkyy, ja välke syntyy nopeudesta eikä matkasta: kun partikkeleita työntää kauemmas, nimi vain kallistuu, mutta kun niitä liikuttaa nopeammin, se näyttää elävältä. Kirkkauden harjanne kulkee kirjainten yli kahdeksan sekunnin välein. Yksi partikkeli sadasta saa harhailla pois kirjainten muodosta, ja jokainen harhailija viettää poissa noin kolme sekuntia ennen kuin liukuu takaisin omassa tahdissaan. Klikkaa nimeä, niin se ottaa iskun vastaan ja toipuu.
+Muodostunut nimi ei ole liikkumaton kuva. Se välkkyy, ja välke syntyy nopeudesta eikä matkasta: kun partikkeleita työntää kauemmas, nimi vain kallistuu, mutta kun niitä liikuttaa nopeammin, se näyttää elävältä. Kirkkauden harjanne kulkee kirjainten yli kahdeksan sekunnin välein. Yksi partikkeli sadasta saa harhailla pois kirjainten muodosta, ja jokainen harhailija on poissa noin kolme sekuntia ennen kuin liukuu takaisin omassa tahdissaan. Klikkaa nimeä, niin se ottaa iskun vastaan ja toipuu.
 
-Kursori työntää partikkeleita sivuun. Klikkaus lähettää liikkeelle aallon, ja tämän sivuston oman repositorion commit-viestit nousevat nyt esiin näiden aaltojen mukana ajastimen sijaan. Hehku tietää, mihin katsot: voimakkaimmillaan galaksin kohdalla, rauhallisena valmiin nimen päällä, lähes olemattomana tähtien seassa.
+Kursori työntää partikkeleita sivuun. Klikkaus lähettää liikkeelle aallon, ja tämän sivuston oman repon commit-viestit nousevat nyt esiin näiden aaltojen mukana ajastimen sijaan. Hehku tietää, mihin katsot: voimakkaimmillaan galaksin kohdalla, rauhallisena valmiin nimen päällä, lähes olemattomana tähtien seassa.
 
 Commitit ovat oikeita, ja ne upotetaan sivustoon koontivaiheessa. Hetken aikaa tuotannossa ne eivät kuitenkaan olleet. Koontijärjestelmä hakee versiohistoriasta vain uusimman commitin, joten kuudenkymmenen commitin pyyntöön tuli vastaukseksi yksi, ja sivu putosi takaisin kovakoodattuun varalistaan. Ominaisuus, joka oli rakennettu näyttämään oikeaa historiaa, näytti ensimmäiset viikkonsa keksittyä historiaa. Nyt se näyttää oikean. Tarkistin. Kahdesti.
 
@@ -40,7 +40,7 @@ Näin oli teoriassa ennenkin. Sitten mittasin. Oletuskameran kohdalla yhdeksän 
 
 Nyt kaikki kaksitoista näkyvät ruudulla ikkunan muodosta riippumatta, ja jokaisen luo pääsee. Sivusto itse on keskellä aurinkona, ja projektit kiertävät sitä.
 
-Sivu myös käynnistyy paljon nopeammin. Ennen ensimmäinen ruutu jäädytti selaimen 1 159 millisekunniksi, mikä on tarpeeksi kauan, että ehtii miettiä, onko välilehti kuollut. Toiminut korjaus oli tylsä: laske jokaisen planeetan pinta kerran ja käytä sitä uudelleen, sen sijaan, että laskisit joka pikselin uusiksi joka ruudulla. Se poisti jäätymisestä 69 prosenttia. Kaksi itsevarmaa teoriaa kaatui ennen sitä, ja niistä itsevarmempi, piirto-ohjelmien yhdistäminen yhdeksi, pahensi jäätymistä 230 millisekunnilla.
+Sivu myös käynnistyy paljon nopeammin. Ennen ensimmäinen ruutu jäädytti selaimen 1 159 millisekunniksi, mikä on tarpeeksi kauan, että ehtii miettiä, onko välilehti kuollut. Korjaus, joka toimi, oli tylsä: laske jokaisen planeetan pinta kerran ja käytä sitä uudelleen sen sijaan, että laskisit joka pikselin uusiksi joka ruudulla. Se poisti jäätymisestä 69 prosenttia. Kaksi itsevarmaa teoriaa kaatui ennen sitä, ja niistä itsevarmempi, piirto-ohjelmien yhdistäminen yhdeksi, pahensi jäätymistä 230 millisekunnilla.
 
 ## Kokemus
 
@@ -48,7 +48,7 @@ Etusivun ainoa kilpailija suurimman parannuksen tittelistä on kokemussivun lopu
 
 Kortissa on kytkin, joka vaihtaa saman tiedon kahden lukutavan välillä: teknologioittain tai projekteittain. Käännä se, ja sama tieto järjestyy kahdeksitoista projektiksi, joista jokainen näyttää, mistä se on rakennettu. Molemmat näkymät tulevat samasta listasta, joten ne eivät voi mennä keskenään ristiin.
 
-Listaa ei myöskään kirjoitettu muistista. Se luettiin viidentoista repositorion oikeista riippuvuustiedostoista koneellani. Sen jälkeen tulosta karsittiin rankalla kädellä. Mallien nimet ja käyttöjärjestelmän apuohjelmat lähtivät. Samoin ne tavalliset kirjastot, joita jokainen kehittäjä maailmassa käyttää. Lista, jossa on mukana pikkujuttuja, saa vakavasti otettavat rivit näyttämään täytteeltä, ja näytän mieluummin 107 riviä, jotka pystyn perustelemaan, kuin 300, jotka näyttävät vaikuttavilta. Pieni work-merkintä kertoo, mitä on käytetty maksetussa asiakastyössä eikä omissa projekteissa.
+Listaa ei myöskään kirjoitettu muistista. Se luettiin viidentoista repon oikeista riippuvuustiedostoista koneellani. Sen jälkeen tulosta karsittiin rankalla kädellä. Mallien nimet ja käyttöjärjestelmän apuohjelmat lähtivät. Samoin ne tavalliset kirjastot, joita jokainen kehittäjä maailmassa käyttää. Lista, jossa on mukana pikkujuttuja, saa vakavasti otettavat rivit näyttämään täytteeltä, ja näytän mieluummin 107 riviä, jotka pystyn perustelemaan, kuin 300, jotka näyttävät vaikuttavilta. Pieni work-merkintä kertoo, mitä on käytetty maksetussa asiakastyössä eikä omissa projekteissa.
 
 Sivun loppuosa piirtää työelämäni vuorikiipeilynä, alhaalla 24 vuotta rautakaupan alalla ja huipulla tämä päivä. Ennen se kulki väärinpäin, joten kiipeäminen tarkoitti alaspäin vierittämistä. Nyt se kulkee ylöspäin, niin kuin kiipeäminen yleensä. Ennen sivu myös päättyi viestiin, joka kertoi, että olet päässyt loppuun, ja sen jälkeen tuli vielä kaksi osiota. Nyt lopussa on yksi kortti.
 
@@ -60,4 +60,4 @@ Uusin muutos on pieni. Kun se kotikone on hereillä, terminaali kertoo siitä ny
 
 ## Ympyrä sulkeutuu
 
-Ne neljä sivua ovat nyt keskenään samaa mieltä, ja samaa mieltä ansioluetteloni kanssa, koska ne kaikki lukevat samoista lähteistä eivätkä minun muistikuvistani. Jos joskus haluan väittää osaavani jotain, mitä en osaa, minun pitää ensin väärentää viidentoista repositorion riippuvuustiedostot. Siinä vaiheessa on rehellisesti sanottuna vähemmän työtä opetella se asia.
+Ne neljä sivua ovat nyt keskenään samaa mieltä, ja samaa mieltä ansioluetteloni kanssa, koska ne kaikki lukevat samoista lähteistä eivätkä minun muistikuvistani. Jos joskus haluan väittää osaavani jotain, mitä en osaa, minun pitää ensin väärentää viidentoista repon riippuvuustiedostot. Siinä vaiheessa on rehellisesti sanottuna vähemmän työtä opetella se asia.
