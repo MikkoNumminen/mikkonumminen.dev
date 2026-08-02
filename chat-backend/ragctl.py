@@ -1295,6 +1295,11 @@ _MENU: list[tuple[str, str]] = [
     ("english on|off", "force English across all models"),
     ("usage [--hours N]", "how much the model's been used (24h)"),
     ("logs", "show recent questions + answers (request log)"),
+    ("queue", "shoutbox: messages waiting for review"),
+    ("approve ID", "shoutbox: publish it, rewrite the snapshot"),
+    ("reject ID", "shoutbox: delete it (no undo)"),
+    ('reply ID "text"', "shoutbox: owner reply on an approved message"),
+    ("publish", "shoutbox: rewrite the snapshot from approved messages"),
     ("prune", "reclaim docker disk (rebuild cache, stopped containers)"),
     ("watchdog", "guard the public path, auto-recover a stale funnel"),
     ("exit", "leave ragctl"),
@@ -1303,7 +1308,8 @@ _MENU: list[tuple[str, str]] = [
 # Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
 _VERBS = [
     "status", "watch", "doctor", "up", "down", "test", "model", "english",
-    "usage", "logs", "prune", "watchdog", "exit", "quit",
+    "usage", "logs", "queue", "approve", "reject", "reply", "publish",
+    "prune", "watchdog", "exit", "quit",
 ]
 
 
@@ -1315,6 +1321,148 @@ def print_menu() -> None:
 
 
 # --- argparse / dispatch (shared by one-shot mode and the REPL) -------------
+
+
+
+# --- shoutbox moderation ----------------------------------------------------
+#
+# These verbs are the ONLY moderation surface. They live in this local CLI rather
+# than on the FastAPI app because the Tailscale Funnel proxies the whole backend
+# origin and no route there is authenticated — an approve endpoint would be a
+# publicly reachable way to publish to the site. ragctl has no listener at all,
+# so it inherits "unreachable from the internet" by construction.
+#
+# The formatting and outcome logic below is pure and unit-tested; the imperative
+# shells only call docker and write a file. Same split as watchdog_action.
+
+SHOUT_SNAPSHOT = REPO / "public" / "data" / "shoutbox.json"
+
+
+def format_queue(pending: list[dict]) -> str:
+    """Render the pending queue. Pure — takes the parsed payload, returns text."""
+    if not pending:
+        return "  ○ queue empty"
+    lines = [_c(f"  {len(pending)} pending", "1")]
+    for item in pending:
+        stamp = str(item.get("created_at", ""))[:16].replace("T", " ")
+        body = " ".join(str(item.get("body", "")).split())
+        # Truncated for the listing only — approve/reject act on the stored text,
+        # so what is published is never what was abbreviated here.
+        if len(body) > 88:
+            body = body[:85] + "..."
+        ident = str(item.get("id", "?")).rjust(4)
+        lines.append(f"  {_c(ident, '36')}  {stamp}  {body}")
+    return "\n".join(lines)
+
+
+def moderation_message(action: str, ok: bool, shout_id: int) -> str:
+    """The single line printed after a moderation action.
+
+    A miss reports "nothing to do", never success: `approve` is guarded on
+    status='pending' and `reply` on status='approved', so a false result means the
+    row was not in the state the verb requires. The operator needs to see that
+    rather than have it smoothed over into a checkmark.
+    """
+    if not ok:
+        return _c(f"  ○ #{shout_id}: nothing to do (wrong state, or no such id)", "33")
+    verbs = {
+        "approve": "approved",
+        "reject": "rejected and deleted",
+        "reply": "reply attached",
+    }
+    return _c(f"  ● #{shout_id} {verbs.get(action, action)}", "32")
+
+
+def publish_reminder(count: int) -> str:
+    """What to say after the snapshot is rewritten.
+
+    The snapshot is a COMMITTED artifact: the site serves it from the CDN and
+    never reaches this machine to read it. Writing the file therefore changes
+    nothing publicly until it is committed and pushed, and saying so is the whole
+    difference between "it is live" and "it is staged".
+    """
+    plural = "s" if count != 1 else ""
+    return (
+        f"  ● snapshot rewritten: public/data/shoutbox.json ({count} thread{plural})\n"
+        + _c("    commit it to publish — the site reads the committed file.", "36")
+    )
+
+
+def _moderate(action: str, shout_id: int = 0, text: str = "") -> dict:
+    """Run one moderation action inside the backend container and parse its JSON.
+
+    stdout is JSON by contract, but a container that is down prints docker's error
+    instead, so a parse failure is reported as such rather than raising.
+    """
+    cmd = COMPOSE + ["exec", "-T", "backend", "python", "-m", "app.moderate", action]
+    if shout_id:
+        cmd.append(str(shout_id))
+    if text:
+        cmd.append(text)
+    rc, out = run(cmd, timeout=30, cwd=REPO)
+    try:
+        # docker may prefix warnings, so take the payload from the first brace.
+        return json.loads(out[out.index("{") :])
+    except (ValueError, json.JSONDecodeError):
+        return {"ok": False, "error": out.strip() or f"exit {rc} with no output"}
+
+
+def _write_snapshot() -> int:
+    """Regenerate public/data/shoutbox.json from the approved rows."""
+    result = _moderate("publish")
+    if not result.get("ok"):
+        print(_c(f"  ✗ publish failed: {result.get('error', 'unknown')}", "31"))
+        return 1
+    snapshot = result["snapshot"]
+    SHOUT_SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
+    SHOUT_SNAPSHOT.write_text(
+        json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(publish_reminder(int(snapshot.get("count", 0))))
+    return 0
+
+
+def cmd_queue() -> int:
+    """List messages waiting for review."""
+    result = _moderate("queue")
+    if not result.get("ok"):
+        print(_c(f"  ✗ {result.get('error', 'queue unavailable')}", "31"))
+        return 1
+    print(format_queue(result.get("pending", [])))
+    return 0
+
+
+def cmd_approve(shout_id: int) -> int:
+    """Publish one message, then rewrite the snapshot."""
+    result = _moderate("approve", shout_id)
+    print(moderation_message("approve", bool(result.get("ok")), shout_id))
+    if not result.get("ok"):
+        return 1
+    return _write_snapshot()
+
+
+def cmd_reject(shout_id: int) -> int:
+    """Delete one message. No category, no explanation, no undo.
+
+    The snapshot is NOT rewritten: a pending message was never in it, so there is
+    nothing to remove and no reason to make the operator commit a no-op diff.
+    """
+    result = _moderate("reject", shout_id)
+    print(moderation_message("reject", bool(result.get("ok")), shout_id))
+    return 0 if result.get("ok") else 1
+
+
+def cmd_reply(shout_id: int, text: str) -> int:
+    """Attach an owner reply to an APPROVED message, then rewrite the snapshot.
+
+    The status guard lives in SQL, so this cannot publish a thread that was never
+    approved on its own merits.
+    """
+    result = _moderate("reply", shout_id, text)
+    print(moderation_message("reply", bool(result.get("ok")), shout_id))
+    if not result.get("ok"):
+        return 1
+    return _write_snapshot()
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -1379,6 +1527,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "prune",
         help="reclaim docker disk: build cache + stopped containers + dangling images",
     )
+    sub.add_parser("queue", help="shoutbox: list messages waiting for review")
+    ap = sub.add_parser("approve", help="shoutbox: publish it + rewrite snapshot")
+    ap.add_argument("id", type=int, help="the id shown by `queue`")
+    rj = sub.add_parser("reject", help="shoutbox: delete a message (no undo)")
+    rj.add_argument("id", type=int, help="the id shown by `queue`")
+    rp = sub.add_parser("reply", help="shoutbox: owner reply on an approved one")
+    rp.add_argument("id", type=int, help="the id shown by `queue`")
+    rp.add_argument("text", help="the reply, published with the message")
+    sub.add_parser("publish", help="shoutbox: rewrite snapshot from approved")
     wd = sub.add_parser(
         "watchdog",
         help="guard the public path and auto-recover a stale funnel (Ctrl-C stops)",
@@ -1426,6 +1583,16 @@ def dispatch(argv: list[str]) -> int:
         return cmd_usage(args.hours)
     if args.cmd == "logs":
         return cmd_logs(args.n)
+    if args.cmd == "queue":
+        return cmd_queue()
+    if args.cmd == "approve":
+        return cmd_approve(args.id)
+    if args.cmd == "reject":
+        return cmd_reject(args.id)
+    if args.cmd == "reply":
+        return cmd_reply(args.id, args.text)
+    if args.cmd == "publish":
+        return _write_snapshot()
     if args.cmd == "prune":
         return cmd_prune()
     if args.cmd == "watchdog":

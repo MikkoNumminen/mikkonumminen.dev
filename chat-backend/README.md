@@ -96,7 +96,8 @@ visual change.
 | `sql/002_hybrid_retrieval.sql`                   | Adds `language` + `chunk_type` columns, a GENERATED `content_tsv` tsvector + GIN index (backfilled) — the lexical half of hybrid retrieval.                                                                                                            |
 | `evals/run_eval.py`                              | Retrieval hit-rate runner (`python -m evals.run_eval`).                                                                                                                                                                                                |
 | `evals/acceptance.py`                            | Black-box containment contract suite (`python -m evals.acceptance`).                                                                                                                                                                                   |
-| `ragctl.py`                                      | The ops REPL — `status` / `up` / `down` / `doctor` / `model` / `english`.                                                                                                                                                                              |
+| `ragctl.py`                                      | The ops CLI + REPL. Stack: `status` / `watch` / `doctor` / `up` / `down` / `test` / `model` / `english` / `usage` / `logs` / `prune` / `watchdog`. Shoutbox: `queue` / `approve` / `reject` / `reply` / `publish`.                                      |
+| `app/moderate.py`                                | Moderation actions, run inside the container by `ragctl`. Deliberately not an HTTP route: the funnel exposes every route on this app unauthenticated.                                                                                                  |
 | `tests/`                                         | Pure-logic unit tests (chunking, content, config, prompts, retrieval, pipeline, llm, health, guardrails, ratelimit, scoring).                                                                                                                          |
 | `Dockerfile`                                     | The backend image (indexer + API; non-root, GPU not needed here).                                                                                                                                                                                      |
 | [`../docker-compose.yml`](../docker-compose.yml) | The whole stack: db + ollama (GPU) + backend + optional public tunnel.                                                                                                                                                                                 |
@@ -319,6 +320,28 @@ Day-to-day operation goes through the `ragctl` REPL
 | `doctor`      | Diagnose a sick stack (GPU, DB, model, tunnel).      |
 | `model`       | Show / switch the Ollama model (qwen2.5:7b default). |
 | `english`     | Toggle the `FORCE_ENGLISH` behavior.                 |
+| `usage`       | Token / request counts over the last N hours.        |
+| `logs`        | Recent questions + answers from the request log.     |
+| `prune`       | Reclaim docker disk (build cache, dead containers).  |
+| `watchdog`    | Guard the public path, recover a stale funnel.       |
+
+Shoutbox moderation (contact page). These live here rather than on the FastAPI
+app because the Tailscale Funnel proxies the whole backend origin and no route
+there is authenticated — an approve endpoint would be a publicly reachable way to
+publish to the site. `ragctl` has no listener, so it is unreachable by
+construction.
+
+| Command             | Does                                                          |
+| ------------------- | ------------------------------------------------------------- |
+| `queue`             | List messages waiting for review, oldest first.                |
+| `approve <id>`      | Publish one message, then rewrite the snapshot.                |
+| `reject <id>`       | Delete one message. No category, no explanation, no undo.      |
+| `reply <id> "text"` | Owner reply on an **approved** message, then rewrite.          |
+| `publish`           | Rewrite `public/data/shoutbox.json` from the approved rows.    |
+
+The snapshot is a **committed artifact**: the site serves it from the CDN and
+never reads this machine. Approving writes the file into the working tree — it
+goes live when you commit and push, not before.
 
 ## Development
 

@@ -298,6 +298,19 @@ Desktop must be running first; the chat lives in Docker.)
 | **`status` / `doctor`** | Container states + `/health`; `doctor` adds a security pre-flight and Docker versions.                                                                          |
 | **`model`**             | Switch the served Ollama model (default `qwen2.5:7b`).                                                                                                          |
 | **`english`**           | Toggle `FORCE_ENGLISH` (`on`/`off`) at runtime.                                                                                                                 |
+| **`usage` / `logs`**    | Token counts over a window; recent questions + answers from the request log.                                                                                     |
+| **`prune`**             | Reclaim docker disk — build cache, stopped containers, dangling images.                                                                                          |
+| **`watchdog`**          | Guard the public visitor path and recover a stale funnel ingress.                                                                                                |
+| **shoutbox verbs**      | `queue` / `approve <id>` / `reject <id>` / `reply <id> "text"` / `publish` — see below.                                                                           |
+
+**Why moderation is a `ragctl` verb and not an endpoint.** The Funnel proxies
+`/` — the whole backend origin — to `127.0.0.1:8000`, and no route on the app is
+authenticated. An `/admin/approve` route would therefore be a publicly reachable
+way to publish to the site, however carefully it were left out of `vercel.json`.
+`ragctl` has no listener at all, so it inherits unreachability by construction.
+`approve` and `reply` rewrite `public/data/shoutbox.json` in the working tree;
+the site serves the **committed** file from the CDN, so nothing is public until
+that file is committed and pushed.
 
 The pre-flight exists because **security apps that intercept TLS** (IPVanish
 Threat Protection, VPN clients, third-party AV web-shields) can silently break

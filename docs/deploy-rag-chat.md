@@ -18,8 +18,11 @@ Operational runbook for shipping changes to the local RAG chat that powers the
   volume.
 - **Compose project name:** `mikkonumminendev` (containers
   `mikkonumminendev-{backend,ollama,db}-1`).
-- **Ops CLI:** `ragctl` (`chat-backend/ragctl.py`) — `status` / `up` / `down` /
-  `doctor` / `model` / `english` / `usage` / `prune` / `watchdog`. Boot it live
+- **Ops CLI:** `ragctl` (`chat-backend/ragctl.py`) — `status` / `watch` / `up` /
+  `down` / `doctor` / `test` / `model` / `english` / `usage` / `logs` / `prune` /
+  `watchdog`, plus shoutbox moderation `queue` / `approve` / `reject` / `reply` /
+  `publish` (local-only by construction: ragctl has no listener, whereas every
+  route on the FastAPI app is publicly reachable through the funnel). Boot it live
   with `ragctl up --keep` (all-green board incl. `public /health ok`); it enables
   the funnel via the **Windows `tailscale.exe` over WSL interop**, so **no sudo** —
   do not run the distro's Linux `tailscale funnel …` by hand, it needs sudo and
