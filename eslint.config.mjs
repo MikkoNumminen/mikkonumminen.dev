@@ -10,6 +10,11 @@ export default [
   // `content/code/` is curated third-party project source indexed by the RAG
   // backend — it is corpus data, not this site's code, so it is excluded from
   // lint/format/typecheck (it has its own repos' deps, styles, and rules).
+  //
+  // `.local/` is gitignored scratch (TTS generation, eval bundles, study data).
+  // It never reaches CI, so linting it could only ever fail on the developer's
+  // machine and never on a PR — which is the wrong way round: it trains you to
+  // ignore a red gate that CI says is green.
   {
     ignores: [
       'dist/',
@@ -17,6 +22,7 @@ export default [
       'node_modules/',
       '.vercel/',
       '.claude/',
+      '.local/',
       'content/code/',
     ],
   },
