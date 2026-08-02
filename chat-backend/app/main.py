@@ -26,6 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from . import shoutbox
 from .config import Settings
 from .db import Database, apply_schema
 from .embeddings import Embedder
@@ -34,6 +35,7 @@ from .health_cache import CachedFlag
 from .llm import LLMClient
 from .memory import SessionMemory
 from .middleware import BodySizeLimitMiddleware
+from .notify import QueueNotifier
 from .pipeline import chat_event_stream
 from .ratelimit import RateLimiter, client_ip, is_exempt_local
 from .request_log import build_request_logger
@@ -70,6 +72,31 @@ class ChatRequest(BaseModel):
 
 class ResetRequest(BaseModel):
     session_id: str = Field(min_length=1, max_length=200)
+
+
+class ShoutRequest(BaseModel):
+    # A loose Pydantic backstop only. The operative cap is `shoutbox.MAX_CHARS`,
+    # applied by the gate — same split as ChatRequest, so the real limit stays one
+    # tunable number rather than being spread across two layers that can drift.
+    body: str = Field(min_length=1, max_length=4000)
+
+
+async def _notify_queue(db: Database, notifier: QueueNotifier, now: float) -> None:
+    """Send the queue digest out of band. Never raises.
+
+    Runs as a detached task so a slow or dead Telegram cannot delay the visitor's
+    confirmation. The queue depth is read here rather than passed in so the digest
+    reports the truth at send time, which after a burst is more useful than the
+    count at the moment one particular message landed.
+    """
+    try:
+        pending = await db.shout_pending_count()
+        if shoutbox.should_notify(pending, notifier.last_sent_at, now):
+            await notifier.send_digest(pending, now)
+    except Exception:
+        # The message is already queued; a failed ping is an operator problem,
+        # never the visitor's.
+        logger.warning("shoutbox queue notification failed", exc_info=True)
 
 
 async def _db_ok(db: Database) -> bool:
@@ -131,6 +158,17 @@ def create_app() -> FastAPI:
             settings.memory_max_sessions,
             settings.memory_ttl_seconds,
         )
+        # Shoutbox: a rate limiter of its own, tighter than the chat guard because
+        # this path writes. In-memory, like the chat limiter — no visitor address
+        # is ever persisted, which is what keeps the queue genuinely anonymous.
+        app.state.shout_limiter = RateLimiter(
+            shoutbox.RATE_MAX, shoutbox.RATE_WINDOW_SECONDS
+        )
+        app.state.shout_notifier = QueueNotifier(settings.telegram_config)
+        # Strong references to in-flight notification tasks. asyncio only holds a
+        # weak reference to a bare create_task, so without this set a digest can
+        # be garbage-collected mid-send and vanish silently.
+        app.state.shout_notify_tasks = set()
         try:
             yield
         finally:
@@ -297,6 +335,73 @@ def create_app() -> FastAPI:
         # already apply via the middleware; no new auth surface.
         app.state.memory.reset(req.session_id)
         return JSONResponse({"ok": True})
+
+    @app.post("/shout")
+    async def submit_shout(req: ShoutRequest, request: Request) -> JSONResponse:
+        # Submit a message to the moderation queue. NOTHING here publishes: an
+        # accepted submission is `pending` until the owner approves it from
+        # ragctl, and the public site reads a committed snapshot rather than this
+        # database at all.
+        #
+        # This endpoint is PUBLICLY ADDRESSABLE and unauthenticated. The Tailscale
+        # Funnel proxies `/` to this app, and the funnel hostname is published in
+        # vercel.json — so being absent from the site's rewrite list hides nothing.
+        # The gate below is the whole defence, which is why it is a pure function
+        # with its own adversarial suite rather than a few inline `if`s.
+        if not app.state.settings.shoutbox_enabled:
+            return JSONResponse({"detail": "shoutbox is closed"}, status_code=404)
+
+        db: Database = app.state.db
+        now = time.monotonic()
+
+        def refuse(refusal: shoutbox.Refusal) -> JSONResponse:
+            # 200, not 4xx: an expected conversational outcome carrying a message
+            # the visitor can act on, which the frontend renders inline.
+            return JSONResponse(
+                {"accepted": False, "detail": shoutbox.REFUSAL_TEXT[refusal]}
+            )
+
+        # SHAPE FIRST, and nothing else touched until it passes. The state checks
+        # below cost two database round-trips and a slot of rate budget, so
+        # running them for an empty or oversized submission would hand an attacker
+        # exactly the free flood the limits exist to prevent. Normalised once here
+        # and reused, so the stored text is the text the rules ran against.
+        body = shoutbox.normalise(req.body)
+        shape = shoutbox.shape_refusal(body)
+        if shape is not None:
+            return refuse(shape)
+
+        # Only well-formed submissions spend rate budget. `allow` records the
+        # attempt as it checks, so a well-formed message that is later refused as
+        # a duplicate still costs a slot — deliberate on a write path.
+        peer = request.client.host if request.client else None
+        key = client_ip(request.headers.get("x-forwarded-for"), peer)
+        rate_exceeded = not app.state.shout_limiter.allow(key, now)
+
+        state = shoutbox.state_refusal(
+            rate_exceeded=rate_exceeded,
+            pending_total=await db.shout_pending_count(),
+            duplicate_exists=await db.shout_duplicate_exists(
+                shoutbox.body_hash(body), shoutbox.DUPLICATE_WINDOW_SECONDS
+            ),
+        )
+        if state is not None:
+            return refuse(state)
+
+        await db.enqueue_shout(body, shoutbox.body_hash(body))
+
+        # Notification is fire-and-forget, NOT awaited. Awaiting it would make the
+        # visitor wait out the Telegram timeout before their message is confirmed,
+        # which is precisely what "best-effort, never surfaces to the visitor"
+        # was supposed to mean. The task reference is held so it cannot be
+        # garbage-collected mid-flight.
+        notifier: QueueNotifier = app.state.shout_notifier
+        if notifier.enabled:
+            task = asyncio.create_task(_notify_queue(db, notifier, now))
+            app.state.shout_notify_tasks.add(task)
+            task.add_done_callback(app.state.shout_notify_tasks.discard)
+
+        return JSONResponse({"accepted": True})
 
     @app.get("/usage")
     async def usage(hours: int = Query(default=24, ge=1, le=168)) -> JSONResponse:
