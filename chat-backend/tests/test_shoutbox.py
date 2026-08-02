@@ -24,7 +24,9 @@ from app.shoutbox import (
     count_links,
     evaluate,
     normalise,
+    shape_refusal,
     should_notify,
+    state_refusal,
 )
 
 CLEAN = {"rate_exceeded": False, "pending_total": 0, "duplicate_exists": False}
@@ -173,6 +175,10 @@ def test_shape_is_checked_before_state_so_junk_never_consumes_rate_budget() -> N
     # An empty submission from a rate-limited address reports EMPTY, not RATE:
     # the visitor gets the reason they can act on, and a flood of empties cannot
     # be used to probe the rate limiter's state.
+    #
+    # The handler enforces the same order structurally via shape_refusal() —
+    # before this split it did NOT, and spent both database queries and a slot of
+    # rate budget on junk despite this test's name.
     v = evaluate("", rate_exceeded=True, pending_total=999, duplicate_exists=True)
     assert v.refusal is Refusal.EMPTY
 
@@ -234,3 +240,55 @@ def test_a_burst_that_clears_the_gate_does_not_become_a_burst_of_pings() -> None
 def test_windows_are_the_documented_durations() -> None:
     assert DUPLICATE_WINDOW_SECONDS == 86_400
     assert NOTIFY_MIN_INTERVAL_SECONDS == 900
+
+
+# --- the two phases, split so the handler can avoid paying for state ---------
+
+
+def test_shape_refusal_needs_no_state_at_all() -> None:
+    # The point of the split: the handler can refuse junk before spending two
+    # database round-trips and a slot of rate budget on it.
+    assert shape_refusal(normalise("")) is Refusal.EMPTY
+    assert shape_refusal(normalise("a" * (MAX_CHARS + 1))) is Refusal.TOO_LONG
+    assert shape_refusal(normalise("http://x.com")) is Refusal.LINK
+    assert shape_refusal(normalise("perfectly fine")) is None
+
+
+def test_state_refusal_ordering_matches_the_composed_gate() -> None:
+    assert (
+        state_refusal(rate_exceeded=True, pending_total=0, duplicate_exists=True)
+        is Refusal.DUPLICATE
+    )
+    assert (
+        state_refusal(rate_exceeded=True, pending_total=0, duplicate_exists=False)
+        is Refusal.RATE
+    )
+    assert (
+        state_refusal(
+            rate_exceeded=False,
+            pending_total=QUEUE_MAX_PENDING,
+            duplicate_exists=False,
+        )
+        is Refusal.QUEUE_FULL
+    )
+    assert (
+        state_refusal(rate_exceeded=False, pending_total=0, duplicate_exists=False)
+        is None
+    )
+
+
+def test_evaluate_is_exactly_the_two_phases_composed() -> None:
+    # Guards against the split drifting from the single entry point the rest of
+    # the suite exercises: shape must still win over state for the same input.
+    raw = ""
+    composed = evaluate(
+        raw, rate_exceeded=True, pending_total=QUEUE_MAX_PENDING, duplicate_exists=True
+    )
+    assert composed.refusal is shape_refusal(normalise(raw))
+
+
+def test_shape_phase_reads_normalised_text_not_raw() -> None:
+    # Passing raw text to shape_refusal would let a full-width or zero-width
+    # variant through, since only normalise collapses those.
+    raw = "ｈｔｔｐ：／／ｅｖｉｌ．ｃｏｍ"
+    assert shape_refusal(normalise(raw)) is Refusal.LINK

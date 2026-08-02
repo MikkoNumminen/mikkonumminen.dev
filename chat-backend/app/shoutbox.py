@@ -30,7 +30,7 @@ import hashlib
 import re
 import unicodedata
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 # --- limits -----------------------------------------------------------------
 # One block, so the numbers are reviewable without reading the logic. For scale:
@@ -69,7 +69,7 @@ independent of the submit path on purpose: a burst that clears the gate must not
 become a burst of notifications."""
 
 
-class Refusal(str, Enum):
+class Refusal(StrEnum):
     """Why a submission was refused.
 
     A named member per rule, so the red-team suite can assert that a given attack
@@ -184,6 +184,39 @@ def count_links(normalised: str) -> int:
     return len(_LINK_RE.findall(normalised))
 
 
+def shape_refusal(body: str) -> Refusal | None:
+    """Refuse on the text alone. Takes an ALREADY-NORMALISED body.
+
+    Split out from `evaluate` so a caller can run it BEFORE spending anything on
+    the state checks. That is not a micro-optimisation: the state facts cost two
+    database round-trips and a slot of rate budget, and letting an empty
+    submission consume those is exactly the free-flood the limits exist to stop.
+    The handler therefore runs this first and only queries if it passes.
+    """
+    if len(body) < MIN_CHARS:
+        return Refusal.EMPTY
+    if len(body) > MAX_CHARS:
+        return Refusal.TOO_LONG
+    if body.count("\n") + 1 > MAX_LINES:
+        return Refusal.TOO_MANY_LINES
+    if count_links(body) > MAX_LINKS:
+        return Refusal.LINK
+    return None
+
+
+def state_refusal(
+    *, rate_exceeded: bool, pending_total: int, duplicate_exists: bool
+) -> Refusal | None:
+    """Refuse on facts about the world. Only meaningful once the shape passed."""
+    if duplicate_exists:
+        return Refusal.DUPLICATE
+    if rate_exceeded:
+        return Refusal.RATE
+    if pending_total >= QUEUE_MAX_PENDING:
+        return Refusal.QUEUE_FULL
+    return None
+
+
 def evaluate(
     raw: str,
     *,
@@ -211,23 +244,13 @@ def evaluate(
     """
     body = normalise(raw)
 
-    if len(body) < MIN_CHARS:
-        return Verdict(accepted=False, refusal=Refusal.EMPTY)
-    if len(body) > MAX_CHARS:
-        return Verdict(accepted=False, refusal=Refusal.TOO_LONG)
-    if body.count("\n") + 1 > MAX_LINES:
-        return Verdict(accepted=False, refusal=Refusal.TOO_MANY_LINES)
-    if count_links(body) > MAX_LINKS:
-        return Verdict(accepted=False, refusal=Refusal.LINK)
-
-    # State checks last: they depend on the DB, and a malformed submission should
-    # never have reached them.
-    if duplicate_exists:
-        return Verdict(accepted=False, refusal=Refusal.DUPLICATE)
-    if rate_exceeded:
-        return Verdict(accepted=False, refusal=Refusal.RATE)
-    if pending_total >= QUEUE_MAX_PENDING:
-        return Verdict(accepted=False, refusal=Refusal.QUEUE_FULL)
+    refusal = shape_refusal(body) or state_refusal(
+        rate_exceeded=rate_exceeded,
+        pending_total=pending_total,
+        duplicate_exists=duplicate_exists,
+    )
+    if refusal is not None:
+        return Verdict(accepted=False, refusal=refusal)
 
     return Verdict(accepted=True, body=body, body_hash=body_hash(body))
 

@@ -81,6 +81,24 @@ class ShoutRequest(BaseModel):
     body: str = Field(min_length=1, max_length=4000)
 
 
+async def _notify_queue(db: Database, notifier: QueueNotifier, now: float) -> None:
+    """Send the queue digest out of band. Never raises.
+
+    Runs as a detached task so a slow or dead Telegram cannot delay the visitor's
+    confirmation. The queue depth is read here rather than passed in so the digest
+    reports the truth at send time, which after a burst is more useful than the
+    count at the moment one particular message landed.
+    """
+    try:
+        pending = await db.shout_pending_count()
+        if shoutbox.should_notify(pending, notifier.last_sent_at, now):
+            await notifier.send_digest(pending, now)
+    except Exception:
+        # The message is already queued; a failed ping is an operator problem,
+        # never the visitor's.
+        logger.warning("shoutbox queue notification failed", exc_info=True)
+
+
 async def _db_ok(db: Database) -> bool:
     """Cheap liveness probe — a count round-trips through the pool and pgvector."""
     try:
@@ -147,6 +165,10 @@ def create_app() -> FastAPI:
             shoutbox.RATE_MAX, shoutbox.RATE_WINDOW_SECONDS
         )
         app.state.shout_notifier = QueueNotifier(settings.telegram_config)
+        # Strong references to in-flight notification tasks. asyncio only holds a
+        # weak reference to a bare create_task, so without this set a digest can
+        # be garbage-collected mid-send and vanish silently.
+        app.state.shout_notify_tasks = set()
         try:
             yield
         finally:
@@ -332,38 +354,52 @@ def create_app() -> FastAPI:
         db: Database = app.state.db
         now = time.monotonic()
 
-        # The rate check runs against the in-memory limiter; `allow` records the
-        # attempt, so a refused submission still consumes budget. That is
-        # deliberate for a write path — otherwise a flood of refusals is free.
+        def refuse(refusal: shoutbox.Refusal) -> JSONResponse:
+            # 200, not 4xx: an expected conversational outcome carrying a message
+            # the visitor can act on, which the frontend renders inline.
+            return JSONResponse(
+                {"accepted": False, "detail": shoutbox.REFUSAL_TEXT[refusal]}
+            )
+
+        # SHAPE FIRST, and nothing else touched until it passes. The state checks
+        # below cost two database round-trips and a slot of rate budget, so
+        # running them for an empty or oversized submission would hand an attacker
+        # exactly the free flood the limits exist to prevent. Normalised once here
+        # and reused, so the stored text is the text the rules ran against.
+        body = shoutbox.normalise(req.body)
+        shape = shoutbox.shape_refusal(body)
+        if shape is not None:
+            return refuse(shape)
+
+        # Only well-formed submissions spend rate budget. `allow` records the
+        # attempt as it checks, so a well-formed message that is later refused as
+        # a duplicate still costs a slot — deliberate on a write path.
         peer = request.client.host if request.client else None
         key = client_ip(request.headers.get("x-forwarded-for"), peer)
-        rate_ok = app.state.shout_limiter.allow(key, now)
+        rate_exceeded = not app.state.shout_limiter.allow(key, now)
 
-        verdict = shoutbox.evaluate(
-            req.body,
-            rate_exceeded=not rate_ok,
+        state = shoutbox.state_refusal(
+            rate_exceeded=rate_exceeded,
             pending_total=await db.shout_pending_count(),
             duplicate_exists=await db.shout_duplicate_exists(
-                shoutbox.body_hash(shoutbox.normalise(req.body)),
-                shoutbox.DUPLICATE_WINDOW_SECONDS,
+                shoutbox.body_hash(body), shoutbox.DUPLICATE_WINDOW_SECONDS
             ),
         )
-        if not verdict.accepted:
-            # 200, not 4xx: this is an expected conversational outcome with a
-            # message the visitor can act on, and the frontend renders it inline.
-            return JSONResponse({"accepted": False, "detail": verdict.message})
+        if state is not None:
+            return refuse(state)
 
-        assert verdict.body is not None and verdict.body_hash is not None
-        await db.enqueue_shout(verdict.body, verdict.body_hash)
+        await db.enqueue_shout(body, shoutbox.body_hash(body))
 
-        # Notification is best-effort and throttled, and runs AFTER the row is
-        # safely in the queue. A Telegram outage must never turn an accepted
-        # message into a failed submit.
+        # Notification is fire-and-forget, NOT awaited. Awaiting it would make the
+        # visitor wait out the Telegram timeout before their message is confirmed,
+        # which is precisely what "best-effort, never surfaces to the visitor"
+        # was supposed to mean. The task reference is held so it cannot be
+        # garbage-collected mid-flight.
         notifier: QueueNotifier = app.state.shout_notifier
         if notifier.enabled:
-            pending = await db.shout_pending_count()
-            if shoutbox.should_notify(pending, notifier.last_sent_at, now):
-                await notifier.send_digest(pending, now)
+            task = asyncio.create_task(_notify_queue(db, notifier, now))
+            app.state.shout_notify_tasks.add(task)
+            task.add_done_callback(app.state.shout_notify_tasks.discard)
 
         return JSONResponse({"accepted": True})
 
