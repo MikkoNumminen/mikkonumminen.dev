@@ -582,4 +582,11 @@ export const en: Translations = {
     soundOn: 'sound on',
     soundOff: 'sound off',
   },
+  shoutbox: {
+    title: 'messages',
+    empty: 'No messages yet.',
+    replyFrom: 'Mikko',
+    legend: 'Every message is read by a person before it appears here.',
+    threadsAria: 'Published messages',
+  },
 };

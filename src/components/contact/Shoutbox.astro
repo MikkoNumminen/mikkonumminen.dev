@@ -1,0 +1,151 @@
+---
+// The moderated shoutbox, at the foot of the contact page.
+//
+// READ PATH ONLY in this component: it renders messages already approved and
+// published. The submit form is a separate concern and arrives with the write
+// path; this half works whether or not the machine at home is awake, because it
+// reads a committed JSON file from the CDN rather than the backend.
+//
+// SURFACE, and why it is repeated rather than inherited: `.crt` is
+// `min-height: 100vh` with its own radial gradient, and that gradient ENDS at
+// the terminal's bottom edge. Anything appended after it lands on the plain body
+// background (`--color-ink`), so this box has to carry the terminal's border,
+// background and shadow itself or it reads as falling off the page.
+//
+// One component serves both breakpoints. `Terminal` and `MobileContactCard` are
+// both always in the DOM and merely CSS-toggled at 640px, so this sits outside
+// both and only its own width needs to track them.
+import '../../styles/shoutbox.css';
+import { getTranslations } from '../../i18n';
+
+const t = getTranslations(Astro.currentLocale).shoutbox;
+---
+
+<section class="shoutbox" aria-labelledby="shoutbox-title">
+  <div class="shoutbox__card">
+    <header class="shoutbox__chrome">
+      <span class="shoutbox__title" id="shoutbox-title">{t.title}</span>
+    </header>
+
+    <div class="shoutbox__screen">
+      {
+        /*
+        NOT an aria-live region, deliberately. FieldLog.astro records the
+        reasoning: a region that updates on its own clock with no pause control
+        is a WCAG 2.2.2 Level A failure. This list is populated once on load, so
+        a labelled region is the right surface and announcement is not.
+      */
+      }
+      <ol
+        class="shoutbox__threads"
+        data-shoutbox-threads
+        aria-label={t.threadsAria}
+        hidden
+      >
+      </ol>
+
+      {
+        /*
+        The default state. Shown until the snapshot loads AND turns out to have
+        threads, so a missing file, a malformed file and a genuinely empty queue
+        all land here rather than on three different failure paths. The file does
+        not exist at all until the first message is approved.
+      */
+      }
+      <p class="shoutbox__empty" data-shoutbox-empty>{t.empty}</p>
+
+      <p class="shoutbox__legend">{t.legend}</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { onRoute } from '../../lib/lifecycle';
+  import { loadSnapshot, formatThreadDate } from '../../lib/shoutbox/snapshot';
+  import { getTranslations } from '../../i18n';
+
+  onRoute(
+    () => !!document.querySelector('[data-shoutbox-threads]'),
+    () => {
+      const list = document.querySelector<HTMLOListElement>('[data-shoutbox-threads]');
+      const empty = document.querySelector<HTMLParagraphElement>('[data-shoutbox-empty]');
+      if (!list || !empty) return;
+
+      const t = getTranslations(document.documentElement.lang).shoutbox;
+      const controller = new AbortController();
+
+      /**
+       * Build one thread's DOM.
+       *
+       * EVERY visitor-supplied string goes in through `textContent`. Never
+       * `innerHTML`, never `insertAdjacentHTML`, never a template string of
+       * markup. This text was typed by an anonymous stranger into a publicly
+       * addressable endpoint; the backend gate rejects tag-shaped input as a
+       * second layer, but this is the first one and the one that actually has to
+       * hold. `textContent` makes markup impossible rather than filtered.
+       */
+      const renderThread = (thread: {
+        id: number;
+        body: string;
+        at: string;
+        reply: { body: string; at: string } | null;
+      }): HTMLLIElement => {
+        const item = document.createElement('li');
+        item.className = 'shoutbox__thread';
+
+        const stamp = document.createElement('time');
+        stamp.className = 'shoutbox__stamp';
+        const date = formatThreadDate(thread.at);
+        // An unparseable date renders as absent rather than as "Invalid Date".
+        if (date) {
+          stamp.dateTime = date;
+          stamp.textContent = date;
+        }
+        item.append(stamp);
+
+        const body = document.createElement('p');
+        body.className = 'shoutbox__body';
+        body.textContent = thread.body;
+        item.append(body);
+
+        if (thread.reply) {
+          // The owner's reply is visually distinct and attributed, so a visitor
+          // can tell at a glance which half of the thread is mine. It is the
+          // only attributed text here: submissions are anonymous.
+          const reply = document.createElement('div');
+          reply.className = 'shoutbox__reply';
+
+          const who = document.createElement('span');
+          who.className = 'shoutbox__reply-who';
+          who.textContent = t.replyFrom;
+          reply.append(who);
+
+          const replyBody = document.createElement('p');
+          replyBody.className = 'shoutbox__body';
+          replyBody.textContent = thread.reply.body;
+          reply.append(replyBody);
+
+          item.append(reply);
+        }
+
+        return item;
+      };
+
+      void loadSnapshot().then((snapshot) => {
+        if (controller.signal.aborted) return;
+        // No snapshot, an unreadable one, or one with nothing in it all leave
+        // the empty state exactly as rendered. Nothing to undo, nothing to
+        // explain, and no spinner was ever shown to have to clear.
+        if (!snapshot || snapshot.threads.length === 0) return;
+
+        const frame = document.createDocumentFragment();
+        for (const thread of snapshot.threads) frame.append(renderThread(thread));
+        list.append(frame);
+        list.hidden = false;
+        empty.hidden = true;
+      });
+
+      return () => controller.abort();
+    },
+  );
+</script>

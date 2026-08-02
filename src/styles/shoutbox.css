@@ -1,0 +1,134 @@
+/* Moderated shoutbox, foot of the contact page.
+ *
+ * The surface deliberately repeats `.terminal`'s treatment rather than sharing a
+ * class with it. `.crt` is `min-height: 100vh` and carries its own radial
+ * gradient which ends at the terminal's bottom edge, so this box sits on the
+ * plain body background and must bring the border, fill and shadow itself.
+ * Height is auto, not the terminal's `100dvh` calc: that value exists because
+ * the terminal owns the viewport, and this does not. */
+
+.shoutbox {
+  position: relative;
+  z-index: 4;
+  padding: 0 0 5rem;
+}
+
+.shoutbox__card {
+  width: min(960px, 92vw);
+  margin: 0 auto;
+  border: 1px solid rgba(74, 222, 128, 0.22);
+  border-radius: 14px;
+  background: rgba(3, 10, 6, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(74, 222, 128, 0.05),
+    0 0 60px rgba(74, 222, 128, 0.12),
+    0 25px 80px -20px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  color: var(--color-term-fg);
+}
+
+.shoutbox__chrome {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid rgba(74, 222, 128, 0.18);
+  background: linear-gradient(to bottom, rgba(74, 222, 128, 0.06), rgba(74, 222, 128, 0));
+}
+
+.shoutbox__title {
+  color: rgba(181, 245, 200, 0.75);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.shoutbox__screen {
+  padding: 1.25rem 1.5rem 1.5rem;
+  font-size: clamp(0.85rem, 1.6vw, 0.95rem);
+  line-height: 1.55;
+}
+
+.shoutbox__threads {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.shoutbox__thread {
+  padding: 0 0 1.25rem;
+  margin: 0 0 1.25rem;
+  border-bottom: 1px dashed rgba(74, 222, 128, 0.12);
+}
+
+.shoutbox__thread:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+.shoutbox__stamp {
+  display: block;
+  color: var(--color-term-dim);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+/* `pre-wrap` keeps the paragraph breaks the gate allows (up to 12 lines) without
+ * letting a long unbroken string push the card wider than the page. */
+.shoutbox__body {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The owner's reply. The only attributed text in the box: submissions are
+ * anonymous, so the visual distinction always means "this half is Mikko". */
+.shoutbox__reply {
+  margin: 0.85rem 0 0 1rem;
+  padding: 0 0 0 0.85rem;
+  border-left: 2px solid rgba(74, 222, 128, 0.35);
+}
+
+.shoutbox__reply-who {
+  color: var(--color-term-green);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+}
+
+.shoutbox__empty {
+  margin: 0;
+  color: var(--color-term-dim);
+}
+
+.shoutbox__empty[hidden],
+.shoutbox__threads[hidden] {
+  display: none;
+}
+
+/* Matches the Technologies-box legend: a closing footnote above a hairline,
+ * translated into the contact page's green palette (the dashed 0.15-alpha rule
+ * the terminal's hints row uses). */
+.shoutbox__legend {
+  margin: 1.25rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px dashed rgba(74, 222, 128, 0.15);
+  color: var(--color-term-dim);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+  .shoutbox {
+    padding-bottom: 3rem;
+  }
+
+  /* Tracks `.mcc__card`, which is the content column at this width. */
+  .shoutbox__card {
+    width: min(560px, 96vw);
+    border-radius: 12px;
+  }
+
+  .shoutbox__screen {
+    padding: 1rem 1rem 1.25rem;
+    font-size: 0.85rem;
+  }
+}
