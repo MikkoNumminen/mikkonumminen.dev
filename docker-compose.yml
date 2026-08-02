@@ -93,6 +93,12 @@ services:
       # Read by app/config.py; `ragctl english on|off` flips it via the repo .env.
       # Default on — without this line the container can't see the toggle at all.
       FORCE_ENGLISH: ${FORCE_ENGLISH:-1}
+      # Shoutbox (contact page). Default OFF: POST /shout 404s until switched on,
+      # because the funnel exposes every route the moment the stack is up. Without
+      # these three lines the container can't see the toggle or the notifier at all.
+      SHOUTBOX_ENABLED: ${SHOUTBOX_ENABLED:-0}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       # EXPERIMENTAL (default off): answer Finnish-looking questions in Finnish
       # instead of forcing English. Off keeps English-only behavior. Without this
       # line the container can't see the toggle at all.

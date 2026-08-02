@@ -90,6 +90,23 @@ def _get_bool(name: str, default: bool) -> bool:
 
 
 @dataclass(frozen=True)
+class TelegramConfig:
+    """Queue-notification credentials.
+
+    Lives here rather than in `notify.py` so this module stays stdlib-only, as
+    the docstring above promises — `notify` imports httpx, and pulling that in
+    would mean config could no longer be unit-tested on its own.
+    """
+
+    token: str
+    chat_id: str
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.token and self.chat_id)
+
+
+@dataclass(frozen=True)
 class Settings:
     """Resolved runtime configuration. Construct via `Settings.from_env()`."""
 
@@ -145,6 +162,17 @@ class Settings:
     # in-message directive (see prompts.build_messages). Toggle via `ragctl
     # english on|off`.
     force_english: bool
+    # Shoutbox (contact page). DEFAULT OFF: `POST /shout` returns 404 until this
+    # is deliberately switched on, because the Tailscale Funnel makes every route
+    # here publicly addressable the moment the stack is up. A feature that accepts
+    # anonymous writes should not appear just because someone pulled and rebuilt.
+    shoutbox_enabled: bool
+    # Queue notification. Both must be set or the notifier is a no-op — the same
+    # "empty means off" convention as RAG_LOG_FILE, so a fresh clone and CI get
+    # silence rather than a crash. Informational only; there are no action links,
+    # so a leaked token cannot moderate anything.
+    telegram_bot_token: str
+    telegram_chat_id: str
     # EXPERIMENTAL (default OFF): when on, a Finnish-looking query (guardrails.
     # looks_finnish) is answered IN FINNISH instead of being forced to English —
     # force_english is dropped for that request and a positive Finnish closing
@@ -296,6 +324,9 @@ class Settings:
             llm_temperature=_get_float("LLM_TEMPERATURE", 0.4),
             llm_num_predict=_get_int("LLM_NUM_PREDICT", 1024),
             force_english=_get_bool("FORCE_ENGLISH", True),
+            shoutbox_enabled=_get_bool("SHOUTBOX_ENABLED", False),
+            telegram_bot_token=_get_str("TELEGRAM_BOT_TOKEN", ""),
+            telegram_chat_id=_get_str("TELEGRAM_CHAT_ID", ""),
             rag_allow_finnish=_get_bool("RAG_ALLOW_FINNISH", False),
             rag_translate_retrieval=_get_bool("RAG_TRANSLATE_RETRIEVAL", False),
             progressive_disclosure_enabled=_get_bool(
@@ -333,6 +364,20 @@ class Settings:
         )
         settings.validate()
         return settings
+
+    @property
+    def telegram_config(self) -> TelegramConfig | None:
+        """The notifier's config, or None when either half is unset.
+
+        A property rather than a field so there is exactly one place that decides
+        what "configured" means, and `QueueNotifier` cannot be handed a half-set
+        pair that fails at send time instead of at startup.
+        """
+        if not (self.telegram_bot_token and self.telegram_chat_id):
+            return None
+        return TelegramConfig(
+            token=self.telegram_bot_token, chat_id=self.telegram_chat_id
+        )
 
     def validate(self) -> None:
         """Fail fast on a configuration that can only misbehave at runtime."""

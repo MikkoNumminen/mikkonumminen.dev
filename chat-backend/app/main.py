@@ -26,6 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from . import shoutbox
 from .config import Settings
 from .db import Database, apply_schema
 from .embeddings import Embedder
@@ -34,6 +35,7 @@ from .health_cache import CachedFlag
 from .llm import LLMClient
 from .memory import SessionMemory
 from .middleware import BodySizeLimitMiddleware
+from .notify import QueueNotifier
 from .pipeline import chat_event_stream
 from .ratelimit import RateLimiter, client_ip, is_exempt_local
 from .request_log import build_request_logger
@@ -70,6 +72,13 @@ class ChatRequest(BaseModel):
 
 class ResetRequest(BaseModel):
     session_id: str = Field(min_length=1, max_length=200)
+
+
+class ShoutRequest(BaseModel):
+    # A loose Pydantic backstop only. The operative cap is `shoutbox.MAX_CHARS`,
+    # applied by the gate — same split as ChatRequest, so the real limit stays one
+    # tunable number rather than being spread across two layers that can drift.
+    body: str = Field(min_length=1, max_length=4000)
 
 
 async def _db_ok(db: Database) -> bool:
@@ -131,6 +140,13 @@ def create_app() -> FastAPI:
             settings.memory_max_sessions,
             settings.memory_ttl_seconds,
         )
+        # Shoutbox: a rate limiter of its own, tighter than the chat guard because
+        # this path writes. In-memory, like the chat limiter — no visitor address
+        # is ever persisted, which is what keeps the queue genuinely anonymous.
+        app.state.shout_limiter = RateLimiter(
+            shoutbox.RATE_MAX, shoutbox.RATE_WINDOW_SECONDS
+        )
+        app.state.shout_notifier = QueueNotifier(settings.telegram_config)
         try:
             yield
         finally:
@@ -297,6 +313,59 @@ def create_app() -> FastAPI:
         # already apply via the middleware; no new auth surface.
         app.state.memory.reset(req.session_id)
         return JSONResponse({"ok": True})
+
+    @app.post("/shout")
+    async def submit_shout(req: ShoutRequest, request: Request) -> JSONResponse:
+        # Submit a message to the moderation queue. NOTHING here publishes: an
+        # accepted submission is `pending` until the owner approves it from
+        # ragctl, and the public site reads a committed snapshot rather than this
+        # database at all.
+        #
+        # This endpoint is PUBLICLY ADDRESSABLE and unauthenticated. The Tailscale
+        # Funnel proxies `/` to this app, and the funnel hostname is published in
+        # vercel.json — so being absent from the site's rewrite list hides nothing.
+        # The gate below is the whole defence, which is why it is a pure function
+        # with its own adversarial suite rather than a few inline `if`s.
+        if not app.state.settings.shoutbox_enabled:
+            return JSONResponse({"detail": "shoutbox is closed"}, status_code=404)
+
+        db: Database = app.state.db
+        now = time.monotonic()
+
+        # The rate check runs against the in-memory limiter; `allow` records the
+        # attempt, so a refused submission still consumes budget. That is
+        # deliberate for a write path — otherwise a flood of refusals is free.
+        peer = request.client.host if request.client else None
+        key = client_ip(request.headers.get("x-forwarded-for"), peer)
+        rate_ok = app.state.shout_limiter.allow(key, now)
+
+        verdict = shoutbox.evaluate(
+            req.body,
+            rate_exceeded=not rate_ok,
+            pending_total=await db.shout_pending_count(),
+            duplicate_exists=await db.shout_duplicate_exists(
+                shoutbox.body_hash(shoutbox.normalise(req.body)),
+                shoutbox.DUPLICATE_WINDOW_SECONDS,
+            ),
+        )
+        if not verdict.accepted:
+            # 200, not 4xx: this is an expected conversational outcome with a
+            # message the visitor can act on, and the frontend renders it inline.
+            return JSONResponse({"accepted": False, "detail": verdict.message})
+
+        assert verdict.body is not None and verdict.body_hash is not None
+        await db.enqueue_shout(verdict.body, verdict.body_hash)
+
+        # Notification is best-effort and throttled, and runs AFTER the row is
+        # safely in the queue. A Telegram outage must never turn an accepted
+        # message into a failed submit.
+        notifier: QueueNotifier = app.state.shout_notifier
+        if notifier.enabled:
+            pending = await db.shout_pending_count()
+            if shoutbox.should_notify(pending, notifier.last_sent_at, now):
+                await notifier.send_digest(pending, now)
+
+        return JSONResponse({"accepted": True})
 
     @app.get("/usage")
     async def usage(hours: int = Query(default=24, ge=1, le=168)) -> JSONResponse:

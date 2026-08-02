@@ -587,3 +587,108 @@ class Database:
             list(tokens),
         )
         return {row["token"]: row["value"] for row in rows}
+
+    # --- shoutbox ----------------------------------------------------------
+    #
+    # The first visitor-written content this backend stores. Three columns are
+    # deliberately absent (ip, author, a rejected status) — see
+    # sql/005_shoutbox.sql for why. Rejecting DELETEs, so there is no purge job
+    # to forget to write.
+
+    async def shout_duplicate_exists(self, body_hash: str, window_seconds: int) -> bool:
+        """Has this exact text been submitted inside the window?
+
+        Keys on the text hash, never on the sender, so it needs no identity to
+        work. The window is computed server-side so it never trusts a client
+        clock. Approved rows count too: re-sending a message that is already
+        published is still a duplicate.
+        """
+        row = await self._pool.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM shout_queue "
+            "WHERE body_hash = $1 AND created_at > now() - make_interval(secs => $2))",
+            body_hash,
+            window_seconds,
+        )
+        return bool(row)
+
+    async def shout_pending_count(self) -> int:
+        """Queue depth, for the backpressure limit and the notification digest."""
+        row = await self._pool.fetchval(
+            "SELECT count(*) FROM shout_queue WHERE status = 'pending'"
+        )
+        return int(row or 0)
+
+    async def enqueue_shout(self, body: str, body_hash: str) -> int:
+        """Insert a gated submission and return its id.
+
+        The id is a small integer because the moderator types it by hand
+        (`approve 7`). The caller has already run the gate; this method does not
+        re-validate, so it must never be reachable from anywhere the gate is not.
+        """
+        row = await self._pool.fetchval(
+            "INSERT INTO shout_queue (body, body_hash) VALUES ($1, $2) RETURNING id",
+            body,
+            body_hash,
+        )
+        return int(row)
+
+    async def list_pending_shouts(self, limit: int = 50) -> list[asyncpg.Record]:
+        """Oldest first — the queue is worked front to back."""
+        return list(
+            await self._pool.fetch(
+                "SELECT id, body, created_at FROM shout_queue "
+                "WHERE status = 'pending' ORDER BY created_at ASC LIMIT $1",
+                limit,
+            )
+        )
+
+    async def approve_shout(self, shout_id: int) -> bool:
+        """Mark one pending message approved. False if it was not pending.
+
+        Guarded on `status = 'pending'` rather than id alone so approving twice
+        is a no-op that reports honestly instead of silently rewriting
+        `approved_at`.
+        """
+        result = await self._pool.execute(
+            "UPDATE shout_queue SET status = 'approved', approved_at = now() "
+            "WHERE id = $1 AND status = 'pending'",
+            shout_id,
+        )
+        return str(result).endswith(" 1")
+
+    async def reject_shout(self, shout_id: int) -> bool:
+        """DELETE the row. False if there was nothing to delete.
+
+        Deliberately destructive: content the owner declined to publish does not
+        sit on disk waiting for a retention sweep that might never be written.
+        There is no undo, which is the accepted cost of that.
+        """
+        result = await self._pool.execute(
+            "DELETE FROM shout_queue WHERE id = $1", shout_id
+        )
+        return str(result).endswith(" 1")
+
+    async def reply_to_shout(self, shout_id: int, reply: str) -> bool:
+        """Attach the owner's reply. Only to an APPROVED message.
+
+        The status guard is the owner-only path the brief asked for: a reply
+        cannot conjure a published thread out of a pending one, so replying can
+        never publish a message that was not approved on its own merits.
+        """
+        result = await self._pool.execute(
+            "UPDATE shout_queue SET reply = $2, replied_at = now() "
+            "WHERE id = $1 AND status = 'approved'",
+            shout_id,
+            reply,
+        )
+        return str(result).endswith(" 1")
+
+    async def list_approved_shouts(self, limit: int = 200) -> list[asyncpg.Record]:
+        """Newest first — the snapshot's order, so the generator does not sort."""
+        return list(
+            await self._pool.fetch(
+                "SELECT id, body, approved_at, reply, replied_at FROM shout_queue "
+                "WHERE status = 'approved' ORDER BY approved_at DESC LIMIT $1",
+                limit,
+            )
+        )
