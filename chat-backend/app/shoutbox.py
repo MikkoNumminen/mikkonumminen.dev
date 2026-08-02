@@ -81,6 +81,7 @@ class Refusal(StrEnum):
     TOO_LONG = "too_long"
     TOO_MANY_LINES = "too_many_lines"
     LINK = "link"
+    MARKUP = "markup"
     DUPLICATE = "duplicate"
     RATE = "rate"
     QUEUE_FULL = "queue_full"
@@ -94,6 +95,7 @@ REFUSAL_TEXT: dict[Refusal, str] = {
     Refusal.TOO_LONG: f"That is over {MAX_CHARS} characters. Trim it a little.",
     Refusal.TOO_MANY_LINES: f"That is more than {MAX_LINES} lines. Tighten it up.",
     Refusal.LINK: "Links are not accepted here. Say it in words instead.",
+    Refusal.MARKUP: "That looks like HTML. Write it as plain text instead.",
     Refusal.DUPLICATE: "That message is already waiting for review.",
     Refusal.RATE: "That is a few too many at once. Try again in a few minutes.",
     Refusal.QUEUE_FULL: "The queue is full right now. Try again later.",
@@ -134,6 +136,22 @@ _LINK_RE = re.compile(
           \b )
     """
 )
+
+# A tag-open, defined the way an HTML parser defines one: `<` or `</` IMMEDIATELY
+# followed by a letter, no whitespace. That is not pedantry — `< script >` is not
+# a tag to any browser, it is text, so rejecting it would refuse safe writing
+# while modelling the threat wrongly. `a < b`, `5 > 3` and `x <- y` all pass for
+# the same reason.
+#
+# WHY THE GATE REJECTS MARKUP AT ALL, when the renderer is the real defence:
+# this text is stored, published into a committed JSON file, and rendered on a
+# page. The correct fix is that the renderer uses textContent and never
+# innerHTML — but that renderer is a different commit in a different language,
+# and "the gate is the whole defence" is the sentence this feature is built on.
+# A stored `<script>` that is only ever inert because one component got one
+# property right is a single-layer bet. This is the second layer, and it costs a
+# regex.
+_TAG_RE = re.compile(r"</?[a-zA-Z]")
 
 # Zero-width and bidi controls. Stripped before every other check: they let one
 # visual string carry a different byte sequence, which would otherwise defeat the
@@ -201,6 +219,8 @@ def shape_refusal(body: str) -> Refusal | None:
         return Refusal.TOO_MANY_LINES
     if count_links(body) > MAX_LINKS:
         return Refusal.LINK
+    if _TAG_RE.search(body):
+        return Refusal.MARKUP
     return None
 
 

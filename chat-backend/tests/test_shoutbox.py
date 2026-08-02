@@ -292,3 +292,44 @@ def test_shape_phase_reads_normalised_text_not_raw() -> None:
     # variant through, since only normalise collapses those.
     raw = "ｈｔｔｐ：／／ｅｖｉｌ．ｃｏｍ"
     assert shape_refusal(normalise(raw)) is Refusal.LINK
+
+
+# --- markup, the second layer under the renderer ----------------------------
+
+
+def test_tag_shaped_markup_is_refused() -> None:
+    # This text is stored, committed into a public JSON file, and rendered on a
+    # page. The renderer using textContent is the real defence; this is the layer
+    # that does not depend on a component in another language getting one
+    # property right.
+    for raw in (
+        "<script>alert(1)</script>",
+        "<img src=x onerror=alert(1)>",
+        "<b>bold</b>",
+        "</div>",
+        "<SVG onload=alert(1)>",
+    ):
+        assert evaluate(raw, **CLEAN).refusal is Refusal.MARKUP, raw
+
+
+def test_ordinary_comparisons_and_arrows_are_not_markup() -> None:
+    # The rule is "< followed by a letter", not "contains an angle bracket", so
+    # normal writing survives.
+    for raw in (
+        "a < b and c > d",
+        "5 > 3",
+        "x <- y",
+        "1 <= 2",
+        "he said <-- that way",
+        "cost < 100 euros",
+        "< script >",  # not a tag to any parser: whitespace after <
+    ):
+        v = evaluate(raw, **CLEAN)
+        assert v.accepted, f"{raw} -> {v.refusal}"
+
+
+def test_markup_is_caught_after_normalisation_not_before() -> None:
+    # A full-width or zero-width-padded tag renders as a tag but is different
+    # bytes, so the check must run on the normalised text.
+    assert evaluate("＜script＞", **CLEAN).refusal is Refusal.MARKUP
+    assert evaluate("<scr\u200bipt>", **CLEAN).refusal is Refusal.MARKUP
