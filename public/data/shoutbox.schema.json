@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Published shoutbox snapshot",
+  "description": "Approved messages and owner replies, written by `ragctl approve` / `ragctl publish` and committed. The site fetches this from the CDN at runtime; it never reads the backend. Contains only what is published: no author, no IP, no session id, no moderation state. NOTE: `id`, `count` and `version` are whole numbers but are typed `number`, not `integer` — scripts/lib/validate-json-schema.mjs is dependency-free and knows only JS typeof results, so `integer` fails every valid file. Same convention as skills-registry.schema.json.",
+  "type": "object",
+  "required": ["version", "generated_at", "count", "threads"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "Shape version. The reader refuses anything it does not recognise and falls back to the empty state, rather than half-rendering a structure whose meaning changed.",
+      "type": "number",
+      "const": 1
+    },
+    "generated_at": {
+      "description": "ISO 8601, stamped when the snapshot was written.",
+      "type": "string"
+    },
+    "count": {
+      "description": "Must equal threads.length. A mismatch means a truncated or hand-edited file, which the runtime guard also rejects.",
+      "type": "number",
+      "minimum": 0
+    },
+    "threads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "body", "at", "reply"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "The queue row id, as typed into `ragctl approve`.",
+            "type": "number"
+          },
+          "body": {
+            "description": "The visitor's message, normalised by the gate. Rendered with textContent, never as markup.",
+            "type": "string"
+          },
+          "at": {
+            "description": "ISO 8601 approval time. Rendered as a date only.",
+            "type": "string"
+          },
+          "reply": {
+            "description": "The owner's reply, or null. Null far more often than not.",
+            "type": ["object", "null"],
+            "required": ["body", "at"],
+            "additionalProperties": false,
+            "properties": {
+              "body": { "type": "string" },
+              "at": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Terminal from '../components/contact/Terminal.astro';
 import MobileContactCard from '../components/contact/MobileContactCard.astro';
+import Shoutbox from '../components/contact/Shoutbox.astro';
 import { asLocale, getTranslations } from '../i18n';
 
 const locale = asLocale(Astro.currentLocale);
@@ -16,6 +17,7 @@ const t = getTranslations(locale);
 >
   <Terminal />
   <MobileContactCard />
+  <Shoutbox />
 </BaseLayout>
 
 <script>

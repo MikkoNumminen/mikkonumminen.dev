@@ -357,4 +357,21 @@ export interface Translations {
     soundOn: string;
     soundOff: string;
   };
+  /**
+   * The moderated shoutbox at the foot of the contact page. Finnish is the
+   * source language for this block — it was written in Finnish and mirrored to
+   * English, not the other way round.
+   */
+  shoutbox: {
+    /** Box title, in the terminal chrome. */
+    title: string;
+    /** Shown when no message has been approved yet. Not an error. */
+    empty: string;
+    /** Attribution on the owner's own replies. */
+    replyFrom: string;
+    /** Closing legend, in the Technologies-box register. */
+    legend: string;
+    /** Accessible name for the thread list region. */
+    threadsAria: string;
+  };
 }

@@ -585,4 +585,11 @@ export const fi: Translations = {
     soundOn: 'ääni päällä',
     soundOff: 'ääni pois',
   },
+  shoutbox: {
+    title: 'viestit',
+    empty: 'Ei vielä yhtään viestiä.',
+    replyFrom: 'Mikko',
+    legend: 'Jokaisen viestin lukee ihminen ennen kuin se näkyy täällä.',
+    threadsAria: 'Julkaistut viestit',
+  },
 };
