@@ -96,22 +96,59 @@ export function parseSnapshot(raw: unknown): Snapshot | null {
 }
 
 /**
+ * Share one in-flight or recent fetch across visits, mirroring `skills.ts`.
+ *
+ * `onRoute` re-mounts the box on every client-side navigation, so without this a
+ * visitor going contact -> home -> contact re-fetches each time. 60s is long
+ * enough to cover that and short enough that a fresh deploy shows up on reload.
+ *
+ * `loadedAt` is stamped at RESOLUTION, not at fetch start: stamping it earlier
+ * would shorten the effective TTL by the fetch's own latency. It stays null
+ * while in flight, so concurrent callers share the one request.
+ */
+const CACHE_TTL_MS = 60_000;
+let cache: { promise: Promise<Snapshot | null>; loadedAt: number | null } | null = null;
+
+/** Test seam: the cache is module state and would otherwise leak between tests. */
+export function resetSnapshotCache(): void {
+  cache = null;
+}
+
+/**
  * Fetch and validate the snapshot. Never throws, never logs.
  *
  * A missing file is the NORMAL state until the first message is approved, so a
  * 404 is not an error worth surfacing — it renders the empty box, exactly as the
  * skills registry does before its file exists.
+ *
+ * NO AbortSignal, deliberately. The obvious instinct is to cancel this when the
+ * visitor navigates away, and it is wrong here: the response is a small file the
+ * next visit wants, and aborting a promise that is shared through the cache above
+ * would poison it for every other caller. The component guards its own
+ * `.then` with an abort check instead, so a late resolution touches no detached
+ * DOM. `cache: 'no-store'` keeps the CDN copy authoritative; the TTL is the only
+ * thing doing any caching.
  */
 export async function loadSnapshot(
   fetchImpl: typeof fetch = fetch,
 ): Promise<Snapshot | null> {
-  try {
-    const res = await fetchImpl(SNAPSHOT_PATH, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return parseSnapshot(await res.json());
-  } catch {
-    return null;
+  if (cache && (cache.loadedAt === null || Date.now() - cache.loadedAt < CACHE_TTL_MS)) {
+    return cache.promise;
   }
+  const promise = (async () => {
+    try {
+      const res = await fetchImpl(SNAPSHOT_PATH, { cache: 'no-store' });
+      if (!res.ok) return null;
+      return parseSnapshot(await res.json());
+    } catch {
+      return null;
+    }
+  })();
+  cache = { promise, loadedAt: null };
+  void promise.then(() => {
+    if (cache?.promise === promise) cache.loadedAt = Date.now();
+  });
+  return promise;
 }
 
 /**
@@ -121,6 +158,13 @@ export async function loadSnapshot(
  * timestamp on an anonymous message invites reading something into when it was
  * sent. Returns '' for anything unparseable rather than the string `Invalid
  * Date`, so a bad value renders as absent instead of as visible breakage.
+ *
+ * UTC, not the visitor's local date, and that is a real trade rather than an
+ * oversight: a message approved at 01:30 Helsinki time shows the previous day.
+ * The alternative makes the rendered date depend on where the reader is sitting,
+ * which also makes these tests depend on the machine's timezone — CI runs UTC and
+ * this laptop does not. One deterministic date everywhere is worth more than
+ * being right about midnight for a date-only stamp.
  */
 export function formatThreadDate(iso: string): string {
   const parsed = new Date(iso);

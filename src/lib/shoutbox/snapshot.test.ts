@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   SUPPORTED_VERSION,
   formatThreadDate,
   loadSnapshot,
   parseSnapshot,
+  resetSnapshotCache,
 } from './snapshot';
 
 /**
@@ -115,6 +116,9 @@ describe('parseSnapshot', () => {
 });
 
 describe('loadSnapshot', () => {
+  // Module-level cache; without this each test would see the previous one's result.
+  beforeEach(resetSnapshotCache);
+
   it('returns null on a 404, which is the state before the first approval', async () => {
     const fetchImpl = (async () =>
       new Response('', { status: 404 })) as unknown as typeof fetch;
@@ -153,5 +157,57 @@ describe('formatThreadDate', () => {
     for (const bad of ['', 'yesterday', 'not-a-date']) {
       expect(formatThreadDate(bad)).toBe('');
     }
+  });
+});
+
+describe('loadSnapshot caching', () => {
+  beforeEach(resetSnapshotCache);
+
+  it('shares one request across repeat visits', async () => {
+    // onRoute re-mounts the box on every client-side navigation, so contact ->
+    // home -> contact would otherwise be three fetches of the same small file.
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls += 1;
+      return new Response(JSON.stringify(valid), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await loadSnapshot(fetchImpl);
+    await loadSnapshot(fetchImpl);
+    await loadSnapshot(fetchImpl);
+    expect(calls).toBe(1);
+  });
+
+  it('shares an in-flight request rather than starting a second', async () => {
+    let calls = 0;
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const fetchImpl = (async () => {
+      calls += 1;
+      await gate;
+      return new Response(JSON.stringify(valid), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const a = loadSnapshot(fetchImpl);
+    const b = loadSnapshot(fetchImpl);
+    release?.();
+    await Promise.all([a, b]);
+    expect(calls).toBe(1);
+  });
+
+  it('caches a null result too, so a 404 is not re-fetched on every visit', async () => {
+    // Absent is the normal state until the first approval; hammering the CDN for
+    // a file that is not there yet is the common case, not the rare one.
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls += 1;
+      return new Response('', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    expect(await loadSnapshot(fetchImpl)).toBeNull();
+    expect(await loadSnapshot(fetchImpl)).toBeNull();
+    expect(calls).toBe(1);
   });
 });
