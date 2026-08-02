@@ -1394,17 +1394,31 @@ def _moderate(action: str, shout_id: int = 0, text: str = "") -> dict:
     stdout is JSON by contract, but a container that is down prints docker's error
     instead, so a parse failure is reported as such rather than raising.
     """
-    cmd = COMPOSE + ["exec", "-T", "backend", "python", "-m", "app.moderate", action]
+    # `--` so a reply beginning with a dash is a positional argument and not an
+    # unknown option. Without it, `reply 7 "-- nice work"` dies in argparse
+    # inside the container with an error the operator never asked for.
+    cmd = COMPOSE + [
+        "exec", "-T", "backend", "python", "-m", "app.moderate", action, "--"
+    ]
     if shout_id:
         cmd.append(str(shout_id))
     if text:
         cmd.append(text)
     rc, out = run(cmd, timeout=30, cwd=REPO)
-    try:
-        # docker may prefix warnings, so take the payload from the first brace.
-        return json.loads(out[out.index("{") :])
-    except (ValueError, json.JSONDecodeError):
-        return {"ok": False, "error": out.strip() or f"exit {rc} with no output"}
+    # `run` concatenates stdout and stderr, and docker writes its own warnings
+    # there, so the first `{` is not reliably the payload. Try each brace and
+    # take the first that decodes as a complete object.
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(out):
+        if ch != "{":
+            continue
+        try:
+            parsed, _ = decoder.raw_decode(out[i:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict) and "ok" in parsed:
+            return parsed
+    return {"ok": False, "error": out.strip() or f"exit {rc} with no output"}
 
 
 def _write_snapshot() -> int:
