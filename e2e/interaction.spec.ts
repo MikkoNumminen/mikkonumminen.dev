@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { HEALTH_PATTERN, SHOUT_PATTERN, stubChatHealth } from './support/chat-backend';
 
 // Interaction-level coverage for the two things scenes.spec.ts never exercises:
 // the terminal actually running a scripted command, and the shoutbox actually
@@ -24,6 +25,14 @@ test.use({ locale: 'en-US' });
 test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
 test.describe('terminal: scripted commands', () => {
+  // Scripted-only is the state these two measure, so the backend answers
+  // "reachable, model not up" for both. That is the same verdict the old
+  // no-URL-in-the-bundle build produced, reached through the gate that actually
+  // runs in production rather than through dead-code elimination.
+  test.beforeEach(async ({ page }) => {
+    await stubChatHealth(page, { llm: false });
+  });
+
   test('typing "whoami" and submitting renders the scripted output', async ({ page }) => {
     await page.goto('/contact');
 
@@ -62,9 +71,9 @@ test.describe('terminal: scripted commands', () => {
   test('an unrecognized command falls through to the scripted "not found" line', async ({
     page,
   }) => {
-    // No chat backend is baked into this build (PUBLIC_CHAT_API_URL unset), so
-    // unrecognized input can never route to the model — it always hits the
-    // "command not found" path in src/lib/terminal/dispatch.ts. That gate is
+    // The backend is configured but reports its model down, so `isChatAvailable()`
+    // resolves false and unrecognized input cannot route to the model — it hits
+    // the "command not found" path in src/lib/terminal/dispatch.ts. That gate is
     // exactly what this test pins.
     await page.goto('/contact');
 
@@ -88,33 +97,18 @@ test.describe('terminal: scripted commands', () => {
 //
 // The write half of Shoutbox.astro is gated on `isChatAvailable()`
 // (src/lib/terminal/chat.ts), which is gated in turn on the build-time
-// `PUBLIC_CHAT_API_URL` env var (src/env.d.ts). That var is unset in this
-// repo's CI build (.github/workflows/e2e.yml runs a plain `npm run build`),
-// so `getChatBaseUrl()` compiles down to a hard `null` and `isChatAvailable()`
-// resolves `false` WITHOUT EVER CALLING FETCH — no request to mock, no way to
-// reach the form. Verified directly: `npm run build` without the env var
-// produces a bundle with no reference to PUBLIC_CHAT_API_URL at all (fully
-// dead-code-eliminated), while `PUBLIC_CHAT_API_URL=/api/rag npm run build`
-// bakes the literal `/api/rag` path into `dist/_astro/chat.*.js`.
+// `PUBLIC_CHAT_API_URL` env var (src/env.d.ts). With that var unset,
+// `getChatBaseUrl()` compiles down to a hard `null` and `isChatAvailable()`
+// resolves false WITHOUT EVER CALLING FETCH — no request to mock, no way to
+// reach the form. These two tests were therefore written to detect the missing
+// form and `test.skip` with a reason, which meant the site's only public write
+// endpoint had no CI coverage at all: the tests announced their own absence and
+// the run stayed green.
 //
-// So in the CI/default build, the two tests below correctly detect the form
-// never unhiding and skip with an explicit, visible reason — they do not
-// silently pass. Built locally with `PUBLIC_CHAT_API_URL=/api/rag` set (the
-// same relative path production uses per ADR 0012 / LAUNCH.md), the identical
-// spec exercises the real request the browser sends and the real rendered
-// outcome; that is how this file was verified before being left in its
-// CI-default (skip-with-reason) state. See the task report for the verbatim
-// proof run against that build.
-const HEALTH_PATTERN = '**/api/rag/health';
-const SHOUT_PATTERN = '**/api/rag/shout';
-
-const NO_BACKEND_SKIP_REASON =
-  'PUBLIC_CHAT_API_URL is not baked into this build, so getChatBaseUrl() ' +
-  'returns null and isChatAvailable() never calls fetch — the shoutbox write ' +
-  'form stays hidden by design (src/lib/terminal/chat.ts, Shoutbox.astro) and ' +
-  '/shout is unreachable from this build. Verified real (not silent): the same ' +
-  'test passes when built with PUBLIC_CHAT_API_URL=/api/rag, see the task report.';
-
+// The build is now made with the var set (playwright.config.ts), which is also
+// how production is built (ADR 0012 / LAUNCH.md) — so the skip is gone and the
+// form's appearance is a hard assertion. If the var ever falls out of the e2e
+// build again these fail loudly instead of quietly excusing themselves.
 interface CapturedRequest {
   method: string;
   contentType: string | null;
@@ -122,28 +116,22 @@ interface CapturedRequest {
 }
 
 /**
- * Fake the backend `/health` (always available) and `/shout` (fixed response)
- * and wait for the write form to unhide. Returns whether it did, plus every
- * `/shout` request the browser actually sent — real method/headers/body, not
- * what the test *assumes* `submitShout` builds.
+ * Fake the backend `/health` (awake) and `/shout` (fixed response), then wait
+ * for the write form to unhide. Returns every `/shout` request the browser
+ * actually sent — real method/headers/body, not what the test *assumes*
+ * `submitShout` builds.
+ *
+ * The wait is an assertion, not a probe: an awake backend MUST reveal the form,
+ * so failing to is a product or build-config regression and belongs in the
+ * report as a failure.
  */
 async function primeShoutboxBackend(
   page: Page,
   shoutBody: unknown,
-): Promise<{ becameVisible: boolean; requests: CapturedRequest[] }> {
+): Promise<{ requests: CapturedRequest[] }> {
   const requests: CapturedRequest[] = [];
 
-  await page.route(HEALTH_PATTERN, (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        status: 'ok',
-        checks: { db: true, llm: true },
-        model: 'test-model',
-      }),
-    }),
-  );
+  await stubChatHealth(page, { llm: true });
 
   await page.route(SHOUT_PATTERN, (route) => {
     const req = route.request();
@@ -161,23 +149,23 @@ async function primeShoutboxBackend(
 
   await page.goto('/contact');
 
-  const form = page.locator('[data-shoutbox-form]');
-  const becameVisible = await form
-    .waitFor({ state: 'visible', timeout: 5000 })
-    .then(() => true)
-    .catch(() => false);
+  await expect(
+    page.locator('[data-shoutbox-form]'),
+    'the write form must unhide when /health reports the backend awake — a ' +
+      'hidden form here means either the reveal broke or the e2e build lost ' +
+      'PUBLIC_CHAT_API_URL (playwright.config.ts)',
+  ).toBeVisible();
 
-  return { becameVisible, requests };
+  return { requests };
 }
 
 test.describe('shoutbox: submit', () => {
   test('a queued submit sends the real request shape and renders the queued state', async ({
     page,
   }) => {
-    const { becameVisible, requests } = await primeShoutboxBackend(page, {
+    const { requests } = await primeShoutboxBackend(page, {
       accepted: true,
     });
-    test.skip(!becameVisible, NO_BACKEND_SKIP_REASON);
 
     const form = page.locator('[data-shoutbox-form]');
     await form.scrollIntoViewIfNeeded();
@@ -204,11 +192,10 @@ test.describe('shoutbox: submit', () => {
   });
 
   test('a refusal renders the backend detail verbatim', async ({ page }) => {
-    const { becameVisible } = await primeShoutboxBackend(page, {
+    await primeShoutboxBackend(page, {
       accepted: false,
       detail: 'that is over 500 characters',
     });
-    test.skip(!becameVisible, NO_BACKEND_SKIP_REASON);
 
     const form = page.locator('[data-shoutbox-form]');
     await form.scrollIntoViewIfNeeded();
@@ -229,8 +216,18 @@ test.describe('shoutbox: submit', () => {
   });
 });
 
-test.describe('shoutbox: gated when no backend is configured', () => {
+// The gate, from the other side: the machine at home is asleep.
+//
+// This used to assert the same thing about a build with no backend URL in it at
+// all, which is really a claim about dead-code elimination — and one the unit
+// suite already makes (chat.test.ts: `getChatBaseUrl` returns null when the var
+// is unset). Pointed at a configured-but-down backend it now covers the state a
+// visitor actually meets, and it exercises the runtime gate rather than the
+// compiler.
+test.describe('shoutbox: gated when the backend is down', () => {
   test('the write form never appears and never issues a request', async ({ page }) => {
+    await stubChatHealth(page, { llm: false });
+
     let shoutRequestSeen = false;
     await page.route(SHOUT_PATTERN, (route) => {
       shoutRequestSeen = true;
@@ -246,6 +243,35 @@ test.describe('shoutbox: gated when no backend is configured', () => {
     expect(shoutRequestSeen).toBe(false);
 
     // The empty-state / offline line is what a visitor sees instead of a form.
+    const status = page.locator('[data-shoutbox-status]');
+    await expect(status).toBeVisible();
+    await expect(status).toHaveText('sending messages is off for a moment');
+  });
+
+  // The case above is "reachable, model not answering" — a 200 with
+  // `checks.llm: false`. This one is the other way the backend goes away: the
+  // host is unreachable and `fetch` REJECTS, taking `probeHealth`'s catch path
+  // rather than its response path. The unit suite covers that catch directly,
+  // but nothing proved end to end that a thrown fetch degrades the page the
+  // same way a degraded response does — and it is the likelier production
+  // state, since the backend is a home machine that is usually off.
+  test('an unreachable backend degrades the same way a degraded one does', async ({
+    page,
+  }) => {
+    await page.route(HEALTH_PATTERN, (route) => route.abort('connectionrefused'));
+
+    let shoutRequestSeen = false;
+    await page.route(SHOUT_PATTERN, (route) => {
+      shoutRequestSeen = true;
+      return route.abort();
+    });
+
+    await page.goto('/contact');
+    await page.waitForTimeout(1000);
+
+    await expect(page.locator('[data-shoutbox-form]')).toBeHidden();
+    expect(shoutRequestSeen).toBe(false);
+
     const status = page.locator('[data-shoutbox-status]');
     await expect(status).toBeVisible();
     await expect(status).toHaveText('sending messages is off for a moment');
