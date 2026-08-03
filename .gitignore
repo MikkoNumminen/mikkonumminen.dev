@@ -98,3 +98,7 @@ NOTES.md
 
 # Local RAG request log (query + answer) — never commit visitor data.
 /rag-logs/
+
+# Scratch output from a registry-writing script run without --publish. The
+# served artifact is only written deliberately; these copies are throwaway.
+public/data/*.staged.json

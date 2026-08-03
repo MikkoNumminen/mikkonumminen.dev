@@ -139,3 +139,47 @@ describe('findLatestSource', () => {
     expect(findLatestSource(path.join(os.tmpdir(), 'does-not-exist-xyz'))).toBeNull();
   });
 });
+
+describe('the served registry is only written on purpose', () => {
+  // The incident, replayed end to end: a lone sync run pointed at the real
+  // served path. It must leave that file alone and put its output elsewhere.
+  it('writes a scratch copy, not the served file, without --publish', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-publish-guard-'));
+    const served = path.join(dir, 'public', 'data', 'skills-registry.json');
+    fs.mkdirSync(path.dirname(served), { recursive: true });
+    fs.writeFileSync(served, JSON.stringify({ enriched: 'do not lose me' }, null, 2));
+
+    const result = syncBuffer({
+      srcBuf: Buffer.from(JSON.stringify(validSource)),
+      srcName: 'SKILL-REGISTRY-2026-05-21.json',
+      schema,
+      dest: served,
+      publishArgv: [],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.wrote.endsWith('.staged.json')).toBe(true);
+    expect(JSON.parse(fs.readFileSync(served, 'utf8'))).toEqual({
+      enriched: 'do not lose me',
+    });
+  });
+
+  it('writes the served file when --publish is given', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-publish-guard-'));
+    const served = path.join(dir, 'public', 'data', 'skills-registry.json');
+    fs.mkdirSync(path.dirname(served), { recursive: true });
+    fs.writeFileSync(served, JSON.stringify({ enriched: 'replace me' }, null, 2));
+
+    const result = syncBuffer({
+      srcBuf: Buffer.from(JSON.stringify(validSource)),
+      srcName: 'SKILL-REGISTRY-2026-05-21.json',
+      schema,
+      dest: served,
+      publishArgv: ['--publish'],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.wrote).toBe(served);
+    expect(JSON.parse(fs.readFileSync(served, 'utf8')).repos).toBeDefined();
+  });
+});
