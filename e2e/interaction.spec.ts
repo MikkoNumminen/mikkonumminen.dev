@@ -17,7 +17,11 @@ test.use({ locale: 'en-US' });
 // unless prefers-reduced-motion is honoured, in which case it renders instantly.
 // The component already supports this mode; enabling it here just makes the
 // terminal tests fast and deterministic without touching any product code.
-test.use({ reducedMotion: 'reduce' });
+// `reducedMotion` is a browser-CONTEXT option, not a top-level test option, in
+// the pinned Playwright version — passing it directly to `test.use` type-checks
+// as an unknown property and fails `npm run typecheck` (ts(2353)) while the
+// tests themselves still pass, so only the repo gate catches it.
+test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
 test.describe('terminal: scripted commands', () => {
   test('typing "whoami" and submitting renders the scripted output', async ({ page }) => {
