@@ -27,11 +27,24 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# PINNED, not floored, and the distinction is load-bearing.
+#
+# These were `>=` ranges, so CI resolved whatever was newest while a developer
+# machine kept whatever it installed months ago. PR #492 failed CI on ruff UP042
+# after `ruff check .` passed locally, with no code difference between the two
+# runs: CI had ruff 0.16.1, this laptop had 0.6.9, and the rule had graduated out
+# of preview in between. A gate that can be green locally and red in CI for
+# reasons invisible in the diff trains you to skim past the word "error".
+#
+# Exact pins make `pip install -e ".[dev]"` reproduce the same checkers
+# everywhere. The cost is that they go stale on their own, which is why
+# .github/dependabot.yml now watches this file — a graduating lint rule arrives
+# as a reviewable PR rather than as a surprise on an unrelated branch.
 dev = [
-    "pytest>=8",
-    "pytest-asyncio>=0.23",
-    "ruff>=0.6",
-    "mypy>=1.11",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "ruff==0.16.1",
+    "mypy==2.3.0",
 ]
 
 [tool.hatch.build.targets.wheel]
