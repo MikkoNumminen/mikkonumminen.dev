@@ -52,6 +52,7 @@ The eight-part trail behind the RAG upgrade (#317–#324), read in order:
 
 | Date | Report | About |
 | --- | --- | --- |
+| 2026-08-01 | [swedish-locale-removal-2026-08.md](swedish-locale-removal-2026-08.md) | Why Swedish (#476) was dropped as a served locale but kept as a lingua detection candidate — removing it from detection misroutes Swedish input to Finnish |
 | 2026-07-26 | [unnamed-project-retrieval-dead-end-2026-07-26.md](unnamed-project-retrieval-dead-end-2026-07-26.md) | The rejected ranking-concentration heuristic from the unnamed-project fabrication fix (#425) and the actual root cause (the per-project diversity cap), so it isn't retried |
 | 2026-07-16 | [research-coverage-dead-ends-2026-07-16.md](research-coverage-dead-ends-2026-07-16.md) | Three rejected approaches from the research-coverage precision fix (#369–#372) and the actual root cause, so they aren't retried |
 

@@ -149,7 +149,8 @@ npm run dev           # http://localhost:4321
 npm run build         # build to dist/
 npm run preview       # preview the production build
 npm run typecheck     # astro check
-npm run verify        # the whole CI gate in one command (typecheck → format:check → lint → test:coverage → build)
+npm run verify        # the CI `check` job in one command (typecheck → format:check → lint → test:coverage → build)
+npm run verify:backend # the CI `chat-backend` job (ruff → mypy → pytest); needs the Python dev deps installed
 npm run check:env     # verify Node version + deps are ready on a fresh clone
 npm run lint          # eslint
 npm run format        # prettier --write across src/

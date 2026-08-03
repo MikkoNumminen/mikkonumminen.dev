@@ -4,6 +4,12 @@
 **Date:** 2026-05-17
 **Decided by:** repo owner
 
+> **Update (2026-08-01):** Swedish (`/sv/`) was removed as a served locale in
+> PR #476 — the site now pre-renders `/` and `/fi/` only. The build-time /
+> load-time locale-negotiation decision below is unchanged. See
+> [`swedish-locale-removal-2026-08.md`](../audits/swedish-locale-removal-2026-08.md)
+> for why it was removed and what was deliberately kept.
+
 ## Context
 
 The site is a visual portfolio with four pages, no user accounts, no
@@ -29,7 +35,7 @@ output: 'static',
 
 Locale negotiation follows the same constraint. Astro's i18n routing with
 `prefixDefaultLocale: false` generates separate pre-rendered HTML trees
-for `/` and `/fi/` (Swedish existed when this was written and was removed in 2026-08) at build time. There is no `Accept-Language`
+for `/`, `/fi/`, and `/sv/` at build time. There is no `Accept-Language`
 header inspection at runtime; browser locale negotiation is handled by a
 small inline script in `BaseLayout.astro` that reads
 `navigator.languages` and redirects once on the client side. This keeps

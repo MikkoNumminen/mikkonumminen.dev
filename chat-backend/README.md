@@ -287,8 +287,10 @@ python -m evals.acceptance                                  # hits http://localh
 
 ## Configuration
 
-All configuration is environment-driven and validated at startup; see
-[`.env.example`](.env.example) for the full list. Every knob below is an env var:
+All configuration is environment-driven and validated at startup. This table
+mirrors [`app/config.py`](app/config.py)'s `Settings.from_env` — that's the
+authoritative source if the two ever drift; see [`.env.example`](.env.example)
+for the override surface and its per-knob commentary.
 
 | Env var                       | Default                         | Meaning                                                                                                             |
 | ----------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -298,6 +300,9 @@ All configuration is environment-driven and validated at startup; see
 | `RETRIEVAL_DENSE_WEIGHT`      | `1.0`                           | RRF weight on the dense (cosine) result list.                                                                       |
 | `RETRIEVAL_LEXICAL_WEIGHT`    | `1.0`                           | RRF weight on the lexical (BM25-style full-text) result list.                                                       |
 | `PROJECT_FILTER_STRICT`       | `true`                          | Hard per-project retrieval filter; fails **open** if the named project is empty.                                    |
+| `RETRIEVAL_EXCLUDE_DOC_TYPES` | `adr`                           | Comma-separated `doc_type`s hidden from visitor retrieval; empty string disables the filter.                        |
+| `RETRIEVAL_DIVERSITY_MAX_PER_PROJECT` | `3`                     | Per-project chunk cap on generic, no-project-named queries; must be positive. Named-project queries are never capped. |
+| `RESEARCH_COVERAGE_TOP_N`     | `3`                             | Forces this many newest research posts into context on a recency intent; `0` disables; must be `<= TOP_K`.          |
 | `WEAK_RETRIEVAL_DISTANCE`     | `0.45`                          | Best **prose**-distance threshold for the pre-LLM out-of-scope gate.                                                |
 | `LLM_NUM_PREDICT`             | `1024`                          | Hard `num_predict` cap on generated tokens (output cap).                                                            |
 | `INPUT_MAX_CHARS`             | `800`                           | Max `message` length; over → HTTP 400.                                                                              |
@@ -308,8 +313,15 @@ All configuration is environment-driven and validated at startup; see
 | `MAX_BODY_BYTES`              | `16384`                         | ASGI request-body byte cap (oversized → rejected before parse).                                                     |
 | `RATE_LIMIT_REQUESTS`         | `30`                            | Requests allowed per IP per window.                                                                                 |
 | `RATE_LIMIT_WINDOW_SECONDS`   | `60`                            | Sliding-window length for the rate limiter.                                                                         |
-| `FORCE_ENGLISH`               | on                              | Force the model to answer in English regardless of query language.                                                  |
+| `FORCE_ENGLISH`               | `true`                          | Force the model to answer in English regardless of query language.                                                  |
+| `RAG_ALLOW_FINNISH`           | `false`                         | EXPERIMENTAL: answer a Finnish-looking query in Finnish instead of forcing English.                                 |
+| `RAG_TRANSLATE_RETRIEVAL`     | `false`                         | When `RAG_ALLOW_FINNISH` routed Finnish, retrieve with an LLM-translated English query (embedder + lexical index are English-only); best-effort. |
+| `PROGRESSIVE_DISCLOSURE_ENABLED` | `true`                       | The "tell me more?" offer + topic-expansion path; `false` restores single-shot answers.                             |
+| `CONTEXT_WINDOW`              | `4096`                          | Served context window reported in the `context` SSE frame that drives the frontend's context-window donut; must be positive. |
 | `CORS_ALLOW_ORIGINS`          | —                               | Allowed origins for the browser fetch.                                                                              |
+| `MEMORY_MAX_TURNS`            | `6`                             | Prior turns threaded into the prompt per session; must be positive.                                                 |
+| `MEMORY_MAX_SESSIONS`         | `1000`                          | Sessions kept in memory before the least-recently-used one is evicted; must be positive.                            |
+| `MEMORY_TTL_SECONDS`          | `1800`                          | Idle seconds before a session's memory expires; must be positive.                                                   |
 | chunk-size knobs              | ~480 max / 100 min / 60 overlap | Token budget for markdown-block chunking (indexer side); code is split on function/class/method boundaries instead. |
 
 The load-bearing invariant: the indexer and the query path must use the **same**

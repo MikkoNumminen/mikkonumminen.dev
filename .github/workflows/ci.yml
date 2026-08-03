@@ -56,6 +56,13 @@ jobs:
   #   Analyze (javascript-typescript)
   #   Analyze (python)
   #
+  # ADD A CONTEXT ONLY AFTER YOU HAVE SEEN IT REPORT GREEN AT LEAST ONCE. A
+  # required context that never reports blocks every PR forever, and that is not
+  # hypothetical here: the two Analyze legs produced no check-runs at all for
+  # three commits after a malformed concurrency block made codeql.yml fail to
+  # parse. Check `gh api repos/OWNER/REPO/commits/master/check-runs` and require
+  # only names you can see in that output.
+  #
   # THESE ARE DISPLAY NAMES, NOT JOB IDS, and the difference bites: the E2E job's
   # id is `scenes` but it sets `name: Scene smoke (Playwright)`, and GitHub
   # reports the status context under the display name when one is set. Requiring
