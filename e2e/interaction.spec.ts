@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { SHOUT_PATTERN, stubChatHealth } from './support/chat-backend';
+import { HEALTH_PATTERN, SHOUT_PATTERN, stubChatHealth } from './support/chat-backend';
 
 // Interaction-level coverage for the two things scenes.spec.ts never exercises:
 // the terminal actually running a scripted command, and the shoutbox actually
@@ -243,6 +243,35 @@ test.describe('shoutbox: gated when the backend is down', () => {
     expect(shoutRequestSeen).toBe(false);
 
     // The empty-state / offline line is what a visitor sees instead of a form.
+    const status = page.locator('[data-shoutbox-status]');
+    await expect(status).toBeVisible();
+    await expect(status).toHaveText('sending messages is off for a moment');
+  });
+
+  // The case above is "reachable, model not answering" — a 200 with
+  // `checks.llm: false`. This one is the other way the backend goes away: the
+  // host is unreachable and `fetch` REJECTS, taking `probeHealth`'s catch path
+  // rather than its response path. The unit suite covers that catch directly,
+  // but nothing proved end to end that a thrown fetch degrades the page the
+  // same way a degraded response does — and it is the likelier production
+  // state, since the backend is a home machine that is usually off.
+  test('an unreachable backend degrades the same way a degraded one does', async ({
+    page,
+  }) => {
+    await page.route(HEALTH_PATTERN, (route) => route.abort('connectionrefused'));
+
+    let shoutRequestSeen = false;
+    await page.route(SHOUT_PATTERN, (route) => {
+      shoutRequestSeen = true;
+      return route.abort();
+    });
+
+    await page.goto('/contact');
+    await page.waitForTimeout(1000);
+
+    await expect(page.locator('[data-shoutbox-form]')).toBeHidden();
+    expect(shoutRequestSeen).toBe(false);
+
     const status = page.locator('[data-shoutbox-status]');
     await expect(status).toBeVisible();
     await expect(status).toHaveText('sending messages is off for a moment');
