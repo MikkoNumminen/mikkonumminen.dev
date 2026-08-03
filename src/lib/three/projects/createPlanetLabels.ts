@@ -103,6 +103,10 @@ export function createPlanetLabels(
 
     // Nearest body wins a collision; the loser sits out this frame.
     packLabels(boxes, labelVisible, packOrder);
+    // INVARIANT: `boxes`, `elements` and `labelVisible` are all built one-per-
+    // planet and never resized after construction, so any index valid for
+    // `planets` is valid for all three. That is what the assertions encode —
+    // `noUncheckedIndexedAccess` cannot infer the parallel-array relationship.
     for (let i = 0; i < planets.length; i++) {
       if (!Number.isFinite(boxes[i]!.depth)) continue; // already hidden above
       elements[i]!.style.opacity = labelVisible[i] ? '1' : '0';

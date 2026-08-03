@@ -41,16 +41,25 @@ export default defineConfig({
         'src/lib/three/projects/buildPlanetTexture.ts',
         'src/lib/three/projects/buildSun.ts',
       ],
-      // Ratchet floor under the current jsdom-testable coverage (~35%, held down
-      // by DOM-orchestration files that are integration-level rather than
-      // unit-tested). Not a vanity number — a regression gate: it fails CI if the
-      // tested surface shrinks. Raise it as more pure logic gets extracted +
-      // tested. Run via `npm run test:coverage` (and in CI).
+      // Ratchet floor, re-anchored 2026-08-03. Not a vanity number — a
+      // regression gate: it fails CI if the tested surface shrinks.
+      //
+      // Keep it CLOSE to measured. The floor had been left at 34 while actual
+      // coverage reached 51.7%, which meant a third of the tested surface could
+      // be deleted before CI noticed — a gate with that much slack reports
+      // "passing" for a codebase that has quietly lost its tests. Measured now
+      // is 56.4% statements / 56.33% lines / 57.47% branches / 58.25% functions
+      // (after covering lifecycle.ts and the terminal command handlers), so the
+      // floor sits ~2 points under each, enough to absorb ordinary
+      // file-add churn without absorbing a real regression.
+      //
+      // Re-anchor whenever you add meaningful coverage — a stale floor is the
+      // failure mode, not a strict one. Run via `npm run test:coverage`.
       thresholds: {
-        lines: 34,
-        statements: 34,
-        functions: 38,
-        branches: 34,
+        lines: 54,
+        statements: 54,
+        functions: 56,
+        branches: 55,
       },
     },
   },

@@ -49,7 +49,7 @@
     "skill": {
       "type": "object",
       "required": ["name", "description", "redirect", "receipt"],
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "description": { "type": "string" },
@@ -62,14 +62,31 @@
     },
     "receipt": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "required": ["path", "source"],
       "properties": {
         "path": { "type": "string" },
-        "source": { "type": "string" },
-        "tokens_per_use": { "type": ["number", "null"] },
-        "uses_per_year": { "type": ["number", "null"] },
-        "annual_total": { "type": ["number", "null"] }
+        "source": { "type": "string", "enum": ["calibration", "transcript-measurement"] },
+        "tokens_per_use": { "type": ["number", "null"], "minimum": 0 },
+        "uses_per_year": { "type": ["number", "null"], "minimum": 0 },
+        "annual_total": { "type": ["number", "null"], "minimum": 0 },
+        "tokens_saved_per_use": { "type": "number" },
+        "tokens_saved_source": { "type": "string" },
+        "calibration_arm_A": { "type": "number" },
+        "calibration_arm_B": { "type": "number" },
+        "prior_estimate": { "type": "object" },
+        "last_invoked": { "type": "string" },
+        "alt_model_measurements": { "type": "object" },
+        "calibration_model": { "type": "string" },
+        "measurement_window_days": { "type": "number" },
+        "invocations_in_window": { "type": "number" },
+        "total_tokens_in_window": { "type": "number" },
+        "cost_model": { "type": "string" },
+        "calibration_notes": { "type": "string" },
+        "tokens_per_use_mean": { "type": "number" },
+        "tokens_per_use_min": { "type": "number" },
+        "tokens_per_use_max": { "type": "number" },
+        "tokens_per_use_stddev": { "type": "number" }
       }
     },
     "builtInReference": {

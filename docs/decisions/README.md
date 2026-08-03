@@ -22,6 +22,7 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0014](0014-unified-home-particle-field.md)       | One uniform-driven particle field for the entire home page — galaxy → name formation → persistent starfield on a fixed opaque canvas, field-based interactivity, pmndrs bloom, and a measured-ready loading gate that moves shader compilation behind an overlay (cures a measured 306 ms first-scroll block) | Accepted                                 |
 | [0015](0015-home-field-name-state-life.md)        | Life in the home field's name state (builds on 0014) — shader micro-life, a dedicated click impulse on the letterforms, and a delta-driven idle choreography cycling alternative formations; one tuning block, frame delta bounded at source | Accepted (idle choreography superseded by 0016) |
 | [0016](0016-continuous-shape-cycle.md)            | The home field reshapes continuously and the name is one shape of four (supersedes the idle-choreography half of 0015) — four-shape rotation on a 5 s hold / 3 s morph, clicks strike any shape, per-shape micro-life | Accepted                                 |
+| [0017](0017-shoutbox-moderation-queue.md)         | Shoutbox moderation queue — a public write endpoint that cannot publish: deterministic no-LLM gate, moderation verbs off the public HTTP surface, Telegram digest, committed-snapshot publication | Accepted                                 |
 
 ## Writing a new one
 

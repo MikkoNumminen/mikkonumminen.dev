@@ -48,4 +48,67 @@ describe('validateAgainst (tiny JSON-schema subset)', () => {
   it('ignores extra (additional) properties', () => {
     expect(validateAgainst({ name: 'x', items: [], extra: 'whatever' }, schema)).toEqual([]);
   });
+
+  it('accepts a value in an enum', () => {
+    const enumSchema = { type: 'object', properties: { kind: { enum: ['a', 'b'] } } };
+    expect(validateAgainst({ kind: 'a' }, enumSchema)).toEqual([]);
+  });
+
+  it('flags a value outside an enum, naming the path', () => {
+    const enumSchema = { type: 'object', properties: { kind: { enum: ['a', 'b'] } } };
+    const errs = validateAgainst({ kind: 'c' }, enumSchema);
+    expect(errs.some((e) => e.includes('$.kind') && e.includes('expected one of'))).toBe(true);
+  });
+
+  it('accepts a value matching const', () => {
+    const constSchema = { type: 'object', properties: { version: { const: 1 } } };
+    expect(validateAgainst({ version: 1 }, constSchema)).toEqual([]);
+  });
+
+  it('flags a value that does not match const, naming the path', () => {
+    const constSchema = { type: 'object', properties: { version: { const: 1 } } };
+    const errs = validateAgainst({ version: 2 }, constSchema);
+    expect(errs.some((e) => e.includes('$.version') && e.includes('expected 1'))).toBe(true);
+  });
+
+  it('accepts a number at or above minimum', () => {
+    const minSchema = { type: 'object', properties: { count: { type: 'number', minimum: 0 } } };
+    expect(validateAgainst({ count: 0 }, minSchema)).toEqual([]);
+  });
+
+  it('flags a number below minimum, naming the path', () => {
+    const minSchema = { type: 'object', properties: { count: { type: 'number', minimum: 0 } } };
+    const errs = validateAgainst({ count: -1 }, minSchema);
+    expect(errs.some((e) => e.includes('$.count') && e.includes('expected >= 0'))).toBe(true);
+  });
+
+  it('accepts a number at or below maximum', () => {
+    const maxSchema = { type: 'object', properties: { count: { type: 'number', maximum: 10 } } };
+    expect(validateAgainst({ count: 10 }, maxSchema)).toEqual([]);
+  });
+
+  it('flags a number above maximum, naming the path', () => {
+    const maxSchema = { type: 'object', properties: { count: { type: 'number', maximum: 10 } } };
+    const errs = validateAgainst({ count: 11 }, maxSchema);
+    expect(errs.some((e) => e.includes('$.count') && e.includes('expected <= 10'))).toBe(true);
+  });
+
+  it('accepts an object with only declared properties when additionalProperties is false', () => {
+    const strictSchema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: { name: { type: 'string' } },
+    };
+    expect(validateAgainst({ name: 'x' }, strictSchema)).toEqual([]);
+  });
+
+  it('flags an extra property when additionalProperties is false, naming the path', () => {
+    const strictSchema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: { name: { type: 'string' } },
+    };
+    const errs = validateAgainst({ name: 'x', extra: 'whatever' }, strictSchema);
+    expect(errs.some((e) => e.includes('$: unexpected additional property "extra"'))).toBe(true);
+  });
 });

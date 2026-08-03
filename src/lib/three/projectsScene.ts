@@ -528,6 +528,12 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
   const setNightFloor = (target: FocusTarget, to: number): void => {
     const entry = orbiting.find((e) => e.project.id === target.project.id);
     if (!entry) return; // the star is emissive; it has no night side
+    // INVARIANT for the `!` on every uniform read in this file: these uniforms
+    // are declared literally in the material each entry was built with, so they
+    // exist wherever the entry does. The early return above is what excludes the
+    // one material that has no night side. Three.js types uniforms behind an
+    // index signature, which `noUncheckedIndexedAccess` must treat as possibly
+    // absent; the assertion states the invariant rather than papering over one.
     const holder = nightFloorTweens.get(target) ?? {
       v: entry.material.uniforms.uNightFloor!.value as number,
     };

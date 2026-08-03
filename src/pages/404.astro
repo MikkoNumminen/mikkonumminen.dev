@@ -94,9 +94,22 @@ const linkPaths: Record<Locale, Record<string, string>> = {
   const notFound = document.querySelector<HTMLElement>('.not-found');
 
   if (dataEl) {
+    // Routed through `unknown` and a guard rather than cast, matching how every
+    // other parse site in the repo treats decoded JSON. The blast radius here is
+    // small — this payload is author-controlled and embedded at build time — but
+    // a lone blind cast is exactly the precedent that makes the next one, on a
+    // less-controlled input, look normal.
+    const isNotFoundData = (value: unknown): value is NotFoundData => {
+      if (typeof value !== 'object' || value === null) return false;
+      const { strings, links } = value as Partial<NotFoundData>;
+      const isRecord = (v: unknown): boolean => typeof v === 'object' && v !== null;
+      return isRecord(strings) && isRecord(links);
+    };
+
     let data: NotFoundData | null = null;
     try {
-      data = JSON.parse(dataEl.textContent ?? '{}') as NotFoundData;
+      const parsed: unknown = JSON.parse(dataEl.textContent ?? '{}');
+      if (isNotFoundData(parsed)) data = parsed;
     } catch {
       // malformed JSON — fall through to unhide with English content
     }
