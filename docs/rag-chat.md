@@ -436,7 +436,9 @@ extended** — off-topic queries that only matched stray code chunks, poem
 requests, and translation requests all refuse, while the deep-code grounded cases
 now answer from the **actual indexed source** rather than prose about it.
 
-Every knob above is a **validated env var** (see [`chat-backend/.env.example`](../chat-backend/.env.example)
+Every threshold and cap above is a **validated env var** — the deterministic
+task gates and the prompt hardening are code, not config, by design (see
+[`chat-backend/.env.example`](../chat-backend/.env.example)
 for the full annotated set, including the chunk-size knobs, `CORS_ALLOW_ORIGINS`,
 the language-routing/session-memory/progressive-disclosure knobs from
 [§4](#language-routing-session-memory-and-progressive-disclosure)

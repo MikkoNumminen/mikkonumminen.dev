@@ -9,6 +9,7 @@ A superseded report carries a banner pointing forward to its replacement.
 | --- | --- | --- | --- |
 | 2026-08-03 | [ai-first-2026-08-03/](ai-first-2026-08-03/) (`RUBRIC.md`, `LEDGER.md`, `00-baseline-raw.md`) | Whole-repo AI-first re-rate campaign (frontend + `chat-backend/`); baseline 8.12, target ≥9.5 | **in progress** |
 | 2026-06-14 | [ai-first-rating-2026-06-14.md](ai-first-rating-2026-06-14.md) | AI-first re-rate — campaigns #231–244 then #247–258; reached 9.1/10 (every dimension ≥9), frontend-only scope | superseded by 08-03 campaign |
+| 2026-08-03 | [ai-first-rating-2026-08-03.md](ai-first-rating-2026-08-03.md) | AI-first re-rate, **whole-repo scope incl. `chat-backend/`** — 8.12 → 9.09 over three iterations (PR #500). Target of ≥9.5 not met; remaining gaps enumerated. Working files in [`ai-first-2026-08-03/`](ai-first-2026-08-03/) | current |
 | 2026-06-13 | [ai-first-rating-2026-06-13.md](ai-first-rating-2026-06-13.md) | AI-first / agent-operability re-rate | superseded by 06-14 |
 | 2026-06-12 | [ai-first-rating-2026-06-12.md](ai-first-rating-2026-06-12.md) | AI-first rating (baseline) | superseded by 06-13 |
 | 2026-06-11 | [improvement-review-2026-06-11.md](improvement-review-2026-06-11.md) | Multi-agent improvement review (45 findings) | actioned (#207–211) |

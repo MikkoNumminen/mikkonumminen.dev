@@ -307,7 +307,7 @@ for the override surface and its per-knob commentary.
 | `LLM_NUM_PREDICT`             | `1024`                          | Hard `num_predict` cap on generated tokens (output cap).                                                            |
 | `INPUT_MAX_CHARS`             | `800`                           | Max `message` length; over → HTTP 400.                                                                              |
 | `LLM_MAX_CONCURRENCY`         | `2`                             | Semaphore permits around Ollama generation.                                                                         |
-| `LLM_ACQUIRE_TIMEOUT_SECONDS` | (must be `> 0`)                 | Bounded wait for a permit; on timeout the request is shed with a busy reply.                                        |
+| `LLM_ACQUIRE_TIMEOUT_SECONDS` | `0.5` (must be `> 0`)           | Bounded wait for a permit; on timeout the request is shed with a busy reply.                                        |
 | `RAG_LOG_FILE`                | `rag-logs/requests.jsonl`       | Path for per-request JSONL score log; set empty to disable.                                                         |
 | `RAG_LOG_TEXT`                | `false`                         | Also writes raw query + answer text into each log line — PII, off by default, for local debugging only.             |
 | `MAX_BODY_BYTES`              | `16384`                         | ASGI request-body byte cap (oversized → rejected before parse).                                                     |

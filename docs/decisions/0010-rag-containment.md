@@ -86,7 +86,9 @@ pipeline order:
   default) to additionally write the raw query + answer text — for local
   debugging only.
 
-Every knob above is a validated env var, so the containment is tunable per
+Every threshold and cap above is a validated env var — the deterministic task
+gates and the prompt hardening are code, not config, by design — so the
+containment is tunable per
 deployment without code changes. The decision is enforced by an **executable
 acceptance contract** ([`evals/acceptance.py`](../../chat-backend/evals/acceptance.py),
 run via `python -m evals.acceptance`): every static contract case plus every
