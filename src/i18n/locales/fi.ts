@@ -591,6 +591,7 @@ export const fi: Translations = {
     replyFrom: 'Mikko',
     legend: 'Jokaisen viestin lukee ihminen ennen kuin se näkyy täällä.',
     threadsAria: 'Julkaistut viestit',
+    scrollHint: 'viestit alla',
     infoLabel: 'miten tämä toimii',
     infoBody:
       'Viestisi näkyy vasta kun olen hyväksynyt sen, ja hyväksytty viesti jää sivuston historiaan pysyvästi. Nimeni on domainissa, joten luen mitä sen alla julkaistaan.',

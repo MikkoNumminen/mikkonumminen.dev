@@ -29,10 +29,51 @@ import { getTranslations } from '../../i18n';
 const t = getTranslations(Astro.currentLocale).shoutbox;
 ---
 
+{
+  /*
+  The box sits below a full-height terminal (`.crt` is `min-height: 100vh`), so
+  on arrival it is entirely off-screen and NOTHING on the page suggests it is
+  there. The home page has always had a scroll hint for the same reason; the
+  contact page never needed one until something was added underneath.
+
+  Named rather than generic — "messages below" tells you what you would get,
+  where a bare "scroll" only tells you that you can. Decorative and aria-hidden:
+  the section itself is a labelled landmark, so assistive tech reaches it without
+  this, and an announced "scroll" hint would be noise.
+
+  Fixed rather than absolutely placed at the fold, because the terminal's height
+  is a `dvh` calc that moves with mobile browser chrome; pinning to the viewport
+  bottom is the one position that is right on every device.
+*/
+}
+<div class="shoutbox__scroll-hint" data-shoutbox-hint aria-hidden="true">
+  <span>{t.scrollHint}</span>
+  <svg
+    width="12"
+    height="7"
+    viewBox="0 0 12 7"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="1.4"></path>
+  </svg>
+</div>
+
 <section class="shoutbox" aria-labelledby="shoutbox-title">
   <div class="shoutbox__card">
     <header class="shoutbox__chrome">
-      <span class="shoutbox__title" id="shoutbox-title">{t.title}</span>
+      {
+        /*
+        A REAL HEADING, not a styled span. Heading navigation is the primary way
+        screen-reader users move through a page, and as a span this box was
+        skipped by it entirely — the `aria-labelledby` region only helps someone
+        who happens to navigate by landmark instead. It looks identical; the
+        element is the whole point.
+      */
+      }
+      <h2 class="shoutbox__title" id="shoutbox-title">{t.title}</h2>
     </header>
 
     <div class="shoutbox__screen">
@@ -134,6 +175,41 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
 
       const t = getTranslations(document.documentElement.lang).shoutbox;
       const controller = new AbortController();
+
+      // Retire the hint once it has been acted on. One-way: it never comes back
+      // if the visitor scrolls up again, because by then they know the box is
+      // there and a signpost that keeps reappearing is just clutter.
+      //
+      // `scroll` is passive so it can never delay scrolling, and the listener
+      // removes itself on the first qualifying event rather than running for the
+      // life of the page.
+      // Retire the hint when the box it points at is actually on screen, not
+      // after an arbitrary number of pixels.
+      //
+      // The first version fired at 80px of scroll, which is wrong in the case
+      // that matters: the terminal is a full viewport tall, so 80px is a nudge
+      // that reveals nothing. Someone who nudges and stops would lose the signal
+      // while the box was still an entire screen away — the hint would have
+      // disappeared precisely without doing its job.
+      //
+      // An IntersectionObserver retires it exactly when the card appears, and
+      // disconnects itself: one-way, because by then they have seen the thing.
+      const hint = document.querySelector<HTMLElement>('[data-shoutbox-hint]');
+      const card = document.querySelector<HTMLElement>('.shoutbox__card');
+      if (hint && card) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            if (!entries.some((e) => e.isIntersecting)) return;
+            hint.classList.add('shoutbox__scroll-hint--done');
+            observer.disconnect();
+          },
+          // A sliver counts. Waiting for a threshold would leave the hint
+          // hovering over the top of the card it announced.
+          { threshold: 0 },
+        );
+        observer.observe(card);
+        controller.signal.addEventListener('abort', () => observer.disconnect());
+      }
 
       /**
        * Build one thread's DOM.

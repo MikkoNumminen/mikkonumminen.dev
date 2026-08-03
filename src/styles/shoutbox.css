@@ -35,9 +35,14 @@
   background: linear-gradient(to bottom, rgba(74, 222, 128, 0.06), rgba(74, 222, 128, 0));
 }
 
+/* An h2 for heading navigation, styled down to chrome-label size. The margin
+ * and weight resets are what keep it looking like the terminal's title bar
+ * rather than a document heading. */
 .shoutbox__title {
+  margin: 0;
   color: rgba(181, 245, 200, 0.75);
   font-size: 0.78rem;
+  font-weight: 400;
   letter-spacing: 0.04em;
 }
 
@@ -272,5 +277,76 @@
 @media (max-width: 640px) {
   .shoutbox__send {
     width: 100%;
+  }
+}
+
+/* --- the "there is something below" hint --------------------------------- */
+
+/* Pinned to the viewport bottom rather than to the terminal's own bottom edge:
+ * the terminal height is a dvh calc that moves as mobile browser chrome shows
+ * and hides, so anchoring to it would drift. Sits above the page content but
+ * below the audio toggle, and is never interactive — it is a signpost, not a
+ * control, and clicking it should do nothing rather than something surprising. */
+.shoutbox__scroll-hint {
+  position: fixed;
+  bottom: 1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: none;
+  color: rgba(181, 245, 200, 0.55);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.28em;
+  text-transform: lowercase;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+/* Set by the component once the visitor has scrolled: the hint has done its one
+ * job and should not hover over the conversation it pointed at. */
+.shoutbox__scroll-hint--done {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+}
+
+.shoutbox__scroll-hint svg {
+  animation: shoutbox-hint-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes shoutbox-hint-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+/* The global reduced-motion rule zeroes animation DURATION, which parks an
+ * infinite animation on frame 0 rather than stopping it — so the resting state
+ * has to be stated explicitly, exactly as .terminal__cursor does. */
+@media (prefers-reduced-motion: reduce) {
+  .shoutbox__scroll-hint svg {
+    animation: none;
+    transform: none;
+  }
+}
+
+/* WITHOUT JAVASCRIPT THE HINT CAN NEVER RETIRE. It is retired by a scroll
+ * listener, so with scripting off it would stay pinned to the viewport bottom
+ * forever — including while the visitor reads the very box it pointed at, which
+ * is worse than never showing it. `scripting: none` is the one query that can
+ * tell; where a browser does not support it the hint simply behaves as it does
+ * today, so this is a strict improvement rather than a new dependency. */
+@media (scripting: none) {
+  .shoutbox__scroll-hint {
+    display: none;
   }
 }
