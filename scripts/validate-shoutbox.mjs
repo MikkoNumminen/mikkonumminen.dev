@@ -43,12 +43,18 @@ function main() {
     process.exit(1);
   }
 
-  // THREE CHECKS THE SCHEMA CANNOT MAKE. scripts/lib/validate-json-schema.mjs is
-  // dependency-free and implements `type`, `required` and `items` — it does NOT
-  // implement `const` or `additionalProperties`. Writing those in the schema and
-  // assuming they bite is how a gate ends up decorative: I ran a `version: 2`
-  // file and an extra `ip` key past it, and both passed. They are enforced here
-  // instead, and the schema says so.
+  // THREE CHECKS KEPT DELIBERATELY REDUNDANT. These were written when
+  // scripts/lib/validate-json-schema.mjs implemented only `type`, `required` and
+  // `items`, so a schema declaring `const` or `additionalProperties` was
+  // decorative — a `version: 2` file and a stray `ip` key both sailed past it.
+  //
+  // The shared validator now implements `const`, `enum`, `minimum`, `maximum`
+  // and `additionalProperties: false`, so the schema's own keywords do bite.
+  // These stay anyway, for a reason that outlives that fix: they produce
+  // failure messages phrased for the person publishing a shoutbox snapshot
+  // ("the runtime reader refuses unknown versions") rather than a generic
+  // schema-path violation, and they keep this script's guarantees independent
+  // of a shared helper it does not own.
 
   if (data.version !== 1) {
     console.error(

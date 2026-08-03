@@ -137,13 +137,17 @@ in mind before you edit the service.
 
 The `/chat` pipeline runs in a fixed order. Do not reorder it:
 
-1. **Pre-retrieval task gates** (deterministic, before any embedding): `is_generative_request` declines "write me a poem/story/song/joke/…" and `is_translation_request` declines "translate &lt;text&gt; to &lt;language&gt;". These are TASK requests that often name on-corpus topics, so the small model would otherwise perform them — they must run before retrieval, not in the prompt.
-2. Embed the query (fastembed `BAAI/bge-small-en-v1.5`, 384-dim, asymmetric query/passage prefixes).
-3. **Hybrid retrieval** (`HYBRID_ENABLED`, default true; false reverts to pure dense): dense pgvector cosine top-k (`TOP_K`, default 6) fused with lexical BM25-style full-text (`websearch_to_tsquery` + `ts_rank` over the generated `content_tsv`) via **reciprocal rank fusion** — `score = sum(weight / (RRF_K + rank))` across both lists, `RRF_K` default 60, `RETRIEVAL_DENSE_WEIGHT` / `RETRIEVAL_LEXICAL_WEIGHT` default 1.0 each.
-4. **Hard per-project filter** (`PROJECT_FILTER_STRICT`, default true): a detected named project restricts retrieval to its chunks, **failing open** for the gate — if the named project returns nothing, it falls back so the gate sees the true global best. (This replaces the old soft re-rank boost.)
-5. **Weak-retrieval gate** (`guardrails.is_weak_retrieval`): anchored on the best **prose-chunk** distance (code chunks lower off-topic distances, so gating on prose keeps off-topic queries that only match stray code out; the closest prose is fetched explicitly via `db.closest_prose` when the top-k has none). If it exceeds `WEAK_RETRIEVAL_DISTANCE` (default 0.45, lowered for the code-enriched corpus), short-circuit **before** the LLM and return the fixed out-of-scope reply.
-6. Grounded system prompt (answer ONLY from retrieved CONTEXT) + `FORCE_ENGLISH`.
-7. Ollama streamed generation (local, OpenAI-compatible `/v1`), capped, surfaced as SSE (`sources`/`token`/`done`/`error`).
+1. **Language routing** (`RAG_ALLOW_FINNISH`, default off): decide `answer_in_finnish` up front from `guardrails.looks_finnish`/`requests_finnish_answer`. Gates nothing itself — feeds the small-talk template, decline wording, `force_english` override, and the prompt's closing directive at every stage below. Off (or a non-Finnish query) leaves every later stage byte-identical to English-only.
+2. **Small-talk fast path** (`guardrails.smalltalk_route`): a standalone greeting or thanks is answered by a fixed template — no retrieval, no embedding, no LLM call.
+3. **Pre-retrieval task gates** (deterministic, before any embedding): `is_generative_request` declines "write me a poem/story/song/joke/…", `is_personal_trivia` declines missing-from-corpus personal facts, and `is_translation_request` declines "translate &lt;text&gt; to &lt;language&gt;". These are TASK requests that often name on-corpus topics, so the small model would otherwise perform them — they must run before retrieval, not in the prompt.
+4. **Progressive disclosure / expansion** (`PROGRESSIVE_DISCLOSURE_ENABLED`, default true): a topic-less "tell me more" resolves the prior topic from session memory's last user turn and retrieves its precomputed narrative instead of the normal retrieval below.
+5. Embed the query (fastembed `BAAI/bge-small-en-v1.5`, 384-dim, asymmetric query/passage prefixes) — optionally an LLM-translated English query first (`RAG_TRANSLATE_RETRIEVAL`, only when the query itself looks Finnish; best-effort, falls back to the original on any failure).
+6. **Hybrid retrieval** (`HYBRID_ENABLED`, default true; false reverts to pure dense): dense pgvector cosine top-k (`TOP_K`, default 6) fused with lexical BM25-style full-text (`websearch_to_tsquery` + `ts_rank` over the generated `content_tsv`) via **reciprocal rank fusion** — `score = sum(weight / (RRF_K + rank))` across both lists, `RRF_K` default 60, `RETRIEVAL_DENSE_WEIGHT` / `RETRIEVAL_LEXICAL_WEIGHT` default 1.0 each. Also applies doc-type exclusion (`RETRIEVAL_EXCLUDE_DOC_TYPES`), the per-project diversity cap (`RETRIEVAL_DIVERSITY_MAX_PER_PROJECT`), and forced research-recency inclusion (`RESEARCH_COVERAGE_TOP_N`).
+7. **Hard per-project filter** (`PROJECT_FILTER_STRICT`, default true): a detected named project restricts retrieval to its chunks, **failing open** for the gate — if the named project returns nothing, it falls back so the gate sees the true global best. (This replaces the old soft re-rank boost.)
+8. **Weak-retrieval gate** (`guardrails.is_weak_retrieval`): anchored on the best **prose-chunk** distance (code chunks lower off-topic distances, so gating on prose keeps off-topic queries that only match stray code out; the closest prose is fetched explicitly via `db.closest_prose` when the top-k has none). If it exceeds `WEAK_RETRIEVAL_DISTANCE` (default 0.45, lowered for the code-enriched corpus), short-circuit **before** the LLM and return the fixed out-of-scope reply — unless a deterministic CV-intent override (`query_projects.wants_cv_intent`) fired and CV chunks are in context.
+9. Grounded system prompt (answer ONLY from retrieved CONTEXT) + `FORCE_ENGLISH` (or the Finnish anchor from stage 1).
+10. Ollama streamed generation (local, OpenAI-compatible `/v1`), capped, surfaced as SSE (`sources`/`token`/`done`/`error`), with a truncation notice, the progressive-disclosure offer, and the research-coverage footer appended as deterministic suffixes.
+11. **Session memory** (`app/memory.py`, always on): the completed turn is threaded into `SessionMemory`, bounded by `MEMORY_MAX_TURNS`/`MEMORY_MAX_SESSIONS`/`MEMORY_TTL_SECONDS`, guarded so a memory failure can't break a delivered answer. Only a real, fully-streamed answer is remembered.
 
 **Containment must stay architectural — never weaken a layer to prompt-wording-only.**
 These are defense in depth and several do not depend on the model obeying the prompt:
@@ -162,7 +166,12 @@ Every knob is a validated env var: `TOP_K`, `WEAK_RETRIEVAL_DISTANCE`, `LLM_NUM_
 `MAX_BODY_BYTES`, `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`, `FORCE_ENGLISH`,
 `CORS_ALLOW_ORIGINS`, the hybrid-retrieval knobs (`HYBRID_ENABLED`, `RRF_K` default 60,
 `RETRIEVAL_DENSE_WEIGHT` / `RETRIEVAL_LEXICAL_WEIGHT` default 1.0, `PROJECT_FILTER_STRICT`
-default true), plus the chunk-size knobs. Touch behavior through config and tests, not by
+default true), `CONTEXT_WINDOW` (served context window, must be positive), `RETRIEVAL_EXCLUDE_DOC_TYPES`
+(default `adr`; empty disables the filter), `RETRIEVAL_DIVERSITY_MAX_PER_PROJECT` (default 3, must be
+positive), `RESEARCH_COVERAGE_TOP_N` (default 3, must be `<= TOP_K`), `RAG_ALLOW_FINNISH` and
+`RAG_TRANSLATE_RETRIEVAL` (both default off), `PROGRESSIVE_DISCLOSURE_ENABLED` (default true),
+`MEMORY_MAX_TURNS` / `MEMORY_MAX_SESSIONS` / `MEMORY_TTL_SECONDS` (defaults 6 / 1000 / 1800, all
+must be positive), plus the chunk-size knobs. Touch behavior through config and tests, not by
 hardcoding.
 
 **Indexing & hybrid retrieval (as-built).** The indexer embeds the curated markdown corpus
@@ -238,4 +247,5 @@ npm run test:coverage # vitest + coverage ratchet (this is the CI test step)
 npm run test:e2e      # Playwright scene smoke (build first; needs a browser)
 npm run format        # prettier --write (run before pushing)
 npm run format:check  # prettier --check (CI gate)
+npm run verify        # the five steps above (typecheck → format:check → lint → test:coverage → build) in one command — run this before pushing instead of running each separately and stopping at the first green one
 ```

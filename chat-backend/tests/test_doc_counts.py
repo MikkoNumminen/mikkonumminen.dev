@@ -14,11 +14,17 @@ time a case is added. The fix is to make the claim checkable, so the suite fails
 the moment prose and reality disagree.
 
 WHY THE NUMBERS LIVE IN ONE FILE: only `chat-backend/README.md` states them.
-Every other mention (root README, AGENTS.md, docs/rag-chat.md) describes the
-harness structurally — "every static contract case plus every golden must-refuse
-query" — precisely so that adding a case does not require editing four files.
-Adding a numeric claim elsewhere is fine, but it belongs here too, or it is
-unguarded by construction.
+Every other mention describes the harness structurally — "every static contract
+case plus every golden must-refuse query" — precisely so that adding a case does
+not require editing several files.
+
+THAT LAST PARAGRAPH USED TO BE A CLAIM, AND IT WAS FALSE WHEN WRITTEN. Four
+files were corrected and then this docstring asserted a property of files nobody
+had checked; the stale "9 cases" also lived in `docs/rag-chat.md`, two
+`.claude/skills/` files, and ADRs 0010 and 0011. An unverified claim sitting
+next to a real guard is worse than no claim, because the guard lends it
+credibility. `test_no_stale_case_counts_anywhere` below now enforces it, so the
+sentence is checked rather than asserted.
 """
 
 from __future__ import annotations
@@ -82,6 +88,87 @@ def test_eval_set_question_count_is_stated_correctly() -> None:
     assert _states(f"holds {total} questions"), (
         f"chat-backend/README.md does not state the real eval_set.json size "
         f"({total} queries). Update the 'Retrieval eval' paragraph."
+    )
+
+
+REPO_ROOT = CHAT_BACKEND.parent
+
+# Markdown that is allowed to contain a stale count, and why:
+#   docs/audits/**  — dated point-in-time reports. An audit that recorded what
+#                     was true in June is not drift; rewriting it would be.
+#   node_modules, .claude/worktrees — not ours.
+_SCAN_SKIP = ("node_modules", ".claude/worktrees", "docs/audits", "dist", ".astro")
+
+# "9/9", "27/27" — a self-referential pass ratio.
+_RATIO_RE = re.compile(r"\*{0,2}(\d+)\s*/\s*\1\*{0,2}")
+# "9 cases", "11 black-box contract cases".
+_COUNT_RE = re.compile(r"\*{0,2}(\d+)\*{0,2}\s+(?:\w+[- ]){0,3}cases\b")
+# Only claims sitting near this vocabulary are about THIS harness. Deliberately
+# NOT the bare word "harness": the rag-experiment skill has its own harness and
+# quotes per-model tallies like "containment refuse 9/3/3", which a looser
+# pattern flagged as stale acceptance counts. A drift guard that cries wolf on
+# an unrelated subsystem gets deleted, so it is scoped to the two names this
+# repo actually uses for the acceptance suite.
+_HARNESS_RE = re.compile(r"acceptance|containment contract", re.IGNORECASE)
+
+
+def _markdown_files() -> list[Path]:
+    """Every markdown file worth scanning, skip-matched on the REPO-RELATIVE path.
+
+    Relative, not absolute, and that distinction is load-bearing: this repo is
+    routinely worked on from a git worktree under `.claude/worktrees/<name>/`,
+    which is itself one of the skip patterns. Matching the absolute path made
+    every file in a worktree look skippable, so the scan silently found nothing
+    and the test passed by doing no work — while still passing in CI, where the
+    checkout path happens not to contain the pattern. Caught by planting a
+    known-bad file and confirming the test went red; it did not.
+    """
+    files: list[Path] = []
+    for path in REPO_ROOT.rglob("*.md"):
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if any(rel.startswith(skip) or f"/{skip}" in rel for skip in _SCAN_SKIP):
+            continue
+        files.append(path)
+    return files
+
+
+def test_no_stale_case_counts_anywhere() -> None:
+    """No markdown may state a hard acceptance-harness count that is not the
+    real one.
+
+    Scans every tracked markdown file for a pass-ratio ("9/9") or a case count
+    ("9 cases") within a few lines of harness vocabulary, and requires any such
+    number to equal reality. Structural phrasing trips nothing, which is the
+    behaviour we want: the cheapest way to satisfy this test is to not state a
+    number at all.
+    """
+    total = len(CASES) + len(golden_refusal_cases())
+    static = len(CASES)
+    golden = len(golden_refusal_cases())
+    allowed = {total, static, golden}
+
+    offenders: list[str] = []
+    for path in _markdown_files():
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        for i, line in enumerate(lines):
+            # A claim counts as "about the harness" if the vocabulary appears on
+            # the same line or the two before it — enough for a sentence that
+            # wraps, tight enough not to sweep in unrelated numbers.
+            window = "\n".join(lines[max(0, i - 2) : i + 1])
+            if not _HARNESS_RE.search(window):
+                continue
+            for match in (*_RATIO_RE.finditer(line), *_COUNT_RE.finditer(line)):
+                value = int(match.group(1))
+                if value not in allowed:
+                    rel = path.relative_to(REPO_ROOT).as_posix()
+                    offenders.append(f"{rel}:{i + 1}: {line.strip()!r}")
+
+    assert not offenders, (
+        "These files state an acceptance-harness count that is not real "
+        f"(the harness runs {total} = {static} static + {golden} golden).\n"
+        "Prefer structural phrasing — 'every static contract case plus every "
+        "golden must-refuse query' — over a number that will drift again:\n  "
+        + "\n  ".join(offenders)
     )
 
 

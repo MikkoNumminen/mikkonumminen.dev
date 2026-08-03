@@ -89,10 +89,11 @@ pipeline order:
 Every knob above is a validated env var, so the containment is tunable per
 deployment without code changes. The decision is enforced by an **executable
 acceptance contract** ([`evals/acceptance.py`](../../chat-backend/evals/acceptance.py),
-run via `python -m evals.acceptance`): 9 black-box contract cases — injection
-no-dump, prompt-reveal blocked, off-topic poem + trivia declined, input cap 400
-and oversized 422, and three grounded technical answers — with classifiers
-anchored on the real refusal wording so they cannot false-pass.
+run via `python -m evals.acceptance`): every static contract case plus every
+golden must-refuse query — injection no-dump, prompt-reveal blocked, off-topic
+poem + trivia declined, input cap 400 and oversized 422, and three grounded
+technical answers — with classifiers anchored on the real refusal wording so
+they cannot false-pass.
 
 ## Considered alternatives
 

@@ -48,18 +48,18 @@ export default defineConfig({
       // coverage reached 51.7%, which meant a third of the tested surface could
       // be deleted before CI noticed — a gate with that much slack reports
       // "passing" for a codebase that has quietly lost its tests. Measured now
-      // is 56.4% statements / 56.33% lines / 57.47% branches / 58.25% functions
-      // (after covering lifecycle.ts and the terminal command handlers), so the
-      // floor sits ~2 points under each, enough to absorb ordinary
-      // file-add churn without absorbing a real regression.
+      // is 60.66% statements / 60.58% lines / 61.89% branches / 64% functions
+      // (after covering lifecycle.ts, the terminal command handlers, and the
+      // skills renderer), so the floor sits ~2 points under each — enough to
+      // absorb ordinary file-add churn without absorbing a real regression.
       //
       // Re-anchor whenever you add meaningful coverage — a stale floor is the
       // failure mode, not a strict one. Run via `npm run test:coverage`.
       thresholds: {
-        lines: 54,
-        statements: 54,
-        functions: 56,
-        branches: 55,
+        lines: 58,
+        statements: 58,
+        functions: 62,
+        branches: 59,
       },
     },
   },

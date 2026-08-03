@@ -92,33 +92,40 @@ site loads **no third-party scripts** and there is no server-reflected HTML, so 
 classic injection path for inline-script XSS does not exist; boundary 1 closes the
 client-side one.
 
-## Dependency advisory status (2026-06-13)
+## Dependency advisory status (2026-08-03)
 
-The **Astro 5 → 6 upgrade has been adopted**, which cleared the two Astro-native
-high advisories:
+**`npm audit` currently reports 0 vulnerabilities.**
 
-- ~~**Astro — XSS in `define:vars` via incomplete `</script>` sanitization.**~~
-  Fixed in Astro 6 (and never reachable here — `define:vars` is used only with
-  static, author-controlled values).
-- ~~**Astro — Server-island encrypted-parameter replay.**~~ Fixed in Astro 6 (and
-  not reachable — `output: 'static'`, no server islands).
+Cleared since the previous review:
 
-The advisories that **remain** all reduce to a single transitive package,
-**`esbuild` (0.17.0–0.28.0)**, with **no fix available** — it propagates up through
-`vite` and `astro`, so `npm audit` counts it on each:
+- ~~**Astro — XSS in `define:vars`**~~ and ~~**Astro — server-island parameter
+  replay**~~. Fixed by the Astro 5 → 6 upgrade ([ADR 0007](../decisions/0007-astro-6-node-22.md)),
+  and neither was reachable here to begin with (`define:vars` takes only static
+  author-controlled values; `output: 'static'` means no server islands).
+- ~~**esbuild (0.17.0–0.28.0)** — dev-server arbitrary file read, and Deno module
+  integrity.~~ This review recorded them as "accepted, no fix available". They no
+  longer apply: the resolved `esbuild` is **0.28.1**, outside the affected range.
+  The chain shipped a fix, exactly as predicted — the prediction was right and the
+  document was simply never revisited to notice.
+- ~~**postcss ≤8.5.17** — path traversal via `sourceMappingURL` auto-loading
+  ([GHSA-r28c-9q8g-f849](https://github.com/advisories/GHSA-r28c-9q8g-f849)).~~
+  Reached the tree transitively through `vite` / `eslint-plugin-astro`. Fixed by
+  `npm audit fix` on 2026-08-03 — a seven-line lockfile change, no direct
+  dependency touched.
 
-- **esbuild — arbitrary file read via the dev server (Windows).** Reachable only
-  while running `astro dev` on Windows; not part of any deployed artifact.
-- **esbuild — missing binary integrity verification in the Deno module.** Requires
-  Deno, which this project does not use.
+**Why this section kept going stale**, and what to do about it: nothing runs
+`npm audit` in CI, so this is the one part of the threat model with no drift
+guard behind it — unlike the CSP block above, which
+[`scripts/csp-doc-sync.test.mjs`](../../scripts/csp-doc-sync.test.mjs) enforces.
+Between reviews, the advisory set moved in **both** directions: one described
+advisory silently stopped applying, and a new high-severity one appeared
+undescribed. Re-run `npm audit` when touching this section rather than trusting
+what it says; treat the date in the heading as the last time anyone actually
+looked.
 
-Both are **build-time/dev-only**: esbuild runs during local dev and the build, never
-in the static files served to visitors. There is no patched esbuild in `vite`'s
-supported range, so they are **accepted, not actionable** — forcing an override
-risks breaking the build for a vulnerability with no production reach. They will
-clear when the Vite/esbuild chain ships a fixed release. (Dev tooling such as
-`@astrojs/check` may surface separate advisories that likewise never reach
-visitors.)
+Build-time-only reachability still applies as a triage rule: a `high` in tooling
+that never ships to a visitor is triaged differently from one in the static
+artifact. It is a reason to deprioritise, never a reason to leave it undescribed.
 
 ## Out of scope / non-goals
 

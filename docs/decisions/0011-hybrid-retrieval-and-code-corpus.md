@@ -116,8 +116,8 @@ it, so hybrid retrieval costs one more query and an RRF merge, not a new vendor.
   hybrid) on the `run_eval` question set — the lexical channel recovers the
   exact-identifier queries dense alone missed.
 - **Containment held and extended.** The acceptance contract
-  ([`evals/acceptance.py`](../../chat-backend/evals/acceptance.py), 9 cases)
-  still passes **9/9**: off-topic code-chunk leaks, poem and translate tasks all
+  ([`evals/acceptance.py`](../../chat-backend/evals/acceptance.py))
+  still passes in full: off-topic code-chunk leaks, poem and translate tasks all
   refuse via the prose-anchored gate and the new task gates; the deep-code
   questions now answer from real source.
 

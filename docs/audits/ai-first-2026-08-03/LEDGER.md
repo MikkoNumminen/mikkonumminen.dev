@@ -15,6 +15,7 @@ directly comparable).
 | Iteration | Onboard 18% | Legible 18% | Verify 16% | Decide 12% | Auto 12% | Types 10% | Machine 7% | Sec 7% | **Overall** |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 0 (baseline) | 8.7 | 9.3 | 7.7 | 8.3 | 6.8 | 8.3 | 7.6 | 6.8 | **8.12** |
+| 1-2 (docs + code) | 8.2 ▼ | 9.6 | 8.4 | 9.3 | 7.6 | 8.8 | 9.2 | 9.2 | **8.74** |
 
 ## Iteration log
 
@@ -56,6 +57,47 @@ merges. Worth 0.352 weighted points across three dimensions, the single largest
 item in the campaign. It is a **repository settings change, not a file change**:
 it cannot land in this PR, and it changes what the owner themselves can merge,
 so it needs an explicit decision rather than being applied silently.
+
+### Iterations 1-2 — documentation, then code (2026-08-03)
+
+Commits `9dacfa7`, `ad9ca77`, `ce2a419`. Overall **8.12 → 8.74**. Six dimensions
+up, one flat, **one down**.
+
+| Dimension | Δ | What moved it |
+| --- | ---: | --- |
+| Security/ops docs | +2.4 | SECURITY.md and the threat model now describe the backend that exists; CSP agreement enforced by a test rather than asserted |
+| Machine-readable | +1.6 | eval fixtures gained an enforced shape; registry schema gained value constraints the validator actually implements |
+| Decision | +1.0 | ADR 0009's Poro update, ADR 0017 for the shoutbox, a complete audits index, dead-ends recorded |
+| Automation | +0.8 | CodeQL concurrency, `npm run verify`, dependabot docker, doc/CI gate alignment |
+| Self-verification | +0.7 | `lifecycle.ts` 0→94%, `commands.ts` 33→81%, ratchet re-anchored 34→54 against measured 56.4 |
+| Type safety | +0.5 | `ragctl.py` under CI mypy with 9 real errors fixed and zero `# type: ignore`; platform pinned; 404 cast guarded |
+| Legibility | +0.3 | `ragctl.py` docstring; invariant comments on the three.js assertions |
+| **Onboarding** | **−0.5** | see below |
+
+**Onboarding went down, and that is the most useful result of the round.** The
+baseline panel scored it 8.7 against gaps that were mostly stale numbers. The
+re-measure found something bigger that the baseline missed entirely: the
+`rag-backend` skill and `docs/rag-chat.md` never mention session memory,
+progressive disclosure, or Finnish language routing — three pipeline stages live
+for over a month. The skill's frontmatter promises "the exact /chat pipeline
+order", "every config knob with defaults" and "the `app/` file map"; all three
+promises are broken. Worth 1.4 points, which swamped the 0.9 of fixes.
+
+A score that only ever rises is measuring the fixer, not the codebase.
+
+**An overclaim in this campaign's own work, recorded rather than quietly fixed.**
+`test_doc_counts.py`'s docstring asserts that "every other mention describes the
+harness structurally". That was false when written. The stale "9 cases"/"9/9"
+claim also lives in `docs/rag-chat.md`, two `.claude/skills/` files, and ADRs
+0010 and 0011 — five files that were not checked before the claim was made. The
+guard is real; the sentence around it was not earned. The fix is to make the
+guard cover what the sentence claims, not to soften the sentence.
+
+**Cross-confirmed, still open:** branch protection was independently re-verified
+by four assessors this round (automation, self-verification, types, and again
+via `gh api .../rulesets` returning `[]`). It alone accounts for 1.4 of
+automation's 2.4-point deficit — that dimension **cannot** reach the 9.3 floor
+without it, and it cannot be changed from inside a pull request.
 
 ## Rules this campaign holds itself to
 
