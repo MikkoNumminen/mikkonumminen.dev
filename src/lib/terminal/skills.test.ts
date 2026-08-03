@@ -342,7 +342,10 @@ describe('runSkillsCommand — happy-path rendering', () => {
     const { output, ctx } = runCommandCtx();
     await runSkillsCommand([], ctx, en);
 
+    // The hint's file path is the load-bearing part — it's what tells a
+    // visitor/dev what's actually missing, and it isn't locale-translated.
     expect(output.querySelector('span.line--err')).not.toBeNull();
+    expect(output.textContent).toContain('skills-registry.json');
   });
 
   it('--json opens the raw registry in a new tab without rendering it inline', async () => {

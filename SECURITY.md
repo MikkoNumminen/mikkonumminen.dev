@@ -85,13 +85,13 @@ and the current dependency-advisory status are documented in
 Dependencies are monitored by [Dependabot](.github/dependabot.yml), which covers
 npm, GitHub Actions, pip (`chat-backend/`) and the backend's Docker base image.
 
-As of **2026-08-03**, `npm audit` reports **0 vulnerabilities**. The
+As of **2026-08-04**, `npm audit` reports **0 vulnerabilities**. The
 Astro-native advisories cleared with the Astro 5 → 6 upgrade
 ([ADR 0007](docs/decisions/0007-astro-6-node-22.md)); the long-standing
 `esbuild` pair no longer applies to the resolved version; and a transitive
 `postcss` path-traversal advisory was patched the same day. Per-advisory
 reachability analysis lives in
-[the threat model](docs/security/threat-model.md#dependency-advisory-status-2026-08-03).
+[the threat model](docs/security/threat-model.md#dependency-advisory-status-2026-08-04).
 
 Note that no CI job runs `npm audit`, so both this paragraph and the threat
 model's are **point-in-time statements, not enforced invariants** — re-run it
@@ -100,4 +100,4 @@ rather than trusting the date.
 ---
 
 _This file is kept in sync with [`docs/security/threat-model.md`](docs/security/threat-model.md);
-both were last reviewed 2026-08-03._
+both were last reviewed 2026-08-04._

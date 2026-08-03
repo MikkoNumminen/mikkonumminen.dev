@@ -179,7 +179,7 @@ describe('command handlers — happy-path output', () => {
     expect(
       output.querySelector('a[href="https://hr-manager-pearl.vercel.app"]'),
     ).not.toBeNull();
-    expect(output.textContent?.length).toBeGreaterThan(0);
+    expect(output.textContent).toContain('Mikko Numminen');
   });
 
   it('contact with no args prints the mailto link and a copy button', async () => {
@@ -214,17 +214,22 @@ describe('command handlers — happy-path output', () => {
 
   it('cat cv prints the scripted CV summary', async () => {
     const { output } = await run('cat', ['cv']);
-    expect(output.textContent?.length).toBeGreaterThan(0);
+    // Name is locale-stable (not translated); the `download --cv` hint is the
+    // CLI-syntax pointer to the full résumé and stays literal across locales too.
+    expect(output.textContent).toContain('Mikko Numminen');
+    expect(output.textContent).toContain('download --cv');
   });
 
   it('cv command prints the same scripted summary as `cat cv`', async () => {
     const { output } = await run('cv');
-    expect(output.textContent?.length).toBeGreaterThan(0);
+    expect(output.textContent).toContain('Mikko Numminen');
+    expect(output.textContent).toContain('download --cv');
   });
 
   it('man with no target prints a usage hint', async () => {
     const { output } = await run('man');
-    expect(output.textContent?.length).toBeGreaterThan(0);
+    // Default locale is `en`; the usage syntax itself (not just any output).
+    expect(output.textContent).toContain('man <command>');
   });
 
   it('man on a known command prints its name and description', async () => {

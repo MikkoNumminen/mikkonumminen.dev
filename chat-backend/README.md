@@ -398,9 +398,11 @@ Exactly what CI runs, in the same order — the point of this block is that a gr
 local run means a green CI run.
 
 **`ruff format` is deliberately not part of the gate.** Running it today would
-rewrite 23 files and 463 lines, and several of those rewrites make the code
-worse: it explodes a deliberately compact stop-word set into one word per line
-and reflows Finnish user-facing strings mid-sentence. `ruff check` is this
+rewrite roughly two dozen files and several hundred lines (measure it with
+`ruff format --check .` rather than trusting this sentence — the count moves
+with every commit), and several of those rewrites make the code worse: it
+explodes a deliberately compact stop-word set into one word per line and
+reflows Finnish user-facing strings mid-sentence. `ruff check` is this
 repo's linter; `ruff format` has never been adopted as its style authority, and
 adopting one is a decision to take on its own merits rather than a gap to close
 quietly. If it is ever adopted, do it in a standalone formatting-only commit so

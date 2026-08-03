@@ -94,7 +94,9 @@ claim also lives in `docs/rag-chat.md`, two `.claude/skills/` files, and ADRs
 guard is real; the sentence around it was not earned. The fix is to make the
 guard cover what the sentence claims, not to soften the sentence.
 
-**Cross-confirmed, still open:** branch protection was independently re-verified
+**Cross-confirmed — open when measured, applied 2026-08-04.** All five contexts
+are now required with `enforce_admins` on; the scores in this ledger predate
+that and do not include its ~0.27. Branch protection was independently re-verified
 by four assessors this round (automation, self-verification, types, and again
 via `gh api .../rulesets` returning `[]`). It alone accounts for 1.4 of
 automation's 2.4-point deficit — that dimension **cannot** reach the 9.3 floor

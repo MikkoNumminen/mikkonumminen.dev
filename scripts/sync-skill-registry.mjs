@@ -79,6 +79,42 @@ export function sourceStageSchema(schema) {
 }
 
 /**
+ * Receipt fields present in the CURRENT destination but absent from the
+ * incoming scan — i.e. everything `apply-measurement-overlay.mjs` added that a
+ * bare sync is about to discard. Returns dotted `skill.field` labels, deduped.
+ *
+ * Compared per receipt rather than per top-level key because the enrichment
+ * lives inside `repo.skills[].receipt`; a top-level diff would report nothing
+ * while every measurement receipt vanished.
+ */
+export function enrichedFieldsLost(existing, incoming) {
+  if (!existing || typeof existing !== 'object') return [];
+
+  const receiptsByName = (doc) => {
+    const out = new Map();
+    for (const repo of doc?.repos ?? []) {
+      for (const skill of repo?.skills ?? []) {
+        if (skill?.receipt && typeof skill.receipt === 'object') {
+          out.set(`${repo.name}/${skill.name}`, skill.receipt);
+        }
+      }
+    }
+    return out;
+  };
+
+  const before = receiptsByName(existing);
+  const after = receiptsByName(incoming);
+  const lost = new Set();
+  for (const [name, receipt] of before) {
+    const next = after.get(name);
+    for (const key of Object.keys(receipt)) {
+      if (!next || !(key in next)) lost.add(`${name}.${key}`);
+    }
+  }
+  return [...lost];
+}
+
+/**
  * Validate `srcBuf` (the raw bytes of a SKILL-REGISTRY-*.json verdict) against
  * `schema`, stamp sync provenance, and — unless `dryRun` — write it to `dest`.
  * Returns `{ ok: true, skipped, data }` or `{ ok: false, errors }`. Never calls
@@ -104,17 +140,17 @@ export function syncBuffer({ srcBuf, srcName, schema, dest, dryRun = false }) {
   data.synced_from = srcName;
   data.synced_at = new Date().toISOString();
 
+  // Read directly and let a missing file fall out of the catch, rather than
+  // existsSync-then-read: the two-step form is a time-of-check/time-of-use
+  // race (CodeQL js/file-system-race) and the guard bought nothing, since the
+  // read already needs a try/catch for the malformed-JSON case.
+  let existing;
+  try {
+    existing = JSON.parse(fs.readFileSync(dest, 'utf8'));
+  } catch {
+    existing = null;
+  }
   {
-    // Read directly and let a missing file fall out of the catch, rather than
-    // existsSync-then-read: the two-step form is a time-of-check/time-of-use
-    // race (CodeQL js/file-system-race) and the guard bought nothing, since the
-    // read already needs a try/catch for the malformed-JSON case.
-    let existing;
-    try {
-      existing = JSON.parse(fs.readFileSync(dest, 'utf8'));
-    } catch {
-      existing = null;
-    }
     if (existing) {
       const {
         synced_from: _existingFrom,
@@ -126,6 +162,25 @@ export function syncBuffer({ srcBuf, srcName, schema, dest, dryRun = false }) {
         return { ok: true, skipped: true, data: existing };
       }
     }
+  }
+
+  // Name what is about to be lost, BEFORE losing it. The header comment above
+  // explains that a bare run discards every field apply-measurement-overlay.mjs
+  // added — but a comment is only read by someone already suspicious, and the
+  // success line ("copied X → Y") looks identical whether the sync was routine
+  // or just threw away every measurement receipt in the served artifact. This
+  // has actually happened. The warning goes to the operator at the moment it
+  // matters, not to the reader of the file.
+  const dropped = enrichedFieldsLost(existing, data);
+  if (dropped.length > 0) {
+    console.warn(
+      `sync-skill-registry: WARNING — this overwrites ${dropped.length} enriched ` +
+        `field(s) that only apply-measurement-overlay.mjs can restore ` +
+        `(${dropped.slice(0, 5).join(', ')}${dropped.length > 5 ? ', …' : ''}).\n` +
+        `  This is step 1 of /skill-localUpdate; run the overlay after it, or the\n` +
+        `  committed artifact ships without its measurement receipts.\n` +
+        `  Use --dry-run to check without writing.`,
+    );
   }
 
   if (!dryRun) {

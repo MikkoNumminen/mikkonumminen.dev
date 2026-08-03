@@ -103,21 +103,30 @@ is not a passing gate.
 
 The distance from 9.09 to the 9.5 target, largest first:
 
+> **Resolved after measurement (2026-08-04):** branch protection now requires
+> all five contexts (`check`, `chat-backend`, `Scene smoke (Playwright)`,
+> `Analyze (javascript-typescript)`, `Analyze (python)`) with `enforce_admins`
+> on. The scores below were taken while it was still open, so they do NOT
+> include its ~0.27; the next measurement should. Left in the table because a
+> rating doc that quietly absorbs a post-hoc fix stops being a record of what
+> was measured.
+
 | Gap | Dimensions affected | Weighted cost |
 | --- | --- | ---: |
-| Branch protection requires only `chat-backend` | Automation, verification, types | ~0.27 |
+| ~~Branch protection requires only `chat-backend`~~ (resolved 2026-08-04) | Automation, verification, types | ~0.27 |
 | No gate detects a workflow that silently stops running | Verification | ~0.06 |
 | Shoutbox write-path e2e skips in CI (`PUBLIC_CHAT_API_URL` unset at build) | Verification | ~0.03 |
 | `checkJs` off over `scripts/*.mjs` (measured: 339 errors) | Types | ~0.05 |
 | ~1000 lines of GSAP timeline math untested | Verification | ~0.02 |
 | Calibration/usage verdict inputs unvalidated | Machine-readable | ~0.02 |
 
-**Branch protection is the single largest item and cannot be changed from a pull
-request.** All five contexts (`check`, `chat-backend`, `Scene smoke (Playwright)`,
-`Analyze (javascript-typescript)`, `Analyze (python)`) have been confirmed
-reporting green, which is the precondition for requiring them — a required
-context that never reports blocks every PR permanently, which is not hypothetical
-here given the CodeQL outage above.
+**Branch protection was the single largest item and could not be changed from a
+pull request.** It was applied on 2026-08-04, after this measurement: all five
+contexts are now required with `enforce_admins` on, so a red run blocks the merge
+for everyone including the owner. The precondition matters and was met first —
+every context was confirmed reporting green before being required, because a
+required context that never reports blocks every PR permanently, which is not
+hypothetical here given the CodeQL outage above.
 
 **Deliberately not done**, with reasons, so these are not mistaken for oversights:
 splitting `ragctl.py` (refactors live operational code for points on a dimension

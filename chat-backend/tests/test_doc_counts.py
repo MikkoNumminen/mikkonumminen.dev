@@ -96,10 +96,46 @@ REPO_ROOT = CHAT_BACKEND.parent
 #   node_modules, .claude/worktrees — not ours.
 _SCAN_SKIP = ("node_modules", ".claude/worktrees", "docs/audits", "dist", ".astro")
 
+# Prose writes small numbers as words, and a digits-only guard certifies those
+# as checked while missing them entirely. `content/projects/portfolio-deepdive.md`
+# said "nine cases" and passed this scan clean — worse than being unguarded,
+# because that file is indexed into the RAG corpus, so the chat would have
+# repeated the wrong number on the authority of a passing test.
+_WORD_NUMBERS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
+}
+_NUM = r"\d+|" + "|".join(_WORD_NUMBERS)
+
 # "9/9", "27/27" — a self-referential pass ratio.
 _RATIO_RE = re.compile(r"\*{0,2}(\d+)\s*/\s*\1\*{0,2}")
-# "9 cases", "11 black-box contract cases".
-_COUNT_RE = re.compile(r"\*{0,2}(\d+)\*{0,2}\s+(?:\w+[- ]){0,3}cases\b")
+# "9 cases", "11 black-box contract cases", "nine cases".
+_COUNT_RE = re.compile(rf"\*{{0,2}}({_NUM})\*{{0,2}}\s+(?:\w+[- ]){{0,3}}cases\b", re.I)
+
+
+def _as_int(token: str) -> int | None:
+    """A matched count as a number, whether written in digits or words."""
+    if token.isdigit():
+        return int(token)
+    return _WORD_NUMBERS.get(token.lower())
 # Only claims sitting near this vocabulary are about THIS harness. Deliberately
 # NOT the bare word "harness": the rag-experiment skill has its own harness and
 # quotes per-model tallies like "containment refuse 9/3/3", which a looser
@@ -123,7 +159,20 @@ def _markdown_files() -> list[Path]:
     files: list[Path] = []
     for path in REPO_ROOT.rglob("*.md"):
         rel = path.relative_to(REPO_ROOT).as_posix()
-        if any(rel.startswith(skip) or f"/{skip}" in rel for skip in _SCAN_SKIP):
+        # Match on contiguous PATH SEGMENTS, not substrings and not a bare
+        # prefix. Substring matching would skip `some/node_modules_extra/`; a
+        # prefix-only match would stop skipping a nested `chat-backend/
+        # node_modules/`, and would also swallow a future `docs/audits-index.md`.
+        # Silently excluding a sibling is the same shape of bug as the
+        # absolute-path one above — it just fails quieter, by scanning less than
+        # it claims to.
+        parts = rel.split("/")
+        if any(
+            parts[i : i + len(sk)] == sk
+            for skip in _SCAN_SKIP
+            for sk in [skip.split("/")]
+            for i in range(len(parts) - len(sk) + 1)
+        ):
             continue
         files.append(path)
     return files
@@ -155,8 +204,8 @@ def test_no_stale_case_counts_anywhere() -> None:
             if not _HARNESS_RE.search(window):
                 continue
             for match in (*_RATIO_RE.finditer(line), *_COUNT_RE.finditer(line)):
-                value = int(match.group(1))
-                if value not in allowed:
+                value = _as_int(match.group(1))
+                if value is not None and value not in allowed:
                     rel = path.relative_to(REPO_ROOT).as_posix()
                     offenders.append(f"{rel}:{i + 1}: {line.strip()!r}")
 

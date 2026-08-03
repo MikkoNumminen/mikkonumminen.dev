@@ -120,10 +120,15 @@ function newSessionId(): string {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
     return `rag-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
   }
-  // No CSPRNG at all. Rather than mint a predictable id, hand back one that is
-  // obviously not a session: the backend treats an unknown id as a fresh
-  // context, so memory degrades off instead of degrading to guessable.
-  return 'rag-nocrypto';
+  // No CSPRNG at all: return EMPTY, which the backend reads as "no session".
+  // `SessionMemory.history`/`record` both short-circuit on a falsy id, so this
+  // turns conversation memory off rather than keying it on something weak.
+  //
+  // A constant placeholder would be worse than the Math.random it replaced:
+  // every client without a CSPRNG would send the SAME id and therefore share
+  // one server-side memory bucket, reading each other's turns. Unguessable or
+  // absent are the only safe options; "unique-looking" is not one of them.
+  return '';
 }
 
 let sessionId = newSessionId();
@@ -168,7 +173,10 @@ export async function resetChatSession(opts?: {
   sessionId = newSessionId();
   conversationHistory = [];
   const base = getChatBaseUrl();
-  if (base) {
+  // Skip the POST when there was no session to reset: the reset endpoint
+  // requires a non-empty id (min_length=1), so sending the empty id that means
+  // "memory is off" would just earn a 422 the catch below silently eats.
+  if (base && previous) {
     const f = opts?.fetchImpl ?? fetch;
     try {
       await f(`${base}/session/reset`, {

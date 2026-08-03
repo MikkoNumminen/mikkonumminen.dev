@@ -5,7 +5,7 @@ entirely, static. The goal is to make the trust boundaries and the invariants
 that protect them explicit, so a change (human or automated) doesn't silently
 weaken one.
 
-**Last reviewed:** 2026-08-03
+**Last reviewed:** 2026-08-04
 
 > **Scope changed since the 2026-06-13 review.** This model used to describe a
 > purely static site, and said so in terms — no server runtime, no database, no
@@ -92,9 +92,9 @@ site loads **no third-party scripts** and there is no server-reflected HTML, so 
 classic injection path for inline-script XSS does not exist; boundary 1 closes the
 client-side one.
 
-## Dependency advisory status (2026-08-03)
+## Dependency advisory status (2026-08-04)
 
-**`npm audit` currently reports 0 vulnerabilities.**
+**`npm audit` reported 0 vulnerabilities when this was last run (2026-08-04).**
 
 Cleared since the previous review:
 
@@ -113,15 +113,21 @@ Cleared since the previous review:
   `npm audit fix` on 2026-08-03 — a seven-line lockfile change, no direct
   dependency touched.
 
-**Why this section kept going stale**, and what to do about it: nothing runs
+- ~~**brace-expansion** (GHSA-rgw5-rvv9-x895) and **fast-uri**
+  (GHSA-7p8r-x3mc-p8w7).~~ Both appeared transitively and were patched by
+  `npm audit fix` on 2026-08-04, a six-line lockfile change.
+
+**Why this section keeps going stale**, and what to do about it: nothing runs
 `npm audit` in CI, so this is the one part of the threat model with no drift
 guard behind it — unlike the CSP block above, which
 [`scripts/csp-doc-sync.test.mjs`](../../scripts/csp-doc-sync.test.mjs) enforces.
-Between reviews, the advisory set moved in **both** directions: one described
-advisory silently stopped applying, and a new high-severity one appeared
-undescribed. Re-run `npm audit` when touching this section rather than trusting
+The evidence that this is not a one-off: the set moved in **both** directions
+between the June and August reviews (a described advisory silently stopped
+applying while a new high appeared undescribed), and then moved **again within a
+single day** — two further highs surfaced hours after this section was rewritten
+to say zero. Re-run `npm audit` when touching this section rather than trusting
 what it says; treat the date in the heading as the last time anyone actually
-looked.
+looked, and assume it is already out of date.
 
 Build-time-only reachability still applies as a triage rule: a `high` in tooling
 that never ships to a visitor is triaged differently from one in the static

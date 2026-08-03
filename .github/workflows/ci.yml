@@ -43,18 +43,19 @@ jobs:
   # The RAG backend (chat-backend/) — Python — was never CI-checked, so latent
   # ruff/mypy nits stayed latent and the whole check rode on local runs + memory.
   #
-  # `chat-backend` is currently the ONLY required status check in branch
-  # protection. `check` (this file's other job), the E2E `scenes` job, and
-  # CodeQL all run on every PR but do NOT block a merge — a PR can go red on
-  # typecheck, lint, tests, build or E2E and still be mergeable.
-  #
-  # To make them block, add these exact context names to the required list
-  # (Settings > Branches, or `gh api --method PATCH
-  # repos/OWNER/REPO/branches/master/protection/required_status_checks`):
+  # As of 2026-08-04 all five contexts below are REQUIRED on `master`, with
+  # `enforce_admins` on, so a red run blocks the merge for everyone including
+  # the owner:
   #   check
+  #   chat-backend
   #   Scene smoke (Playwright)
   #   Analyze (javascript-typescript)
   #   Analyze (python)
+  #
+  # Before that, `chat-backend` was the only required one — every other job ran
+  # and reported and nothing stopped a red PR from merging. The rest of this
+  # block is kept because the reasoning still applies to the NEXT context anyone
+  # adds, and because both traps below were hit for real.
   #
   # ADD A CONTEXT ONLY AFTER YOU HAVE SEEN IT REPORT GREEN AT LEAST ONCE. A
   # required context that never reports blocks every PR forever, and that is not
