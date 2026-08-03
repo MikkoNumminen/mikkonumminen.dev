@@ -333,3 +333,15 @@
     transform: none;
   }
 }
+
+/* WITHOUT JAVASCRIPT THE HINT CAN NEVER RETIRE. It is retired by a scroll
+ * listener, so with scripting off it would stay pinned to the viewport bottom
+ * forever — including while the visitor reads the very box it pointed at, which
+ * is worse than never showing it. `scripting: none` is the one query that can
+ * tell; where a browser does not support it the hint simply behaves as it does
+ * today, so this is a strict improvement rather than a new dependency. */
+@media (scripting: none) {
+  .shoutbox__scroll-hint {
+    display: none;
+  }
+}

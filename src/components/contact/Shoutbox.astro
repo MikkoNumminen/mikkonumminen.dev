@@ -176,18 +176,25 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
       // life of the page.
       const hint = document.querySelector<HTMLElement>('[data-shoutbox-hint]');
       if (hint) {
-        const retire = (): void => {
-          if (window.scrollY < 80) return;
+        const retireHint = (): void => {
           hint.classList.add('shoutbox__scroll-hint--done');
-          window.removeEventListener('scroll', retire);
+          window.removeEventListener('scroll', onScroll);
         };
-        // Checked once immediately: a restored scroll position, or an anchored
-        // arrival, must not leave the hint sitting over the content it points at.
-        retire();
-        window.addEventListener('scroll', retire, {
-          passive: true,
-          signal: controller.signal,
-        });
+        const onScroll = (): void => {
+          if (window.scrollY >= 80) retireHint();
+        };
+        // A restored scroll position or an anchored arrival must not leave the
+        // hint sitting over the content it points at. Checked before the
+        // listener is attached, and the listener is skipped entirely if the
+        // answer is already yes.
+        if (window.scrollY >= 80) {
+          retireHint();
+        } else {
+          window.addEventListener('scroll', onScroll, {
+            passive: true,
+            signal: controller.signal,
+          });
+        }
       }
 
       /**
