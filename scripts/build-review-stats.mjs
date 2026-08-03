@@ -668,4 +668,8 @@ console.log('');
 console.log(
   `Generic transcript-stats pass: ${medianUpdated} non-/review receipt(s) updated with median + spread; ${modelTagged} cost_model tag${modelTagged === 1 ? '' : 's'} written.`,
 );
-console.log(`Wrote ${REGISTRY_PATH}`);
+// `write.target`, not REGISTRY_PATH: this is the LAST line of output and the
+// one read as the final status, so naming the served path after diverting the
+// write would contradict the notice above it and claim a publish that did not
+// happen — on stdout, where a stderr-only log capture would not see the caveat.
+console.log(`Wrote ${write.target}`);

@@ -35,6 +35,31 @@ export function wantsPublish(argv) {
 }
 
 /**
+ * Whether `candidate` IS the served registry.
+ *
+ * Compared as trailing path SEGMENTS, not as a string suffix: a suffix match
+ * treats `/somewhere/other-public/data/skills-registry.json` as the served file
+ * because the characters happen to line up. And on Windows the comparison is
+ * case-insensitive, because NTFS is — `Public\Data\Skills-Registry.json` opens
+ * exactly the same file, and a guard that misses it would wave through the one
+ * write it exists to stop.
+ *
+ * Neither case is reachable from the three callers' hardcoded paths today; both
+ * are reachable via `apply-measurement-overlay.mjs --output`, which is precisely
+ * the path a human types by hand.
+ */
+export function isServedRegistry(candidate) {
+  const want = SERVED_REGISTRY.split(path.sep);
+  const got = path.normalize(candidate).split(path.sep);
+  if (got.length < want.length) return false;
+
+  const tail = got.slice(got.length - want.length);
+  const eq = (a, b) =>
+    process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+  return tail.every((seg, i) => eq(seg, want[i]));
+}
+
+/**
  * Decide where a registry-writing script should actually write.
  *
  * Returns the requested path when publishing is intended, and a sibling
@@ -46,8 +71,7 @@ export function wantsPublish(argv) {
  * @returns {{ target: string, published: boolean, notice: string | null }}
  */
 export function resolveWriteTarget(requested, argv) {
-  const isServed = path.normalize(requested).endsWith(path.normalize(SERVED_REGISTRY));
-  if (!isServed || wantsPublish(argv)) {
+  if (!isServedRegistry(requested) || wantsPublish(argv)) {
     return { target: requested, published: true, notice: null };
   }
 
@@ -55,10 +79,14 @@ export function resolveWriteTarget(requested, argv) {
   return {
     target: staged,
     published: false,
+    // Worded as the TARGET, not as a completed write: callers may skip the
+    // write entirely (`--dry-run`), and "wrote X" printed next to "nothing
+    // written" is the kind of contradiction that teaches people to stop reading
+    // this script's output.
     notice:
-      `not publishing: wrote ${staged} instead of the served registry.\n` +
+      `not publishing — target is ${staged}, the served registry is untouched.\n` +
       `  ${SERVED_REGISTRY} is written by three scripts in sequence, so running\n` +
-      `  one alone would strip what the others added. Re-run with --publish once\n` +
-      `  the full refresh chain has run (see the skill-localUpdate skill).`,
+      `  one alone would strip what the others added. Pass --publish once the\n` +
+      `  full refresh chain has run (see the skill-localUpdate skill).`,
   };
 }

@@ -184,7 +184,14 @@ export function syncBuffer({
   // or just threw away every measurement receipt in the served artifact. This
   // has actually happened. The warning goes to the operator at the moment it
   // matters, not to the reader of the file.
-  const dropped = enrichedFieldsLost(existing, data);
+  const write = resolveWriteTarget(dest, publishArgv);
+
+  // Only warn about destroying enrichment when the write will ACTUALLY reach the
+  // served file. Printed unconditionally it lands directly above "the served
+  // registry is untouched", and a reader who stops at the first alarming line —
+  // the exact behaviour this guard exists to protect — would think they had just
+  // destroyed 367 fields when nothing happened.
+  const dropped = write.published ? enrichedFieldsLost(existing, data) : [];
   if (dropped.length > 0) {
     console.warn(
       `sync-skill-registry: WARNING — this overwrites ${dropped.length} enriched ` +
@@ -196,7 +203,6 @@ export function syncBuffer({
     );
   }
 
-  const write = resolveWriteTarget(dest, publishArgv);
   if (!dryRun) {
     fs.mkdirSync(path.dirname(write.target), { recursive: true });
     fs.writeFileSync(write.target, JSON.stringify(data, null, 2) + '\n');
