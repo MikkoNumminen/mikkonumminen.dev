@@ -99,6 +99,36 @@ via `gh api .../rulesets` returning `[]`). It alone accounts for 1.4 of
 automation's 2.4-point deficit — that dimension **cannot** reach the 9.3 floor
 without it, and it cannot be changed from inside a pull request.
 
+### Iteration 3 — the rest of the queue (2026-08-03)
+
+Commits `1ae9255`, `505df8b`, `93bb433`, plus the e2e spec. Not yet re-measured
+at time of writing.
+
+**Deliberately NOT done, with reasons**, so a later reader does not mistake
+these for oversights:
+
+| Gap | Points | Why not |
+| --- | ---: | --- |
+| Split `ragctl.py` into modules | 0.2 (legibility) | Refactors live operational code — watchdog, funnel control, shoutbox moderation — for points on a dimension already at 9.6, above the 9.3 floor. The bundle is labelled and its co-location is explicitly justified in the file. |
+| Extract GSAP timeline logic into tested helpers | 0.15 (verification) | A refactor of working animation code whose points are not needed once the e2e work lands. |
+| Enable `checkJs` over `scripts/*.mjs` | 0.5 (types) | Measured at **339 errors**. ~260 are mechanical missing-parameter types, but the rest need real shape decisions (interfaces for the receipt/skill JSON) and null-guards through non-trivial control flow. Doing it properly is a multi-PR effort; doing it quickly would mean `any`/`@ts-expect-error` suppressions, trading a real repo-wide property for a nominal flag. Scoped as future work. |
+
+**Known limitation in the new e2e coverage.** `e2e/interaction.spec.ts` covers
+terminal command entry in CI, but its two shoutbox submit tests **skip** there:
+`PUBLIC_CHAT_API_URL` is a build-time variable that CI leaves unset, so
+`getChatBaseUrl()` compiles to `null` and the write form never renders. They
+skip with an explicit reason rather than passing vacuously, and were verified
+for real against a local build with the variable set. Closing this properly
+means giving the e2e job a build with the variable set — which would also make
+the existing scene smoke tests probe `/health` and needs its own route stub, so
+it is a change to make deliberately rather than as a footnote here.
+
+**One defect found and fixed while measuring, not while looking for it.** Two
+JSDoc blocks in `scripts/lib/chrome-pdf.mjs` were stacked with a `const`
+between the parameter docs and the function, so the docs attached to nothing:
+no editor signature help, and type tooling read the optional `chromePath` as
+required. The code was always correct; only the documentation was misplaced.
+
 ## Rules this campaign holds itself to
 
 - **The ruler does not move.** Weights and dimension definitions are frozen in
