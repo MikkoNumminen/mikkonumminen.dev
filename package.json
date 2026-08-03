@@ -46,7 +46,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@types/three": "^0.185.1",
     "@vitest/coverage-v8": "^4.1.10",
     "astro-eslint-parser": "^3.0.0",
