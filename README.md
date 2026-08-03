@@ -151,6 +151,7 @@ npm run preview       # preview the production build
 npm run typecheck     # astro check
 npm run verify        # the CI `check` job in one command (typecheck → format:check → lint → test:coverage → build)
 npm run verify:backend # the CI `chat-backend` job (ruff → mypy → pytest); needs the Python dev deps installed
+npm run verify:e2e    # the CI `Scene smoke (Playwright)` job (install chromium → build → test:e2e)
 npm run check:env     # verify Node version + deps are ready on a fresh clone
 npm run lint          # eslint
 npm run format        # prettier --write across src/

@@ -15,6 +15,7 @@
     "typecheck": "astro check",
     "verify": "npm run typecheck && npm run format:check && npm run lint && npm run test:coverage && npm run build",
     "verify:backend": "cd chat-backend && ruff check . && mypy app evals ragctl.py && pytest",
+    "verify:e2e": "playwright install --with-deps chromium && npm run build && npm run test:e2e",
     "check:env": "node scripts/check-env.mjs",
     "build:og": "node scripts/build-og.mjs",
     "build:skills-pdf": "node scripts/build-skills-pdf.mjs",
