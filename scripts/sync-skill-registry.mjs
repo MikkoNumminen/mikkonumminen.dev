@@ -104,7 +104,11 @@ export function syncBuffer({ srcBuf, srcName, schema, dest, dryRun = false }) {
   data.synced_from = srcName;
   data.synced_at = new Date().toISOString();
 
-  if (fs.existsSync(dest)) {
+  {
+    // Read directly and let a missing file fall out of the catch, rather than
+    // existsSync-then-read: the two-step form is a time-of-check/time-of-use
+    // race (CodeQL js/file-system-race) and the guard bought nothing, since the
+    // read already needs a try/catch for the malformed-JSON case.
     let existing;
     try {
       existing = JSON.parse(fs.readFileSync(dest, 'utf8'));

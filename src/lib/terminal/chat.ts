@@ -107,12 +107,23 @@ let sessionDisabled = false;
 // Per-session identity sent with every /chat POST so the backend's Phase 4
 // memory layer can thread turns without the frontend re-sending full history.
 // Regenerated on reset/disable so the new session starts memory-clean.
+// This id must be UNGUESSABLE, not merely unique: the backend keys its
+// conversation memory on it, so anyone who can predict one can read or poison
+// that session's context. The previous fallback used Math.random, which is not
+// a CSPRNG — flagged by CodeQL as js/insecure-randomness. `getRandomValues` has
+// shipped in every browser since ~2011, so the weak path bought nothing.
 function newSessionId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  // Fallback for environments where crypto.randomUUID is not available.
-  return `rag-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    return `rag-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+  }
+  // No CSPRNG at all. Rather than mint a predictable id, hand back one that is
+  // obviously not a session: the backend treats an unknown id as a fresh
+  // context, so memory degrades off instead of degrading to guessable.
+  return 'rag-nocrypto';
 }
 
 let sessionId = newSessionId();
