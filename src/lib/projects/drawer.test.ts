@@ -62,7 +62,9 @@ function makeFixture() {
     'links',
   ];
   for (const field of fieldNames) {
-    const el = document.createElement(field === 'tech' || field === 'externalApis' ? 'ul' : 'div');
+    const el = document.createElement(
+      field === 'tech' || field === 'externalApis' ? 'ul' : 'div',
+    );
     el.setAttribute('data-field', field);
     detail.appendChild(el);
   }
@@ -92,11 +94,18 @@ function makeFixture() {
 }
 
 function getFocusableLinks(detail: HTMLElement): HTMLElement[] {
-  return Array.from(detail.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'));
+  return Array.from(
+    detail.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'),
+  );
 }
 
 function dispatchTab(target: HTMLElement, shiftKey = false): KeyboardEvent {
-  const evt = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+  const evt = new KeyboardEvent('keydown', {
+    key: 'Tab',
+    shiftKey,
+    bubbles: true,
+    cancelable: true,
+  });
   target.dispatchEvent(evt);
   return evt;
 }
@@ -207,7 +216,9 @@ describe('initProjectDrawer: Escape', () => {
     const { handle, detail, onClose } = makeFixture();
     handle.open(project);
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
 
     expect(detail.getAttribute('data-open')).toBe('false');
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -216,7 +227,9 @@ describe('initProjectDrawer: Escape', () => {
   it('Escape is a no-op when the drawer is not open', () => {
     const { onClose } = makeFixture();
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
 
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -256,7 +269,7 @@ describe('initProjectDrawer: focus restoration', () => {
       '`document.body` has no tabindex and is not focus()-able by script — so when ' +
       'the original trigger is gone, focus is silently left wherever it was (the ' +
       'close button inside the now-hidden drawer) instead of returning to a sane ' +
-      'place. Correct behavior would be `document.body.setAttribute(\'tabindex\', \'-1\')` ' +
+      "place. Correct behavior would be `document.body.setAttribute('tabindex', '-1')` " +
       'before focusing it, or focusing `document.documentElement`, so keyboard users ' +
       'are not left with focus inside `aria-hidden="true"` content.',
     () => {
@@ -311,7 +324,9 @@ describe('initProjectDrawer: dispose', () => {
     handle.open(project);
     handle.dispose();
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
 
     expect(onClose).not.toHaveBeenCalled();
     expect(detail.getAttribute('data-open')).toBe('true');
