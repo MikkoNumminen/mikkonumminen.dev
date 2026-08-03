@@ -35,6 +35,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateAgainst } from './lib/validate-json-schema.mjs';
+import { resolveWriteTarget } from './lib/publish-guard.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const VERDICTS_DIR = path.join(ROOT, '.claude', 'agent-verdicts');
@@ -116,11 +117,23 @@ export function enrichedFieldsLost(existing, incoming) {
 
 /**
  * Validate `srcBuf` (the raw bytes of a SKILL-REGISTRY-*.json verdict) against
- * `schema`, stamp sync provenance, and — unless `dryRun` — write it to `dest`.
- * Returns `{ ok: true, skipped, data }` or `{ ok: false, errors }`. Never calls
- * process.exit, so it's usable directly from tests.
+ * `schema`, stamp sync provenance, and — unless `dryRun` — write it.
+ *
+ * `publishArgv` decides WHERE: without `--publish` the result goes to a scratch
+ * `.staged.json` sibling instead of the served registry, so a lone run of this
+ * step cannot strip what the later steps in the refresh chain added.
+ *
+ * Returns `{ ok: true, skipped, data, wrote, notice }` or `{ ok: false, errors }`.
+ * Never calls process.exit, so it's usable directly from tests.
  */
-export function syncBuffer({ srcBuf, srcName, schema, dest, dryRun = false }) {
+export function syncBuffer({
+  srcBuf,
+  srcName,
+  schema,
+  dest,
+  dryRun = false,
+  publishArgv = process.argv.slice(2),
+}) {
   let data;
   try {
     data = JSON.parse(srcBuf.toString('utf8'));
@@ -183,12 +196,13 @@ export function syncBuffer({ srcBuf, srcName, schema, dest, dryRun = false }) {
     );
   }
 
+  const write = resolveWriteTarget(dest, publishArgv);
   if (!dryRun) {
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, JSON.stringify(data, null, 2) + '\n');
+    fs.mkdirSync(path.dirname(write.target), { recursive: true });
+    fs.writeFileSync(write.target, JSON.stringify(data, null, 2) + '\n');
   }
 
-  return { ok: true, skipped: false, data };
+  return { ok: true, skipped: false, data, wrote: write.target, notice: write.notice };
 }
 
 /**
@@ -234,10 +248,11 @@ function main() {
     process.exit(0);
   }
 
+  if (result.notice) console.warn(`sync-skill-registry: ${result.notice}`);
   console.log(
     dryRun
       ? `sync-skill-registry: ${srcName} validates and would be promoted (--dry-run, nothing written)`
-      : `sync-skill-registry: copied ${src} → ${DEST}`,
+      : `sync-skill-registry: copied ${src} → ${result.wrote}`,
   );
 }
 

@@ -45,8 +45,8 @@ One pre-flight check + four sequenced actions, with the chain bailing on the fir
 | --- | --- | --- | --- |
 | 1 | Pre-flight | `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` | (nothing — verifies the file exists and is fresh enough) |
 | 2 | `/skill-registry` | `<workspace>/*/.claude/skills/*/SKILL.md` (every sibling repo) | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `SKILL-REGISTRY-LATEST.json` |
-| 3 | `npm run sync:skills-registry` | `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` | `public/data/skills-registry.json` (in-place copy of the latest dated JSON — **what the /contact terminal reads**) |
-| 4 | `node scripts/apply-measurement-overlay.mjs` | `SKILL-USAGE-LATEST.json` + `public/data/skills-registry.json` | `public/data/skills-registry.json` (in-place — measurements merged, canonical duplicates dropped) |
+| 3 | `npm run sync:skills-registry -- --publish` | `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` | `public/data/skills-registry.json` (in-place copy of the latest dated JSON — **what the /contact terminal reads**) |
+| 4 | `node scripts/apply-measurement-overlay.mjs --publish` | `SKILL-USAGE-LATEST.json` + `public/data/skills-registry.json` | `public/data/skills-registry.json` (in-place — measurements merged, canonical duplicates dropped) |
 | 5 | `npm run build:skills-pdf` | `public/data/skills-registry.json` | `public/skills-registry.pdf` |
 
 End-to-end on a small portfolio: ~30–60s wall-clock, dominated by step 2's parallel sub-agents and step 5's Chrome render.
@@ -84,7 +84,7 @@ Invoke the existing `/skill-registry` skill. It walks every sibling repo in the 
 ### 3. Sync the inventory into `public/data/`
 
 ```bash
-npm run sync:skills-registry
+npm run sync:skills-registry -- --publish
 ```
 
 That npm script wraps `node scripts/sync-skill-registry.mjs` and copies the latest dated JSON from `.claude/agent-verdicts/` into `public/data/skills-registry.json`. This is the file the contact-page terminal's `skills` command fetches at runtime — committing it ships the new numbers to the deployed site. The prebuild hook (`npm run prebuild`) does this automatically on every `npm run build`, but this skill runs it explicitly so the overlay in step 4 operates on the up-to-date file (we don't call `npm run build` end-to-end here — see step 5's note).
@@ -92,7 +92,7 @@ That npm script wraps `node scripts/sync-skill-registry.mjs` and copies the late
 ### 4. Apply the measurement overlay
 
 ```bash
-node scripts/apply-measurement-overlay.mjs
+node scripts/apply-measurement-overlay.mjs --publish
 ```
 
 This script:
@@ -157,7 +157,8 @@ Done. Review the PDF and commit when ready.
 - **Does not gather token usage.** That's `/mikko-skill-usage`, run separately. This skill assumes it's already been run.
 - **Does not commit or push.** The user reviews the PDF visually and commits when ready.
 - **Does not modify `scripts/build-skills-pdf.mjs` or the overlay script.** Those are the source of truth for their respective steps; this skill only invokes them.
-- **Does not skip steps.** All five steps run on every invocation. If you only want the overlay refresh (no registry re-walk), run `node scripts/apply-measurement-overlay.mjs` directly — it's cheap.
+- **Does not skip steps.** All five steps run on every invocation. If you only want the overlay refresh (no registry re-walk), run `node scripts/apply-measurement-overlay.mjs --publish` directly — it's cheap.
+- **`--publish` is required to touch the served file.** Every script that writes `public/data/skills-registry.json` writes a throwaway `.staged.json` copy instead unless you pass it. Three scripts write that path in sequence, each layering something the next needs, so a step run ALONE would strip what the others added — `npm run sync:skills-registry` did exactly that once and discarded 367 measurement fields. Run steps bare to inspect; pass `--publish` when you mean it.
 - **Does not run on CI / Vercel.** Step 5 (`npm run build:skills-pdf`) already short-circuits there per `build-skills-pdf.mjs`'s CI/VERCEL env-var guard; the committed PDF stays canonical on hosted builds.
 
 ## Failure modes
