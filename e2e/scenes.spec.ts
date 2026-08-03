@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { stubChatHealth } from './support/chat-backend';
 
 // Boot smoke for the four visual worlds. The unit gates can't touch the WebGL
 // layer (jsdom has no GL context), so this is the verification that the scenes
@@ -26,6 +27,18 @@ const PAGES: PageCase[] = [
     expectCanvas: false,
   },
 ];
+
+// The suite's build bakes in a chat backend URL, so /contact probes `/health`
+// the moment it mounts and `astro preview` has nothing to answer with. Pin the
+// answer instead of letting a 404 decide it: `llm: false` is the state this
+// smoke has always measured (no chat affordance, no shoutbox form), so the four
+// assertions below keep meaning exactly what they meant before — they just no
+// longer depend on an unserved route timing out. Applied to every page rather
+// than only /contact because "which pages talk to the backend" is a detail this
+// file shouldn't have to track.
+test.beforeEach(async ({ page }) => {
+  await stubChatHealth(page, { llm: false });
+});
 
 for (const p of PAGES) {
   test(`${p.name} (${p.path}) boots without console/page errors`, async ({ page }) => {

@@ -37,7 +37,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run build
+      # No separate build step: Playwright's `webServer` builds the site itself
+      # so that it can bake in PUBLIC_CHAT_API_URL (see playwright.config.ts).
+      # A plain `npm run build` here produced a bundle with no chat backend,
+      # which left the shoutbox write form permanently hidden and its two tests
+      # skipping on every run. `ci.yml`'s `check` job still runs the unmodified
+      # `npm run build`, so a build break is still caught on its own line.
       - run: npm run test:e2e
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
