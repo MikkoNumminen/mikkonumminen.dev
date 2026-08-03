@@ -26,11 +26,7 @@ export function locateChrome() {
             '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
             '/Applications/Chromium.app/Contents/MacOS/Chromium',
           ]
-        : [
-            '/usr/bin/google-chrome',
-            '/usr/bin/chromium',
-            '/usr/bin/chromium-browser',
-          ];
+        : ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
   return candidates.find((p) => p && fs.existsSync(p));
 }
 
@@ -39,11 +35,8 @@ export function locateChrome() {
  * Page format (size / orientation / margins) is controlled by the HTML's
  * `@page` CSS, not by this function — callers are expected to set that.
  *
- * @param {object} opts
- * @param {string} opts.htmlPath - absolute path to source HTML
- * @param {string} opts.pdfPath  - absolute path for the output PDF
- * @param {string} [opts.chromePath] - override for the auto-located Chrome binary
  */
+
 /**
  * Chrome flags that shape the rendered page (the output path and source URL are
  * appended per call). Exported so a caller that caches a rendered PDF can fold
@@ -59,12 +52,22 @@ export const PRINT_FLAGS = [
   '--virtual-time-budget=2000',
 ];
 
+/**
+ * @param {object} opts
+ * @param {string} opts.htmlPath - absolute path to source HTML
+ * @param {string} opts.pdfPath  - absolute path for the output PDF
+ * @param {string} [opts.chromePath] - override for the auto-located Chrome
+ *   binary. OPTIONAL — it falls back to `locateChrome()` below, and all three
+ *   in-repo callers rely on that. This block used to sit above the
+ *   `PRINT_FLAGS` const rather than above this function, so it documented
+ *   nothing: editors showed no signature help, and type tooling read
+ *   `chromePath` as REQUIRED and flagged every call site. The code was always
+ *   right; the doc was orphaned.
+ */
 export function printHtmlToPdf({ htmlPath, pdfPath, chromePath }) {
   const chrome = chromePath ?? locateChrome();
   if (!chrome) {
-    throw new Error(
-      'Chrome / Chromium not found. Set CHROME_PATH or install Chrome.',
-    );
+    throw new Error('Chrome / Chromium not found. Set CHROME_PATH or install Chrome.');
   }
   if (!fs.existsSync(htmlPath)) {
     throw new Error(`html source missing: ${htmlPath}`);
