@@ -38,3 +38,17 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  # The RAG backend's Python deps. Added when chat-backend/pyproject.toml moved
+  # its dev tools from `>=` floors to exact pins: pinning is what stops CI and a
+  # developer machine running different checkers, but an unwatched pin just goes
+  # stale instead, and a graduating lint rule then arrives as a surprise on an
+  # unrelated branch. Grouped so a quiet week is one PR.
+  - package-ecosystem: pip
+    directory: /chat-backend
+    schedule:
+      interval: weekly
+    groups:
+      backend-dev-tools:
+        dependency-type: development
+      backend-runtime:
+        dependency-type: production
