@@ -35,9 +35,14 @@
   background: linear-gradient(to bottom, rgba(74, 222, 128, 0.06), rgba(74, 222, 128, 0));
 }
 
+/* An h2 for heading navigation, styled down to chrome-label size. The margin
+ * and weight resets are what keep it looking like the terminal's title bar
+ * rather than a document heading. */
 .shoutbox__title {
+  margin: 0;
   color: rgba(181, 245, 200, 0.75);
   font-size: 0.78rem;
+  font-weight: 400;
   letter-spacing: 0.04em;
 }
 

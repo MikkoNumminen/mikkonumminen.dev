@@ -64,7 +64,16 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
 <section class="shoutbox" aria-labelledby="shoutbox-title">
   <div class="shoutbox__card">
     <header class="shoutbox__chrome">
-      <span class="shoutbox__title" id="shoutbox-title">{t.title}</span>
+      {
+        /*
+        A REAL HEADING, not a styled span. Heading navigation is the primary way
+        screen-reader users move through a page, and as a span this box was
+        skipped by it entirely — the `aria-labelledby` region only helps someone
+        who happens to navigate by landmark instead. It looks identical; the
+        element is the whole point.
+      */
+      }
+      <h2 class="shoutbox__title" id="shoutbox-title">{t.title}</h2>
     </header>
 
     <div class="shoutbox__screen">
@@ -174,27 +183,32 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
       // `scroll` is passive so it can never delay scrolling, and the listener
       // removes itself on the first qualifying event rather than running for the
       // life of the page.
+      // Retire the hint when the box it points at is actually on screen, not
+      // after an arbitrary number of pixels.
+      //
+      // The first version fired at 80px of scroll, which is wrong in the case
+      // that matters: the terminal is a full viewport tall, so 80px is a nudge
+      // that reveals nothing. Someone who nudges and stops would lose the signal
+      // while the box was still an entire screen away — the hint would have
+      // disappeared precisely without doing its job.
+      //
+      // An IntersectionObserver retires it exactly when the card appears, and
+      // disconnects itself: one-way, because by then they have seen the thing.
       const hint = document.querySelector<HTMLElement>('[data-shoutbox-hint]');
-      if (hint) {
-        const retireHint = (): void => {
-          hint.classList.add('shoutbox__scroll-hint--done');
-          window.removeEventListener('scroll', onScroll);
-        };
-        const onScroll = (): void => {
-          if (window.scrollY >= 80) retireHint();
-        };
-        // A restored scroll position or an anchored arrival must not leave the
-        // hint sitting over the content it points at. Checked before the
-        // listener is attached, and the listener is skipped entirely if the
-        // answer is already yes.
-        if (window.scrollY >= 80) {
-          retireHint();
-        } else {
-          window.addEventListener('scroll', onScroll, {
-            passive: true,
-            signal: controller.signal,
-          });
-        }
+      const card = document.querySelector<HTMLElement>('.shoutbox__card');
+      if (hint && card) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            if (!entries.some((e) => e.isIntersecting)) return;
+            hint.classList.add('shoutbox__scroll-hint--done');
+            observer.disconnect();
+          },
+          // A sliver counts. Waiting for a threshold would leave the hint
+          // hovering over the top of the card it announced.
+          { threshold: 0 },
+        );
+        observer.observe(card);
+        controller.signal.addEventListener('abort', () => observer.disconnect());
       }
 
       /**
