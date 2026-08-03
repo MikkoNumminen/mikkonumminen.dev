@@ -1,10 +1,18 @@
 ---
 // The moderated shoutbox, at the foot of the contact page.
 //
-// READ PATH ONLY in this component: it renders messages already approved and
-// published. The submit form is a separate concern and arrives with the write
-// path; this half works whether or not the machine at home is awake, because it
-// reads a committed JSON file from the CDN rather than the backend.
+// TWO HALVES WITH DIFFERENT DEPENDENCIES, and keeping them apart is the point.
+//
+// READ: approved threads come from a committed JSON file on the CDN, so the list
+// is up whenever the SITE is up. It never touches the machine at home.
+//
+// WRITE: submitting needs the backend, so the form is gated on availability and
+// simply is not offered when the machine is asleep. A visitor then sees the
+// conversation and one quiet line saying sending is off, rather than a form that
+// fails when they press it.
+//
+// Nothing here publishes. A submit puts a row in a moderation queue; the snapshot
+// above only changes when the owner approves something and commits it.
 //
 // SURFACE, and why it is repeated rather than inherited: `.crt` is
 // `min-height: 100vh` with its own radial gradient, and that gradient ENDS at
@@ -54,6 +62,57 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
       }
       <p class="shoutbox__empty" data-shoutbox-empty>{t.empty}</p>
 
+      {
+        /*
+        The write half. Ships `hidden` and is revealed only once the backend
+        answers, so a visitor whose machine-at-home is asleep is never offered a
+        form that cannot work. The thread list above is NOT gated on this: it
+        comes from the committed snapshot and is up whenever the site is.
+
+        `<details>` rather than a scripted tooltip, per the position stated in
+        TechStack.astro: the native element already gives Enter, Space, tap and
+        an exposed open state, and reaching for JavaScript would mean
+        reimplementing all of it slightly worse. Hover is layered on in CSS.
+      */
+      }
+      <form class="shoutbox__form" data-shoutbox-form hidden>
+        <details class="shoutbox__info">
+          <summary class="shoutbox__info-label">{t.infoLabel}</summary>
+          <p class="shoutbox__info-body">{t.infoBody}</p>
+        </details>
+
+        <label class="sr-only" for="shoutbox-input">{t.placeholder}</label>
+        <textarea
+          class="shoutbox__input"
+          id="shoutbox-input"
+          data-shoutbox-input
+          rows="2"
+          placeholder={t.placeholder}
+          autocomplete="off"
+          spellcheck="true"></textarea>
+
+        <button class="shoutbox__send" type="submit" data-shoutbox-send>
+          {t.send}
+        </button>
+      </form>
+
+      {
+        /*
+        THIS is the live region, not the thread list. It reports the outcome of
+        something the visitor just did, which is exactly what aria-live is for —
+        unlike a feed that updates on its own clock, which FieldLog.astro records
+        as a WCAG 2.2.2 failure.
+      */
+      }
+      <p
+        class="shoutbox__status"
+        data-shoutbox-status
+        role="status"
+        aria-live="polite"
+        hidden
+      >
+      </p>
+
       <p class="shoutbox__legend">{t.legend}</p>
     </div>
   </div>
@@ -62,6 +121,8 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
 <script>
   import { onRoute } from '../../lib/lifecycle';
   import { loadSnapshot, formatThreadDate } from '../../lib/shoutbox/snapshot';
+  import { submitShout } from '../../lib/shoutbox/submit';
+  import { isChatAvailable } from '../../lib/terminal/chat';
   import { getTranslations } from '../../i18n';
 
   onRoute(
@@ -144,6 +205,76 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
         list.hidden = false;
         empty.hidden = true;
       });
+
+      // --- the write half ------------------------------------------------
+      //
+      // Gated on the SAME availability signal the chat uses, deliberately, and
+      // with no second /health probe: `isChatAvailable()` reads module state the
+      // terminal's (or the mobile card's) poller already keeps current, so after
+      // the first probe this costs nothing on the network.
+      //
+      // That signal is `checks.llm`, which is strictly a proxy for "the machine
+      // is awake" — the shoutbox needs the HTTP service, not the model. They go
+      // up and down together under `ragctl up` / `down`, so the proxy holds; the
+      // one gap is the ~40s while a cold model loads, during which the form stays
+      // hidden. Hiding a form that would work is a smaller failure than offering
+      // one that would not.
+      const form = document.querySelector<HTMLFormElement>('[data-shoutbox-form]');
+      const input = document.querySelector<HTMLTextAreaElement>('[data-shoutbox-input]');
+      const send = document.querySelector<HTMLButtonElement>('[data-shoutbox-send]');
+      const status = document.querySelector<HTMLParagraphElement>(
+        '[data-shoutbox-status]',
+      );
+
+      const say = (text: string): void => {
+        if (!status) return;
+        // textContent, like everything else here.
+        status.textContent = text;
+        status.hidden = false;
+      };
+
+      if (form && input && send && status) {
+        void isChatAvailable().then((available) => {
+          if (controller.signal.aborted) return;
+          if (available) {
+            form.hidden = false;
+            return;
+          }
+          // One quiet line in the site's register. No spinner, no retry button,
+          // no popup — the box simply says the door is shut right now.
+          say(t.offline);
+        });
+
+        form.addEventListener(
+          'submit',
+          (event) => {
+            event.preventDefault();
+            const body = input.value;
+            if (!body.trim()) return;
+
+            // Disabled for the round trip so a double-tap cannot queue twice.
+            // No spinner: the button going quiet is the whole feedback.
+            send.disabled = true;
+            input.disabled = true;
+
+            void submitShout(body).then((outcome) => {
+              if (controller.signal.aborted) return;
+              send.disabled = false;
+              input.disabled = false;
+
+              if (outcome.kind === 'queued') {
+                input.value = '';
+                say(t.queued);
+                return;
+              }
+              // The gate's own wording, verbatim: it is specific and actionable,
+              // and paraphrasing it here would put the rule in two places.
+              say(outcome.kind === 'refused' ? outcome.detail : t.failed);
+            });
+          },
+          { signal: controller.signal },
+        );
+      }
 
       return () => controller.abort();
     },

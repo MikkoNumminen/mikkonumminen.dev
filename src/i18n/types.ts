@@ -369,6 +369,20 @@ export interface Translations {
     empty: string;
     /** Attribution on the owner's own replies. */
     replyFrom: string;
+    /** Summary of the info disclosure. Opens on hover, tap and keyboard focus. */
+    infoLabel: string;
+    /** What the disclosure reveals: review, and that publishing is permanent. */
+    infoBody: string;
+    /** Placeholder in the message field. */
+    placeholder: string;
+    /** Submit button. */
+    send: string;
+    /** After a successful submit. Not a published state, and does not claim to be. */
+    queued: string;
+    /** Shown instead of the form when the backend is unreachable. */
+    offline: string;
+    /** A submit that failed in flight. The visitor's move is to retry. */
+    failed: string;
     /** Closing legend, in the Technologies-box register. */
     legend: string;
     /** Accessible name for the thread list region. */

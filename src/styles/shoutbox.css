@@ -132,3 +132,154 @@
     font-size: 0.85rem;
   }
 }
+
+/* --- the write half ------------------------------------------------------- */
+
+.shoutbox__form[hidden],
+.shoutbox__status[hidden] {
+  display: none;
+}
+
+.shoutbox__form {
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(74, 222, 128, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+/* Native <details>, per the position stated in TechStack.astro: Enter, Space,
+ * tap and an exposed open state come free. Hover is layered on below rather than
+ * replacing any of it. */
+.shoutbox__info {
+  width: 100%;
+}
+
+.shoutbox__info-label {
+  cursor: pointer;
+  list-style: none;
+  display: inline-block;
+  color: var(--color-term-dim);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  border-radius: 3px;
+  transition: color 140ms ease;
+}
+
+.shoutbox__info-label::-webkit-details-marker {
+  display: none;
+}
+
+.shoutbox__info-label::before {
+  content: 'ⓘ ';
+}
+
+.shoutbox__info-label:hover,
+.shoutbox__info-label:focus-visible {
+  color: var(--color-term-green);
+}
+
+.shoutbox__info-label:focus-visible {
+  outline: 2px solid rgba(74, 222, 128, 0.55);
+  outline-offset: 3px;
+}
+
+.shoutbox__info-body {
+  margin: 0.5rem 0 0;
+  max-width: 62ch;
+  color: var(--color-term-dim);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+
+/* Hover reveal, on top of the native open state. Wrapped in `hover: hover` so a
+ * tap does not leave the panel stuck open on touch — the repo's first such query,
+ * added because this is its first hover-revealed content. `:focus-within` covers
+ * the keyboard, `<summary>` covers tap and Enter/Space, `[open]` covers the
+ * deliberate case. */
+@media (hover: hover) {
+  .shoutbox__info:not([open]):hover .shoutbox__info-body,
+  .shoutbox__info:not([open]):focus-within .shoutbox__info-body {
+    display: block;
+  }
+
+  .shoutbox__info:not([open]) .shoutbox__info-body {
+    display: none;
+  }
+}
+
+.shoutbox__input {
+  width: 100%;
+  resize: vertical;
+  min-height: 3.2rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  border-radius: 6px;
+  background: rgba(74, 222, 128, 0.04);
+  color: var(--color-term-fg);
+  font-family: var(--font-mono);
+  /* 16px on mobile: anything smaller makes iOS zoom the viewport on focus, and
+   * unlike the terminal's single-line input this field is worth typing into. */
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.shoutbox__input::placeholder {
+  color: rgba(181, 245, 200, 0.4);
+}
+
+.shoutbox__input:focus-visible {
+  outline: 2px solid rgba(74, 222, 128, 0.55);
+  outline-offset: 2px;
+}
+
+.shoutbox__input:disabled {
+  opacity: 0.6;
+}
+
+.shoutbox__send {
+  /* 44px minimum touch target, the rule already documented in
+   * BackgroundAudio.astro. */
+  min-height: 44px;
+  padding: 0.4rem 1.1rem;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-term-green);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.shoutbox__send:hover:not(:disabled),
+.shoutbox__send:focus-visible {
+  background: rgba(74, 222, 128, 0.15);
+  border-color: rgba(74, 222, 128, 0.6);
+}
+
+.shoutbox__send:focus-visible {
+  outline: 2px solid rgba(74, 222, 128, 0.55);
+  outline-offset: 2px;
+}
+
+.shoutbox__send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.shoutbox__status {
+  margin: 0.85rem 0 0;
+  color: var(--color-term-dim);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 640px) {
+  .shoutbox__send {
+    width: 100%;
+  }
+}

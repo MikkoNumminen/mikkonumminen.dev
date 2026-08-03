@@ -17,6 +17,10 @@
     {
       "source": "/api/rag/session/reset",
       "destination": "https://paskamyrsky.tail6ed53b.ts.net/session/reset"
+    },
+    {
+      "source": "/api/rag/shout",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net/shout"
     }
   ],
   "redirects": [
