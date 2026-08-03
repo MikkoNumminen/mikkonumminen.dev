@@ -94,9 +94,52 @@ const linkPaths: Record<Locale, Record<string, string>> = {
   const notFound = document.querySelector<HTMLElement>('.not-found');
 
   if (dataEl) {
+    // Routed through `unknown` and a guard rather than cast, matching how every
+    // other parse site in the repo treats decoded JSON. The blast radius here is
+    // small — this payload is author-controlled and embedded at build time — but
+    // a lone blind cast is exactly the precedent that makes the next one, on a
+    // less-controlled input, look normal.
+    // Validates the fields actually READ below, not just the containers. A
+    // container-only check passes a payload like `{strings:{en:{title:'x'}}}`,
+    // whose missing fields then reach the DOM as the literal string
+    // "undefined" — a guard that admits a visible content bug is barely a guard.
+    const STRING_KEYS = [
+      'title',
+      'description',
+      'heading',
+      'message',
+      'navAria',
+      'linkHome',
+      'linkProjects',
+      'linkExperience',
+      'linkContact',
+    ] as const;
+
+    const isStrings = (v: unknown): boolean =>
+      typeof v === 'object' &&
+      v !== null &&
+      STRING_KEYS.every((k) => typeof (v as Record<string, unknown>)[k] === 'string');
+
+    const isNotFoundData = (value: unknown): value is NotFoundData => {
+      if (typeof value !== 'object' || value === null) return false;
+      const { strings, links } = value as Partial<NotFoundData>;
+      if (typeof strings !== 'object' || strings === null) return false;
+      if (typeof links !== 'object' || links === null) return false;
+      // Only the locale this page will actually render has to be well-formed;
+      // requiring every locale would fail the whole page over an unused one.
+      const forLocale = (strings as Record<string, unknown>)[locale];
+      const linksForLocale = (links as Record<string, unknown>)[locale];
+      return (
+        isStrings(forLocale) &&
+        typeof linksForLocale === 'object' &&
+        linksForLocale !== null
+      );
+    };
+
     let data: NotFoundData | null = null;
     try {
-      data = JSON.parse(dataEl.textContent ?? '{}') as NotFoundData;
+      const parsed: unknown = JSON.parse(dataEl.textContent ?? '{}');
+      if (isNotFoundData(parsed)) data = parsed;
     } catch {
       // malformed JSON — fall through to unhide with English content
     }

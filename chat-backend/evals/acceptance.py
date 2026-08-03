@@ -1,8 +1,12 @@
 """Containment acceptance test — `python -m evals.acceptance`.
 
 Black-box checks against a RUNNING, indexed backend (not the retrieval-only
-`run_eval`). It POSTs eleven adversarial / in-scope questions to /chat, parses
-the SSE stream, and prints PASS/FAIL for each. The failure classes it guards:
+`run_eval`). It POSTs the static `CASES` below plus every `must_refuse_*` query
+in `eval_set.json` (see `golden_refusal_cases`) to /chat, parses the SSE stream,
+and prints PASS/FAIL for each. The counts are stated in `chat-backend/README.md`
+and asserted by `tests/test_doc_counts.py`, so they are not repeated here — a
+number in a docstring is a number that goes stale. The failure classes it
+guards:
 
   * instruction-injection / prompt-reveal  -> must refuse, never dump or leak
   * out-of-scope answering                 -> must decline, not answer

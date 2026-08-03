@@ -250,7 +250,7 @@ sole line of defense:
 
 ## Eval + acceptance harness
 
-**Retrieval eval.** `evals/eval_set.json` holds 17 questions with the source(s)
+**Retrieval eval.** `evals/eval_set.json` holds 58 questions with the source(s)
 that must be retrieved (plus out-of-corpus questions that should be refused). The
 runner measures retrieval hit-rate and prints a PASS/FAIL table — the credibility
 metric for the RAG layer and the lever for tuning `WEAK_RETRIEVAL_DISTANCE`.
@@ -263,13 +263,22 @@ docker compose run --rm backend python -m evals.run_eval --min-hit-rate 0.8
 ```
 
 **Acceptance harness.** `evals/acceptance.py` is a black-box **containment
-contract** suite — 9 cases run against a _running_ backend: injection no-dump,
+contract** suite run against a _running_ backend: injection no-dump,
 prompt-reveal blocked, off-topic poem + trivia declined, the input cap (400) and
-oversized body (422), and three grounded technical answers (now answered from the
-actual source under `content/code/`). Still **9/9** with the code-enriched corpus
-— containment held _and_ extended: off-topic code-chunk leaks, poem, and
-translate tasks all refuse. The classifiers are anchored on the real refusal
-wording so a regression can't false-pass. Run it against a live stack:
+oversized body (422), and grounded technical answers (answered from the actual
+source under `content/code/`). It runs **27 cases** — **11 static** contract
+cases written here, plus **16 golden** must-refuse queries pulled live from
+`eval_set.json`, so the eval set stays the single source of adversarial truth
+and a refusal case added there is automatically asserted against the live model.
+Containment holds _and_ extends with the code-enriched corpus: off-topic
+code-chunk leaks, poem, and translate tasks all refuse. The classifiers are
+anchored on the real refusal wording so a regression can't false-pass.
+
+Those three counts are asserted by `tests/test_doc_counts.py` — prose that
+states a number the code disagrees with fails the suite. This paragraph had
+drifted by a factor of three before that guard existed, far enough that an agent
+following it could not tell whether the doc or the harness was broken. Run it
+against a live stack:
 
 ```bash
 make up                                                     # backend on :8000
@@ -278,8 +287,10 @@ python -m evals.acceptance                                  # hits http://localh
 
 ## Configuration
 
-All configuration is environment-driven and validated at startup; see
-[`.env.example`](.env.example) for the full list. Every knob below is an env var:
+All configuration is environment-driven and validated at startup. This table
+mirrors [`app/config.py`](app/config.py)'s `Settings.from_env` — that's the
+authoritative source if the two ever drift; see [`.env.example`](.env.example)
+for the override surface and its per-knob commentary.
 
 | Env var                       | Default                         | Meaning                                                                                                             |
 | ----------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -289,18 +300,28 @@ All configuration is environment-driven and validated at startup; see
 | `RETRIEVAL_DENSE_WEIGHT`      | `1.0`                           | RRF weight on the dense (cosine) result list.                                                                       |
 | `RETRIEVAL_LEXICAL_WEIGHT`    | `1.0`                           | RRF weight on the lexical (BM25-style full-text) result list.                                                       |
 | `PROJECT_FILTER_STRICT`       | `true`                          | Hard per-project retrieval filter; fails **open** if the named project is empty.                                    |
+| `RETRIEVAL_EXCLUDE_DOC_TYPES` | `adr`                           | Comma-separated `doc_type`s hidden from visitor retrieval; empty string disables the filter.                        |
+| `RETRIEVAL_DIVERSITY_MAX_PER_PROJECT` | `3`                     | Per-project chunk cap on generic, no-project-named queries; must be positive. Named-project queries are never capped. |
+| `RESEARCH_COVERAGE_TOP_N`     | `3`                             | Forces this many newest research posts into context on a recency intent; `0` disables; must be `<= TOP_K`.          |
 | `WEAK_RETRIEVAL_DISTANCE`     | `0.45`                          | Best **prose**-distance threshold for the pre-LLM out-of-scope gate.                                                |
 | `LLM_NUM_PREDICT`             | `1024`                          | Hard `num_predict` cap on generated tokens (output cap).                                                            |
 | `INPUT_MAX_CHARS`             | `800`                           | Max `message` length; over → HTTP 400.                                                                              |
 | `LLM_MAX_CONCURRENCY`         | `2`                             | Semaphore permits around Ollama generation.                                                                         |
-| `LLM_ACQUIRE_TIMEOUT_SECONDS` | (must be `> 0`)                 | Bounded wait for a permit; on timeout the request is shed with a busy reply.                                        |
+| `LLM_ACQUIRE_TIMEOUT_SECONDS` | `0.5` (must be `> 0`)           | Bounded wait for a permit; on timeout the request is shed with a busy reply.                                        |
 | `RAG_LOG_FILE`                | `rag-logs/requests.jsonl`       | Path for per-request JSONL score log; set empty to disable.                                                         |
 | `RAG_LOG_TEXT`                | `false`                         | Also writes raw query + answer text into each log line — PII, off by default, for local debugging only.             |
 | `MAX_BODY_BYTES`              | `16384`                         | ASGI request-body byte cap (oversized → rejected before parse).                                                     |
 | `RATE_LIMIT_REQUESTS`         | `30`                            | Requests allowed per IP per window.                                                                                 |
 | `RATE_LIMIT_WINDOW_SECONDS`   | `60`                            | Sliding-window length for the rate limiter.                                                                         |
-| `FORCE_ENGLISH`               | on                              | Force the model to answer in English regardless of query language.                                                  |
+| `FORCE_ENGLISH`               | `true`                          | Force the model to answer in English regardless of query language.                                                  |
+| `RAG_ALLOW_FINNISH`           | `false`                         | EXPERIMENTAL: answer a Finnish-looking query in Finnish instead of forcing English.                                 |
+| `RAG_TRANSLATE_RETRIEVAL`     | `false`                         | When `RAG_ALLOW_FINNISH` routed Finnish, retrieve with an LLM-translated English query (embedder + lexical index are English-only); best-effort. |
+| `PROGRESSIVE_DISCLOSURE_ENABLED` | `true`                       | The "tell me more?" offer + topic-expansion path; `false` restores single-shot answers.                             |
+| `CONTEXT_WINDOW`              | `4096`                          | Served context window reported in the `context` SSE frame that drives the frontend's context-window donut; must be positive. |
 | `CORS_ALLOW_ORIGINS`          | —                               | Allowed origins for the browser fetch.                                                                              |
+| `MEMORY_MAX_TURNS`            | `6`                             | Prior turns threaded into the prompt per session; must be positive.                                                 |
+| `MEMORY_MAX_SESSIONS`         | `1000`                          | Sessions kept in memory before the least-recently-used one is evicted; must be positive.                            |
+| `MEMORY_TTL_SECONDS`          | `1800`                          | Idle seconds before a session's memory expires; must be positive.                                                   |
 | chunk-size knobs              | ~480 max / 100 min / 60 overlap | Token budget for markdown-block chunking (indexer side); code is split on function/class/method boundaries instead. |
 
 The load-bearing invariant: the indexer and the query path must use the **same**
@@ -369,6 +390,20 @@ harness against a running backend — see
 ### Lint / type-check
 
 ```bash
-ruff check . && ruff format --check .
-mypy app evals
+ruff check .
+mypy app evals ragctl.py
 ```
+
+Exactly what CI runs, in the same order — the point of this block is that a green
+local run means a green CI run.
+
+**`ruff format` is deliberately not part of the gate.** Running it today would
+rewrite roughly two dozen files and several hundred lines (measure it with
+`ruff format --check .` rather than trusting this sentence — the count moves
+with every commit), and several of those rewrites make the code worse: it
+explodes a deliberately compact stop-word set into one word per line and
+reflows Finnish user-facing strings mid-sentence. `ruff check` is this
+repo's linter; `ruff format` has never been adopted as its style authority, and
+adopting one is a decision to take on its own merits rather than a gap to close
+quietly. If it is ever adopted, do it in a standalone formatting-only commit so
+the reformat is reviewable separately from behaviour.

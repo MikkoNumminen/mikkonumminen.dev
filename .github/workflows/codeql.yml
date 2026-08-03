@@ -17,16 +17,30 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze (javascript-typescript)
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       security-events: write # upload results to the Security tab
+    # JOB-level, not workflow-level. `matrix` only exists inside a job, so a
+    # workflow-level group referencing it is not a bad key — it makes the whole
+    # file fail to parse, and GitHub reports that as a run with zero jobs rather
+    # than as a syntax error. It silently produced no check-runs at all for
+    # three commits, which meant no security scanning and, worse, would have
+    # deadlocked every PR if the Analyze contexts had been marked required in
+    # the meantime. Keep this block inside the job.
+    concurrency:
+      group: codeql-${{ github.ref }}-${{ matrix.language }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, python]
     steps:
-      - uses: actions/checkout@v7
-      - uses: github/codeql-action/init@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
         with:
-          languages: javascript-typescript
+          languages: ${{ matrix.language }}
           # Deepest first-party suite: the default security queries plus the
           # extended security set and maintainability/quality checks. Worth the
           # extra analysis time on a small surface to catch more before merge.
@@ -38,4 +52,6 @@ jobs:
           config: |
             paths-ignore:
               - content/code
-      - uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          category: /language:${{ matrix.language }}

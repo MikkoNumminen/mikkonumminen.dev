@@ -72,6 +72,12 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 
 [tool.mypy]
 python_version = "3.12"
+# Both things this checks run on Linux: the backend in its container, and
+# ragctl inside WSL. Without this pin mypy assumes the HOST platform, and a
+# Windows host resolves a different typeshed `readline` stub — producing four
+# errors locally that CI never sees. That is the same local-vs-CI divergence
+# the pinned tool versions below exist to prevent, so pin the platform too.
+platform = "linux"
 strict = true
 # fastembed / pgvector ship without complete type stubs; don't fail the strict
 # run on third-party gaps we don't control.

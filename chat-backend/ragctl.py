@@ -26,6 +26,9 @@ it runs with any python3.
 
 Cleanup policy (chosen): `down` stops the Compose stack (frees VRAM) and turns
 the Funnel off, but leaves Docker Desktop and Tailscale running.
+
+It also carries the shoutbox moderation verbs — `queue`, `approve`, `reject`,
+`reply`, and `publish` — for reviewing and answering visitor submissions.
 """
 
 from __future__ import annotations
@@ -40,8 +43,10 @@ import subprocess
 import sys
 import time
 import urllib.request
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parent.parent
 COMPOSE = ["docker", "compose"]
@@ -167,10 +172,11 @@ def powershell_exe() -> str | None:
     )
 
 
-def http_json(url: str, timeout: int = 8) -> dict | None:
+def http_json(url: str, timeout: int = 8) -> dict[str, Any] | None:
     try:
         with urllib.request.urlopen(url, timeout=timeout) as r:
-            return json.loads(r.read().decode())
+            parsed: dict[str, Any] = json.loads(r.read().decode())
+            return parsed
     except Exception:
         return None
 
@@ -290,7 +296,7 @@ def compose_services() -> dict[str, str]:
     if rc != 0:
         return services
     out = out.strip()
-    rows: list[dict] = []
+    rows: list[dict[str, Any]] = []
     try:
         parsed = json.loads(out)
         rows = parsed if isinstance(parsed, list) else [parsed]
@@ -551,7 +557,8 @@ def _healthy_http(url: str, timeout: int = 8) -> bool:
     'internet up', and can't trigger a needless reconnect during their outage."""
     try:
         with urllib.request.urlopen(url, timeout=timeout) as r:
-            return 200 <= r.status < 400
+            status: int = r.status
+            return 200 <= status < 400
     except Exception:
         return False
 
@@ -756,7 +763,12 @@ def cmd_doctor() -> int:
 # --- bring-up / tear-down --------------------------------------------------
 
 
-def _wait_for(check, want_ok_for: int = 1, timeout: int = 150, every: int = 4) -> bool:
+def _wait_for(
+    check: Callable[[], tuple[str, str]],
+    want_ok_for: int = 1,
+    timeout: int = 150,
+    every: int = 4,
+) -> bool:
     deadline = time.time() + timeout
     hits = 0
     while time.time() < deadline:
@@ -820,7 +832,7 @@ def _cmdline_is_watchdog(argv: list[str] | None) -> bool:
     a crashed watchdog whose pid Linux reassigned to an unrelated process must NOT
     read as 'the watchdog', or `down` would SIGTERM a stranger and `up` would
     refuse to respawn (silently leaving the path unguarded)."""
-    return bool(argv) and "watchdog" in argv and any("ragctl" in a for a in argv)
+    return argv is not None and "watchdog" in argv and any("ragctl" in a for a in argv)
 
 
 def watchdog_pid() -> int | None:
@@ -1338,7 +1350,7 @@ def print_menu() -> None:
 SHOUT_SNAPSHOT = REPO / "public" / "data" / "shoutbox.json"
 
 
-def format_queue(pending: list[dict]) -> str:
+def format_queue(pending: list[dict[str, Any]]) -> str:
     """Render the pending queue. Pure — takes the parsed payload, returns text."""
     if not pending:
         return "  ○ queue empty"
@@ -1388,7 +1400,7 @@ def publish_reminder(count: int) -> str:
     )
 
 
-def _moderate(action: str, shout_id: int = 0, text: str = "") -> dict:
+def _moderate(action: str, shout_id: int = 0, text: str = "") -> dict[str, Any]:
     """Run one moderation action inside the backend container and parse its JSON.
 
     stdout is JSON by contract, but a container that is down prints docker's error

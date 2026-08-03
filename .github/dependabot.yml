@@ -52,3 +52,9 @@ updates:
         dependency-type: development
       backend-runtime:
         dependency-type: production
+  # chat-backend/Dockerfile pins `python:3.12-slim`. Same rationale as the pip
+  # entry above: an unwatched base-image tag just goes stale instead.
+  - package-ecosystem: docker
+    directory: /chat-backend
+    schedule:
+      interval: weekly

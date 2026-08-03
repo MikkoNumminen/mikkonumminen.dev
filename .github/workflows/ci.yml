@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The home page bakes recent commit subjects into its HTML at
           # build time (src/page-content/HomePage.astro). At checkout's
@@ -29,7 +29,7 @@ jobs:
           # feature does. 25 is enough history for the 20 it reads
           # without cloning the whole repo on every run.
           fetch-depth: 25
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -42,8 +42,35 @@ jobs:
 
   # The RAG backend (chat-backend/) — Python — was never CI-checked, so latent
   # ruff/mypy nits stayed latent and the whole check rode on local runs + memory.
-  # This job runs on every PR; to make it BLOCK merge, add `chat-backend` to the
-  # branch-protection required status checks (Settings > Branches), same as `check`.
+  #
+  # As of 2026-08-04 all five contexts below are REQUIRED on `master`, with
+  # `enforce_admins` on, so a red run blocks the merge for everyone including
+  # the owner:
+  #   check
+  #   chat-backend
+  #   Scene smoke (Playwright)
+  #   Analyze (javascript-typescript)
+  #   Analyze (python)
+  #
+  # Before that, `chat-backend` was the only required one — every other job ran
+  # and reported and nothing stopped a red PR from merging. The rest of this
+  # block is kept because the reasoning still applies to the NEXT context anyone
+  # adds, and because both traps below were hit for real.
+  #
+  # ADD A CONTEXT ONLY AFTER YOU HAVE SEEN IT REPORT GREEN AT LEAST ONCE. A
+  # required context that never reports blocks every PR forever, and that is not
+  # hypothetical here: the two Analyze legs produced no check-runs at all for
+  # three commits after a malformed concurrency block made codeql.yml fail to
+  # parse. Check `gh api repos/OWNER/REPO/commits/master/check-runs` and require
+  # only names you can see in that output.
+  #
+  # THESE ARE DISPLAY NAMES, NOT JOB IDS, and the difference bites: the E2E job's
+  # id is `scenes` but it sets `name: Scene smoke (Playwright)`, and GitHub
+  # reports the status context under the display name when one is set. Requiring
+  # `scenes` would wait forever on a context that never arrives and block every
+  # PR. Same for the two Analyze legs, whose names come from the codeql.yml
+  # matrix. Rename a job and you must update the required list in the same
+  # change, or merges stop.
   chat-backend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -51,13 +78,13 @@ jobs:
       run:
         working-directory: chat-backend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.12"
-          cache: "pip"
+          python-version: '3.12'
+          cache: 'pip'
           cache-dependency-path: chat-backend/pyproject.toml
       - run: pip install -e ".[dev]"
       - run: ruff check .
-      - run: mypy app evals
+      - run: mypy app evals ragctl.py
       - run: pytest

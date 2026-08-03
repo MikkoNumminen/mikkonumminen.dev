@@ -107,12 +107,28 @@ let sessionDisabled = false;
 // Per-session identity sent with every /chat POST so the backend's Phase 4
 // memory layer can thread turns without the frontend re-sending full history.
 // Regenerated on reset/disable so the new session starts memory-clean.
+// This id must be UNGUESSABLE, not merely unique: the backend keys its
+// conversation memory on it, so anyone who can predict one can read or poison
+// that session's context. The previous fallback used Math.random, which is not
+// a CSPRNG — flagged by CodeQL as js/insecure-randomness. `getRandomValues` has
+// shipped in every browser since ~2011, so the weak path bought nothing.
 function newSessionId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  // Fallback for environments where crypto.randomUUID is not available.
-  return `rag-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    return `rag-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+  }
+  // No CSPRNG at all: return EMPTY, which the backend reads as "no session".
+  // `SessionMemory.history`/`record` both short-circuit on a falsy id, so this
+  // turns conversation memory off rather than keying it on something weak.
+  //
+  // A constant placeholder would be worse than the Math.random it replaced:
+  // every client without a CSPRNG would send the SAME id and therefore share
+  // one server-side memory bucket, reading each other's turns. Unguessable or
+  // absent are the only safe options; "unique-looking" is not one of them.
+  return '';
 }
 
 let sessionId = newSessionId();
@@ -157,7 +173,10 @@ export async function resetChatSession(opts?: {
   sessionId = newSessionId();
   conversationHistory = [];
   const base = getChatBaseUrl();
-  if (base) {
+  // Skip the POST when there was no session to reset: the reset endpoint
+  // requires a non-empty id (min_length=1), so sending the empty id that means
+  // "memory is off" would just earn a 422 the catch below silently eats.
+  if (base && previous) {
     const f = opts?.fetchImpl ?? fetch;
     try {
       await f(`${base}/session/reset`, {

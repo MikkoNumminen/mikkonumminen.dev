@@ -194,6 +194,10 @@ export function buildSun(opts: { lowPerf?: boolean } = {}): SunHandle {
   group.add(corona);
 
   const tick = (elapsed: number): void => {
+    // Both `uTime` uniforms are declared literally in the two `uniforms` objects
+    // above, so they exist for the lifetime of the materials this closure holds.
+    // `noUncheckedIndexedAccess` cannot see that through Three.js's index
+    // signature; the assertion is the invariant, not a guess.
     coreMaterial.uniforms.uTime!.value = elapsed;
     coronaMaterial.uniforms.uTime!.value = elapsed;
   };

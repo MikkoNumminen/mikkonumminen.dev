@@ -1,5 +1,14 @@
 # LAUNCH.md — Bringing the chat live, step by step
 
+> **This runbook describes the Cloudflare named-tunnel path, which is NOT what
+> the live site uses.** The deployment moved to a Tailscale Funnel (ADR 0012);
+> the as-built path is [`docs/rag-chat.md`](docs/rag-chat.md) §5 and the
+> operational runbook is [`docs/deploy-rag-chat.md`](docs/deploy-rag-chat.md).
+> Everything below except the tunnel steps — prerequisites, compose, indexing,
+> verification — still applies to both. Kept because Cloudflare remains a valid
+> alternative for anyone without a tailnet, and because the reasoning for the
+> switch is only legible next to what it replaced.
+
 The static site always works without any of this. The RAG chat is progressive
 enhancement: when the backend is reachable and its local LLM is responding, the
 /contact terminal gains free-form Q&A. When it is not, the terminal is

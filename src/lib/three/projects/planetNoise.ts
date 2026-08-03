@@ -30,6 +30,10 @@ export function derivePalette(baseColor: number): readonly [Rgb, Rgb, Rgb, Rgb] 
       Math.max(0.55, Math.min(0.85, hsl.l * 0.95)),
     ),
   ];
+  // INVARIANT: `stops` is the four-element literal directly above, and `.map`
+  // preserves length — so the result is always a 4-tuple. TypeScript widens
+  // `.map` to `Rgb[]` and cannot carry the length through, which is the only
+  // reason this needs a cast at all.
   return stops.map(
     (s) => [Math.round(s.r * 255), Math.round(s.g * 255), Math.round(s.b * 255)] as Rgb,
   ) as unknown as readonly [Rgb, Rgb, Rgb, Rgb];

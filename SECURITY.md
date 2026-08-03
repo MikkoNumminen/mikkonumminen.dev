@@ -13,17 +13,26 @@ A response can be expected within a few days.
 
 - The deployed static site (`mikkonumminen.dev` / the `vercel.app` alias).
 - This repository's source and build output.
+- The **RAG chat backend** reachable at `paskamyrsky.tail6ed53b.ts.net` and
+  through the site's own `/api/rag/*` rewrite, including the shoutbox write
+  endpoint.
 
 Out of scope: the third-party hosting platform (Vercel) itself, denial-of-service,
 and findings that require a compromised local developer machine.
 
 ## Security posture
 
-This site is deliberately small in attack surface:
+The site and the backend have genuinely different postures, and conflating them
+is the mistake this section exists to prevent. **The static-site claims below do
+not extend to the backend.**
 
-- **Fully static output** — no SSR, no server runtime, no database, no
-  authentication, and no user accounts. Pages are pre-rendered HTML served from a
-  CDN. There is no server-side code path an attacker can reach.
+### The static site
+
+Deliberately small in attack surface:
+
+- **Fully static output** — no SSR, no server runtime, no database, and no
+  authentication *in the deployed site itself*. Pages are pre-rendered HTML
+  served from a CDN.
 - **No secrets** — the site requires no application secrets and ships no `.env`.
   The environment variables it reads at build time are: Vercel-injected metadata
   (`VERCEL_ENV`, `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_URL`) used to compute the
@@ -37,16 +46,58 @@ This site is deliberately small in attack surface:
 - **One HTML-injection boundary** — every string interpolated into `innerHTML`
   passes through [`escapeHtml`](src/lib/utils/escapeHtml.ts).
 
+### The RAG chat backend
+
+A FastAPI service with a Postgres/pgvector database and a local LLM, running on
+a home machine and published through a Tailscale Funnel. The honest posture:
+
+- **Publicly reachable and unauthenticated.** The funnel proxies the whole
+  origin, so every route is addressable by anyone who reads `vercel.json` or the
+  CSP — not only through the site's `/api/rag/*` rewrite. No route carries
+  authentication. This is a deliberate, documented choice for a portfolio demo,
+  not an oversight; the compensating controls are architectural, described in
+  [`docs/rag-chat.md`](docs/rag-chat.md) and in the module docstring of
+  [`chat-backend/app/shoutbox.py`](chat-backend/app/shoutbox.py).
+- **Per-IP rate limiting is weaker than it looks.** Tailscale's proxy overwrites
+  `X-Forwarded-For`, so visitors arriving via Vercel share one bucket while a
+  direct-to-funnel caller gets a real per-IP one. The limits that actually bound
+  a flood are the identity-independent ones (`QUEUE_MAX_PENDING`, concurrency
+  shedding).
+- **The shoutbox stores visitor-submitted text server-side**, in a moderation
+  queue. Nothing it accepts can reach the public page: the site renders a
+  committed JSON snapshot that only changes when the owner approves an entry and
+  commits it. The submission gate is deterministic and contains no LLM, by
+  design.
+- **Containment for the chat is architectural, not prompt-wording.** Input caps,
+  a pre-LLM relevance gate, task gates, and a hard output cap are what make
+  refusals hold. Prompt injection is not a solved problem and is not claimed to
+  be solved here.
+- **One real secret shape.** `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` for queue
+  notifications, kept in a gitignored `.env`. There is no funnel bearer
+  credential — Tailscale Funnel authenticates by tailnet membership.
+
 The trust boundaries, security invariants an agent or contributor must not weaken,
 and the current dependency-advisory status are documented in
 [`docs/security/threat-model.md`](docs/security/threat-model.md).
 
 ## Dependency advisories
 
-Dependencies are monitored by [Dependabot](.github/dependabot.yml). Run
-`npm audit` for the current state. The **Astro 5 → 6 upgrade has been adopted**
-(see [ADR 0007](docs/decisions/0007-astro-6-node-22.md)), which cleared the two
-Astro-native high advisories. The remaining highs reduce to one transitive,
-dev-only `esbuild` advisory pair with no fix available — not present in the
-static production artifact. See [the threat model](docs/security/threat-model.md)
-for the per-advisory reachability analysis.
+Dependencies are monitored by [Dependabot](.github/dependabot.yml), which covers
+npm, GitHub Actions, pip (`chat-backend/`) and the backend's Docker base image.
+
+As of **2026-08-04**, `npm audit` reports **0 vulnerabilities**. The
+Astro-native advisories cleared with the Astro 5 → 6 upgrade
+([ADR 0007](docs/decisions/0007-astro-6-node-22.md)); the long-standing
+`esbuild` pair no longer applies to the resolved version; and a transitive
+`postcss` path-traversal advisory was patched the same day. Per-advisory
+reachability analysis lives in
+[the threat model](docs/security/threat-model.md#dependency-advisory-status-2026-08-04).
+
+Note that no CI job runs `npm audit`, so both this paragraph and the threat
+model's are **point-in-time statements, not enforced invariants** — re-run it
+rather than trusting the date.
+
+---
+
+_This file is kept in sync with [`docs/security/threat-model.md`](docs/security/threat-model.md);
+both were last reviewed 2026-08-04._

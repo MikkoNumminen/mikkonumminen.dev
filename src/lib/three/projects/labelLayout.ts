@@ -70,6 +70,10 @@ export function packLabels(
     order[i] = i;
     visible[i] = false;
   }
+  // INVARIANT for every `!` below: `order` was just filled with exactly the
+  // indices 0..n-1 of `boxes`, and both arrays are length n. Sorting permutes
+  // those indices, it does not introduce new ones — so `boxes[order[k]]` is
+  // always populated. The assertions encode that, rather than hiding a maybe.
   order.sort((a, b) => boxes[a]!.depth - boxes[b]!.depth);
 
   for (let oi = 0; oi < n; oi++) {
