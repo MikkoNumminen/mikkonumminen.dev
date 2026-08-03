@@ -591,5 +591,13 @@ export const fi: Translations = {
     replyFrom: 'Mikko',
     legend: 'Jokaisen viestin lukee ihminen ennen kuin se näkyy täällä.',
     threadsAria: 'Julkaistut viestit',
+    infoLabel: 'miten tämä toimii',
+    infoBody:
+      'Viestisi näkyy vasta kun olen hyväksynyt sen, ja hyväksytty viesti jää sivuston historiaan pysyvästi. Nimeni on domainissa, joten luen mitä sen alla julkaistaan.',
+    placeholder: 'Kirjoita viesti',
+    send: 'lähetä',
+    queued: 'odottaa hyväksyntää',
+    offline: 'viestien lähetys on hetken poissa käytöstä',
+    failed: 'yritä hetken päästä uudelleen',
   },
 };
