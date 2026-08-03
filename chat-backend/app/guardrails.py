@@ -564,21 +564,41 @@ def research_coverage_footer(
 EXPANSION_OFFER = "Would you like me to tell you more?"
 EXPANSION_OFFER_FI = "Haluatko, että kerron lisää?"
 
-# A topic-LESS follow-up asking to go deeper ("yes", "tell me more", "go on").
-# Matched against the WHOLE message so a request that carries a NEW topic ("tell me
-# more about HRM", "what is X") is NOT caught — that is a normal question whose
-# topic comes from the message, not from memory. The trailing group allows only
-# topic-less filler (please / more / about it|that|this), never a real noun.
+# A topic-LESS follow-up asking to go deeper ("yes", "tell me more", "go on",
+# "kerro lisää"). Matched against the WHOLE message so a request that carries a NEW
+# topic ("tell me more about HRM", "kerro hrm:stä") is NOT caught — that is a normal
+# question whose topic comes from the message, not from memory. The trailing group
+# allows only topic-less filler (please / more / about it|that|this / siitä),
+# never a real noun.
+#
+# BOTH LANGUAGES, because the OFFER is already bilingual. `EXPANSION_OFFER_FI`
+# above asks "Haluatko, että kerron lisää?" — so the backend invites a Finnish
+# reply and, until this matched Finnish, could not understand one. A visitor who
+# answered "kerro lisää" or "joo" fell through to normal retrieval, carried no
+# topic, and was refused by the weak-retrieval gate. Observed live in
+# rag-logs/requests.jsonl on 2026-07-30: "Kerro lisää" → weak_retrieval refusal,
+# "Joo" → weak_retrieval refusal, immediately after Finnish answers.
 _EXPANSION_RE = re.compile(
     r"^(?:"
+    # English
     r"yes(?:\s+please)?|yeah|yep|yup|sure|ok(?:ay)?|"
     r"go\s+on|go\s+ahead|go\s+deeper|dig\s+deeper|keep\s+going|deeper|"
     r"the\s+rest|continue|more|tell\s+me\s+more|"
     r"(?:tell|say|explain|elaborate|expand)(?:\s+(?:me|on|it|that))?|"
     r"i'?d?\s*(?:like|want)\s+to\s+(?:hear|know)\s+more|"
-    r"and"
+    r"and|"
+    # Finnish. `kerro` alone mirrors the bare English "tell"; the optional
+    # lisää/enemmän covers the natural "kerro lisää". A `kerro` carrying a real
+    # topic ("kerro projekteista") still fails, because the trailing group admits
+    # only filler and the pattern is anchored.
+    r"joo|juu|jep|kyllä|selvä|okei|"
+    r"jatka|lisää|enemmän|loput|"
+    r"kerro(?:\s+(?:lisää|enemmän))?|"
+    r"haluan\s+(?:kuulla|tietää)\s+(?:lisää|enemmän)"
     r")"
-    r"(?:\s+(?:please|more|about\s+(?:it|that|this)|on\s+(?:it|that|this)))*"
+    r"(?:\s+(?:please|kiitos|more|lisää|enemmän|vielä|"
+    r"about\s+(?:it|that|this)|on\s+(?:it|that|this)|"
+    r"siitä|tästä|tuosta))*"
     r"\s*[.!?]*$",
     re.IGNORECASE,
 )

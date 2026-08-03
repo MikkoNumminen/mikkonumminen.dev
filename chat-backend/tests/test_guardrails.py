@@ -217,6 +217,57 @@ def test_is_expansion_request_ignores_topic_bearing_questions(query: str) -> Non
     assert not is_expansion_request(query)
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        # The exact messages a visitor sent on 2026-07-30 and got refused, from
+        # rag-logs/requests.jsonl. The backend had just offered, in Finnish,
+        # "Haluatko, että kerron lisää?" — and then could not read the answer.
+        "Kerro lisää",
+        "kerro lisää",
+        "Joo",
+        # Natural variants of the same intent.
+        "juu",
+        "kyllä",
+        "jatka",
+        "lisää",
+        "enemmän",
+        "kerro",
+        "kerro enemmän",
+        "kerro lisää siitä",
+        "joo kiitos",
+        "jatka vielä",
+        "selvä",
+        "loput",
+        "haluan kuulla lisää",
+        "Kerro lisää.",
+    ],
+)
+def test_is_expansion_request_matches_finnish_followups(query: str) -> None:
+    assert is_expansion_request(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        # A Finnish message that CARRIES a topic is a normal question, not an
+        # expansion — the topic comes from the message, not from memory. These
+        # are the false positives that would hijack a real question and answer it
+        # from the previous turn's narrative instead.
+        "kerro projekteista",
+        "kerro hrm:stä",
+        "kerro lisää audiobookmakerista",
+        "kerro space potatiksesta",
+        "mitä kieliä projekteissa käytetään",
+        "jatka HRM:n kuvausta",
+        "lisää tietoa Spacepotatiksesta",
+        "mikä projekti on monimutkaisin",
+    ],
+)
+def test_is_expansion_request_ignores_finnish_topic_bearing_questions(query: str) -> None:
+    assert not is_expansion_request(query)
+
+
 def test_expansion_offer_is_a_nonempty_string() -> None:
     assert isinstance(EXPANSION_OFFER, str) and EXPANSION_OFFER.strip()
 
