@@ -680,6 +680,11 @@ export function createProjectsScene(opts: ProjectsSceneOptions): ProjectsSceneHa
     // drifting at the reduced 0.18× speed so the scene stays alive.
     const baseOrbitScale = reducedMotion ? 0.25 : 1.0;
     const orbitSpeedScale = (selected ? 0.18 : 1.0) * baseOrbitScale;
+    // INVARIANT for both `planetAngles.get(entry)!` below: every entry in
+    // `orbiting` was given a starting angle when the map was built, and nothing
+    // deletes from it — so a `get` keyed by an orbiting entry is always present.
+    // `Map.get` is typed as possibly-undefined regardless, which is what the
+    // assertions answer.
     for (const entry of orbiting) {
       if (entry.project.id !== selected?.project.id) {
         const next =
