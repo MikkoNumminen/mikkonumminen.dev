@@ -18,13 +18,10 @@ Every other mention describes the harness structurally — "every static contrac
 case plus every golden must-refuse query" — precisely so that adding a case does
 not require editing several files.
 
-THAT LAST PARAGRAPH USED TO BE A CLAIM, AND IT WAS FALSE WHEN WRITTEN. Four
-files were corrected and then this docstring asserted a property of files nobody
-had checked; the stale "9 cases" also lived in `docs/rag-chat.md`, two
-`.claude/skills/` files, and ADRs 0010 and 0011. An unverified claim sitting
-next to a real guard is worse than no claim, because the guard lends it
-credibility. `test_no_stale_case_counts_anywhere` below now enforces it, so the
-sentence is checked rather than asserted.
+That paragraph is enforced by `test_no_stale_case_counts_anywhere`, not merely
+asserted — it was once written as a claim about files nobody had checked, and
+several of them were wrong. A claim sitting next to a guard borrows the guard's
+credibility, so it has to be checked or dropped.
 """
 
 from __future__ import annotations

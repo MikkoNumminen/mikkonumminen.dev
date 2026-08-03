@@ -31,13 +31,6 @@ export function locateChrome() {
 }
 
 /**
- * Render an HTML file to PDF using the local Chrome's --print-to-pdf.
- * Page format (size / orientation / margins) is controlled by the HTML's
- * `@page` CSS, not by this function — callers are expected to set that.
- *
- */
-
-/**
  * Chrome flags that shape the rendered page (the output path and source URL are
  * appended per call). Exported so a caller that caches a rendered PDF can fold
  * them into its cache key: changing a flag here changes the PDF without
@@ -53,16 +46,16 @@ export const PRINT_FLAGS = [
 ];
 
 /**
+ * Render an HTML file to PDF using the local Chrome's --print-to-pdf.
+ * Page format (size / orientation / margins) is controlled by the HTML's
+ * `@page` CSS, not by this function — callers are expected to set that.
+ *
  * @param {object} opts
  * @param {string} opts.htmlPath - absolute path to source HTML
  * @param {string} opts.pdfPath  - absolute path for the output PDF
- * @param {string} [opts.chromePath] - override for the auto-located Chrome
- *   binary. OPTIONAL — it falls back to `locateChrome()` below, and all three
- *   in-repo callers rely on that. This block used to sit above the
- *   `PRINT_FLAGS` const rather than above this function, so it documented
- *   nothing: editors showed no signature help, and type tooling read
- *   `chromePath` as REQUIRED and flagged every call site. The code was always
- *   right; the doc was orphaned.
+ * @param {string} [opts.chromePath] - optional override for the auto-located
+ *   Chrome binary; falls back to `locateChrome()`, which is what all three
+ *   in-repo callers rely on.
  */
 export function printHtmlToPdf({ htmlPath, pdfPath, chromePath }) {
   const chrome = chromePath ?? locateChrome();
