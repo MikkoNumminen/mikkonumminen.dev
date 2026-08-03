@@ -635,7 +635,9 @@ for (const repo of registry.repos ?? []) {
   }
 }
 
-fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2) + '\n');
+const write = resolveWriteTarget(REGISTRY_PATH, process.argv.slice(2));
+fs.writeFileSync(write.target, JSON.stringify(registry, null, 2) + '\n');
+if (write.notice) console.warn(`build-review-stats: ${write.notice}`);
 
 console.log(`/${REVIEW_SKILL} per-invocation stats (${args.windowDays}d window):`);
 console.log(`  N=${perInvocation.n} invocations`);
