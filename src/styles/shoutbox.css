@@ -194,21 +194,12 @@
   line-height: 1.6;
 }
 
-/* Hover reveal, on top of the native open state. Wrapped in `hover: hover` so a
- * tap does not leave the panel stuck open on touch — the repo's first such query,
- * added because this is its first hover-revealed content. `:focus-within` covers
- * the keyboard, `<summary>` covers tap and Enter/Space, `[open]` covers the
- * deliberate case. */
-@media (hover: hover) {
-  .shoutbox__info:not([open]):hover .shoutbox__info-body,
-  .shoutbox__info:not([open]):focus-within .shoutbox__info-body {
-    display: block;
-  }
-
-  .shoutbox__info:not([open]) .shoutbox__info-body {
-    display: none;
-  }
-}
+/* Hover reveal is driven from pointer events in the component, not from here.
+ * A closed <details> hides its children through UA behaviour that a `display`
+ * override does not reliably beat across browsers, so a CSS-only version could
+ * look correct in the stylesheet and never appear on screen. The script toggles
+ * the real `open` attribute instead, which uses the element's own mechanism.
+ * Click, Enter, Space and tap stay native. */
 
 .shoutbox__input {
   width: 100%;

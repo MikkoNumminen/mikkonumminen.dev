@@ -234,23 +234,87 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
       };
 
       if (form && input && send && status) {
-        void isChatAvailable().then((available) => {
-          if (controller.signal.aborted) return;
+        // TRACKED, not sampled once. The terminal reveals and hides its chat as
+        // the operator toggles the stack, without a reload; a box that decided
+        // once at mount would sit showing "sending is off" for the rest of the
+        // session after the machine woke up thirty seconds later.
+        //
+        // This costs nothing on the network: `isChatAvailable()` returns the
+        // value the terminal's own poller keeps current, and only probes if no
+        // poller has run yet. The interval is just how often we read that value.
+        const AVAILABILITY_TICK_MS = 10_000;
+        let lastKnown: boolean | null = null;
+
+        const applyAvailability = (available: boolean): void => {
+          if (available === lastKnown) return;
+          lastKnown = available;
+          form.hidden = !available;
           if (available) {
-            form.hidden = false;
-            return;
+            // Clear the offline line, but never clobber a queued/refused message
+            // the visitor still needs to read.
+            if (status.textContent === t.offline) status.hidden = true;
+          } else {
+            // One quiet line in the site's register. No spinner, no retry
+            // button, no popup — the box says the door is shut right now.
+            say(t.offline);
           }
-          // One quiet line in the site's register. No spinner, no retry button,
-          // no popup — the box simply says the door is shut right now.
-          say(t.offline);
-        });
+        };
+
+        const pollAvailability = (): void => {
+          void isChatAvailable().then((available) => {
+            if (controller.signal.aborted) return;
+            applyAvailability(available);
+          });
+        };
+
+        pollAvailability();
+        const tick = window.setInterval(pollAvailability, AVAILABILITY_TICK_MS);
+        controller.signal.addEventListener('abort', () => window.clearInterval(tick));
+
+        // Hover-reveal for the info disclosure, driven from pointer events
+        // rather than CSS.
+        //
+        // The CSS-only version was fragile: a closed `<details>` hides its
+        // children through UA behaviour that a `display` override does not
+        // reliably beat across browsers, so the panel might simply never appear
+        // on hover while looking correct in the stylesheet. Toggling the real
+        // `open` attribute uses the element's own mechanism, so it behaves the
+        // same everywhere.
+        //
+        // This is NOT reimplementing the disclosure — click, Enter, Space and
+        // tap all remain native, which is the whole reason for `<details>`. It
+        // only adds the third input the brief asked for. Guarded on
+        // `hover: hover` so a tap never leaves the panel stuck open on touch.
+        const info = document.querySelector<HTMLDetailsElement>('.shoutbox__info');
+        if (info && window.matchMedia('(hover: hover)').matches) {
+          info.addEventListener('pointerenter', () => (info.open = true), {
+            signal: controller.signal,
+          });
+          info.addEventListener(
+            'pointerleave',
+            () => {
+              // Leave it open if the visitor actually clicked it: they asked.
+              if (!info.dataset.pinned) info.open = false;
+            },
+            { signal: controller.signal },
+          );
+          info.addEventListener('click', () => (info.dataset.pinned = 'true'), {
+            signal: controller.signal,
+          });
+        }
 
         form.addEventListener(
           'submit',
           (event) => {
             event.preventDefault();
             const body = input.value;
-            if (!body.trim()) return;
+            // Silent no-op would make the button look broken, and the native
+            // `required` bubble is a popup, which this feature does not use.
+            // Putting the cursor where the problem is says it without either.
+            if (!body.trim()) {
+              input.focus();
+              return;
+            }
 
             // Disabled for the round trip so a double-tap cannot queue twice.
             // No spinner: the button going quiet is the whole feedback.
