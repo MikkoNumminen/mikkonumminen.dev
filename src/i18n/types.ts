@@ -387,5 +387,11 @@ export interface Translations {
     legend: string;
     /** Accessible name for the thread list region. */
     threadsAria: string;
+    /**
+     * Hint at the foot of the full-height terminal, because the box sits below
+     * the fold and nothing else signals it exists. Names what is down there
+     * rather than just saying "scroll".
+     */
+    scrollHint: string;
   };
 }

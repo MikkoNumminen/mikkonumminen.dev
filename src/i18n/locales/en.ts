@@ -588,6 +588,7 @@ export const en: Translations = {
     replyFrom: 'Mikko',
     legend: 'Every message is read by a person before it appears here.',
     threadsAria: 'Published messages',
+    scrollHint: 'messages below',
     infoLabel: 'how this works',
     infoBody:
       'Your message appears only once I have approved it, and an approved message stays in the site history for good. My name is on the domain, so I read what gets published under it.',

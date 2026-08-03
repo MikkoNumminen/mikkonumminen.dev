@@ -29,6 +29,38 @@ import { getTranslations } from '../../i18n';
 const t = getTranslations(Astro.currentLocale).shoutbox;
 ---
 
+{
+  /*
+  The box sits below a full-height terminal (`.crt` is `min-height: 100vh`), so
+  on arrival it is entirely off-screen and NOTHING on the page suggests it is
+  there. The home page has always had a scroll hint for the same reason; the
+  contact page never needed one until something was added underneath.
+
+  Named rather than generic — "messages below" tells you what you would get,
+  where a bare "scroll" only tells you that you can. Decorative and aria-hidden:
+  the section itself is a labelled landmark, so assistive tech reaches it without
+  this, and an announced "scroll" hint would be noise.
+
+  Fixed rather than absolutely placed at the fold, because the terminal's height
+  is a `dvh` calc that moves with mobile browser chrome; pinning to the viewport
+  bottom is the one position that is right on every device.
+*/
+}
+<div class="shoutbox__scroll-hint" data-shoutbox-hint aria-hidden="true">
+  <span>{t.scrollHint}</span>
+  <svg
+    width="12"
+    height="7"
+    viewBox="0 0 12 7"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="1.4"></path>
+  </svg>
+</div>
+
 <section class="shoutbox" aria-labelledby="shoutbox-title">
   <div class="shoutbox__card">
     <header class="shoutbox__chrome">
@@ -134,6 +166,29 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
 
       const t = getTranslations(document.documentElement.lang).shoutbox;
       const controller = new AbortController();
+
+      // Retire the hint once it has been acted on. One-way: it never comes back
+      // if the visitor scrolls up again, because by then they know the box is
+      // there and a signpost that keeps reappearing is just clutter.
+      //
+      // `scroll` is passive so it can never delay scrolling, and the listener
+      // removes itself on the first qualifying event rather than running for the
+      // life of the page.
+      const hint = document.querySelector<HTMLElement>('[data-shoutbox-hint]');
+      if (hint) {
+        const retire = (): void => {
+          if (window.scrollY < 80) return;
+          hint.classList.add('shoutbox__scroll-hint--done');
+          window.removeEventListener('scroll', retire);
+        };
+        // Checked once immediately: a restored scroll position, or an anchored
+        // arrival, must not leave the hint sitting over the content it points at.
+        retire();
+        window.addEventListener('scroll', retire, {
+          passive: true,
+          signal: controller.signal,
+        });
+      }
 
       /**
        * Build one thread's DOM.
