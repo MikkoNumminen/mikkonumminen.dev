@@ -108,7 +108,7 @@ metadata. Retrieval is **hybrid**: dense pgvector cosine fused with lexical
 BM25-style full-text search (`websearch_to_tsquery` + `ts_rank`) via reciprocal
 rank fusion, with a hard per-project filter that fails open when a named project
 has no hits. Hybrid lifted the measured retrieval hit-rate over pure dense, and
-the acceptance harness still passes 9/9 — containment held while deep-code
+the acceptance harness still passes in full — containment held while deep-code
 questions now answer from the actual source.
 
 Full pipeline, every config knob (`HYBRID_ENABLED`, `RRF_K`, the dense/lexical
@@ -149,6 +149,7 @@ npm run dev           # http://localhost:4321
 npm run build         # build to dist/
 npm run preview       # preview the production build
 npm run typecheck     # astro check
+npm run verify        # the whole CI gate in one command (typecheck → format:check → lint → test:coverage → build)
 npm run check:env     # verify Node version + deps are ready on a fresh clone
 npm run lint          # eslint
 npm run format        # prettier --write across src/
@@ -160,7 +161,12 @@ npm run validate:shoutbox     # check public/data/shoutbox.json against its JSON
 npm run build:skills-pdf      # regenerate public/skills-registry.pdf via local Chrome
 npm test              # run the Vitest suite (src + scripts unit tests)
 npm run test:watch    # Vitest in watch mode for TDD
+npm run blog:drafts   # scaffold blog drafts from git history into src/content/blog/en/
 ```
+
+`npm run verify` exists so there is one command an agent can run to reproduce the
+CI `check` job locally, in the same order. Running the five steps separately and
+stopping at the first green one is the failure mode it removes.
 
 `build:og` reads `public/og-*.svg` and writes the PNGs referenced by `<head>` meta. Run it whenever any of those source SVGs change.
 

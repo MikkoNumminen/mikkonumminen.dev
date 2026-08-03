@@ -26,6 +26,9 @@ it runs with any python3.
 
 Cleanup policy (chosen): `down` stops the Compose stack (frees VRAM) and turns
 the Funnel off, but leaves Docker Desktop and Tailscale running.
+
+It also carries the shoutbox moderation verbs — `queue`, `approve`, `reject`,
+`reply`, and `publish` — for reviewing and answering visitor submissions.
 """
 
 from __future__ import annotations

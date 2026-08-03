@@ -181,6 +181,27 @@ answer from actual source. `content/code/` is corpus data, not site code — it 
 from `tsconfig` / `eslint` / `prettier`. See [`docs/rag-chat.md`](docs/rag-chat.md) for the
 full design.
 
+**Shoutbox (`POST /shout`).** A second public write path on the same backend, off
+by default (`SHOUTBOX_ENABLED`). Its containment model is different from the chat's and is
+easy to break by accident, so the invariants are here rather than only in
+[`chat-backend/app/shoutbox.py`](chat-backend/app/shoutbox.py)'s docstring:
+
+- **The endpoint cannot publish.** A successful submit enqueues a row for moderation. The
+  public page renders `public/data/shoutbox.json`, a committed snapshot that only changes
+  when the owner approves an entry and commits it. Do not add a path that writes visitor
+  text straight to the rendered artifact — that single change collapses the whole design.
+- **The gate is deterministic and contains no LLM**, deliberately: a refusal has to be
+  explainable to the person it refused, and a model can be argued with. Keep it as rules.
+- **Every route is directly addressable.** The funnel proxies the whole origin, so `/shout`
+  is reachable without going through the site. Per-IP rate limiting is a *courtesy* check —
+  Tailscale overwrites `X-Forwarded-For`, so Vercel-proxied visitors share one bucket. The
+  limit that actually bounds a flood is `QUEUE_MAX_PENDING`, which depends on no identity.
+- **Shape checks run before state checks**, so an empty submission cannot consume a rate-limit
+  slot or two database round-trips. Preserve that ordering if you touch `evaluate()`.
+- The red-team suite (`tests/test_shoutbox_redteam.py`) asserts **which rule** caught each
+  attack, not merely that something did — so deleting one rule cannot be masked by another
+  firing. Keep that property when adding cases.
+
 Still **roadmap (not built)** — do not document or rely on them as if they exist:
 cross-encoder re-ranking, automatic per-project summary generation, query expansion.
 
@@ -188,12 +209,17 @@ cross-encoder re-ranking, automatic per-project summary generation, query expans
 
 ```bash
 python -m pytest              # backend unit suite (chunking, guardrails, pipeline, middleware, rate limit, ...)
-python -m evals.acceptance    # 9 black-box containment contract cases (injection no-dump, prompt-reveal blocked, off-topic declined incl. stray-code leaks, poem/translate task gates refuse, input caps, grounded deep-code answers)
+python -m evals.acceptance    # black-box containment contract: every static case plus every golden must-refuse query (injection no-dump, prompt-reveal blocked, off-topic declined incl. stray-code leaks, poem/translate task gates refuse, input caps, grounded deep-code answers)
 ```
 
 The acceptance harness classifiers are anchored on the real refusal wording so they cannot
 false-pass — if you change a refusal string, update them together. Ops are driven by
-`ragctl.py` (`status`/`up`/`down`/`doctor`/`model`/`english`; model switchable, `qwen2.5:7b` default).
+`ragctl.py` (`status`/`up`/`down`/`doctor`/`model`/`english`, plus the shoutbox moderation
+verbs `queue`/`approve`/`reject`/`reply`/`publish`). The model is switchable; `qwen2.5:7b` is
+the checked-in default a fresh clone pulls, but the **deployed** model is **Poro 2 8B**
+(`FORCE_ENGLISH=0`, so Finnish questions answer in Finnish) — set in the live `.env`, not in
+the repo. Read `ragctl status`, not the committed config, to find out what is actually
+answering. See [ADR 0009](docs/decisions/0009-rag-chat-backend.md) for why Poro.
 Boot live with `ragctl up --keep` (enables the funnel via the Windows `tailscale.exe` over WSL
 interop — no sudo). The public Tailscale funnel is **shared infra**: this operator runs funnels for
 other projects on the same tailnet, so `ragctl` scopes enable/disable to this project's `:8000` (443)

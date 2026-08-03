@@ -5,6 +5,12 @@
 **Decided by:** repo owner
 
 > **Update (2026-06-27):** the default generation model is now **`qwen2.5:7b`** (switchable via `ragctl model`), changed for more reliable English-only answers — see PR #310. The decision below is unchanged: generation is still a **local** model served by Ollama over its OpenAI-compatible endpoint, nothing hosted and nothing per query. The original choice (Gemma 4 E4B) is kept verbatim in the Decision section as the historical record.
+>
+> **Update (2026-07-03):** the **deployed** model is now **Poro 2 8B Instruct** (`hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q4_K_M`), served at an 8192-token context with `FORCE_ENGLISH=0` so Finnish questions are answered in Finnish. Rejected alternatives were `qwen3:8b` and `llama3.1:8b`. This one is worth reading the evidence for rather than taking on trust: the choice came from a blind study — three 8B models, 30 Finnish questions, 540 generations, graded without knowing which model wrote what — in which Poro placed first on 26 of 30 and beat qwen3 20-to-3 (p = 0.0005). Poro had been dismissed twice by earlier non-blind evaluations that were measuring task-checklist completion rather than the quality of the Finnish, which is the failure mode the study was built to expose. Write-up: [`content/posts/rag-finnish-blind-test.md`](../../content/posts/rag-finnish-blind-test.md); PRs #341-#344.
+>
+> Two caveats that belong with the decision, not buried in the study: Poro's quality win **presumes its language drift is managed** — it depends on the router and prompt anchor that shipped alongside it, and is not a property of the model alone. And it runs at **temperature 0.4**, so a single generation is never evidence about a regression or a fix.
+>
+> `qwen2.5:7b` remains the value in `.env.example` and the `docker-compose.yml` default, because that is the model a fresh clone can pull without the Finnish stack; the deployed default is set in the live `.env`. If you are reading config to find out what is answering questions in production, read the live `.env` or `ragctl status`, not the checked-in default.
 
 ## Context
 

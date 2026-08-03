@@ -388,7 +388,7 @@ wording drifts. Exit code `0` = all passed, `1` = one or more failed, `2` = the
 backend was unreachable. Point it at the live funnel with
 `--base-url https://paskamyrsky.tail6ed53b.ts.net`.
 
-After Workstream B the harness still passes **9/9**: containment is intact **and
+After Workstream B the harness still passes **in full**: containment is intact **and
 extended** — off-topic queries that only matched stray code chunks, poem
 requests, and translation requests all refuse, while the deep-code grounded cases
 now answer from the **actual indexed source** rather than prose about it.
@@ -434,7 +434,7 @@ shipped (detailed in [§4](#a-live-chat-turn) and [§7](#the-layers)):
   in place of the old soft re-rank boost.
 - **Prose-anchored weak-retrieval gate** + two **pre-retrieval task gates**
   (generative, translation) — containment extended to the code-enriched corpus
-  (acceptance harness still **9/9**).
+  (acceptance harness still fully green).
 
 ### Still future (not built — don't claim these)
 

@@ -250,7 +250,7 @@ sole line of defense:
 
 ## Eval + acceptance harness
 
-**Retrieval eval.** `evals/eval_set.json` holds 17 questions with the source(s)
+**Retrieval eval.** `evals/eval_set.json` holds 58 questions with the source(s)
 that must be retrieved (plus out-of-corpus questions that should be refused). The
 runner measures retrieval hit-rate and prints a PASS/FAIL table — the credibility
 metric for the RAG layer and the lever for tuning `WEAK_RETRIEVAL_DISTANCE`.
@@ -263,13 +263,22 @@ docker compose run --rm backend python -m evals.run_eval --min-hit-rate 0.8
 ```
 
 **Acceptance harness.** `evals/acceptance.py` is a black-box **containment
-contract** suite — 9 cases run against a _running_ backend: injection no-dump,
+contract** suite run against a _running_ backend: injection no-dump,
 prompt-reveal blocked, off-topic poem + trivia declined, the input cap (400) and
-oversized body (422), and three grounded technical answers (now answered from the
-actual source under `content/code/`). Still **9/9** with the code-enriched corpus
-— containment held _and_ extended: off-topic code-chunk leaks, poem, and
-translate tasks all refuse. The classifiers are anchored on the real refusal
-wording so a regression can't false-pass. Run it against a live stack:
+oversized body (422), and grounded technical answers (answered from the actual
+source under `content/code/`). It runs **27 cases** — **11 static** contract
+cases written here, plus **16 golden** must-refuse queries pulled live from
+`eval_set.json`, so the eval set stays the single source of adversarial truth
+and a refusal case added there is automatically asserted against the live model.
+Containment holds _and_ extends with the code-enriched corpus: off-topic
+code-chunk leaks, poem, and translate tasks all refuse. The classifiers are
+anchored on the real refusal wording so a regression can't false-pass.
+
+Those three counts are asserted by `tests/test_doc_counts.py` — prose that
+states a number the code disagrees with fails the suite. This paragraph had
+drifted by a factor of three before that guard existed, far enough that an agent
+following it could not tell whether the doc or the harness was broken. Run it
+against a live stack:
 
 ```bash
 make up                                                     # backend on :8000
@@ -369,6 +378,18 @@ harness against a running backend — see
 ### Lint / type-check
 
 ```bash
-ruff check . && ruff format --check .
-mypy app evals
+ruff check .
+mypy app evals ragctl.py
 ```
+
+Exactly what CI runs, in the same order — the point of this block is that a green
+local run means a green CI run.
+
+**`ruff format` is deliberately not part of the gate.** Running it today would
+rewrite 23 files and 463 lines, and several of those rewrites make the code
+worse: it explodes a deliberately compact stop-word set into one word per line
+and reflows Finnish user-facing strings mid-sentence. `ruff check` is this
+repo's linter; `ruff format` has never been adopted as its style authority, and
+adopting one is a decision to take on its own merits rather than a gap to close
+quietly. If it is ever adopted, do it in a standalone formatting-only commit so
+the reformat is reviewable separately from behaviour.
