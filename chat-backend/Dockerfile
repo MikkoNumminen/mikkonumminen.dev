@@ -2,7 +2,7 @@
 # the FastAPI service. One image serves all backend roles; the compose file
 # picks the command (indexer as a one-shot `run`, API as the long-lived service).
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
