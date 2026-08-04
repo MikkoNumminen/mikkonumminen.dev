@@ -8,8 +8,11 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     # fastembed cache path; the ONNX weights are baked here at build time (below)
-    # so startup loads them from the image, never from the network.
-    FASTEMBED_CACHE_DIR=/srv/.fastembed-cache
+    # so startup loads them from the image, never from the network. The name is
+    # _PATH, not _DIR: fastembed reads only FASTEMBED_CACHE_PATH, so the near-miss
+    # spelling silently fell back to fastembed's own default under /tmp, where the
+    # weights ended up root-owned and every boot logged a permission warning.
+    FASTEMBED_CACHE_PATH=/srv/.fastembed-cache
 
 WORKDIR /srv
 
@@ -27,7 +30,16 @@ WORKDIR /srv
 # _DEFAULT_EMBEDDING_MODEL in app/config.py. NOTE: this step needs network at
 # build time (it fails if the HF Hub is unreachable).
 RUN pip install "fastembed==0.8.0"
+# The runtime user is created BEFORE the bake, and the bake runs as that user, so
+# the ~65MB of weights are written with their final ownership. The alternative —
+# baking as root and fixing it later with `chown -R /srv` — rewrites every one of
+# those files into a new layer and costs ~120MB of image for nothing.
+RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p "$FASTEMBED_CACHE_PATH" \
+    && chown appuser:appuser /srv "$FASTEMBED_CACHE_PATH"
+USER appuser
 RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')"
+USER root
 # lingua's wheel is ~170MB (embedded language models) — same early-layer rule as
 # fastembed above: installed before the app COPY so a code edit never re-downloads
 # it (the `pip install -e .` layer below is invalidated by every app change, and
@@ -46,19 +58,19 @@ ENV HF_HUB_OFFLINE=1
 # runtime lookup of `sql/` beside `app/` (see db.SQL_PATH) resolves the same way
 # it does when run from a source checkout. A plain `pip install .` would copy
 # `app` into site-packages and orphan the sibling `sql/` directory.
-COPY pyproject.toml ./
-COPY app ./app
-COPY sql ./sql
+# `--chown` on each COPY rather than one recursive chown at the end: the source
+# tree is small, but a trailing `chown -R /srv` would also recurse into the baked
+# model cache and duplicate it into another layer.
+COPY --chown=appuser:appuser pyproject.toml ./
+COPY --chown=appuser:appuser app ./app
+COPY --chown=appuser:appuser sql ./sql
 # evals/ is not a wheel package, but `python -m evals.run_eval` resolves it from
-# the WORKDIR — so it must be physically present in the image (the later
-# `chown -R /srv` then makes it readable by the non-root user).
-COPY evals ./evals
+# the WORKDIR — so it must be physically present in the image.
+COPY --chown=appuser:appuser evals ./evals
 RUN pip install -e .
 
-# Run unprivileged. The model cache is baked into the image (no volume now), so
-# chown /srv to the fixed UID makes it readable by the non-root runtime user.
-RUN useradd --create-home --uid 10001 appuser \
-    && chown -R appuser:appuser /srv
+# Run unprivileged. Everything under /srv already belongs to this user: the cache
+# was baked as them, and each COPY set its own ownership.
 USER appuser
 
 # Default command runs the API. The indexer is a one-shot override:
