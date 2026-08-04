@@ -1,4 +1,4 @@
-# ADR 0007 — Upgrade to Astro 6 + Node 22
+# ADR 0007 · Upgrade to Astro 6 + Node 22
 
 **Status:** accepted
 **Date:** 2026-06-13
@@ -38,7 +38,7 @@ Astro-6-compatible versions (`@astrojs/sitemap`, `@astrojs/check`,
 
 - **Cleared** both Astro-native high advisories.
 - **Residual:** the remaining `npm audit` highs all reduce to one transitive
-  `esbuild` pair (Windows dev-server file read; Deno binary integrity) — **no fix
+  `esbuild` pair (Windows dev-server file read; Deno binary integrity), **no fix
   available**, both **build-time/dev-only**, and absent from the static
   production artifact. Accepted and documented in
   [`docs/security/threat-model.md`](../security/threat-model.md); they clear when

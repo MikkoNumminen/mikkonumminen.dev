@@ -1,4 +1,4 @@
-# ADR NNNN — <short decision title>
+# ADR NNNN · <short decision title>
 
 **Status:** proposed | accepted | superseded by ADR XXXX
 **Date:** YYYY-MM-DD
@@ -6,7 +6,7 @@
 
 ## Context
 
-What forces the decision — the problem, constraints, and the relevant prior
+What forces the decision: the problem, constraints, and the relevant prior
 state. Cite the code/config it concerns by path.
 
 ## Decision

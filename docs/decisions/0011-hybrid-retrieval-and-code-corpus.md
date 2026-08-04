@@ -1,4 +1,4 @@
-# ADR 0011 — Hybrid retrieval over a code-enriched corpus for the RAG chat
+# ADR 0011 · Hybrid retrieval over a code-enriched corpus for the RAG chat
 
 **Status:** accepted
 **Date:** 2026-06-26
@@ -11,7 +11,7 @@ RAG backend ([`chat-backend/`](../../chat-backend/)); [ADR 0010](0010-rag-contai
 contained the model so it stays in scope. Both left a quality gap open, tracked
 there as "Workstream B (roadmap, not built)."
 
-The corpus was README-level prose only: `content/**/*.md` — project descriptions,
+The corpus was README-level prose only: `content/**/*.md`, project descriptions,
 CV, posts. That answers "what is Spacepotatis built with?" well, but it has
 nothing to say about _how_ a thing is built. Deep technical questions ("how does
 the audio crossfade work?", "what does the retrieval gate key on?") have no
@@ -23,7 +23,7 @@ Two structural limits drove the gap:
 - **The corpus described the code instead of containing it.** Prose about a
   project can't ground an answer about a specific function, decorator, or query.
 - **Dense embeddings miss exact identifiers.** Cosine similarity over
-  `bge-small-en-v1.5` is strong on paraphrase but weak on the literal token —
+  `bge-small-en-v1.5` is strong on paraphrase but weak on the literal token:
   a query naming `websearch_to_tsquery` or `LLM_NUM_PREDICT` does not reliably
   pull the chunk that contains that exact string, because the embedding smooths
   it away. Retrieval was dense-only with a soft project boost, so an exact-match
@@ -42,8 +42,8 @@ parts:
 - **Code corpus.** Ingestion now indexes curated source under
   `content/code/<project>/` (`py`, `ts`, `tsx`, `js`, `cs`, `astro`, `sql`,
   `prisma`, plus config) **in addition to** `content/**/*.md`. 55
-  architecture-defining source files were curated from the sibling project repos
-  — the files that actually answer "how is this built", not the whole tree.
+  architecture-defining source files were curated from the sibling project repos:
+the files that actually answer "how is this built", not the whole tree.
 - **Code-aware chunking.** Source is split on function/class/method boundaries
   (Python / TypeScript / JavaScript / C#), keeping decorators and attributes with
   their definition, with a line-window fallback for anything the splitter can't
@@ -78,21 +78,21 @@ extends it, because the code corpus changed the threat surface the gate sees:
 New validated env keys: `HYBRID_ENABLED`, `RRF_K` (60), `RETRIEVAL_DENSE_WEIGHT`
 (1.0), `RETRIEVAL_LEXICAL_WEIGHT` (1.0), `PROJECT_FILTER_STRICT` (true);
 `WEAK_RETRIEVAL_DISTANCE` is now 0.45. `content/code/` is excluded from
-`tsconfig` / `eslint` / `prettier` — it is corpus data, not site code.
+`tsconfig` / `eslint` / `prettier`. It is corpus data, not site code.
 
 ## Considered alternatives
 
 ### A. Re-embed the prose corpus only (no source code)
 
 Improve answers by re-chunking or re-embedding the existing markdown, without
-indexing source. **Rejected** — the deep-technical answers simply aren't in the
+indexing source. **Rejected**: the deep-technical answers simply aren't in the
 prose. No amount of re-embedding adds information the corpus never held; the
 implementing source has to be indexed to ground "how is this built" questions.
 
 ### B. A bigger / stronger embedding model
 
 Swap `bge-small-en-v1.5` for a larger embedding model to better capture exact
-identifiers. **Rejected** — it's the wrong tool for literal-token matching (still
+identifiers. **Rejected**: it's the wrong tool for literal-token matching (still
 lossy on exact strings), it inflates index and query latency on Mikko's GPU, and
 it doesn't add the missing source content. A lexical channel solves exact-match
 directly and cheaply; RRF fuses it with the dense channel we already have.
@@ -100,7 +100,7 @@ directly and cheaply; RRF fuses it with the dense channel we already have.
 ### C. A hosted retrieval / vector service
 
 Move retrieval to a managed search or vector API with built-in hybrid ranking.
-**Rejected** — it reintroduces the per-query cost, lock-in, and runtime
+**Rejected**. It reintroduces the per-query cost, lock-in, and runtime
 third-party dependency that [ADR 0009](0009-rag-chat-backend.md) deliberately
 closed. Postgres + pgvector already runs locally; full-text search is native to
 it, so hybrid retrieval costs one more query and an RRF merge, not a new vendor.
@@ -110,10 +110,10 @@ it, so hybrid retrieval costs one more query and an RRF merge, not a new vendor.
 ### Gained
 
 - **Deeper technical answers.** The chat can now answer from the actual
-  implementing source — function bodies, decorators, queries — not just the
+  implementing source (function bodies, decorators, queries) not just the
   README-level summary.
 - **Measured retrieval gain.** Retrieval hit-rate improved **+0.059** (dense →
-  hybrid) on the `run_eval` question set — the lexical channel recovers the
+  hybrid) on the `run_eval` question set: the lexical channel recovers the
   exact-identifier queries dense alone missed.
 - **Containment held and extended.** The acceptance contract
   ([`evals/acceptance.py`](../../chat-backend/evals/acceptance.py))
@@ -126,7 +126,7 @@ it, so hybrid retrieval costs one more query and an RRF merge, not a new vendor.
 - **Curated third-party source is committed into this repo.** 55 source files
   from sibling project repos now live under `content/code/`. They're excluded
   from `tsconfig` / `eslint` / `prettier` so they don't enter the site's build,
-  lint, or format surfaces — they are read-only corpus data — but they are a
+  lint, or format surfaces (they are read-only corpus data), but they are a
   maintenance and provenance surface to keep curated as those projects evolve.
 - **A second retrieval channel and a fusion step.** Hybrid adds a full-text
   query, a GIN index, the generated tsvector column, and the RRF merge to the
@@ -143,7 +143,7 @@ it, so hybrid retrieval costs one more query and an RRF merge, not a new vendor.
 
 - **The model's reasoning ceiling is unchanged.** Better retrieval feeds the
   model better context; it does not make `qwen2.5:7b` reason better. It can still
-  perform a literal task when on-corpus content is loosely related — the new
+  perform a literal task when on-corpus content is loosely related: the new
   pre-retrieval task gates mitigate the known shapes (poem, translate), but a
   model upgrade is the deeper fix, tracked separately (see
   [ADR 0010](0010-rag-containment.md)'s residual).

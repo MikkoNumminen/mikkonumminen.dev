@@ -1,6 +1,6 @@
-# ADR 0006 — Committed skills-registry JSON is canonical; prebuild no longer auto-syncs it
+# ADR 0006 · Committed skills-registry JSON is canonical; prebuild no longer auto-syncs it
 
-**Status:** accepted — supersedes [ADR 0005](./0005-skill-registry-pdf-surface.md)'s Decision 3 (the `prebuild` auto-sync of the registry JSON).
+**Status:** accepted, supersedes [ADR 0005](./0005-skill-registry-pdf-surface.md)'s Decision 3 (the `prebuild` auto-sync of the registry JSON).
 **Date:** 2026-06-13
 **Decided by:** repo owner
 
@@ -21,8 +21,8 @@ in CI). So the committed `public/data/skills-registry.json` is an *enriched*
 artifact, while the dated scan is *raw*.
 
 That broke the ADR 0005 assumption: the `prebuild` sync was copying the **raw**
-dated registry over the **enriched** committed file on every build — including
-production Vercel builds — silently downgrading what the terminal served
+dated registry over the **enriched** committed file on every build, including
+production Vercel builds: silently downgrading what the terminal served
 (~1850 lines of measured data replaced by the raw scan), and then rendering the
 catalog PDF from the downgraded data.
 
@@ -30,7 +30,7 @@ catalog PDF from the downgraded data.
 
 **Remove `sync:skills-registry` from `prebuild`.** The committed
 `public/data/skills-registry.json` is now the **canonical artifact for hosted
-builds** — exactly the posture ADR 0005 already established for the committed
+builds**: exactly the posture ADR 0005 already established for the committed
 PDF. `sync` remains the first step of the manual `/skill-localUpdate` refresh
 chain (`sync → apply-measurement-overlay → build-review-stats →
 build-skills-pdf`); the enriched result is committed and reviewed in a PR.
@@ -41,10 +41,10 @@ build-skills-pdf`); the enriched result is committed and reviewed in a PR.
 
 - **Run the full enrichment chain in `prebuild`.** Rejected: `build-review-stats`
   needs local `~/.claude` transcripts that don't exist on a build server, so the
-  buckets can't be regenerated there — and it would violate the static-output
+  buckets can't be regenerated there, and it would violate the static-output
   posture by reading developer-machine data at build time.
 - **Make `sync` idempotent (skip when the destination is already enriched).**
-  Rejected as fragile heuristic — "enriched" has no clean signal, and it leaves a
+  Rejected as fragile heuristic: "enriched" has no clean signal, and it leaves a
   destructive step armed in the build path for the case it misfires.
 
 ## Consequences
@@ -53,7 +53,7 @@ build-skills-pdf`); the enriched result is committed and reviewed in a PR.
   show; the local build no longer corrupts the JSON or the PDF; the registry
   joins the PDF as a reviewed, committed source of truth.
 - **Cost:** the committed registry can go stale if `/skill-localUpdate` isn't run
-  after a new scan — the same trade-off ADR 0005 already accepted for the PDF.
+  after a new scan: the same trade-off ADR 0005 already accepted for the PDF.
   A freshness check is a possible future guard.
 
 Landed in PR #213. See [`scripts/sync-skill-registry.mjs`](../../scripts/sync-skill-registry.mjs)

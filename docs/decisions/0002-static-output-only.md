@@ -1,11 +1,11 @@
-# ADR 0002 — Static output only
+# ADR 0002 · Static output only
 
 **Status:** accepted
 **Date:** 2026-05-17
 **Decided by:** repo owner
 
 > **Update (2026-08-01):** Swedish (`/sv/`) was removed as a served locale in
-> PR #476 — the site now pre-renders `/` and `/fi/` only. The build-time /
+> PR #476: the site now pre-renders `/` and `/fi/` only. The build-time /
 > load-time locale-negotiation decision below is unchanged. See
 > [`swedish-locale-removal-2026-08.md`](../audits/swedish-locale-removal-2026-08.md)
 > for why it was removed and what was deliberately kept.
@@ -24,7 +24,7 @@ serve the output without change. Keeping that portability is a deliberate
 requirement: it prevents lock-in to any one provider's proprietary
 runtime and avoids introducing a billing surface tied to compute.
 
-Astro supports three output modes — `'static'` (fully pre-rendered),
+Astro supports three output modes: `'static'` (fully pre-rendered),
 `'hybrid'` (opt-in SSR per route), and `'server'` (SSR by default). A
 portfolio with no server-side needs sits naturally at `'static'`. The
 choice is explicit in [`astro.config.mjs`](../../astro.config.mjs):
@@ -35,7 +35,7 @@ output: 'static',
 
 Locale negotiation follows the same constraint. Astro's i18n routing with
 `prefixDefaultLocale: false` generates separate pre-rendered HTML trees
-per served locale at build time — `/` and `/fi/` today; `/sv/` as well when
+per served locale at build time, `/` and `/fi/` today; `/sv/` as well when
 this was written, per the Update above. There is no `Accept-Language`
 header inspection at runtime; browser locale negotiation is handled by a
 small inline script in `BaseLayout.astro` that reads
@@ -45,7 +45,7 @@ needed.
 
 The CSP rationale block in the README explicitly calls out that a
 nonce-based CSP would require a per-request nonce plumbed through every
-inline tag — which is incompatible with fully static output. Static files
+inline tag, which is incompatible with fully static output. Static files
 cannot vary per response, so this constraint reinforces the `'static'`
 choice: relaxing it would require SSR, which would in turn require a
 runtime and a new CSP strategy.
@@ -88,7 +88,7 @@ host-agnostic.
 
 Not a current need, but raised here for completeness. Adding any
 server-side personalisation (e.g. A/B variants, auth-gated content)
-would require SSR. **Not applicable** — the portfolio has no such
+would require SSR. **Not applicable**: the portfolio has no such
 requirements and no plans to introduce them.
 
 ## Consequences

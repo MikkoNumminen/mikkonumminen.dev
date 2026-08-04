@@ -1,4 +1,4 @@
-# ADR 0010 — Layered architectural containment for the RAG chat
+# ADR 0010 · Layered architectural containment for the RAG chat
 
 **Status:** accepted
 **Date:** 2026-06-26
@@ -12,7 +12,7 @@ on an open-weight model served by Ollama. That model is a public artifact: its
 weights cannot be retrained, audited, or "cleaned" by us, and it will follow a
 sufficiently insistent instruction in the user's message. Left unconstrained,
 the same endpoint that answers "what is Spacepotatis built with?" can be driven
-out of scope — coaxed into dumping a retrieved document verbatim, answering
+out of scope: coaxed into dumping a retrieved document verbatim, answering
 off-topic questions, role-playing another assistant, or emitting generative
 filler (poems, stories, code) that has nothing to do with the portfolio.
 
@@ -28,7 +28,7 @@ reference.
 
 ## Decision
 
-Contain the model with **layered, architectural defenses** — controls that sit
+Contain the model with **layered, architectural defenses**: controls that sit
 in code around the model rather than relying on prompt wording alone, so that a
 breach of any one layer is caught by another (defense in depth). The layers, in
 pipeline order:
@@ -41,7 +41,7 @@ pipeline order:
   and decline outright: `is_generative_request` ("write me a poem/story/song/
   joke/…") and `is_translation_request` ("translate &lt;text&gt; to &lt;language&gt;").
   These are TASK requests that often name an on-corpus topic, so retrieval alone
-  wouldn't catch them — the small model would happily perform the task. Catching
+  wouldn't catch them: the small model would happily perform the task. Catching
   them by shape, before a single vector is fetched, closes that hole. (Added by
   [ADR 0011](0011-hybrid-retrieval-and-code-corpus.md)'s Workstream B.)
 - **Relevance gate (prose-anchored).** Before the LLM is ever called, the
@@ -73,28 +73,28 @@ pipeline order:
   mid-stream client disconnect).
 - **Rate limiting.** A per-IP sliding window (`RATE_LIMIT_REQUESTS` default 30 /
   `RATE_LIMIT_WINDOW_SECONDS` default 60). **Loopback exemption:** a genuine
-  direct-to-loopback request — socket peer `127.0.0.1`/`::1` **and** no
-  `X-Forwarded-For` — is exempt (`ratelimit.is_exempt_local`). Rationale: the limiter
+  direct-to-loopback request: socket peer `127.0.0.1`/`::1` **and** no
+  `X-Forwarded-For`: is exempt (`ratelimit.is_exempt_local`). Rationale: the limiter
   is external-abuse protection; the trusted local ops/eval path (the experiment
   harness driving many sequential calls) is not abuse, and was being silently
   corrupted by 429s. The exemption is **strictly** the loopback address with no proxy
-  header — deliberately not a CIDR/internal-network rule — so the public ingress
+  header (deliberately not a CIDR/internal-network rule), so the public ingress
   (Tailscale Funnel, which always sets `X-Forwarded-For`) can never satisfy it.
 - **Score logging.** On by default (`RAG_LOG_FILE` defaults to
   `rag-logs/requests.jsonl`; set empty to disable): one JSONL line per request
-  with operational telemetry only — no PII. Set `RAG_LOG_TEXT=true` (off by
-  default) to additionally write the raw query + answer text — for local
+  with operational telemetry only, no PII. Set `RAG_LOG_TEXT=true` (off by
+  default) to additionally write the raw query + answer text: for local
   debugging only.
 
-Every threshold and cap above is a validated env var — the deterministic task
-gates and the prompt hardening are code, not config, by design — so the
+Every threshold and cap above is a validated env var: the deterministic task
+gates and the prompt hardening are code, not config, by design, so the
 containment is tunable per
 deployment without code changes. The decision is enforced by an **executable
 acceptance contract** ([`evals/acceptance.py`](../../chat-backend/evals/acceptance.py),
 run via `python -m evals.acceptance`): every static contract case plus every
-golden must-refuse query — injection no-dump, prompt-reveal blocked, off-topic
+golden must-refuse query: injection no-dump, prompt-reveal blocked, off-topic
 poem + trivia declined, input cap 400 and oversized 422, and three grounded
-technical answers — with classifiers anchored on the real refusal wording so
+technical answers, with classifiers anchored on the real refusal wording so
 they cannot false-pass.
 
 ## Considered alternatives
@@ -102,14 +102,14 @@ they cannot false-pass.
 ### A. Prompt hardening only
 
 Just tell the model, in the system prompt, to stay on topic and not dump
-documents. **Rejected** — the weights are fixed and public; a determined user
+documents. **Rejected**: the weights are fixed and public; a determined user
 can out-argue any wording. Prompt instructions are a real layer (we keep them)
 but cannot be the _only_ line of defense for a publicly exposed endpoint.
 
 ### B. Swap in a "safer" or fine-tuned model
 
 Replace or fine-tune the open-weight model so it refuses on its own.
-**Rejected** — it doesn't address the structural problem (any model will follow
+**Rejected**. It doesn't address the structural problem (any model will follow
 a sufficiently insistent instruction), it's expensive to maintain, and it
 contradicts [ADR 0009](0009-rag-chat-backend.md)'s commitment to a swappable
 local model on Mikko's own GPU. Containment belongs in the code around the model,
@@ -117,8 +117,8 @@ not in the weights.
 
 ### C. Move generation behind a managed-moderation API
 
-Route requests through a hosted model with built-in moderation. **Rejected** —
-it reintroduces exactly the per-query cost, lock-in, and runtime third-party
+Route requests through a hosted model with built-in moderation. **Rejected**.
+It reintroduces exactly the per-query cost, lock-in, and runtime third-party
 dependency that [ADR 0009](0009-rag-chat-backend.md) deliberately closed.
 
 ## Consequences
@@ -161,12 +161,12 @@ dependency that [ADR 0009](0009-rag-chat-backend.md) deliberately closed.
 
 ### Follow-ups
 
-- **Workstream B (shipped — see [ADR 0011](0011-hybrid-retrieval-and-code-corpus.md)).** The
+- **Workstream B (shipped: see [ADR 0011](0011-hybrid-retrieval-and-code-corpus.md)).** The
   retrieval-quality workstream is now built: code-aware chunking by function/class
   boundaries with source/config indexed alongside markdown, `language` +
   `chunk_type` (prose|code) metadata, hybrid dense + full-text retrieval fused by
   reciprocal rank fusion, and a hard per-project filter. That work is orthogonal
-  to containment but feeds back into it twice — it is why the relevance gate now
+  to containment but feeds back into it twice. It is why the relevance gate now
   anchors on prose and why `WEAK_RETRIEVAL_DISTANCE` dropped to 0.45 (both folded
   into the layers above), and it shipped with the two pre-retrieval task gates.
 - **Still future (not built).** Cross-encoder re-ranking, automatic per-project

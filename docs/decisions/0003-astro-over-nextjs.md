@@ -1,4 +1,4 @@
-# ADR 0003 — Astro over Next.js for the portfolio
+# ADR 0003 · Astro over Next.js for the portfolio
 
 **Status:** accepted
 **Date:** 2026-05-17
@@ -37,7 +37,7 @@ many interactive surfaces.
 
 **Astro** is a multi-page framework. Each page is server-rendered (or
 pre-rendered) HTML. JavaScript reaches the browser only where explicitly
-opted into via `client:*` directives — the "island architecture." The
+opted into via `client:*` directives: the "island architecture." The
 browser's native navigation handles page changes; each page is a fresh
 document. There is no shared React context, no SPA router, and no
 framework runtime on pages that have no islands.
@@ -57,7 +57,7 @@ GSAP) loaded only on the pages that need them.
 
 Page transitions (the canvas particle dissolve) are implemented as a
 vanilla JS module in `src/lib/transitions/` that intercepts link clicks
-and performs a hard navigation after the animation — preserving MPA
+and performs a hard navigation after the animation: preserving MPA
 semantics while giving the user a smooth visual handoff.
 
 ## Considered alternatives
