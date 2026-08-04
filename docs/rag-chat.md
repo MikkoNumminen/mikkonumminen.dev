@@ -338,6 +338,8 @@ Desktop must be running first; the chat lives in Docker.)
 | **`status` / `doctor`** | Container states + `/health`; `doctor` adds a security pre-flight and Docker versions.                                                                          |
 | **`model`**             | Switch the served Ollama model (default `qwen2.5:7b`).                                                                                                          |
 | **`english`**           | Toggle `FORCE_ENGLISH` (`on`/`off`) at runtime.                                                                                                                 |
+| **`features`**          | List every RAG dial with the value the **running container** resolved — not what `.env` says, which differs whenever a knob is missing from compose.             |
+| **`feature NAME VALUE`** | Set one dial (`on`/`off`, or a number), recreate the backend, and assert the new value inside it before reporting success.                                       |
 | **`usage` / `logs`**    | Token counts over a window; recent questions + answers from the request log.                                                                                     |
 | **`prune`**             | Reclaim docker disk — build cache, stopped containers, dangling images.                                                                                          |
 | **`watchdog`**          | Guard the public visitor path and recover a stale funnel ingress.                                                                                                |

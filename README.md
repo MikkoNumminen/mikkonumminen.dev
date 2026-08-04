@@ -157,7 +157,10 @@ npm run lint          # eslint
 npm run format        # prettier --write across src/
 npm run format:check  # prettier --check (CI-friendly)
 npm run build:og      # rasterize the OG cards from the source SVGs
-npm run sync:skills-registry  # copy latest dated SKILL-REGISTRY-*.json → public/data/
+npm run sync:skills-registry -- --publish  # copy latest dated SKILL-REGISTRY-*.json → public/data/
+                              # (without --publish it writes a throwaway .staged.json; three
+                              #  scripts write that path in sequence, so a lone run would
+                              #  strip what the others added)
 npm run validate:registry     # check public/data/skills-registry.json against its JSON schema
 npm run validate:shoutbox     # check public/data/shoutbox.json against its JSON schema
 npm run build:skills-pdf      # regenerate public/skills-registry.pdf via local Chrome

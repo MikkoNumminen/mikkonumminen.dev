@@ -50,6 +50,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { resolveWriteTarget } from './lib/publish-guard.mjs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -634,7 +635,9 @@ for (const repo of registry.repos ?? []) {
   }
 }
 
-fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2) + '\n');
+const write = resolveWriteTarget(REGISTRY_PATH, process.argv.slice(2));
+fs.writeFileSync(write.target, JSON.stringify(registry, null, 2) + '\n');
+if (write.notice) console.warn(`build-review-stats: ${write.notice}`);
 
 console.log(`/${REVIEW_SKILL} per-invocation stats (${args.windowDays}d window):`);
 console.log(`  N=${perInvocation.n} invocations`);
@@ -665,4 +668,8 @@ console.log('');
 console.log(
   `Generic transcript-stats pass: ${medianUpdated} non-/review receipt(s) updated with median + spread; ${modelTagged} cost_model tag${modelTagged === 1 ? '' : 's'} written.`,
 );
-console.log(`Wrote ${REGISTRY_PATH}`);
+// `write.target`, not REGISTRY_PATH: this is the LAST line of output and the
+// one read as the final status, so naming the served path after diverting the
+// write would contradict the notice above it and claim a publish that did not
+// happen — on stdout, where a stderr-only log capture would not see the caveat.
+console.log(`Wrote ${write.target}`);

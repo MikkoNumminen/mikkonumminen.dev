@@ -222,7 +222,7 @@ python -m evals.acceptance    # black-box containment contract: every static cas
 
 The acceptance harness classifiers are anchored on the real refusal wording so they cannot
 false-pass — if you change a refusal string, update them together. Ops are driven by
-`ragctl.py` (`status`/`up`/`down`/`doctor`/`model`/`english`, plus the shoutbox moderation
+`ragctl.py` (`status`/`up`/`down`/`doctor`/`model`/`english`/`features`/`feature`, plus the shoutbox moderation
 verbs `queue`/`approve`/`reject`/`reply`/`publish`). The model is switchable; `qwen2.5:7b` is
 the checked-in default a fresh clone pulls, but the **deployed** model is **Poro 2 8B**
 (`FORCE_ENGLISH=0`, so Finnish questions answer in Finnish) — set in the live `.env`, not in

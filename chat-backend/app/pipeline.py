@@ -360,6 +360,18 @@ async def chat_event_stream(
                 expansion = True
                 chunks = narrative
                 effective_query = _EXPANSION_DIRECTIVE
+                # An expansion request carries no language of its own — "joo",
+                # "yes" and "kerro lisää" are too short or too generic for the
+                # detector, and "joo" is literally below its minimum length. The
+                # turn's language belongs to the topic being expanded, so it is
+                # inherited from the message that set the topic. Without this a
+                # Finnish visitor who answers the backend's own Finnish offer
+                # ("Haluatko, että kerron lisää?") with "Joo" gets the deep dive
+                # in English — the one reply the feature is built to serve.
+                if allow_finnish and not answer_in_finnish and prior:
+                    answer_in_finnish = looks_finnish(prior) or requests_finnish_answer(
+                        prior
+                    )
         if not expansion:
             # RAG_TRANSLATE_RETRIEVAL (default off): retrieve with an English
             # translation of a Finnish question so the English-only embedder and
