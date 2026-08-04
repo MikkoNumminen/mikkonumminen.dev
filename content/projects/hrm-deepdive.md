@@ -1,9 +1,9 @@
 ---
-title: HRM — engineering deep-dive
+title: HRM · engineering deep-dive
 project: hrm
 ---
 
-# HRM — Engineering Deep-Dive
+# HRM: Engineering Deep-Dive
 
 This document picks up where the architecture and design docs leave off. It covers the specific problems that were hard to get right, the bugs that forced design changes, and the tradeoffs that weren't obvious until the code ran.
 
@@ -23,7 +23,7 @@ The seeding transaction (`seedDemoData`) runs inside a single Prisma `$transacti
 
 ## The Superuser Bootstrap Race
 
-The first OAuth user to sign in is automatically promoted to superuser. The naive implementation reads the user count, checks for zero, then creates the user — a classic TOCTOU race where two simultaneous first-time sign-ins both read zero and both receive superuser role.
+The first OAuth user to sign in is automatically promoted to superuser. The naive implementation reads the user count, checks for zero, then creates the user: a classic TOCTOU race where two simultaneous first-time sign-ins both read zero and both receive superuser role.
 
 The fix uses a `SERIALIZABLE` isolation level transaction in the NextAuth `signIn` callback:
 
@@ -51,9 +51,9 @@ Embedding permissions in the JWT means they can go stale the moment an admin cha
 
 HRM uses a `permissionsVersion` integer on the `User` table. Each JWT callback performs a lightweight query that fetches only `id`, `role`, and `permissionsVersion`. If the version in the token matches the database, the cached permissions in the token are still valid and the full permissions join is skipped. Only when versions diverge (or on the initial sign-in) does the callback fetch the full `permissions` relation. In practice, the lightweight path is the common one.
 
-The session tracking layer adds a related concern: pure JWTs cannot be revoked. The `UserSession` table gives the app force-logout capability without abandoning JWT. Every JWT callback (except sign-in itself) checks whether the token's embedded `sessionId` still has `active: true` in the database. If the session was deactivated — by an admin force-logout or by the concurrent session limit — the callback returns an empty token, which forces re-authentication on the next request.
+The session tracking layer adds a related concern: pure JWTs cannot be revoked. The `UserSession` table gives the app force-logout capability without abandoning JWT. Every JWT callback (except sign-in itself) checks whether the token's embedded `sessionId` still has `active: true` in the database. If the session was deactivated (by an admin force-logout or by the concurrent session limit) the callback returns an empty token, which forces re-authentication on the next request.
 
-To avoid a database write on every request, `lastActiveAt` updates are throttled to at most once per 60 seconds per session using a `sessionLastUpdate` field in the token itself. The update is wrapped in `.catch(() => {})` because a failure to update `lastActiveAt` is non-critical and should not fail the request. The REVIEW.md code review flagged this as ERR-04 — the silent catch means a DB-down condition lets stale sessions continue to pass validity checks — but the current behavior is an accepted tradeoff for not blocking requests on a non-critical write.
+To avoid a database write on every request, `lastActiveAt` updates are throttled to at most once per 60 seconds per session using a `sessionLastUpdate` field in the token itself. The update is wrapped in `.catch(() => {})` because a failure to update `lastActiveAt` is non-critical and should not fail the request. The REVIEW.md code review flagged this as ERR-04 (the silent catch means a DB-down condition lets stale sessions continue to pass validity checks), but the current behavior is an accepted tradeoff for not blocking requests on a non-critical write.
 
 ---
 
@@ -80,7 +80,7 @@ RETURNING count
 
 The `CASE` expression resets the window if the existing window has expired, or increments atomically otherwise. Because the entire check-and-increment happens in one statement, two concurrent requests cannot both read the same pre-increment value. The tradeoff versus Redis is a few milliseconds of latency per request and slightly higher database load, which the docs acknowledge explicitly.
 
-IP-based identifiers are truncated before being stored in the rate-limit audit log: `ip:<base64-prefix>...`. The comment in the code calls this out as a GDPR PII concern — raw IPs should not appear in audit logs.
+IP-based identifiers are truncated before being stored in the rate-limit audit log: `ip:<base64-prefix>...`. The comment in the code calls this out as a GDPR PII concern: raw IPs should not appear in audit logs.
 
 For authenticated users, rate limiting keys on `user:<id>` rather than IP. This means a user behind NAT shares their rate limit budget across all their sessions rather than sharing it with other users on the same IP.
 
@@ -105,7 +105,7 @@ const docs = entries.map((entry) => {
 await col.insertMany(docs);
 ```
 
-This guarantees internal consistency within a single request's audit entries. Cross-request concurrency is not addressed — two concurrent mutations can still produce a forked chain. The verification endpoint handles entries without a `hash` field (pre-dating the hash chain feature) by skipping them, which means the chain only applies to entries created after the feature was introduced.
+This guarantees internal consistency within a single request's audit entries. Cross-request concurrency is not addressed: two concurrent mutations can still produce a forked chain. The verification endpoint handles entries without a `hash` field (pre-dating the hash chain feature) by skipping them, which means the chain only applies to entries created after the feature was introduced.
 
 The `$jsonSchema` validator on the MongoDB collection uses `validationAction: "warn"` so schema violations are logged but do not reject writes. This was a deliberate choice to allow the schema to evolve (new fields, changed field names) without breaking the audit pipeline during deployments. In a blue-green deployment, the new code version and the old would write slightly different shapes, and `warn` ensures neither fails.
 
@@ -155,7 +155,7 @@ The ring buffer for polling clients is also stored on `globalThis` (a separate `
 
 On Vercel's Hobby tier, serverless functions time out at 10 seconds, which makes persistent SSE connections impossible. The system auto-detects the environment and falls back to 30-second polling. The README explains the interval choice: 5-second polling burned 720 Lambda invocations per hour on an idle demo tab, which hit Vercel's Active CPU budget. 30 seconds was the highest frequency that kept invocations within the free tier for typical demo usage.
 
-The in-process EventEmitter cannot distribute events across multiple server instances. The comment in `eventBus.ts` notes that switching to Redis pub-sub is a one-file change — the interface (`emitRealtimeEvent`, `subscribeEvents`, `getRecentEvents`) is already abstracted.
+The in-process EventEmitter cannot distribute events across multiple server instances. The comment in `eventBus.ts` notes that switching to Redis pub-sub is a one-file change: the interface (`emitRealtimeEvent`, `subscribeEvents`, `getRecentEvents`) is already abstracted.
 
 ---
 
@@ -177,7 +177,7 @@ Known unresolved scaling cliffs at 10k+ employees: `getPersons()`, `getTeams()`,
 
 The `vercel-ignore.sh` script skips deployments when only docs, tests, or CI configs changed. The implementation compares against `VERCEL_GIT_PREVIOUS_SHA` (the SHA of the last successfully built commit) rather than `HEAD^`.
 
-The comment in the script explains why: Vercel triggers a build only for the head commit of a push, not for each commit individually. A push containing three commits — a code change, another code change, then a docs-only change — would pass `git diff HEAD^ HEAD -- :(exclude)**/*.md` with zero code changes (because `HEAD^` only sees the last commit), and the build would be skipped despite the two earlier code-changing commits never having been deployed. Using `VERCEL_GIT_PREVIOUS_SHA` compares against the last built commit, capturing all changes since deployment regardless of how many commits are in the push.
+The comment in the script explains why: Vercel triggers a build only for the head commit of a push, not for each commit individually. A push containing three commits (a code change, another code change, then a docs-only change) would pass `git diff HEAD^ HEAD -- :(exclude)**/*.md` with zero code changes (because `HEAD^` only sees the last commit), and the build would be skipped despite the two earlier code-changing commits never having been deployed. Using `VERCEL_GIT_PREVIOUS_SHA` compares against the last built commit, capturing all changes since deployment regardless of how many commits are in the push.
 
 The fallback chain handles edge cases: if `VERCEL_GIT_PREVIOUS_SHA` is unset (first deploy, preview builds) the script falls back to `HEAD^`, and if `HEAD^` is unreachable (shallow clone at depth 1) the script exits with code 1 to force a build rather than skipping unintentionally.
 
@@ -193,7 +193,7 @@ The `src/lib/cache.ts` wrapper handles this with a single check:
 if (process.env.NODE_ENV === "test") return fn;
 ```
 
-When running under Jest, every cached function becomes a passthrough, and tests call the underlying database function directly. This has the side effect that test assertions always see fresh data — there is no caching layer to make a mutation invisible to the next read. For production correctness, mutations call `updateTag` via `invalidateDashboardCache()` or `invalidateOrgCache()`, which uses Next.js 16's read-your-own-writes semantics: the calling request sees its own mutations immediately while other requests continue seeing cached data until the TTL expires.
+When running under Jest, every cached function becomes a passthrough, and tests call the underlying database function directly. This has the side effect that test assertions always see fresh data. There is no caching layer to make a mutation invisible to the next read. For production correctness, mutations call `updateTag` via `invalidateDashboardCache()` or `invalidateOrgCache()`, which uses Next.js 16's read-your-own-writes semantics: the calling request sees its own mutations immediately while other requests continue seeing cached data until the TTL expires.
 
 ---
 

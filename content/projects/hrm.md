@@ -1,5 +1,5 @@
 ---
-title: HRM — full-stack HR management system
+title: HRM · full-stack HR management system
 project: hrm
 url: https://hr-manager-pearl.vercel.app
 ---
@@ -15,7 +15,7 @@ The permission model has 38 granular permissions with per-user overrides, TOTP 2
 ## Highlights
 
 - 2910 tests at 92.2% line coverage
-- HRM runs Stryker mutation testing on every PR — 92.2% line coverage means the lines ran; the mutation score means the assertions actually catch bugs
+- HRM runs Stryker mutation testing on every PR: 92.2% line coverage means the lines ran; the mutation score means the assertions actually catch bugs
 - PostgreSQL (structured data) + MongoDB (immutable audit log)
 - 38 granular permissions, TOTP 2FA, OpenTelemetry tracing, 18 languages
 
@@ -29,8 +29,8 @@ Google OAuth, GitHub OAuth, Sentry, OpenTelemetry
 
 ## Status
 
-Live — [hr-manager-pearl.vercel.app](https://hr-manager-pearl.vercel.app) · [GitHub](https://github.com/MikkoNumminen/HRManager)
+Live: [hr-manager-pearl.vercel.app](https://hr-manager-pearl.vercel.app) · [GitHub](https://github.com/MikkoNumminen/HRManager)
 
 ## Connections
 
-HRM ships as a git submodule inside Platform — same auth layer, same audit log, two products from one core codebase.
+HRM ships as a git submodule inside Platform: same auth layer, same audit log, two products from one core codebase.

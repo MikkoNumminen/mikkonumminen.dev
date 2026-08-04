@@ -16,12 +16,13 @@ import { describe, expect, it } from 'vitest';
  * scanned raw. A guard that fires on something legitimate gets deleted instead
  * of read.
  *
- * NOT covered, on purpose:
- * - `content/` — the RAG corpus. It is model input rather than rendered copy,
- *   the answers built from it are generated text, and it is a much larger
- *   surface that wants its own pass plus a re-index.
- * - `src/components`, `src/pages`, `src/data` — every em dash in those is
- *   inside a comment or a test fixture.
+ * `content/` prose is covered too: it is the RAG corpus, so it reaches readers
+ * as retrieved context behind generated answers. Code fences inside it are
+ * skipped, and `content/code/` is skipped entirely, for the same reason
+ * `.prettierignore` skips it: that is other repositories' source, not our copy.
+ *
+ * NOT covered, on purpose: `src/components`, `src/pages` and `src/data`, where
+ * every em dash is inside a comment or a test fixture.
  */
 
 const EM_DASH = '—';
@@ -45,6 +46,29 @@ describe('no em dashes in user-facing prose', () => {
 
   it('README carries none', () => {
     expect(offendingLines(readFileSync('README.md', 'utf8'))).toEqual([]);
+  });
+
+  it('no corpus prose file carries one', () => {
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== 'code') walk(full);
+        } else if (entry.name.endsWith('.md')) {
+          let inFence = false;
+          readFileSync(full, 'utf8')
+            .split('\n')
+            .forEach((line) => {
+              if (line.trimStart().startsWith('```')) inFence = !inFence;
+              else if (!inFence && line.includes(EM_DASH))
+                offenders.push(`${full}: ${line.trim().slice(0, 100)}`);
+            });
+        }
+      }
+    };
+    walk('content');
+    expect(offenders).toEqual([]);
   });
 
   it('no blog post carries one', () => {

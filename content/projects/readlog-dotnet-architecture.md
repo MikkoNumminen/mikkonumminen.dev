@@ -1,9 +1,9 @@
 ---
-title: ReadLog .NET — architecture & design
+title: ReadLog .NET · architecture & design
 project: readlog-dotnet
 ---
 
-# ReadLog .NET — Architecture & Design
+# ReadLog .NET: Architecture & Design
 
 ## Overview and High-Level Architecture
 
@@ -11,7 +11,7 @@ ReadLog .NET is a server-rendered, page-centric CRUD application built on ASP.NE
 
 The app has five user-facing URL groups: `/` (public feed, anonymous), `/book` (Google Books detail, anonymous), `/library` + `/library/edit/{id}` (personal reading log, authenticated), `/log` (book search + log entry form, authenticated), and `/account` (stats + profile, authenticated). Auth pages sit at `/signin`, `/register`, `/signout`, and `/external-login`. The four authenticated pages carry `[Authorize]`; the cookie middleware redirects unauthenticated requests to `/signin?ReturnUrl=…` server-side before any page handler runs.
 
-The repository structure is a single solution with two projects: `src/ReadLog.Web` (the ASP.NET Core application) and `tests/ReadLog.Tests` (xUnit). All domain concerns — entities, the DbContext, services, DTOs, validation, auth helpers, and Razor Pages — live in folders within the single web project rather than in separate class library projects. This is an intentional choice documented in `PORTING-NOTES.md`: for an app with two real entities, a four-project Domain/Application/Infrastructure/Web split adds project boundaries without buying anything. Services are still abstracted behind interfaces where that buys testability; the line is "abstract at seams worth mocking," not "abstract everything."
+The repository structure is a single solution with two projects: `src/ReadLog.Web` (the ASP.NET Core application), and `tests/ReadLog.Tests` (xUnit). All domain concerns (entities, the DbContext, services, DTOs, validation, auth helpers, and Razor Pages) live in folders within the single web project rather than in separate class library projects. This is an intentional choice documented in `PORTING-NOTES.md`: for an app with two real entities, a four-project Domain/Application/Infrastructure/Web split adds project boundaries without buying anything. Services are still abstracted behind interfaces where that buys testability; the line is "abstract at seams worth mocking," not "abstract everything."
 
 ## Tech Stack and Key Choices
 
@@ -25,11 +25,11 @@ Razor Pages' page-per-URL model maps almost 1:1 onto the original's Next.js App 
 
 ### Build Hygiene
 
-`Directory.Build.props` centralises `Nullable=enable`, `LangVersion=latest`, `ImplicitUsings=enable`, `Deterministic=true`, and — critically — `WarningsAsErrors=nullable`. Nullable reference type violations are treated as build errors, not warnings. `AnalysisLevel=latest-recommended` and `EnforceCodeStyleInBuild=true` run the .NET analyzers and code-style checks at build time. An `.editorconfig` enforces formatting. `dotnet-ef` 8.0.8 is pinned in a committed local tool manifest (`.config/dotnet-tools.json`).
+`Directory.Build.props` centralises `Nullable=enable`, `LangVersion=latest`, `ImplicitUsings=enable`, `Deterministic=true`, and (critically) `WarningsAsErrors=nullable`. Nullable reference type violations are treated as build errors, not warnings. `AnalysisLevel=latest-recommended` and `EnforceCodeStyleInBuild=true` run the .NET analyzers and code-style checks at build time. An `.editorconfig` enforces formatting. `dotnet-ef` 8.0.8 is pinned in a committed local tool manifest (`.config/dotnet-tools.json`).
 
 ### UI: Bootstrap 5, themed
 
-The original ReadLog uses MUI v7 (a React component library) with a brown palette. The idiomatic ASP.NET Core equivalent is the standard Bootstrap 5 (grid, cards, badges, list-group, form + validation styling) re-themed with CSS custom properties to the same palette in `wwwroot/css/site.css`. This keeps the app on the standard ASP.NET Core front-end stack — including jQuery unobtrusive validation, which the DataAnnotations model-binding story plugs into naturally.
+The original ReadLog uses MUI v7 (a React component library) with a brown palette. The idiomatic ASP.NET Core equivalent is the standard Bootstrap 5 (grid, cards, badges, list-group, form + validation styling) re-themed with CSS custom properties to the same palette in `wwwroot/css/site.css`. This keeps the app on the standard ASP.NET Core front-end stack, including jQuery unobtrusive validation, which the DataAnnotations model-binding story plugs into naturally.
 
 ## Data Model and Persistence
 
@@ -37,7 +37,7 @@ The original ReadLog uses MUI v7 (a React component library) with a brown palett
 
 Three application entities live in `src/ReadLog.Web/Models/`:
 
-**`Book`** is a shared catalogue row, one per real-world work. Fields: `int Id` (autoincrement), `required string Title`, optional `Author`, `CoverUrl`, `OpenLibraryId` (the natural key for find-or-create — holds an Open Library work key, a `google:<volumeId>`, or a `manual:<guid>` for hand-entered books), `PageCount`, `FirstPublishYear`, and `DateTime CreatedAt`. The `ICollection<ReadEntry>` navigation is present but not eagerly loaded.
+**`Book`** is a shared catalogue row, one per real-world work. Fields: `int Id` (autoincrement), `required string Title`, optional `Author`, `CoverUrl`, `OpenLibraryId` (the natural key for find-or-create, holds an Open Library work key, a `google:<volumeId>`, or a `manual:<guid>` for hand-entered books), `PageCount`, `FirstPublishYear`, and `DateTime CreatedAt`. The `ICollection<ReadEntry>` navigation is present but not eagerly loaded.
 
 **`ReadEntry`** is a user-owned "I finished this" record. Fields: `int Id`, `string UserId` (FK to `AspNetUsers`, cascade delete), `int BookId` (FK to `Books`, restrict delete), `Format` (enum persisted as string), `DateOnly FinishedAt`, `int? Rating` (null = unrated, 0 = a real zero-star rating), and `DateTime CreatedAt`.
 
@@ -52,10 +52,10 @@ The `Format` enum (`Book`, `Audiobook`, `Ebook`) is persisted with `HasConversio
 Fluent configuration in `OnModelCreating` sets:
 - A unique index on `Book.OpenLibraryId`
 - A non-unique index on `Book.Title`
-- A composite unique index on `(ReadEntry.UserId, ReadEntry.BookId, ReadEntry.FinishedAt)` — matching the original Prisma `@@unique`
+- A composite unique index on `(ReadEntry.UserId, ReadEntry.BookId, ReadEntry.FinishedAt)`: matching the original Prisma `@@unique`
 - Individual indexes on `ReadEntry.UserId` and `ReadEntry.FinishedAt`
 - `HasMaxLength(16)` on the Format string conversion
-- A check constraint `CK_ReadEntry_Rating` (`[Rating] IS NULL OR ([Rating] >= 0 AND [Rating] <= 5)`) — a defence-in-depth addition the original schema lacked
+- A check constraint `CK_ReadEntry_Rating` (`[Rating] IS NULL OR ([Rating] >= 0 AND [Rating] <= 5)`): a defence-in-depth addition the original schema lacked
 - FK delete behaviors: `Cascade` on User → ReadEntry, `Restrict` on Book → ReadEntry
 
 `ApplicationDbContext` overrides `SaveChanges` and `SaveChangesAsync` to stamp `CreatedAt = DateTime.UtcNow` on any newly added entity that implements `ICreatedAt`. This avoids the provider-specific `CURRENT_TIMESTAMP` default and gives full UTC precision.
@@ -68,7 +68,7 @@ At runtime, `Program.cs` applies pending migrations on every startup via `Databa
 
 ### Key Schema Decisions vs. the Original
 
-The original Prisma schema used `cuid()` string primary keys for `Book` and `ReadEntry`. The port uses autoincrement `int` keys — idiomatic for a single SQLite database and more compact. The `NextAuth` tables (`Account`, `Session`, `VerificationToken`) are dropped entirely; Identity owns those concerns via `AspNetUserLogins` and the auth cookie. `FinishedAt` becomes `DateOnly` rather than a UTC-midnight `DateTime`, because `DateOnly` says precisely what it means. The `readlog_` table-name prefix (which existed only to share a Postgres instance with other apps) is dropped because a dedicated SQLite file has no such constraint.
+The original Prisma schema used `cuid()` string primary keys for `Book` and `ReadEntry`. The port uses autoincrement `int` keys: idiomatic for a single SQLite database and more compact. The `NextAuth` tables (`Account`, `Session`, `VerificationToken`) are dropped entirely; Identity owns those concerns via `AspNetUserLogins` and the auth cookie. `FinishedAt` becomes `DateOnly` rather than a UTC-midnight `DateTime`, because `DateOnly` says precisely what it means. The `readlog_` table-name prefix (which existed only to share a Postgres instance with other apps) is dropped because a dedicated SQLite file has no such constraint.
 
 ## Auth and Security
 
@@ -76,11 +76,11 @@ The original Prisma schema used `cuid()` string primary keys for `Book` and `Rea
 
 The original Next.js app used NextAuth v5 with Google as the sole provider and database-backed sessions via `PrismaAdapter`. The port uses ASP.NET Core Identity with local email/password as the primary path and Google as an optional external login.
 
-`AddIdentity<ApplicationUser, IdentityRole>()` is used rather than `AddIdentityCore` because it wires all three Identity cookie schemes (application, external, two-factor) automatically — the external-login challenge/callback depends on the external cookie scheme, and rolling that by hand with `AddIdentityCore` would be more error-prone. The built-in Identity UI Razor Class Library is not used; the Login, Register, Logout, and ExternalLogin pages are written by hand to keep them on the ReadLog theme and to make the `SignInManager` and `UserManager` flows explicit.
+`AddIdentity<ApplicationUser, IdentityRole>()` is used rather than `AddIdentityCore` because it wires all three Identity cookie schemes (application, external, two-factor) automatically: the external-login challenge/callback depends on the external cookie scheme, and rolling that by hand with `AddIdentityCore` would be more error-prone. The built-in Identity UI Razor Class Library is not used; the Login, Register, Logout, and ExternalLogin pages are written by hand to keep them on the ReadLog theme and to make the `SignInManager` and `UserManager` flows explicit.
 
 Sessions are a signed, sliding, 14-day auth cookie (not database session rows). A custom `DisplayNameClaimsPrincipalFactory` emits a `display_name` claim from `ApplicationUser.Name` at sign-in, so the navbar can greet the user without a database hit on every request.
 
-Lockout is configured at 5 failed attempts → 5-minute lockout. Password policy: minimum 8 characters, `RequireNonAlphanumeric = false`, `RequireUniqueEmail = true`. `RequireConfirmedAccount = false` (no email sender wired up — demo posture, explicitly documented as a known limitation with the consequence that email enumeration is possible via Identity's default duplicate-email message).
+Lockout is configured at 5 failed attempts → 5-minute lockout. Password policy: minimum 8 characters, `RequireNonAlphanumeric = false`, `RequireUniqueEmail = true`. `RequireConfirmedAccount = false` (no email sender wired up: demo posture, explicitly documented as a known limitation with the consequence that email enumeration is possible via Identity's default duplicate-email message).
 
 Google external login registers conditionally: the `AddAuthentication().AddGoogle(...)` call is inside a guard on the configuration keys, so the "Sign in with Google" button appears when, and only when, `Authentication:Google:ClientId` and `Authentication:Google:ClientSecret` are set. The app runs fully with local accounts alone and requires no Google credentials.
 
@@ -90,7 +90,7 @@ The `ExternalLogin` callback (`OnGetCallbackAsync`) contains an explicit account
 
 ### Web Surface Hardening
 
-- **CSRF**: all state-changing operations are POST forms protected by ASP.NET Core antiforgery tokens. A GET to `/signout` is intentionally inert — a regression test pins this.
+- **CSRF**: all state-changing operations are POST forms protected by ASP.NET Core antiforgery tokens. A GET to `/signout` is intentionally inert: a regression test pins this.
 - **Open redirect**: every post-auth redirect uses `LocalRedirect`, which throws on non-local URLs.
 - **XSS in book descriptions**: Google Books descriptions are untrusted HTML. The original rendered them with `dangerouslySetInnerHTML` without sanitization. The port passes them through `HtmlSanitizer` (the `Ganss.Xss` package) configured in `BookDescriptionSanitizer`, which also removes the `target` attribute to prevent reverse-tabnabbing. This is the only `@Html.Raw` in the codebase.
 - **Security response headers**: inline middleware in `Program.cs` (immediately after `UseForwardedHeaders`) sets `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, and a Content Security Policy (`default-src 'self'`, `img-src 'self' https: data:`, `script-src 'self'`, `style-src 'self' 'unsafe-inline'`, `form-action 'self' https://accounts.google.com`). The `form-action` carve-out for `accounts.google.com` is required because the Google sign-in form POSTs to `/signin`, which 302-redirects to `accounts.google.com`, and browsers enforce `form-action` against the redirect target.
@@ -106,11 +106,11 @@ Prisma is schema-first: you write `schema.prisma`, run `prisma generate`, and ge
 
 ### The Book Find-or-Create Race
 
-Multiple users logging the same book simultaneously would race to insert the same `OpenLibraryId` value, violating the unique index. `ReadLogService.GetOrCreateBookAsync` handles this explicitly: on a `DbUpdateException` after an insert attempt, it detaches the failed entity, queries for a row with the same `OpenLibraryId`, and returns it if found (logging the race). If no winning row exists, the original exception is re-thrown — so a non-race failure such as a locked database is not silently masked as a race condition.
+Multiple users logging the same book simultaneously would race to insert the same `OpenLibraryId` value, violating the unique index. `ReadLogService.GetOrCreateBookAsync` handles this explicitly: on a `DbUpdateException` after an insert attempt, it detaches the failed entity, queries for a row with the same `OpenLibraryId`, and returns it if found (logging the race). If no winning row exists, the original exception is re-thrown, so a non-race failure such as a locked database is not silently masked as a race condition.
 
 ### The `Promise.allSettled` Problem
 
-The original book search used `Promise.allSettled` to fan out to both providers concurrently and degrade each independently. The port preserves this exact shape: `BookSearchService.SearchAsync` starts both provider calls concurrently via `Task.WhenAll`, wrapping each in `SearchSafelyAsync`, which catches all exceptions except `OperationCanceledException` when the caller's token is cancelled (caller-initiated cancellation must surface, not degrade to empty results). Open Library results are concatenated first, so they win de-dup ties — matching the original's ordering.
+The original book search used `Promise.allSettled` to fan out to both providers concurrently and degrade each independently. The port preserves this exact shape: `BookSearchService.SearchAsync` starts both provider calls concurrently via `Task.WhenAll`, wrapping each in `SearchSafelyAsync`, which catches all exceptions except `OperationCanceledException` when the caller's token is cancelled (caller-initiated cancellation must surface, not degrade to empty results). Open Library results are concatenated first, so they win de-dup ties: matching the original's ordering.
 
 ### Provider Failure Asymmetry
 
@@ -126,7 +126,7 @@ The port uses `IMemoryCache` for two distinct caching concerns with very differe
 
 **Book details** (30-day TTL, keyed by a `("book-details", title, author)` ValueTuple): mirrors the original's `unstable_cache` with a 30-day TTL. The ValueTuple key uses structural equality, avoiding the delimiter-collision risk of a `"{title}|{author}"` string. Crucially, only non-null results are cached, so a transient failure or a missing API key is retried rather than cached as "no details" for 30 days.
 
-**Public feed** (60-second TTL, evicted on every write): the feed is a global hot read shared across all visitors. Output caching the page itself would serve one user's navbar (signed in vs. out) to another, so the data is cached inside `ReadLogService.GetRecentPublicReadsAsync` using `IMemoryCache.GetOrCreateAsync`. Every write path (`LogBookAsync`, `UpdateReadEntryAsync`, `DeleteReadEntryAsync`) calls `_cache.Remove(PublicFeedCacheKey)` — the direct equivalent of the original's `revalidateTag("public-feed")`.
+**Public feed** (60-second TTL, evicted on every write): the feed is a global hot read shared across all visitors. Output caching the page itself would serve one user's navbar (signed in vs. out) to another, so the data is cached inside `ReadLogService.GetRecentPublicReadsAsync` using `IMemoryCache.GetOrCreateAsync`. Every write path (`LogBookAsync`, `UpdateReadEntryAsync`, `DeleteReadEntryAsync`) calls `_cache.Remove(PublicFeedCacheKey)`: the direct equivalent of the original's `revalidateTag("public-feed")`.
 
 The cache populate query for the feed uses `CancellationToken.None` deliberately: the populating request serves all concurrent readers, so one request's cancellation should not abort the shared cache population.
 
@@ -144,23 +144,23 @@ The original required a Google account to log in. Adding local email/password ac
 
 ### The `[Authorize]` vs. Client Redirect
 
-The original `/log` page was gated with a `useEffect` that pushed to `/signin` after a brief blank flash — a client-side redirect after the page had already been delivered. The port marks the page `[Authorize]`, so the cookie authentication middleware issues a `302 → /signin?ReturnUrl=/log` server-side before any Razor handler runs. No blank flash, and the `ReturnUrl` round-trips the user back after login.
+The original `/log` page was gated with a `useEffect` that pushed to `/signin` after a brief blank flash: a client-side redirect after the page had already been delivered. The port marks the page `[Authorize]`, so the cookie authentication middleware issues a `302 → /signin?ReturnUrl=/log` server-side before any Razor handler runs. No blank flash, and the `ReturnUrl` round-trips the user back after login.
 
 ### Data Protection Key Persistence
 
-On Azure App Service with `WEBSITES_ENABLE_APP_SERVICE_STORAGE=true`, the `/home` directory is a persistent SMB share. Without explicit `PersistKeysToFileSystem`, ASP.NET Core Data Protection generates ephemeral keys stored in the container's ephemeral layer, which are lost on every cold start or redeploy. The result is silent, confusing failures: all existing auth cookies become invalid (users are logged out), and in-flight OAuth correlation cookies — which the external-login callback relies on — fail to decrypt. `Program.cs` persists the key ring under `/home/data/keys` and pins the application name with `SetApplicationName("ReadLog")` so the ring survives restarts and redeploys.
+On Azure App Service with `WEBSITES_ENABLE_APP_SERVICE_STORAGE=true`, the `/home` directory is a persistent SMB share. Without explicit `PersistKeysToFileSystem`, ASP.NET Core Data Protection generates ephemeral keys stored in the container's ephemeral layer, which are lost on every cold start or redeploy. The result is silent, confusing failures: all existing auth cookies become invalid (users are logged out), and in-flight OAuth correlation cookies (which the external-login callback relies on) fail to decrypt. `Program.cs` persists the key ring under `/home/data/keys` and pins the application name with `SetApplicationName("ReadLog")` so the ring survives restarts and redeploys.
 
 ## Testing Strategy
 
 The test suite is organised into service unit tests and page/auth/smoke integration tests in `tests/ReadLog.Tests/`.
 
-**Service unit tests** (`Services/`) test `ReadLogService`, `BookSearchService`, `BookDetailsService`, `OpenLibraryClient`, `GoogleBooksClient`, and `BookDescriptionSanitizer` directly. `ReadLogService` tests construct the service over an in-memory SQLite database (`SqliteTestDatabase` infrastructure helper) using a shared, kept-open `SqliteConnection` with `Foreign Keys=True`. Delete behaviour is tested in a fresh context (untracked dependents) so the assertion verifies the database FK constraint rather than EF's client-side cascade. `OpenLibraryClient` and `GoogleBooksClient` tests use a `StubHttpMessageHandler` that returns canned JSON or status codes and records requests — covering field mapping, cover URL construction, `http → https` normalisation, the throw-vs-empty contracts, and that a blank query or missing API key makes no HTTP call. `BookSearchService` tests use hand-written stub clients to verify de-dup/scoring, Open-Library-first ordering, failure resilience, and the two cache behaviours (hit, null-not-cached, per-(title,author) keying).
+**Service unit tests** (`Services/`) test `ReadLogService`, `BookSearchService`, `BookDetailsService`, `OpenLibraryClient`, `GoogleBooksClient`, and `BookDescriptionSanitizer` directly. `ReadLogService` tests construct the service over an in-memory SQLite database (`SqliteTestDatabase` infrastructure helper) using a shared, kept-open `SqliteConnection` with `Foreign Keys=True`. Delete behaviour is tested in a fresh context (untracked dependents) so the assertion verifies the database FK constraint rather than EF's client-side cascade. `OpenLibraryClient` and `GoogleBooksClient` tests use a `StubHttpMessageHandler` that returns canned JSON or status codes and records requests: covering field mapping, cover URL construction, `http → https` normalisation, the throw-vs-empty contracts, and that a blank query or missing API key makes no HTTP call. `BookSearchService` tests use hand-written stub clients to verify de-dup/scoring, Open-Library-first ordering, failure resilience, and the two cache behaviours (hit, null-not-cached, per-(title,author) keying).
 
 **Integration tests** (`Pages/`, `Auth/`, `Smoke/`) boot the real application using `WebApplicationFactory<Program>`. `ReadLogAppFactory` overrides `ConfigureTestServices` to swap `ApplicationDbContext` onto an isolated temp SQLite file (a critical fix documented in PORTING-NOTES: an earlier approach using connection-string override silently did not apply, so tests had been sharing and accumulating state in the real `readlog.db`). A fresh factory per test gives deterministic entity IDs. `WebTestClient` extension methods handle the antiforgery token flow: each POST extracts the `__RequestVerificationToken` from the rendered form HTML and includes it in the POST body along with the session cookie, making the tests drive the full HTTP stack including CSRF validation. Tests cover: `[Authorize]` → `/signin?ReturnUrl=` redirect for each protected page; home feed render; the full log → library round-trip; edit; delete (verifying the shared Book row is kept); ownership 404 (a non-owner's entry ID returns 404); account count; detail page with no API key; register/login/logout round-trip; wrong password, password mismatch, and duplicate email rejection; display-name greeting; and that GET `/signout` does not sign the user out. `SecurityHeadersTests` pins all five security response headers on every response, including the CSP `form-action` carve-out for `accounts.google.com`.
 
 **Validation tests** (`Validation/`) exercise DataAnnotations on the request DTOs (`LogBookRequest`, `UpdateReadEntryRequest`) including the custom `[NotInFuture]` attribute, confirming that boundary values (rating 0, 5, null; future dates; past dates) validate correctly.
 
-**Smoke test** (`Smoke/HomePageSmokeTests`) boots the real app and asserts the home page returns 200 — gating "it compiles and starts" from PR1 onward.
+**Smoke test** (`Smoke/HomePageSmokeTests`) boots the real app and asserts the home page returns 200: gating "it compiles and starts" from PR1 onward.
 
 ## Infrastructure, Deployment, and CI
 
@@ -176,7 +176,7 @@ The Dockerfile sets `ASPNETCORE_ENVIRONMENT=Production` explicitly, making the p
 
 ### Azure App Service F1 and SQLite
 
-The deployment target is Azure App Service Free F1 Linux. The deliberate trade-off (documented in `docs/DEPLOY.md` and `PORTING-NOTES.md`): F1 has no Always On — the app idles after approximately 20 minutes and the first request after idle is a slow cold start (image pull + JIT + `Database.Migrate()`). F1 is single-instance and cannot scale out, which is what makes SQLite's single-writer model viable on the platform (no concurrent writers contending for the file lock). The free tier comes with approximately 60 CPU-minutes/day and 1 GB storage. Total infrastructure cost is $0.
+The deployment target is Azure App Service Free F1 Linux. The deliberate trade-off (documented in `docs/DEPLOY.md` and `PORTING-NOTES.md`): F1 has no Always On. The app idles after approximately 20 minutes and the first request after idle is a slow cold start (image pull + JIT + `Database.Migrate()`). F1 is single-instance and cannot scale out, which is what makes SQLite's single-writer model viable on the platform (no concurrent writers contending for the file lock). The free tier comes with approximately 60 CPU-minutes/day and 1 GB storage. Total infrastructure cost is $0.
 
 Microsoft's official guidance is that SQLite on the App Service Linux `/home` SMB share is unsupported because exclusive file locks are not reliable. This is acknowledged in the documentation and accepted as a deliberate, defensible tradeoff for a personal demo: F1 is single-instance, the app is low-traffic, and the EF Core data layer is provider-agnostic (LINQ-only, no raw SQL) so swapping to Postgres or Azure SQL is a provider-change rather than a rewrite.
 
@@ -186,6 +186,6 @@ A startup SQLite `DefaultTimeout = 30` seconds (set via `SqliteConnectionStringB
 
 The app is sized for a single personal-use instance. `IMemoryCache` is used throughout (not `IDistributedCache`), which is appropriate for single-instance deployment. The public feed cache (60 seconds) is the only query that benefits from caching; library and account queries are per-user `WHERE` filters over a local SQLite file and are cheap without caching.
 
-Account stats use EF Core's `GroupBy` translation to a single SQL `GROUP BY` query — not client-side grouping. The public-feed query uses `Take(20)` with `OrderByDescending(e => e.CreatedAt)`, served from in-memory cache on all but the first hit after a write.
+Account stats use EF Core's `GroupBy` translation to a single SQL `GROUP BY` query, not client-side grouping. The public-feed query uses `Take(20)` with `OrderByDescending(e => e.CreatedAt)`, served from in-memory cache on all but the first hit after a write.
 
 There is no horizontal scale path in the current configuration. Moving to a managed database (Postgres or Azure SQL) and `IDistributedCache` would be the prerequisites for multi-instance deployment; the LINQ-only data access layer requires no raw SQL changes.
