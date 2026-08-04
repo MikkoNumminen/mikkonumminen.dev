@@ -325,6 +325,8 @@ def _collect_with(
     db: FakeDB,
     llm: FakeLLM,
     disclosure_enabled: bool = True,
+    allow_finnish: bool = False,
+    force_english: bool = True,
 ) -> list[str]:
     async def run() -> list[str]:
         gen = chat_event_stream(
@@ -336,6 +338,8 @@ def _collect_with(
             top_k=5,
             weak_retrieval_distance=0.7,
             disclosure_enabled=disclosure_enabled,
+            allow_finnish=allow_finnish,
+            force_english=force_english,
         )
         return [frame async for frame in gen]
 
@@ -1496,3 +1500,53 @@ def test_the_truncation_notice_comes_before_the_other_suffixes() -> None:
         at = body.find(later)
         if at != -1:
             assert notice_at < at, f"notice should precede {later!r}"
+
+
+def test_expansion_inherits_the_prior_turn_language() -> None:
+    """"Joo" after a Finnish question must get a FINNISH deep dive.
+
+    An expansion request carries no language of its own — "joo" is three letters,
+    below the detector's minimum, so it reads as English. The turn's language
+    belongs to the topic being expanded, not to the filler that requested it.
+    Without inheritance the backend asks "Haluatko, että kerron lisää?", the
+    visitor answers "Joo", and the deep dive comes back in English: the exact
+    reply this feature exists to serve, answered in the wrong language.
+    """
+    history = [
+        {"role": "user", "content": "Kerro HRM:stä"},
+        {"role": "assistant", "content": "HRM on HR-järjestelmä."},
+    ]
+    narrative = _row("narratives/hrm.md", project="hrm")
+    narrative["content"] = "HRM kehityskaari."
+    db = FakeDB(
+        [_row("projects/hrm.md", project="hrm")],
+        narratives=[narrative],
+        narrative_projects=["hrm"],
+    )
+    llm = FakeLLM(["Syvempi vastaus."])
+    _collect_with(
+        "Joo", history, db=db, llm=llm, allow_finnish=True, force_english=False
+    )
+    system, user = llm.messages[0]["content"], llm.messages[-1]["content"]
+    assert "ENTIRE reply in English" not in system
+    assert "KOKO vastaus suomeksi" in user
+
+
+def test_expansion_after_an_english_turn_stays_english() -> None:
+    # The inheritance must not drag English conversations into Finnish.
+    history = [
+        {"role": "user", "content": "How does HRM handle multi-tenancy?"},
+        {"role": "assistant", "content": "HRM uses a sessionId column."},
+    ]
+    narrative = _row("narratives/hrm.md", project="hrm")
+    narrative["content"] = "HRM development arc."
+    db = FakeDB(
+        [_row("projects/hrm.md", project="hrm")],
+        narratives=[narrative],
+        narrative_projects=["hrm"],
+    )
+    llm = FakeLLM(["Deeper answer."])
+    _collect_with(
+        "yes", history, db=db, llm=llm, allow_finnish=True, force_english=False
+    )
+    assert "ENTIRE reply in English" in llm.messages[0]["content"]
