@@ -114,6 +114,23 @@ services:
       # line the container can't see the toggle — the config default (3) still
       # applies, but it can't be tuned via the repo .env.
       RESEARCH_COVERAGE_TOP_N: ${RESEARCH_COVERAGE_TOP_N:-3}
+      # The retrieval + disclosure behaviour dials. Until these lines existed the
+      # container could not see them at all: setting PROGRESSIVE_DISCLOSURE_ENABLED
+      # in the repo .env changed nothing, silently, because the value never
+      # crossed into the process and config.py's default stood. `ragctl feature`
+      # toggles these, and it can only do so if they are threaded here — a knob
+      # missing from this block is a knob that cannot be controlled, no matter
+      # what .env says.
+      PROGRESSIVE_DISCLOSURE_ENABLED: ${PROGRESSIVE_DISCLOSURE_ENABLED:-1}
+      HYBRID_ENABLED: ${HYBRID_ENABLED:-true}
+      PROJECT_FILTER_STRICT: ${PROJECT_FILTER_STRICT:-true}
+      RETRIEVAL_DIVERSITY_MAX_PER_PROJECT: ${RETRIEVAL_DIVERSITY_MAX_PER_PROJECT:-3}
+      # Plain dash, NOT `:-`. `${VAR:-adr}` substitutes when the var is unset OR
+      # EMPTY, and empty is meaningful here: config.py reads "" as "no doc-type
+      # filter at all", while unset means the "adr" default. With `:-` that
+      # opt-out becomes unreachable — setting the var empty in .env would
+      # silently come back as "adr". Same reasoning as ADR_DIR above.
+      RETRIEVAL_EXCLUDE_DOC_TYPES: ${RETRIEVAL_EXCLUDE_DOC_TYPES-adr}
       # Per-request operational log — timestamp, route, latency, token counts, and
       # retrieval distances; NO query/answer text, so no PII. On by default (set
       # RAG_LOG_FILE empty to disable); `ragctl up` may override it with the

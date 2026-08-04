@@ -304,3 +304,49 @@ def test_research_coverage_is_deliberately_topic_permissive() -> None:
     assert is_research_coverage_request(
         "what's the latest research on quantum computing"
     )
+
+
+# --- Finnish inflection --------------------------------------------------
+#
+# Finnish fuses the case ending onto the word ("audiobookmakerista"), which the
+# plain word-boundary check rejects. Measured before this was handled: of the
+# nine projects with a narrative, only `hrm` resolved from a natural Finnish
+# mention — and only because an acronym inflects with a colon ("HRM:stä"), which
+# already reads as a boundary. That silently broke the whole Finnish
+# progressive-disclosure path: the follow-up was recognised, the topic was not,
+# and the visitor got a refusal.
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("kerro lisää audiobookmakerista", {"audiobookmaker"}),
+        ("kerro portfoliosta", {"portfolio"}),
+        ("kerro readlogista", {"readlog"}),
+        ("kerro platformista", {"platform"}),
+        ("mitä spacepotatiksesta voi sanoa", {"spacepotatis"}),
+        ("kerro chatista", {"portfolio"}),
+        ("kerro hrm:stä", {"hrm"}),
+        ("mitä hrm:ssä on", {"hrm"}),
+    ],
+)
+def test_detect_projects_handles_finnish_case_endings(
+    query: str, expected: set[str]
+) -> None:
+    assert detect_projects(query) == expected
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        # An English word that merely CONTAINS an alias must still not match —
+        # this is what the strict boundary check was protecting, and tolerating
+        # Finnish endings must not cost it.
+        "what platforms exist",
+        "chatting about code",
+        "readlogs everywhere",
+        "hrmm let me think",
+    ],
+)
+def test_finnish_endings_do_not_loosen_english_boundaries(query: str) -> None:
+    assert detect_projects(query) == set()

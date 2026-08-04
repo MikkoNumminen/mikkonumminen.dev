@@ -6,6 +6,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseInputOutput } from './lib/cli-args.mjs';
+import { resolveWriteTarget } from './lib/publish-guard.mjs';
 
 // Must match the default prefix `install-mikko.sh` applies when copying
 // library skills into ~/.claude/skills/. If someone runs the installer
@@ -15,7 +17,25 @@ const INSTALL_PREFIX = 'mikko-';
 const LIBRARY_REPO = 'claude-skills';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const REG = path.join(ROOT, 'public', 'data', 'skills-registry.json');
+
+// Input and output are separate parameters so this transform can be run to a
+// scratch path — which is how you check what it WOULD produce without touching
+// the artifact the site serves.
+//
+// Both still default to `public/data/skills-registry.json`, and that is not an
+// oversight: this script merges onto whatever receipts are already there, so
+// the served file is a long-lived ACCUMULATOR, not a build output derived from
+// the raw scan. Regenerating from `SKILL-REGISTRY-LATEST.json` + the current
+// measurement files yields a different receipt mix (17 calibration / 16
+// transcript-measurement) than the committed artifact carries (19 / 14),
+// because the committed one has months of successive overlay runs baked into
+// it. Pointing `input` at the raw scan would silently rewrite real measurement
+// history, so it stays opt-in via `--input`.
+const DEFAULTS = {
+  input: path.join(ROOT, 'public', 'data', 'skills-registry.json'),
+  output: path.join(ROOT, 'public', 'data', 'skills-registry.json'),
+};
+const { input: SOURCE, output: DEST } = parseInputOutput(process.argv.slice(2), DEFAULTS);
 const USAGE = path.join(ROOT, '.claude', 'agent-verdicts', 'SKILL-USAGE-LATEST.json');
 const CALIBRATION = path.join(
   ROOT,
@@ -252,7 +272,7 @@ function isCanonicalDuplicate(repo, skillName) {
   return CANONICAL_DUPLICATES[repo]?.has(skillName) ?? false;
 }
 
-const reg = JSON.parse(fs.readFileSync(REG, 'utf8'));
+const reg = JSON.parse(fs.readFileSync(SOURCE, 'utf8'));
 const usage = JSON.parse(fs.readFileSync(USAGE, 'utf8'));
 
 let overlaid = 0; // distinct (repo, skill) rows that received a fresh write this run
@@ -817,7 +837,10 @@ delete reg.built_in_reference;
 
 reg.generated_at = new Date().toISOString();
 
-fs.writeFileSync(REG, JSON.stringify(reg, null, 2) + '\n');
+const write = resolveWriteTarget(DEST, process.argv.slice(2));
+fs.mkdirSync(path.dirname(write.target), { recursive: true });
+fs.writeFileSync(write.target, JSON.stringify(reg, null, 2) + '\n');
+if (write.notice) console.warn(`apply-measurement-overlay: ${write.notice}`);
 
 console.log(report.join('\n'));
 const accumulatedSuffix =

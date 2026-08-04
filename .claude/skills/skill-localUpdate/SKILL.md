@@ -1,6 +1,6 @@
 ---
 name: skill-localUpdate
-description: Refresh every local artifact the site renders about your portfolio skills — the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF — in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says "refresh the local skills data", "rebuild the skill-registry PDF", "regenerate the skills data and PDF", "update the local skills numbers", "publish the skills PDF", "/skill-localUpdate", or refers to refreshing what the contact page or the downloadable PDF shows. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.
+description: Refresh every local artifact the site renders about your portfolio skills — the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF — in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry -- --publish` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs --publish` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says "refresh the local skills data", "rebuild the skill-registry PDF", "regenerate the skills data and PDF", "update the local skills numbers", "publish the skills PDF", "/skill-localUpdate", or refers to refreshing what the contact page or the downloadable PDF shows. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.
 barney: One command to refresh every local skills artifact the site reads — the /contact terminal's data, the measurement-merged inventory, and the downloadable PDF. Run after /mikko-skill-usage so fresh measurements land everywhere at once.
 ---
 
@@ -45,8 +45,8 @@ One pre-flight check + four sequenced actions, with the chain bailing on the fir
 | --- | --- | --- | --- |
 | 1 | Pre-flight | `.claude/agent-verdicts/SKILL-USAGE-LATEST.json` | (nothing — verifies the file exists and is fresh enough) |
 | 2 | `/skill-registry` | `<workspace>/*/.claude/skills/*/SKILL.md` (every sibling repo) | `.claude/agent-verdicts/SKILL-REGISTRY-{date}.json` + `SKILL-REGISTRY-LATEST.json` |
-| 3 | `npm run sync:skills-registry` | `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` | `public/data/skills-registry.json` (in-place copy of the latest dated JSON — **what the /contact terminal reads**) |
-| 4 | `node scripts/apply-measurement-overlay.mjs` | `SKILL-USAGE-LATEST.json` + `public/data/skills-registry.json` | `public/data/skills-registry.json` (in-place — measurements merged, canonical duplicates dropped) |
+| 3 | `npm run sync:skills-registry -- --publish` | `.claude/agent-verdicts/SKILL-REGISTRY-LATEST.json` | `public/data/skills-registry.json` (in-place copy of the latest dated JSON — **what the /contact terminal reads**) |
+| 4 | `node scripts/apply-measurement-overlay.mjs --publish` | `SKILL-USAGE-LATEST.json` + `public/data/skills-registry.json` | `public/data/skills-registry.json` (in-place — measurements merged, canonical duplicates dropped) |
 | 5 | `npm run build:skills-pdf` | `public/data/skills-registry.json` | `public/skills-registry.pdf` |
 
 End-to-end on a small portfolio: ~30–60s wall-clock, dominated by step 2's parallel sub-agents and step 5's Chrome render.
@@ -84,7 +84,7 @@ Invoke the existing `/skill-registry` skill. It walks every sibling repo in the 
 ### 3. Sync the inventory into `public/data/`
 
 ```bash
-npm run sync:skills-registry
+npm run sync:skills-registry -- --publish
 ```
 
 That npm script wraps `node scripts/sync-skill-registry.mjs` and copies the latest dated JSON from `.claude/agent-verdicts/` into `public/data/skills-registry.json`. This is the file the contact-page terminal's `skills` command fetches at runtime — committing it ships the new numbers to the deployed site. The prebuild hook (`npm run prebuild`) does this automatically on every `npm run build`, but this skill runs it explicitly so the overlay in step 4 operates on the up-to-date file (we don't call `npm run build` end-to-end here — see step 5's note).
@@ -92,7 +92,7 @@ That npm script wraps `node scripts/sync-skill-registry.mjs` and copies the late
 ### 4. Apply the measurement overlay
 
 ```bash
-node scripts/apply-measurement-overlay.mjs
+node scripts/apply-measurement-overlay.mjs --publish
 ```
 
 This script:
@@ -157,7 +157,9 @@ Done. Review the PDF and commit when ready.
 - **Does not gather token usage.** That's `/mikko-skill-usage`, run separately. This skill assumes it's already been run.
 - **Does not commit or push.** The user reviews the PDF visually and commits when ready.
 - **Does not modify `scripts/build-skills-pdf.mjs` or the overlay script.** Those are the source of truth for their respective steps; this skill only invokes them.
-- **Does not skip steps.** All five steps run on every invocation. If you only want the overlay refresh (no registry re-walk), run `node scripts/apply-measurement-overlay.mjs` directly — it's cheap.
+- **Does not skip steps.** All five steps run on every invocation. If you only want the overlay refresh (no registry re-walk), run `node scripts/apply-measurement-overlay.mjs --publish` directly — it's cheap.
+- **`--publish` is required to touch the served file.** Every script that writes `public/data/skills-registry.json` writes a throwaway `.staged.json` copy instead unless you pass it. Three scripts write that path in sequence, each layering something the next needs, so a step run ALONE would strip what the others added — `npm run sync:skills-registry` did exactly that once and discarded 367 measurement fields. Run steps bare to inspect; pass `--publish` when you mean it.
+- **`build-review-stats` is the third writer, and it is NOT one of the steps above.** `npm run build:review-stats -- --publish` (or `node scripts/build-review-stats.mjs --publish`) layers per-invocation `/review` token stats onto the same file. It is documented as part of the manual chain in `README.md` and ADR 0006 but has never been a step of this skill, which is exactly how it got missed when the guard was added. If you run it, it needs `--publish` too, and it runs AFTER the overlay.
 - **Does not run on CI / Vercel.** Step 5 (`npm run build:skills-pdf`) already short-circuits there per `build-skills-pdf.mjs`'s CI/VERCEL env-var guard; the committed PDF stays canonical on hosted builds.
 
 ## Failure modes
