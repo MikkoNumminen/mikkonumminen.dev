@@ -1,9 +1,9 @@
 ---
-title: Platform — engineering deep-dive
+title: Platform · engineering deep-dive
 project: platform
 ---
 
-# Platform — Engineering Deep-Dive
+# Platform: Engineering Deep-Dive
 
 This document covers the hard engineering problems in Platform: the bugs that had to be fixed, the tradeoffs that shaped the architecture, and the places where the obvious approach did not work. It assumes familiarity with the basic stack and data model documented elsewhere.
 
@@ -15,7 +15,7 @@ The most load-bearing engineering decision in the codebase is how authorization 
 
 The solution is `guardedAction` in `lib/guardedAction.ts`. It is a higher-order function that wraps any server action in a fixed enforcement sequence: (1) authenticate, (2) check the named permission key against the JWT payload, (3) call `rateLimit`. Every mutating action that requires a permission is declared as `guardedAction("post:create", "post:create", async (session, ...args) => { ... })`. The resulting wrapper is exported directly as the server action.
 
-The pattern has a deliberate gap: DM actions initially used `requireUser()` instead of `guardedAction`. The audit found this in finding S2 — `sendDirectMessage` and `startConversation` were reachable by `pending` users who have no permissions at all. The fix added an explicit `permissions['dm:send']` check inline before proceeding, since the DM actions return a value (`conversationId`) rather than `void`, and `guardedAction` is typed to return `ActionResult` (void union). The two code paths — `guardedAction` for void mutations, inline check for returning mutations — are intentional rather than accidental.
+The pattern has a deliberate gap: DM actions initially used `requireUser()` instead of `guardedAction`. The audit found this in finding S2: `sendDirectMessage` and `startConversation` were reachable by `pending` users who have no permissions at all. The fix added an explicit `permissions['dm:send']` check inline before proceeding, since the DM actions return a value (`conversationId`) rather than `void`, and `guardedAction` is typed to return `ActionResult` (void union). The two code paths (`guardedAction` for void mutations, inline check for returning mutations) are intentional rather than accidental.
 
 Permission resolution itself (`lib/permissions.ts`) is pure: it takes a role string and an array of `{key, granted}` overrides and returns a `Record<string, boolean>`. The resolved map is embedded in the JWT at sign-in. This avoids a per-request database read for the common case. The tradeoff is that permission changes are not instant: they propagate only when the JWT callback detects a version mismatch.
 
@@ -47,13 +47,13 @@ The gamification subsystem was built incrementally and accumulated three N+1 que
 
 ### The XP Cap Race Condition
 
-The May 2026 audit flagged a time-of-check/time-of-update race in `awardXp` for the daily XP cap. The code in `xp-service.ts` reads the total XP awarded today via `xpTransaction.aggregate`, then if under the cap calls `applyXp`. Two concurrent requests from the same user — possible if two browser tabs submit the shoutbox simultaneously — can both pass the cap check and both proceed to `applyXp`, granting more XP than the cap allows. The aggregate read and the transaction create are not atomic.
+The May 2026 audit flagged a time-of-check/time-of-update race in `awardXp` for the daily XP cap. The code in `xp-service.ts` reads the total XP awarded today via `xpTransaction.aggregate`, then if under the cap calls `applyXp`. Two concurrent requests from the same user (possible if two browser tabs submit the shoutbox simultaneously) can both pass the cap check and both proceed to `applyXp`, granting more XP than the cap allows. The aggregate read and the transaction create are not atomic.
 
 The production audit recorded this as critical (`TOCTOU on daily XP cap: aggregate read at L70 then applyXp at L100 with no transaction`) but the fix had not yet landed at the audit date. The code as of the audited commit still carries the race.
 
 ### The Login Streak Race
 
-`recordLogin` in `login-streak.ts` uses `findUnique` then `create` for new users. Two simultaneous first logins — possible if a user has a slow connection and double-clicks — can both see null and attempt `create`, hitting the unique constraint on `userId`. The audit recommended switching to `upsert`. This also remained open at the audit date.
+`recordLogin` in `login-streak.ts` uses `findUnique` then `create` for new users. Two simultaneous first logins (possible if a user has a slow connection and double-clicks) can both see null and attempt `create`, hitting the unique constraint on `userId`. The audit recommended switching to `upsert`. This also remained open at the audit date.
 
 ### The Achievement Double-Unlock Race
 
@@ -63,15 +63,15 @@ The production audit recorded this as critical (`TOCTOU on daily XP cap: aggrega
 
 ## Demo Mode: Isolation Without a Separate Database
 
-Demo mode is a zero-credential path where any visitor gets a full superuser session against a rich synthetic dataset, without touching real community data. The implementation makes every content row carry two discriminator columns — `tenant` and `sessionId` — and scopes all queries through `getTenantFilter()`, which returns both. Demo sessions set `sessionId` to the `DemoSession.id`; real users have `sessionId = null`.
+Demo mode is a zero-credential path where any visitor gets a full superuser session against a rich synthetic dataset, without touching real community data. The implementation makes every content row carry two discriminator columns (`tenant` and `sessionId`), and scopes all queries through `getTenantFilter()`, which returns both. Demo sessions set `sessionId` to the `DemoSession.id`; real users have `sessionId = null`.
 
-`seedDemoData` runs inside a single `prisma.$transaction` and creates six users, boards, posts, threads, shouts, events, issues, survey responses, XP profiles, custom quests, achievement unlocks, quest progress, DM conversations, and a survey round — in dependency order, with a `Map` tracking the newly created IDs so foreign keys remain consistent. Slug fields include a session ID prefix to avoid unique constraint collisions when multiple demo sessions are alive simultaneously (`${seed.slug}-${sessionId.slice(0, 8)}`). User emails are similarly namespaced: `${seed.email}-${sessionId.slice(0, 8)}`.
+`seedDemoData` runs inside a single `prisma.$transaction` and creates six users, boards, posts, threads, shouts, events, issues, survey responses, XP profiles, custom quests, achievement unlocks, quest progress, DM conversations, and a survey round: in dependency order, with a `Map` tracking the newly created IDs so foreign keys remain consistent. Slug fields include a session ID prefix to avoid unique constraint collisions when multiple demo sessions are alive simultaneously (`${seed.slug}-${sessionId.slice(0, 8)}`). User emails are similarly namespaced: `${seed.email}-${sessionId.slice(0, 8)}`.
 
-Cleanup runs fire-and-forget on the next demo login via `cleanupStaleDemoSessions().catch(() => {})`. This is a known weakness noted in the May audit: demo-session quota can leak in production with no signal if cleanup throws. The cleanup function itself issues a cascade of `deleteMany` calls in dependency order — teams before characters before users — rather than relying on database cascades, because the foreign key relationships point into the shared `Quest` and `SurveyRound` tables that mix demo and real data.
+Cleanup runs fire-and-forget on the next demo login via `cleanupStaleDemoSessions().catch(() => {})`. This is a known weakness noted in the May audit: demo-session quota can leak in production with no signal if cleanup throws. The cleanup function itself issues a cascade of `deleteMany` calls in dependency order (teams before characters before users) rather than relying on database cascades, because the foreign key relationships point into the shared `Quest` and `SurveyRound` tables that mix demo and real data.
 
 One gap that required a dedicated fix commit (`fix(web): add sessionId to CustomQuest for demo isolation`) was that the original `CustomQuest` model had no `sessionId` column, meaning custom quests created by a demo session were visible to real users. The fix added the column and the seed to populate it.
 
-The later quest system unification (`feat(web): unify quest system — merge CustomQuest into Quest`) folded `CustomQuest` entirely into `Quest` via a data migration. The two separate admin interfaces, two separate query files, and two separate dashboard panels merged into one. The commit records that `criteria`, `key`, `icon`, and `description` had to be made nullable on `Quest` because assigned quests have none of those fields — they are status-driven rather than criteria-driven.
+The later quest system unification (`feat(web): unify quest system, merge CustomQuest into Quest`) folded `CustomQuest` entirely into `Quest` via a data migration. The two separate admin interfaces, two separate query files, and two separate dashboard panels merged into one. The commit records that `criteria`, `key`, `icon`, and `description` had to be made nullable on `Quest` because assigned quests have none of those fields. They are status-driven rather than criteria-driven.
 
 ---
 
@@ -110,7 +110,7 @@ The fix added a Zod schema (`RaiderIoResponseSchema`) with explicit field types 
 
 The fetch uses `AbortSignal.timeout(10000)` and `next: { revalidate: 60 * 60 * 24, tags: ["raiderio"] }`. The 24-hour Next.js tag cache means character data is fetched from the API at most once per day per character. The `revalidateTag("raiderio")` call in `refreshCharacter` forces a bypass when the user explicitly requests fresh data.
 
-The GitHub commits integration (`lib/github-commits.ts`) is structurally similar but does not have Zod validation on the response — the commit entries are accessed via field names on `any` casted `json()`. The May audit recorded this as a high finding (missing timeout on the `Promise.all` of status calls, missing type validation). At audit time neither fix had landed.
+The GitHub commits integration (`lib/github-commits.ts`) is structurally similar but does not have Zod validation on the response: the commit entries are accessed via field names on `any` casted `json()`. The May audit recorded this as a high finding (missing timeout on the `Promise.all` of status calls, missing type validation). At audit time neither fix had landed.
 
 ---
 
@@ -130,11 +130,11 @@ The right-to-erasure implementation in `gdpr-actions.ts` had a requirement confl
 
 The resolution distinguishes content types by their social impact. Posts, topics, and threads are soft-deleted (their `deletedAt` is set to now), which removes them from the UI but preserves thread structure and makes the authored content invisible rather than deleted. Shouts and issue reports are hard-deleted immediately because they do not have replies. Sent DMs are anonymized (`message` replaced with `[deleted]`) rather than deleted, so the other participant's conversation is not broken. Calendar events and survey responses have their `authorId` set to null via `onDelete: SetNull` in the schema.
 
-The PII scrub is specific: email becomes `deleted-${userId}@deleted.invalid` (preserving the unique constraint), name, alias, image, avatarUrl, and bio are set to null, and the role is demoted to `pending`. The user record itself is not deleted — a hard delete would orphan audit log entries and break foreign keys in content that was soft-deleted.
+The PII scrub is specific: email becomes `deleted-${userId}@deleted.invalid` (preserving the unique constraint), name, alias, image, avatarUrl, and bio are set to null, and the role is demoted to `pending`. The user record itself is not deleted: a hard delete would orphan audit log entries and break foreign keys in content that was soft-deleted.
 
-A weekly cron job (`purge-deleted`) runs the actual hard deletes for soft-deleted records older than 30 days. Audit logs older than one year are also purged, but only where `sessionId = null` — demo session audit logs are cleaned up by the demo session cleanup instead.
+A weekly cron job (`purge-deleted`) runs the actual hard deletes for soft-deleted records older than 30 days. Audit logs older than one year are also purged, but only where `sessionId = null`: demo session audit logs are cleaned up by the demo session cleanup instead.
 
-The audit (finding S11) caught a pre-fix bug where the audit log entry written at account deletion time included `actorName: user.alias ?? user.name`. This stored the user's real name or alias in the audit log. Since the scrub then null-ed those fields on the user record, the PII lived on in the audit log, defeating erasure. The fix reordered the operations: `logAudit` is now called before the transaction that scrubs PII, but the `details` payload no longer includes the name — only the `entityId` (userId). That way the audit log records that a deletion happened for a given ID without retaining the person's name.
+The audit (finding S11) caught a pre-fix bug where the audit log entry written at account deletion time included `actorName: user.alias ?? user.name`. This stored the user's real name or alias in the audit log. Since the scrub then null-ed those fields on the user record, the PII lived on in the audit log, defeating erasure. The fix reordered the operations: `logAudit` is now called before the transaction that scrubs PII, but the `details` payload no longer includes the name, only the `entityId` (userId). That way the audit log records that a deletion happened for a given ID without retaining the person's name.
 
 ---
 
@@ -180,6 +180,6 @@ The superuser tenant-switch UI is the only place where a user can deliberately c
 
 The test suite runs under Jest with a `coverageThreshold` of 70% lines/functions/statements and 60% branches, enforced in `jest.config.ts`. Before the April audit, CI ran `jest --verbose` without `--coverage` or any threshold, so coverage could drop silently.
 
-The audit also identified that `auth.ts` — the 196-line callbacks that handle first-user superuser promotion, JWT permission hydration, and permission-version drift — had zero behavioral tests. The `auth.test.ts` file only verified that exports exist. The fix added tests for the `signIn` callback (first user gets superuser, subsequent users get pending), the JWT callback with a `permissionsVersion` mismatch, and the permissions re-sync path.
+The audit also identified that `auth.ts` (the 196-line callbacks that handle first-user superuser promotion, JWT permission hydration, and permission-version drift) had zero behavioral tests. The `auth.test.ts` file only verified that exports exist. The fix added tests for the `signIn` callback (first user gets superuser, subsequent users get pending), the JWT callback with a `permissionsVersion` mismatch, and the permissions re-sync path.
 
 Pre-push Husky hooks run the full suite locally before any push reaches CI. The CI job runs on ubuntu-latest with Node 22 and includes `GITHUB_TOKEN` injection into the build step so the GitHub commits API does not rate-limit during build. Before this fix, CI builds that ran without the token would occasionally fail on the unauthenticated GitHub API rate limit.

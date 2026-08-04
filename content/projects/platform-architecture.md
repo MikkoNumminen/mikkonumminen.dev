@@ -1,9 +1,9 @@
 ---
-title: Platform — architecture & design
+title: Platform · architecture & design
 project: platform
 ---
 
-# Platform — Architecture & Design
+# Platform: Architecture & Design
 
 Platform is a production community web application running at [vuohiliitto.com](https://vuohiliitto.com). It is built as a Turborepo monorepo and serves real users via Vercel.
 
@@ -11,10 +11,10 @@ Platform is a production community web application running at [vuohiliitto.com](
 
 The monorepo has four top-level members:
 
-- `apps/web/` — the community platform (Next.js 15, the main application)
-- `apps/hrm/` — a standalone HR management showpiece included as a git submodule; never modified from within this repo
-- `packages/ui/` — shared UI components published internally as `@platform/ui`
-- `packages/config/` — shared TypeScript types and configuration as `@platform/config`
+- `apps/web/`: the community platform (Next.js 15, the main application)
+- `apps/hrm/`: a standalone HR management showpiece included as a git submodule; never modified from within this repo
+- `packages/ui/`: shared UI components published internally as `@platform/ui`
+- `packages/config/`: shared TypeScript types and configuration as `@platform/config`
 
 Data flow inside `apps/web` follows the Next.js App Router pattern: React Server Components render server-side by default; mutations go through Next.js Server Actions (`"use server"`), not REST endpoints. The only Route Handlers are the NextAuth catch-all, a promotion-polling endpoint, and two cron trigger endpoints. The two applications (Platform and HRM) have completely separate databases.
 
@@ -72,7 +72,7 @@ The `permissionsVersion` integer on `User` lets the JWT callback detect stale to
 
 **Server Actions over REST:** Mutations go through Next.js Server Actions rather than API routes, eliminating a serialization layer and keeping the server-side auth context automatic. The trade-off is that the mutation surface is only accessible from within the Next.js application.
 
-**Multi-tenancy via a discriminator column:** Every content table carries a `tenant` string column rather than separate schemas or databases. This keeps deployment simple — one database, one connection pool — and lets a superuser switch between tenants at runtime via a TopBar toggle. Cross-tenant leak risk is mitigated by centralizing tenant filtering through `getTenantFilter()` in `lib/tenant.ts`.
+**Multi-tenancy via a discriminator column:** Every content table carries a `tenant` string column rather than separate schemas or databases. This keeps deployment simple (one database, one connection pool), and lets a superuser switch between tenants at runtime via a TopBar toggle. Cross-tenant leak risk is mitigated by centralizing tenant filtering through `getTenantFilter()` in `lib/tenant.ts`.
 
 **Demo mode with real isolated data:** Demo mode creates an actual `superuser` session with a `DemoSession` record and seeds comprehensive mock data (6 users, 10 shoutbox messages, 5 survey responses, 4 custom quests, gamification profiles) scoped by `sessionId`. Real community data is never exposed. Auto-cleanup is login-triggered: on the next demo login, `cleanupStaleDemoSessions()` runs fire-and-forget, issuing a `deleteMany` per content table filtered by `sessionId` for any session older than 24 hours, then removing the `DemoSession` record itself.
 
@@ -80,7 +80,7 @@ The `permissionsVersion` integer on `User` lets the JWT callback detect stale to
 
 ## Testing Strategy
 
-**Unit and integration tests** use Jest 30 + React Testing Library + jsdom — an extensive suite (1,300+ tests) covering server actions, query functions, gamification services, and UI components. Coverage thresholds are enforced in `jest.config.ts`: 70% lines/functions/statements, 60% branches. Pre-push Husky hooks require the full suite to pass before code reaches the repository.
+**Unit and integration tests** use Jest 30 + React Testing Library + jsdom: an extensive suite (1,300+ tests) covering server actions, query functions, gamification services, and UI components. Coverage thresholds are enforced in `jest.config.ts`: 70% lines/functions/statements, 60% branches. Pre-push Husky hooks require the full suite to pass before code reaches the repository.
 
 `jest-axe` is available for accessibility assertions within the unit suite. There is no end-to-end test layer in this repo: no Playwright config, no `*.spec.ts` browser tests, and no `@playwright/test` dependency.
 
@@ -88,9 +88,9 @@ The `permissionsVersion` integer on `User` lets the JWT callback detect stale to
 
 The `/mythic-plus` section is a first-class feature that lets community members register their World of Warcraft characters and compose five-person Mythic+ dungeon teams.
 
-**External dependency — Raider.IO API (`lib/raiderio.ts`):** Character data is fetched from `https://raider.io/api/v1/characters/profile`. The response is validated with a Zod schema and returns name, realm, region, class, spec, specRole, race, item level, and the current-season Mythic+ composite score. Fetch results are cached with a 24-hour Next.js tag (`"raiderio"`) and a 10-second abort timeout. 400/404 responses surface as `characterNotFound`; other non-OK responses surface as `raiderIoError`.
+**External dependency: Raider.IO API (`lib/raiderio.ts`):** Character data is fetched from `https://raider.io/api/v1/characters/profile`. The response is validated with a Zod schema and returns name, realm, region, class, spec, specRole, race, item level, and the current-season Mythic+ composite score. Fetch results are cached with a 24-hour Next.js tag (`"raiderio"`) and a 10-second abort timeout. 400/404 responses surface as `characterNotFound`; other non-OK responses surface as `raiderIoError`.
 
-**Data models:** `WowCharacter` stores the enriched profile per user (unique on `[characterName, realm, region, sessionId]`). `MythicPlusTeam` holds five nullable FK references — `tankId`, `healerId`, `dps1Id`, `dps2Id`, `dps3Id` — each pointing to a `WowCharacter`; slot removal uses `onDelete: SetNull` so a deleted character vacates its slot without dropping the team.
+**Data models:** `WowCharacter` stores the enriched profile per user (unique on `[characterName, realm, region, sessionId]`). `MythicPlusTeam` holds five nullable FK references (`tankId`, `healerId`, `dps1Id`, `dps2Id`, `dps3Id`) each pointing to a `WowCharacter`; slot removal uses `onDelete: SetNull` so a deleted character vacates its slot without dropping the team.
 
 **Server actions (`lib/mythicplus-actions.ts`):** `addCharacter`, `removeCharacter`, `refreshCharacter`, `refreshAllCharacters`, `createTeam`, `updateTeamSlot`, `deleteTeam`. All are wrapped in `safe()` and validate slot names against a typed `VALID_SLOTS` constant before writing. Both `WowCharacter` and `MythicPlusTeam` carry `tenant` and `sessionId` columns, so the feature participates in multi-tenancy and demo isolation.
 

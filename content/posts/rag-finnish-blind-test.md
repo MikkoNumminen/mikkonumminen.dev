@@ -19,8 +19,8 @@ metrics, won 26 of 30 rounds. Friedman p < 0.0001.
 
 The earlier experiment (the Finnish experiment post) concluded that Poro wins
 nothing on synthesis. But it left one loose thread, in its own words: _"Its only
-edge is qualitative — more natural inflected morphology ("Astro 6:sta",
-"TypeScriptistä") — an edge for a human reader, not for the metric."_ A
+edge is qualitative: more natural inflected morphology ("Astro 6:sta",
+"TypeScriptistä"): an edge for a human reader, not for the metric."_ A
 checklist metric is blind to the one thing a Finnish-built model exists for.
 This round built an instrument for that human reader.
 

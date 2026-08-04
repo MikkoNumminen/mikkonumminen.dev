@@ -1,9 +1,9 @@
 ---
-title: HRM — architecture & design
+title: HRM · architecture & design
 project: hrm
 ---
 
-# HRManager — Architecture & Design
+# HRManager: Architecture & Design
 
 HRManager is a full-stack HR management system built with Next.js 16 App Router, TypeScript 5.9, and polyglot persistence (PostgreSQL + MongoDB). It targets production operational standards: granular RBAC, an immutable audit trail, real-time updates, TOTP 2FA, and a 2910-test suite with coverage tracked in CI.
 
@@ -15,9 +15,9 @@ The system is a single Next.js application organized around a feature-based modu
 Request flow:
 
 1. Most requests pass through `proxy.ts`, which generates a per-request CSP nonce and injects security headers. Its matcher deliberately excludes high-frequency endpoints (the health/readiness and realtime poll/SSE routes) and static assets, so they don't pay for nonce generation on every hit.
-2. Next.js App Router dispatches to async Server Components that fetch data directly via `features/*/queries.ts` — no separate API layer for reads.
+2. Next.js App Router dispatches to async Server Components that fetch data directly via `features/*/queries.ts`, no separate API layer for reads.
 3. Mutations flow through React 19 `action=` props into `features/*/actions.ts` Server Actions. Every action runs inside a Prisma `$transaction`, validates input with Zod, and checks permissions before touching the database.
-4. After the transaction commits and the response is sent, `next/server`'s `after()` hook defers an audit write to MongoDB — the user's response is never delayed by logging.
+4. After the transaction commits and the response is sent, `next/server`'s `after()` hook defers an audit write to MongoDB: the user's response is never delayed by logging.
 5. Server-Sent Events (`/api/realtime/sse`) broadcast mutation events to connected clients in real time; the system falls back to 30-second polling on Vercel's free tier, where serverless timeouts prevent persistent SSE connections.
 
 HRManager also lives inside a [Turborepo monorepo](https://github.com/MikkoNumminen/Platform) as a git submodule alongside other applications. The feature-module structure and server action isolation make it embeddable without an adapter layer.
@@ -51,15 +51,15 @@ HRManager uses **polyglot persistence**: PostgreSQL for all relational data and 
 
 **PostgreSQL models (via Prisma):**
 
-- `Person` — employees; `deletedAt` soft-delete with index; `sessionId` column for demo isolation
-- `Department` / `Team` / `TeamMember` — org hierarchy; FK indexes on manager and department references; composite unique on `(personId, teamId)` for memberships
-- `User` / `Permission` / `UserPermission` — auth users separate from `Person` records; `UserPermission.granted` boolean enables both grant and deny overrides
-- `RateLimit` — sliding-window counters stored in PostgreSQL; `@@unique([identifier, action])` for atomic upserts
-- `UserSession` / `TwoFactorAuth` / `DemoSession` — session tracking and TOTP secrets (`encryptedSecret` field)
-- `ReviewTemplate` / `ReviewCycle` / `ReviewRequest` / `ReviewSubmission` — 360-degree feedback system; cycle lifecycle is `DRAFT → OPEN → CLOSED`
-- `LeaveType` / `LeaveRequest` / `LeaveBalance` — absence management; overlap detection uses a composite index on `(startDate, endDate)`
-- `Position` — standardized job title catalog; unique on `(name, sessionId)` for demo isolation
-- `FeatureFlag` / `UserFeatureFlag` — 4-level feature flag resolution
+- `Person`: employees; `deletedAt` soft-delete with index; `sessionId` column for demo isolation
+- `Department` / `Team` / `TeamMember`: org hierarchy; FK indexes on manager and department references; composite unique on `(personId, teamId)` for memberships
+- `User` / `Permission` / `UserPermission`: auth users separate from `Person` records; `UserPermission.granted` boolean enables both grant and deny overrides
+- `RateLimit`: sliding-window counters stored in PostgreSQL; `@@unique([identifier, action])` for atomic upserts
+- `UserSession` / `TwoFactorAuth` / `DemoSession`: session tracking and TOTP secrets (`encryptedSecret` field)
+- `ReviewTemplate` / `ReviewCycle` / `ReviewRequest` / `ReviewSubmission`: 360-degree feedback system; cycle lifecycle is `DRAFT → OPEN → CLOSED`
+- `LeaveType` / `LeaveRequest` / `LeaveBalance`: absence management; overlap detection uses a composite index on `(startDate, endDate)`
+- `Position`: standardized job title catalog; unique on `(name, sessionId)` for demo isolation
+- `FeatureFlag` / `UserFeatureFlag`: 4-level feature flag resolution
 
 All tables carry a `sessionId` column. A `NULL` value identifies real users; a UUID identifies an isolated demo sandbox. Partial unique indexes enforce uniqueness only on active (non-deleted) records.
 
@@ -97,25 +97,25 @@ The system defines 38 permission keys (e.g., `person:create`, `team:delete`, `re
 
 ## Key Design Decisions and Trade-offs
 
-**Polyglot persistence** — PostgreSQL for relational data, MongoDB for audit logs. The reasoning documented in the README: audit logs are append-only and variable-shape; a document store is the natural fit. Using a single database for both workloads was considered but rejected.
+**Polyglot persistence**: PostgreSQL for relational data, MongoDB for audit logs. The reasoning documented in the README: audit logs are append-only and variable-shape; a document store is the natural fit. Using a single database for both workloads was considered but rejected.
 
-**Soft deletes everywhere** — Records receive a `deletedAt` timestamp rather than being removed. Partial unique indexes (`WHERE deletedAt IS NULL`) enforce uniqueness only on active records. The stated reason: HR systems must answer questions like "who was on this team last quarter?" years later.
+**Soft deletes everywhere**: Records receive a `deletedAt` timestamp rather than being removed. Partial unique indexes (`WHERE deletedAt IS NULL`) enforce uniqueness only on active records. The stated reason: HR systems must answer questions like "who was on this team last quarter?" years later.
 
-**Deferred audit writes via `after()`** — Audit logging happens in a background task after the HTTP response is sent. This prevents logging latency from affecting the user's perceived response time while ensuring every mutation is eventually recorded.
+**Deferred audit writes via `after()`**: Audit logging happens in a background task after the HTTP response is sent. This prevents logging latency from affecting the user's perceived response time while ensuring every mutation is eventually recorded.
 
-**Rate limiting without Redis** — The sliding-window rate limiter uses only PostgreSQL (atomic `INSERT...ON CONFLICT`). The documented trade-off: one fewer service to deploy and operate at the cost of slightly higher latency than an in-memory store.
+**Rate limiting without Redis**: The sliding-window rate limiter uses only PostgreSQL (atomic `INSERT...ON CONFLICT`). The documented trade-off: one fewer service to deploy and operate at the cost of slightly higher latency than an in-memory store.
 
-**Job queue without Redis (pg-boss)** — The background job queue runs on PostgreSQL, again avoiding Redis. Features include retry with exponential backoff, a dead-letter queue, and 24-hour job archival.
+**Job queue without Redis (pg-boss)**: The background job queue runs on PostgreSQL, again avoiding Redis. Features include retry with exponential backoff, a dead-letter queue, and 24-hour job archival.
 
-**Real-time transport: SSE with polling fallback** — Next.js App Router does not support WebSocket upgrade in route handlers. SSE works natively with `ReadableStream`. On Vercel's Hobby tier (10-second serverless timeout), the system detects the environment and falls back to 30-second polling. The interval is explicitly documented as a deliberate trade-off against Lambda invocation costs.
+**Real-time transport: SSE with polling fallback**, Next.js App Router does not support WebSocket upgrade in route handlers. SSE works natively with `ReadableStream`. On Vercel's Hobby tier (10-second serverless timeout), the system detects the environment and falls back to 30-second polling. The interval is explicitly documented as a deliberate trade-off against Lambda invocation costs.
 
-**In-process event bus** — The SSE event bus uses Node.js `EventEmitter` with a per-session ring buffer of 100 events and zero external dependencies. The README notes this is swappable to Redis pub-sub in a single file.
+**In-process event bus**: The SSE event bus uses Node.js `EventEmitter` with a per-session ring buffer of 100 events and zero external dependencies. The README notes this is swappable to Redis pub-sub in a single file.
 
-**Raw SQL for analytics** — Dashboard and report queries use CTEs and window functions that Prisma's query builder cannot express. These are the only queries that bypass the ORM.
+**Raw SQL for analytics**: Dashboard and report queries use CTEs and window functions that Prisma's query builder cannot express. These are the only queries that bypass the ORM.
 
-**`unstable_cache` for high-traffic reads** — Org-wide list queries, dashboard metrics, and org-chart data are cached with a 5-minute TTL keyed by `sessionId`. Mutating server actions call `updateTag("org-data")` to implement read-your-own-writes within the same request.
+**`unstable_cache` for high-traffic reads**: Org-wide list queries, dashboard metrics, and org-chart data are cached with a 5-minute TTL keyed by `sessionId`. Mutating server actions call `updateTag("org-data")` to implement read-your-own-writes within the same request.
 
-**Vercel `ignoreCommand`** — A shell script at `scripts/vercel-ignore.sh` short-circuits Vercel deployments when only docs, tests, or CI config files change, reducing build minutes on the free tier.
+**Vercel `ignoreCommand`**: A shell script at `scripts/vercel-ignore.sh` short-circuits Vercel deployments when only docs, tests, or CI config files change, reducing build minutes on the free tier.
 
 
 ## Testing Strategy
@@ -149,7 +149,7 @@ The `mutation.yml` workflow runs Stryker mutation testing on pull requests again
 
 The `autofix.yml` workflow (disabled by default; requires Anthropic API credits) runs a 6-stage pipeline on CI failures: transient detection, concurrent-run guard, context gathering with log sanitization, infrastructure-failure bypass, targeted fix, and PR creation. It never auto-merges.
 
-**Primary deployment — Vercel:**
+**Primary deployment: Vercel:**
 
 The live demo deploys to Vercel with Vercel Postgres (Neon) and MongoDB Atlas (free tier). The build command is `prisma migrate deploy && prisma generate && next build`. The `vercel.json` `ignoreCommand` skips deployments for docs/test/CI-only commits.
 

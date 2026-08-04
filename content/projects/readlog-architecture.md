@@ -1,15 +1,15 @@
 ---
-title: ReadLog — architecture & design
+title: ReadLog · architecture & design
 project: readlog
 ---
 
-# ReadLog — Architecture & Design
+# ReadLog: Architecture & Design
 
 ReadLog is a personal reading-log web application: users search for books, record what they finished and in what format, and can browse a public feed of recent reads. The codebase is a Next.js 16 app backed by a PostgreSQL database on Neon and deployed to Vercel.
 
 ## Overview & High-Level Architecture
 
-The application follows the Next.js App Router model with a clear split between server and client responsibilities. Server Components handle data-fetching pages (home feed, library, account). Client Components handle interactive UI (search input, dialogs, library filtering). All mutations and queries that touch the database are Next.js Server Actions in `src/lib/actions.ts`, marked `"use server"`. There is a single API route — the NextAuth catch-all at `/api/auth/[...nextauth]` — and no other custom API surface.
+The application follows the Next.js App Router model with a clear split between server and client responsibilities. Server Components handle data-fetching pages (home feed, library, account). Client Components handle interactive UI (search input, dialogs, library filtering). All mutations and queries that touch the database are Next.js Server Actions in `src/lib/actions.ts`, marked `"use server"`. There is a single API route (the NextAuth catch-all at `/api/auth/[...nextauth]`), and no other custom API surface.
 
 At runtime the request path looks like: browser → Vercel edge → Next.js server → Prisma (via Neon serverless driver) → PostgreSQL. There is no separate backend service or BFF layer.
 
@@ -28,9 +28,9 @@ At runtime the request path looks like: browser → Vercel edge → Next.js serv
 
 The Prisma schema defines six models. The NextAuth models (`Account`, `Session`, `VerificationToken`, `User`) are all table-prefixed with `readlog_` to co-exist safely on a shared database schema. Two application models sit alongside them:
 
-**Book** — a canonical book record keyed by `openLibraryId` (unique). Stores title, author, cover URL, page count, and first publish year. The `openLibraryId` field also accepts `google:` prefixed IDs for books found only via Google Books, making the field a logical source-of-record key rather than a strict Open Library identifier.
+**Book**: a canonical book record keyed by `openLibraryId` (unique). Stores title, author, cover URL, page count, and first publish year. The `openLibraryId` field also accepts `google:` prefixed IDs for books found only via Google Books, making the field a logical source-of-record key rather than a strict Open Library identifier.
 
-**ReadEntry** — joins a `User` to a `Book`, recording the `format` (enum: `BOOK`, `AUDIOBOOK`, `EBOOK`), completion date (`finishedAt`), and an optional 1–5 `rating`. A compound unique constraint on `(userId, bookId, finishedAt)` prevents duplicate entries for the same book on the same day. Both `userId` and `finishedAt` carry database indexes to support the most common query patterns (per-user listing ordered by date).
+**ReadEntry**: joins a `User` to a `Book`, recording the `format` (enum: `BOOK`, `AUDIOBOOK`, `EBOOK`), completion date (`finishedAt`), and an optional 1–5 `rating`. A compound unique constraint on `(userId, bookId, finishedAt)` prevents duplicate entries for the same book on the same day. Both `userId` and `finishedAt` carry database indexes to support the most common query patterns (per-user listing ordered by date).
 
 Cascade deletes on both `Account → User` and `ReadEntry → User` ensure clean removal when a user account is deleted.
 
@@ -38,7 +38,7 @@ Cascade deletes on both `Account → User` and `ReadEntry → User` ensure clean
 
 Authentication is handled entirely by Auth.js with Google as the sole OAuth provider. Session state is stored in the database via `PrismaAdapter` rather than in JWTs, which means sessions can be revoked server-side.
 
-Every Server Action that writes data calls `auth()` at the top and throws `"Not authenticated"` if the session is absent or the session user ID is missing. Mutation actions that operate on an existing `ReadEntry` (`updateReadEntry`, `deleteReadEntry`) additionally fetch the entry and verify `entry.userId === session.user.id` before proceeding, throwing `"Not found"` on mismatch — the same error for both "does not exist" and "belongs to another user," avoiding information leakage.
+Every Server Action that writes data calls `auth()` at the top and throws `"Not authenticated"` if the session is absent or the session user ID is missing. Mutation actions that operate on an existing `ReadEntry` (`updateReadEntry`, `deleteReadEntry`) additionally fetch the entry and verify `entry.userId === session.user.id` before proceeding, throwing `"Not found"` on mismatch: the same error for both "does not exist" and "belongs to another user," avoiding information leakage.
 
 The public feed (`getRecentPublicReads`) surfaces the most recent reads; the homepage component renders only book title, author, cover, format, and rating from each entry, so no user identity is shown in the public feed.
 
@@ -48,8 +48,8 @@ Next.js image optimization is scoped to exactly two external hostnames (`covers.
 
 Book search runs two external API calls in parallel using `Promise.allSettled`:
 
-1. **Open Library** (`/search.json`) — no API key required; returns up to 15 results with cover ID, page count, and first publish year.
-2. **Google Books** (`/books/v1/volumes`) — requires `GOOGLE_BOOKS_API_KEY`; returns up to 15 results and adds series position information (`seriesInfo.bookDisplayNumber`) surfaced as a synthesized subtitle.
+1. **Open Library** (`/search.json`), no API key required; returns up to 15 results with cover ID, page count, and first publish year.
+2. **Google Books** (`/books/v1/volumes`): requires `GOOGLE_BOOKS_API_KEY`; returns up to 15 results and adds series position information (`seriesInfo.bookDisplayNumber`) surfaced as a synthesized subtitle.
 
 `Promise.allSettled` means either source failing independently does not degrade the other: fulfilled results from the surviving source are used as-is.
 
@@ -69,7 +69,7 @@ A separate `fetchBookDetails` function (used via `getBookDetails`) hits Google B
 
 **Book deduplication at search time, not storage time.** Books from different sources are deduplicated in memory on every search rather than reconciled in the database. This keeps the schema simple but means the same physical book can theoretically be stored twice under different `openLibraryId` keys if a user logs it from different source records on different occasions.
 
-**Vercel ignore command.** `vercel.json` configures an `ignoreCommand` that skips deployment when only documentation, tests, or CI config changed — keeping production deploys tied to actual application changes.
+**Vercel ignore command.** `vercel.json` configures an `ignoreCommand` that skips deployment when only documentation, tests, or CI config changed: keeping production deploys tied to actual application changes.
 
 ## Testing Strategy
 
@@ -77,10 +77,10 @@ Tests live in `src/__tests__/` and are run with Jest (configured via `jest.confi
 
 Each layer is tested in isolation:
 
-- **`openlibrary.test.ts`** — mocks `global.fetch` and asserts URL construction, field mapping, null fallbacks, and error handling.
-- **`googlebooks.test.ts`** — same pattern; additionally covers series-label synthesis and graceful degradation when the API key is absent.
-- **`bookdetails.test.ts`** — covers the enrichment fetch used for the detail dialog.
-- **`actions.test.ts`** — mocks `next/cache`, `@/lib/db` (Prisma), `@/lib/auth`, and both search modules; tests the deduplication logic, authentication guards, ownership checks, and cache tag invalidation across all Server Actions.
+- **`openlibrary.test.ts`**: mocks `global.fetch` and asserts URL construction, field mapping, null fallbacks, and error handling.
+- **`googlebooks.test.ts`**: same pattern; additionally covers series-label synthesis and graceful degradation when the API key is absent.
+- **`bookdetails.test.ts`**: covers the enrichment fetch used for the detail dialog.
+- **`actions.test.ts`**: mocks `next/cache`, `@/lib/db` (Prisma), `@/lib/auth`, and both search modules; tests the deduplication logic, authentication guards, ownership checks, and cache tag invalidation across all Server Actions.
 
 Pre-commit hooks (Husky + lint-staged) run ESLint and Prettier on staged TypeScript and formatting files before every commit.
 

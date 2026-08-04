@@ -8,7 +8,7 @@ type: research
 
 # What A/B-testing my Claude Code skills actually saved
 
-After a year of claiming the AI workflow paid off, I ran the A/B. Every custom Claude Code skill measured against itself going cold — same task, sub-agent on versus sub-agent off. The first calibration used Sonnet sub-agents only; the suite calibration that followed extended to Sonnet, Opus, and Haiku. Here is what the data actually shows, and how I report it.
+After a year of claiming the AI workflow paid off, I ran the A/B. Every custom Claude Code skill measured against itself going cold: same task, sub-agent on versus sub-agent off. The first calibration used Sonnet sub-agents only; the suite calibration that followed extended to Sonnet, Opus, and Haiku. Here is what the data actually shows, and how I report it.
 
 ## The first calibration: Spacepotatis (2026-05-22)
 
@@ -41,11 +41,11 @@ I then ran a broader calibration: 8 skills from the mikko- library across all th
 
 ## What actually replicates (and what does not)
 
-Across three corpora — a portfolio site, a browser game, and a Python desktop app — two theses were tested.
+Across three corpora (a portfolio site, a browser game, and a Python desktop app) two theses were tested.
 
-**Thesis 1 (3/3, bankable): savings concentrate in procedure/script-backed skills; prose audits wash against a capable cold model.** The three genuinely script-backed skills (`skills-quality`, `skills-freshness`, `session-cost`) — which replace LLM reasoning with a Python pre-pass — save on every model in every corpus. The bounded-procedure skills (`balance-review`, `audit`) save in most corpora too, with one instructive exception: `audit` costs more than cold scouting on Opus in the mikko- suite (−51%), where the cold Opus arm is already cheap; it flips positive as the model weakens (+2% Sonnet, +7% Haiku). The prose audit skills (`ai-codegen-smell-audit`, `readme-drift-sync`) are wash-to-negative against a capable cold model and only turn clearly positive as the model weakens. This held across all three repos.
+**Thesis 1 (3/3, bankable): savings concentrate in procedure/script-backed skills; prose audits wash against a capable cold model.** The three genuinely script-backed skills (`skills-quality`, `skills-freshness`, `session-cost`) (which replace LLM reasoning with a Python pre-pass) save on every model in every corpus. The bounded-procedure skills (`balance-review`, `audit`) save in most corpora too, with one instructive exception: `audit` costs more than cold scouting on Opus in the mikko- suite (−51%), where the cold Opus arm is already cheap; it flips positive as the model weakens (+2% Sonnet, +7% Haiku). The prose audit skills (`ai-codegen-smell-audit`, `readme-drift-sync`) are wash-to-negative against a capable cold model and only turn clearly positive as the model weakens. This held across all three repos.
 
-**Thesis 2 (1/3, do not generalize): savings scale inversely with model capability.** Clean in the mikko- suite (+13% Opus → +15% Sonnet → +27% Haiku). Non-monotonic in Spacepotatis (flat ~+15% across models). Non-monotonic in AudiobookMaker (+1% Opus, +24% Sonnet, +22% Haiku). The curve appears only when the cold arm's cost scales steeply as the model weakens — a property of the task, not a law of skills.
+**Thesis 2 (1/3, do not generalize): savings scale inversely with model capability.** Clean in the mikko- suite (+13% Opus → +15% Sonnet → +27% Haiku). Non-monotonic in Spacepotatis (flat ~+15% across models). Non-monotonic in AudiobookMaker (+1% Opus, +24% Sonnet, +22% Haiku). The curve appears only when the cold arm's cost scales steeply as the model weakens: a property of the task, not a law of skills.
 
 ## The honest reporting standards
 
@@ -63,12 +63,12 @@ A few principles I applied when writing up these results:
 
 ## Download the full research
 
-Every artifact below is a PDF you can pull from the contact terminal at mikkonumminen.dev — run `download --research` to list them, then grab any directly. In the order the research unfolded, oldest to newest:
+Every artifact below is a PDF you can pull from the contact terminal at mikkonumminen.dev, run `download --research` to list them, then grab any directly. In the order the research unfolded, oldest to newest:
 
-- **`download --catalog`** — the inventory: every skill across all four repos, with measured (not guessed) per-skill costs and the calibration-honesty chart.
-- **`download --study`** — the optimization study (May 2026): five rounds of before/after on a SKILL.md that traced *why* procedural prose costs tokens, surfacing three fixable cost-traps.
-- **`download --replicates`** — round 6: the noisiest cells re-measured at depth (N=5), which overturned an N=1 fluke and confirmed ~+76% savings on the two auditor skills.
-- **`download --results`** — the synthesis: what the two skill-auditors cost to run (~36% cheaper) and the cost-traps they exposed.
-- **`download --calibration`** — the latest and broadest run (June 2026): 16 skills, cold-vs-skill A/B across all three models — the current portfolio snapshot.
+- **`download --catalog`**: the inventory: every skill across all four repos, with measured (not guessed) per-skill costs and the calibration-honesty chart.
+- **`download --study`**: the optimization study (May 2026): five rounds of before/after on a SKILL.md that traced *why* procedural prose costs tokens, surfacing three fixable cost-traps.
+- **`download --replicates`**: round 6: the noisiest cells re-measured at depth (N=5), which overturned an N=1 fluke and confirmed ~+76% savings on the two auditor skills.
+- **`download --results`**: the synthesis: what the two skill-auditors cost to run (~36% cheaper) and the cost-traps they exposed.
+- **`download --calibration`** (the latest and broadest run (June 2026): 16 skills, cold-vs-skill A/B across all three models) the current portfolio snapshot.
 
 The arc runs from "skills save roughly 3× what they cost" (a guess) to a measured, model-by-model picture: savings concentrate in script-backed skills, while prose audits wash against a capable cold model.

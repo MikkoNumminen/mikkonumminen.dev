@@ -1,21 +1,21 @@
 ---
-title: ReadLog — engineering deep-dive
+title: ReadLog · engineering deep-dive
 project: readlog
 ---
 
-# ReadLog — Engineering Deep-Dive
+# ReadLog: Engineering Deep-Dive
 
 This document covers the specific hard problems encountered during development and the concrete decisions made to solve them. It complements the existing architecture and project overview documents, which cover the stack rationale and data model; everything here is grounded in the actual commits and source.
 
 ## The Shared-Database Table-Prefix Problem
 
-The Neon PostgreSQL instance is shared, not isolated. NextAuth's PrismaAdapter by default creates tables named `account`, `session`, `user`, and `verification_token` — generic names that collide with any other application on the same database schema. This was addressed in the second substantive commit (`feat: add CI pipeline and prefix all tables with readlog_`) by adding a `@@map` directive to every Prisma model, forcing Prisma to emit `readlog_account`, `readlog_session`, `readlog_user`, `readlog_verification_token`, `readlog_book`, and `readlog_entry` as the actual table names. The schema comment reads: "NextAuth models — prefixed to avoid conflicts with other apps sharing the database." This is a permanent constraint, not a temporary measure — removing the prefix now would require a live migration and could break concurrent applications on the same instance.
+The Neon PostgreSQL instance is shared, not isolated. NextAuth's PrismaAdapter by default creates tables named `account`, `session`, `user`, and `verification_token`: generic names that collide with any other application on the same database schema. This was addressed in the second substantive commit (`feat: add CI pipeline and prefix all tables with readlog_`) by adding a `@@map` directive to every Prisma model, forcing Prisma to emit `readlog_account`, `readlog_session`, `readlog_user`, `readlog_verification_token`, `readlog_book`, and `readlog_entry` as the actual table names. The schema comment reads: "NextAuth models (prefixed to avoid conflicts with other apps sharing the database." This is a permanent constraint, not a temporary measure) removing the prefix now would require a live migration and could break concurrent applications on the same instance.
 
 The database URL comment in `prisma/schema.prisma` deliberately omits `url` from the datasource block; the connection string is injected entirely at runtime through `prisma.config.ts` using `dotenv/config`, which keeps the schema file self-contained and free of environment-specific syntax.
 
 ## Prisma on Vercel: the Serverless Adapter Requirement
 
-A standard Prisma client uses TCP connections, which are incompatible with Vercel's function execution model — functions boot cold, handle a request, and shut down, leaving TCP connections dangling or crashing the pool. ReadLog uses `@prisma/adapter-neon` on top of `@neondatabase/serverless`, which routes database traffic over HTTP/WebSocket instead of raw TCP. The `db.ts` singleton pattern (`globalForPrisma.prisma ?? createPrismaClient()`) prevents a new client from being instantiated on every hot-reload in development — the classic Next.js HMR problem — while still creating a fresh client per cold-start in production where `globalThis` is not reused across function invocations.
+A standard Prisma client uses TCP connections, which are incompatible with Vercel's function execution model: functions boot cold, handle a request, and shut down, leaving TCP connections dangling or crashing the pool. ReadLog uses `@prisma/adapter-neon` on top of `@neondatabase/serverless`, which routes database traffic over HTTP/WebSocket instead of raw TCP. The `db.ts` singleton pattern (`globalForPrisma.prisma ?? createPrismaClient()`) prevents a new client from being instantiated on every hot-reload in development (the classic Next.js HMR problem), while still creating a fresh client per cold-start in production where `globalThis` is not reused across function invocations.
 
 Prisma client generation is wired into both `build` (`prisma generate && next build`) and `postinstall`, which is required for Vercel: the deployment environment installs packages and then builds, so client code generated from the schema must exist before `next build` runs. This was a concrete deployment failure fixed in `fix: remove deprecated middleware, add prisma generate to build`.
 
@@ -44,7 +44,7 @@ The same commit made `/log` fully static. Originally it had a server-side layout
 
 ## Mobile Autofill Interference
 
-The default NextAuth sign-in page includes an email/password form even when only OAuth providers are configured. On mobile, password managers and browser autofill parse the form and offer to fill credentials, creating a confusing UI for a Google-OAuth-only application. The fix (commit `fix: custom sign-in page to avoid mobile autofill issues`) was a bespoke `/signin` page containing only a "Sign in with Google" button — no form, no inputs, no opportunity for autofill to attach. All auth redirects across the app were updated to use `/signin?callbackUrl=<destination>` rather than `/api/auth/signin`. The custom page reads `callbackUrl` from the search params and passes it through to `signIn("google", { callbackUrl })`, preserving the intended post-login destination.
+The default NextAuth sign-in page includes an email/password form even when only OAuth providers are configured. On mobile, password managers and browser autofill parse the form and offer to fill credentials, creating a confusing UI for a Google-OAuth-only application. The fix (commit `fix: custom sign-in page to avoid mobile autofill issues`) was a bespoke `/signin` page containing only a "Sign in with Google" button, no form, no inputs, no opportunity for autofill to attach. All auth redirects across the app were updated to use `/signin?callbackUrl=<destination>` rather than `/api/auth/signin`. The custom page reads `callbackUrl` from the search params and passes it through to `signIn("google", { callbackUrl })`, preserving the intended post-login destination.
 
 ## Multi-Source Book Search: Deduplication Logic
 
@@ -62,12 +62,12 @@ This scoring approach is intentional: Google Books typically has better cover im
 
 Rather than adding Redis or a CDN, the application uses Next.js `unstable_cache` with tag-based invalidation via `updateTag`. Four caches exist:
 
-- `"public-feed"` — 60 second TTL, re-fetched on any `logBook`, `updateReadEntry`, or `deleteReadEntry` call
-- `"my-books"` — 5 minute TTL per user ID, same invalidation triggers
-- `"account-stats"` — 5 minute TTL, shares the `"my-books"` tag so stats update when the library changes
-- `"book-details"` — 30 day TTL, never explicitly invalidated (book metadata from Google Books is treated as effectively immutable)
+- `"public-feed"`: 60 second TTL, re-fetched on any `logBook`, `updateReadEntry`, or `deleteReadEntry` call
+- `"my-books"`: 5 minute TTL per user ID, same invalidation triggers
+- `"account-stats"`: 5 minute TTL, shares the `"my-books"` tag so stats update when the library changes
+- `"book-details"`: 30 day TTL, never explicitly invalidated (book metadata from Google Books is treated as effectively immutable)
 
-The `getCachedMyBooks` and `getCachedAccountStats` functions accept `userId` as a parameter, which becomes part of the cache key. This means the cache is partitioned per user without any explicit namespace — two users with different IDs get independent cache entries automatically. The public feed uses no user parameter, so all users share one feed cache entry.
+The `getCachedMyBooks` and `getCachedAccountStats` functions accept `userId` as a parameter, which becomes part of the cache key. This means the cache is partitioned per user without any explicit namespace: two users with different IDs get independent cache entries automatically. The public feed uses no user parameter, so all users share one feed cache entry.
 
 The `updateTag` calls at the end of each mutation happen after the database write completes. There is no rollback of the cache invalidation if the write itself fails (Prisma would throw, and the Server Action would reject before reaching `updateTag`), so the cache is only invalidated on successful mutations.
 
@@ -84,7 +84,7 @@ Both "entry does not exist" and "entry belongs to another user" throw the same `
 
 ## Testing Infrastructure Trade-offs
 
-The `unstable_cache` wrapper in `src/lib/actions.ts` would make Server Action tests non-deterministic if the real implementation were used — caches would bleed between test cases. The test file mocks the entire `next/cache` module at the top of `actions.test.ts`:
+The `unstable_cache` wrapper in `src/lib/actions.ts` would make Server Action tests non-deterministic if the real implementation were used, caches would bleed between test cases. The test file mocks the entire `next/cache` module at the top of `actions.test.ts`:
 
 ```typescript
 jest.mock("next/cache", () => ({
@@ -94,7 +94,7 @@ jest.mock("next/cache", () => ({
 }));
 ```
 
-Passing the wrapped function through unchanged (`fn => fn`) means the actions execute their actual database logic without caching, and `updateTag` is a spy that tests can assert against. This pattern was retrofitted when caching was added — the mock was not present in the initial test suite.
+Passing the wrapped function through unchanged (`fn => fn`) means the actions execute their actual database logic without caching, and `updateTag` is a spy that tests can assert against. This pattern was retrofitted when caching was added: the mock was not present in the initial test suite.
 
 The component test file (`components.test.tsx`) uses `jsdom` as the test environment, which is incompatible with native ESM `fetch`. An early test that asserted `expect(img.src).toBe("https://fallback.jpg")` failed because jsdom normalizes URLs, encoding certain characters. The fix (commit `fix: use toContain for URL assertion to handle jsdom normalization`) switched to `toContain`, which is resilient to jsdom's URL rewriting. A separate fix in the same session replaced `getByAlt` (which does not exist in Testing Library) with `getByRole("img", { name: "..." })`.
 
@@ -120,4 +120,4 @@ git diff HEAD^ HEAD --quiet --
   ':(exclude).gitignore'
 ```
 
-When the command exits quietly (all changes excluded), Vercel skips the deployment. This keeps production deploys tied to application changes and avoids burning build minutes on README edits — a concrete concern given the three consecutive documentation-only commits at the tip of the commit log.
+When the command exits quietly (all changes excluded), Vercel skips the deployment. This keeps production deploys tied to application changes and avoids burning build minutes on README edits: a concrete concern given the three consecutive documentation-only commits at the tip of the commit log.
