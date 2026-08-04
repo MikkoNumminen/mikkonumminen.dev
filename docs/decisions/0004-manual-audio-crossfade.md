@@ -1,4 +1,4 @@
-# ADR 0004 — Manual dual-deck crossfade for seamless audio looping
+# ADR 0004: Manual dual-deck crossfade for seamless audio looping
 
 **Status:** accepted
 **Date:** 2026-05-17
@@ -13,8 +13,8 @@ the ambient effect the audio is intended to create.
 The obvious implementation is the HTML5 `loop` attribute on an `<audio>`
 element. This attribute instructs the browser to restart the track
 automatically when it reaches the end. In practice, however, browsers
-introduce a silent gap at the loop join — most noticeably in Safari on
-iOS and macOS — because the browser must re-buffer the start of the audio
+introduce a silent gap at the loop join: most noticeably in Safari on
+iOS and macOS, because the browser must re-buffer the start of the audio
 file before resuming playback. The duration of this gap varies by browser
 and network conditions but is typically 50–200 ms: audible and jarring
 on a continuous music bed.
@@ -75,7 +75,7 @@ next page knows which element carries the live playhead.
 On `beforeunload`, the active deck's `currentTime` and the active deck
 key are written to `sessionStorage`. On the next page's load, the script
 reads these values, seeks the correct element to the saved position, and
-resumes playback — continuing the track across a hard navigation.
+resumes playback: continuing the track across a hard navigation.
 
 An `ended` event listener on both decks acts as a safety net (lines
 446–452). If the crossfade fails (standby element refuses to play,
@@ -117,7 +117,7 @@ at a precise `AudioContext.currentTime` for a gapless handoff.
 
 Set no `loop` attribute; listen for the `ended` event; reset
 `currentTime = 0` and call `play()` immediately. **Rejected** because
-this is identical in effect to the `loop` attribute — the gap between the
+this is identical in effect to the `loop` attribute: the gap between the
 `ended` event firing and the new `play()` call completing is the same
 re-buffering delay that causes the audible gap in Safari.
 
@@ -155,7 +155,7 @@ psychoacoustic artefact and costs no additional complexity.
   and is not running during normal playback.
 - **`sessionStorage` dependency.** Playhead persistence fails silently if
   `sessionStorage` is unavailable (private browsing modes with strict
-  settings). The audio still plays from the beginning — an acceptable
+  settings). The audio still plays from the beginning: an acceptable
   degradation.
 - **Manual lifecycle management.** The script must track which deck is
   active, abort in-progress crossfades on pause/stop, and reset state

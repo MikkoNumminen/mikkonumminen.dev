@@ -1,4 +1,4 @@
-# ADR 0001 — Client-side observability via Sentry + Web Vitals
+# ADR 0001: Client-side observability via Sentry + Web Vitals
 
 **Status:** accepted
 **Date:** 2026-05-08
@@ -12,7 +12,7 @@ iterated on: the codebase ships hand-written Three.js scenes, GSAP timelines,
 a custom terminal command parser, and a canvas page-transition. Each of those
 is a real surface for runtime errors that don't fail the build, don't fail
 typecheck, don't fail any current test (there are none), but **do** fail in
-the wild — a Three.js init exception on Safari iOS, a font-load rejection on
+the wild: a Three.js init exception on Safari iOS, a font-load rejection on
 a flaky CDN, a GSAP tween writing to a disposed Vector3.
 
 Until this ADR, none of those errors had any feedback path back to the
@@ -20,7 +20,7 @@ developer. A recruiter could load the site, see a blank canvas, and the
 developer would have no signal whatsoever.
 
 A maturity audit (2026-05-08) scored the project at T0 on the
-"runtime & observability" axis — the floor of the model. Code structure,
+"runtime & observability" axis: the floor of the model. Code structure,
 security headers, and documentation all sit at T2. The floor capped the
 project; raising observability to T1 was the cheapest, highest-leverage
 single change.
@@ -45,7 +45,7 @@ Implementation:
 - `tracesSampleRate: 1.0`. Personal-portfolio traffic is well under
   Sentry's free-tier 10K performance-units/month cap; full sampling gives
   meaningful real-user metrics without breaking the budget. Initial draft
-  used 0.1 — that dropped 90% of pageload spans, leaving 90% of vitals
+  used 0.1. That dropped 90% of pageload spans, leaving 90% of vitals
   un-chartable. Revised before merge.
 - No session replay, no PII capture beyond Sentry defaults (URL, browser,
   stack trace).
@@ -60,7 +60,7 @@ Implementation:
 ### A. Vercel Analytics + Vercel Speed Insights
 
 Native Vercel integrations, no third-party domain in CSP, simpler. **Rejected**
-because they capture aggregate metrics only — no JS-error tracking. The actual
+because they capture aggregate metrics only, no JS-error tracking. The actual
 floor-axis gap is "we can't see when the page throws," not "we can't count
 pageviews." Vercel's offerings would leave that gap open.
 
@@ -74,7 +74,7 @@ ingest URL keeps the static-only constraint intact.
 
 ### C. GoatCounter or Plausible analytics
 
-Privacy-friendly, simpler, smaller. **Rejected** for the same reason as A —
+Privacy-friendly, simpler, smaller. **Rejected** for the same reason as A:
 analytics-only, no error tracking. Could be added alongside Sentry if
 visitor metrics are wanted; orthogonal to this decision.
 
@@ -106,7 +106,7 @@ without rewiring the runtime path.
 
 ### Costs
 
-- One new third-party domain in CSP (`*.sentry.io`, `*.ingest.sentry.io`) —
+- One new third-party domain in CSP (`*.sentry.io`, `*.ingest.sentry.io`):
   documented in README. CSP loosening is small but real.
 - One runtime dependency (`@sentry/browser` is ~30 KB gzipped, lazy-loaded
   after the page is interactive via Sentry's standard init pattern).
@@ -122,7 +122,7 @@ without rewiring the runtime path.
 3. Verify by visiting the deployed preview, throwing a synthetic error from
    DevTools console, and confirming the issue appears in Sentry within a
    minute.
-4. Until step 2 is done, the init module is a no-op — the site behaves
+4. Until step 2 is done, the init module is a no-op: the site behaves
    identically to before this ADR. Forks without the DSN see zero impact.
 
 ## Open follow-ups

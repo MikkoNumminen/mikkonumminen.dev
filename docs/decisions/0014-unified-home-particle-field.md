@@ -1,4 +1,4 @@
-# ADR 0014 — One uniform-driven particle field for the entire home page
+# ADR 0014: One uniform-driven particle field for the entire home page
 
 **Status:** accepted
 **Date:** 2026-07-24
@@ -20,12 +20,12 @@ Two forces pushed against that architecture:
 - **Measured opening jank.** Profiling (Long Animation Frames, production
   build) attributed the page's start-up stutter to first-frame shader
   compilation: compiling ~10 material programs under 8 lights blocked the main
-  thread **306 ms** (warm driver cache — cold visits worse), landing exactly in
+  thread **306 ms** (warm driver cache: cold visits worse), landing exactly in
   the window where a visitor's first scroll input arrives. Asset loading and
   scene construction measured clean; the compile burst was the dominant cause.
 - **A design goal**: one continuous background that lives through the whole
-  scroll — galaxy on load, the name formed *from* particles, then a calm
-  starfield persisting behind every section — with all interactivity expressed
+  scroll: galaxy on load, the name formed *from* particles, then a calm
+  starfield persisting behind every section, with all interactivity expressed
   through the same field rather than per-element effect systems.
 
 Constraints: the CSP forbids workers (`worker-src 'none'`, so no
@@ -41,7 +41,7 @@ full-viewport, opaque canvas** behind the entire page
 
 - **Per-state target attributes, uniform-driven morph.** Every particle
   carries a galaxy position, a name position (sampled from "MIKKO NUMMINEN"
-  rasterised on a hidden 2D canvas — the particles *are* the name; there is no
+  rasterised on a hidden 2D canvas: the particles *are* the name; there is no
   text mesh), and a starfield position. Two uniforms compose the state:
   `uForm` (time-driven load-in) and `uDissolve` (ScrollTrigger-scrubbed), so
   scrolling back to the top re-forms the name for free. Per-section moods
@@ -61,7 +61,7 @@ full-viewport, opaque canvas** behind the entire page
   never gated. This moves the entire compile cost behind an intentional
   overlay instead of under the visitor's first scroll.
 - **Bloom via pmndrs `postprocessing`** (the one new runtime dependency),
-  intensity state-driven — loudest on the galaxy, calm on the formed name,
+  intensity state-driven: loudest on the galaxy, calm on the formed name,
   near-off in the starfield. The composer pairs with
   `renderer.outputColorSpace = LinearSRGBColorSpace` (the composer applies the
   single final sRGB encode; leaving the renderer's own conversion on
@@ -82,7 +82,7 @@ Shipped as PR #406 (squash `ea93dd3`); the goat easter egg migrated to
   particles), and the ~10-program surface keeps cold-visit compile cost high
   behind a correspondingly longer gate.
 - **DOM/CSS name over a separate particle background.** Rejected: the name
-  can't dissolve into the field it sits on — the transition between "text" and
+  can't dissolve into the field it sits on: the transition between "text" and
   "particles" is the centrepiece, and it requires both to be the same system.
 - **OffscreenCanvas + worker for warm-up.** Rejected: `worker-src 'none'` in
   the CSP (kept deliberately; see the threat model).

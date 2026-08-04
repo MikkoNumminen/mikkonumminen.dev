@@ -16,6 +16,10 @@ import { describe, expect, it } from 'vitest';
  * scanned raw. A guard that fires on something legitimate gets deleted instead
  * of read.
  *
+ * `docs/decisions` is covered because the ADRs are indexed into the RAG corpus
+ * too (bind-mounted as ADR_DIR). They are excluded from retrieval by default,
+ * but that is a config flag, not a guarantee.
+ *
  * `content/` prose is covered too: it is the RAG corpus, so it reaches readers
  * as retrieved context behind generated answers. Code fences inside it are
  * skipped, and `content/code/` is skipped entirely, for the same reason
@@ -68,6 +72,22 @@ describe('no em dashes in user-facing prose', () => {
       }
     };
     walk('content');
+    expect(offenders).toEqual([]);
+  });
+
+  it('no architecture decision record carries one', () => {
+    const offenders: string[] = [];
+    for (const file of readdirSync('docs/decisions')) {
+      if (!file.endsWith('.md')) continue;
+      let inFence = false;
+      readFileSync(join('docs/decisions', file), 'utf8')
+        .split('\n')
+        .forEach((line) => {
+          if (line.trimStart().startsWith('```')) inFence = !inFence;
+          else if (!inFence && line.includes(EM_DASH))
+            offenders.push(`${file}: ${line.trim().slice(0, 100)}`);
+        });
+    }
     expect(offenders).toEqual([]);
   });
 
