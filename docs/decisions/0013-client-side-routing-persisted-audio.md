@@ -1,4 +1,4 @@
-# ADR 0013: Client-side routing (Astro ClientRouter) with a persisted audio element
+# ADR 0013 · Client-side routing (Astro ClientRouter) with a persisted audio element
 
 **Status:** accepted
 **Date:** 2026-07-23

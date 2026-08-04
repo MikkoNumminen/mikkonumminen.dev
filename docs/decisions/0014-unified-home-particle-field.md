@@ -1,4 +1,4 @@
-# ADR 0014: One uniform-driven particle field for the entire home page
+# ADR 0014 · One uniform-driven particle field for the entire home page
 
 **Status:** accepted
 **Date:** 2026-07-24

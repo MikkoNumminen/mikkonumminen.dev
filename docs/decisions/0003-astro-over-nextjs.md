@@ -1,4 +1,4 @@
-# ADR 0003: Astro over Next.js for the portfolio
+# ADR 0003 · Astro over Next.js for the portfolio
 
 **Status:** accepted
 **Date:** 2026-05-17

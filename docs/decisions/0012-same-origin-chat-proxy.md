@@ -1,4 +1,4 @@
-# ADR 0012: Same-origin proxy for the RAG chat via Vercel rewrites
+# ADR 0012 · Same-origin proxy for the RAG chat via Vercel rewrites
 
 **Status:** accepted
 **Date:** 2026-07-10

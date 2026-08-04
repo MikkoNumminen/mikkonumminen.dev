@@ -1,4 +1,4 @@
-# ADR 0007: Upgrade to Astro 6 + Node 22
+# ADR 0007 · Upgrade to Astro 6 + Node 22
 
 **Status:** accepted
 **Date:** 2026-06-13

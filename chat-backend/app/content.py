@@ -247,7 +247,7 @@ def load_adr_doc(path: Path, project: str) -> ContentDoc | None:
     """Parse one ADR / design-note markdown file into a `ContentDoc`.
 
     ADRs live outside the content tree (a separate, bind-mounted decisions dir),
-    carry no front-matter, and follow a fixed header (`# ADR NNNN — Title`, then a
+    carry no front-matter, and follow a fixed header (`# ADR NNNN · Title`, then a
     `**Date:** YYYY-MM-DD` line). The title is the H1; the date is parsed from that
     line; `source` is namespaced `decisions/<filename>` so it never collides with a
     content-tree path. Ingested as prose (kind='project', so the weak-retrieval gate

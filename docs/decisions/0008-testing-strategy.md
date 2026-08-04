@@ -1,4 +1,4 @@
-# ADR 0008: Testing & verification strategy
+# ADR 0008 · Testing & verification strategy
 
 **Status:** accepted
 **Date:** 2026-06-14

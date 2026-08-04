@@ -1,4 +1,4 @@
-# ADR 0002: Static output only
+# ADR 0002 · Static output only
 
 **Status:** accepted
 **Date:** 2026-05-17

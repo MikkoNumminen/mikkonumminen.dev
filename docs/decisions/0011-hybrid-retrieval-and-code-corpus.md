@@ -1,4 +1,4 @@
-# ADR 0011: Hybrid retrieval over a code-enriched corpus for the RAG chat
+# ADR 0011 · Hybrid retrieval over a code-enriched corpus for the RAG chat
 
 **Status:** accepted
 **Date:** 2026-06-26

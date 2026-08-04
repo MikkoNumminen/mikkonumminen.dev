@@ -1,4 +1,4 @@
-# ADR 0016: The home field reshapes continuously; the name is one shape of four
+# ADR 0016 · The home field reshapes continuously; the name is one shape of four
 
 **Status:** accepted
 **Date:** 2026-07-25

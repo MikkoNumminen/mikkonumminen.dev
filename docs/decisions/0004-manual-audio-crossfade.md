@@ -1,4 +1,4 @@
-# ADR 0004: Manual dual-deck crossfade for seamless audio looping
+# ADR 0004 · Manual dual-deck crossfade for seamless audio looping
 
 **Status:** accepted
 **Date:** 2026-05-17

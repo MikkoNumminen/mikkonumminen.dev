@@ -1,4 +1,4 @@
-# ADR 0009: Local RAG chat backend as a separate, optional service
+# ADR 0009 · Local RAG chat backend as a separate, optional service
 
 **Status:** accepted
 **Date:** 2026-06-18

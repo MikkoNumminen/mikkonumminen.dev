@@ -1,4 +1,4 @@
-# ADR 0017: A public write endpoint that cannot publish: the shoutbox moderation queue
+# ADR 0017 · A public write endpoint that cannot publish: the shoutbox moderation queue
 
 **Status:** accepted
 **Date:** 2026-08-03

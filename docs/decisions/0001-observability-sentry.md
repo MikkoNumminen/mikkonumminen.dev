@@ -1,4 +1,4 @@
-# ADR 0001: Client-side observability via Sentry + Web Vitals
+# ADR 0001 · Client-side observability via Sentry + Web Vitals
 
 **Status:** accepted
 **Date:** 2026-05-08

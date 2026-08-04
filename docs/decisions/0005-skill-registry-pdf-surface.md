@@ -1,4 +1,4 @@
-# ADR 0005: Skill registry as a terminal-download PDF
+# ADR 0005 · Skill registry as a terminal-download PDF
 
 **Status:** accepted, amended 2026-06-04 (PR #204): the registry download moved from `download --skills` to `download --catalog`; see the Amendment at the end. **Decision 3 (the `prebuild` auto-sync) was superseded 2026-06-13 by [ADR 0006](./0006-skill-registry-canonical-artifact.md)**. The registry is now enriched locally and committed as canonical, no longer auto-synced at build time. The body below records the original 2026-05-19 decision.
 **Date:** 2026-05-19

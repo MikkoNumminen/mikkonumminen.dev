@@ -1,4 +1,4 @@
-# ADR 0010: Layered architectural containment for the RAG chat
+# ADR 0010 · Layered architectural containment for the RAG chat
 
 **Status:** accepted
 **Date:** 2026-06-26

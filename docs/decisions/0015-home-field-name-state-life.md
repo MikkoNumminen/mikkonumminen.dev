@@ -1,4 +1,4 @@
-# ADR 0015: Life in the home field's name state: micro-life, a click impulse, and an idle choreography
+# ADR 0015 · Life in the home field's name state: micro-life, a click impulse, and an idle choreography
 
 **Status:** accepted (the idle choreography is superseded by [ADR 0016](0016-continuous-shape-cycle.md); the micro-life and click-impulse decisions stand)
 **Date:** 2026-07-25

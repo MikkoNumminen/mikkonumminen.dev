@@ -1,4 +1,4 @@
-# ADR 0006: Committed skills-registry JSON is canonical; prebuild no longer auto-syncs it
+# ADR 0006 · Committed skills-registry JSON is canonical; prebuild no longer auto-syncs it
 
 **Status:** accepted, supersedes [ADR 0005](./0005-skill-registry-pdf-surface.md)'s Decision 3 (the `prebuild` auto-sync of the registry JSON).
 **Date:** 2026-06-13
