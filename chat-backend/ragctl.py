@@ -45,6 +45,7 @@ import time
 import urllib.request
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -1257,6 +1258,170 @@ def cmd_english(state: str | None) -> int:
     return 0
 
 
+# --- feature flags ----------------------------------------------------------
+#
+# The RAG behaviour dials in one place, because they were spread across three
+# sources and only one of them decides anything: the repo `.env`, `config.py`'s
+# defaults, and docker-compose's environment block. A knob absent from compose
+# CANNOT be set — the value never crosses into the process and the default
+# stands, silently. So `features` reports what the RUNNING PROCESS resolved
+# rather than what `.env` says; those are different questions, and only one of
+# them describes behaviour.
+
+
+@dataclass(frozen=True)
+class Feature:
+    """One controllable dial: CLI name, env var, and Settings attribute."""
+
+    name: str
+    env: str
+    attr: str
+    kind: str  # "bool" | "int"
+    summary: str
+
+
+FEATURES: tuple[Feature, ...] = (
+    Feature("finnish", "RAG_ALLOW_FINNISH", "rag_allow_finnish", "bool",
+            "answer a Finnish question in Finnish"),
+    Feature("translate", "RAG_TRANSLATE_RETRIEVAL", "rag_translate_retrieval", "bool",
+            "retrieve a Finnish query via an English translation"),
+    Feature("disclosure", "PROGRESSIVE_DISCLOSURE_ENABLED",
+            "progressive_disclosure_enabled", "bool",
+            "offer 'tell me more' and expand on the follow-up"),
+    Feature("hybrid", "HYBRID_ENABLED", "hybrid_enabled", "bool",
+            "fuse lexical BM25 with dense retrieval (off = dense only)"),
+    Feature("project-filter", "PROJECT_FILTER_STRICT", "project_filter_strict", "bool",
+            "restrict retrieval to a named project (fails open)"),
+    Feature("shoutbox", "SHOUTBOX_ENABLED", "shoutbox_enabled", "bool",
+            "accept POST /shout into the moderation queue"),
+    Feature("log-text", "RAG_LOG_TEXT", "rag_log_text", "bool",
+            "log question + answer TEXT (never IP, never identity)"),
+    Feature("english", "FORCE_ENGLISH", "force_english", "bool",
+            "force every answer to English (see also: ragctl english)"),
+    Feature("diversity", "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT",
+            "retrieval_diversity_max_per_project", "int",
+            "max chunks per project when the query names none"),
+    Feature("research-top-n", "RESEARCH_COVERAGE_TOP_N", "research_coverage_top_n",
+            "int", "newest research posts forced into a recency answer (0 = off)"),
+)
+
+_FEATURES_BY_NAME = {f.name: f for f in FEATURES}
+_TRUE_WORDS = {"1", "true", "yes", "on"}
+_FALSE_WORDS = {"0", "false", "no", "off"}
+
+
+def _is_on(raw: str) -> bool:
+    return raw.strip().lower() in _TRUE_WORDS
+
+
+def live_feature_values() -> dict[str, str] | None:
+    """What the RUNNING backend resolved for each dial, or None if it is down.
+
+    Read from inside the container, not from `.env`: the two disagree whenever a
+    knob is missing from compose, and only the container's answer describes what
+    the service actually does.
+    """
+    attrs = ", ".join(f'"{f.attr}": str(s.{f.attr})' for f in FEATURES)
+    code = (
+        "import json;from app.config import Settings;"
+        f"s=Settings.from_env();print(json.dumps({{{attrs}}}))"
+    )
+    rc, out = run(
+        COMPOSE + ["exec", "-T", "backend", "python", "-c", code],
+        timeout=30,
+        cwd=REPO,
+    )
+    if rc != 0 or not out.strip():
+        return None
+    try:
+        parsed = json.loads(out.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return None
+    return {str(k): str(v) for k, v in parsed.items()}
+
+
+def cmd_features() -> int:
+    """List every dial with the value the running backend actually resolved."""
+    live = live_feature_values()
+    print()
+    if live is None:
+        print(f"  {_c('o', '31')} backend not reachable — values unknown.")
+        print("  start it with `up`, then re-run to see what is live.")
+        print()
+    width = max(len(f.name) for f in FEATURES)
+    for f in FEATURES:
+        raw = live.get(f.attr) if live else None
+        if raw is None:
+            shown = _c("?", "33")
+        elif f.kind == "bool":
+            on = _is_on(raw) or raw == "True"
+            shown = _c("on" if on else "off", "32" if on else "33")
+        else:
+            shown = _c(raw, "36")
+        print(f"  {f.name.ljust(width)}  {shown}")
+        print(f"  {' ' * width}  {_c(f.summary, '90')}")
+    print()
+    print(f"  set one with:  {_c('ragctl feature <name> <value>', '1')}")
+    print(f"  {_c('values read from inside the container, not from .env', '90')}")
+    print()
+    return 0
+
+
+def cmd_feature(name: str, value: str) -> int:
+    """Set one dial, recreate the backend, then PROVE the change took."""
+    feature = _FEATURES_BY_NAME.get(name)
+    if feature is None:
+        known = ", ".join(sorted(_FEATURES_BY_NAME))
+        print(f"\n  unknown feature {name!r}. known: {known}\n")
+        return 2
+
+    word = value.strip().lower()
+    if feature.kind == "bool":
+        if word in _TRUE_WORDS:
+            env_value = "1"
+        elif word in _FALSE_WORDS:
+            env_value = "0"
+        else:
+            print(f"\n  {feature.name} is on/off — got {value!r}\n")
+            return 2
+    elif not word.lstrip("-").isdigit():
+        print(f"\n  {feature.name} takes a number — got {value!r}\n")
+        return 2
+    else:
+        env_value = word
+
+    before = live_feature_values() or {}
+    set_env_vars({feature.env: env_value})
+    print(f"\n  applying → {feature.env}={env_value}  ·  {feature.summary}")
+    print("  ◐ recreating backend with the new config …")
+    run(COMPOSE + ["up", "-d", "--build", "backend"], cwd=REPO, timeout=300)
+
+    after = live_feature_values()
+    if after is None:
+        print(f"  {_c('x', '31')} backend did not come back — check `ragctl status`\n")
+        return 1
+
+    got = str(after.get(feature.attr))
+    # Assert INSIDE the container. A compose "Started" line is not evidence the
+    # process read anything, and a knob missing from the environment block fails
+    # exactly this way: .env changes, behaviour does not.
+    if feature.kind == "bool":
+        ok = (_is_on(got) or got == "True") == (env_value == "1")
+    else:
+        ok = got == env_value
+    if not ok:
+        print(f"  {_c('x', '31')} {feature.env} is still {got!r} in the container.")
+        print(f"    The value never reached the process — check that {feature.env}")
+        print("    is listed in docker-compose.yml's backend environment block.")
+        print()
+        return 1
+
+    was = before.get(feature.attr, "?")
+    print(f"  {_c('ok', '32')} live: {feature.env} {was} -> {got}")
+    print()
+    return 0
+
+
 def cmd_usage(hours: int) -> int:
     """Show how much the model has been used over the last `hours` (default 24).
 
@@ -1320,6 +1485,7 @@ _MENU: list[tuple[str, str]] = [
 # Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
 _VERBS = [
     "status", "watch", "doctor", "up", "down", "test", "model", "english",
+    "features", "feature",
     "usage", "logs", "queue", "approve", "reject", "reply", "publish",
     "prune", "watchdog", "exit", "quit",
 ]
@@ -1562,6 +1728,10 @@ def _build_parser() -> argparse.ArgumentParser:
     rp.add_argument("id", type=int, help="the id shown by `queue`")
     rp.add_argument("text", help="the reply, published with the message")
     sub.add_parser("publish", help="shoutbox: rewrite snapshot from approved")
+    sub.add_parser("features", help="list the RAG dials + what the container resolved")
+    ft = sub.add_parser("feature", help="set one RAG dial and recreate the backend")
+    ft.add_argument("name", help="dial name (see `ragctl features`)")
+    ft.add_argument("value", help="on|off for a toggle, a number for a count")
     wd = sub.add_parser(
         "watchdog",
         help="guard the public path and auto-recover a stale funnel (Ctrl-C stops)",
@@ -1605,6 +1775,10 @@ def dispatch(argv: list[str]) -> int:
         return cmd_model(args.name, args.effort, args.context, not args.no_test)
     if args.cmd == "english":
         return cmd_english(args.state)
+    if args.cmd == "features":
+        return cmd_features()
+    if args.cmd == "feature":
+        return cmd_feature(args.name, args.value)
     if args.cmd == "usage":
         return cmd_usage(args.hours)
     if args.cmd == "logs":
