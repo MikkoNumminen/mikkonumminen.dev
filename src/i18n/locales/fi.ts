@@ -7,26 +7,26 @@ export const fi: Translations = {
   meta: {
     jobTitle: 'Fullstack-kehittäjä',
     home: {
-      title: 'Mikko Numminen — full-stack-kehittäjä',
+      title: 'Mikko Numminen · full-stack-kehittäjä',
       description:
         'Full-stack-kehittäjä Suomesta. Työmuistiinpanoja ja valittuja projekteja, toteutettu yksin ja tekoälylähtöisesti oletuksena.',
     },
     contact: {
-      title: 'Yhteystiedot — Mikko Numminen',
+      title: 'Yhteystiedot · Mikko Numminen',
       description:
-        'Ota yhteyttä Mikkoon — interaktiivinen terminaali, sähköposti, linkit ja CV:n lataus.',
+        'Ota yhteyttä Mikkoon interaktiivisessa terminaalissa: sähköposti, linkit ja CV:n lataus.',
     },
     projects: {
-      title: 'Projektit — Mikko Numminen',
+      title: 'Projektit · Mikko Numminen',
       description: 'Interaktiivinen aurinkokunta Mikko Nummisen valituista projekteista.',
     },
     experience: {
-      title: 'Kokemus — Mikko Numminen',
+      title: 'Kokemus · Mikko Numminen',
       description:
-        'Kiipeä vuorelle — Mikko Nummisen kokemus, taidot ja virstanpylväät perusleiristä tähän hetkeen.',
+        'Kiipeä vuorelle. Mikko Nummisen kokemus, taidot ja virstanpylväät perusleiristä tähän hetkeen.',
     },
     blog: {
-      title: 'Blogi — Mikko Numminen',
+      title: 'Blogi · Mikko Numminen',
       description:
         'Työmuistiinpanoja Mikko Nummisen projekteista. Commit-historiasta kirjoitetut merkinnät on merkitty tekoälyn generoimiksi.',
     },
@@ -42,7 +42,7 @@ export const fi: Translations = {
     skipToContent: 'Siirry sisältöön',
   },
   hero: {
-    sectionAria: 'Mikko Numminen — full-stack-kehittäjä',
+    sectionAria: 'Mikko Numminen · full-stack-kehittäjä',
     eyebrow: 'portfolio · 2026',
     titleSrOnly: 'Mikko Numminen',
     titleFallbackTop: 'MIKKO',
@@ -116,7 +116,7 @@ export const fi: Translations = {
     githubLink: 'github',
     gridAria: 'Projektit',
     gridLede:
-      'Projektini. Työpöytänäkymässä ne näkyvät interaktiivisena aurinkokuntana — tässä luettavana listana.',
+      'Projektini. Työpöytänäkymässä ne näkyvät interaktiivisena aurinkokuntana. Tässä se luettavana listana.',
     listAriaLabel: 'Projektiluettelo',
     listToggleShow: 'Projektit',
     listToggleHide: 'Piilota',
@@ -251,7 +251,7 @@ export const fi: Translations = {
   timelineData: {
     'hardware-retail': {
       title: 'Rautakauppa',
-      body: '24 vuotta rautakaupan alalla, pääosin perheyrityksen palveluksessa. Sisustus, remontointi, työkalut, rakentaminen — joka osasto, kaikenlaiset asiakkaat. Se työ joka opettaa mitä käyttäjä oikeasti tarvitsee, ennen kuin laitat ruudun väliin.',
+      body: '24 vuotta rautakaupan alalla, pääosin perheyrityksen palveluksessa. Sisustus, remontointi, työkalut, rakentaminen: joka osasto, kaikenlaiset asiakkaat. Se työ joka opettaa mitä käyttäjä oikeasti tarvitsee, ennen kuin laitat ruudun väliin.',
       tags: ['Asiakaspalvelu', 'Perheyritys', '24 vuotta'],
     },
     kasvulabs: {
@@ -276,7 +276,7 @@ export const fi: Translations = {
     },
     'ai-workflows': {
       title: 'AI-natiivit työnkulut',
-      body: 'Agenttilähtöistä, AI-avusteista kehitystä versioituna kurinalaisuutena. Mukautetut Claude Code -skillit menevät repoon tuotantoartefakteina — jokainen opettaa agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki) niin että se menee suoraan asiaan eikä grepaa ympäriinsä hinnalla $X/token. Parikoodausta rinnakkaisilla subagenteilla itsenäisten siivujen yli, sen jälkeen tulosten synteesi.\n\nSkillit ovat versionhallinnassa, auditoituja (skillin ja sen viittaaman koodin välinen drift on aito bugiluokka — drift napataan ja korjataan), ja niitä käsitellään tuotantoartefakteina. Arvioitu säästö pelkästään Spacepotatiksella: ~3,13M tokenia vuodessa. Nopeammin tuotantoon ilman että rima laskee.\n\nTyönkululla on omat työkalunsa: claude-continue pitää Claude Coden 5-tuntiset käyttöikkunat peräkkäin lukemalla aktiivisen ikkunan nollautumisajan ja jatkamalla keskeytettyjä istuntoja heti kun seuraava ikkuna avautuu — niin ettei pitkä autonominen ajo pysähdy ikkunoiden väliseen kuoppaan.',
+      body: 'Agenttilähtöistä, AI-avusteista kehitystä versioituna kurinalaisuutena. Mukautetut Claude Code -skillit menevät repoon tuotantoartefakteina. Jokainen opettaa agentille projektikohtaisen reseptin (lisää vihollinen, vie tietokantamigraatio, auditoi tallennusputki) niin että se menee suoraan asiaan eikä grepaa ympäriinsä hinnalla $X/token. Parikoodausta rinnakkaisilla subagenteilla itsenäisten siivujen yli, sen jälkeen tulosten synteesi.\n\nSkillit ovat versionhallinnassa, auditoituja (skillin ja sen viittaaman koodin välinen drift on aito bugiluokka, ja drift napataan ja korjataan), ja niitä käsitellään tuotantoartefakteina. Arvioitu säästö pelkästään Spacepotatiksella: ~3,13M tokenia vuodessa. Nopeammin tuotantoon ilman että rima laskee.\n\nTyönkululla on omat työkalunsa: claude-continue pitää Claude Coden 5-tuntiset käyttöikkunat peräkkäin lukemalla aktiivisen ikkunan nollautumisajan ja jatkamalla keskeytettyjä istuntoja heti kun seuraava ikkuna avautuu, niin ettei pitkä autonominen ajo pysähdy ikkunoiden väliseen kuoppaan.',
       tags: [
         'Agenttikehitys',
         'Mukautetut skillit',
@@ -287,8 +287,8 @@ export const fi: Translations = {
       ],
     },
     '2026-build': {
-      title: '2026 — rakennusvuosi',
-      body: 'Kesäkuussa 2026: yhdeksän projektia tuotantoon yksin yhden vuoden sisällä — full-stack-verkkosovelluksia, työpöytätyökalu ja Azureen julkaistu ReadLog-käännös. Oikeita käyttäjiä, oikeaa ops-puolta, täysi omistajuus skeemasta deployhin.',
+      title: 'Rakennusvuosi 2026',
+      body: 'Kesäkuussa 2026: yhdeksän projektia tuotantoon yksin yhden vuoden sisällä. Full-stack-verkkosovelluksia, työpöytätyökalu ja Azureen julkaistu ReadLog-käännös. Oikeita käyttäjiä, oikeaa ops-puolta, täysi omistajuus skeemasta deployhin.',
       tags: [
         '9 repoa',
         'Oikeita käyttäjiä',
@@ -308,7 +308,7 @@ export const fi: Translations = {
         },
         {
           title: 'AI-työnkulku osana koodia',
-          body: 'Spacepotatis toimittaa kokoelman Claude Code -skillejä repon sisällä — koodikatselmoidut ja auditoidut. ~3,13M tokenia säästöä ensimmäisenä vuotenaan.',
+          body: 'Spacepotatis toimittaa kokoelman Claude Code -skillejä repon sisällä, koodikatselmoidut ja auditoidut. ~3,13M tokenia säästöä ensimmäisenä vuotenaan.',
           link: {
             href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
             label: 'Menetelmä',
@@ -316,7 +316,7 @@ export const fi: Translations = {
         },
         {
           title: 'Ei työkalulukitusta',
-          body: 'AudiobookMaker pyörittää kolmea TTS-moottoria yhden putken alla — Edge-TTS, Piper, Chatterbox. Käyttäjä valitsee per kirja.',
+          body: 'AudiobookMaker pyörittää kolmea TTS-moottoria yhden putken alla: Edge-TTS, Piper, Chatterbox. Käyttäjä valitsee per kirja.',
         },
         {
           title: 'Mutaatiotestaus > kattavuus',
@@ -328,13 +328,13 @@ export const fi: Translations = {
         },
         {
           title: 'Yksin full-stack, ei jonoja',
-          body: 'SQL, sovelluskoodi, CI, Vercel- ja Azure-deployt, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry — omistettuna päästä päähän kaikissa yhdeksässä projektissa.',
+          body: 'SQL, sovelluskoodi, CI, Vercel- ja Azure-deployt, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry. Omistettuna päästä päähän kaikissa yhdeksässä projektissa.',
         },
       ],
     },
     'skill-receipts': {
       title: 'Mittasin AI-työnkulun',
-      body: 'Vuoden ajan väitin että työnkulku kannattaa, joten ajoin A/B:n. Jokainen mukautettu Claude Code -skilli mitattuna itseään vastaan kylmänä — sama tehtävä, subagent päällä, subagent pois — Sonnetilla, Opuksella ja Haikulla. 34 skilliä, 33 kalibroitua. Yhteissäästö: +17 %, noin 327K tokenia portfoliossa.\n\nJulkaistuun rekisteriin kuuluvat ne skillit jotka maksoivat ENEMMÄN kuin kylmänä meneminen. Ne eivät ole epäonnistumisia — niissä on tarkkuutta jonka kylmä haara ohitti (auditin perusteellisuus, protokollakuri, spec-syvyys). Arvo on täydellisyys, ei pakkaaminen. PDF on ladattavissa contact-terminaalista; jokainen luku on jäljitettävissä oikeaan transkriptiin.',
+      body: 'Vuoden ajan väitin että työnkulku kannattaa, joten ajoin A/B:n. Jokainen mukautettu Claude Code -skilli mitattuna itseään vastaan kylmänä, sama tehtävä subagent päällä ja pois, Sonnetilla, Opuksella ja Haikulla. 34 skilliä, 33 kalibroitua. Yhteissäästö: +17 %, noin 327K tokenia portfoliossa.\n\nJulkaistuun rekisteriin kuuluvat ne skillit jotka maksoivat ENEMMÄN kuin kylmänä meneminen. Ne eivät ole epäonnistumisia. Niissä on tarkkuutta jonka kylmä haara ohitti (auditin perusteellisuus, protokollakuri, spec-syvyys). Arvo on täydellisyys, ei pakkaaminen. PDF on ladattavissa contact-terminaalista; jokainen luku on jäljitettävissä oikeaan transkriptiin.',
       tags: [
         'A/B-kalibroitu',
         '34 skilliä',
@@ -345,7 +345,7 @@ export const fi: Translations = {
     },
     'rust-crypto': {
       title: 'Rust, ja oman työn tarkistaminen',
-      body: 'Uusi kieli ja tiukempi näytön vaatimus tulivat yhtä aikaa. Kieli on Rust, jonka otin käyttöön salasanahallintaan, jossa koko kryptografinen pinta asuu yhdessä cratessa, joka kääntyy sekä natiivisti että WebAssemblyksi. Komentorivikassa, synkronointipalvelin, selaimessa toimiva client ja Chrome-laajennus ajavat kaikki samaa koodia — neljän toisistaan hiljalleen loittonevan kopion sijaan.\n\nTapa oli kieltäytyä uskomasta omaa sanaani mistään. Avaimenjohtamisen parametrit, nonce-strategia, se mihin autentikoitu salateksti on sidottu: jokainen niistä on kirjattu päätös, johon liittyy uhkamalli, mukaan lukien selkeä lista siitä mitä suunnittelu ei suojaa. Repossa on tätä viimeistä kohtaa varten omat auditoijansa: yksi käy päätöskirjaukset läpi koodia vasten, toinen vertaa esitettyjä turvallisuusväitteitä siihen, mitä kryptografia todella tekee. Väite jota kukaan ei tarkista uudelleen on vain kommentti.',
+      body: 'Uusi kieli ja tiukempi näytön vaatimus tulivat yhtä aikaa. Kieli on Rust, jonka otin käyttöön salasanahallintaan, jossa koko kryptografinen pinta asuu yhdessä cratessa, joka kääntyy sekä natiivisti että WebAssemblyksi. Komentorivikassa, synkronointipalvelin, selaimessa toimiva client ja Chrome-laajennus ajavat kaikki samaa koodia, neljän toisistaan hiljalleen loittonevan kopion sijaan.\n\nTapa oli kieltäytyä uskomasta omaa sanaani mistään. Avaimenjohtamisen parametrit, nonce-strategia, se mihin autentikoitu salateksti on sidottu: jokainen niistä on kirjattu päätös, johon liittyy uhkamalli, mukaan lukien selkeä lista siitä mitä suunnittelu ei suojaa. Repossa on tätä viimeistä kohtaa varten omat auditoijansa: yksi käy päätöskirjaukset läpi koodia vasten, toinen vertaa esitettyjä turvallisuusväitteitä siihen, mitä kryptografia todella tekee. Väite jota kukaan ei tarkista uudelleen on vain kommentti.',
       tags: [
         'Rust',
         'WebAssembly',
@@ -386,7 +386,7 @@ export const fi: Translations = {
   contactPage: {
     h1: 'Yhteystiedot',
     interactiveAria: 'Interaktiivinen terminaali',
-    windowTitle: 'mikko@portfolio — zsh — 96×30',
+    windowTitle: 'mikko@portfolio · zsh · 96×30',
     inputAria: 'Terminaalin komentokenttä',
     hintType: 'kirjoita',
     hintHistory: 'historia',
@@ -398,7 +398,7 @@ export const fi: Translations = {
     noscriptGithubLabel: 'GitHub:',
   },
   mobileContact: {
-    typedWhoamiOutputName: 'Mikko Numminen — full-stack-kehittäjä · suomi',
+    typedWhoamiOutputName: 'Mikko Numminen · full-stack-kehittäjä · suomi',
     typedWhoamiOutputBio:
       'vie full-stack-tuotantosovellukset maaliin päästä päähän. sql:stä ops:iin.',
     typedContactLabelEmail: 'sähköposti',
@@ -419,7 +419,7 @@ export const fi: Translations = {
     bootMounting: '[ ok ] liitetään /portfolio',
     bootLoading: '[ ok ] ladataan projektit, kokemus, yhteystiedot',
     bootComms: '[ ok ] muodostetaan yhteyslinkki',
-    bootWelcome: 'tervetuloa — Mikko Numminen, full-stack-kehittäjä.',
+    bootWelcome: 'tervetuloa. Mikko Numminen, full-stack-kehittäjä.',
     bootTypeHelp: 'kirjoita `help` nähdäksesi mitä osaan.',
     commandNotFound: 'komentoa ei löydy:',
     typeHelpHint: 'kirjoita `help` nähdäksesi käytettävissä olevat komennot.',
@@ -454,65 +454,65 @@ export const fi: Translations = {
     cmdLinksUsage: 'käyttö: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'tuntematon valitsin:',
     cmdDownloadDesc:
-      'cv:ni tai tutkimus — katalogi, skills-tutkimukset, kalibrointi ja rag suomi -tutkimus (pdf)',
+      'cv:ni tai tutkimus: katalogi, skills-tutkimukset, kalibrointi ja rag suomi -tutkimus (pdf)',
     cmdDownloadUsage:
       'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
     cmdDownloadIntro: 'valitse mitä haluat napata:',
-    cmdDownloadOptionCv: 'cv:ni — pdf, koko ansioluettelo',
+    cmdDownloadOptionCv: 'cv:ni, pdf, koko ansioluettelo',
     cmdDownloadOptionSkills:
-      'kesäkuu 2026 · uusin + laajin — 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
+      'kesäkuu 2026 · uusin + laajin: 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
     cmdDownloadOptionResearch:
-      'tutkimus — 11 pdf:ää: skills-sarja + rag suomi -tutkimus + poro-löydökset + käännösauditointi + agenttidelegoinnin mittaus (ei lataus)',
+      'tutkimus, 11 pdf:ää: skills-sarja + rag suomi -tutkimus + poro-löydökset + käännösauditointi + agenttidelegoinnin mittaus (ei lataus)',
     cmdDownloadResearchIntro: 'katalogi + tutkimukset, vanhimmasta uusimpaan:',
     cmdDownloadOptionCatalog:
-      'jokainen skilli kaikista 4 reposta — inventaario, kustannukset mitattu (ei arvattu)',
+      'jokainen skilli kaikista 4 reposta: inventaario, kustannukset mitattu (ei arvattu)',
     cmdDownloadOptionStudy:
-      'toukokuu 2026 · optimointi — 5 kierrosta ennen/jälkeen yhdellä SKILL.md:llä; 3 kustannusansaa löydetty + korjattu',
+      'toukokuu 2026 · optimointi: 5 kierrosta ennen/jälkeen yhdellä SKILL.md:llä; 3 kustannusansaa löydetty + korjattu',
     cmdDownloadOptionReplicates:
-      'kierros 6 · meluisimmat solut mitattu uudelleen syvemmin — N=1-sattuma kumottu, ~+76 % vahvistettu',
+      'kierros 6 · meluisimmat solut mitattu uudelleen syvemmin: N=1-sattuma kumottu, ~+76 % vahvistettu',
     cmdDownloadOptionResults:
-      'synteesi — mitä kaksi skilliauditoijaa maksoivat (~36 % halvempi ajaa) ja mitkä ansat ne paljastivat',
+      'synteesi: mitä kaksi skilliauditoijaa maksoivat (~36 % halvempi ajaa) ja mitkä ansat ne paljastivat',
     cmdDownloadOptionFinnish:
-      'kesäkuu 2026 · rag suomi -koe — 3 paikallista 8B-mallia suomen synteesistä vs hallinnasta, yksittäismuuttuja, €0',
+      'kesäkuu 2026 · rag suomi -koe: 3 paikallista 8B-mallia suomen synteesistä vs hallinnasta, yksittäismuuttuja, €0',
     cmdDownloadOptionMethodology:
-      'kesäkuu 2026 · rag suomi -tutkimus, menetelmä — miten koe huomasi ja korjasi oman virheensä; prosessi, ei löydökset',
+      'kesäkuu 2026 · rag suomi -tutkimus, menetelmä: miten koe huomasi ja korjasi oman virheensä; prosessi, ei löydökset',
     cmdDownloadOptionBlindTest:
-      'heinäkuu 2026 · sokkotesti — äidinkielinen puhuja arvioi sokkona 3 paikallista mallia suomen luonnollisuudessa; Poro voittaa 26/30',
+      'heinäkuu 2026 · sokkotesti: äidinkielinen puhuja arvioi sokkona 3 paikallista mallia suomen luonnollisuudessa; Poro voittaa 26/30',
     cmdDownloadOptionPoro:
-      'heinäkuu 2026 · Poro-2-8B tuotannossa — mitä kaksi projektia mittasi, miksi toinen otti sen käyttöön ja toinen ei, sekä sen ympärille rakennettu deterministinen kerros',
+      'heinäkuu 2026 · Poro-2-8B tuotannossa: mitä kaksi projektia mittasi, miksi toinen otti sen käyttöön ja toinen ei, sekä sen ympärille rakennettu deterministinen kerros',
     cmdDownloadOptionTranslations:
-      'heinäkuu 2026 · käännösauditointi — paikallinen suomen kielen malli lukee sivuston kaikki 396 suomenkielistä merkkijonoa englanninkielistä lähdettä vasten; sen 276 ehdotetusta muutoksesta vain 2 kesti',
+      'heinäkuu 2026 · käännösauditointi: paikallinen suomen kielen malli lukee sivuston kaikki 396 suomenkielistä merkkijonoa englanninkielistä lähdettä vasten; sen 276 ehdotetusta muutoksesta vain 2 kesti',
     cmdDownloadOptionDelegation:
-      'heinäkuu 2026 · maksavatko halvat agentit itsensä takaisin — seitsemän mitattua delegointia yhdestä istunnosta; 3 seitsemästä huomasi jotain, minkä olisin itse jättänyt huomaamatta, 1 oli väärä löydös, eikä säästöä väitetä, koska vertailukohtaa ei voi mitata',
+      'heinäkuu 2026 · maksavatko halvat agentit itsensä takaisin: seitsemän mitattua delegointia yhdestä istunnosta; 3 seitsemästä huomasi jotain, minkä olisin itse jättänyt huomaamatta, 1 oli väärä löydös, eikä säästöä väitetä, koska vertailukohtaa ei voi mitata',
     cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
     cmdDownloadTryHint:
       'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` tai `download --finnish`.',
     cmdDownloadAmbiguous:
       'anna vain yksi seuraavista: --cv, --catalog, --study, --replicates, --results, --calibration tai --finnish.',
     cmdDownloadPreparing: 'valmistellaan latausta...',
-    cmdDownloadNotAvailable: 'cv ei vielä saatavilla — vielä viimeistelyssä.',
+    cmdDownloadNotAvailable: 'cv ei vielä saatavilla. vielä viimeistelyssä.',
     cmdDownloadSkillsNotAvailable:
-      'skillien kalibrointi-pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'skillien kalibrointi-pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadCatalogNotAvailable:
-      'skillirekisterin pdf ei vielä saatavilla — luo se ajamalla `npm run build:skills-pdf`.',
+      'skillirekisterin pdf ei vielä saatavilla. luo se ajamalla `npm run build:skills-pdf`.',
     cmdDownloadStudyNotAvailable:
-      'optimointitutkimuksen pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'optimointitutkimuksen pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadReplicatesNotAvailable:
-      'replikaattien pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'replikaattien pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadResultsNotAvailable:
-      'skilliauditoijan tulosten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'skilliauditoijan tulosten pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadFinnishNotAvailable:
-      'rag suomi -tutkimuksen pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'rag suomi -tutkimuksen pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadMethodologyNotAvailable:
-      'rag suomi -tutkimuksen menetelmän pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'rag suomi -tutkimuksen menetelmän pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadBlindTestNotAvailable:
-      'sokkotestin pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'sokkotestin pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadPoroNotAvailable:
-      'poro-löydösten pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'poro-löydösten pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadTranslationsNotAvailable:
-      'käännösauditoinnin pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'käännösauditoinnin pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadDelegationNotAvailable:
-      'agenttidelegoinnin mittauksen pdf ei ole juuri nyt saatavilla — ota yhteyttä, niin lähetän sen.',
+      'agenttidelegoinnin mittauksen pdf ei ole juuri nyt saatavilla. ota yhteyttä, niin lähetän sen.',
     cmdDownloadMeantime: 'sillä välin, ota yhteyttä:',
     cmdDownloadStarted: 'lataus aloitettu.',
     cmdClearDesc: 'tyhjennä näyttö',
@@ -547,13 +547,13 @@ export const fi: Translations = {
     cmdLsDesc: 'listaa projektit (kokeile `ls projects`)',
     cmdLsNoSuch: 'No such file or directory',
     cmdCatDesc: 'tulosta projekti tai cv (esim. `cat projects/hrm`)',
-    cmdCatUsage: 'käyttö: cat <polku> — kokeile `cat projects/hrm` tai `cat cv`',
+    cmdCatUsage: 'käyttö: cat <polku>, kokeile `cat projects/hrm` tai `cat cv`',
     cmdCatNoSuch: 'No such file or directory',
     cmdCvDesc: 'lyhyt cv-yhteenveto',
     cmdCvDownloadHint: 'aja `download --cv` saadaksesi koko ansioluettelon (pdf).',
     cmdSudoDesc: 'suorita komento toisena käyttäjänä',
     cmdSudoHire:
-      'pääsy myönnetty. laaditaan työtarjous — tavoitat minut yllä olevalla sähköpostilla.',
+      'pääsy myönnetty. laaditaan työtarjous. tavoitat minut yllä olevalla sähköpostilla.',
     cmdSudoDenied: 'hyvä yritys. tämä tapaus (ei) tule raportoiduksi.',
     cmdRmDesc: 'poista tiedostoja',
     cmdRmRefusal:
@@ -561,7 +561,7 @@ export const fi: Translations = {
     chatIntroReady: 'keskustelutila päällä.',
     chatIntroHow: 'kysy projekteista omin sanoin, komentoa ei tarvita.',
     chatThinking: '...ajatellaan',
-    chatError: 'yhteys katkesi — palataan käsikirjoitettuun tilaan.',
+    chatError: 'yhteys katkesi. palataan käsikirjoitettuun tilaan.',
     chatAskUsage: 'käyttö: ask "kysymyksesi projekteista"',
     chatHint: '…tai kysy suoraan projekteista',
   },

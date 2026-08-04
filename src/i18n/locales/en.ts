@@ -7,26 +7,26 @@ export const en: Translations = {
   meta: {
     jobTitle: 'Full-Stack Developer',
     home: {
-      title: 'Mikko Numminen — full-stack developer',
+      title: 'Mikko Numminen · full-stack developer',
       description:
         'Full-stack developer in Finland. Working notes and selected projects, shipped solo and AI-native by default.',
     },
     contact: {
-      title: 'Contact — Mikko Numminen',
+      title: 'Contact · Mikko Numminen',
       description:
-        'Reach Mikko Numminen — interactive terminal with email, links, and CV download.',
+        'Reach Mikko Numminen through an interactive terminal with email, links, and CV download.',
     },
     projects: {
-      title: 'Projects — Mikko Numminen',
+      title: 'Projects · Mikko Numminen',
       description: 'Interactive solar system of selected projects by Mikko Numminen.',
     },
     experience: {
-      title: 'Experience — Mikko Numminen',
+      title: 'Experience · Mikko Numminen',
       description:
-        "Climb the mountain — Mikko Numminen's experience, skills, and milestones from base camp to today.",
+        "Climb the mountain. Mikko Numminen's experience, skills, and milestones from base camp to today.",
     },
     blog: {
-      title: 'Blog — Mikko Numminen',
+      title: 'Blog · Mikko Numminen',
       description:
         'Working notes from the projects of Mikko Numminen. Entries written from the commit history are labelled as machine-generated.',
     },
@@ -42,7 +42,7 @@ export const en: Translations = {
     skipToContent: 'Skip to content',
   },
   hero: {
-    sectionAria: 'Mikko Numminen — full-stack developer',
+    sectionAria: 'Mikko Numminen · full-stack developer',
     eyebrow: 'portfolio · 2026',
     titleSrOnly: 'Mikko Numminen',
     titleFallbackTop: 'MIKKO',
@@ -113,7 +113,7 @@ export const en: Translations = {
     githubLink: 'github',
     gridAria: 'Projects',
     gridLede:
-      'Things I have built. The desktop view shows them as an interactive solar system — here is the readable list.',
+      'Things I have built. The desktop view shows them as an interactive solar system. Here is the readable list.',
     listAriaLabel: 'Project list',
     listToggleShow: 'Projects',
     listToggleHide: 'Hide',
@@ -254,7 +254,7 @@ export const en: Translations = {
   timelineData: {
     'hardware-retail': {
       title: 'Hardware retail',
-      body: '24 years in hardware retail, mostly at the family business. Decor, renovation, tools, construction — every category, every kind of customer. The kind of job that teaches you what users actually need before you ever put a screen between you and them.',
+      body: '24 years in hardware retail, mostly at the family business. Decor, renovation, tools, construction: every category, every kind of customer. The kind of job that teaches you what users actually need before you ever put a screen between you and them.',
       tags: ['Customer service', 'Family business', '24 years'],
     },
     kasvulabs: {
@@ -279,7 +279,7 @@ export const en: Translations = {
     },
     'ai-workflows': {
       title: 'AI-native workflows',
-      body: "Agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills check into the repo as production artifacts — each one teaches the agent a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so it goes straight to the work instead of grepping around at $X/token. Pair-programming with parallel subagents on independent slices, then synthesizing the results.\n\nThe skills are version-controlled, audited (drift between a skill and the code it references is a real category of bug — drift gets caught and corrected), and treated as production artifacts. Estimated saving: ~3.13M tokens/year on Spacepotatis alone. Shipping faster without lowering the bar.\n\nThe workflow has its own tooling: claude-continue keeps Claude Code's 5-hour usage windows back-to-back, reading the active window's reset time and resuming paused sessions the moment the next one opens — so a long autonomous run doesn't stall in the gap between windows.",
+      body: "Agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills check into the repo as production artifacts. Each one teaches the agent a project-specific recipe (add an enemy, ship a database migration, audit the save pipeline) so it goes straight to the work instead of grepping around at $X/token. Pair-programming with parallel subagents on independent slices, then synthesizing the results.\n\nThe skills are version-controlled, audited (drift between a skill and the code it references is a real category of bug, and drift gets caught and corrected), and treated as production artifacts. Estimated saving: ~3.13M tokens/year on Spacepotatis alone. Shipping faster without lowering the bar.\n\nThe workflow has its own tooling: claude-continue keeps Claude Code's 5-hour usage windows back-to-back, reading the active window's reset time and resuming paused sessions the moment the next one opens, so a long autonomous run doesn't stall in the gap between windows.",
       tags: [
         'Agentic dev',
         'Custom skills',
@@ -291,7 +291,7 @@ export const en: Translations = {
     },
     '2026-build': {
       title: 'The 2026 build',
-      body: 'As of June 2026: nine projects shipped solo in twelve months — full-stack web apps, a desktop tool, and a ReadLog port running live on Azure. Real users, real ops, full ownership from schema to deploy.',
+      body: 'As of June 2026: nine projects shipped solo in twelve months. Full-stack web apps, a desktop tool, and a ReadLog port running live on Azure. Real users, real ops, full ownership from schema to deploy.',
       tags: [
         '9 repos',
         'Real users',
@@ -311,7 +311,7 @@ export const en: Translations = {
         },
         {
           title: 'AI workflow as checked-in code',
-          body: 'Spacepotatis ships a catalog of Claude Code skills inside the repo — code-reviewed and audited. ~3.13M tokens saved in their first year.',
+          body: 'Spacepotatis ships a catalog of Claude Code skills inside the repo, code-reviewed and audited. ~3.13M tokens saved in their first year.',
           link: {
             href: 'https://github.com/MikkoNumminen/Spacepotatis/blob/master/docs/SKILLS.md',
             label: 'Methodology',
@@ -319,7 +319,7 @@ export const en: Translations = {
         },
         {
           title: 'No tool lock-in',
-          body: 'AudiobookMaker runs three TTS engines under one pipeline — Edge-TTS, Piper, Chatterbox. User picks per book.',
+          body: 'AudiobookMaker runs three TTS engines under one pipeline: Edge-TTS, Piper, Chatterbox. User picks per book.',
         },
         {
           title: 'Mutation testing > coverage',
@@ -331,13 +331,13 @@ export const en: Translations = {
         },
         {
           title: 'Solo full-stack, no queues',
-          body: 'SQL, app code, CI, Vercel and Azure deploys, signed Windows installers via GitHub Releases, OpenTelemetry — owned end to end across all nine projects.',
+          body: 'SQL, app code, CI, Vercel and Azure deploys, signed Windows installers via GitHub Releases, OpenTelemetry. Owned end to end across all nine projects.',
         },
       ],
     },
     'skill-receipts': {
       title: 'Measured the AI workflow',
-      body: "After a year of claiming the workflow paid off, I ran the A/B. Every custom Claude Code skill measured against itself going cold — same task, sub-agent on, sub-agent off — across Sonnet, Opus, and Haiku. 34 skills, 33 calibrated. Aggregate save: +17%, ~327K tokens across the portfolio.\n\nThe published registry includes the skills that cost MORE than going cold. Those aren't failures — they encode rigor the cold arm skipped (audit thoroughness, protocol discipline, spec depth). The value is completeness, not compression. The PDF is downloadable from the contact terminal; every number is traceable to a real transcript.",
+      body: "After a year of claiming the workflow paid off, I ran the A/B. Every custom Claude Code skill measured against itself going cold, the same task with the sub-agent on and off, across Sonnet, Opus, and Haiku. 34 skills, 33 calibrated. Aggregate save: +17%, ~327K tokens across the portfolio.\n\nThe published registry includes the skills that cost MORE than going cold. Those aren't failures. They encode rigor the cold arm skipped (audit thoroughness, protocol discipline, spec depth). The value is completeness, not compression. The PDF is downloadable from the contact terminal; every number is traceable to a real transcript.",
       tags: [
         'A/B calibrated',
         '34 skills',
@@ -389,7 +389,7 @@ export const en: Translations = {
   contactPage: {
     h1: 'Contact',
     interactiveAria: 'Interactive terminal',
-    windowTitle: 'mikko@portfolio — zsh — 96×30',
+    windowTitle: 'mikko@portfolio · zsh · 96×30',
     inputAria: 'Terminal command input',
     hintType: 'type',
     hintHistory: 'history',
@@ -400,7 +400,7 @@ export const en: Translations = {
     noscriptGithubLabel: 'GitHub:',
   },
   mobileContact: {
-    typedWhoamiOutputName: 'Mikko Numminen — full-stack developer · finland',
+    typedWhoamiOutputName: 'Mikko Numminen · full-stack developer · finland',
     typedWhoamiOutputBio: 'ships full-stack production apps end to end. sql to ops.',
     typedContactLabelEmail: 'email',
     typedContactLabelLinkedin: 'linkedin',
@@ -419,7 +419,7 @@ export const en: Translations = {
     bootMounting: '[ ok ] mounting /portfolio',
     bootLoading: '[ ok ] loading projects, experience, contact',
     bootComms: '[ ok ] establishing comms link',
-    bootWelcome: 'welcome to Mikko Numminen — full-stack developer.',
+    bootWelcome: 'welcome to Mikko Numminen, full-stack developer.',
     bootTypeHelp: 'type `help` to see what i can do.',
     commandNotFound: 'command not found:',
     typeHelpHint: 'type `help` to see available commands.',
@@ -453,65 +453,65 @@ export const en: Translations = {
     cmdLinksUsage: 'usage: links [--github|--linkedin|--all]',
     cmdLinksUnknownFlag: 'unknown flag:',
     cmdDownloadDesc:
-      'my cv, or the research — catalog, skills studies, calibration, and a rag finnish study (pdf)',
+      'my cv, or the research: catalog, skills studies, calibration, and a rag finnish study (pdf)',
     cmdDownloadUsage:
       'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
     cmdDownloadIntro: "pick what you'd like to grab:",
-    cmdDownloadOptionCv: 'my cv — pdf, full résumé',
+    cmdDownloadOptionCv: 'my cv: pdf, full résumé',
     cmdDownloadOptionSkills:
-      'jun 2026 · latest + broadest — 16 skills, cold-vs-skill A/B across 3 models; the current snapshot',
+      'jun 2026 · latest + broadest: 16 skills, cold-vs-skill A/B across 3 models; the current snapshot',
     cmdDownloadOptionResearch:
-      'the research — 11 pdfs: the skills suite + the rag finnish study + the poro findings + the translation audit + the agent delegation measurement (not a download)',
+      'the research, 11 pdfs: the skills suite + the rag finnish study + the poro findings + the translation audit + the agent delegation measurement (not a download)',
     cmdDownloadResearchIntro: 'the catalog + the studies, oldest → newest:',
     cmdDownloadOptionCatalog:
-      'every skill across all 4 repos — the inventory, with measured (not guessed) costs',
+      'every skill across all 4 repos: the inventory, with measured (not guessed) costs',
     cmdDownloadOptionStudy:
-      'may 2026 · the optimization — 5 rounds of before/after on a SKILL.md; 3 cost-traps found + fixed',
+      'may 2026 · the optimization: 5 rounds of before/after on a SKILL.md; 3 cost-traps found + fixed',
     cmdDownloadOptionReplicates:
-      'round 6 · the noisiest cells re-measured at depth — an N=1 fluke overturned, ~+76% confirmed',
+      'round 6 · the noisiest cells re-measured at depth: an N=1 fluke overturned, ~+76% confirmed',
     cmdDownloadOptionResults:
-      'the synthesis — what the two skill-auditors cost (~36% cheaper to run) and the traps they exposed',
+      'the synthesis: what the two skill-auditors cost (~36% cheaper to run) and the traps they exposed',
     cmdDownloadOptionFinnish:
-      'jun 2026 · the rag finnish experiment — 3 local 8B models on Finnish synthesis vs containment, single-variable, €0',
+      'jun 2026 · the rag finnish experiment: 3 local 8B models on Finnish synthesis vs containment, single-variable, €0',
     cmdDownloadOptionMethodology:
-      'jun 2026 · finnish rag, the methodology — how the experiment caught and corrected its own mistake; the process, not the findings',
+      'jun 2026 · finnish rag, the methodology: how the experiment caught and corrected its own mistake; the process, not the findings',
     cmdDownloadOptionBlindTest:
-      'jul 2026 · the blind test — a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
+      'jul 2026 · the blind test: a native speaker ranks 3 local models blind on Finnish naturalness; Poro wins 26/30',
     cmdDownloadOptionPoro:
-      'jul 2026 · Poro-2-8B in production — what two projects measured, why one adopted it and one passed, and the deterministic layer built around it',
+      'jul 2026 · Poro-2-8B in production: what two projects measured, why one adopted it and one passed, and the deterministic layer built around it',
     cmdDownloadOptionTranslations:
-      "jul 2026 · the translation audit — a local Finnish model re-reads all 396 of the site's Finnish strings against their English source; only 2 of its 276 proposed rewrites held up",
+      "jul 2026 · the translation audit: a local Finnish model re-reads all 396 of the site's Finnish strings against their English source; only 2 of its 276 proposed rewrites held up",
     cmdDownloadOptionDelegation:
-      'jul 2026 · do the cheap agents pay for themselves — seven instrumented delegations from one session; 3 of 7 caught something I had missed, 1 was a false finding, and no saving is claimed because the counterfactual is not measurable',
+      'jul 2026 · do the cheap agents pay for themselves: seven instrumented delegations from one session; 3 of 7 caught something I had missed, 1 was a false finding, and no saving is claimed because the counterfactual is not measurable',
     cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
     cmdDownloadTryHint:
       'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration`, or `download --finnish`.',
     cmdDownloadAmbiguous:
       'specify only one of --cv, --catalog, --study, --replicates, --results, --calibration, or --finnish.',
     cmdDownloadPreparing: 'preparing download...',
-    cmdDownloadNotAvailable: 'cv not available yet — still being polished.',
+    cmdDownloadNotAvailable: 'cv not available yet. still being polished.',
     cmdDownloadSkillsNotAvailable:
-      'skills calibration pdf not available right now — reach out and I will send it.',
+      'skills calibration pdf not available right now. reach out and I will send it.',
     cmdDownloadCatalogNotAvailable:
-      'skill registry pdf not available yet — run `npm run build:skills-pdf` to generate it.',
+      'skill registry pdf not available yet. run `npm run build:skills-pdf` to generate it.',
     cmdDownloadStudyNotAvailable:
-      'optimization study pdf not available right now — reach out and I will send it.',
+      'optimization study pdf not available right now. reach out and I will send it.',
     cmdDownloadReplicatesNotAvailable:
-      'replicates pdf not available right now — reach out and I will send it.',
+      'replicates pdf not available right now. reach out and I will send it.',
     cmdDownloadResultsNotAvailable:
-      'skill-auditor results pdf not available right now — reach out and I will send it.',
+      'skill-auditor results pdf not available right now. reach out and I will send it.',
     cmdDownloadFinnishNotAvailable:
-      'rag finnish study pdf not available right now — reach out and I will send it.',
+      'rag finnish study pdf not available right now. reach out and I will send it.',
     cmdDownloadMethodologyNotAvailable:
-      'rag finnish methodology pdf not available right now — reach out and I will send it.',
+      'rag finnish methodology pdf not available right now. reach out and I will send it.',
     cmdDownloadBlindTestNotAvailable:
-      'rag blind test pdf not available right now — reach out and I will send it.',
+      'rag blind test pdf not available right now. reach out and I will send it.',
     cmdDownloadPoroNotAvailable:
-      'poro findings pdf not available right now — reach out and I will send it.',
+      'poro findings pdf not available right now. reach out and I will send it.',
     cmdDownloadTranslationsNotAvailable:
-      'translation audit pdf not available right now — reach out and I will send it.',
+      'translation audit pdf not available right now. reach out and I will send it.',
     cmdDownloadDelegationNotAvailable:
-      'agent delegation measurement pdf not available right now — reach out and I will send it.',
+      'agent delegation measurement pdf not available right now. reach out and I will send it.',
     cmdDownloadMeantime: 'in the meantime, reach out:',
     cmdDownloadStarted: 'download started.',
     cmdClearDesc: 'clear the screen',
@@ -545,20 +545,20 @@ export const en: Translations = {
     cmdLsDesc: 'list projects (try `ls projects`)',
     cmdLsNoSuch: 'No such file or directory',
     cmdCatDesc: 'print a project or the cv (e.g. `cat projects/hrm`)',
-    cmdCatUsage: 'usage: cat <path> — try `cat projects/hrm` or `cat cv`',
+    cmdCatUsage: 'usage: cat <path>, try `cat projects/hrm` or `cat cv`',
     cmdCatNoSuch: 'No such file or directory',
     cmdCvDesc: 'short cv summary',
     cmdCvDownloadHint: 'run `download --cv` for the full résumé (pdf).',
     cmdSudoDesc: 'execute a command as another user',
     cmdSudoHire:
-      'access granted. drafting the offer letter — reach me at the email above.',
+      'access granted. drafting the offer letter. reach me at the email above.',
     cmdSudoDenied: 'nice try. this incident will (not) be reported.',
     cmdRmDesc: 'remove files',
     cmdRmRefusal: "i'm afraid i can't let you do that. nothing here is yours to delete.",
     chatIntroReady: 'conversation mode online.',
     chatIntroHow: 'ask about the projects in your own words, no command needed.',
     chatThinking: '...thinking',
-    chatError: 'connection lost — back to scripted mode.',
+    chatError: 'connection lost. back to scripted mode.',
     chatAskUsage: 'usage: ask "your question about the projects"',
     chatHint: '…or just ask about the projects',
   },
