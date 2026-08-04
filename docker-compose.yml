@@ -125,7 +125,12 @@ services:
       HYBRID_ENABLED: ${HYBRID_ENABLED:-true}
       PROJECT_FILTER_STRICT: ${PROJECT_FILTER_STRICT:-true}
       RETRIEVAL_DIVERSITY_MAX_PER_PROJECT: ${RETRIEVAL_DIVERSITY_MAX_PER_PROJECT:-3}
-      RETRIEVAL_EXCLUDE_DOC_TYPES: ${RETRIEVAL_EXCLUDE_DOC_TYPES:-adr}
+      # Plain dash, NOT `:-`. `${VAR:-adr}` substitutes when the var is unset OR
+      # EMPTY, and empty is meaningful here: config.py reads "" as "no doc-type
+      # filter at all", while unset means the "adr" default. With `:-` that
+      # opt-out becomes unreachable — setting the var empty in .env would
+      # silently come back as "adr". Same reasoning as ADR_DIR above.
+      RETRIEVAL_EXCLUDE_DOC_TYPES: ${RETRIEVAL_EXCLUDE_DOC_TYPES-adr}
       # Per-request operational log — timestamp, route, latency, token counts, and
       # retrieval distances; NO query/answer text, so no PII. On by default (set
       # RAG_LOG_FILE empty to disable); `ragctl up` may override it with the
