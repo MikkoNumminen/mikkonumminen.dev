@@ -17,6 +17,7 @@ unit-tested.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Sequence
 
 from lingua import Language, LanguageDetector, LanguageDetectorBuilder
@@ -578,27 +579,42 @@ EXPANSION_OFFER_FI = "Haluatko, että kerron lisää?"
 # topic, and was refused by the weak-retrieval gate. Observed live in
 # rag-logs/requests.jsonl on 2026-07-30: "Kerro lisää" → weak_retrieval refusal,
 # "Joo" → weak_retrieval refusal, immediately after Finnish answers.
-_EXPANSION_RE = re.compile(
-    r"^(?:"
-    # English
+# Each language keeps its OWN trigger and filler vocabulary, paired. Merging the
+# fillers into one shared trailing group let an English trigger take a Finnish
+# filler — "sure lisää", "yes enemmän", "tell lisää" all matched, which is a
+# sentence in neither language and pure accident of construction.
+_EN_TRIGGER = (
     r"yes(?:\s+please)?|yeah|yep|yup|sure|ok(?:ay)?|"
     r"go\s+on|go\s+ahead|go\s+deeper|dig\s+deeper|keep\s+going|deeper|"
     r"the\s+rest|continue|more|tell\s+me\s+more|"
     r"(?:tell|say|explain|elaborate|expand)(?:\s+(?:me|on|it|that))?|"
     r"i'?d?\s*(?:like|want)\s+to\s+(?:hear|know)\s+more|"
-    r"and|"
-    # Finnish. `kerro` alone mirrors the bare English "tell"; the optional
-    # lisää/enemmän covers the natural "kerro lisää". A `kerro` carrying a real
-    # topic ("kerro projekteista") still fails, because the trailing group admits
-    # only filler and the pattern is anchored.
-    r"joo|juu|jep|kyllä|selvä|okei|"
+    r"and"
+)
+_EN_FILLER = r"please|more|about\s+(?:it|that|this)|on\s+(?:it|that|this)"
+
+# `kerro` alone mirrors the bare English "tell"; the optional lisää/enemmän covers
+# the natural "kerro lisää". A `kerro` carrying a real topic ("kerro projekteista")
+# still fails, because the trailing group admits only filler and the pattern is
+# anchored to the end.
+#
+# `selvä` is deliberately NOT a trigger. It reads as "right / understood" —
+# closing an exchange — where English "ok" answering an offer reads as consent.
+# Treating it as consent would re-dump a whole narrative at someone who was
+# signing off, and an unwanted wall of text is a worse failure here than missing
+# one phrasing. `okei` stays: it is the direct borrowing of "okay", which is
+# already an English trigger.
+_FI_TRIGGER = (
+    r"joo|juu|jep|kyllä|okei|"
     r"jatka|lisää|enemmän|loput|"
     r"kerro(?:\s+(?:lisää|enemmän))?|"
     r"haluan\s+(?:kuulla|tietää)\s+(?:lisää|enemmän)"
-    r")"
-    r"(?:\s+(?:please|kiitos|more|lisää|enemmän|vielä|"
-    r"about\s+(?:it|that|this)|on\s+(?:it|that|this)|"
-    r"siitä|tästä|tuosta))*"
+)
+_FI_FILLER = r"kiitos|lisää|enemmän|vielä|siitä|tästä|tuosta"
+
+_EXPANSION_RE = re.compile(
+    rf"^(?:(?:{_EN_TRIGGER})(?:\s+(?:{_EN_FILLER}))*"
+    rf"|(?:{_FI_TRIGGER})(?:\s+(?:{_FI_FILLER}))*)"
     r"\s*[.!?]*$",
     re.IGNORECASE,
 )
@@ -606,8 +622,16 @@ _EXPANSION_RE = re.compile(
 
 def is_expansion_request(query: str) -> bool:
     """True when the message is a topic-less request to hear more — resolved
-    against the prior turn's topic (session memory), not the message itself."""
-    return bool(_EXPANSION_RE.match(query.strip()))
+    against the prior turn's topic (session memory), not the message itself.
+
+    Normalised to NFC first: `ä` can arrive either precomposed (U+00E4) or as
+    `a` + combining diaeresis (U+0308), and real input paths produce both. The
+    two are indistinguishable on screen, so an NFD `kyllä` would silently fail
+    to match and reproduce exactly the bug this pattern exists to fix — a
+    legitimate Finnish reply refused, with no error and nothing in the log to
+    explain it.
+    """
+    return bool(_EXPANSION_RE.match(unicodedata.normalize("NFC", query).strip()))
 
 
 # Out-of-scope reply for QUERY-pattern declines — both "write me a poem" and

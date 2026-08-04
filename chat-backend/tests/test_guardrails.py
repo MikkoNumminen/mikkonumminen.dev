@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 import pytest
 
 from app.guardrails import (
@@ -237,7 +239,6 @@ def test_is_expansion_request_ignores_topic_bearing_questions(query: str) -> Non
         "kerro lisää siitä",
         "joo kiitos",
         "jatka vielä",
-        "selvä",
         "loput",
         "haluan kuulla lisää",
         "Kerro lisää.",
@@ -266,6 +267,57 @@ def test_is_expansion_request_matches_finnish_followups(query: str) -> None:
 )
 def test_is_expansion_request_ignores_finnish_topic_bearing_questions(query: str) -> None:
     assert not is_expansion_request(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        # Each language pairs with its OWN filler. A merged filler group let an
+        # English trigger take a Finnish one — a sentence in neither language,
+        # matched purely by construction.
+        "sure lisää",
+        "yes enemmän",
+        "okay lisää",
+        "tell lisää",
+        "more lisää",
+        "kerro more about it",
+        "joo please",
+    ],
+)
+def test_is_expansion_request_does_not_mix_languages(query: str) -> None:
+    assert not is_expansion_request(query)
+
+
+@pytest.mark.parametrize("query", ["selvä", "Selvä.", "selvä kiitos"])
+def test_selva_is_not_an_expansion_request(query: str) -> None:
+    """`selvä` reads as "right / understood" — someone signing off, not asking
+    for more. English "ok" answering an offer reads as consent; this does not.
+    Honouring it would re-dump a whole narrative at a visitor who was done, and
+    an unwanted wall of text is a worse failure than missing one phrasing."""
+    assert not is_expansion_request(query)
+
+
+def test_expansion_matches_regardless_of_unicode_normalisation() -> None:
+    """`ä` arrives precomposed (U+00E4) or as a + combining diaeresis (U+0308),
+    depending on the input path. They look identical on screen, so an unnormalised
+    match would refuse a legitimate Finnish reply with nothing in the log to
+    explain why — the exact failure this pattern exists to prevent."""
+    for text in ("kyllä", "kerro lisää", "lisää"):
+        nfc = unicodedata.normalize("NFC", text)
+        nfd = unicodedata.normalize("NFD", text)
+        assert nfc != nfd, f"{text!r} must differ between NFC and NFD to be a real test"
+        assert is_expansion_request(nfc)
+        assert is_expansion_request(nfd)
+
+
+@pytest.mark.parametrize(
+    "query", ["kerro tästä", "kerro siitä lisää", "tell me about it"]
+)
+def test_demonstrative_filler_is_intentionally_an_expansion(query: str) -> None:
+    """"tell me about it" / "kerro tästä" carry a PRONOUN, not a topic — the
+    referent is the previous turn, which is exactly what an expansion resolves.
+    Pinned so the behaviour reads as deliberate rather than accidental."""
+    assert is_expansion_request(query)
 
 
 def test_expansion_offer_is_a_nonempty_string() -> None:
