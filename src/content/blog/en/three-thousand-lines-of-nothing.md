@@ -10,13 +10,13 @@ hasAudio: false
 tags: ['build', 'ops', 'ragctl']
 ---
 
-A pull request that added feature flags to the RAG control CLI came back from CI with CodeQL failing: one high-severity alert and three notes, all reported as introduced by that pull request. I went to look at them. A world-writable `chmod` on the log directory, and three exception handlers that swallow a JSON decode error with a bare `pass`. All four were already on master, unmodified, some of them for months.
+A pull request that added feature flags to the RAG control CLI came back from CI with CodeQL failing: one high-severity alert and three notes, all reported as introduced by that pull request. I went to look at them. A world-writable `chmod` on the log directory, and three exception handlers that swallow their error with a bare `pass` — two of them a JSON decode, one an `OSError` around a signal. All four were already on master, unmodified, the oldest of them for six weeks.
 
 The cause was line endings. That file is stored with CRLF, my editing pass rewrote it as LF, and so a change of 326 real lines arrived as a diff of 3804. Every line in the file counted as touched. CodeQL scopes new alerts to changed lines, and I had just told it that every line was changed.
 
 The obvious cost is that the review is useless. Nobody can find a real change inside a whole-file rewrite, including the person who made it.
 
-The cost that matters is the other one, and it runs the opposite way from how it first looks. A rewrite like that does not invent alerts. It drags in whatever was already sitting in the file. So the failure mode is not four false alarms I have to dismiss — it is that if one of my 326 real lines had introduced a genuine problem, it would have arrived in the same list as the three-month-old ones, indistinguishable from them. A gate that flags everything flags nothing. I would have dismissed the batch, because the first four I checked were noise, and the fifth would have gone with them.
+The cost that matters is the other one, and it runs the opposite way from how it first looks. A rewrite like that does not invent alerts. It drags in whatever was already sitting in the file. So the failure mode is not four false alarms I have to dismiss — it is that if one of my 326 real lines had introduced a genuine problem, it would have arrived in the same list as the six-week-old ones, indistinguishable from them. A gate that flags everything flags nothing. I had already written off all four as noise, and a fifth would have gone out with them.
 
 The fix was not to normalise the repository. There is no `text=auto` rule here and the tree is genuinely mixed — `config.py` is CRLF, `pipeline.py` is LF — so a sweeping conversion would have reproduced the same unreadable diff across dozens of files at once. The rule is per file, following what each file's own history already says. I put that one back to CRLF. The diff went from 3804 lines to 326 and the alert attribution cleared on its own.
 
