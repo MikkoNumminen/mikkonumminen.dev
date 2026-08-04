@@ -19,6 +19,18 @@ DOCKERFILE = CHAT_BACKEND / "Dockerfile"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 
 
+def _directives() -> str:
+    """The Dockerfile with comment lines removed.
+
+    Anything asserting "this instruction is absent" has to read instructions
+    only. The first version of the chown check matched the comment that explains
+    why the chown is not there, so it failed on the very tree it was written to
+    describe.
+    """
+    lines = DOCKERFILE.read_text(encoding="utf-8").splitlines()
+    return "\n".join(line for line in lines if not line.lstrip().startswith("#"))
+
+
 def _image_python_version() -> str:
     text = DOCKERFILE.read_text(encoding="utf-8")
     m = re.search(r"^FROM python:(\d+\.\d+)-slim", text, re.M)
@@ -59,16 +71,29 @@ def test_fastembed_cache_env_var_is_the_one_fastembed_reads() -> None:
     )
 
 
-def test_the_baked_cache_lives_where_the_chown_reaches() -> None:
-    """Baking the model outside the chowned tree is what made the misspelling
-    bite, so pin the relationship rather than just the spelling."""
-    text = DOCKERFILE.read_text(encoding="utf-8")
+def test_the_baked_cache_is_owned_by_the_runtime_user() -> None:
+    """Ownership is the thing that actually broke, so pin how it is established
+    rather than just the spelling of the variable.
+
+    It has to be set AT BAKE TIME. Fixing it afterwards with `chown -R /srv`
+    works but rewrites all ~65MB of weights into a fresh layer, which measured
+    at +120MB of image. So: user created before the bake, bake run as that user,
+    and no recursive chown over the tree that holds the cache."""
+    text = _directives()
     m = re.search(r"FASTEMBED_CACHE_PATH=(\S+)", text)
     assert m, "no FASTEMBED_CACHE_PATH value found"
-    cache_path = m.group(1)
-    assert cache_path.startswith("/srv/"), (
-        f"the fastembed cache is baked at {cache_path}, outside /srv. "
-        "`chown -R appuser:appuser /srv` then never reaches it and the non-root "
-        "user gets a read-only cache."
+
+    useradd = text.index("useradd")
+    bake = text.index("TextEmbedding('BAAI/bge-small-en-v1.5')")
+    assert useradd < bake, (
+        "the runtime user must be created before the model bake, so the weights "
+        "are written with their final ownership instead of being chowned after."
     )
-    assert "chown -R appuser:appuser /srv" in text
+    assert re.search(r"^USER appuser$", text[:bake], re.M), (
+        "the bake must run as appuser; otherwise the weights land root-owned."
+    )
+    assert "chown -R" not in text, (
+        "a recursive chown over /srv duplicates the baked model cache into "
+        "another layer (~120MB). Set ownership at creation instead: `USER` before "
+        "the bake, and `COPY --chown` for the source tree."
+    )
