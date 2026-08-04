@@ -8,8 +8,11 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     # fastembed cache path; the ONNX weights are baked here at build time (below)
-    # so startup loads them from the image, never from the network.
-    FASTEMBED_CACHE_DIR=/srv/.fastembed-cache
+    # so startup loads them from the image, never from the network. The name is
+    # _PATH, not _DIR: fastembed reads only FASTEMBED_CACHE_PATH, so the near-miss
+    # spelling silently fell back to the default under /tmp, outside the chown
+    # below, and every boot logged a permission warning against a root-owned cache.
+    FASTEMBED_CACHE_PATH=/srv/.fastembed-cache
 
 WORKDIR /srv
 
