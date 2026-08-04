@@ -14,7 +14,7 @@ claude-continue began on 2026-06-14 as a one-shot shell helper, `claude-continue
 
 The hard rule is zero runtime third-party Python packages: every import is stdlib, so `pip install -e .` has nothing to resolve and the frozen binary has a predictable closure. Config is JSON rather than TOML explicitly because `tomllib` is Python 3.11+ and the target is 3.9. Tkinter is the GUI because it ships with CPython on every platform. PyInstaller is build-time only.
 
-`ccusage` (an external Node tool that reconstructs 5-hour blocks from local transcripts) is the only reset-time source. It is called as `npx ccusage blocks --active --json --offline` (`--offline` is mandatory because a network pricing fetch would stall the watch loop), and any failure surfaces as `CcusageUnavailable` rather than crashing the daemon. The watch loop is written around injectable ports (`clock`, `sleep`, `get_block`, `perform`, `stop`), so the whole suite runs offline.
+`ccusage` (an external Node tool that reconstructs 5-hour blocks from local transcripts) is the only reset-time source. It is called as `npx ccusage blocks --active --json --offline` (`--offline` is mandatory because a network pricing fetch would stall the watch loop), and any failure surfaces as `CcusageUnavailable` rather than crashing the daemon. The watch loop is written around injectable ports (`clock`, `sleep`, `get_block`, `perform`, `stop`) so the whole suite runs offline.
 
 ## Dead ends and how they resolved
 

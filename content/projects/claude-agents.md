@@ -16,7 +16,7 @@ Fourteen agents, one markdown file each (frontmatter + instructions), grouped by
 
 - **Haiku, read-only**: `scout` (code recon), `log-miner` (log/CSV/JSONL aggregation), `scribe` (commit/PR text from diffs), `dep-checker` (dependency recon), `tidy` (formatter/lint auto-fix), `refuter` (single-finding refutation)
 - **Sonnet, spec-driven edits**: `mechanic` (already-decided mechanical changes), `test-writer`, `locale-translator`, `doc-scribe`, `migrator` (ORM schema migrations), `bisect` (regression pinning), `reviewer` (single-lens diff review)
-- **Session model**: `architect`. The one unpinned agent; it inherits the session's model and effort, so deliberate escalation runs at exactly the strength the user chose
+- **Session model**: `architect`, the one unpinned agent; it inherits the session's model and effort, so deliberate escalation runs at exactly the strength the user chose
 
 The key design point is that each agent pins both the `model:` tier and the `effort:` reasoning cost in its frontmatter: the two scalars are decoupled. A session can run at high effort while its delegated grep-and-report work runs cheap.
 

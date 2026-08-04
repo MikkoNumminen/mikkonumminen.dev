@@ -8,7 +8,7 @@ date: 2026-06-28
 
 ## Origin
 
-ReadLog .NET is a complete ASP.NET Core 8 reimplementation of Mikko Numminen's personal reading-log web app. The original is a Next.js 16 / React 19 / Prisma 7 / Postgres application; this is an explicit, deliberate **port, not a transliteration**. PORTING-NOTES states the goal directly: map each TypeScript/React/Prisma pattern to its idiomatic .NET equivalent so every choice can be defended in a technical interview. Users search books across Open Library and Google Books, log a finished read with a format (book/audiobook/e-book), a finished-on date, and a 0–5 rating, then browse, edit, and delete a personal library; anonymous visitors get a public "recently read" feed. The git history shows it built PR-by-PR over roughly 21–24 June 2026: scaffold, data layer, integrations, auth, CRUD, UI, Docker, followed by a hardening/audit wave.
+ReadLog .NET is a complete ASP.NET Core 8 reimplementation of Mikko Numminen's personal reading-log web app. The original is a Next.js 16 / React 19 / Prisma 7 / Postgres application; this is an explicit, deliberate **port, not a transliteration**. PORTING-NOTES states the goal directly: map each TypeScript/React/Prisma pattern to its idiomatic .NET equivalent so every choice can be defended in a technical interview. Users search books across Open Library and Google Books, log a finished read with a format (book/audiobook/e-book), a finished-on date, and a 0–5 rating, then browse, edit, and delete a personal library; anonymous visitors get a public "recently read" feed. The git history shows it built PR-by-PR over roughly 21–24 June 2026 (scaffold, data layer, integrations, auth, CRUD, UI, Docker) followed by a hardening/audit wave.
 
 ## Key technical choices and the why
 

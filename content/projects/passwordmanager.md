@@ -31,7 +31,7 @@ Zero-knowledge means the master password never reaches the server and the server
 
 ## Threat model
 
-Documented explicitly: what the design protects against (a stolen disk, a server breach, leaked backups), and what it does not (a keylogger on the client, memory scraping, a weak master password). Every security decision (KDF parameters, AEAD design, sync conflict handling, identity separation) is an architecture decision record in `docs/adr/`.
+Documented explicitly: what the design protects against (a stolen disk, a server breach, leaked backups) and what it does not (a keylogger on the client, memory scraping, a weak master password). Every security decision (KDF parameters, AEAD design, sync conflict handling, identity separation) is an architecture decision record in `docs/adr/`.
 
 ## Testing and CI
 

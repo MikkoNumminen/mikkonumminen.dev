@@ -35,7 +35,7 @@ AI-native development is part of the toolchain, not a side note. I maintain a ca
 
 - **Strudel Patterns**: algorithmic music library in Strudel (JS port of TidalCycles). Scores Spacepotatis and this portfolio site.
 
-- **Portfolio**. This site. Astro, Three.js, GSAP, Tailwind CSS v4. Four pages, each a distinct interactive concept. The pages are static; the contact terminal talks to a self-hosted LLM (FastAPI, pgvector, hybrid retrieval) running on my own GPU behind a Tailscale funnel.
+- **Portfolio**: this site. Astro, Three.js, GSAP, Tailwind CSS v4. Four pages, each a distinct interactive concept. The pages are static; the contact terminal talks to a self-hosted LLM (FastAPI, pgvector, hybrid retrieval) running on my own GPU behind a Tailscale funnel.
 
 
 
@@ -48,7 +48,7 @@ TypeScript, React, Next.js, PostgreSQL, Prisma, Python, Astro, Three.js, GSAP, T
 
 **Kasvu Labs Oy** (2022–2024): first paid programming role. Node.js backend, React frontend, large sets of open data. Full-stack development, UI design, database management on Azure, product maintenance.
 
-**Hardware retail** (1998–2022) (24 years in hardware retail, mostly at the family business. Decor, renovation, tools, construction) every category, every kind of customer.
+**Hardware retail** (1998–2022): 24 years in hardware retail, mostly at the family business. Decor, renovation, tools, construction. Every category, every kind of customer.
 
 **AI-native workflows** (2025–2026): agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills as production artifacts. Parallel subagent orchestration, measured A/B calibration.
 

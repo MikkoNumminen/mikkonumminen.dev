@@ -15,7 +15,7 @@ The most load-bearing engineering decision in the codebase is how authorization 
 
 The solution is `guardedAction` in `lib/guardedAction.ts`. It is a higher-order function that wraps any server action in a fixed enforcement sequence: (1) authenticate, (2) check the named permission key against the JWT payload, (3) call `rateLimit`. Every mutating action that requires a permission is declared as `guardedAction("post:create", "post:create", async (session, ...args) => { ... })`. The resulting wrapper is exported directly as the server action.
 
-The pattern has a deliberate gap: DM actions initially used `requireUser()` instead of `guardedAction`. The audit found this in finding S2: `sendDirectMessage` and `startConversation` were reachable by `pending` users who have no permissions at all. The fix added an explicit `permissions['dm:send']` check inline before proceeding, since the DM actions return a value (`conversationId`) rather than `void`, and `guardedAction` is typed to return `ActionResult` (void union). The two code paths, `guardedAction` for void mutations, inline check for returning mutations, are intentional rather than accidental.
+The pattern has a deliberate gap: DM actions initially used `requireUser()` instead of `guardedAction`. The audit found this in finding S2: `sendDirectMessage` and `startConversation` were reachable by `pending` users who have no permissions at all. The fix added an explicit `permissions['dm:send']` check inline before proceeding, since the DM actions return a value (`conversationId`) rather than `void`, and `guardedAction` is typed to return `ActionResult` (void union). The two code paths (`guardedAction` for void mutations, inline check for returning mutations) are intentional rather than accidental.
 
 Permission resolution itself (`lib/permissions.ts`) is pure: it takes a role string and an array of `{key, granted}` overrides and returns a `Record<string, boolean>`. The resolved map is embedded in the JWT at sign-in. This avoids a per-request database read for the common case. The tradeoff is that permission changes are not instant: they propagate only when the JWT callback detects a version mismatch.
 
@@ -71,7 +71,7 @@ Cleanup runs fire-and-forget on the next demo login via `cleanupStaleDemoSession
 
 One gap that required a dedicated fix commit (`fix(web): add sessionId to CustomQuest for demo isolation`) was that the original `CustomQuest` model had no `sessionId` column, meaning custom quests created by a demo session were visible to real users. The fix added the column and the seed to populate it.
 
-The later quest system unification (`feat(web): unify quest system (merge CustomQuest into Quest`) folded `CustomQuest` entirely into `Quest` via a data migration. The two separate admin interfaces, two separate query files, and two separate dashboard panels merged into one. The commit records that `criteria`, `key`, `icon`, and `description` had to be made nullable on `Quest` because assigned quests have none of those fields) they are status-driven rather than criteria-driven.
+The later quest system unification (`feat(web): unify quest system, merge CustomQuest into Quest`) folded `CustomQuest` entirely into `Quest` via a data migration. The two separate admin interfaces, two separate query files, and two separate dashboard panels merged into one. The commit records that `criteria`, `key`, `icon`, and `description` had to be made nullable on `Quest` because assigned quests have none of those fields. They are status-driven rather than criteria-driven.
 
 ---
 

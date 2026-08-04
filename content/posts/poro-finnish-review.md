@@ -23,7 +23,7 @@ Poro proposed rewriting 276 of the 396 strings: 70% of the copy. Read literally 
 | Left unchanged after verification | 274 |
 | Verified as genuine improvements | 2 |
 
-After the adversarial pass, exactly **two** of the 276 changes survived. A 99.3% rejection rate on Poro's own suggestions. Both are real fixes a careful human proofreader would also have made:
+After the adversarial pass, exactly **two** of the 276 changes survived, a 99.3% rejection rate on Poro's own suggestions. Both are real fixes a careful human proofreader would also have made:
 
 - `projectsPage.keyExternalDesc` (accuracy): the original "yhteys ulkomaailmaan" (connection to the outside *world*) had dropped the word *service* from the English "connects to an outside service". Poro's "yhteys ulkoiseen palveluun" restores it, and "kiertoradalla oleva satelliitti" is more precise than "kiertävä satelliitti".
 - `contactPage.noscriptIntro` (grammar): the original was missing the comma Finnish requires before a relative "joka" clause. Poro added it, and also rephrased the predicate from "vaatii JavaScriptin" (requires JavaScript) to "toimii vain JavaScriptin kanssa" (only works with JavaScript): a semantically equivalent wording that reads a little more naturally.

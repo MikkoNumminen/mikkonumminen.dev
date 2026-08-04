@@ -8,7 +8,7 @@ type: research
 
 # Why "read each SKILL.md" costs tokens: five rounds of before/after testing
 
-I optimized two of my Claude Code skills and wanted to know whether the optimization actually worked (does bounded, scoped procedural language in a SKILL.md cut token use? Five rounds of paired A/B before/after testing across three skills (skills-freshness, skills-quality, content-audit) on three models (sonnet, opus, haiku). 42 sub-agents total, ~4.48M subagent tokens spent measuring, N=1 per cell. The one durable result: bounded, scoped procedural language in a SKILL.md reliably cuts token use for **Haiku-class models**; for **Opus-class** the effect sits inside the measurement noise. There is **no portfolio-level save claim** in this data) three skills, N=1 per cell. The strongest single piece of evidence is a swing, not an aggregate: skills-freshness on Haiku went −70% → +20% (a +90pp swing) once a `limit=80` / "don't spelunk" guard landed in the SKILL.md. The transferable output is a taxonomy of three cost-trap mechanisms; the percentages are the evidence that they are real.
+I optimized two of my Claude Code skills and wanted to know whether the optimization actually worked: does bounded, scoped procedural language in a SKILL.md cut token use? Five rounds of paired A/B before/after testing across three skills (skills-freshness, skills-quality, content-audit) on three models (sonnet, opus, haiku). 42 sub-agents total, ~4.48M subagent tokens spent measuring, N=1 per cell. The one durable result: bounded, scoped procedural language in a SKILL.md reliably cuts token use for **Haiku-class models**; for **Opus-class** the effect sits inside the measurement noise. There is **no portfolio-level save claim** in this data. Three skills, N=1 per cell. The strongest single piece of evidence is a swing, not an aggregate: skills-freshness on Haiku went −70% → +20% (a +90pp swing) once a `limit=80` / "don't spelunk" guard landed in the SKILL.md. The transferable output is a taxonomy of three cost-trap mechanisms; the percentages are the evidence that they are real.
 
 ## Two questions, two different numbers
 
@@ -38,7 +38,7 @@ Each fired because the SKILL.md procedure removed the scoping pressure the impro
 | 4 | content-audit (post-fix) | 3 | **+4%** | MIXED, haiku **+16pp** flip; sonnet −6pp swing (within noise) |
 | 5 | both new skills (re-validation) | 6 | **+16%** | MIXED, strongest aggregate, but concentrated in two haiku cells |
 
-Round 1's per-cell spread is the interesting part: skills-freshness/sonnet saved 83,923 tokens (+43%), while skills-freshness/haiku *cost* 44,614 more (−70%). The largest sign-flip in the study. Haiku's cold arm was unusually cheap (32 small assistant turns, 64K total: many tiny look-ups instead of fewer big reads), and the SKILL.md context, script dispatch and result review carry overhead a cost-pinched cold walk avoids.
+Round 1's per-cell spread is the interesting part: skills-freshness/sonnet saved 83,923 tokens (+43%), while skills-freshness/haiku *cost* 44,614 more (−70%), the largest sign-flip in the study. Haiku's cold arm was unusually cheap (32 small assistant turns, 64K total: many tiny look-ups instead of fewer big reads), and the SKILL.md context, script dispatch and result review carry overhead a cost-pinched cold walk avoids.
 
 Round 2 re-ran skills-freshness after the guard fixes shipped. All three cells turned positive: sonnet +14%, opus +1%, haiku +20%. Aggregate skills-freshness went +2.7% → +11%.
 
