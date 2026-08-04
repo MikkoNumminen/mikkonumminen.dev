@@ -122,9 +122,8 @@ query expansion.
 The backend lives in [`chat-backend/`](chat-backend/) with its own README. The
 Docker stack (`docker-compose.yml`) and `Makefile` bring everything up with
 `make up && make index`, and it's controlled day-to-day via the `ragctl` REPL
-(`status`/`up`/`down`/`doctor`/`model`/`english`). For turning it on end-to-end
-, including publishing the backend via a Tailscale Funnel for live visitors,
-see [`LAUNCH.md`](LAUNCH.md) and the as-built [`docs/rag-chat.md`](docs/rag-chat.md).
+(`status`/`up`/`down`/`doctor`/`model`/`english`). For turning it on end-to-end, including publishing the backend via a
+Tailscale Funnel for live visitors, see [`LAUNCH.md`](LAUNCH.md) and the as-built [`docs/rag-chat.md`](docs/rag-chat.md).
 
 ## Tech stack
 

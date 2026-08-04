@@ -42,7 +42,7 @@ export const en: Translations = {
     skipToContent: 'Skip to content',
   },
   hero: {
-    sectionAria: 'Mikko Numminen · full-stack developer',
+    sectionAria: 'Mikko Numminen, full-stack developer',
     eyebrow: 'portfolio · 2026',
     titleSrOnly: 'Mikko Numminen',
     titleFallbackTop: 'MIKKO',
