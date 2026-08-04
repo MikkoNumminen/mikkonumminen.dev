@@ -31,7 +31,17 @@ PROJECT_ALIASES: dict[str, list[str]] = {
     ],
     "readlog": ["readlog"],
     "hrm": ["hrm", "hrmanager", "hr manager"],
-    "spacepotatis": ["spacepotatis", "space potatis", "phaser"],
+    # "spacepotatikse" is the gradated Finnish stem: a noun ending in -s inflects
+    # through -kse- ("Spacepotatis" -> "spacepotatiksesta"), so the suffix rule in
+    # _finnish_ending_len cannot reach it from the base alias — the STEM itself
+    # changes, not just the ending. Listed explicitly rather than teaching the
+    # matcher consonant gradation, which is a much larger and more error-prone rule.
+    "spacepotatis": [
+        "spacepotatis",
+        "space potatis",
+        "spacepotatikse",
+        "phaser",
+    ],
     "audiobookmaker": [
         "audiobookmaker",
         "audiobook maker",
@@ -94,6 +104,9 @@ PROJECT_ALIASES: dict[str, list[str]] = {
         "chattia",
         "chatin",
         "chatissa",
+        # "chat" is below the length floor for fused-ending matching (too short
+        # to be distinctive), so its inflections stay explicit.
+        "chatista",
         "chatbot",
     ],
 }
@@ -156,6 +169,82 @@ def _flatten_aliases() -> dict[str, frozenset[str]]:
 _ALIAS_TO_PROJECTS: dict[str, frozenset[str]] = _flatten_aliases()
 
 
+# Finnish case endings, longest first so the greedy scan below takes the whole
+# ending rather than a shorter prefix of it.
+#
+# WHY THIS EXISTS: Finnish fuses the case ending onto the word — "kerro
+# audiobookmakerista", "portfoliosta", "readlogista". The plain non-alphanumeric
+# boundary check below rejects every one of those, so a Finnish visitor naming a
+# project by its natural inflected form resolved to NO project at all. Measured:
+# of the nine projects with a narrative, only `hrm` resolved, and only by the
+# accident that an acronym is inflected with a colon ("HRM:stä") which already
+# reads as a boundary. Everything else fell through.
+_FI_CASE_ENDINGS = (
+    "istä",
+    "ista",
+    "issä",
+    "issa",
+    "illä",
+    "illa",
+    "iltä",
+    "ilta",
+    "ille",
+    "kään",
+    "kaan",
+    "ksi",
+    "ssä",
+    "ssa",
+    "stä",
+    "sta",
+    "llä",
+    "lla",
+    "ltä",
+    "lta",
+    "lle",
+    "ttä",
+    "tta",
+    "kin",
+    "hän",
+    "han",
+    "ien",
+    "nä",
+    "na",
+    "iä",
+    "ia",
+    "it",
+    "in",
+    "en",
+    "on",
+    "un",
+    "yn",
+    "ä",
+    "a",
+    "n",
+)
+
+# Only aliases at least this long tolerate a fused Finnish ending. The short ones
+# are where over-matching bites: "chat" + "s" or "hrm" + "a" would start claiming
+# unrelated words, and the endings include single letters. Long aliases are
+# distinctive enough that a fused suffix is overwhelmingly a real inflection.
+_MIN_ALIAS_LEN_FOR_INFLECTION = 5
+
+
+def _finnish_ending_len(text: str, end: int) -> int:
+    """Length of a Finnish case ending starting at `end`, or 0 if there is none.
+
+    Returns a length so the caller can extend the matched span to cover the
+    ending — span consumption depends on knowing how much of the word the alias
+    actually claimed.
+    """
+    for ending in _FI_CASE_ENDINGS:
+        stop = end + len(ending)
+        if text[end:stop] == ending:
+            after = text[stop] if stop < len(text) else " "
+            if not after.isalnum():
+                return len(ending)
+    return 0
+
+
 def _word_ish_boundary(text: str, start: int, end: int) -> bool:
     """True iff `text[start:end]` is flanked by non-alphanumeric chars (or edges).
 
@@ -191,6 +280,15 @@ def detect_projects(query: str) -> set[str]:
             end = idx + len(alias)
             if _word_ish_boundary(text, idx, end):
                 occurrences.append((idx, end, project_ids))
+            elif len(alias) >= _MIN_ALIAS_LEN_FOR_INFLECTION:
+                # The alias is fused to a Finnish case ending
+                # ("audiobookmakerista"). Claim the ending too, so the span
+                # consumption below still reflects how much of the word was
+                # actually matched.
+                before = text[idx - 1] if idx > 0 else " "
+                suffix = _finnish_ending_len(text, end)
+                if not before.isalnum() and suffix:
+                    occurrences.append((idx, end + suffix, project_ids))
             start = idx + 1
     # Longest alias first (most specific claims the span), then by position.
     occurrences.sort(key=lambda o: (-(o[1] - o[0]), o[0]))
