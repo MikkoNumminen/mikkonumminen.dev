@@ -48,33 +48,36 @@ async def gate_shout(
     insert. Reading them out here and inserting afterwards was a race that two
     identical concurrent submissions could both win.
     """
+    # `spend_rate` is handed to evaluate rather than called here, because evaluate
+    # is what knows the shape screen has passed. Benign queue facts, so the only
+    # refusals this call can produce are shape ones and the rate limit — both
+    # decided before the database is opened at all.
     screen = shoutbox.evaluate(
-        raw, rate_exceeded=lambda: False, pending_total=0, duplicate_exists=False
+        raw, rate_exceeded=spend_rate, pending_total=0, duplicate_exists=False
     )
     if screen.refusal is not None:
         return screen.refusal
-    body = screen.body
-    if body is None:
-        # evaluate sets it on every accepted verdict, so a None is a bug in the
+    body, digest = screen.body, screen.body_hash
+    if body is None or digest is None:
+        # evaluate sets both on every accepted verdict, so a None is a bug in the
         # gate rather than a visitor error. Raise rather than assert: asserts
         # vanish under `python -O`, and this is a request path.
         raise RuntimeError("shoutbox gate accepted without a normalised body")
 
-    # Spent once, out here. Calling it inside `decide` would charge a retry of
-    # the locked transaction a second time against the same submission.
-    rate_exceeded = spend_rate()
-
     def decide(pending_total: int, duplicate_exists: bool) -> shoutbox.Refusal | None:
+        # Rate is settled above and within budget, so this reports "not
+        # exceeded" rather than asking again. Passing `spend_rate` here would
+        # charge the same submission a second time.
         return shoutbox.evaluate(
             raw,
-            rate_exceeded=lambda: rate_exceeded,
+            rate_exceeded=lambda: False,
             pending_total=pending_total,
             duplicate_exists=duplicate_exists,
         ).refusal
 
     return await db.admit_shout(
         body,
-        shoutbox.body_hash(body),
+        digest,
         window_seconds=shoutbox.DUPLICATE_WINDOW_SECONDS,
         decide=decide,
     )

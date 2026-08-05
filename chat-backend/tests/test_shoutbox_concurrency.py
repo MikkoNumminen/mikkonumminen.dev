@@ -196,6 +196,13 @@ def test_distinct_submissions_below_the_cap_both_land() -> None:
     assert len(pool.rows) == 2
 
 
+class ExplodingPool:
+    """A pool that fails the test if the admission path opens the database."""
+
+    def acquire(self) -> object:
+        raise AssertionError("the database was consulted for a pre-state refusal")
+
+
 def test_a_malformed_submission_touches_neither_the_limiter_nor_the_database() -> None:
     """Shape first, and nothing else. The state phase costs a database
     transaction and a slot of rate budget, so letting an empty submission spend
@@ -207,13 +214,24 @@ def test_a_malformed_submission_touches_neither_the_limiter_nor_the_database() -
         spent = True
         return False
 
-    class ExplodingPool:
-        def acquire(self) -> object:
-            raise AssertionError("the database was consulted for a shape refusal")
-
     async def run() -> Refusal | None:
         db = Database(ExplodingPool())  # type: ignore[arg-type]
         return await shout_admission.gate_shout(db, "   ", spend_rate=spend_rate)
 
     assert asyncio.run(run()) is Refusal.EMPTY
     assert not spent, "a malformed submission spent rate budget"
+
+
+def test_a_rate_limited_submission_never_reaches_the_database() -> None:
+    """A well-formed submission from a sender over its limit is refused on the
+    limiter alone. It is otherwise valid, so nothing about its shape stops it —
+    only the ordering does, and rate-limited traffic is exactly the traffic that
+    must not be able to make the backend work."""
+
+    async def run() -> Refusal | None:
+        db = Database(ExplodingPool())  # type: ignore[arg-type]
+        return await shout_admission.gate_shout(
+            db, "a perfectly ordinary message", spend_rate=lambda: True
+        )
+
+    assert asyncio.run(run()) is Refusal.RATE
