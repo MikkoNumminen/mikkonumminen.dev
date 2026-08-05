@@ -712,7 +712,6 @@ export async function askChat(
 
   let started = false;
   let failed = false;
-  let answer = '';
   let collected: ChatSource[] = [];
 
   const handlers: ChatHandlers = {
@@ -725,7 +724,6 @@ export async function askChat(
         line.className = 'line line--plain';
         line.textContent = '';
       }
-      answer += text;
       line.textContent += text;
       output.scrollTop = output.scrollHeight;
     },
