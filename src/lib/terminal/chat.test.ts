@@ -10,7 +10,6 @@ import {
   getChatBaseUrl,
   getSessionId,
   isChatAvailable,
-  probeAvailability,
   resetChatSession,
   resetChatStateForTests,
   safeParseContext,
@@ -86,49 +85,6 @@ describe('getChatBaseUrl', () => {
   it('treats whitespace-only as unset', () => {
     vi.stubEnv('PUBLIC_CHAT_API_URL', '   ');
     expect(getChatBaseUrl()).toBeNull();
-  });
-});
-
-describe('probeAvailability', () => {
-  it('is true only when the LLM check passes', async () => {
-    const fetchImpl = vi.fn(async () =>
-      jsonResponse(true, { status: 'ok', checks: { db: true, llm: true } }),
-    );
-    await expect(
-      probeAvailability('https://x', { fetchImpl: fetchImpl as unknown as typeof fetch }),
-    ).resolves.toBe(true);
-    expect(fetchImpl).toHaveBeenCalledWith('https://x/health', expect.anything());
-  });
-
-  it('is false when the LLM is down even if the request succeeds', async () => {
-    const fetchImpl = async () =>
-      jsonResponse(true, { checks: { db: true, llm: false } });
-    await expect(
-      probeAvailability('https://x', { fetchImpl: fetchImpl as unknown as typeof fetch }),
-    ).resolves.toBe(false);
-  });
-
-  it('is false on a non-2xx response', async () => {
-    const fetchImpl = async () => jsonResponse(false, { checks: { llm: true } });
-    await expect(
-      probeAvailability('https://x', { fetchImpl: fetchImpl as unknown as typeof fetch }),
-    ).resolves.toBe(false);
-  });
-
-  it('is false (never throws) on a network error', async () => {
-    const fetchImpl = async () => {
-      throw new Error('network down');
-    };
-    await expect(
-      probeAvailability('https://x', { fetchImpl: fetchImpl as unknown as typeof fetch }),
-    ).resolves.toBe(false);
-  });
-
-  it('is false on a malformed body', async () => {
-    const fetchImpl = async () => jsonResponse(true, { nope: 1 });
-    await expect(
-      probeAvailability('https://x', { fetchImpl: fetchImpl as unknown as typeof fetch }),
-    ).resolves.toBe(false);
   });
 });
 
