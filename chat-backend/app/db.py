@@ -624,22 +624,6 @@ class Database:
         )
         return int(row or 0)
 
-    async def enqueue_shout(self, body: str, body_hash: str) -> int:
-        """Insert a submission unconditionally and return its id.
-
-        The id is a small integer because the moderator types it by hand
-        (`approve 7`). This does NOT gate: it is the raw write, kept for the
-        moderation tooling and the tests that build fixtures directly. The public
-        endpoint must use `enqueue_shout_gated`, which is the only path that
-        enforces the duplicate window and the queue cap atomically.
-        """
-        row = await self._pool.fetchval(
-            "INSERT INTO shout_queue (body, body_hash) VALUES ($1, $2) RETURNING id",
-            body,
-            body_hash,
-        )
-        return int(row)
-
     async def enqueue_shout_gated(
         self, body: str, body_hash: str, *, window_seconds: int, max_pending: int
     ) -> tuple[int | None, str | None]:

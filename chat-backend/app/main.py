@@ -390,11 +390,17 @@ def create_app() -> FastAPI:
             ),
         )
         if not verdict.accepted:
-            assert verdict.refusal is not None  # accepted=False always carries one
+            if verdict.refusal is None:
+                # accepted=False always carries a reason by construction, so a
+                # None here is a bug in the gate, not a visitor error. Raise
+                # rather than assert: asserts vanish under `python -O`, and this
+                # is a request path.
+                raise RuntimeError("shoutbox gate refused without a reason")
             return refuse(verdict.refusal)
 
         body = verdict.body
-        assert body is not None and verdict.body_hash is not None
+        if body is None:
+            raise RuntimeError("shoutbox gate accepted without a normalised body")
 
         # Re-check duplicate and capacity INSIDE the write transaction. The reads
         # above are a snapshot: two identical submissions arriving together both
@@ -403,7 +409,7 @@ def create_app() -> FastAPI:
         # buy an earlier, cheaper refusal.
         shout_id, reason = await db.enqueue_shout_gated(
             body,
-            verdict.body_hash,
+            hashed,
             window_seconds=shoutbox.DUPLICATE_WINDOW_SECONDS,
             max_pending=shoutbox.QUEUE_MAX_PENDING,
         )
