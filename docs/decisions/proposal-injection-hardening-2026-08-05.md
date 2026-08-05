@@ -134,7 +134,7 @@ owner curates is how you get a pipeline that silently drops good content.
 ## What I would sequence
 
 1. A2 or A1, the forged-history vector, because it can be closed rather than mitigated
-2. B1, the CI-runnable gate subset, plus the two missing acceptance cases
+2. B1, the CI-runnable gate subset, plus the missing acceptance cases named above
 3. D1, the groundedness caveat, reusing the existing suffix mechanism
 4. Settle the XFF contradiction, then decide whether finding 3 survives
 5. Normalisation then fencing at the splice point
