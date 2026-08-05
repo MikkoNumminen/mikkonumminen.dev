@@ -74,18 +74,22 @@ class Embedder:
         return vector
 
     def token_count(self, text: str) -> int:
-        """Real tokens the model will see, with truncation OFF.
+        """Real tokens the model will see, with truncation temporarily OFF.
 
-        Truncation must be disabled explicitly or this is useless: the tokenizer
-        stops at the model's max length, so every over-long text reports exactly
-        that number and an over-length check comparing against it can never fire.
-        Measuring this corpus with truncation left on reported zero chunks over
-        the limit; with it off, 170 of 211 were over.
+        Truncation must be disabled or this is useless: the tokenizer stops at
+        the model's max length, so every over-long text reports exactly that
+        number and an over-length check can never fire. Measuring the corpus with
+        it left on reported zero chunks over the limit; with it off, 170 of 211.
+
+        It must also be put BACK. `_load_model` is lru_cached, so this tokenizer
+        is the same object the embedding path uses, and `no_truncation()` mutates
+        it in place. Leaving it off fed a 598-token sequence into a model built
+        for 512 and the ONNX runtime failed mid-index with a broadcast error.
+        Counting tokens must not change how anything is embedded.
+
+        Held under the inference lock so a concurrent embed cannot observe the
+        window where truncation is off.
         """
-        # fastembed nests it: TextEmbedding.model.tokenizer, not
-        # TextEmbedding.tokenizer. Looking only at the outer object found nothing
-        # and the guard below correctly refused to guess, which is how this was
-        # caught: the indexer aborted instead of silently mis-counting.
         inner = getattr(self._model, "model", None)
         tokenizer = (
             getattr(inner, "tokenizer", None)
@@ -98,8 +102,14 @@ class Embedder:
                 "ceiling. Refusing to guess: a wrong count here silently drops "
                 "corpus text."
             )
-        tokenizer.no_truncation()
-        return len(tokenizer.encode(text).ids)
+        with _INFERENCE_LOCK:
+            previous = tokenizer.truncation
+            tokenizer.no_truncation()
+            try:
+                return len(tokenizer.encode(text).ids)
+            finally:
+                if previous:
+                    tokenizer.enable_truncation(**previous)
 
     def _check_dims(self, vectors: list[list[float]]) -> None:
         for vec in vectors:
