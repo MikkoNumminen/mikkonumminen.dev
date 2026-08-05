@@ -22,7 +22,8 @@ against a fake pool that emulates exactly the two semantics the fix depends on:
 The fake FORCES the racy interleaving rather than hoping the scheduler finds it:
 every fact read yields to the event loop before answering, so without the lock
 both tasks deterministically read a world missing the other's row. Remove the
-lock from `enqueue_shout_gated` and these tests go red every time, not flakily.
+lock from `enqueue_shout_gated` and the two race tests go red every time, not
+flakily. The control below stays green in both directions, which is its job.
 
 An in-memory emulation is weaker evidence than a real database. What it proves is
 that the composition serialises check-then-insert, which is the property the audit
@@ -49,9 +50,7 @@ pytest.importorskip("asyncpg")
 pytest.importorskip("pgvector")
 
 from app.db import Database  # noqa: E402
-from app.shoutbox import QUEUE_MAX_PENDING  # noqa: E402
-
-WINDOW = 86_400
+from app.shoutbox import DUPLICATE_WINDOW_SECONDS, QUEUE_MAX_PENDING  # noqa: E402
 
 
 class FakePool:
@@ -148,13 +147,13 @@ def test_concurrent_identical_submissions_land_exactly_once() -> None:
             db.enqueue_shout_gated(
                 "same text",
                 "hash-A",
-                window_seconds=WINDOW,
+                window_seconds=DUPLICATE_WINDOW_SECONDS,
                 max_pending=QUEUE_MAX_PENDING,
             ),
             db.enqueue_shout_gated(
                 "same text",
                 "hash-A",
-                window_seconds=WINDOW,
+                window_seconds=DUPLICATE_WINDOW_SECONDS,
                 max_pending=QUEUE_MAX_PENDING,
             ),
         )
@@ -178,10 +177,16 @@ def test_concurrent_distinct_submissions_cannot_overshoot_the_cap() -> None:
         db = Database(pool)  # type: ignore[arg-type]
         await asyncio.gather(
             db.enqueue_shout_gated(
-                "first", "hash-B", window_seconds=WINDOW, max_pending=QUEUE_MAX_PENDING
+                "first",
+                "hash-B",
+                window_seconds=DUPLICATE_WINDOW_SECONDS,
+                max_pending=QUEUE_MAX_PENDING,
             ),
             db.enqueue_shout_gated(
-                "second", "hash-C", window_seconds=WINDOW, max_pending=QUEUE_MAX_PENDING
+                "second",
+                "hash-C",
+                window_seconds=DUPLICATE_WINDOW_SECONDS,
+                max_pending=QUEUE_MAX_PENDING,
             ),
         )
         return pool
@@ -202,10 +207,16 @@ def test_distinct_submissions_below_the_cap_both_land() -> None:
         db = Database(pool)  # type: ignore[arg-type]
         await asyncio.gather(
             db.enqueue_shout_gated(
-                "one", "hash-D", window_seconds=WINDOW, max_pending=QUEUE_MAX_PENDING
+                "one",
+                "hash-D",
+                window_seconds=DUPLICATE_WINDOW_SECONDS,
+                max_pending=QUEUE_MAX_PENDING,
             ),
             db.enqueue_shout_gated(
-                "two", "hash-E", window_seconds=WINDOW, max_pending=QUEUE_MAX_PENDING
+                "two",
+                "hash-E",
+                window_seconds=DUPLICATE_WINDOW_SECONDS,
+                max_pending=QUEUE_MAX_PENDING,
             ),
         )
         return pool
