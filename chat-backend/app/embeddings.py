@@ -73,6 +73,27 @@ class Embedder:
         self._check_dims([vector])
         return vector
 
+    def token_count(self, text: str) -> int:
+        """Real tokens the model will see, with truncation OFF.
+
+        Truncation must be disabled explicitly or this is useless: the tokenizer
+        stops at the model's max length, so every over-long text reports exactly
+        that number and an over-length check comparing against it can never fire.
+        Measuring this corpus with truncation left on reported zero chunks over
+        the limit; with it off, 170 of 211 were over.
+        """
+        tokenizer = getattr(self._model, "tokenizer", None) or getattr(
+            self._model, "_tokenizer", None
+        )
+        if tokenizer is None:  # pragma: no cover - depends on fastembed internals
+            raise RuntimeError(
+                "embedding model exposes no tokenizer; cannot enforce the token "
+                "ceiling. Refusing to guess: a wrong count here silently drops "
+                "corpus text."
+            )
+        tokenizer.no_truncation()
+        return len(tokenizer.encode(text).ids)
+
     def _check_dims(self, vectors: list[list[float]]) -> None:
         for vec in vectors:
             if len(vec) != self._dim:
@@ -81,6 +102,13 @@ class Embedder:
                     f"{len(vec)}, but configured EMBEDDING_DIM is {self._dim}. "
                     "These must match the DB's vector(N) column."
                 )
+
+
+# The model's own sequence limit. Not a tunable: bge-small-en-v1.5 truncates
+# SILENTLY past this, so a chunk over it loses its tail with no error. Lives
+# here rather than in Settings because it is a fact about the model, and a
+# knob would invite someone to raise it and lose data quietly.
+MAX_SEQUENCE_TOKENS = 512
 
 
 @lru_cache(maxsize=2)
