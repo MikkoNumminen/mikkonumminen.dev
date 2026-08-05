@@ -251,6 +251,46 @@ test.describe('shoutbox: submit', () => {
     await expect(afterReload).toHaveCount(1);
     await expect(afterReload).toContainText(body);
   });
+
+  test('the echo stops claiming to be pending once the message is published', async ({
+    page,
+  }) => {
+    await primeShoutboxBackend(page, { accepted: true });
+
+    const form = page.locator('[data-shoutbox-form]');
+    await form.scrollIntoViewIfNeeded();
+    // Trailing whitespace on purpose. The server publishes its own stripped
+    // form and never tells the browser what it was, so comparing raw text would
+    // leave this echo up beside the published copy of itself.
+    const typed = 'A message that later gets published.  ';
+    const published = 'A message that later gets published.';
+    await page.locator('[data-shoutbox-input]').fill(typed);
+    await page.locator('[data-shoutbox-send]').click();
+    await expect(page.locator('.shoutbox__thread--pending')).toHaveCount(1);
+
+    // Now the owner has approved, published and committed. The snapshot the CDN
+    // serves contains the message, so the local echo has nothing left to say.
+    await page.route('**/data/shoutbox.json', (route) =>
+      route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          version: 1,
+          generated_at: '2026-08-06T00:00:00Z',
+          // `count` is required and must equal threads.length: parseSnapshot
+          // rejects the whole file otherwise, which is how a truncated write
+          // degrades to the empty box.
+          count: 1,
+          threads: [{ id: 1, body: published, at: '2026-08-06T00:00:00Z', reply: null }],
+        }),
+      }),
+    );
+    await page.reload();
+    await page.locator('[data-shoutbox-threads]').scrollIntoViewIfNeeded();
+
+    await expect(page.locator('.shoutbox__thread')).toHaveCount(1);
+    await expect(page.locator('.shoutbox__thread--pending')).toHaveCount(0);
+    await expect(page.locator('.shoutbox__body')).toHaveText(published);
+  });
 });
 
 // The gate, from the other side: the machine at home is asleep.

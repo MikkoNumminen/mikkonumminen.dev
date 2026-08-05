@@ -102,14 +102,46 @@ function readRaw(store: Storage): PendingMessage[] {
 }
 
 /**
+ * Whitespace and invisible characters, for the comparison key below.
+ * `\p{Cf}` is Unicode's format category: zero-width joiners, the BOM, the
+ * bidi overrides, and the soft hyphen.
+ */
+const IGNORABLE_RE = /[\s\p{Cf}]/gu;
+
+/**
+ * A key for "the server would consider these the same text".
+ *
+ * DELIBERATELY LOOSER THAN THE SERVER'S `normalise`, and not a port of it. The
+ * browser never learns the canonical text: the submit response is
+ * `{"accepted": true}` and nothing else, so what gets stored here is what the
+ * visitor typed, while what gets published is NFKC-folded, stripped per line,
+ * and blank-collapsed. Comparing those two directly means a message ending in a
+ * space never matches its own published copy, and the echo sits next to the real
+ * thing claiming to still be waiting.
+ *
+ * Re-implementing `normalise` in TypeScript would fix that and create the drift
+ * this codebase has been bitten by before: two implementations of one rule, and
+ * the one nothing tests wins. So this goes the other way and throws away MORE
+ * than the server does. Any two strings the server would call equal are equal
+ * here too, which is the only direction that matters.
+ *
+ * The costs of being loose, both small and both one-sided: a false negative
+ * leaves an echo up until it expires, and a false positive would need two
+ * different messages to be identical once every space and invisible character is
+ * removed, which then only hides a local echo early.
+ */
+function matchKey(text: string): string {
+  return text.normalize('NFKC').replace(IGNORABLE_RE, '');
+}
+
+/**
  * The entries that are still honestly "waiting": not expired, and not present in
  * the published snapshot.
  *
- * Matching on body text rather than an id is deliberate. The submit response
- * carries no id (`{"accepted": true}` and nothing else), and the queue id is
- * never exposed to the browser, so the text is the only handle the client has.
- * The duplicate gate makes the same text inside the window collide anyway, so
- * two distinct pending entries cannot share one body.
+ * Matching on body text rather than an id is forced: the submit response carries
+ * no id and the queue id is never exposed to the browser, so the text is the only
+ * handle the client has. The duplicate gate makes the same text inside the window
+ * collide anyway, so two pending entries cannot share one body.
  *
  * Prunes storage as a side effect: reading is the only moment this code reliably
  * runs, so it is also the only reliable moment to forget things.
@@ -121,10 +153,10 @@ export function readPending(
   const store = storage();
   if (!store) return [];
 
-  const published = new Set(publishedBodies);
+  const published = new Set(publishedBodies.map(matchKey));
   const stored = readRaw(store);
   const live = stored.filter(
-    (entry) => now - entry.at < MAX_AGE_MS && !published.has(entry.body),
+    (entry) => now - entry.at < MAX_AGE_MS && !published.has(matchKey(entry.body)),
   );
 
   if (live.length !== stored.length) write(store, live);
@@ -142,15 +174,13 @@ export function addPending(body: string, now = Date.now()): PendingMessage[] {
   const store = storage();
   if (!store) return [];
 
-  const existing = readRaw(store).filter((entry) => entry.body !== body);
-  const next = [...existing, { body, at: now }].slice(-MAX_ENTRIES);
+  // Trimmed, because the server stores its own stripped form and the echo should
+  // show what will be published rather than the visitor's stray trailing newline.
+  // This is presentation only; `matchKey` is what decides equality.
+  const text = body.trim();
+  const key = matchKey(text);
+  const existing = readRaw(store).filter((entry) => matchKey(entry.body) !== key);
+  const next = [...existing, { body: text, at: now }].slice(-MAX_ENTRIES);
   write(store, next);
   return next;
-}
-
-/** Forget everything. Exists for tests and for a future "clear" affordance. */
-export function clearPending(): void {
-  const store = storage();
-  if (!store) return;
-  write(store, []);
 }

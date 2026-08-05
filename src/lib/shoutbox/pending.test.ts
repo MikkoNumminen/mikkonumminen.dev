@@ -1,11 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  addPending,
-  clearPending,
-  MAX_AGE_MS,
-  MAX_ENTRIES,
-  readPending,
-} from './pending';
+import { addPending, MAX_AGE_MS, MAX_ENTRIES, readPending } from './pending';
 
 /**
  * The pending echo's whole risk is telling someone their message is waiting when
@@ -69,6 +63,25 @@ describe('readPending', () => {
     expect(readPending([], 5)).toEqual([{ body: 'good', at: 5 }]);
   });
 
+  /**
+   * The server stores its own normalised form (NFKC,each line stripped, blank runs
+   * collapsed) and never tells the browser what it was. Comparing raw text
+   * against the published copy therefore fails on the most ordinary input there
+   * is: a message with a trailing newline. The echo would then sit next to the
+   * published copy of itself, still claiming to be waiting.
+   */
+  it('clears an echo whose published copy differs in INTERNAL whitespace', () => {
+    // The server strips each line at both ends, so this is what gets published.
+    // Trimming the stored copy cannot reach the difference: it is in the middle.
+    addPending('hello  \n  there', 1000);
+    expect(readPending(['hello\nthere'], 1000)).toEqual([]);
+  });
+
+  it('clears an echo whose published copy differs in invisible characters', () => {
+    addPending('hello\u200bthere', 1000);
+    expect(readPending(['hellothere'], 1000)).toEqual([]);
+  });
+
   it('reads a non-array payload as empty', () => {
     window.localStorage.setItem(KEY, JSON.stringify({ body: 'wrong container', at: 1 }));
     expect(readPending()).toEqual([]);
@@ -81,6 +94,17 @@ describe('addPending', () => {
     addPending('same text', 2000);
     // Kept once, at the newer timestamp: the duplicate gate would refuse the
     // second submission anyway, so two entries could never both be waiting.
+    expect(readPending([], 2000)).toEqual([{ body: 'same text', at: 2000 }]);
+  });
+
+  it('stores the trimmed text, which is closer to what will be published', () => {
+    addPending('  padded  ', 1000);
+    expect(readPending([], 1000)).toEqual([{ body: 'padded', at: 1000 }]);
+  });
+
+  it('treats a whitespace-only variant as the same message, not a second one', () => {
+    addPending('same text', 1000);
+    addPending('same text\n', 2000);
     expect(readPending([], 2000)).toEqual([{ body: 'same text', at: 2000 }]);
   });
 
@@ -106,7 +130,6 @@ describe('when storage is unavailable', () => {
     });
     expect(() => addPending('anything')).not.toThrow();
     expect(readPending()).toEqual([]);
-    expect(() => clearPending()).not.toThrow();
   });
 
   it('survives setItem throwing on a full quota', () => {

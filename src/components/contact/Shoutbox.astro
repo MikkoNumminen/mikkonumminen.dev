@@ -307,31 +307,42 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
         return item;
       };
 
-      /** Reveal the list the first time anything at all goes into it. */
-      const revealList = (): void => {
-        list.hidden = false;
-        empty.hidden = true;
+      /**
+       * What the snapshot published, once it is known. Read by the pending
+       * render to decide which local echoes are still honestly waiting; empty
+       * until the fetch resolves, which only ever means an echo survives one
+       * render longer than it needed to.
+       */
+      let publishedBodies: string[] = [];
+
+      /**
+       * Re-render the pending echoes from storage, replacing whatever is there.
+       *
+       * IDEMPOTENT ON PURPOSE. A submit that lands before `loadSnapshot`
+       * resolves would otherwise append an echo, and then the snapshot pass
+       * would read the same entry back out of storage and append it a second
+       * time. Rebuilding instead of appending makes that unrepresentable, and it
+       * keeps the echoes last in the list no matter which pass ran first.
+       */
+      const renderPendingList = (): void => {
+        for (const node of list.querySelectorAll('.shoutbox__thread--pending'))
+          node.remove();
+        for (const entry of readPending(publishedBodies))
+          list.append(renderPending(entry));
+        // Nothing published and nothing pending leaves the empty state exactly
+        // as rendered. Nothing to undo, and no spinner was ever shown to clear.
+        const populated = list.childElementCount > 0;
+        list.hidden = !populated;
+        empty.hidden = populated;
       };
 
       void loadSnapshot().then((snapshot) => {
         if (controller.signal.aborted) return;
 
         const threads = snapshot?.threads ?? [];
-        const frame = document.createDocumentFragment();
-        for (const thread of threads) frame.append(renderThread(thread));
-
-        // Pruned against what is actually published: an entry whose text is now
-        // on the site is not waiting for anything, and `readPending` forgets it
-        // rather than filtering it again on every load.
-        for (const entry of readPending(threads.map((thread) => thread.body))) {
-          frame.append(renderPending(entry));
-        }
-
-        // Nothing published and nothing pending leaves the empty state exactly
-        // as rendered. Nothing to undo, and no spinner was ever shown to clear.
-        if (!frame.hasChildNodes()) return;
-        list.append(frame);
-        revealList();
+        publishedBodies = threads.map((thread) => thread.body);
+        for (const thread of threads) list.append(renderThread(thread));
+        renderPendingList();
       });
 
       // --- the write half ------------------------------------------------
@@ -461,9 +472,8 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
                 // send worked and then left no trace of WHAT worked, which on a
                 // board whose published list moves in days read as nothing
                 // having happened at all.
-                list.append(renderPending({ body, at: Date.now() }));
                 addPending(body);
-                revealList();
+                renderPendingList();
                 return;
               }
               // The gate's own wording, verbatim: it is specific and actionable,
