@@ -44,7 +44,7 @@
                 "saved": 6069,
                 "pct_saved": 14,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json",
-                "notes": "Arm A re-dispatched 2026-05-26 with explicit cross-repo authorization (first attempt asked for permission instead of working). Save +14% on Haiku vs Sonnet's +43% — recipe value compresses for the smaller model on this skill because Haiku arm A explored more cold (39 tool uses).",
+                "notes": "Arm A re-dispatched 2026-05-26 with explicit cross-repo authorization (first attempt asked for permission instead of working). Save +14% on Haiku vs Sonnet's +43%: recipe value compresses for the smaller model on this skill because Haiku arm A explored more cold (39 tool uses).",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -54,7 +54,7 @@
         },
         {
           "name": "copyright-scan",
-          "description": "Scan a git diff (staged by default, or a named revision range / file set) for accidental third-party copyright leaks before they land on origin. Use this skill whenever the user says \"scan the diff\", \"copyright check\", \"scan for leaks\", \"is this safe to push\", \"check this before I commit\", \"did I leak anything?\", or whenever you are about to create a commit or push in this repo. CLAUDE.md marks copyright leakage as a P0 — this skill turns the manual scan ritual into one pass. Produces a structured pass/fail report with file:line citations and, on fail, the exact remediation path (edit vs. un-stage vs. P0 scrub-from-origin).",
+          "description": "Scan a git diff (staged by default, or a named revision range / file set) for accidental third-party copyright leaks before they land on origin. Use this skill whenever the user says \"scan the diff\", \"copyright check\", \"scan for leaks\", \"is this safe to push\", \"check this before I commit\", \"did I leak anything?\", or whenever you are about to create a commit or push in this repo. CLAUDE.md marks copyright leakage as a P0. This skill turns the manual scan ritual into one pass. Produces a structured pass/fail report with file:line citations and, on fail, the exact remediation path (edit vs. un-stage vs. P0 scrub-from-origin).",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -85,7 +85,7 @@
                 "saved": -9196,
                 "pct_saved": -20,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +16% was artifact-contamination — clean arm B 15K more (40K→55K); recipe-driven structured walk costs more than cold scan when target is clean. Investigation-collapse skills lose the most value going Sonnet → Opus.",
+                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +16% was artifact-contamination, clean arm B 15K more (40K→55K); recipe-driven structured walk costs more than cold scan when target is clean. Investigation-collapse skills lose the most value going Sonnet → Opus.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -95,7 +95,7 @@
                 "saved": 34655,
                 "pct_saved": 57,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Haiku save rate (57%) HIGHEST of the three models — even beats Sonnet's 49%. Haiku arm A explored aggressively (61K, 26 tool uses) like Sonnet did cold; arm B followed the structured checks tightly (26K, 14 uses, also lowest arm B of the three). For investigation-collapse skills, Haiku gets the biggest recipe benefit — the smaller model would scout exhaustively cold but compresses well to a directed walk.",
+                "notes": "Haiku save rate (57%) HIGHEST of the three models, even beats Sonnet's 49%. Haiku arm A explored aggressively (61K, 26 tool uses) like Sonnet did cold; arm B followed the structured checks tightly (26K, 14 uses, also lowest arm B of the three). For investigation-collapse skills, Haiku gets the biggest recipe benefit: the smaller model would scout exhaustively cold but compresses well to a directed walk.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -105,7 +105,7 @@
         },
         {
           "name": "pronunciation-corpus-add",
-          "description": "Append a Finnish pronunciation failure (a word the Chatterbox Grandmom voice mispronounces) to the project's pronunciation corpus at docs/pronunciation_corpus_fi.md. Use this whenever the user or a tester (Turo is the canonical one) reports that Grandmom said a Finnish word wrong — e.g. \"Grandmom pronounces X as Y\", \"add this to the corpus\", \"log this pronunciation bug\", \"the TTS messed up <word>\". Also use when the user pastes a transcript of what was heard vs. what was written. This corpus is the evidence base for targeted Pass I / lexicon fixes; entries must be structured so patterns across reports are visible at a glance.",
+          "description": "Append a Finnish pronunciation failure (a word the Chatterbox Grandmom voice mispronounces) to the project's pronunciation corpus at docs/pronunciation_corpus_fi.md. Use this whenever the user or a tester (Turo is the canonical one) reports that Grandmom said a Finnish word wrong: e.g. \"Grandmom pronounces X as Y\", \"add this to the corpus\", \"log this pronunciation bug\", \"the TTS messed up <word>\". Also use when the user pastes a transcript of what was heard vs. what was written. This corpus is the evidence base for targeted Pass I / lexicon fixes; entries must be structured so patterns across reports are visible at a glance.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
@@ -157,7 +157,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 77645,
             "calibration_arm_B": 86790,
-            "calibration_notes": "skill encodes thoroughness (multi-phase audit walk) — arm B explored deeper, used 121 tool uses vs arm A's 56. Costs more per use, value is in audit completeness, not token compression.",
+            "calibration_notes": "skill encodes thoroughness (multi-phase audit walk): arm B explored deeper, used 121 tool uses vs arm A's 56. Costs more per use, value is in audit completeness, not token compression.",
             "prior_estimate": {
               "tokens_per_use": 3000,
               "uses_per_year": 4,
@@ -173,7 +173,7 @@
                 "saved": -546,
                 "pct_saved": -1,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +25% was artifact-contamination — clean arm A is 14K cheaper (94K→80K) and arm B stayed comparable; recipe overhead now matches cold-walk cost.",
+                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +25% was artifact-contamination, clean arm A is 14K cheaper (94K→80K) and arm B stayed comparable; recipe overhead now matches cold-walk cost.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -193,7 +193,7 @@
         },
         {
           "name": "release-cut",
-          "description": "Cut a new AudiobookMaker release (bump APP_VERSION, tag vX.Y.Z, push, verify CI lands SHA-256 in release notes AND sidecar). Use this skill whenever the user says \"cut a release\", \"bump the version\", \"ship X.Y.Z\", \"make a release\", \"release X.Y.Z\", or asks to tag a new version. Auto-update is existential for this project — a release that ships without a valid SHA-256 locks every existing user out of one-click updates. This skill encodes every moving part so that can never happen again.",
+          "description": "Cut a new AudiobookMaker release (bump APP_VERSION, tag vX.Y.Z, push, verify CI lands SHA-256 in release notes AND sidecar). Use this skill whenever the user says \"cut a release\", \"bump the version\", \"ship X.Y.Z\", \"make a release\", \"release X.Y.Z\", or asks to tag a new version. Auto-update is existential for this project: a release that ships without a valid SHA-256 locks every existing user out of one-click updates. This skill encodes every moving part so that can never happen again.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -224,7 +224,7 @@
                 "saved": 31483,
                 "pct_saved": 48,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Strong save (48%) — prior 51% was within noise; recipe still compresses the 9-phase release-cut walk cleanly.",
+                "notes": "Clean re-baseline 2026-05-26. Strong save (48%): prior 51% was within noise; recipe still compresses the 9-phase release-cut walk cleanly.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -248,7 +248,7 @@
         },
         {
           "name": "voice-pack-finnish",
-          "description": "Build a Finnish voice pack from a source audio file end-to-end — chunked analyze with ECAPA diarization, transcript validation per speaker, branching to LoRA training (long sources) or few-shot ref-clip packaging (short sources), and ear-check by synth. Use whenever the user says \"copy the voices\", \"extract voices from this clip\", \"make a voice pack from this audio\", \"I have a short Finnish clip\", or hands you a Finnish podcast / interview / audiobook to mimic. Encodes the empirically-validated Finnish pipeline. CRITICAL — Finnish source only (ASR + finetune model are Finnish-specific); for English / other languages this skill does not apply. Never assume single-speaker, never trust pyannote labels without validation, never install copyright-derived packs to ~/.audiobookmaker.",
+          "description": "Build a Finnish voice pack from a source audio file end-to-end: chunked analyze with ECAPA diarization, transcript validation per speaker, branching to LoRA training (long sources) or few-shot ref-clip packaging (short sources), and ear-check by synth. Use whenever the user says \"copy the voices\", \"extract voices from this clip\", \"make a voice pack from this audio\", \"I have a short Finnish clip\", or hands you a Finnish podcast / interview / audiobook to mimic. Encodes the empirically-validated Finnish pipeline. CRITICAL: Finnish source only (ASR + finetune model are Finnish-specific); for English / other languages this skill does not apply. Never assume single-speaker, never trust pyannote labels without validation, never install copyright-derived packs to ~/.audiobookmaker.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-LATEST.json",
@@ -285,7 +285,7 @@
                 "saved": 15275,
                 "pct_saved": 32,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json",
-                "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +32% save on Haiku vs Sonnet's +52% — recipe value smaller for Haiku because arm A already mapped the 5-stage pipeline (voice-pack-analyze/export/train/package) cold in 13 tool uses.",
+                "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +32% save on Haiku vs Sonnet's +52%: recipe value smaller for Haiku because arm A already mapped the 5-stage pipeline (voice-pack-analyze/export/train/package) cold in 13 tool uses.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -307,7 +307,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 20979,
             "calibration_arm_B": 23070,
-            "calibration_notes": "skill encodes status-board protocol rigor (3-part TODO.md edit, isolation discipline) — costs slightly more per use, value is multi-Claude coherence, not token compression.",
+            "calibration_notes": "skill encodes status-board protocol rigor (3-part TODO.md edit, isolation discipline): costs slightly more per use, value is multi-Claude coherence, not token compression.",
             "prior_estimate": {
               "tokens_per_use": 2000,
               "uses_per_year": null,
@@ -323,7 +323,7 @@
                 "saved": -3046,
                 "pct_saved": -10,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-OPUS-LATEST.json",
-                "notes": "Skill encodes status-board protocol rigor — costs slightly more on Opus, same direction as Sonnet.",
+                "notes": "Skill encodes status-board protocol rigor: costs slightly more on Opus, same direction as Sonnet.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -333,7 +333,7 @@
                 "saved": -3006,
                 "pct_saved": -12,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json",
-                "notes": "Cost-more on Haiku (-12%) similar to Sonnet (-10%) and Opus (-10%). Skill encodes status-board protocol rigor — cost-not-tokens pattern is model-invariant here.",
+                "notes": "Cost-more on Haiku (-12%) similar to Sonnet (-10%) and Opus (-10%). Skill encodes status-board protocol rigor: cost-not-tokens pattern is model-invariant here.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -355,7 +355,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 23252,
             "calibration_arm_B": 23126,
-            "calibration_notes": "N=1 noise — no meaningful save or cost difference on this task. Skill's value is correctness (avoiding worktree collisions), not token compression.",
+            "calibration_notes": "N=1 noise, no meaningful save or cost difference on this task. Skill's value is correctness (avoiding worktree collisions), not token compression.",
             "prior_estimate": {
               "tokens_per_use": 800,
               "uses_per_year": null,
@@ -381,7 +381,7 @@
                 "saved": 8872,
                 "pct_saved": 23,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-AUDIOBOOKMAKER-HAIKU-LATEST.json",
-                "notes": "Sonnet was +1%, Opus +24%, Haiku +23% — recipe value grows substantially from Sonnet to bigger and smaller models alike. Both Opus and Haiku derive the worktree protocol from scratch more expensively than Sonnet does.",
+                "notes": "Sonnet was +1%, Opus +24%, Haiku +23%: recipe value grows substantially from Sonnet to bigger and smaller models alike. Both Opus and Haiku derive the worktree protocol from scratch more expensively than Sonnet does.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -424,7 +424,7 @@
                 "saved": -3869,
                 "pct_saved": -12,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +40% was artifact-contamination — working tree clean in fresh worktree; both arms hit a no-op case (fallback to last commit, which was cosmetic). Recipe overhead exceeds cold scan when there's no real diff. Task-state-dependent finding.",
+                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +40% was artifact-contamination, working tree clean in fresh worktree; both arms hit a no-op case (fallback to last commit, which was cosmetic). Recipe overhead exceeds cold scan when there's no real diff. Task-state-dependent finding.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -434,7 +434,7 @@
                 "saved": 2085,
                 "pct_saved": 5,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
-                "notes": "Modest +5% save on Haiku vs Sonnet's +28%. Recipe value compresses on the smaller model here — Haiku arm A also caught the tier-2 weapon shift cold.",
+                "notes": "Modest +5% save on Haiku vs Sonnet's +28%. Recipe value compresses on the smaller model here: Haiku arm A also caught the tier-2 weapon shift cold.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -444,7 +444,7 @@
         },
         {
           "name": "content-audit",
-          "description": "Pre-commit content invariants check — orphan refs (enemy / weapon / sprite / pod / loot-pool / mission system / story trigger), missing sprite generators, perk drop-weight sanity, mission prereq DAG, story integrity (voice + music files, trigger refs), storyTriggers helper coverage.",
+          "description": "Pre-commit content invariants check: orphan refs (enemy / weapon / sprite / pod / loot-pool / mission system / story trigger), missing sprite generators, perk drop-weight sanity, mission prereq DAG, story integrity (voice + music files, trigger refs), storyTriggers helper coverage.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -475,7 +475,7 @@
                 "saved": -19625,
                 "pct_saved": -25,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +6% was artifact-contamination — clean arm A 29K cheaper (108K→79K). Recipe overhead now exceeds cold scan when target invariants resolve quickly.",
+                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +6% was artifact-contamination, clean arm A 29K cheaper (108K→79K). Recipe overhead now exceeds cold scan when target invariants resolve quickly.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -495,7 +495,7 @@
         },
         {
           "name": "equipment",
-          "description": "Create, modify, or remove a weapon or piece of equipment (augment / reactor / shield / armor) — including visual changes to how it appears in combat or in the loadout UI. Covers stats, sprites, prices, and the full CRUD lifecycle for the entire ship-loadout content surface.",
+          "description": "Create, modify, or remove a weapon or piece of equipment (augment / reactor / shield / armor), including visual changes to how it appears in combat or in the loadout UI. Covers stats, sprites, prices, and the full CRUD lifecycle for the entire ship-loadout content surface.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -519,7 +519,7 @@
             "calibration_arm_A": 89006,
             "calibration_arm_B": 93683,
             "calibration_model": "sonnet",
-            "calibration_notes": "skill enforces full CRUD lifecycle — encodes rigor, not scout-savings",
+            "calibration_notes": "skill enforces full CRUD lifecycle: encodes rigor, not scout-savings",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 84950,
@@ -527,7 +527,7 @@
                 "saved": 41120,
                 "pct_saved": 48,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Prior 65% narrowed to 48% — clean arm A 10K cheaper (95K→85K); recipe genuinely saves on scaffolding skills but the prior magnitude was contamination-inflated.",
+                "notes": "Clean re-baseline 2026-05-26. Prior 65% narrowed to 48%: clean arm A 10K cheaper (95K→85K); recipe genuinely saves on scaffolding skills but the prior magnitude was contamination-inflated.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -537,7 +537,7 @@
                 "saved": -1137,
                 "pct_saved": -3,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
-                "notes": "FLIPPED from Sonnet's -5% (cost-more) to Haiku's -3% (near-break-even) — both negative. Opus showed +65% save here; Haiku doesn't get that benefit because the cold arm is already directed.",
+                "notes": "FLIPPED from Sonnet's -5% (cost-more) to Haiku's -3% (near-break-even). Both negative. Opus showed +65% save here; Haiku doesn't get that benefit because the cold arm is already directed.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -578,7 +578,7 @@
                 "saved": -3748,
                 "pct_saved": -4,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Cost-more narrows dramatically (-21% → -4%) — both arms grew; prior -21% was contamination-inflated. Cost-more pattern holds but is much less severe.",
+                "notes": "Clean re-baseline 2026-05-26. Cost-more narrows dramatically (-21% → -4%). Both arms grew; prior -21% was contamination-inflated. Cost-more pattern holds but is much less severe.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -588,7 +588,7 @@
                 "saved": 13213,
                 "pct_saved": 29,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
-                "notes": "Strong +29% save on Haiku vs Sonnet's +26% — recipe holds across models, and arm B follows the documented resume-from-Phase-3 protocol.",
+                "notes": "Strong +29% save on Haiku vs Sonnet's +26%: recipe holds across models, and arm B follows the documented resume-from-Phase-3 protocol.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -598,7 +598,7 @@
         },
         {
           "name": "new-enemy",
-          "description": "Scaffold a new enemy — enemies.json entry, BootScene placeholder sprite generator, optional test wave, and integrity test verification.",
+          "description": "Scaffold a new enemy: enemies.json entry, BootScene placeholder sprite generator, optional test wave, and integrity test verification.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -625,7 +625,7 @@
                 "saved": 81994,
                 "pct_saved": 70,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Save rate 70% — within expected range of prior 65% (clean arm A grew vs prior contaminated run). Recipe strongly collapses the cold model's EnemyBehavior union closure + sprite generator discovery.",
+                "notes": "Clean re-baseline 2026-05-26. Save rate 70%: within expected range of prior 65% (clean arm A grew vs prior contaminated run). Recipe strongly collapses the cold model's EnemyBehavior union closure + sprite generator discovery.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -635,7 +635,7 @@
                 "saved": 34904,
                 "pct_saved": 57,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
-                "notes": "BIGGEST save in batch (+57%). Sonnet was +9%, Opus was +65% — Haiku tracks Opus closely, both far above Sonnet. Recipe collapses Haiku's exhaustive cold exploration of the EnemyBehavior union + sprite-generator pattern.",
+                "notes": "BIGGEST save in batch (+57%). Sonnet was +9%, Opus was +65%: Haiku tracks Opus closely, both far above Sonnet. Recipe collapses Haiku's exhaustive cold exploration of the EnemyBehavior union + sprite-generator pattern.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -645,7 +645,7 @@
         },
         {
           "name": "new-migration",
-          "description": "Add a Postgres schema migration end-to-end — dated SQL file in db/migrations/, Database interface update in src/lib/db.ts, prod application via scripts/migrate.mjs, schema verification via scripts/check-schema.mjs, and the PR-body checkbox that gates merge. Enforces CLAUDE.md §7a HARD RULE so the next save POST doesn't 500.",
+          "description": "Add a Postgres schema migration end-to-end: dated SQL file in db/migrations/, Database interface update in src/lib/db.ts, prod application via scripts/migrate.mjs, schema verification via scripts/check-schema.mjs, and the PR-body checkbox that gates merge. Enforces CLAUDE.md §7a HARD RULE so the next save POST doesn't 500.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -672,7 +672,7 @@
                 "saved": 18515,
                 "pct_saved": 36,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Save +36% — prior 25% was within noise range; clean arm A grew vs prior run.",
+                "notes": "Clean re-baseline 2026-05-26. Save +36%: prior 25% was within noise range; clean arm A grew vs prior run.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -682,7 +682,7 @@
                 "saved": -10922,
                 "pct_saved": -33,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
-                "notes": "FLIPPED from Sonnet's +16% (saves) to Haiku's -33% (cost-more) — Haiku arm B did a more thorough 13-tool-use walk (44K) than its cold arm A (33K). Same pattern as session-cost: recipe correctness costs more on Haiku per-turn overhead.",
+                "notes": "FLIPPED from Sonnet's +16% (saves) to Haiku's -33% (cost-more): Haiku arm B did a more thorough 13-tool-use walk (44K) than its cold arm A (33K). Same pattern as session-cost: recipe correctness costs more on Haiku per-turn overhead.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -692,7 +692,7 @@
         },
         {
           "name": "new-mission",
-          "description": "Scaffold a new combat mission across missions.json, waves.json, the galaxy planet binding, and a smoke test — in one shot.",
+          "description": "Scaffold a new combat mission across missions.json, waves.json, the galaxy planet binding, and a smoke test: in one shot.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -720,7 +720,7 @@
                 "saved": 7763,
                 "pct_saved": 15,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Prior 46% narrowed to 15% — clean arm A 26K cheaper (79K→53K). Recipe still saves but the prior magnitude was contamination-inflated.",
+                "notes": "Clean re-baseline 2026-05-26. Prior 46% narrowed to 15%: clean arm A 26K cheaper (79K→53K). Recipe still saves but the prior magnitude was contamination-inflated.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -730,7 +730,7 @@
                 "saved": 7772,
                 "pct_saved": 19,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
-                "notes": "Re-dispatched arm A on 2026-05-26 after 7:20am reset. +19% save on Haiku vs Sonnet's +37% — recipe value compresses for Haiku because its cold arm (40K) explored more efficiently than Sonnet's (79K).",
+                "notes": "Re-dispatched arm A on 2026-05-26 after 7:20am reset. +19% save on Haiku vs Sonnet's +37%: recipe value compresses for Haiku because its cold arm (40K) explored more efficiently than Sonnet's (79K).",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -740,7 +740,7 @@
         },
         {
           "name": "new-perk",
-          "description": "Scaffold a new mission-only perk — perks.ts entry, BootScene icon generator, HUD chip wiring, and (for actives) a switch case in PerkController.apply / triggerActive.",
+          "description": "Scaffold a new mission-only perk: perks.ts entry, BootScene icon generator, HUD chip wiring, and (for actives) a switch case in PerkController.apply / triggerActive.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -767,7 +767,7 @@
                 "saved": 11510,
                 "pct_saved": 25,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Prior 53% narrowed to 25% — clean arm A 30K cheaper (75K→46K); recipe still saves but less dramatically than the contaminated run suggested.",
+                "notes": "Clean re-baseline 2026-05-26. Prior 53% narrowed to 25%: clean arm A 30K cheaper (75K→46K); recipe still saves but less dramatically than the contaminated run suggested.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -787,7 +787,7 @@
         },
         {
           "name": "new-solar-system",
-          "description": "Add a new solar system to the galaxy — solarSystems.json entry (incl. galaxy bed), SolarSystemId union extension, optional unlock gating, REQUIRED on-system-enter cinematic (voice + music) AND dedicated galaxy-view music bed, and mission-binding TODO list.",
+          "description": "Add a new solar system to the galaxy: solarSystems.json entry (incl. galaxy bed), SolarSystemId union extension, optional unlock gating, REQUIRED on-system-enter cinematic (voice + music) AND dedicated galaxy-view music bed, and mission-binding TODO list.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-LATEST.json",
@@ -814,7 +814,7 @@
                 "saved": 92857,
                 "pct_saved": 73,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Save rate 73% — consistent with prior 71%; remains the biggest save in the portfolio. Clean arm A grew 30K (97K→128K) while arm B stayed comparable. Recipe strongly collapses the cold model's 11-file cascading-dependency walk.",
+                "notes": "Clean re-baseline 2026-05-26. Save rate 73%: consistent with prior 71%; remains the biggest save in the portfolio. Clean arm A grew 30K (97K→128K) while arm B stayed comparable. Recipe strongly collapses the cold model's 11-file cascading-dependency walk.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -824,7 +824,7 @@
                 "saved": 7559,
                 "pct_saved": 16,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-HAIKU-LATEST.json",
-                "notes": "Re-dispatched arm A on 2026-05-26. +16% save on Haiku — much smaller than Sonnet (+9% but very tight) or Opus (+71%). The Haiku cold arm (48K) explored less than Opus's (97K), so the recipe-vs-cold gap is smaller.",
+                "notes": "Re-dispatched arm A on 2026-05-26. +16% save on Haiku: much smaller than Sonnet (+9% but very tight) or Opus (+71%). The Haiku cold arm (48K) explored less than Opus's (97K), so the recipe-vs-cold gap is smaller.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -834,7 +834,7 @@
         },
         {
           "name": "new-story",
-          "description": "Add, modify, or remove story content — cinematic popups, voiceovers, music beds, body text, written synopses, and auto-trigger wiring. Covers the full CRUD lifecycle for the Story log.",
+          "description": "Add, modify, or remove story content: cinematic popups, voiceovers, music beds, body text, written synopses, and auto-trigger wiring. Covers the full CRUD lifecycle for the Story log.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -865,7 +865,7 @@
                 "saved": 28997,
                 "pct_saved": 34,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Save rate 34% — prior 20% was within noise; clean arm A grew vs prior run. Recipe still collapses the on-mission-complete trigger boundary discovery.",
+                "notes": "Clean re-baseline 2026-05-26. Save rate 34%: prior 20% was within noise; clean arm A grew vs prior run. Recipe still collapses the on-mission-complete trigger boundary discovery.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -891,7 +891,7 @@
         },
         {
           "name": "save-roundtrip-audit",
-          "description": "Pre-commit save-pipeline invariants check — walks every StateSnapshot field through the 8 layers of the save round-trip (snapshot interface → toSnapshot → POST schema → POST handler → DB column → migration → GET handler → RemoteSaveSchema → sync.loadSave → hydrate) and flags any layer that silently drops the field. Read-only.",
+          "description": "Pre-commit save-pipeline invariants check: walks every StateSnapshot field through the 8 layers of the save round-trip (snapshot interface → toSnapshot → POST schema → POST handler → DB column → migration → GET handler → RemoteSaveSchema → sync.loadSave → hydrate) and flags any layer that silently drops the field. Read-only.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -922,7 +922,7 @@
                 "saved": 13391,
                 "pct_saved": 15,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-SPACEPOTATIS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Prior 40% narrowed to 15% — clean arm A 36K cheaper (127K→91K); still saves but the prior magnitude was contamination-inflated.",
+                "notes": "Clean re-baseline 2026-05-26. Prior 40% narrowed to 15%: clean arm A 36K cheaper (127K→91K); still saves but the prior magnitude was contamination-inflated.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -948,7 +948,7 @@
       "skills": [
         {
           "name": "ai-codegen-smell-audit",
-          "description": "Read-only audit for specific failure modes that recur in LLM-generated code — defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\" — every finding must be a specific testable pattern with a concrete example, not a vibe.",
+          "description": "Read-only audit for specific failure modes that recur in LLM-generated code: defensive guards on impossible cases, generic names in domain code, swallowed errors, single-use helpers, mirror tests, and so on. Each check has a concrete smell example and a concrete legitimate counter-example so the auditor (human + assistant) can tell signal from noise. Produces `docs/audits/ai-smell-<YYYY-MM-DD>.md` with severity-ranked findings. Use whenever the user says \"smell audit\", \"check for AI-codegen smells\", \"review this branch for LLM-style sludge\", \"audit the code for generated-code patterns\", or asks for a calibration pass before merging a large generated diff. NOT a witch hunt for \"AI-written code\": every finding must be a specific testable pattern with a concrete example, not a vibe.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -972,7 +972,7 @@
             "calibration_arm_A": 157348,
             "calibration_arm_B": 81119,
             "calibration_model": "sonnet",
-            "calibration_notes": "arm-B found 1 nit vs arm-A's 11 — savings partly reflect stricter discrimination",
+            "calibration_notes": "arm-B found 1 nit vs arm-A's 11: savings partly reflect stricter discrimination",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 111716,
@@ -980,7 +980,7 @@
                 "saved": 10627,
                 "pct_saved": 10,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Prior arm A 61K cheaper (172K→112K) — prior arm A was wildly inflated by artifact contamination. Still saves but +10% is the true magnitude; prior +47% was not reliable.",
+                "notes": "Clean re-baseline 2026-05-26. Prior arm A 61K cheaper (172K→112K): prior arm A was wildly inflated by artifact contamination. Still saves but +10% is the true magnitude; prior +47% was not reliable.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -990,7 +990,7 @@
                 "saved": 496,
                 "pct_saved": 1,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json",
-                "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +1% save on Haiku — near-break-even. Sonnet was +48%, Opus +47%; Haiku doesn't get the same recipe benefit because the cold arm explores broadly (12 LOW findings) and arm B's stricter inclusion criteria don't compress the work as much.",
+                "notes": "Arm A re-dispatched 2026-05-26 after the 7:20am session-token-wall reset. +1% save on Haiku: near-break-even. Sonnet was +48%, Opus +47%; Haiku doesn't get the same recipe benefit because the cold arm explores broadly (12 LOW findings) and arm B's stricter inclusion criteria don't compress the work as much.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1004,7 +1004,7 @@
         },
         {
           "name": "audit",
-          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes — resource lifecycle, data integrity, concurrency, error paths, external boundaries — each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews — see the \"When NOT to invoke\" section below.",
+          "description": "Run a multi-phase robustness audit of the current codebase. Phase 1 tries language-appropriate static-analysis tools, skipping cleanly if absent. Phase 2 spawns five parallel subagents across non-overlapping scopes: resource lifecycle, data integrity, concurrency, error paths, external boundaries, each returning findings with file:line citations and severity. Phase 3 aggregates into docs/audits/audit-YYYY-MM-DD.md with a severity tally (critical / high / medium / low) and a branch topology recommendation for the fix follow-up. Use whenever the user says \"audit this codebase\", \"find bugs\", \"robustness review\", \"review for races / leaks / error swallows\", \"check for hidden bugs\", \"comprehensive review\", \"shake out issues before release\", or asks for a defect list. Not for style / readability reviews: see the \"When NOT to invoke\" section below.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -1035,7 +1035,7 @@
                 "saved": -14750,
                 "pct_saved": -7,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. The prior run had a procedure_deviation flag (no Agent tool fan-out); both clean re-runs faced the same constraint and executed sequentially in main thread. The resulting measurement is no longer flagged as a deviation because the constraint is now documented as expected Opus-sandbox behavior rather than a one-off deviation. Prior +2% flipped to -7% — the clean sequential re-run shows recipe overhead exceeds cold cost when both arms face the same fan-out limitation. Both arms still ~200K+ on Opus; the audit's value is completeness, not token compression.",
+                "notes": "Clean re-baseline 2026-05-26. The prior run had a procedure_deviation flag (no Agent tool fan-out); both clean re-runs faced the same constraint and executed sequentially in main thread. The resulting measurement is no longer flagged as a deviation because the constraint is now documented as expected Opus-sandbox behavior rather than a one-off deviation. Prior +2% flipped to -7%: the clean sequential re-run shows recipe overhead exceeds cold cost when both arms face the same fan-out limitation. Both arms still ~200K+ on Opus; the audit's value is completeness, not token compression.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1045,7 +1045,7 @@
                 "saved": 21409,
                 "pct_saved": 23,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Save rate 23% on Haiku vs 2% on BOTH Sonnet and Opus. Haiku is the cheapest by far per arm (92K/70K vs Sonnet's 117K/114K vs Opus's 214K/209K). The audit recipe genuinely helps the smaller model focus — arm A explored 38 tool uses unstructured vs arm B's 42 with the structured walk, but arm B was tighter. This contradicts the 'audit is rigor-bound' Sonnet/Opus finding: for Haiku, the structured walk compresses the work.",
+                "notes": "Save rate 23% on Haiku vs 2% on BOTH Sonnet and Opus. Haiku is the cheapest by far per arm (92K/70K vs Sonnet's 117K/114K vs Opus's 214K/209K). The audit recipe genuinely helps the smaller model focus: arm A explored 38 tool uses unstructured vs arm B's 42 with the structured walk, but arm B was tighter. This contradicts the 'audit is rigor-bound' Sonnet/Opus finding: for Haiku, the structured walk compresses the work.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1059,7 +1059,7 @@
         },
         {
           "name": "mikko-audit-suite",
-          "description": "Run every `mikko-*` audit skill that's relevant to the current codebase, in a sensible order, and produce one index document linking to each audit's report. Detects the codebase shape (language, framework, security surface), maps to the suggested audit list (same logic as `/mikko-help --detect`), confirms once with the human, then runs each audit sequentially. Use whenever the user says \"run all audits\", \"full audit\", \"audit everything\", \"what's wrong with this codebase\", or before a major release. Expensive — total tokens are the sum of every dispatched audit (typically ~100-500K). The orchestrator itself is cheap; the dispatched audits are what cost.",
+          "description": "Run every `mikko-*` audit skill that's relevant to the current codebase, in a sensible order, and produce one index document linking to each audit's report. Detects the codebase shape (language, framework, security surface), maps to the suggested audit list (same logic as `/mikko-help --detect`), confirms once with the human, then runs each audit sequentially. Use whenever the user says \"run all audits\", \"full audit\", \"audit everything\", \"what's wrong with this codebase\", or before a major release. Expensive: total tokens are the sum of every dispatched audit (typically ~100-500K). The orchestrator itself is cheap; the dispatched audits are what cost.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json",
@@ -1071,7 +1071,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 20068,
             "calibration_arm_B": 24350,
-            "calibration_notes": "skill encodes detection-then-plan rigor — arm A's freestyle was tighter on this specific task; recipe overhead exceeded the focus benefit at this scale.",
+            "calibration_notes": "skill encodes detection-then-plan rigor: arm A's freestyle was tighter on this specific task; recipe overhead exceeded the focus benefit at this scale.",
             "last_invoked": "2026-05-23T00:00:00Z",
             "alt_model_measurements": {
               "opus": {
@@ -1100,7 +1100,7 @@
         },
         {
           "name": "mikko-help",
-          "description": "List every installed `mikko-*` skill with its description (or with its `barney:` field when `--barney` is passed). The fast answer to \"I know I have a skill for this but can't remember which one\" / \"what mikko skills do I have\" / \"list my skills\" / \"remind me what's installed.\" Pass `--detect` for codebase-aware audit recommendations (\"which audit should I run on this repo\" / \"what's relevant for this codebase\"). Pass `--barney` for plain-English short descriptions (\"give me the friendly version\" / \"plain-English list\"). `--detect` and `--barney` combine independently. No sub-agents, no network, no measurements — just a table. Full mode docs live in the body's \"Flags\" section.",
+          "description": "List every installed `mikko-*` skill with its description (or with its `barney:` field when `--barney` is passed). The fast answer to \"I know I have a skill for this but can't remember which one\" / \"what mikko skills do I have\" / \"list my skills\" / \"remind me what's installed.\" Pass `--detect` for codebase-aware audit recommendations (\"which audit should I run on this repo\" / \"what's relevant for this codebase\"). Pass `--barney` for plain-English short descriptions (\"give me the friendly version\" / \"plain-English list\"). `--detect` and `--barney` combine independently. No sub-agents, no network, no measurements: just a table. Full mode docs live in the body's \"Flags\" section.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -1124,7 +1124,7 @@
             "calibration_arm_A": 24092,
             "calibration_arm_B": 29421,
             "calibration_model": "sonnet",
-            "calibration_notes": "skill encodes a source-repo cross-check on top of the install scan — extra work for completeness, costs more than just listing installed skills.",
+            "calibration_notes": "skill encodes a source-repo cross-check on top of the install scan: extra work for completeness, costs more than just listing installed skills.",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 33039,
@@ -1132,7 +1132,7 @@
                 "saved": -6886,
                 "pct_saved": -21,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
-                "notes": "Skill encodes a source-repo cross-check — extra work for completeness, costs more than just listing installed skills. Same direction as Sonnet.",
+                "notes": "Skill encodes a source-repo cross-check: extra work for completeness, costs more than just listing installed skills. Same direction as Sonnet.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1142,7 +1142,7 @@
                 "saved": -12482,
                 "pct_saved": -62,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json",
-                "notes": "WIDENING cost-more vs Sonnet's -22% — Haiku takes -40pp WORSE. The skill's recipe (read each SKILL.md's frontmatter via 16 parallel Reads) pays more per-turn overhead on Haiku.",
+                "notes": "WIDENING cost-more vs Sonnet's -22%: Haiku takes -40pp WORSE. The skill's recipe (read each SKILL.md's frontmatter via 16 parallel Reads) pays more per-turn overhead on Haiku.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1156,7 +1156,7 @@
         },
         {
           "name": "mikko-install",
-          "description": "Install, update, list, or uninstall `mikko-*` skills from the cloned `claude-skills` source repo into the user-wide skill directory (`~/.claude/skills/mikko-*`). Wraps the existing `install-mikko.sh` and `install.sh` scripts so the install loop is reachable from inside any Claude Code session via a slash command — no need to leave the conversation, find the repo, and run bash by hand. Use whenever the user says \"install the mikko skills\", \"install everything\", \"add mikko-readme-drift-sync\", \"update my mikko skills\", \"what's new since last install\", or \"uninstall mikko-foo\". Locates the source repo via the current working directory, parent directories, or known sibling locations (configurable). Does NOT clone the repo (the user clones it once, by hand). Does NOT touch skills outside the `mikko-*` prefix.",
+          "description": "Install, update, list, or uninstall `mikko-*` skills from the cloned `claude-skills` source repo into the user-wide skill directory (`~/.claude/skills/mikko-*`). Wraps the existing `install-mikko.sh` and `install.sh` scripts so the install loop is reachable from inside any Claude Code session via a slash command, no need to leave the conversation, find the repo, and run bash by hand. Use whenever the user says \"install the mikko skills\", \"install everything\", \"add mikko-readme-drift-sync\", \"update my mikko skills\", \"what's new since last install\", or \"uninstall mikko-foo\". Locates the source repo via the current working directory, parent directories, or known sibling locations (configurable). Does NOT clone the repo (the user clones it once, by hand). Does NOT touch skills outside the `mikko-*` prefix.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -1180,7 +1180,7 @@
             "calibration_arm_A": 16930,
             "calibration_arm_B": 22824,
             "calibration_model": "sonnet",
-            "calibration_notes": "skill encodes the full install protocol (modes, prefixing, source-repo validation) — costs more than a plain cp pass; value is in correctness, not token compression.",
+            "calibration_notes": "skill encodes the full install protocol (modes, prefixing, source-repo validation): costs more than a plain cp pass; value is in correctness, not token compression.",
             "alt_model_measurements": {
               "opus": {
                 "arm_A_tokens": 26571,
@@ -1188,7 +1188,7 @@
                 "saved": -503,
                 "pct_saved": -2,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
-                "notes": "Near-break-even on Opus vs Sonnet's -35%. Opus narrows the cost-more dramatically — recipe's protocol overhead matters less when the cold arm already does the right thing.",
+                "notes": "Near-break-even on Opus vs Sonnet's -35%. Opus narrows the cost-more dramatically: recipe's protocol overhead matters less when the cold arm already does the right thing.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1212,7 +1212,7 @@
         },
         {
           "name": "react-anti-patterns-audit",
-          "description": "Read-only audit for six concrete React anti-patterns that recur in component code (key=index in lists, useEffect for derived state, dep-array lies, state mutation instead of replace, missing effect cleanup, multiple sources of truth). Each check has a concrete smell example and a concrete legitimate counter-example so the auditor can tell signal from noise. **Runs a pre-flight check first** — if the target codebase isn't a React project, the skill aborts cleanly with a suggestion to use a different skill. Use whenever the user says \"audit my React code\", \"review this for React anti-patterns\", \"check my hooks\", \"find re-render issues\", or before merging a substantial component PR. NOT a witch hunt for \"non-idiomatic React\" — every finding must be a specific testable pattern with a concrete example.",
+          "description": "Read-only audit for six concrete React anti-patterns that recur in component code (key=index in lists, useEffect for derived state, dep-array lies, state mutation instead of replace, missing effect cleanup, multiple sources of truth). Each check has a concrete smell example and a concrete legitimate counter-example so the auditor can tell signal from noise. **Runs a pre-flight check first**, if the target codebase isn't a React project, the skill aborts cleanly with a suggestion to use a different skill. Use whenever the user says \"audit my React code\", \"review this for React anti-patterns\", \"check my hooks\", \"find re-render issues\", or before merging a substantial component PR. NOT a witch hunt for \"non-idiomatic React\": every finding must be a specific testable pattern with a concrete example.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json",
@@ -1240,7 +1240,7 @@
                 "saved": -6733,
                 "pct_saved": -28,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
-                "notes": "Target had no React; both arms correctly returned no findings. Arm B's structured pre-flight + abort cost more than arm A's quick check. Negative-result target — positive-result repos would likely differ.",
+                "notes": "Target had no React; both arms correctly returned no findings. Arm B's structured pre-flight + abort cost more than arm A's quick check. Negative-result target: positive-result repos would likely differ.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1250,7 +1250,7 @@
                 "saved": -4470,
                 "pct_saved": -21,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json",
-                "notes": "Target has no React; both arms correctly bailed at pre-flight. Recipe's structured abort costs more than arm A's quick check — same pattern as Sonnet (-33%) but narrower.",
+                "notes": "Target has no React; both arms correctly bailed at pre-flight. Recipe's structured abort costs more than arm A's quick check: same pattern as Sonnet (-33%) but narrower.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1260,7 +1260,7 @@
         },
         {
           "name": "readme-drift-sync",
-          "description": "Detect drift between what the repo actually contains and what `README.md` claims, then rewrite ONLY the drifted sections in the README's existing voice. Five drift axes (file structure, dependencies, skills, features, status). Voice-preserving — the skill extracts a voice profile from the existing README first and any rewrite must read as if the original author wrote it. **Write-with-approval**: emits a working-tree edit to `README.md` plus a drift report and a voice-profile cache, then STOPS. Does NOT commit, does NOT push, does NOT regenerate the README from scratch. Use whenever the user says \"sync the README\", \"update the README\", \"check README drift\", \"has the README fallen out of date\", or after a release-cut before the next push. NOT for initial README creation, full rewrites, CONTRIBUTING/CHANGELOG edits, or general code edits where the README isn't in scope.",
+          "description": "Detect drift between what the repo actually contains and what `README.md` claims, then rewrite ONLY the drifted sections in the README's existing voice. Five drift axes (file structure, dependencies, skills, features, status). Voice-preserving: the skill extracts a voice profile from the existing README first and any rewrite must read as if the original author wrote it. **Write-with-approval**: emits a working-tree edit to `README.md` plus a drift report and a voice-profile cache, then STOPS. Does NOT commit, does NOT push, does NOT regenerate the README from scratch. Use whenever the user says \"sync the README\", \"update the README\", \"check README drift\", \"has the README fallen out of date\", or after a release-cut before the next push. NOT for initial README creation, full rewrites, CONTRIBUTING/CHANGELOG edits, or general code edits where the README isn't in scope.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-LATEST.json",
@@ -1288,7 +1288,7 @@
                 "saved": -12278,
                 "pct_saved": -28,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Cost-more deepened (-4% → -28%) — clean arm A 10K cheaper (54K→44K) while arm B stayed comparable. Prior near-break-even was contamination-inflated arm A; clean arm A is leaner, making recipe overhead more visible.",
+                "notes": "Clean re-baseline 2026-05-26. Cost-more deepened (-4% → -28%): clean arm A 10K cheaper (54K→44K) while arm B stayed comparable. Prior near-break-even was contamination-inflated arm A; clean arm A is leaner, making recipe overhead more visible.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1298,7 +1298,7 @@
                 "saved": -2505,
                 "pct_saved": -6,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Tracks Opus closely (-6% vs Opus's -4%) — both Haiku and Opus break even on this skill. Only Sonnet shows the dramatic -112% cost-more. Haiku arm A found 7 drifts (47 tool uses) vs arm B's 1 drift (30 tool uses) — arm B is more conservative under SKILL.md's calibration-immunity rules, producing fewer but stricter findings. Cost-more skills are not a Sonnet-specific pathology; they reflect skill thoroughness regardless of model.",
+                "notes": "Tracks Opus closely (-6% vs Opus's -4%). Both Haiku and Opus break even on this skill. Only Sonnet shows the dramatic -112% cost-more. Haiku arm A found 7 drifts (47 tool uses) vs arm B's 1 drift (30 tool uses): arm B is more conservative under SKILL.md's calibration-immunity rules, producing fewer but stricter findings. Cost-more skills are not a Sonnet-specific pathology; they reflect skill thoroughness regardless of model.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1320,7 +1320,7 @@
             "tokens_saved_source": "calibration",
             "calibration_arm_A": 107885,
             "calibration_arm_B": 112211,
-            "calibration_notes": "skill encodes rigor (full attack-surface walk) — costs more per use, value is in completeness",
+            "calibration_notes": "skill encodes rigor (full attack-surface walk): costs more per use, value is in completeness",
             "prior_estimate": {
               "tokens_per_use": 750000,
               "uses_per_year": 4,
@@ -1336,7 +1336,7 @@
                 "saved": -10110,
                 "pct_saved": -8,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Cost-more slightly narrowed (-10% → -8%); same direction as Sonnet (-4%). Skill's value is completeness, not token compression — model-invariant pattern.",
+                "notes": "Clean re-baseline 2026-05-26. Cost-more slightly narrowed (-10% → -8%); same direction as Sonnet (-4%). Skill's value is completeness, not token compression: model-invariant pattern.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1346,7 +1346,7 @@
                 "saved": 2403,
                 "pct_saved": 3,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json",
-                "notes": "Near-break-even on Haiku (+3%) vs Sonnet's -4% and Opus's -10% — Haiku is the only model that narrowly saves on this skill. Both arms ran the full Critical/High/Medium/Low/Info severity walk.",
+                "notes": "Near-break-even on Haiku (+3%) vs Sonnet's -4% and Opus's -10%: Haiku is the only model that narrowly saves on this skill. Both arms ran the full Critical/High/Medium/Low/Info severity walk.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1356,7 +1356,7 @@
         },
         {
           "name": "session-cost",
-          "description": "Measure the token cost of a single Claude Code session — main thread plus every sub-agent it dispatched. Companion to `/mikko-skill-usage`, which slices the portfolio BY SKILL across all sessions; this one slices a single session BY WHO-SPENT-IT (main thread vs each sub-agent). Use when you want to know \"what did this conversation cost so far?\", \"how much did running that complex feature take?\", or \"which of my sub-agents was the most expensive?\". Reads the same `~/.claude/projects/<dir>/<session>.jsonl` transcripts and `<session>/subagents/agent-*.jsonl` sidechain files that `mikko-skill-usage` reads.",
+          "description": "Measure the token cost of a single Claude Code session: main thread plus every sub-agent it dispatched. Companion to `/mikko-skill-usage`, which slices the portfolio BY SKILL across all sessions; this one slices a single session BY WHO-SPENT-IT (main thread vs each sub-agent). Use when you want to know \"what did this conversation cost so far?\", \"how much did running that complex feature take?\", or \"which of my sub-agents was the most expensive?\". Reads the same `~/.claude/projects/<dir>/<session>.jsonl` transcripts and `<session>/subagents/agent-*.jsonl` sidechain files that `mikko-skill-usage` reads.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -1388,7 +1388,7 @@
                 "saved": 1191,
                 "pct_saved": 4,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-OPUS-LATEST.json",
-                "notes": "Methodology note: Opus arm A's output included cache_read_input_tokens (returned a 554M total) — that's the BASELINE Opus behavior the skill is designed to prevent. The SKILL.md explicitly excludes cache_read because those tokens were paid upstream. Arm B followed the recipe and reported 14.15M, which is the correct number for downstream comparisons. Token SPEND on the two arms is comparable (33K vs 32K), so the +4% pct_saved understates the recipe's value here: it's a correctness win (preventing a counting error a cold model defaults into), not a compression win.",
+                "notes": "Methodology note: Opus arm A's output included cache_read_input_tokens (returned a 554M total), that's the BASELINE Opus behavior the skill is designed to prevent. The SKILL.md explicitly excludes cache_read because those tokens were paid upstream. Arm B followed the recipe and reported 14.15M, which is the correct number for downstream comparisons. Token SPEND on the two arms is comparable (33K vs 32K), so the +4% pct_saved understates the recipe's value here: it's a correctness win (preventing a counting error a cold model defaults into), not a compression win.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1398,7 +1398,7 @@
                 "saved": -26482,
                 "pct_saved": -89,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-CLAUDESKILLS-HAIKU-LATEST.json",
-                "notes": "CORRECTNESS-not-tokens win for the recipe. Haiku arm A measured only main thread (10.6M tokens reported, missed sub-agents); arm B followed the SKILL.md and walked sub-agent JSONLs too (20.6M tokens reported, correct). Arm B paid more TOKENS to do more thorough work — the -89% pct_saved misrepresents the recipe's value: it's a correctness win (arm A's answer was wrong), not a compression failure. Same pattern as the Opus session-cost (arm A counted cache_read incorrectly).",
+                "notes": "CORRECTNESS-not-tokens win for the recipe. Haiku arm A measured only main thread (10.6M tokens reported, missed sub-agents); arm B followed the SKILL.md and walked sub-agent JSONLs too (20.6M tokens reported, correct). Arm B paid more TOKENS to do more thorough work: the -89% pct_saved misrepresents the recipe's value: it's a correctness win (arm A's answer was wrong), not a compression failure. Same pattern as the Opus session-cost (arm A counted cache_read incorrectly).",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1450,7 +1450,7 @@
                 "saved": 36000,
                 "pct_saved": 57,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Save rate 57% on Haiku — HIGHEST of the three models, matches the Sonnet pattern (53%) and inverts Opus's -14% cost-more. Haiku arm A re-implemented a JSONL walker like Sonnet did (63K) — the smaller model lacks Opus's 'just write a Python helper' shortcut. Arm B used 4 tool uses to invoke the prescribed scan.mjs cleanly. Strong evidence that delegation-to-tool skills are most valuable for the LEAST capable model.",
+                "notes": "Save rate 57% on Haiku: HIGHEST of the three models, matches the Sonnet pattern (53%) and inverts Opus's -14% cost-more. Haiku arm A re-implemented a JSONL walker like Sonnet did (63K): the smaller model lacks Opus's 'just write a Python helper' shortcut. Arm B used 4 tool uses to invoke the prescribed scan.mjs cleanly. Strong evidence that delegation-to-tool skills are most valuable for the LEAST capable model.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1470,7 +1470,7 @@
       "skills": [
         {
           "name": "md-to-pdf",
-          "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's `--print-to-pdf` flag. Zero npm install — no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
+          "description": "Render a markdown report (or any HTML) to a styled PDF using the local Chrome's `--print-to-pdf` flag. Zero npm install, no puppeteer / Chromium download. Claude assembles a tuned HTML file in-context (markdown → HTML conversion + per-document CSS), then invokes `scripts/build-pdf.mjs` to land the PDF. Used by the contact-page terminal's `download --skills` (registry PDF) and any one-off \"I need this report as a PDF\" moment.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json",
@@ -1518,7 +1518,7 @@
         },
         {
           "name": "skill-localUpdate",
-          "description": "Refresh every local artifact the site renders about your portfolio skills — the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF — in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says \"refresh the local skills data\", \"rebuild the skill-registry PDF\", \"regenerate the skills data and PDF\", \"update the local skills numbers\", \"publish the skills PDF\", \"/skill-localUpdate\", or refers to refreshing what the contact page or the downloadable PDF shows. Does NOT gather token usage — that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.",
+          "description": "Refresh every local artifact the site renders about your portfolio skills: the JSON the /contact terminal fetches at runtime, the measurement-overlaid annual totals, and the downloadable skills-registry PDF, in one sequenced chain. Wraps a pre-flight check plus four sequenced actions that take a recent token-measurement snapshot and produce the deploy-ready outputs: (1) `/skill-registry` to re-walk the portfolio and emit a fresh inventory JSON, (2) `npm run sync:skills-registry` to copy the LATEST inventory into `public/data/` (this is the file the contact terminal's `skills` command reads), (3) `node scripts/apply-measurement-overlay.mjs` to merge transcript measurements into the inventory and dedupe library-canonical duplicates, (4) `npm run build:skills-pdf` to render the HTML and print to PDF via local Chrome. Use whenever the user says \"refresh the local skills data\", \"rebuild the skill-registry PDF\", \"regenerate the skills data and PDF\", \"update the local skills numbers\", \"publish the skills PDF\", \"/skill-localUpdate\", or refers to refreshing what the contact page or the downloadable PDF shows. Does NOT gather token usage: that's `/mikko-skill-usage`, run separately AND from inside `mikkonumminen.dev/` so the JSON lands at the path this skill expects. Does NOT commit or push.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-LATEST.json",
@@ -1539,7 +1539,7 @@
                 "saved": 19475,
                 "pct_saved": 39,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. Save rate 39% — prior 51% narrowed; clean arm A 9K cheaper (59K→50K). Recipe still saves but less dramatically. The six-step pipeline-discovery walk continues to compress arm A's cold exploration.",
+                "notes": "Clean re-baseline 2026-05-26. Save rate 39%: prior 51% narrowed; clean arm A 9K cheaper (59K→50K). Recipe still saves but less dramatically. The six-step pipeline-discovery walk continues to compress arm A's cold exploration.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1549,7 +1549,7 @@
                 "saved": 15073,
                 "pct_saved": 33,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-                "notes": "Save rate dropped from 52% (Sonnet) to 33% (Haiku) — the only sample skill where Haiku saves substantially less than Sonnet. Haiku arm B used 10 tool uses (vs Sonnet's 2, Opus's 2) — the smaller model needed more turns to execute the prescribed pipeline. The recipe still helps but less than for capable models, because Haiku spends more tokens per recipe step. This is the predicted Haiku failure mode showing up: smaller model can follow the recipe but pays per-turn overhead.",
+                "notes": "Save rate dropped from 52% (Sonnet) to 33% (Haiku): the only sample skill where Haiku saves substantially less than Sonnet. Haiku arm B used 10 tool uses (vs Sonnet's 2, Opus's 2): the smaller model needed more turns to execute the prescribed pipeline. The recipe still helps but less than for capable models, because Haiku spends more tokens per recipe step. This is the predicted Haiku failure mode showing up: smaller model can follow the recipe but pays per-turn overhead.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1559,7 +1559,7 @@
         },
         {
           "name": "skill-registry",
-          "description": "Scan every sibling repo in the workspace for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document — per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
+          "description": "Scan every sibling repo in the workspace for `.claude/skills/*/SKILL.md` files and emit a consolidated registry as a structured JSON document: per-skill name, description, redirect flag, and (where receipts exist) token-savings estimates. Runs one Sonnet sub-agent per repo in parallel for swiftness. Output goes to a dated JSON file under `.claude/agent-verdicts/`, committed so other Claude sessions can read the current inventory without re-running.",
           "redirect": false,
           "receipt": {
             "path": ".claude/agent-verdicts/SKILL-USAGE-LATEST.json",
@@ -1591,7 +1591,7 @@
                 "saved": -9354,
                 "pct_saved": -39,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json",
-                "notes": "Cost-more (-39%) almost identical to Sonnet's -38%. Skill's value is spec depth + thoroughness, not token compression — model-invariant pattern.",
+                "notes": "Cost-more (-39%) almost identical to Sonnet's -38%. Skill's value is spec depth + thoroughness, not token compression: model-invariant pattern.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1601,7 +1601,7 @@
                 "saved": -6479,
                 "pct_saved": -32,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-HAIKU-LATEST.json",
-                "notes": "Cost-more on Haiku (-32%) matches Sonnet (-38%) and Opus (-39%) — model-invariant pattern. Skill's value is spec depth, not compression.",
+                "notes": "Cost-more on Haiku (-32%) matches Sonnet (-38%) and Opus (-39%): model-invariant pattern. Skill's value is spec depth, not compression.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               }
@@ -1647,7 +1647,7 @@
                 "saved": -680,
                 "pct_saved": -1,
                 "source": ".claude/agent-verdicts/SKILL-CALIBRATION-MIKKONUMMINEN-DEV-OPUS-LATEST.json",
-                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +17% was artifact-contamination — clean arm B grew 11K (47K→59K); recipe overhead now matches cold-walk cost.",
+                "notes": "Clean re-baseline 2026-05-26. SIGN FLIP: prior +17% was artifact-contamination, clean arm B grew 11K (47K→59K); recipe overhead now matches cold-walk cost.",
                 "procedure_deviation": false,
                 "procedure_deviation_note": null
               },
@@ -1701,7 +1701,7 @@
           "saved": 17944,
           "pct_saved": 34,
           "source": ".claude/agent-verdicts/SKILL-CALIBRATION-OPUS-SAMPLE-LATEST.json",
-          "notes": "Clean re-baseline 2026-05-26. Save rate 34% — prior 39% within noise; clean arm A 5K cheaper. Pattern holds: Opus arm A is more efficient cold so the recipe's compression benefit narrows vs Sonnet's 63%.",
+          "notes": "Clean re-baseline 2026-05-26. Save rate 34%: prior 39% within noise; clean arm A 5K cheaper. Pattern holds: Opus arm A is more efficient cold so the recipe's compression benefit narrows vs Sonnet's 63%.",
           "procedure_deviation": false,
           "procedure_deviation_note": null
         },
@@ -1711,7 +1711,7 @@
           "saved": 30090,
           "pct_saved": 52,
           "source": ".claude/agent-verdicts/SKILL-CALIBRATION-HAIKU-SAMPLE-LATEST.json",
-          "notes": "Haiku save rate (52%) lands BETWEEN Sonnet (63%) and Opus (39%). Haiku arm B is the cheapest of the three (28K vs Sonnet's 26K vs Opus's 35K) — almost matches Sonnet. Haiku arm A is similar to Opus (58K). The recipe pattern reproduces cleanly on Haiku — the prescribed gh-CLI walk doesn't trip the smaller model. Save rate scaling: it's not monotonic in model capability. Haiku ≈ Sonnet on directed walks; Opus diverges because cold-arm is cheaper for it.",
+          "notes": "Haiku save rate (52%) lands BETWEEN Sonnet (63%) and Opus (39%). Haiku arm B is the cheapest of the three (28K vs Sonnet's 26K vs Opus's 35K): almost matches Sonnet. Haiku arm A is similar to Opus (58K). The recipe pattern reproduces cleanly on Haiku: the prescribed gh-CLI walk doesn't trip the smaller model. Save rate scaling: it's not monotonic in model capability. Haiku ≈ Sonnet on directed walks; Opus diverges because cold-arm is cheaper for it.",
           "procedure_deviation": false,
           "procedure_deviation_note": null
         }

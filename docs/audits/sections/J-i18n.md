@@ -1,4 +1,4 @@
-# J — Internationalization Audit
+# J: Internationalization Audit
 
 **Date:** 2026-05-17
 **Branch:** audit/J (off audit/baseline, HEAD = b3de9f2)
@@ -27,7 +27,7 @@
 | `terminal` | ✓ | ✓ | ✓ | All 36 keys |
 | `langSwitcher` | ✓ | ✓ | ✓ | |
 | `notFound` | ✓ | ✓ | ✓ | |
-| **Voice assets** | ✓ | **MISSING** | **MISSING** | `public/audio/` — see §6 |
+| **Voice assets** | ✓ | **MISSING** | **MISSING** | `public/audio/`, see §6 |
 
 **No missing or empty translation keys were found.** The `Translations` interface in `src/i18n/types.ts` enforces structural parity at compile time; `npm run typecheck` passes with 0 errors, which confirms FI and SV satisfy every required key.
 
@@ -37,10 +37,10 @@
 
 ### MAJOR
 
-#### J-MA1 — Voice audio files absent for FI and SV (confirmed from baseline)
+#### J-MA1: Voice audio files absent for FI and SV (confirmed from baseline)
 
 **Files:** [`public/audio/`](public/audio/)
-**Severity:** Major — feature ships broken for 2 of 3 locales
+**Severity:** Major, feature ships broken for 2 of 3 locales
 
 `public/audio/` contains only:
 ```
@@ -55,16 +55,16 @@ const voiceSrc = `/audio/voice-landing-${locale}.mp3`;
 ```
 [`src/components/projects/ProjectsVoiceover.astro:20`](src/components/projects/ProjectsVoiceover.astro#L20) uses the same pattern for `/audio/voice-projects-${locale}.mp3`.
 
-The components handle 404 silently via try/catch (`/* autoplay blocked, source missing, or play interrupted */`) so no visible error occurs — the feature simply does nothing for Finnish and Swedish visitors. This is a silent regression: the locale-aware voice feature described in commits #82 and #83 is only operational in English.
+The components handle 404 silently via try/catch (`/* autoplay blocked, source missing, or play interrupted */`) so no visible error occurs: the feature simply does nothing for Finnish and Swedish visitors. This is a silent regression: the locale-aware voice feature described in commits #82 and #83 is only operational in English.
 
 **Recommendation:** Either record and commit Finnish and Swedish voiceovers to `public/audio/`, or add an explicit EN fallback in both voiceover components when the locale-keyed source 404s (a `<source>` fallback element pointing to the EN file, or a JS-level asset-existence check before constructing `voiceSrc`).
 
 ---
 
-#### J-MA2 — Background audio toggle labels hardcoded in English
+#### J-MA2: Background audio toggle labels hardcoded in English
 
 **File:** [`src/components/BackgroundAudio.astro:45`](src/components/BackgroundAudio.astro#L45), [`src/components/BackgroundAudio.astro:87`](src/components/BackgroundAudio.astro#L87)–88
-**Severity:** Major — visible UI text, not localized
+**Severity:** Major, visible UI text, not localized
 
 The sound-toggle button contains three hardcoded English strings that are not pulled from `src/i18n/locales/`:
 
@@ -80,10 +80,10 @@ The component does not currently accept a `locale` prop and does not import `get
 
 ---
 
-#### J-MA3 — LinkedIn button `aria-label` hardcoded in English
+#### J-MA3: LinkedIn button `aria-label` hardcoded in English
 
 **File:** [`src/components/contact/MobileContactCard.astro:56`](src/components/contact/MobileContactCard.astro#L56)
-**Severity:** Major — visible to screen readers in all locales
+**Severity:** Major, visible to screen readers in all locales
 
 ```html
 aria-label="LinkedIn (opens in a new tab)"
@@ -95,10 +95,10 @@ This label is hardcoded English on the mobile contact card. Finnish and Swedish 
 
 ### MODERATE
 
-#### J-MI1 — `Now` timeline year not localized
+#### J-MI1: `Now` timeline year not localized
 
 **File:** [`src/data/timeline.ts:46`](src/data/timeline.ts#L46)
-**Severity:** Moderate — visible to all users on the Experience page
+**Severity:** Moderate, visible to all users on the Experience page
 
 ```typescript
 { id: 'now', altitude: 0.97, year: 'Now', kind: 'now' }
@@ -112,7 +112,7 @@ The `year` field is explicitly noted in the type comment as "never translated" a
 
 ### INFORMATIONAL / JUDGMENT CALL
 
-#### J-NI1 — Translation quality assessment (10 non-trivial strings sampled)
+#### J-NI1: Translation quality assessment (10 non-trivial strings sampled)
 
 Sampled strings from `fi.ts` and `sv.ts`:
 
@@ -120,26 +120,26 @@ Sampled strings from `fi.ts` and `sv.ts`:
 |-----|-------------|-------------|
 | `intro.body` | Native-phrased. "HRM on Platformin arkkitehtuuripohja" flows naturally. | Native-phrased. Good use of "ryggraden i Platform". |
 | `focus.items[1].body` | Good: "Jokaisella repolla on CI joka pushissa" is tech-Finnish that developers would use. | Good: "Varje repo kör CI vid varje push" is idiomatic. |
-| `velocity.body` | Very good. "AI-natiivi ei ole sloganpuhetta — se on matematiikkaa" is punchy and natural. | Good: "AI-nativt är inte snack — det är matematik" mirrors the punch. |
-| `experiencePage.cta` | "astu terminaaliin →" — idiomatic (not "siirry terminaaliin"). | "hoppa in i terminalen →" — casual and fitting. |
-| `terminal.bootWelcome` | "tervetuloa — mikko numminen, full-stack-kehittäjä." — correct and natural. | "välkommen till mikko numminen — full-stack-utvecklare." — correct. |
-| `mobileContact.typedWhoamiOutputBio` | "vie full-stack-tuotantosovellukset maaliin päästä päähän" — "viedä maaliin" (carry to the finish) is a strong idiomatic choice. | "levererar full-stack-produktionsappar från ände till ände" — natural Swedish. |
-| `timelineData.now.body` | "Saatavilla nyt. Avoin kunnianhimoisille full-stack-rooleille" — professional and direct. | "Tillgänglig nu. Öppen för ambitiösa full-stack-roller" — equivalent quality. |
-| `projectsData.spacepotatis.description` | Long; technical terms mostly preserved in English (Next.js, Phaser 3, Three.js, Kysely, ORM) — correct for tech content. | Same approach, appropriate. |
-| `navCards.heading` | "Valitse maailma." — excellent, matches the metaphor. | "Välj en värld." — perfect equivalent. |
-| `contactPage.noscriptIntro` | "Tämä sivu on interaktiivinen terminaali joka vaatii JavaScriptin." — grammatically correct, clear. | "Den här sidan är en interaktiv terminal som kräver JavaScript." — correct. |
+| `velocity.body` | Very good. "AI-natiivi ei ole sloganpuhetta, se on matematiikkaa" is punchy and natural. | Good: "AI-nativt är inte snack, det är matematik" mirrors the punch. |
+| `experiencePage.cta` | "astu terminaaliin →", idiomatic (not "siirry terminaaliin"). | "hoppa in i terminalen →", casual and fitting. |
+| `terminal.bootWelcome` | "tervetuloa, mikko numminen, full-stack-kehittäjä.", correct and natural. | "välkommen till mikko numminen, full-stack-utvecklare.", correct. |
+| `mobileContact.typedWhoamiOutputBio` | "vie full-stack-tuotantosovellukset maaliin päästä päähän", "viedä maaliin" (carry to the finish) is a strong idiomatic choice. | "levererar full-stack-produktionsappar från ände till ände", natural Swedish. |
+| `timelineData.now.body` | "Saatavilla nyt. Avoin kunnianhimoisille full-stack-rooleille", professional and direct. | "Tillgänglig nu. Öppen för ambitiösa full-stack-roller", equivalent quality. |
+| `projectsData.spacepotatis.description` | Long; technical terms mostly preserved in English (Next.js, Phaser 3, Three.js, Kysely, ORM), correct for tech content. | Same approach, appropriate. |
+| `navCards.heading` | "Valitse maailma.", excellent, matches the metaphor. | "Välj en värld.", perfect equivalent. |
+| `contactPage.noscriptIntro` | "Tämä sivu on interaktiivinen terminaali joka vaatii JavaScriptin.", grammatically correct, clear. | "Den här sidan är en interaktiv terminal som kräver JavaScript.", correct. |
 
-**Overall quality: high.** Neither FI nor SV reads as word-for-word machine translation. Metaphors ("climb the mountain", "pick a world") translate to cultural equivalents rather than literal. Technical terms (repo, CI, TTS, OAuth, etc.) are kept in English consistently across all locales — the correct call for an international dev audience.
+**Overall quality: high.** Neither FI nor SV reads as word-for-word machine translation. Metaphors ("climb the mountain", "pick a world") translate to cultural equivalents rather than literal. Technical terms (repo, CI, TTS, OAuth, etc.) are kept in English consistently across all locales: the correct call for an international dev audience.
 
 ---
 
-#### J-NI2 — "Spacepotatis" and "vuohitiimi" brand names handled correctly
+#### J-NI2: "Spacepotatis" and "vuohitiimi" brand names handled correctly
 
 Both are proper nouns / brand names and are correctly **kept as-is** in all three locales:
 
-- `Spacepotatis` (the game) — appears verbatim in FI and SV translations throughout `projectsData` and body copy. This is the right call: it is a product name and should not be translated (Swedish "potatis" = potato is already present, making it somewhat self-explaining to SV readers; FI readers encounter it as an opaque brand name, consistent with how product names work in Finnish marketing).
+- `Spacepotatis` (the game): appears verbatim in FI and SV translations throughout `projectsData` and body copy. This is the right call: it is a product name and should not be translated (Swedish "potatis" = potato is already present, making it somewhat self-explaining to SV readers; FI readers encounter it as an opaque brand name, consistent with how product names work in Finnish marketing).
 
-- `vuohiliitto.com` (the WoW guild's domain, appears in `intro.body` and `projectsData.platform.description`) — kept as-is. Correct: it is a URL and a proper noun.
+- `vuohiliitto.com` (the WoW guild's domain, appears in `intro.body` and `projectsData.platform.description`): kept as-is. Correct: it is a URL and a proper noun.
 
 - `VUOHITIIMI` does not appear as user-visible text in any template, component, or locale file. It appears only in `baseline.md` as an audit label; it is not a UI string that requires localization.
 
@@ -147,7 +147,7 @@ Both are proper nouns / brand names and are correctly **kept as-is** in all thre
 
 ---
 
-#### J-NI3 — `liveDemo` intentional localization divergence
+#### J-NI3: `liveDemo` intentional localization divergence
 
 **File:** [`src/i18n/locales/fi.ts:141`](src/i18n/locales/fi.ts#L141), [`src/i18n/locales/sv.ts:141`](src/i18n/locales/sv.ts#L141)
 **Severity:** Informational
@@ -156,19 +156,19 @@ Both FI and SV use `'demo →'` while EN uses `'live demo →'`. This is an inte
 ```typescript
 // "live demo" doesn't translate idiomatically; the Finnish/Swedish UI uses just "demo".
 ```
-This is the correct call — "live demo" is an English collocation; the shortened "demo" is natural in FI and SV. No action needed.
+This is the correct call: "live demo" is an English collocation; the shortened "demo" is natural in FI and SV. No action needed.
 
 ---
 
-### PASS — no findings
+### PASS, no findings
 
-#### §2 — Translation key coverage
+#### §2: Translation key coverage
 All keys defined in `en.ts` exist in `fi.ts` and `sv.ts`. The TypeScript `Translations` interface enforces this structurally; `typecheck` passes with 0 errors.
 
-#### §4 — Date / number formatting
-No `Intl.DateTimeFormat` or `Intl.NumberFormat` usage in any template or component. Timeline year values (`'1998–2022'`, `'2022–2024'`, `'2024–2025'`, `'2025–2026'`, `'2026'`) are ISO year numerals — locale-neutral. Percentages and test counts in locale strings use each locale's decimal separator: EN uses `91.9%`, FI and SV use `91,9 %` (space before `%`, comma decimal) — correct per Finnish/Swedish conventions. No date literals formatted with `Intl` are needed because no runtime dates are rendered.
+#### §4: Date / number formatting
+No `Intl.DateTimeFormat` or `Intl.NumberFormat` usage in any template or component. Timeline year values (`'1998–2022'`, `'2022–2024'`, `'2024–2025'`, `'2025–2026'`, `'2026'`) are ISO year numerals: locale-neutral. Percentages and test counts in locale strings use each locale's decimal separator: EN uses `91.9%`, FI and SV use `91,9 %` (space before `%`, comma decimal), correct per Finnish/Swedish conventions. No date literals formatted with `Intl` are needed because no runtime dates are rendered.
 
-#### §5 — Locale switcher deep-link behavior
+#### §5: Locale switcher deep-link behavior
 `SiteNav.astro` (lines 29–36) builds language switch links by calling `stripLocale(current)` on the current URL pathname, then `localizePath(barePath, l)` for each locale. This is the correct pattern: a user on `/fi/projects` clicking EN lands on `/projects`; clicking SV lands on `/sv/projects`. The `routing.ts` implementation and `routing.test.ts` tests both confirm this:
 
 - `stripLocale('/fi/projects')` → `'/projects'`
@@ -186,7 +186,7 @@ All 13 tests pass. The test suite adequately covers the deep-link switching scen
 
 **One gap:** There is no test asserting that `localizePath('/fi/projects', 'fi')` is idempotent (i.e., does not double-prefix to `/fi/fi/projects`). The implementation handles this correctly via the `LOCALE_PREFIX_REGEX` strip on input, but the test suite does not explicitly assert it.
 
-#### §7 — `<html lang>` correctness
+#### §7: `<html lang>` correctness
 Verified from baseline dist:
 
 | Route | `lang` attribute |
@@ -195,9 +195,9 @@ Verified from baseline dist:
 | `/fi/index.html` | `lang="fi"` ✓ |
 | `/sv/index.html` | `lang="sv"` ✓ |
 
-All correct. `BaseLayout.astro` line 39: `<html lang={locale} data-theme={theme}>` — the `locale` value is derived from `asLocale(Astro.currentLocale)` which falls back to `'en'` rather than producing an invalid value.
+All correct. `BaseLayout.astro` line 39: `<html lang={locale} data-theme={theme}>`, the `locale` value is derived from `asLocale(Astro.currentLocale)` which falls back to `'en'` rather than producing an invalid value.
 
-#### §8 — Astro i18n config
+#### §8: Astro i18n config
 `astro.config.mjs` (lines 40–46):
 ```js
 i18n: {
@@ -223,4 +223,4 @@ sitemap({ i18n: { defaultLocale: 'en', locales: { en: 'en', fi: 'fi', sv: 'sv' }
 - **RTL languages.** None are configured; no RTL findings apply.
 - **Pluralization rules.** Finnish has 15 grammatical cases; Swedish fewer but still non-trivial. No dynamic pluralization is used anywhere in the codebase (all counts are hardcoded strings in locale files: `'1828+ tests'`), so there is nothing to check beyond what is reviewed above. If counts become dynamic in future, a proper plural-forms library (e.g. `Intl.PluralRules`) will be required for FI/SV.
 - **Right-to-left layout or locale-specific typography.** Not applicable.
-- **User-visible terminal commands.** The terminal commands themselves (`whoami`, `contact --email`, `download --cv`) are kept in English in all locales — this appears intentional (a terminal aesthetic), consistent with how `cmdDownloadUsage: 'download --cv'` is the same in FI and SV. Not flagged.
+- **User-visible terminal commands.** The terminal commands themselves (`whoami`, `contact --email`, `download --cv`) are kept in English in all locales. This appears intentional (a terminal aesthetic), consistent with how `cmdDownloadUsage: 'download --cv'` is the same in FI and SV. Not flagged.

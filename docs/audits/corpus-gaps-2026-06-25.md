@@ -1,15 +1,15 @@
-# Corpus deep-dive — gaps to fill (2026-06-25)
+# Corpus deep-dive: gaps to fill (2026-06-25)
 
 The deep-dive docs in `content/projects/` were mined strictly from each
 project's real repo; where the repo didn't record a detail, the mining agent
 flagged it rather than invent. This is the consolidated fill-list. The inline
 `[gap: …]` markers were deliberately kept OUT of the corpus text so the chat
-never surfaces them in an answer — they live here instead.
+never surfaces them in an answer. They live here instead.
 
 ## ReadLog .NET
 
 - Exact post-PR7 test count (PORTING-NOTES has 86 at end of PR6; grew after).
-- CVE-2025-55315 pin status (AUDIT flags the 8.0.8 pins — confirm they're bumped).
+- CVE-2025-55315 pin status (AUDIT flags the 8.0.8 pins, confirm they're bumped).
 - `ReadEntry.Notes` exists in the model + migration but is unused everywhere (dead code, or planned feature?).
 - Whether the Google profile-photo URL is refreshed on subsequent logins.
 
@@ -41,7 +41,7 @@ never surfaces them in an answer — they live here instead.
 
 ## Platform
 
-- The concurrent XP-cap and achievement double-unlock races are documented as **open** findings (no fix commit at audit time) — described as unresolved, not fabricated as fixed.
+- The concurrent XP-cap and achievement double-unlock races are documented as **open** findings (no fix commit at audit time): described as unresolved, not fabricated as fixed.
 - The GitHub-commits-integration Zod gap was flagged, not fixed.
 - The Shoutbox `useState` reduction has no before/after count.
 - No ADRs in this repo to cross-reference; rationale came from commits + audit docs + comments.
@@ -63,4 +63,4 @@ never surfaces them in an answer — they live here instead.
 
 - `projectsScene.ts`, the canvas particle-dissolve page transition, and the experience-page scenes weren't mined (already covered by the existing architecture doc).
 - `evals/run_eval.py` details weren't included (planned-eval work, not shipped behaviour).
-- The agent reported `docs/rag-chat.md` "not found" — it **does** exist on master (merged in #281); that was an agent miss, not a real gap.
+- The agent reported `docs/rag-chat.md` "not found". It **does** exist on master (merged in #281); that was an agent miss, not a real gap.

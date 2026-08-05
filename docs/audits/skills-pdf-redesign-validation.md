@@ -1,10 +1,10 @@
-# Skills-PDF redesign — validation
+# Skills-PDF redesign: validation
 
 Companion to [skills-pdf-current-state.md](skills-pdf-current-state.md). This document records the three validation passes the redesign brief requires (arm's-length, new-reader, skeptic), plus a fourth voice audit, the iteration loop those passes drove, and what the second pass found.
 
-Validation method: four Sonnet sub-agents in parallel, each reading the rendered HTML + CSS (not the PDF — there's no pdftoppm on this machine). The HTML is generated to a stable preview path (`.claude/tmp/skills-pdf-preview.html`) by `scripts/build-skills-pdf.mjs` for exactly this purpose. The PDF and the HTML render from the same template, so issues that show in one show in the other.
+Validation method: four Sonnet sub-agents in parallel, each reading the rendered HTML + CSS (not the PDF, there's no pdftoppm on this machine). The HTML is generated to a stable preview path (`.claude/tmp/skills-pdf-preview.html`) by `scripts/build-skills-pdf.mjs` for exactly this purpose. The PDF and the HTML render from the same template, so issues that show in one show in the other.
 
-## Round 1 — initial PDF, four agents in parallel
+## Round 1: initial PDF, four agents in parallel
 
 ### A. Arm's-length test (layout)
 
@@ -14,14 +14,14 @@ The brief: open the PDF, stand back, scan. The reader should still be able to te
 
 | Check | Verdict |
 | --- | --- |
-| Measured-vs-estimated signal | WEAK — row tint `#e8f3ea` vs `#ffffff` is a ~6% luminance gap; chips are good but tint carries the wider visual area and washes out |
-| Hero number on page 1 | FAIL — CSS comment documents a `--t-display: 22pt` token but the renderer never applies it; hero number renders at 12pt inline, indistinguishable from a table cell |
-| Page identification | PASS — calibration page has a unique visual signature (red/orange bold deltas, no row chips, no green wash) |
-| Per-repo section distinguishability | WEAK — every repo section is one `<h2>` with identical styling, 18pt top margin; no colour or band to differentiate them at flip-distance |
+| Measured-vs-estimated signal | WEAK, row tint `#e8f3ea` vs `#ffffff` is a ~6% luminance gap; chips are good but tint carries the wider visual area and washes out |
+| Hero number on page 1 | FAIL, CSS comment documents a `--t-display: 22pt` token but the renderer never applies it; hero number renders at 12pt inline, indistinguishable from a table cell |
+| Page identification | PASS, calibration page has a unique visual signature (red/orange bold deltas, no row chips, no green wash) |
+| Per-repo section distinguishability | WEAK, every repo section is one `<h2>` with identical styling, 18pt top margin; no colour or band to differentiate them at flip-distance |
 
 ### B. New-reader test (jargon + flow)
 
-The brief: hand the document to a senior engineer who has never heard of Claude Code skills. They should be able to summarise it as "tools, this many measured, this is what they cost, this is what they save, the author admits when his guesses were wrong" — not "a list of things."
+The brief: hand the document to a senior engineer who has never heard of Claude Code skills. They should be able to summarise it as "tools, this many measured, this is what they cost, this is what they save, the author admits when his guesses were wrong", not "a list of things."
 
 **Findings (round 1):**
 
@@ -37,7 +37,7 @@ The simulated reader nailed the summary: *"Mikko built 33 automation tools for h
 | transcript | defined on method page only | PARTIAL |
 | cache-creation, session | contextually inferrable, not explicit | PARTIAL |
 
-The page-2 hook (page 1 promises "see exactly how wrong I was on page 2") delivers strongly — the simulated reader specifically called out "5 of 12 rows are orange. The fix is not to write better guesses next time. The fix is to keep measuring." as the strongest-written paragraph in the document.
+The page-2 hook (page 1 promises "see exactly how wrong I was on page 2") delivers strongly: the simulated reader specifically called out "5 of 12 rows are orange. The fix is not to write better guesses next time. The fix is to keep measuring." as the strongest-written paragraph in the document.
 
 ### C. Skeptic test (methodology)
 
@@ -45,11 +45,11 @@ The brief: read the method page as if you do not trust the author. Find the smal
 
 **Findings (round 1):**
 
-All six prescribed skeptic questions PASS — cache-counting honest, rename-handling explicit, linear-projection admitted as "dumb math," cache-read deliberately excluded, 3× baseline disclosed as a working assumption, sub-agent gap admitted. The one gap the agent surfaced that wasn't already on the page:
+All six prescribed skeptic questions PASS, cache-counting honest, rename-handling explicit, linear-projection admitted as "dumb math," cache-read deliberately excluded, 3× baseline disclosed as a working assumption, sub-agent gap admitted. The one gap the agent surfaced that wasn't already on the page:
 
-> **90-day window boundary — inclusive or exclusive?** The document says "the last 90 days from the moment skill-usage ran, no earlier." It never specifies whether day 90 (the boundary day itself) is included or excluded. For a skill invoked exactly 90 days ago, the measurement could flip from "measured" to "not measured" based on a timestamp comparison that isn't specified.
+> **90-day window boundary: inclusive or exclusive?** The document says "the last 90 days from the moment skill-usage ran, no earlier." It never specifies whether day 90 (the boundary day itself) is included or excluded. For a skill invoked exactly 90 days ago, the measurement could flip from "measured" to "not measured" based on a timestamp comparison that isn't specified.
 
-A minor gap — in practice an edge case — but worth fixing because the document otherwise earns trust through that kind of explicit precision.
+A minor gap (in practice an edge case), but worth fixing because the document otherwise earns trust through that kind of explicit precision.
 
 ### D. Voice audit (Barney-style tone rules)
 
@@ -72,14 +72,14 @@ Overall voice rating: **9/10**. One deduction: the "How tokens saved is computed
 
 Driven directly by round-1 findings:
 
-1. **CSS: hero number** — Replaced the inline 12pt number-next-to-bar with a block-level `display: block; font-size: 22pt; font-weight: 700` number on its own line, bar below it. Applies the documented `--t-display` token in practice. Fixes the round-1 FAIL.
-2. **CSS: row tint** — `--measured-bg` from `#e8f3ea` to `#c9e4ce`. The luminance gap vs paper goes from ~6% to ~13%, enough to survive arm's-length scanning on lower-contrast screens.
-3. **CSS + renderer: per-repo bands** — Replaced the `<h2>` repo heading with a `.repo-heading` div: solid dark-green band, white reversed type, repo name + stats inline, 26pt top margin. Four green bars now break the per-repo page visually; flip-scanning identifies sections without reading.
-4. **Renderer: jargon glosses** — Lede now reads *"every custom skill I've written for Claude Code (Anthropic's coding assistant CLI) … A 'skill' here is a reusable slash command — a named recipe Claude Code runs when I type /audit or similar."* Method page glosses *harness* as *"the runtime that drives the CLI between me and the model,"* names JSONL as *"JSON Lines: one JSON object per line, one line per message,"* defines sub-agent as *"work the parent skill delegates to a parallel Claude Code agent, written to its own transcript file under a subagents/ sibling directory,"* and parenthetically defines a session as *"one conversation in the CLI from start to exit."*
-5. **Renderer: 90-day boundary** — Added a sentence: *"The boundary is inclusive at the start (a session exactly 90 days old, to the second, is counted) and exclusive at the end (the very moment the scanner runs is the cutoff). Running the scanner an hour later can therefore drop a session that just crossed the boundary — that's a real if rare flake, and re-running the chain re-derives the right answer."*
-6. **Renderer: tokens-saved prose** — Rewrote the "How tokens saved is computed" section. The bones of the model are unchanged (saved = 2× cost-per-use × annual uses), but the prose is tighter and now includes *"it is the single load-bearing assumption in every 'Saved / yr' cell in this document"* and *"a model stacked on top of a guess. Treat them as a lower bound at best."*
+1. **CSS: hero number**, Replaced the inline 12pt number-next-to-bar with a block-level `display: block; font-size: 22pt; font-weight: 700` number on its own line, bar below it. Applies the documented `--t-display` token in practice. Fixes the round-1 FAIL.
+2. **CSS: row tint**, `--measured-bg` from `#e8f3ea` to `#c9e4ce`. The luminance gap vs paper goes from ~6% to ~13%, enough to survive arm's-length scanning on lower-contrast screens.
+3. **CSS + renderer: per-repo bands**, Replaced the `<h2>` repo heading with a `.repo-heading` div: solid dark-green band, white reversed type, repo name + stats inline, 26pt top margin. Four green bars now break the per-repo page visually; flip-scanning identifies sections without reading.
+4. **Renderer: jargon glosses** (Lede now reads *"every custom skill I've written for Claude Code (Anthropic's coding assistant CLI) … A 'skill' here is a reusable slash command) a named recipe Claude Code runs when I type /audit or similar."* Method page glosses *harness* as *"the runtime that drives the CLI between me and the model,"* names JSONL as *"JSON Lines: one JSON object per line, one line per message,"* defines sub-agent as *"work the parent skill delegates to a parallel Claude Code agent, written to its own transcript file under a subagents/ sibling directory,"* and parenthetically defines a session as *"one conversation in the CLI from start to exit."*
+5. **Renderer: 90-day boundary**, Added a sentence: *"The boundary is inclusive at the start (a session exactly 90 days old, to the second, is counted) and exclusive at the end (the very moment the scanner runs is the cutoff). Running the scanner an hour later can therefore drop a session that just crossed the boundary, that's a real if rare flake, and re-running the chain re-derives the right answer."*
+6. **Renderer: tokens-saved prose**, Rewrote the "How tokens saved is computed" section. The bones of the model are unchanged (saved = 2× cost-per-use × annual uses), but the prose is tighter and now includes *"it is the single load-bearing assumption in every 'Saved / yr' cell in this document"* and *"a model stacked on top of a guess. Treat them as a lower bound at best."*
 
-## Round 2 — re-validation pass
+## Round 2: re-validation pass
 
 Two sub-agents (the two that flagged failures or partials), same lenses, the iterated HTML.
 
@@ -87,10 +87,10 @@ Two sub-agents (the two that flagged failures or partials), same lenses, the ite
 
 | Check | Round 1 | Round 2 |
 | --- | --- | --- |
-| Measured-vs-estimated signal | WEAK | **PASS** — row tint is visible at arm's length and the distinction has three redundant channels (tint + chip iconography + italic-vs-upright saved figures); signal survives greyscale |
-| Hero number on page 1 | FAIL | **PASS** — 22pt bold on its own block, "two-line stacking is structurally enforced in the HTML"; reads cleanly at A4 landscape distance |
-| Page identification | PASS | **PASS** — unchanged |
-| Per-repo section distinguishability | WEAK | **PASS** — solid `#1f6f3a` band with white reversed type at 13pt bold; "flip-scanning will see four distinct green bars interrupting the table rows; no ambiguity about where one repo ends and the next begins" |
+| Measured-vs-estimated signal | WEAK | **PASS**, row tint is visible at arm's length and the distinction has three redundant channels (tint + chip iconography + italic-vs-upright saved figures); signal survives greyscale |
+| Hero number on page 1 | FAIL | **PASS**, 22pt bold on its own block, "two-line stacking is structurally enforced in the HTML"; reads cleanly at A4 landscape distance |
+| Page identification | PASS | **PASS**, unchanged |
+| Per-repo section distinguishability | WEAK | **PASS**, solid `#1f6f3a` band with white reversed type at 13pt bold; "flip-scanning will see four distinct green bars interrupting the table rows; no ambiguity about where one repo ends and the next begins" |
 
 All four checks PASS in round 2.
 
@@ -98,17 +98,17 @@ All four checks PASS in round 2.
 
 | Term | Round 1 | Round 2 |
 | --- | --- | --- |
-| Claude Code | FAIL | **PASS** — glossed inline in the lede as "Anthropic's coding assistant CLI" |
-| harness | FAIL | **PASS** — "the runtime that drives the CLI between me and the model" |
-| sub-agent | FAIL | **PASS** — "work the parent skill delegates to a parallel Claude Code agent, written to its own transcript file under a subagents/ sibling directory" |
-| JSONL | FAIL | **PASS** — described as "JSON Lines: one JSON object per line, one line per message"; bare "JSONL" no longer appears |
-| transcript | PARTIAL | **PASS** — introduced alongside the concrete file path |
+| Claude Code | FAIL | **PASS**, glossed inline in the lede as "Anthropic's coding assistant CLI" |
+| harness | FAIL | **PASS**, "the runtime that drives the CLI between me and the model" |
+| sub-agent | FAIL | **PASS**, "work the parent skill delegates to a parallel Claude Code agent, written to its own transcript file under a subagents/ sibling directory" |
+| JSONL | FAIL | **PASS**, described as "JSON Lines: one JSON object per line, one line per message"; bare "JSONL" no longer appears |
+| transcript | PARTIAL | **PASS**, introduced alongside the concrete file path |
 | attributionSkill | PASS | **PASS** |
-| session | (not flagged in round 1) | **PARTIAL** — `sessionId` appears in the file path without a standalone gloss |
+| session | (not flagged in round 1) | **PARTIAL**, `sessionId` appears in the file path without a standalone gloss |
 
-Fix applied after round 2: parenthetical gloss in the same sentence — *"every time I run a Claude Code session (one conversation in the CLI from start to exit), the harness …"*. The final rebuild incorporates this.
+Fix applied after round 2: parenthetical gloss in the same sentence, *"every time I run a Claude Code session (one conversation in the CLI from start to exit), the harness …"*. The final rebuild incorporates this.
 
-Lede flow check: round-2 verdict — *"No stalls. The lede moves in a straight line: what the document is → what Claude Code is → what a skill is → the headline numbers. Each clause does one job."*
+Lede flow check: round-2 verdict, *"No stalls. The lede moves in a straight line: what the document is → what Claude Code is → what a skill is → the headline numbers. Each clause does one job."*
 
 ## Summary
 
