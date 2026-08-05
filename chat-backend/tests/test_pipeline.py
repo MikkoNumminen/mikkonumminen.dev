@@ -7,6 +7,8 @@ import json
 from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 
+import pytest
+
 from app.guardrails import (
     COURTESY_REPLY,
     EXPANSION_OFFER,
@@ -462,6 +464,22 @@ def test_generation_failure_emits_sources_then_error() -> None:
     frames = _collect("q", db=FakeDB([_row("cv.md")]), llm=FakeLLM([], fail=True))
     assert _events(frames) == ["sources", "error"]
     assert "generation" in json.loads(frames[1].split("data: ", 1)[1])["message"]
+
+
+def test_prompt_assembly_failure_emits_error_not_a_dead_stream(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A raise between the sources frame and the generation loop (build_messages
+    # here) must still terminate the stream with an `error` frame — propagating
+    # out of the generator would drop the socket with no terminating frame and
+    # leave the client hanging on a dead stream.
+    def boom(*args: Any, **kwargs: Any) -> list[dict[str, str]]:
+        raise RuntimeError("prompt assembly down")
+
+    monkeypatch.setattr("app.pipeline.build_messages", boom)
+    frames = _collect("q", db=FakeDB([_row("cv.md")]), llm=FakeLLM(["x"]))
+    assert _events(frames) == ["sources", "error"]
+    assert "chat" in json.loads(frames[1].split("data: ", 1)[1])["message"]
 
 
 def test_markdown_markers_are_stripped_from_streamed_tokens() -> None:
