@@ -398,8 +398,7 @@ def check_gpu() -> tuple[str, str]:
         used_mib, total_mib = float(used), float(total)
         pct = (used_mib / total_mib * 100) if total_mib else 0.0
         detail = (
-            f"{util}% util · {float(power):.0f}W"
-            f" · {used}/{total} MiB VRAM ({pct:.0f}%)"
+            f"{util}% util · {float(power):.0f}W · {used}/{total} MiB VRAM ({pct:.0f}%)"
         )
         # VRAM near full risks an OOM on the next model load -> warn (yellow).
         return ("warn" if pct >= 95 else "ok", detail)
@@ -613,7 +612,9 @@ def defender_note() -> str:
         return "  · Windows Defender: can't check (powershell.exe not found)"
     rc, out = run(
         [
-            ps, "-NoProfile", "-Command",
+            ps,
+            "-NoProfile",
+            "-Command",
             "(Get-MpComputerStatus).RealTimeProtectionEnabled",
         ],
         timeout=20,
@@ -1123,16 +1124,18 @@ def cmd_prune() -> int:
             "0B",
         )
         print(f"     reclaimed {reclaimed}")
-    print(_c(
-        "  ● done — disk reclaimed; the running stack + warm model untouched.",
-        "32",
-    ))
+    print(
+        _c(
+            "  ● done — disk reclaimed; the running stack + warm model untouched.",
+            "32",
+        )
+    )
     return 0
 
 
 def cmd_test(question: str) -> int:
     """Doctor the live model with one real query: stream it, time it, show it."""
-    payload = json.dumps({"message": question, "history": []}).encode()
+    payload = json.dumps({"message": question}).encode()
     req = urllib.request.Request(
         BACKEND_CHAT, data=payload, headers={"content-type": "application/json"}
     )
@@ -1263,11 +1266,7 @@ def cmd_english(state: str | None) -> int:
         print(f"\n  already {state} — nothing to change.")
         return 0
     set_env_vars({"FORCE_ENGLISH": "1" if want else "0"})
-    note = (
-        "every answer in English"
-        if want
-        else "answers follow the question's language"
-    )
+    note = "every answer in English" if want else "answers follow the question's language"
     print(f"\n  applying → FORCE_ENGLISH {_c(state, '1')}  ·  {note}")
     print("  ◐ rebuilding + recreating backend with the new config …")
     # --build so the running backend picks up the new env; layer cache keeps it
@@ -1307,30 +1306,79 @@ class Feature:
 
 
 FEATURES: tuple[Feature, ...] = (
-    Feature("finnish", "RAG_ALLOW_FINNISH", "rag_allow_finnish", "bool",
-            "answer a Finnish question in Finnish"),
-    Feature("translate", "RAG_TRANSLATE_RETRIEVAL", "rag_translate_retrieval", "bool",
-            "retrieve a Finnish query via an English translation"),
-    Feature("disclosure", "PROGRESSIVE_DISCLOSURE_ENABLED",
-            "progressive_disclosure_enabled", "bool",
-            "offer 'tell me more' and expand on the follow-up"),
-    Feature("hybrid", "HYBRID_ENABLED", "hybrid_enabled", "bool",
-            "fuse lexical BM25 with dense retrieval (off = dense only)"),
-    Feature("project-filter", "PROJECT_FILTER_STRICT", "project_filter_strict", "bool",
-            "restrict retrieval to a named project (fails open)"),
-    Feature("shoutbox", "SHOUTBOX_ENABLED", "shoutbox_enabled", "bool",
-            "accept POST /shout into the moderation queue"),
-    Feature("log-text", "RAG_LOG_TEXT", "rag_log_text", "bool",
-            "log question + answer TEXT (never IP, never identity)"),
-    Feature("english", "FORCE_ENGLISH", "force_english", "bool",
-            "force every answer to English (see also: ragctl english)"),
-    Feature("diversity", "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT",
-            "retrieval_diversity_max_per_project", "int",
-            "max chunks per project when the query names none",
-            min_value=1),
-    Feature("research-top-n", "RESEARCH_COVERAGE_TOP_N", "research_coverage_top_n",
-            "int", "newest research posts forced into a recency answer (0 = off)",
-            min_value=0, max_attr="retrieval_top_k"),
+    Feature(
+        "finnish",
+        "RAG_ALLOW_FINNISH",
+        "rag_allow_finnish",
+        "bool",
+        "answer a Finnish question in Finnish",
+    ),
+    Feature(
+        "translate",
+        "RAG_TRANSLATE_RETRIEVAL",
+        "rag_translate_retrieval",
+        "bool",
+        "retrieve a Finnish query via an English translation",
+    ),
+    Feature(
+        "disclosure",
+        "PROGRESSIVE_DISCLOSURE_ENABLED",
+        "progressive_disclosure_enabled",
+        "bool",
+        "offer 'tell me more' and expand on the follow-up",
+    ),
+    Feature(
+        "hybrid",
+        "HYBRID_ENABLED",
+        "hybrid_enabled",
+        "bool",
+        "fuse lexical BM25 with dense retrieval (off = dense only)",
+    ),
+    Feature(
+        "project-filter",
+        "PROJECT_FILTER_STRICT",
+        "project_filter_strict",
+        "bool",
+        "restrict retrieval to a named project (fails open)",
+    ),
+    Feature(
+        "shoutbox",
+        "SHOUTBOX_ENABLED",
+        "shoutbox_enabled",
+        "bool",
+        "accept POST /shout into the moderation queue",
+    ),
+    Feature(
+        "log-text",
+        "RAG_LOG_TEXT",
+        "rag_log_text",
+        "bool",
+        "log question + answer TEXT (never IP, never identity)",
+    ),
+    Feature(
+        "english",
+        "FORCE_ENGLISH",
+        "force_english",
+        "bool",
+        "force every answer to English (see also: ragctl english)",
+    ),
+    Feature(
+        "diversity",
+        "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT",
+        "retrieval_diversity_max_per_project",
+        "int",
+        "max chunks per project when the query names none",
+        min_value=1,
+    ),
+    Feature(
+        "research-top-n",
+        "RESEARCH_COVERAGE_TOP_N",
+        "research_coverage_top_n",
+        "int",
+        "newest research posts forced into a recency answer (0 = off)",
+        min_value=0,
+        max_attr="retrieval_top_k",
+    ),
 )
 
 # Read alongside the dials so a bound expressed against another setting
@@ -1533,9 +1581,7 @@ def cmd_feature(name: str, value: str) -> int:
         previous = before.get(feature.attr)
         if previous is not None:
             restore = (
-                ("1" if _is_on(previous) else "0")
-                if feature.kind == "bool"
-                else previous
+                ("1" if _is_on(previous) else "0") if feature.kind == "bool" else previous
             )
             if set_env_vars({feature.env: restore}):
                 print(f"\n    reverted .env: {feature.env}={restore}")
@@ -1628,10 +1674,27 @@ _MENU: list[tuple[str, str]] = [
 
 # Verbs Tab-completed in the REPL (real commands + the REPL-only quit words).
 _VERBS = [
-    "status", "watch", "doctor", "up", "down", "test", "model", "english",
-    "features", "feature",
-    "usage", "logs", "queue", "approve", "reject", "reply", "publish",
-    "prune", "watchdog", "exit", "quit",
+    "status",
+    "watch",
+    "doctor",
+    "up",
+    "down",
+    "test",
+    "model",
+    "english",
+    "features",
+    "feature",
+    "usage",
+    "logs",
+    "queue",
+    "approve",
+    "reject",
+    "reply",
+    "publish",
+    "prune",
+    "watchdog",
+    "exit",
+    "quit",
 ]
 
 
@@ -1640,9 +1703,6 @@ def print_menu() -> None:
     print(_c("  commands", "1") + _c("   ·  Tab completes  ·  'exit' to leave", "2"))
     for cmd, desc in _MENU:
         print(f"    {cmd:<16}{_c(desc, '2')}")
-
-
-
 
 
 # --- shoutbox moderation ----------------------------------------------------
@@ -1719,7 +1779,14 @@ def _moderate(action: str, shout_id: int = 0, text: str = "") -> dict[str, Any]:
     # unknown option. Without it, `reply 7 "-- nice work"` dies in argparse
     # inside the container with an error the operator never asked for.
     cmd = COMPOSE + [
-        "exec", "-T", "backend", "python", "-m", "app.moderate", action, "--"
+        "exec",
+        "-T",
+        "backend",
+        "python",
+        "-m",
+        "app.moderate",
+        action,
+        "--",
     ]
     if shout_id:
         cmd.append(str(shout_id))
@@ -2021,10 +2088,12 @@ def cmd_logs(n: int) -> int:
     """Show the last N logged questions + answers from the request log."""
     log = RAG_LOG_DIR / "requests.jsonl"
     if not log.exists() or not log.stat().st_size:
-        print(_c(
-            "\n  no request log yet — bring the rag up and ask it something.\n",
-            "33",
-        ))
+        print(
+            _c(
+                "\n  no request log yet — bring the rag up and ask it something.\n",
+                "33",
+            )
+        )
         return 0
     lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
     kept = [ln for ln in lines if ln.strip()]

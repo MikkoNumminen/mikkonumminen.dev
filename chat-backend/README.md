@@ -162,8 +162,13 @@ authenticated; it exposes no content, only aggregate numbers.
 
 ### `POST /chat`
 
-Body: `{ "message": "...", "history": [] }` (`history` optional). The full
-pipeline, in order:
+Body: `{ "message": "...", "session_id": "..." }` (`session_id` optional). There
+is deliberately NO `history` field: prior turns come from server-side memory
+keyed on `session_id`, never from the client. Accepting them on an
+unauthenticated endpoint meant anyone could hand the model text it is told is
+its own prior output, and the server cannot tell the difference. An old client
+still sending `history` is accepted and the field ignored. The full pipeline, in
+order:
 
 1. **Input cap** — `message` longer than `INPUT_MAX_CHARS` (default 800) is
    rejected with HTTP `400`; a Pydantic `max_length=4000` backstop returns `422`,

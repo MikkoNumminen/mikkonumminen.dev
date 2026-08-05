@@ -1,6 +1,7 @@
 # Proposal: what to do about the 2026-08-05 injection audit
 
-**Status:** proposal, not a decision. Nothing here is implemented.
+**Status:** being worked through. Section 1 is DONE (2026-08-06); the rest are
+still proposals. Each section records its own outcome as it lands.
 **Source:** `docs/audits/llm-injection-2026-08-05.md`, 21 findings across six defense layers.
 
 Five of those findings need a decision before they need code, which is why they
@@ -41,11 +42,31 @@ Options, cheapest first:
 
 **Recommendation: A2 if the harness does not need it, otherwise A1.**
 
+> **DONE 2026-08-06, A2, and the check came back clean.** Nothing depended on
+> client history: `evals/acceptance.py` and `ragctl` both posted `[]`, the
+> rag-experiment harness never referenced it, and the terminal has sent a
+> `session_id` since Phase 4. **A1 turned out to be already implemented**:
+> `main.py` ignored client history whenever a `session_id` was present, so the
+> live vector was the no-session-id path rather than the whole endpoint. The
+> field is gone from the request model, the frontend and the API docs. An old
+> client still sending it is accepted and the field ignored, because a 422 would
+> break the terminal for anyone on a cached bundle.
+
 For the raw splice, normalisation before fencing, in that order. A fence that
 untrusted text can close is not a fence, so collapsing CR/LF, U+2028/U+2029 and
 the literal `Context:` / `Question:` / `[n] Title (source)` shapes out of
 untrusted text is what makes a delimiter mean anything. Both are deterministic
 and testable without a model.
+
+> **DONE 2026-08-06, and not the way this paragraph proposed.** Collapsing the
+> specific shapes is still a blocklist: it matches on text the attacker controls
+> and loses to the first variation nobody enumerated. What shipped makes a
+> question ONE LINE instead. NFKC, then every Unicode `Cc`/`Cf`/`Zl`/`Zp`
+> character becomes a space, so a line-anchored forgery is unconstructible
+> rather than filtered and no fence is needed at all. Applied to the question
+> and to the user half of remembered turns; deliberately NOT to the context
+> block, whose line structure is meaningful. See
+> `prompts.neutralise_untrusted` and `tests/test_prompt_boundary.py`.
 
 ## 2. The containment contract has no enforcement point
 
@@ -105,6 +126,21 @@ egress bucket. Cloudflare was replaced by Tailscale, so the ratelimit docstring
 is stale, and the audit finding reasoned from it. Establish the real behaviour
 against the funnel first. The finding may be refuted by it, and the stale
 docstring is a genuine defect either way.
+
+> **MEASURED 2026-08-06, and the XFF finding is REFUTED.** Five POSTs through
+> the funnel carrying five different `X-Forwarded-For` values all landed in ONE
+> rate bucket: attempts 1-3 answered normally, attempt 4 hit the limit
+> (`RATE_MAX = 3`). Tailscale replaces the header, so it cannot be rotated to
+> escape the limiter. The `ratelimit.py` docstring had already been corrected to
+> say this, but by citing Tailscale source rather than by observing it. This is
+> the observation.
+>
+> The CV-override half is NOT refuted, and probing it found something this
+> section did not predict: `"what is the population of Brazil"` is not refused
+> even with no `cv` token anywhere, while the cv-laced version correctly says it
+> has nothing on that. The relevance gate is looser than assumed and the CV
+> override is not what drives it, so the finding needs rewriting before it needs
+> code.
 
 The CV override is straightforwardly testable: send an off-corpus question
 containing the word "cv" and see whether the relevance gate still refuses.
