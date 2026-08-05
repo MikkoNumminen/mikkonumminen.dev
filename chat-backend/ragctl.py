@@ -920,7 +920,7 @@ def stop_watchdog_daemon() -> bool:
     return True
 
 
-def cmd_up(keep: bool, watchdog: bool = True) -> int:
+def cmd_up(keep: bool, watchdog: bool = True, verify: bool = True) -> int:
     print(_c("\n  bringing the rag up …\n", "1"))
     if not ensure_docker():
         return 1
@@ -937,7 +937,7 @@ def cmd_up(keep: bool, watchdog: bool = True) -> int:
         print()
         print(render(gather()))
         print("  (left running — `ragctl down` to cut it)")
-        return 0
+        return _verify_after_up(verify)
     # Show a live, colour-coded board while the backend finishes coming up, then
     # return to the prompt with the stack STILL running. Ctrl-C also just returns
     # — only `down` tears it down, so `up` never strands you in a blocking hold.
@@ -945,7 +945,81 @@ def cmd_up(keep: bool, watchdog: bool = True) -> int:
         _watch_until_ready()
     except KeyboardInterrupt:
         print(_c("\n  (returned — the rag is still up; `down` to cut it)", "33"))
-    return 0
+        # Ctrl-C means "stop waiting", not "prove containment now". Verifying
+        # here would hold the prompt for minutes right after someone asked for
+        # it back.
+        return 0
+    return _verify_after_up(verify)
+
+
+def _verify_after_up(verify: bool) -> int:
+    """The deploy gate. Skipping it says so out loud, so an unproven stack is
+    never mistaken for a verified one."""
+    if not verify:
+        print(_c("  o containment NOT verified (--skip-verify).", "33"))
+        print("    The stack is live and unproven. `ragctl verify` when you want it.")
+        return 0
+    return cmd_verify()
+
+
+def cmd_verify(full: bool = False) -> int:
+    """Run the containment contract against the LIVE backend. Non-zero on failure.
+
+    ADR 0010 names `evals/acceptance.py` as the executable proof that containment
+    holds, and until now nothing ran it. It cannot go in CI: it POSTs to a live
+    backend and needs Postgres, Ollama and a GPU. So the enforcement point is
+    here, at the only moment all three exist.
+
+    A CI-runnable subset was the other candidate and it is DEAD, measured rather
+    than assumed: not one of the four `must_refuse_injection` payloads is caught
+    by any deterministic pre-retrieval gate, because those gates screen for TASK
+    TYPE and an injection attempt is not a task type.
+    `tests/test_injection_coverage.py` pins that. Whatever catches these needs
+    the model, so it needs the stack.
+
+    RUNS IN THE CONTAINER, not here. The obvious implementation imports
+    `evals.acceptance` in-process, and it does not work: acceptance imports
+    `app.guardrails`, which has imported `lingua` since the Finnish router
+    landed, and ragctl runs on the host where that is not installed. Its own
+    docstring still claimed it was stdlib-only. The container is where the
+    dependencies are and where the backend is, so that is where it runs.
+
+    Only `kind="contract"` cases run by default. A quality case failing means an
+    answer got worse; a contract case failing means the system did something it
+    promises it cannot. Blocking a deploy on the first would train whoever runs
+    this to pass `--skip-verify` by reflex, which costs the second.
+    """
+    scope = "full battery" if full else "containment contract"
+    print()
+    print(_c(f"  verifying the {scope} against the live backend ...", "1"))
+    print()
+    cmd = COMPOSE + ["exec", "-T", "backend", "python", "-m", "evals.acceptance"]
+    if not full:
+        cmd.append("--contract-only")
+    # Streamed, not captured: the per-case PASS/FAIL lines are the useful part
+    # while it runs, and a battery against a local model is minutes long.
+    proc = subprocess.run(cmd, cwd=REPO)
+    code = proc.returncode
+
+    if code == 0:
+        print()
+        print(_c("  * contained: every contract case held.", "32"))
+        print()
+        return 0
+    if code == 2:
+        print()
+        print(_c("  * UNVERIFIED: the backend was unreachable.", "33"))
+        print("    The stack is up but nothing has proved containment holds.")
+        print("    Re-run `ragctl verify` once /health is green.")
+        print()
+        return 2
+    print()
+    print(_c("  * NOT CONTAINED: a contract case FAILED.", "31"))
+    print("    The stack is still running, deliberately: you need it up to debug.")
+    print("    The system just did something ADR 0010 says it cannot. Treat it as")
+    print("    a live defect, not a flaky test.")
+    print()
+    return 1
 
 
 def cmd_down() -> int:
@@ -1887,6 +1961,19 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="don't autostart the public-path watchdog",
     )
+    up.add_argument(
+        "--skip-verify",
+        action="store_true",
+        help="skip the containment check (faster; leaves the stack unproven)",
+    )
+    vfy = sub.add_parser(
+        "verify", help="run the containment contract against the live backend"
+    )
+    vfy.add_argument(
+        "--full",
+        action="store_true",
+        help="run the answer-quality cases too, not just the contract",
+    )
     sub.add_parser("down", help="cut the rag: compose down + funnel off")
     test = sub.add_parser("test", help="doctor the live model with a test question")
     test.add_argument("question", help="the question to ask")
@@ -1976,7 +2063,13 @@ def dispatch(argv: list[str]) -> int:
     if args.cmd == "doctor":
         return cmd_doctor()
     if args.cmd == "up":
-        return cmd_up(keep=args.keep, watchdog=not args.no_watchdog)
+        return cmd_up(
+            keep=args.keep,
+            watchdog=not args.no_watchdog,
+            verify=not args.skip_verify,
+        )
+    if args.cmd == "verify":
+        return cmd_verify(full=args.full)
     if args.cmd == "down":
         return cmd_down()
     if args.cmd == "test":

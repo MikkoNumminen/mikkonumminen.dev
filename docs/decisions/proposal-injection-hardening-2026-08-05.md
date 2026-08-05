@@ -106,6 +106,25 @@ backend and needs Postgres, Ollama and a GPU.
 **Recommendation: B3, with B1 first because it is a day's work and closes the
 common case.** B2 is the real gate and should follow.
 
+> **DONE 2026-08-06, B2 ONLY, because B1 is dead.** B1 assumed the pre-retrieval
+> gates catch injection cases. They do not: measured against all four
+> `must_refuse_injection` payloads, not one is caught by the generative,
+> translation, trivia or small-talk gate, because those screen for TASK TYPE and
+> an injection attempt is not a task type. `tests/test_injection_coverage.py`
+> pins it. Whatever catches these needs the model, so it needs the stack.
+>
+> B2 shipped as `ragctl verify`, run automatically by `ragctl up` unless
+> `--skip-verify`. It runs only the cases now marked `kind="contract"`, because
+> blocking a deploy on answer quality would train whoever runs it to skip by
+> reflex. It runs INSIDE the container: the obvious in-process implementation
+> fails, since `evals.acceptance` imports `app.guardrails`, which has imported
+> `lingua` since the Finnish router landed, and ragctl runs on the host.
+>
+> **It failed on its first run, and that is the point.** 16 of 22 contract cases
+> passed against the live stack, twice, with the offcorpus failures identical
+> both times. See the follow-up task: the contract ADR 0010 claims to hold does
+> not currently hold, and nobody knew because nothing ran this.
+
 Two coverage holes go with it: every acceptance case posts `"history": []`, so
 the forged-turn vector above is untested, and all four `must_refuse_injection`
 cases are user-message-borne, so the context-borne case, a poisoned corpus chunk
