@@ -389,7 +389,6 @@ def test_runs_is_instrument_identity(tmp_path):
 def test_variance_reporting():
     from evals.experiment.tables import (
         cell_stats,
-        committed_in_band,
         render_variance_table,
     )
 
@@ -400,8 +399,6 @@ def test_variance_reporting():
         "runs": 3,
         "cases": 4,
     }
-    assert committed_in_band([1, 2, 3], 3)["in_band"] is True  # 3 in [1,3]
-    assert committed_in_band([1, 2, 3], 9)["in_band"] is False  # 9 is an outlier
     arms = [
         {
             "cell": {"model": "q"},

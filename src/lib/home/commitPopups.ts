@@ -88,6 +88,10 @@ export function buildCommitPopups(messages: readonly CommitRecord[]): CommitPopu
 
   let lastSpawn = -Infinity;
   let disposed = false;
+  // Pending removal timers, so dispose can cancel them — otherwise a
+  // navigation within POPUP_LIFETIME_MS leaves timers holding detached
+  // popup elements alive after the container is gone.
+  const removalTimers = new Set<number>();
 
   return {
     spawn: (clientX: number, clientY: number): CommitRecord | null => {
@@ -107,11 +111,17 @@ export function buildCommitPopups(messages: readonly CommitRecord[]): CommitPopu
       // Remove on a timer rather than animationend — the global
       // reduced-motion kill-switch zeroes animation durations, and a
       // popup that never animates must still leave the DOM.
-      window.setTimeout(() => el.remove(), POPUP_LIFETIME_MS);
+      const timer = window.setTimeout(() => {
+        removalTimers.delete(timer);
+        el.remove();
+      }, POPUP_LIFETIME_MS);
+      removalTimers.add(timer);
       return isReal ? picked : null;
     },
     dispose: (): void => {
       disposed = true;
+      for (const timer of removalTimers) window.clearTimeout(timer);
+      removalTimers.clear();
       container.remove();
     },
   };
