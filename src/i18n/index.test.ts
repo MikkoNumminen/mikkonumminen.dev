@@ -32,6 +32,30 @@ describe('asLocale', () => {
   });
 });
 
+describe('projectsData parity across locales', () => {
+  // `highlights` is optional in the Translations type, so the compiler cannot
+  // see one locale dropping it — that card just renders without bullets in
+  // that language. Meaning drift still needs a human, but shape drift is
+  // mechanical and belongs here.
+  it('gives every project the same keys in every locale', () => {
+    const en = getTranslations('en');
+    for (const locale of LOCALES) {
+      const t = getTranslations(locale);
+      expect(Object.keys(t.projectsData).sort(), locale).toEqual(
+        Object.keys(en.projectsData).sort(),
+      );
+      for (const [id, project] of Object.entries(en.projectsData)) {
+        const twin = t.projectsData[id];
+        expect(twin, `${locale}:${id}`).toBeDefined();
+        if (!twin) continue;
+        expect(Object.keys(twin).sort(), `${locale}:${id}`).toEqual(
+          Object.keys(project).sort(),
+        );
+      }
+    }
+  });
+});
+
 describe('getTranslations', () => {
   it('returns the English dictionary for "en"', () => {
     const t = getTranslations('en');
