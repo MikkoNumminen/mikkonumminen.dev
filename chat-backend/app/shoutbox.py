@@ -29,6 +29,7 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -240,7 +241,7 @@ def state_refusal(
 def evaluate(
     raw: str,
     *,
-    rate_exceeded: bool,
+    rate_exceeded: Callable[[], bool],
     pending_total: int,
     duplicate_exists: bool,
 ) -> Verdict:
@@ -249,7 +250,10 @@ def evaluate(
     Pure: every fact about the world arrives as an argument. The caller does all
     the I/O and all the counting.
 
-    `rate_exceeded` is a BOOLEAN, not a count, and that is deliberate. The count
+    `rate_exceeded` is a CALLABLE returning a boolean, not a count, and both
+    halves of that are deliberate. Callable, because the limiter records the
+    attempt as it answers: it must not run until the shape checks have passed.
+    Boolean rather than a count, The count
     lives in the in-memory `RateLimiter` — the same structure the chat path uses —
     because no IP is ever written to disk here. Taking an `int` would imply a
     stored per-address tally and invite someone to add the column that would make
@@ -264,8 +268,19 @@ def evaluate(
     """
     body = normalise(raw)
 
-    refusal = shape_refusal(body) or state_refusal(
-        rate_exceeded=rate_exceeded,
+    shape = shape_refusal(body)
+    if shape is not None:
+        # Return BEFORE touching the rate check. `rate_exceeded` is a callable so
+        # that ordering is enforced here rather than trusted to each caller: the
+        # limiter records the attempt as it answers, so calling it for an empty or
+        # oversized submission would hand an attacker the free flood the limit
+        # exists to prevent. Taking a bool would make "only well-formed
+        # submissions spend budget" a property of the call site, which is exactly
+        # how the endpoint and this function drifted apart.
+        return Verdict(accepted=False, refusal=shape)
+
+    refusal = state_refusal(
+        rate_exceeded=rate_exceeded(),
         pending_total=pending_total,
         duplicate_exists=duplicate_exists,
     )

@@ -366,29 +366,53 @@ def create_app() -> FastAPI:
         # running them for an empty or oversized submission would hand an attacker
         # exactly the free flood the limits exist to prevent. Normalised once here
         # and reused, so the stored text is the text the rules ran against.
-        body = shoutbox.normalise(req.body)
-        shape = shoutbox.shape_refusal(body)
-        if shape is not None:
-            return refuse(shape)
-
-        # Only well-formed submissions spend rate budget. `allow` records the
-        # attempt as it checks, so a well-formed message that is later refused as
-        # a duplicate still costs a slot — deliberate on a write path.
+        # The gate runs through `shoutbox.evaluate`, the same entry point the
+        # red-team suite drives. It used to be composed by hand here instead,
+        # which meant the adversarial suite for a public write endpoint exercised
+        # a parallel implementation and could stay green while this path drifted.
+        #
+        # `rate_exceeded` is passed as a callable because `allow` RECORDS the
+        # attempt as it answers: evaluate calls it only once the shape checks have
+        # passed, so a malformed submission cannot spend budget. The two queue
+        # facts are read eagerly, which costs two indexed lookups on refused
+        # input but no rate budget, and they are advisory anyway: the authority
+        # for both is the gated insert below.
         peer = request.client.host if request.client else None
         key = client_ip(request.headers.get("x-forwarded-for"), peer)
-        rate_exceeded = not app.state.shout_limiter.allow(key, now)
+        hashed = shoutbox.body_hash(shoutbox.normalise(req.body))
 
-        state = shoutbox.state_refusal(
-            rate_exceeded=rate_exceeded,
+        verdict = shoutbox.evaluate(
+            req.body,
+            rate_exceeded=lambda: not app.state.shout_limiter.allow(key, now),
             pending_total=await db.shout_pending_count(),
             duplicate_exists=await db.shout_duplicate_exists(
-                shoutbox.body_hash(body), shoutbox.DUPLICATE_WINDOW_SECONDS
+                hashed, shoutbox.DUPLICATE_WINDOW_SECONDS
             ),
         )
-        if state is not None:
-            return refuse(state)
+        if not verdict.accepted:
+            assert verdict.refusal is not None  # accepted=False always carries one
+            return refuse(verdict.refusal)
 
-        await db.enqueue_shout(body, shoutbox.body_hash(body))
+        body = verdict.body
+        assert body is not None and verdict.body_hash is not None
+
+        # Re-check duplicate and capacity INSIDE the write transaction. The reads
+        # above are a snapshot: two identical submissions arriving together both
+        # saw `duplicate_exists=False` and both inserted, and a burst likewise each
+        # saw room under the cap. This is the atomic decision; the reads above only
+        # buy an earlier, cheaper refusal.
+        shout_id, reason = await db.enqueue_shout_gated(
+            body,
+            verdict.body_hash,
+            window_seconds=shoutbox.DUPLICATE_WINDOW_SECONDS,
+            max_pending=shoutbox.QUEUE_MAX_PENDING,
+        )
+        if shout_id is None:
+            return refuse(
+                shoutbox.Refusal.DUPLICATE
+                if reason == "duplicate"
+                else shoutbox.Refusal.QUEUE_FULL
+            )
 
         # Notification is fire-and-forget, NOT awaited. Awaiting it would make the
         # visitor wait out the Telegram timeout before their message is confirmed,
