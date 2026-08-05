@@ -158,7 +158,8 @@ def call_chat(
     `think` (optional) forwards the backend's generic reasoning-control flag so an
     experiment arm can run with reasoning disabled; None omits it (the default).
     """
-    payload: dict[str, object] = {"message": message, "history": []}
+    # No `history` key: the endpoint does not accept one (see main.ChatRequest).
+    payload: dict[str, object] = {"message": message}
     if think is not None:
         payload["think"] = think
     body = json.dumps(payload).encode("utf-8")

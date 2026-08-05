@@ -161,7 +161,7 @@ describe('streamChat', () => {
         done = true;
       },
     };
-    await streamChat('https://x', 'hi', [], handlers, {
+    await streamChat('https://x', 'hi', handlers, {
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     expect(tokens.join('')).toBe('Hello world.');
@@ -175,7 +175,6 @@ describe('streamChat', () => {
       streamChat(
         'https://x',
         'hi',
-        [],
         { onToken: () => {} },
         {
           fetchImpl: fetchImpl as unknown as typeof fetch,
@@ -191,7 +190,6 @@ describe('streamChat', () => {
     await streamChat(
       'https://x',
       'hi',
-      [],
       {
         onToken: () => {},
         onError: (m) => {
@@ -257,7 +255,11 @@ describe('askChat', () => {
     await expect(isChatAvailable()).resolves.toBe(false);
   });
 
-  it('threads prior turns as history into the next question', async () => {
+  it('never sends a client-supplied history, only the session id', async () => {
+    // The backend stopped accepting `history` because on an unauthenticated
+    // endpoint it let anyone hand the model text it is told is its own prior
+    // output. Prior turns come from server-side memory keyed on session_id.
+    // This asserts the request body, so the two halves cannot drift apart.
     vi.stubEnv('PUBLIC_CHAT_API_URL', 'https://x');
     const bodies: string[] = [];
     const fetchImpl = (async (_url: string, init: { body?: unknown }) => {
@@ -270,11 +272,17 @@ describe('askChat', () => {
     const { output, ctx } = freshCtx();
     await askChat('first question', ctx, output, t, { fetchImpl });
     await askChat('follow up', ctx, output, t, { fetchImpl });
-    expect(JSON.parse(bodies[0] ?? 'null').history).toEqual([]);
-    expect(JSON.parse(bodies[1] ?? 'null').history).toEqual([
-      { role: 'user', content: 'first question' },
-      { role: 'assistant', content: 'answer.' },
-    ]);
+
+    for (const body of bodies) {
+      const parsed = JSON.parse(body) as Record<string, unknown>;
+      expect(parsed).not.toHaveProperty('history');
+      expect(Object.keys(parsed).sort()).toEqual(['message', 'session_id']);
+    }
+    // Same session across both turns, which is what lets the server thread them.
+    const first = JSON.parse(bodies[0] ?? 'null') as { session_id: string };
+    const second = JSON.parse(bodies[1] ?? 'null') as { session_id: string };
+    expect(second.session_id).toBe(first.session_id);
+    expect(first.session_id).toBeTruthy();
   });
 
   it('renders a project-mapped source as on-site + repo links', async () => {
@@ -652,7 +660,7 @@ describe('streamChat — context frame routing', () => {
         contextResult = { used, limit };
       },
     };
-    await streamChat('https://x', 'hi', [], handlers, {
+    await streamChat('https://x', 'hi', handlers, {
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     expect(contextResult).toEqual({ used: 1024, limit: 4096 });
@@ -668,7 +676,6 @@ describe('streamChat — context frame routing', () => {
     await streamChat(
       'https://x',
       'hi',
-      [],
       { onToken: () => {}, onContext },
       { fetchImpl: fetchImpl as unknown as typeof fetch },
     );
@@ -681,7 +688,7 @@ describe('streamChat — context frame routing', () => {
       capturedBody = String(init.body);
       return sseResponse(['event: done\ndata: {}\n\n']);
     }) as unknown as typeof fetch;
-    await streamChat('https://x', 'question', [], { onToken: () => {} }, { fetchImpl });
+    await streamChat('https://x', 'question', { onToken: () => {} }, { fetchImpl });
     const body = JSON.parse(capturedBody) as Record<string, unknown>;
     expect(typeof body['session_id']).toBe('string');
     expect((body['session_id'] as string).length).toBeGreaterThan(0);
