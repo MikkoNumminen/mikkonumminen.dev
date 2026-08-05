@@ -449,7 +449,7 @@ const m = t.mobileContact;
           },
         };
 
-        void streamChat(base, question, [], handlers, { signal }).catch(() => {
+        void streamChat(base, question, handlers, { signal }).catch(() => {
           if (settled || signal.aborted) return;
           append('mcc__line--out', '⚠ chat is unavailable right now.');
           finish();

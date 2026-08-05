@@ -44,24 +44,22 @@ from .usage import usage_payload
 logger = logging.getLogger("chat")
 
 
-class Message(BaseModel):
-    role: str
-    content: str = Field(max_length=2000)
-
-
 class ChatRequest(BaseModel):
     # Pydantic carries only a loose backstop; the operative limit is the
     # configurable INPUT_MAX_CHARS, enforced in the handler so the real cap is
     # one tunable number, not split across two layers. A message between the cap
     # and this backstop is rejected by the handler with a clean 400.
     message: str = Field(min_length=1, max_length=4000)
-    # Bound the PARSED structure regardless of Content-Length: the body-size
-    # middleware caps raw bytes, and these cap the prompt that reaches the model
-    # (a no-Content-Length request can't slip a huge history past Pydantic).
-    history: list[Message] = Field(default_factory=list, max_length=20)
+    # NO `history` FIELD, deliberately. Prior turns come from server-side memory
+    # only. Accepting them from the client on an unauthenticated endpoint meant
+    # anyone could hand the model text it is told is its own previous output, and
+    # the server has no way to tell a turn it produced from one it was given.
+    # Pydantic ignores unknown fields by default, so an old client still sending
+    # `history` is accepted and its history is discarded rather than 422-ing.
+    #
     # Opt-in backend conversation memory: when set, the server threads this
-    # session's prior turns into the prompt and remembers this one. Absent => the
-    # single-turn path (the client may still pass its own `history` for back-compat).
+    # session's prior turns into the prompt and remembers this one. Absent means
+    # the single-turn path.
     session_id: str | None = Field(default=None, max_length=200)
     # Optional, generic reasoning-control flag threaded into the SYSTEM prompt
     # (prompts._REASONING_OFF). Default None => no change; the live terminal never
@@ -296,13 +294,23 @@ def create_app() -> FastAPI:
             if req.session_id:
                 memory.record(req.session_id, query, answer, time.monotonic())
 
-        # Backend session memory is the source of truth for prior turns when a
-        # session_id is given; otherwise fall back to any client-managed history
-        # (back-compat with the single-turn terminal).
+        # Server-side memory is the ONLY source of prior turns.
+        #
+        # This endpoint is unauthenticated and publicly addressable. It used to
+        # accept a client-supplied `history` as a back-compat fallback, which
+        # meant anyone could hand the model up to 20 turns of 2000 characters and
+        # have them threaded in as `role: assistant` — text the model is told is
+        # its own prior output. The server cannot distinguish a turn it produced
+        # from one an attacker wrote, so the only fix that actually closes it is
+        # not accepting them.
+        #
+        # Nothing needed it: the terminal has sent a session_id since Phase 4 and
+        # the backend already ignored client history whenever one was present, and
+        # both in-repo callers (evals/acceptance.py, ragctl) posted an empty list.
+        # A client with no CSPRNG sends no session_id and is now single-turn,
+        # which is what that path already chose by turning memory off.
         history = (
-            memory.history(req.session_id, time.monotonic())
-            if req.session_id
-            else [m.model_dump() for m in req.history]
+            memory.history(req.session_id, time.monotonic()) if req.session_id else []
         )
 
         stream = chat_event_stream(

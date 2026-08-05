@@ -39,11 +39,6 @@ export interface ChatSource {
   project?: string | null;
 }
 
-export interface ChatHistoryItem {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 export interface ChatHandlers {
   onSources?: (sources: ChatSource[]) => void;
   onToken: (text: string) => void;
@@ -95,11 +90,6 @@ let lastKnownAvailable = false;
 // The model the backend reports via /health (e.g. "qwen2.5:7b"), or null when
 // chat is unavailable. Surfaced in the prompt's live AI indicator.
 let lastKnownModel: string | null = null;
-// Rolling multi-turn history so follow-ups ("tell me more", "what about the
-// database?") carry prior context. Kept short so the prompt doesn't bloat across
-// a long session; the backend threads it (build_messages). Cleared on disable/reset.
-const MAX_HISTORY_ITEMS = 6;
-let conversationHistory: ChatHistoryItem[] = [];
 // Latched true the first time a `/chat` call fails, forcing scripted-only for
 // the rest of the session regardless of any later probe.
 let sessionDisabled = false;
@@ -143,16 +133,14 @@ export function disableChatForSession(): void {
   sessionDisabled = true;
   lastKnownAvailable = false;
   lastKnownModel = null;
-  conversationHistory = [];
   sessionId = newSessionId();
 }
 
-/** Test seam: clear the memoized probe + live state + disabled latch + history. */
+/** Test seam: clear the memoized probe + live state + disabled latch + session. */
 export function resetChatStateForTests(): void {
   availabilityProbe = null;
   lastKnownAvailable = false;
   lastKnownModel = null;
-  conversationHistory = [];
   sessionDisabled = false;
   sessionId = newSessionId();
 }
@@ -171,7 +159,6 @@ export async function resetChatSession(opts?: {
   // the NEW id — never the one still being reset. The POST uses the captured old id.
   const previous = sessionId;
   sessionId = newSessionId();
-  conversationHistory = [];
   const base = getChatBaseUrl();
   // Skip the POST when there was no session to reset: the reset endpoint
   // requires a non-empty id (min_length=1), so sending the empty id that means
@@ -580,16 +567,17 @@ export function safeParseContext(data: string): { used: number; limit: number } 
 export async function streamChat(
   baseUrl: string,
   message: string,
-  history: ChatHistoryItem[],
   handlers: ChatHandlers,
   { fetchImpl = fetch, signal }: FetchOpts = {},
 ): Promise<void> {
   const res = await fetchImpl(`${baseUrl}/chat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    // session_id lets the backend's Phase 4 memory thread turns server-side;
-    // history is kept for back-compat with backends that predate Phase 4.
-    body: JSON.stringify({ message, history, session_id: sessionId }),
+    // session_id only. The backend threads prior turns from its own memory and
+    // no longer accepts a client-supplied `history`: on an unauthenticated
+    // endpoint that let anyone hand the model text it is told is its own prior
+    // output, and the server cannot tell the difference.
+    body: JSON.stringify({ message, session_id: sessionId }),
     cache: 'no-store',
     signal,
   });
@@ -750,25 +738,11 @@ export async function askChat(
   };
 
   try {
-    // Pass the recent turns so a follow-up ("tell me more") has prior context.
-    await streamChat(
-      base,
-      message,
-      conversationHistory.slice(-MAX_HISTORY_ITEMS),
-      handlers,
-      opts,
-    );
+    await streamChat(base, message, handlers, opts);
     if (failed || !started) {
       // An `error` frame, or a stream that closed before any token, is treated
       // as a failed turn: show the clean line and degrade.
       throw new Error('empty or failed chat response');
-    }
-    // Record the exchange so the next question is a follow-up, capped so the
-    // prompt doesn't grow unbounded across a long session.
-    conversationHistory.push({ role: 'user', content: message });
-    conversationHistory.push({ role: 'assistant', content: answer });
-    if (conversationHistory.length > MAX_HISTORY_ITEMS) {
-      conversationHistory = conversationHistory.slice(-MAX_HISTORY_ITEMS);
     }
     const cited = dedupeSources(collected);
     if (cited.length > 0) {

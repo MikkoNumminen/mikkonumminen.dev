@@ -12,6 +12,7 @@ Pure and stdlib-only, so the exact prompt shape is unit-tested.
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -213,6 +214,57 @@ def _newest_research_note(chunks: Sequence[ContextChunk]) -> str | None:
     )
 
 
+# Every Unicode character class that can end a line, fake ending one, or hide
+# itself. Named by CATEGORY rather than as code-point ranges on purpose: a range
+# list is a snapshot of what someone thought of, and Unicode keeps growing.
+#
+#   Cc  C0/C1 controls, which is where carriage return, line feed and NUL live
+#   Cf  format characters: zero-width joiners, the BOM, the soft hyphen, and the
+#       bidi overrides. Bidi matters beyond tidiness, because it reorders how a
+#       line READS without changing what the model receives, so a block can be
+#       made to look closed when it is not
+#   Zl  LINE SEPARATOR and Zp PARAGRAPH SEPARATOR: line breaks that are not the
+#       ASCII one, and so are missed by every hand-written range list
+_STRUCTURAL_CATEGORIES = frozenset({"Cc", "Cf", "Zl", "Zp"})
+
+
+def neutralise_untrusted(text: str) -> str:
+    """Flatten visitor-authored text so it cannot forge prompt structure.
+
+    THE PROBLEM. The grounded turn is assembled by string interpolation, so a
+    question containing a newline followed by `Context:` or `[1] Something
+    (source.md)` reaches the model looking exactly like the block the server
+    wrote. Nothing downstream can tell them apart, because by then they are one
+    string.
+
+    THE APPROACH. Not a blocklist of the shapes that look dangerous today: those
+    match on text the attacker controls and lose to the first variation nobody
+    thought of. Instead, a question is ONE LINE, and this makes that true. With
+    no line breaks and no control characters, `Context:` at the start of a line
+    is unconstructible rather than filtered, and so is every other line-anchored
+    forgery.
+
+    NFKC first, so full-width and compatibility forms cannot smuggle a colon or a
+    bracket past anything downstream.
+
+    Runs at PROMPT ASSEMBLY only. Retrieval, the gates and the request log all
+    see the original text, so nothing about what the visitor asked is lost or
+    misrecorded.
+
+    ADR 0010 forbids fixing containment with prompt wording. This is not wording:
+    it is a deterministic transform, same output for the same input, testable
+    without a model.
+    """
+    text = unicodedata.normalize("NFKC", text)
+    flattened = [
+        " " if unicodedata.category(ch) in _STRUCTURAL_CATEGORIES else ch for ch in text
+    ]
+    # `split()` on no argument splits on any run of whitespace and drops empties,
+    # so this also collapses what the substitution above leaves behind and the
+    # model sees an ordinary sentence rather than a gappy one.
+    return " ".join("".join(flattened).split())
+
+
 def format_context(chunks: Sequence[ContextChunk]) -> str:
     """Render retrieved chunks as a numbered, source-labelled context block."""
     if not chunks:
@@ -268,9 +320,20 @@ def build_messages(
         role = turn.get("role")
         content = turn.get("content")
         if role in ("user", "assistant") and content:
+            # The USER half of a remembered turn is visitor text that was replayed
+            # from server-side memory, so it is exactly as untrusted as the live
+            # question and gets the same treatment. The assistant half is this
+            # model's own output and is left alone.
+            if role == "user":
+                content = neutralise_untrusted(content)
             messages.append({"role": role, "content": content})
     context = format_context(chunks)
-    user_content = f"Context:\n{context}\n\nQuestion: {query}"
+    # The question is flattened before it is spliced. NOT the context: those
+    # chunks are owner-curated content whose line structure is meaningful (code
+    # chunks especially), and flattening them would wreck the thing the model is
+    # supposed to read. A poisoned corpus is a separate finding with a separate
+    # answer; this one is about the boundary the VISITOR can reach.
+    user_content = f"Context:\n{context}\n\nQuestion: {neutralise_untrusted(query)}"
     if english:
         user_content = _ENGLISH_USER_DIRECTIVE + user_content
     elif answer_in_finnish:
