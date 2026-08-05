@@ -178,20 +178,38 @@ async function primeShoutboxBackend(
 test.describe('shoutbox: the published snapshot', () => {
   const snapshotPath = fileURLToPath(new URL('../public/data/shoutbox.json', import.meta.url));
 
+  /**
+   * An ABSENT file is the normal state until the first message is approved, and
+   * it is how this repo shipped for months. Reading it unguarded would turn that
+   * into an ENOENT crash rather than a skip, so this matches what
+   * `scripts/validate-shoutbox.mjs` already does with the same missing file.
+   */
+  function committedThreads(): { body: string }[] | null {
+    let raw: string;
+    try {
+      raw = readFileSync(snapshotPath, 'utf-8');
+    } catch {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as { threads?: { body: string }[] };
+    return parsed.threads ?? [];
+  }
+
   test('every committed thread reaches the page', async ({ page }) => {
-    const committed = JSON.parse(readFileSync(snapshotPath, 'utf-8')) as {
-      count: number;
-      threads: { body: string }[];
-    };
-    test.skip(committed.threads.length === 0, 'nothing published yet');
+    const committed = committedThreads();
+    test.skip(committed === null || committed.length === 0, 'nothing published yet');
 
     await page.goto('/contact');
     const threads = page.locator('.shoutbox__thread:not(.shoutbox__thread--pending)');
-    await expect(threads).toHaveCount(committed.threads.length);
-    // The bodies, not just the count: a file that parses but renders the wrong
-    // field would still pass a count check.
-    for (const thread of committed.threads) {
-      await expect(page.locator('.shoutbox__body', { hasText: thread.body })).toBeVisible();
+    await expect(threads).toHaveCount(committed?.length ?? 0);
+
+    // Bodies too, not just the count: a file that parses while `renderThread`
+    // reads the wrong field would still produce the right number of elements.
+    // Asserted per position with exact text — `hasText` is a case-insensitive
+    // SUBSTRING match, so a short message could be satisfied by a longer one and
+    // the wrong-field bug would slip through the very check meant to catch it.
+    for (const [index, thread] of (committed ?? []).entries()) {
+      await expect(threads.nth(index).locator('.shoutbox__body').first()).toHaveText(thread.body);
     }
     await expect(page.locator('[data-shoutbox-empty]')).toBeHidden();
   });
