@@ -10,10 +10,11 @@
 //   node scripts/render-audit-pdfs.mjs --force   regenerate every served doc regardless of mtime
 //
 // Skips entirely in CI / when Chrome is absent, so the committed PDFs stay
-// canonical on hosted builds (same guard as build-skills-pdf.mjs). Every served
-// doc now has a source: the replicates PDF was an orphan binary for a while, its
-// regex pointing at a docs/audits/.md that never existed, so nothing could
-// regenerate it and edits to the study it reports never reached the download.
+// canonical on hosted builds (same guard as build-skills-pdf.mjs). The
+// replicates PDF was an orphan binary for a while, its regex pointing at a
+// docs/audits/.md that never existed, so nothing could regenerate it and edits
+// to the study it reports never reached the download; it has a real source now.
+// Two served downloads still have none, see the note on MAP below.
 //
 // Note: Chrome stamps a creation date into the PDF, so renders aren't byte-
 // reproducible — a --force run always yields a (metadata-only) diff even when the
@@ -49,11 +50,19 @@ const MAP = [
   // driver exists to prevent, so `src` names the real source and `dated` the
   // canonical PDF the regex would otherwise have derived from the filename.
   //
-  // The three below were published by hand and then left out of this driver, so
-  // nothing regenerated them. Editing their sources went straight past the
-  // served copy: all three still carried em dashes after the source lost them,
-  // and replicates had been an orphan binary with no source at all, its regex
-  // pointing at a docs/audits/.md that has never existed.
+  // A `src` entry is only correct when the post IS the document, not a shorter
+  // write-up of it. Verified for both below: agent-delegation renders to the same
+  // length it always had, and skills-optim-replicates carries the full six-cell
+  // table matching the scoreboard JSON. That one had been an orphan binary with
+  // no source at all, its regex pointing at a docs/audits/.md that has never
+  // existed, so nothing could regenerate it.
+  //
+  // poro-finnish-review.pdf and rag-finnish-blind-test.pdf are deliberately NOT
+  // here. Their corpus posts are condensed versions: rendering the served copy
+  // from poro-finnish-review.md dropped about a quarter of the published text.
+  // Those two downloads keep their committed bytes, and their em dashes with
+  // them, because a complete document beats a tidier truncated one. Wiring them
+  // up needs their real sources, which are not in this repo.
   {
     pub: 'agent-delegation.pdf',
     src: 'content/posts/agent-delegation-measured.md',
@@ -63,16 +72,6 @@ const MAP = [
     pub: 'skills-optim-study-replicates.pdf',
     src: 'content/posts/skills-optim-replicates.md',
     dated: 'skills-optim-study-2026-06-01-replicates.pdf',
-  },
-  {
-    pub: 'poro-finnish-review.pdf',
-    src: 'content/posts/poro-finnish-review.md',
-    dated: 'PORO-FINNISH-REVIEW-2026-07-21.pdf',
-  },
-  {
-    pub: 'rag-finnish-blind-test.pdf',
-    src: 'content/posts/rag-finnish-blind-test.md',
-    dated: 'RAG-FINNISH-BLIND-TEST-2026-07-02.pdf',
   },
 ];
 
