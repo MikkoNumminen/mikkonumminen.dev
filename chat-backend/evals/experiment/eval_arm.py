@@ -24,9 +24,10 @@ from typing import Any
 from app.config import Settings
 from app.db import Database, apply_schema
 from app.embeddings import Embedder
-from app.retrieval import retrieve
 from evals.acceptance import call_chat, finnish_eval_cases
 from evals.scoring import reciprocal_rank, score_query
+
+from ..production_retrieval import retrieve_as_production
 
 EVALS = Path(__file__).resolve().parents[1]
 
@@ -55,12 +56,8 @@ async def _retrieval_rows(
             if q.get("expectation") != "must_retrieve":
                 continue
             expected = [str(x) for x in q.get("expected_sources", [])]
-            chunks = await retrieve(
-                emb, db, str(q["question"]), s.retrieval_top_k,
-                hybrid=s.hybrid_enabled, rrf_k=s.rrf_k,
-                dense_weight=s.retrieval_dense_weight,
-                lexical_weight=s.retrieval_lexical_weight,
-                project_filter_strict=s.project_filter_strict,
+            chunks = await retrieve_as_production(
+                emb, db, str(q["question"]), s
             )
             retrieved = [c.source for c in chunks]
             prose = [c for c in chunks if c.chunk_type == "prose"]

@@ -36,7 +36,8 @@ from pathlib import Path
 from app.config import Settings
 from app.db import Database
 from app.embeddings import Embedder
-from app.retrieval import retrieve
+
+from .production_retrieval import retrieve_as_production
 
 EVAL_SET_PATH = Path(__file__).resolve().parent / "eval_set_unnamed_project.json"
 
@@ -75,18 +76,10 @@ async def run() -> tuple[float, float]:
     try:
         for case in cases:
             expected = case["expected_sources"][0]
-            chunks = await retrieve(
-                embedder,
-                db,
-                case["question"],
-                settings.retrieval_top_k,
-                hybrid=settings.hybrid_enabled,
-                rrf_k=settings.rrf_k,
-                dense_weight=settings.retrieval_dense_weight,
-                lexical_weight=settings.retrieval_lexical_weight,
-                project_filter_strict=settings.project_filter_strict,
-                exclude_doc_types=settings.retrieval_exclude_doc_types or None,
-                diversify_max_per_project=cap,
+            # `cap` is this probe's axis: it sweeps the diversity limit. Every
+            # other argument comes from production via the shared helper.
+            chunks = await retrieve_as_production(
+                embedder, db, case["question"], settings, diversify_max_per_project=cap
             )
             matching = sum(1 for c in chunks if c.source == expected)
             share = matching / len(chunks) if chunks else 0.0

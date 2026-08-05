@@ -32,8 +32,8 @@ from app.config import Settings
 from app.db import Database, apply_schema
 from app.embeddings import Embedder
 from app.guardrails import is_generative_request, is_translation_request
-from app.retrieval import retrieve
 
+from .production_retrieval import retrieve_as_production
 from .scoring import (
     MUST_REFUSE_GENERATIVE,
     MUST_REFUSE_INJECTION,
@@ -114,16 +114,8 @@ async def _eval_mode(
         expectation = str(query.get("expectation", MUST_RETRIEVE))
         category = str(query.get("category", ""))
 
-        chunks = await retrieve(
-            embedder,
-            db,
-            question,
-            settings.retrieval_top_k,
-            hybrid=hybrid,
-            rrf_k=settings.rrf_k,
-            dense_weight=settings.retrieval_dense_weight,
-            lexical_weight=settings.retrieval_lexical_weight,
-            project_filter_strict=settings.project_filter_strict,
+        chunks = await retrieve_as_production(
+            embedder, db, question, settings, hybrid=hybrid
         )
         retrieved = [c.source for c in chunks]
         # Mirror the live weak-retrieval gate, which keys on the closest PROSE
