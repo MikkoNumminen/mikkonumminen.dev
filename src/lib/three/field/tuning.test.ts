@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FIELD_TUNING, glslFloat } from './tuning';
+import { FIELD_TUNING, SHAPES, glslFloat } from './tuning';
 
 describe('glslFloat', () => {
   it('gives whole numbers an explicit decimal point', () => {
@@ -57,13 +57,15 @@ describe('FIELD_TUNING', () => {
     }
   });
 
-  it('gives every per-shape table an entry for all four shapes', () => {
+  it('gives every per-shape table an entry for every shape', () => {
     // A short table silently reads as 0 for the missing shape, which
-    // renders that shape at zero brightness / density / bloom.
+    // renders that shape at zero brightness / density / bloom. Compared
+    // against SHAPES.length so adding a fifth shape trips this test
+    // instead of quietly shipping a zeroed shape.
     const c = FIELD_TUNING.cycle;
     for (const [key, table] of Object.entries(c)) {
       if (!Array.isArray(table)) continue;
-      expect(table.length, key).toBe(4);
+      expect(table.length, key).toBe(SHAPES.length);
     }
   });
 

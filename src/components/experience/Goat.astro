@@ -258,17 +258,22 @@
       const goat = document.querySelector<HTMLElement>('[data-goat] .goat');
       if (!goat) return;
 
+      // Tracked so the disposer can cancel it — a navigation within the
+      // 650ms hop would otherwise leave a pending timer holding the
+      // detached goat element alive.
+      let bleatTimer = 0;
       const onPointerDown = (): void => {
         // One bleat at a time — restarting mid-hop reads as a glitch,
         // not an eager goat.
         if (goat.classList.contains('goat--bleat')) return;
         goat.classList.add('goat--bleat');
-        window.setTimeout(() => goat.classList.remove('goat--bleat'), 650);
+        bleatTimer = window.setTimeout(() => goat.classList.remove('goat--bleat'), 650);
       };
       goat.addEventListener('pointerdown', onPointerDown);
 
       return () => {
         goat.removeEventListener('pointerdown', onPointerDown);
+        window.clearTimeout(bleatTimer);
         goat.classList.remove('goat--bleat');
       };
     },
