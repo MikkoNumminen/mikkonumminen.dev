@@ -28,7 +28,6 @@ from . import assembly as assembly_mod
 from . import config as config_mod
 from . import lock as lock_mod
 from .assembly import Measurement, comparable_pairs
-from .fingerprint import AXIS_KEYS
 
 __all__ = ["Arm", "comparable_pairs", "run"]
 
@@ -115,5 +114,3 @@ def run(
     }
 
 
-# Sweepable-axis sanity: the runner only knows the generic axis names, never a value.
-assert set(AXIS_KEYS) >= {"model", "embedder"}

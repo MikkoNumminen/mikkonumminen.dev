@@ -27,7 +27,14 @@ from app.shoutbox import evaluate
 
 FIXTURE = Path(__file__).resolve().parent.parent / "evals" / "shoutbox_redteam.jsonl"
 
-CLEAN = {"rate_exceeded": False, "pending_total": 0, "duplicate_exists": False}
+# `rate_exceeded` is a callable because the production gate must not spend rate
+# budget on a submission the shape checks will refuse. Returning False here means
+# "under the limit"; a case that needs the limit tripped passes its own lambda.
+CLEAN = {
+    "rate_exceeded": lambda: False,
+    "pending_total": 0,
+    "duplicate_exists": False,
+}
 
 
 def _expand(text: str) -> str:

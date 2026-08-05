@@ -118,6 +118,11 @@ async def _db_ok(db: Database) -> bool:
 # up — bounded by this — and a model switch is reflected within the window.
 HEALTH_LLM_CACHE_SECONDS = 30.0
 
+# How long shutdown waits for in-flight shoutbox digest tasks before cancelling
+# them. Just above the notifier's own HTTP timeout (notify._TIMEOUT_SECONDS), so
+# a digest genuinely mid-send gets to finish and only a wedged task is cancelled.
+NOTIFY_DRAIN_TIMEOUT_SECONDS = 6.0
+
 
 def create_app() -> FastAPI:
     settings = Settings.from_env()
@@ -172,6 +177,21 @@ def create_app() -> FastAPI:
         try:
             yield
         finally:
+            # That task set exists precisely so a digest cannot vanish mid-send —
+            # and shutdown is the one path where it still could: an in-flight
+            # _notify_queue awaits db.shout_pending_count() against the pool this
+            # block is about to close. Drain before closing: give a genuinely
+            # in-flight send just over the notifier's own HTTP timeout to finish,
+            # cancel whatever is still wedged, and only then take the pool down.
+            tasks: set[asyncio.Task[None]] = set(app.state.shout_notify_tasks)
+            if tasks:
+                _, still_running = await asyncio.wait(
+                    tasks, timeout=NOTIFY_DRAIN_TIMEOUT_SECONDS
+                )
+                for task in still_running:
+                    task.cancel()
+                if still_running:
+                    await asyncio.gather(*still_running, return_exceptions=True)
             await db.close()
 
     app = FastAPI(title="Portfolio RAG chat", lifespan=lifespan)
@@ -366,29 +386,59 @@ def create_app() -> FastAPI:
         # running them for an empty or oversized submission would hand an attacker
         # exactly the free flood the limits exist to prevent. Normalised once here
         # and reused, so the stored text is the text the rules ran against.
-        body = shoutbox.normalise(req.body)
-        shape = shoutbox.shape_refusal(body)
-        if shape is not None:
-            return refuse(shape)
-
-        # Only well-formed submissions spend rate budget. `allow` records the
-        # attempt as it checks, so a well-formed message that is later refused as
-        # a duplicate still costs a slot — deliberate on a write path.
+        # The gate runs through `shoutbox.evaluate`, the same entry point the
+        # red-team suite drives. It used to be composed by hand here instead,
+        # which meant the adversarial suite for a public write endpoint exercised
+        # a parallel implementation and could stay green while this path drifted.
+        #
+        # `rate_exceeded` is passed as a callable because `allow` RECORDS the
+        # attempt as it answers: evaluate calls it only once the shape checks have
+        # passed, so a malformed submission cannot spend budget. The two queue
+        # facts are read eagerly, which costs two indexed lookups on refused
+        # input but no rate budget, and they are advisory anyway: the authority
+        # for both is the gated insert below.
         peer = request.client.host if request.client else None
         key = client_ip(request.headers.get("x-forwarded-for"), peer)
-        rate_exceeded = not app.state.shout_limiter.allow(key, now)
+        hashed = shoutbox.body_hash(shoutbox.normalise(req.body))
 
-        state = shoutbox.state_refusal(
-            rate_exceeded=rate_exceeded,
+        verdict = shoutbox.evaluate(
+            req.body,
+            rate_exceeded=lambda: not app.state.shout_limiter.allow(key, now),
             pending_total=await db.shout_pending_count(),
             duplicate_exists=await db.shout_duplicate_exists(
-                shoutbox.body_hash(body), shoutbox.DUPLICATE_WINDOW_SECONDS
+                hashed, shoutbox.DUPLICATE_WINDOW_SECONDS
             ),
         )
-        if state is not None:
-            return refuse(state)
+        if not verdict.accepted:
+            if verdict.refusal is None:
+                # accepted=False always carries a reason by construction, so a
+                # None here is a bug in the gate, not a visitor error. Raise
+                # rather than assert: asserts vanish under `python -O`, and this
+                # is a request path.
+                raise RuntimeError("shoutbox gate refused without a reason")
+            return refuse(verdict.refusal)
 
-        await db.enqueue_shout(body, shoutbox.body_hash(body))
+        body = verdict.body
+        if body is None:
+            raise RuntimeError("shoutbox gate accepted without a normalised body")
+
+        # Re-check duplicate and capacity INSIDE the write transaction. The reads
+        # above are a snapshot: two identical submissions arriving together both
+        # saw `duplicate_exists=False` and both inserted, and a burst likewise each
+        # saw room under the cap. This is the atomic decision; the reads above only
+        # buy an earlier, cheaper refusal.
+        shout_id, reason = await db.enqueue_shout_gated(
+            body,
+            hashed,
+            window_seconds=shoutbox.DUPLICATE_WINDOW_SECONDS,
+            max_pending=shoutbox.QUEUE_MAX_PENDING,
+        )
+        if shout_id is None:
+            return refuse(
+                shoutbox.Refusal.DUPLICATE
+                if reason == "duplicate"
+                else shoutbox.Refusal.QUEUE_FULL
+            )
 
         # Notification is fire-and-forget, NOT awaited. Awaiting it would make the
         # visitor wait out the Telegram timeout before their message is confirmed,

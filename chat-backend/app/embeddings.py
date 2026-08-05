@@ -17,6 +17,7 @@ model, not in the fast unit suite.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Sequence
 from functools import lru_cache
 
@@ -25,6 +26,16 @@ from fastembed import TextEmbedding
 # Recommended retrieval instruction for bge-small-en-v1.5. Applied to queries
 # only (passages are embedded bare) to match how the model was trained.
 QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
+
+# Serialises inference across threads. retrieval runs embed_query via
+# asyncio.to_thread (ONNX inference must not block the event loop), so two
+# concurrent requests would otherwise call TextEmbedding.embed on the same
+# session from two threads at once — fastembed documents no thread-safety
+# guarantee for that, so none is assumed. Module-level rather than per-Embedder
+# because _load_model is lru_cached: two Embedder instances can share one
+# underlying model. The serialisation costs nothing in practice — before the
+# to_thread move, inference was already serialised by blocking the loop.
+_INFERENCE_LOCK = threading.Lock()
 
 
 class Embedder:
@@ -47,16 +58,18 @@ class Embedder:
         """Embed corpus chunks (no query instruction)."""
         # `.tolist()` is untyped (fastembed ships no stubs); annotate so the
         # return is `list[list[float]]` rather than leaking `Any`.
-        vectors: list[list[float]] = [
-            vec.tolist() for vec in self._model.embed(list(texts))
-        ]
+        with _INFERENCE_LOCK:
+            vectors: list[list[float]] = [
+                vec.tolist() for vec in self._model.embed(list(texts))
+            ]
         self._check_dims(vectors)
         return vectors
 
     def embed_query(self, text: str) -> list[float]:
         """Embed a single search query (with the bge query instruction)."""
         prefixed = f"{QUERY_INSTRUCTION}{text}"
-        vector: list[float] = next(iter(self._model.embed([prefixed]))).tolist()
+        with _INFERENCE_LOCK:
+            vector: list[float] = next(iter(self._model.embed([prefixed]))).tolist()
         self._check_dims([vector])
         return vector
 

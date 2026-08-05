@@ -254,10 +254,15 @@ _CODE_BOUNDARY_RES["javascript"] = _CODE_BOUNDARY_RES["typescript"]
 # BELOW it — a decorator (@classmethod, @Component(...)) or a C# attribute on its
 # own line ([HttpGet]). Contiguous runs of these immediately above a boundary are
 # pulled into that definition's unit so they are never split off from it.
+_AT_DECORATOR_RE = re.compile(r"^[ \t]*@\w")
 _CODE_DECORATOR_RES: dict[str, re.Pattern[str]] = {
-    "python": re.compile(r"^[ \t]*@\w"),
-    "typescript": re.compile(r"^[ \t]*@\w"),
-    "javascript": re.compile(r"^[ \t]*@\w"),
+    # Aliased rather than spelled out once per language, matching how
+    # _CODE_BOUNDARY_RES above expresses "javascript reuses typescript". The
+    # literal was written three times, so a fix to the pattern had three places
+    # to land and two chances to be missed.
+    "python": _AT_DECORATOR_RE,
+    "typescript": _AT_DECORATOR_RE,
+    "javascript": _AT_DECORATOR_RE,
     "csharp": re.compile(r"^[ \t]*\[[^\]]*\][ \t]*$"),
 }
 
