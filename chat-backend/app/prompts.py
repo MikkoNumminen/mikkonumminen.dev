@@ -164,9 +164,6 @@ def build_system_prompt(force_english: bool, answer_in_finnish: bool = False) ->
 
 # Canonical (English-forced) system prompt. Exposed as a module constant for
 # callers/tests that reference the default shape.
-SYSTEM_PROMPT = build_system_prompt(force_english=True)
-
-
 @dataclass(frozen=True)
 class ContextChunk:
     """A retrieved corpus excerpt to ground the answer in."""
