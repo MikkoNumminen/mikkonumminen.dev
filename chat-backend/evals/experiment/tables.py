@@ -82,16 +82,6 @@ def cell_stats(per_run: Sequence[int], cases: Any) -> dict[str, Any]:
     }
 
 
-def committed_in_band(per_run: Sequence[int], committed_per_run: float) -> dict[str, Any]:
-    """Does a committed PER-RUN value fall inside the measured [min, max] band? A
-    stochastic number is a sample, not a fact — judge a committed claim against the
-    band, not a point."""
-    s = cell_stats(per_run, None)
-    if s["runs"] == 0:
-        return {"in_band": None, **s}
-    return {"in_band": bool(s["min"] <= committed_per_run <= s["max"]), **s}
-
-
 def render_variance_table(arms: Sequence[dict[str, Any]]) -> str:
     """Per-arm table marking DETERMINISTIC (retrieval — zero variance) vs STOCHASTIC
     (synthesis/containment — mean[min-max]/cases over runs), so a reader sees which
