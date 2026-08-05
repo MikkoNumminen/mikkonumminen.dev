@@ -496,8 +496,10 @@ async def chat_event_stream(
             await asyncio.wait_for(semaphore.acquire(), timeout=acquire_timeout)
             acquired = True
         except TimeoutError:
+            # Bound before the logging branch, not inside it: the visitor is sent
+            # this same string below whether or not the request log is enabled.
+            busy_reply = LLM_BUSY_REPLY_FI if answer_in_finnish else LLM_BUSY_REPLY
             if log_request is not None:
-                busy_reply = LLM_BUSY_REPLY_FI if answer_in_finnish else LLM_BUSY_REPLY
                 log_request(
                     query,
                     distances,
@@ -509,9 +511,7 @@ async def chat_event_stream(
                     latency_ms=int((time.monotonic() - start) * 1000),
                 )
             yield sse.sse_sources([])
-            yield sse.sse_token(
-                LLM_BUSY_REPLY_FI if answer_in_finnish else LLM_BUSY_REPLY
-            )
+            yield sse.sse_token(busy_reply)
             yield sse.sse_done()
             return
 

@@ -15,12 +15,26 @@ from __future__ import annotations
 def client_ip(forwarded_for: str | None, peer: str | None) -> str:
     """The visitor's IP for rate-limiting, preferring X-Forwarded-For.
 
-    Behind the Cloudflare Tunnel the socket peer is cloudflared (or localhost),
-    not the visitor — so keying the limiter on the peer would lump every
-    visitor into one bucket. The real client IP is the first hop of
-    X-Forwarded-For. The tunnel is the only ingress, so trusting that header is
-    safe here; a direct-to-host run with no proxy falls back to the socket peer.
-    Pure, so it is unit-tested.
+    The ingress is a Tailscale Funnel (ADR 0012), not the Cloudflare Tunnel this
+    docstring used to describe. That is not a cosmetic correction: the two
+    proxies make opposite trust guarantees, and an injection audit reasoning from
+    the stale text concluded a visitor could rotate this header to escape the
+    limiter.
+
+    Tailscale's serve proxy REPLACES X-Forwarded-For with the connection source
+    it observes (`Header.Set` in `ipn/ipnlocal/serve.go`). Two consequences, both
+    deliberate and both recorded in ADR 0012:
+
+    - A direct-to-funnel caller CANNOT spoof the first hop, so the per-IP limiter
+      fully protects that path. This is the path an attacker would use.
+    - Requests proxied through Vercel arrive keyed on Vercel egress IPs, so
+      ordinary visitors share a bucket and per-client attribution is lost there.
+      Accepted, not a contingency: what actually bounds GPU work is the ADR 0010
+      layer (shed-not-queue concurrency, output and input caps), and for the
+      write path it is QUEUE_MAX_PENDING, which depends on no identity at all.
+
+    A direct-to-host run with no proxy falls back to the socket peer. Pure, so it
+    is unit-tested.
     """
     if forwarded_for:
         first = forwarded_for.split(",")[0].strip()

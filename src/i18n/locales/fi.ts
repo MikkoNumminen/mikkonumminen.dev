@@ -137,7 +137,12 @@ export const fi: Translations = {
     portfolio: {
       tagline: 'Tämä sivusto',
       description:
-        'Sivusto, jota luet juuri nyt. Täysin staattinen, mikään palvelin ei tee mitään ovelaa. Projektisivu on aurinkokunta, jota voi pyöritellä, etusivu on hiukkaskenttä, joka järjestäytyy jatkuvasti uusiksi, ja yhteyssivulla on terminaali, johon voi kirjoittaa. Animaatiokokeilut asuvat täällä, jotta tuotantosovellusten ei tarvitse kantaa niitä.',
+        'Sivusto, jota luet juuri nyt. Sivut itsessään ovat staattisia, mitään ei pyöri niiden takana, mutta yhteyssivun terminaali on kytketty kielimalliin, joka pyörii koneella kotonani. Kysy siltä jotain, niin FastAPI-palvelu vastaa omista repositorioistani: haku kulkee pgvectorin yli, edessä suomen tunnistava kielireititin, ja perille päästään Tailscale-funnelin kautta. Projektisivu on aurinkokunta, jota voi pyöritellä, ja etusivu on hiukkaskenttä, joka järjestäytyy jatkuvasti uusiksi. Animaatiokokeilut asuvat täällä, jotta tuotantosovellusten ei tarvitse kantaa niitä.',
+      highlights: [
+        'Itse isännöity kielimalli kotikoneen näytönohjaimella',
+        'Vastaa vain omasta aineistostani',
+        'Staattinen build, ei SSR:ää',
+      ],
     },
     readlog: {
       tagline: 'Pidä kirjaa lukemistasi kirjoista',

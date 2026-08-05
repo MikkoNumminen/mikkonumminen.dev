@@ -28,9 +28,6 @@ def lock_fields(
         "num_ctx": config_lock["num_ctx"],
         "prompt_template_sha": prompt_template_sha,
     }
-    missing = [k for k in LOCK_KEYS if k not in fields]
-    if missing:
-        raise ValueError(f"lock_fields is missing {missing}")
     return fields
 
 
