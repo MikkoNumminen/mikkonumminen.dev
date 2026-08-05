@@ -119,3 +119,88 @@ class TestAFailingCaseIsNotSilent:
         # not by pattern-matching case names.
         monkeypatch.setattr(acceptance, "CASES", [])
         assert acceptance.main(["--contract-only", "--base-url", "http://x"]) == 0
+
+
+class TestCouldNotRunIsNotAFailure:
+    """The gate's most dangerous confusion, because both look like exit 1.
+
+    `docker compose exec` against a stopped service exits 1, and 1 is also how the
+    battery reports a contract failure. Announcing "NOT CONTAINED" for a container
+    that was merely not started yet is worse than having no gate: it teaches
+    whoever sees it to disbelieve the one that matters.
+    """
+
+    def test_a_stopped_backend_reports_unverified_rather_than_a_breach(
+        self, monkeypatch, capsys
+    ) -> None:
+        import ragctl
+
+        monkeypatch.setattr(ragctl, "run", lambda *a, **k: (0, ""))
+        code = ragctl.cmd_verify()
+        out = capsys.readouterr().out
+        assert code == 2, "a stopped container must not report a contract failure"
+        assert "UNVERIFIED" in out
+        assert "NOT CONTAINED" not in out
+
+    def test_a_wedged_battery_times_out_instead_of_holding_the_deploy(
+        self, monkeypatch, capsys
+    ) -> None:
+        """`up` waits on this now, so no bound means a wedged model holds the
+        deploy open forever."""
+        import subprocess
+
+        import ragctl
+
+        monkeypatch.setattr(ragctl, "run", lambda *a, **k: (0, "container-id"))
+        seen: dict[str, object] = {}
+
+        def hang(*a: object, **k: object) -> object:
+            seen.update(k)
+            raise subprocess.TimeoutExpired(cmd="acceptance", timeout=1)
+
+        monkeypatch.setattr(ragctl.subprocess, "run", hang)
+        code = ragctl.cmd_verify()
+        out = capsys.readouterr().out
+        assert code == 2
+        assert "timed out" in out
+        assert "NOT CONTAINED" not in out
+        # Assert the BOUND is actually set, not just that the handler exists.
+        # Without this the test passes with `timeout=` deleted, because the fake
+        # raises regardless: it would prove the except branch works while the
+        # call it guards could still block forever.
+        assert seen.get("timeout") == ragctl.VERIFY_TIMEOUT_SECONDS
+
+    def test_a_real_contract_failure_still_reports_a_breach(
+        self, monkeypatch, capsys
+    ) -> None:
+        """The control. A gate that called everything UNVERIFIED would satisfy
+        both tests above while never blocking anything."""
+        import ragctl
+
+        monkeypatch.setattr(ragctl, "run", lambda *a, **k: (0, "container-id"))
+        monkeypatch.setattr(
+            ragctl.subprocess, "run", lambda *a, **k: subprocess_result(1)
+        )
+        code = ragctl.cmd_verify()
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "NOT CONTAINED" in out
+
+
+def subprocess_result(returncode: int) -> object:
+    """Minimal stand-in for CompletedProcess: only returncode is read."""
+
+    class _R:
+        def __init__(self, rc: int) -> None:
+            self.returncode = rc
+
+    return _R(returncode)
+
+
+def test_verify_is_discoverable_in_the_repl() -> None:
+    """A command nobody can find is a command nobody runs, and this one is the
+    whole enforcement point."""
+    import ragctl
+
+    assert "verify" in ragctl._VERBS
+    assert any(entry[0].startswith("verify") for entry in ragctl._MENU)

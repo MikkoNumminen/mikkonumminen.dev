@@ -952,6 +952,12 @@ def cmd_up(keep: bool, watchdog: bool = True, verify: bool = True) -> int:
     return _verify_after_up(verify)
 
 
+# How long the containment battery may take before `verify` gives up. 22 cases
+# against a local model, each capped by acceptance's own 90s per-request timeout;
+# this is the outer bound on the whole run so `up` cannot hang on a wedged model.
+VERIFY_TIMEOUT_SECONDS = 1800
+
+
 def _verify_after_up(verify: bool) -> int:
     """The deploy gate. Skipping it says so out loud, so an unproven stack is
     never mistaken for a verified one."""
@@ -996,9 +1002,34 @@ def cmd_verify(full: bool = False) -> int:
     cmd = COMPOSE + ["exec", "-T", "backend", "python", "-m", "evals.acceptance"]
     if not full:
         cmd.append("--contract-only")
+    # The container has to be up for `compose exec` to reach it. Checked FIRST,
+    # because `compose exec` against a stopped service exits 1, and 1 is how the
+    # battery reports a contract FAILURE. Without this, a backend that had not
+    # finished starting would be announced as a containment breach that never
+    # happened, which is worse than no gate: it teaches you to disbelieve it.
+    ps_code, ps_out = run(COMPOSE + ["ps", "-q", "backend"], cwd=REPO, timeout=20)
+    if ps_code != 0 or not ps_out.strip():
+        print()
+        print(_c("  * UNVERIFIED: the backend container is not running.", "33"))
+        print("    Nothing was checked. `ragctl up` first, then `ragctl verify`.")
+        print()
+        return 2
+
     # Streamed, not captured: the per-case PASS/FAIL lines are the useful part
     # while it runs, and a battery against a local model is minutes long.
-    proc = subprocess.run(cmd, cwd=REPO)
+    #
+    # TIMEOUT, because `up` now waits on this: 22 contract cases against a local
+    # model, generous enough that a slow GPU is not mistaken for a hang. A wedged
+    # model would otherwise hold the deploy open forever.
+    try:
+        proc = subprocess.run(cmd, cwd=REPO, timeout=VERIFY_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        print()
+        print(_c("  * UNVERIFIED: the battery timed out.", "33"))
+        print(f"    No verdict after {VERIFY_TIMEOUT_SECONDS}s. The stack is up and")
+        print("    unproven; check the model is loaded, then re-run `ragctl verify`.")
+        print()
+        return 2
     code = proc.returncode
 
     if code == 0:
@@ -1729,6 +1760,7 @@ _MENU: list[tuple[str, str]] = [
     ("doctor", "board + security pre-flight + versions"),
     ("up [--keep]", "bring it live (Ctrl-C tears it down)"),
     ("down", "cut the rag (stack + funnel off)"),
+    ("verify [--full]", "prove the containment contract against the live stack"),
     ('test "Q"', "ask the live model a test question"),
     ("model NAME", "switch model (--effort, --context)"),
     ("english on|off", "force English across all models"),
@@ -1753,6 +1785,7 @@ _VERBS = [
     "doctor",
     "up",
     "down",
+    "verify",
     "test",
     "model",
     "english",
