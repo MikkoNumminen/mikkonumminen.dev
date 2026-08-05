@@ -9,6 +9,7 @@ for type-checking.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
@@ -326,7 +327,12 @@ async def retrieve(
     "what's your work experience?") pulls the kind='cv' chunks explicitly and prepends
     them to the returned top_k — see the comment at the fetch.
     """
-    vector = embedder.embed_query(query)
+    # embed_query is synchronous ONNX inference — CPU-bound for tens to hundreds
+    # of milliseconds. Run on the loop it would stall every concurrent SSE
+    # stream, /health probe and rate-limiter tick on this single-process server,
+    # so it goes to a worker thread. Concurrent calls on the shared model are
+    # serialised inside Embedder (embeddings._INFERENCE_LOCK).
+    vector = await asyncio.to_thread(embedder.embed_query, query)
     # Intent detection (project aliases, CV route) scans the retrieval text AND
     # the caller's original question when they differ (translate-for-retrieval):
     # the original carries the Finnish inflections the detectors know, the
@@ -524,7 +530,9 @@ async def retrieve_narrative(
     longer version on the fly. Hard-filtered to `doc_type='narrative'` and the named
     project; the role/classification filter still applies.
     """
-    vector = embedder.embed_query(query)
+    # Off-loop for the same reason as retrieve() above: sync ONNX inference on
+    # the event loop stalls every concurrent request.
+    vector = await asyncio.to_thread(embedder.embed_query, query)
     rows = await db.search(
         vector,
         top_k,

@@ -686,6 +686,27 @@ async def chat_event_stream(
                 await on_complete(tokens, latency_ms)
             except Exception:
                 logger.exception("usage on_complete failed")
+    except Exception:
+        logger.exception("chat stream failed")
+        # Terminal backstop for the steps outside the generation loop — source
+        # refs, prompt assembly, the trailing bookkeeping. An exception that
+        # propagates out of this async generator makes StreamingResponse drop
+        # the socket with no `error` and no `done` frame: the client hangs on a
+        # dead stream and the request log never sees the request. Same
+        # treatment as the retrieval and generation failures above: record an
+        # error event, then end the stream with a frame the frontend can act on.
+        if log_request is not None:
+            log_request(
+                query,
+                distances,
+                "error",
+                "",
+                role,
+                class_counts,
+                model=None,
+                latency_ms=int((time.monotonic() - start) * 1000),
+            )
+        yield sse.sse_error("chat unavailable")
     finally:
         # Release on every exit — normal completion, the generation-error early
         # return, or the consumer closing the stream early (GeneratorExit runs
