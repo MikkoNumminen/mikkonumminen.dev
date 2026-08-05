@@ -108,13 +108,6 @@ def reciprocal_rank(
     return 0.0
 
 
-def hit_rate(results: Sequence[QueryResult]) -> float:
-    """Fraction of queries that passed (0.0 for an empty set)."""
-    if not results:
-        return 0.0
-    return sum(1 for r in results if r.hit) / len(results)
-
-
 def _retrieve_subset(results: Sequence[QueryResult]) -> list[QueryResult]:
     return [r for r in results if r.expectation == MUST_RETRIEVE]
 

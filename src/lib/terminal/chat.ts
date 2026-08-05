@@ -254,14 +254,6 @@ export async function probeHealth(
   }
 }
 
-/** Boolean-only availability — the dispatcher's gate. Delegates to `probeHealth`. */
-export async function probeAvailability(
-  baseUrl: string,
-  opts: FetchOpts = {},
-): Promise<boolean> {
-  return (await probeHealth(baseUrl, opts)).available;
-}
-
 /**
  * Whether free chat is available this session (memoized).
  *

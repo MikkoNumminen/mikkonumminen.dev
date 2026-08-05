@@ -57,8 +57,20 @@ class RequestLogger(Protocol):
 # the answer is already LLM_NUM_PREDICT-bounded.
 _MAX_LOGGED_QUERY_CHARS = 200
 _MAX_LOGGED_RESPONSE_CHARS = 4000
+_TRUNCATION_MARKER = "…[truncated]"
 
 _internal = logging.getLogger("chat")
+
+
+def _truncate(text: str, limit: int) -> str:
+    """Cap `text` at `limit` chars, appending a marker only when it actually cut.
+
+    Without the marker a reader cannot tell an answer that happened to be
+    exactly the cap from one the logger shortened.
+    """
+    if len(text) <= limit:
+        return text
+    return text[:limit] + _TRUNCATION_MARKER
 
 
 def format_log_record(
@@ -111,8 +123,8 @@ def format_log_record(
         "invented_years": list(invented_years or []),
     }
     if log_text:
-        record["query"] = query[:_MAX_LOGGED_QUERY_CHARS]
-        record["response"] = response[:_MAX_LOGGED_RESPONSE_CHARS]
+        record["query"] = _truncate(query, _MAX_LOGGED_QUERY_CHARS)
+        record["response"] = _truncate(response, _MAX_LOGGED_RESPONSE_CHARS)
     return json.dumps(record, ensure_ascii=False)
 
 
@@ -194,6 +206,9 @@ def build_request_logger(
                 )
             )
         except Exception:
-            pass
+            # Swallowed so a formatting bug can never fail the request itself,
+            # but warned like the sibling degrade path above — otherwise that
+            # same bug kills the request log permanently and silently.
+            _internal.warning("request log write failed", exc_info=True)
 
     return log

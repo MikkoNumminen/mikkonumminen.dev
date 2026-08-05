@@ -38,12 +38,3 @@ export function makeRadialSpriteTexture(
   texture.needsUpdate = true;
   return texture;
 }
-
-/**
- * Per-frame impulse decay: subtract `delta * rate` from `value`, clamped
- * at zero. Used by the scene builders that ramp a click/impact energy to
- * 1 and let it fall back to baseline over a fixed budget.
- */
-export function decayImpulse(value: number, delta: number, rate: number): number {
-  return Math.max(0, value - delta * rate);
-}

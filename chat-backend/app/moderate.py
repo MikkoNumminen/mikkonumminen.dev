@@ -79,6 +79,11 @@ async def _with_db(
                 "ok": True,
                 "snapshot": snapshot_payload(threads, datetime.now(UTC)),
             }
+        # Unreachable via the CLI (argparse `choices` rejects anything else
+        # before we get here) — kept because _with_db is an ordinary function
+        # that any future caller could hand a bad string, mypy wants the
+        # exhaustive return anyway, and the module's contract is JSON on
+        # stdout for every outcome, never a traceback.
         return {"ok": False, "error": f"unknown action {action!r}"}
     finally:
         await db.close()

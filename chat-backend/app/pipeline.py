@@ -496,8 +496,10 @@ async def chat_event_stream(
             await asyncio.wait_for(semaphore.acquire(), timeout=acquire_timeout)
             acquired = True
         except TimeoutError:
+            # Bound before the logging branch, not inside it: the visitor is sent
+            # this same string below whether or not the request log is enabled.
+            busy_reply = LLM_BUSY_REPLY_FI if answer_in_finnish else LLM_BUSY_REPLY
             if log_request is not None:
-                busy_reply = LLM_BUSY_REPLY_FI if answer_in_finnish else LLM_BUSY_REPLY
                 log_request(
                     query,
                     distances,
@@ -509,9 +511,7 @@ async def chat_event_stream(
                     latency_ms=int((time.monotonic() - start) * 1000),
                 )
             yield sse.sse_sources([])
-            yield sse.sse_token(
-                LLM_BUSY_REPLY_FI if answer_in_finnish else LLM_BUSY_REPLY
-            )
+            yield sse.sse_token(busy_reply)
             yield sse.sse_done()
             return
 
@@ -686,6 +686,27 @@ async def chat_event_stream(
                 await on_complete(tokens, latency_ms)
             except Exception:
                 logger.exception("usage on_complete failed")
+    except Exception:
+        logger.exception("chat stream failed")
+        # Terminal backstop for the steps outside the generation loop — source
+        # refs, prompt assembly, the trailing bookkeeping. An exception that
+        # propagates out of this async generator makes StreamingResponse drop
+        # the socket with no `error` and no `done` frame: the client hangs on a
+        # dead stream and the request log never sees the request. Same
+        # treatment as the retrieval and generation failures above: record an
+        # error event, then end the stream with a frame the frontend can act on.
+        if log_request is not None:
+            log_request(
+                query,
+                distances,
+                "error",
+                "",
+                role,
+                class_counts,
+                model=None,
+                latency_ms=int((time.monotonic() - start) * 1000),
+            )
+        yield sse.sse_error("chat unavailable")
     finally:
         # Release on every exit — normal completion, the generation-error early
         # return, or the consumer closing the stream early (GeneratorExit runs

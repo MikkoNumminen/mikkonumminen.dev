@@ -118,6 +118,11 @@ async def _db_ok(db: Database) -> bool:
 # up — bounded by this — and a model switch is reflected within the window.
 HEALTH_LLM_CACHE_SECONDS = 30.0
 
+# How long shutdown waits for in-flight shoutbox digest tasks before cancelling
+# them. Just above the notifier's own HTTP timeout (notify._TIMEOUT_SECONDS), so
+# a digest genuinely mid-send gets to finish and only a wedged task is cancelled.
+NOTIFY_DRAIN_TIMEOUT_SECONDS = 6.0
+
 
 def create_app() -> FastAPI:
     settings = Settings.from_env()
@@ -172,6 +177,21 @@ def create_app() -> FastAPI:
         try:
             yield
         finally:
+            # That task set exists precisely so a digest cannot vanish mid-send —
+            # and shutdown is the one path where it still could: an in-flight
+            # _notify_queue awaits db.shout_pending_count() against the pool this
+            # block is about to close. Drain before closing: give a genuinely
+            # in-flight send just over the notifier's own HTTP timeout to finish,
+            # cancel whatever is still wedged, and only then take the pool down.
+            tasks: set[asyncio.Task[None]] = set(app.state.shout_notify_tasks)
+            if tasks:
+                _, still_running = await asyncio.wait(
+                    tasks, timeout=NOTIFY_DRAIN_TIMEOUT_SECONDS
+                )
+                for task in still_running:
+                    task.cancel()
+                if still_running:
+                    await asyncio.gather(*still_running, return_exceptions=True)
             await db.close()
 
     app = FastAPI(title="Portfolio RAG chat", lifespan=lifespan)
