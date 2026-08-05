@@ -163,6 +163,11 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
   import { onRoute } from '../../lib/lifecycle';
   import { loadSnapshot, formatThreadDate } from '../../lib/shoutbox/snapshot';
   import { submitShout } from '../../lib/shoutbox/submit';
+  import {
+    addPending,
+    readPending,
+    type PendingMessage,
+  } from '../../lib/shoutbox/pending';
   import { isChatAvailable } from '../../lib/terminal/chat';
   import { getTranslations } from '../../i18n';
 
@@ -268,18 +273,76 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
         return item;
       };
 
+      /**
+       * One of the visitor's OWN messages, accepted but not yet published.
+       *
+       * Same `textContent` discipline as `renderThread`, for the same reason: it
+       * is the layer that actually holds. The dashed treatment and the badge are
+       * the whole point of the element, so a visitor is never left thinking the
+       * text below is on the site when it is only in their browser.
+       */
+      const renderPending = (entry: PendingMessage): HTMLLIElement => {
+        const item = document.createElement('li');
+        item.className = 'shoutbox__thread shoutbox__thread--pending';
+
+        const stamp = document.createElement('time');
+        stamp.className = 'shoutbox__stamp';
+        const date = formatThreadDate(new Date(entry.at).toISOString());
+        if (date) {
+          stamp.dateTime = date;
+          stamp.textContent = date;
+        }
+        item.append(stamp);
+
+        const body = document.createElement('p');
+        body.className = 'shoutbox__body';
+        body.textContent = entry.body;
+        item.append(body);
+
+        const badge = document.createElement('p');
+        badge.className = 'shoutbox__pending-badge';
+        badge.textContent = t.queued;
+        item.append(badge);
+
+        return item;
+      };
+
+      /**
+       * What the snapshot published, once it is known. Read by the pending
+       * render to decide which local echoes are still honestly waiting; empty
+       * until the fetch resolves, which only ever means an echo survives one
+       * render longer than it needed to.
+       */
+      let publishedBodies: string[] = [];
+
+      /**
+       * Re-render the pending echoes from storage, replacing whatever is there.
+       *
+       * IDEMPOTENT ON PURPOSE. A submit that lands before `loadSnapshot`
+       * resolves would otherwise append an echo, and then the snapshot pass
+       * would read the same entry back out of storage and append it a second
+       * time. Rebuilding instead of appending makes that unrepresentable, and it
+       * keeps the echoes last in the list no matter which pass ran first.
+       */
+      const renderPendingList = (): void => {
+        for (const node of list.querySelectorAll('.shoutbox__thread--pending'))
+          node.remove();
+        for (const entry of readPending(publishedBodies))
+          list.append(renderPending(entry));
+        // Nothing published and nothing pending leaves the empty state exactly
+        // as rendered. Nothing to undo, and no spinner was ever shown to clear.
+        const populated = list.childElementCount > 0;
+        list.hidden = !populated;
+        empty.hidden = populated;
+      };
+
       void loadSnapshot().then((snapshot) => {
         if (controller.signal.aborted) return;
-        // No snapshot, an unreadable one, or one with nothing in it all leave
-        // the empty state exactly as rendered. Nothing to undo, nothing to
-        // explain, and no spinner was ever shown to have to clear.
-        if (!snapshot || snapshot.threads.length === 0) return;
 
-        const frame = document.createDocumentFragment();
-        for (const thread of snapshot.threads) frame.append(renderThread(thread));
-        list.append(frame);
-        list.hidden = false;
-        empty.hidden = true;
+        const threads = snapshot?.threads ?? [];
+        publishedBodies = threads.map((thread) => thread.body);
+        for (const thread of threads) list.append(renderThread(thread));
+        renderPendingList();
       });
 
       // --- the write half ------------------------------------------------
@@ -405,6 +468,12 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
               if (outcome.kind === 'queued') {
                 input.value = '';
                 say(t.queued);
+                // Echo it back immediately. The status line alone told them the
+                // send worked and then left no trace of WHAT worked, which on a
+                // board whose published list moves in days read as nothing
+                // having happened at all.
+                addPending(body);
+                renderPendingList();
                 return;
               }
               // The gate's own wording, verbatim: it is specific and actionable,

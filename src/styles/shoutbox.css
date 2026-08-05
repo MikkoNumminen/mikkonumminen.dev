@@ -70,6 +70,30 @@
   border-bottom: 0;
 }
 
+/* One of the visitor's own accepted-but-unpublished messages, in their browser
+ * only. It has to read as provisional at a glance: a full dashed outline rather
+ * than the single separator rule the published threads carry, and dimmed, so
+ * nobody mistakes it for something that is on the site. */
+.shoutbox__thread--pending {
+  padding: 0.85rem;
+  border: 1px dashed rgba(74, 222, 128, 0.3);
+  border-radius: 4px;
+  opacity: 0.75;
+}
+
+.shoutbox__thread--pending:last-child {
+  padding: 0.85rem;
+  border: 1px dashed rgba(74, 222, 128, 0.3);
+}
+
+.shoutbox__pending-badge {
+  margin: 0.5rem 0 0;
+  color: var(--color-term-dim);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+}
+
 .shoutbox__stamp {
   display: block;
   color: var(--color-term-dim);

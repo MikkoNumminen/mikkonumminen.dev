@@ -214,6 +214,83 @@ test.describe('shoutbox: submit', () => {
     // so they can edit and resend rather than having to retype it.
     await expect(textarea).toHaveValue(longMessage);
   });
+
+  test('a queued message is echoed back, survives a reload, and is not published', async ({
+    page,
+  }) => {
+    await primeShoutboxBackend(page, { accepted: true });
+
+    const form = page.locator('[data-shoutbox-form]');
+    await form.scrollIntoViewIfNeeded();
+    const body = 'Pending echo e2e message.';
+    await page.locator('[data-shoutbox-input]').fill(body);
+    await page.locator('[data-shoutbox-send]').click();
+
+    // The point of the feature: the visitor can still see WHAT they sent. The
+    // status line alone said only that something worked.
+    const pending = page.locator('.shoutbox__thread--pending');
+    await expect(pending).toHaveCount(1);
+    await expect(pending).toContainText(body);
+    // Marked as unpublished, in the same words the status line uses.
+    await expect(pending.locator('.shoutbox__pending-badge')).toHaveText('waiting for approval');
+
+    // It is in THIS browser only. Nothing about accepting a submission may put
+    // text on the published surface (ADR 0017), so the snapshot the CDN serves
+    // must be untouched.
+    const snapshot = await page.evaluate(async () => {
+      const res = await fetch('/data/shoutbox.json');
+      return res.ok ? await res.text() : null;
+    });
+    expect(snapshot === null || !snapshot.includes(body)).toBe(true);
+
+    // Persisted: the moderation round takes days, so an echo that vanished on
+    // reload would answer "did that send?" only for as long as nobody navigated.
+    await page.reload();
+    await page.locator('[data-shoutbox-threads]').scrollIntoViewIfNeeded();
+    const afterReload = page.locator('.shoutbox__thread--pending');
+    await expect(afterReload).toHaveCount(1);
+    await expect(afterReload).toContainText(body);
+  });
+
+  test('the echo stops claiming to be pending once the message is published', async ({
+    page,
+  }) => {
+    await primeShoutboxBackend(page, { accepted: true });
+
+    const form = page.locator('[data-shoutbox-form]');
+    await form.scrollIntoViewIfNeeded();
+    // Trailing whitespace on purpose. The server publishes its own stripped
+    // form and never tells the browser what it was, so comparing raw text would
+    // leave this echo up beside the published copy of itself.
+    const typed = 'A message that later gets published.  ';
+    const published = 'A message that later gets published.';
+    await page.locator('[data-shoutbox-input]').fill(typed);
+    await page.locator('[data-shoutbox-send]').click();
+    await expect(page.locator('.shoutbox__thread--pending')).toHaveCount(1);
+
+    // Now the owner has approved, published and committed. The snapshot the CDN
+    // serves contains the message, so the local echo has nothing left to say.
+    await page.route('**/data/shoutbox.json', (route) =>
+      route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          version: 1,
+          generated_at: '2026-08-06T00:00:00Z',
+          // `count` is required and must equal threads.length: parseSnapshot
+          // rejects the whole file otherwise, which is how a truncated write
+          // degrades to the empty box.
+          count: 1,
+          threads: [{ id: 1, body: published, at: '2026-08-06T00:00:00Z', reply: null }],
+        }),
+      }),
+    );
+    await page.reload();
+    await page.locator('[data-shoutbox-threads]').scrollIntoViewIfNeeded();
+
+    await expect(page.locator('.shoutbox__thread')).toHaveCount(1);
+    await expect(page.locator('.shoutbox__thread--pending')).toHaveCount(0);
+    await expect(page.locator('.shoutbox__body')).toHaveText(published);
+  });
 });
 
 // The gate, from the other side: the machine at home is asleep.
