@@ -27,7 +27,8 @@ against a fake pool that emulates exactly the two semantics the fix depends on:
 The fake FORCES the racy interleaving rather than hoping the scheduler finds it:
 every fact read yields to the event loop before answering, so without the lock
 both tasks deterministically read a world missing the other's row. Remove the
-lock from `db.admit_shout` and these tests go red every time, not flakily.
+lock from `db.admit_shout` and the two race tests go red every time, not flakily.
+The control stays green in both directions, which is its job.
 
 An in-memory emulation is weaker evidence than a real database. What it proves is
 that the composition serialises check-then-insert, which is the property the audit
