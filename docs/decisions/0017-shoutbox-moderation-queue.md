@@ -167,3 +167,16 @@ put text on the site.
   differently-shaped file degrades to the empty box on the frontend rather
   than a render crash: the same contract `skills.ts` already uses for the
   skills registry.
+- **Added 2026-08-06.** The visitor's own accepted submissions are echoed back
+  in their browser, from `localStorage`, via `src/lib/shoutbox/pending.ts`. This
+  does not weaken decision 1: nothing is committed, nothing is served, and no
+  other visitor sees it. It exists because the gap between "accepted" and
+  "published" is days, and before it a visitor pressed send and was left with a
+  single status line and no trace of what they had written. Two properties keep
+  the echo honest, and both are load-bearing rather than tidy-up: an entry is
+  dropped as soon as its text appears in the published snapshot, and it expires
+  after 30 days regardless. Rejection is a `DELETE` with no undo and no
+  notification, so nothing will ever arrive to tell that browser to stop
+  waiting. Without the expiry, a rejected message would sit in someone's
+  browser claiming to be under review for as long as they kept the site's
+  storage.
