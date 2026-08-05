@@ -15,10 +15,11 @@ not in the fast unit suite.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import TypeVar
 
 import asyncpg
 from pgvector.asyncpg import register_vector
@@ -137,8 +138,13 @@ def _filter_clause(
     return ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
 
+# `admit_shout`'s refusal type. Generic so this layer stays ignorant of the
+# gate's vocabulary: whatever the caller's `decide` returns flows back typed.
+R = TypeVar("R")
+
+
 # Advisory-lock key for the shoutbox write path. A constant, so every submission
-# serialises against every other: see `enqueue_shout_gated` for why the queue cap
+# serialises against every other: see `admit_shout` for why the queue cap
 # needs that and a per-hash key would not give it.
 _SHOUT_WRITE_LOCK_KEY = 0x53484F55  # "SHOU"
 
@@ -601,36 +607,34 @@ class Database:
     # sql/005_shoutbox.sql for why. Rejecting DELETEs, so there is no purge job
     # to forget to write.
 
-    async def shout_duplicate_exists(self, body_hash: str, window_seconds: int) -> bool:
-        """Has this exact text been submitted inside the window?
-
-        Keys on the text hash, never on the sender, so it needs no identity to
-        work. The window is computed server-side so it never trusts a client
-        clock. Approved rows count too: re-sending a message that is already
-        published is still a duplicate.
-        """
-        row = await self._pool.fetchval(
-            "SELECT EXISTS (SELECT 1 FROM shout_queue "
-            "WHERE body_hash = $1 AND created_at > now() - make_interval(secs => $2))",
-            body_hash,
-            window_seconds,
-        )
-        return bool(row)
-
     async def shout_pending_count(self) -> int:
-        """Queue depth, for the backpressure limit and the notification digest."""
+        """Queue depth, for the notification digest."""
         row = await self._pool.fetchval(
             "SELECT count(*) FROM shout_queue WHERE status = 'pending'"
         )
         return int(row or 0)
 
-    async def enqueue_shout_gated(
-        self, body: str, body_hash: str, *, window_seconds: int, max_pending: int
-    ) -> tuple[int | None, str | None]:
-        """Check the duplicate window and the queue cap, then insert, atomically.
+    async def admit_shout(
+        self,
+        body: str,
+        body_hash: str,
+        *,
+        window_seconds: int,
+        decide: Callable[[int, bool], R | None],
+    ) -> R | None:
+        """Read the queue facts, let the caller's gate judge them, and insert, as
+        one serialized unit. Returns the gate's refusal, or None once the row
+        landed.
 
-        Returns `(id, None)` on insert, or `(None, reason)` where reason is
-        `"duplicate"` or `"queue_full"`.
+        `decide` receives the pending depth and whether an identical body is
+        inside the window, and returns a refusal or None. It is a callback rather
+        than a pair of thresholds so this layer never re-implements the rules: the
+        caller passes the same pure gate its adversarial suite drives, and a
+        change to what "full" means cannot land in one place and not the other.
+        Returning a bare `R` keeps this module ignorant of the gate's vocabulary.
+
+        `decide` must be pure and must not await; it runs while the advisory lock
+        is held, so anything slow in it stalls every other submission.
 
         Why a lock rather than a constraint: the obvious fix for the duplicate
         race is a UNIQUE index on `body_hash`, and sql/005_shoutbox.sql explains
@@ -663,20 +667,18 @@ class Database:
                     body_hash,
                     window_seconds,
                 )
-                if duplicate:
-                    return None, "duplicate"
                 pending = await conn.fetchval(
                     "SELECT count(*) FROM shout_queue WHERE status = 'pending'"
                 )
-                if int(pending or 0) >= max_pending:
-                    return None, "queue_full"
-                row = await conn.fetchval(
-                    "INSERT INTO shout_queue (body, body_hash) "
-                    "VALUES ($1, $2) RETURNING id",
+                refusal = decide(int(pending or 0), bool(duplicate))
+                if refusal is not None:
+                    return refusal
+                await conn.execute(
+                    "INSERT INTO shout_queue (body, body_hash) VALUES ($1, $2)",
                     body,
                     body_hash,
                 )
-                return int(row), None
+                return None
 
     async def list_pending_shouts(self, limit: int = 50) -> list[asyncpg.Record]:
         """Oldest first — the queue is worked front to back."""

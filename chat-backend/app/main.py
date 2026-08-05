@@ -26,7 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import shoutbox
+from . import shout_admission, shoutbox
 from .config import Settings
 from .db import Database, apply_schema
 from .embeddings import Embedder
@@ -381,64 +381,25 @@ def create_app() -> FastAPI:
                 {"accepted": False, "detail": shoutbox.REFUSAL_TEXT[refusal]}
             )
 
-        # SHAPE FIRST, and nothing else touched until it passes. The state checks
-        # below cost two database round-trips and a slot of rate budget, so
-        # running them for an empty or oversized submission would hand an attacker
-        # exactly the free flood the limits exist to prevent. Normalised once here
-        # and reused, so the stored text is the text the rules ran against.
-        # The gate runs through `shoutbox.evaluate`, the same entry point the
-        # red-team suite drives. It used to be composed by hand here instead,
-        # which meant the adversarial suite for a public write endpoint exercised
-        # a parallel implementation and could stay green while this path drifted.
+        # The whole gate lives in `shout_admission.gate_shout`, which composes
+        # `shoutbox.evaluate` for both the shape screen and the in-transaction
+        # state decision. Keeping it out of the handler is the point: the audit
+        # that prompted it found the endpoint re-composing the gate by hand,
+        # which let the adversarial suite for a public write path stay green
+        # while this path drifted away from it.
         #
-        # `rate_exceeded` is passed as a callable because `allow` RECORDS the
-        # attempt as it answers: evaluate calls it only once the shape checks have
-        # passed, so a malformed submission cannot spend budget. The two queue
-        # facts are read eagerly, which costs two indexed lookups on refused
-        # input but no rate budget, and they are advisory anyway: the authority
-        # for both is the gated insert below.
+        # `spend_rate` is a callback because `allow` RECORDS the attempt as it
+        # answers, so it must not run until the shape screen has passed.
         peer = request.client.host if request.client else None
         key = client_ip(request.headers.get("x-forwarded-for"), peer)
-        hashed = shoutbox.body_hash(shoutbox.normalise(req.body))
 
-        verdict = shoutbox.evaluate(
+        refusal = await shout_admission.gate_shout(
+            db,
             req.body,
-            rate_exceeded=lambda: not app.state.shout_limiter.allow(key, now),
-            pending_total=await db.shout_pending_count(),
-            duplicate_exists=await db.shout_duplicate_exists(
-                hashed, shoutbox.DUPLICATE_WINDOW_SECONDS
-            ),
+            spend_rate=lambda: not app.state.shout_limiter.allow(key, now),
         )
-        if not verdict.accepted:
-            if verdict.refusal is None:
-                # accepted=False always carries a reason by construction, so a
-                # None here is a bug in the gate, not a visitor error. Raise
-                # rather than assert: asserts vanish under `python -O`, and this
-                # is a request path.
-                raise RuntimeError("shoutbox gate refused without a reason")
-            return refuse(verdict.refusal)
-
-        body = verdict.body
-        if body is None:
-            raise RuntimeError("shoutbox gate accepted without a normalised body")
-
-        # Re-check duplicate and capacity INSIDE the write transaction. The reads
-        # above are a snapshot: two identical submissions arriving together both
-        # saw `duplicate_exists=False` and both inserted, and a burst likewise each
-        # saw room under the cap. This is the atomic decision; the reads above only
-        # buy an earlier, cheaper refusal.
-        shout_id, reason = await db.enqueue_shout_gated(
-            body,
-            hashed,
-            window_seconds=shoutbox.DUPLICATE_WINDOW_SECONDS,
-            max_pending=shoutbox.QUEUE_MAX_PENDING,
-        )
-        if shout_id is None:
-            return refuse(
-                shoutbox.Refusal.DUPLICATE
-                if reason == "duplicate"
-                else shoutbox.Refusal.QUEUE_FULL
-            )
+        if refusal is not None:
+            return refuse(refusal)
 
         # Notification is fire-and-forget, NOT awaited. Awaiting it would make the
         # visitor wait out the Telegram timeout before their message is confirmed,
