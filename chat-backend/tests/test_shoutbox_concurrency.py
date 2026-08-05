@@ -4,13 +4,18 @@ The original handler read the queue facts (pending count, duplicate-in-window)
 and inserted afterwards with nothing serialising the two, so two identical
 submissions arriving together could both see "no duplicate" and both land, and
 two distinct ones could both see pending below the cap at the brim and overshoot
-it. `db.enqueue_shout_gated` moves the facts and the insert into one transaction
-that first takes the shoutbox advisory lock.
+it. `shout_admission.gate_shout` moves the facts, the judgement and the insert
+into one transaction that first takes the shoutbox advisory lock.
 
 That fix shipped with NO regression test. It was verified by a probe run by hand
 against live Postgres, which proved it worked once and protects nothing
 afterwards: swapping the advisory lock for something that merely looks
 equivalent would not fail anything. This closes that.
+
+These drive `gate_shout`, the composition the endpoint itself calls, rather than
+the database method underneath it. That is deliberate, and it is the same lesson
+the audit taught one layer up: a test that races a hand-assembled replica of the
+production path can stay green while the production path drifts.
 
 HONEST SCOPE. No Postgres runs in the fast suite, so the race is exercised
 against a fake pool that emulates exactly the two semantics the fix depends on:
@@ -22,8 +27,8 @@ against a fake pool that emulates exactly the two semantics the fix depends on:
 The fake FORCES the racy interleaving rather than hoping the scheduler finds it:
 every fact read yields to the event loop before answering, so without the lock
 both tasks deterministically read a world missing the other's row. Remove the
-lock from `enqueue_shout_gated` and the two race tests go red every time, not
-flakily. The control below stays green in both directions, which is its job.
+lock from `db.admit_shout` and the two race tests go red every time, not flakily.
+The control stays green in both directions, which is its job.
 
 An in-memory emulation is weaker evidence than a real database. What it proves is
 that the composition serialises check-then-insert, which is the property the audit
@@ -39,7 +44,9 @@ than discarded.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Coroutine
 from types import TracebackType
+from typing import Any
 
 import pytest
 
@@ -49,12 +56,13 @@ import pytest
 pytest.importorskip("asyncpg")
 pytest.importorskip("pgvector")
 
+from app import shout_admission  # noqa: E402
 from app.db import Database  # noqa: E402
-from app.shoutbox import DUPLICATE_WINDOW_SECONDS, QUEUE_MAX_PENDING  # noqa: E402
+from app.shoutbox import QUEUE_MAX_PENDING, Refusal  # noqa: E402
 
 
 class FakePool:
-    """Just enough asyncpg to host enqueue_shout_gated: committed rows + a lock."""
+    """Just enough asyncpg to host admit_shout: committed rows + a lock."""
 
     def __init__(self, committed: int = 0) -> None:
         # Every committed row counts as pending AND inside the duplicate window,
@@ -92,26 +100,34 @@ class _FakeConnection:
         return _FakeTransaction(self)
 
     async def execute(self, sql: str, *args: object) -> str:
-        assert "pg_advisory_xact_lock" in sql, f"unexpected execute: {sql}"
-        # Real semantics: blocks until granted, released at transaction end.
-        await self._pool.advisory_lock.acquire()
-        self._holds_lock = True
-        return "SELECT 1"
+        if "pg_advisory_xact_lock" in sql:
+            # Real semantics: blocks until granted, released at transaction end.
+            await self._pool.advisory_lock.acquire()
+            self._holds_lock = True
+            return "SELECT 1"
+        if "INSERT INTO shout_queue" in sql:
+            self._txn_rows.append(str(args[1]))  # ($1 body, $2 body_hash)
+            return "INSERT 0 1"
+        raise AssertionError(f"unexpected execute: {sql}")
 
     async def fetchval(self, sql: str, *args: object) -> object:
+        # SNAPSHOT FIRST, then yield. Under READ COMMITTED a statement sees the
+        # world as of the moment it began, so answering from state observed after
+        # the await would model a read that cannot happen — and it silently
+        # rescues the cap race, because the second task would see the first one's
+        # committed row without any lock forcing it to wait.
+        if "EXISTS" in sql:
+            target = args[0]
+            answer: object = target in self._pool.rows or target in self._txn_rows
+        elif "count(*)" in sql:
+            answer = len(self._pool.rows) + len(self._txn_rows)
+        else:
+            raise AssertionError(f"unexpected fetchval: {sql}")
         # Force the interleaving the race needs: yield so the OTHER task reaches
         # its own reads before this one inserts. With the lock held that is
         # harmless, because the other task is parked acquiring it.
         await asyncio.sleep(0)
-        if "EXISTS" in sql:
-            target = args[0]
-            return target in self._pool.rows or target in self._txn_rows
-        if "count(*)" in sql:
-            return len(self._pool.rows) + len(self._txn_rows)
-        if "INSERT INTO shout_queue" in sql:
-            self._txn_rows.append(str(args[1]))  # ($1 body, $2 body_hash)
-            return len(self._pool.rows) + len(self._txn_rows)
-        raise AssertionError(f"unexpected fetchval: {sql}")
+        return answer
 
 
 class _FakeTransaction:
@@ -136,90 +152,87 @@ class _FakeTransaction:
         return False
 
 
+def _submit(db: Database, body: str) -> Coroutine[Any, Any, Refusal | None]:
+    # Rate budget is never the thing under test here, so the limiter always says
+    # there is room; one that refused would mask the races below.
+    return shout_admission.gate_shout(db, body, spend_rate=lambda: False)
+
+
+async def _race(pool: FakePool, first: str, second: str) -> list[Refusal | None]:
+    db = Database(pool)  # type: ignore[arg-type]
+    return list(await asyncio.gather(_submit(db, first), _submit(db, second)))
+
+
 def test_concurrent_identical_submissions_land_exactly_once() -> None:
     """The high finding: two identical posts arriving together both passed the
     duplicate gate and both inserted."""
+    pool = FakePool()
+    results = asyncio.run(_race(pool, "same text", "same text"))
 
-    async def run() -> tuple[FakePool, list[tuple[int | None, str | None]]]:
-        pool = FakePool()
-        db = Database(pool)  # type: ignore[arg-type]
-        results = await asyncio.gather(
-            db.enqueue_shout_gated(
-                "same text",
-                "hash-A",
-                window_seconds=DUPLICATE_WINDOW_SECONDS,
-                max_pending=QUEUE_MAX_PENDING,
-            ),
-            db.enqueue_shout_gated(
-                "same text",
-                "hash-A",
-                window_seconds=DUPLICATE_WINDOW_SECONDS,
-                max_pending=QUEUE_MAX_PENDING,
-            ),
-        )
-        return pool, list(results)
-
-    pool, results = asyncio.run(run())
-    inserted = [r for r in results if r[0] is not None]
-    refused = [r for r in results if r[0] is None]
-
-    assert len(inserted) == 1, f"expected exactly one insert, got {results}"
-    assert len(refused) == 1 and refused[0][1] == "duplicate"
-    assert pool.rows == ["hash-A"], "the duplicate reached the queue"
+    assert results.count(None) == 1, f"expected exactly one insert, got {results}"
+    assert Refusal.DUPLICATE in results
+    assert len(pool.rows) == 1, "the duplicate reached the queue"
 
 
 def test_concurrent_distinct_submissions_cannot_overshoot_the_cap() -> None:
     """The medium finding riding the same window: at the brim, two distinct
     submissions both saw pending < cap before either insert landed."""
+    pool = FakePool(committed=QUEUE_MAX_PENDING - 1)  # one slot left
+    results = asyncio.run(_race(pool, "first", "second"))
 
-    async def run() -> FakePool:
-        pool = FakePool(committed=QUEUE_MAX_PENDING - 1)  # one slot left
-        db = Database(pool)  # type: ignore[arg-type]
-        await asyncio.gather(
-            db.enqueue_shout_gated(
-                "first",
-                "hash-B",
-                window_seconds=DUPLICATE_WINDOW_SECONDS,
-                max_pending=QUEUE_MAX_PENDING,
-            ),
-            db.enqueue_shout_gated(
-                "second",
-                "hash-C",
-                window_seconds=DUPLICATE_WINDOW_SECONDS,
-                max_pending=QUEUE_MAX_PENDING,
-            ),
-        )
-        return pool
-
-    pool = asyncio.run(run())
     assert len(pool.rows) == QUEUE_MAX_PENDING, (
         f"queue holds {len(pool.rows)}, cap is {QUEUE_MAX_PENDING}: the backpressure "
         "limit was overshot"
     )
+    assert Refusal.QUEUE_FULL in results
 
 
 def test_distinct_submissions_below_the_cap_both_land() -> None:
     """The control. A gate that refused everything would pass both tests above
     while breaking the feature, so assert the ordinary path still works."""
+    pool = FakePool()
+    results = asyncio.run(_race(pool, "one", "two"))
 
-    async def run() -> FakePool:
-        pool = FakePool()
-        db = Database(pool)  # type: ignore[arg-type]
-        await asyncio.gather(
-            db.enqueue_shout_gated(
-                "one",
-                "hash-D",
-                window_seconds=DUPLICATE_WINDOW_SECONDS,
-                max_pending=QUEUE_MAX_PENDING,
-            ),
-            db.enqueue_shout_gated(
-                "two",
-                "hash-E",
-                window_seconds=DUPLICATE_WINDOW_SECONDS,
-                max_pending=QUEUE_MAX_PENDING,
-            ),
+    assert results == [None, None], f"an ordinary submission was refused: {results}"
+    assert len(pool.rows) == 2
+
+
+class ExplodingPool:
+    """A pool that fails the test if the admission path opens the database."""
+
+    def acquire(self) -> object:
+        raise AssertionError("the database was consulted for a pre-state refusal")
+
+
+def test_a_malformed_submission_touches_neither_the_limiter_nor_the_database() -> None:
+    """Shape first, and nothing else. The state phase costs a database
+    transaction and a slot of rate budget, so letting an empty submission spend
+    either is the free flood the limits exist to prevent."""
+    spent = False
+
+    def spend_rate() -> bool:
+        nonlocal spent
+        spent = True
+        return False
+
+    async def run() -> Refusal | None:
+        db = Database(ExplodingPool())  # type: ignore[arg-type]
+        return await shout_admission.gate_shout(db, "   ", spend_rate=spend_rate)
+
+    assert asyncio.run(run()) is Refusal.EMPTY
+    assert not spent, "a malformed submission spent rate budget"
+
+
+def test_a_rate_limited_submission_never_reaches_the_database() -> None:
+    """A well-formed submission from a sender over its limit is refused on the
+    limiter alone. It is otherwise valid, so nothing about its shape stops it —
+    only the ordering does, and rate-limited traffic is exactly the traffic that
+    must not be able to make the backend work."""
+
+    async def run() -> Refusal | None:
+        db = Database(ExplodingPool())  # type: ignore[arg-type]
+        return await shout_admission.gate_shout(
+            db, "a perfectly ordinary message", spend_rate=lambda: True
         )
-        return pool
 
-    pool = asyncio.run(run())
-    assert sorted(pool.rows) == ["hash-D", "hash-E"]
+    assert asyncio.run(run()) is Refusal.RATE
