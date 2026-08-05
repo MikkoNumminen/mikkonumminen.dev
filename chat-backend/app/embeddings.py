@@ -82,8 +82,15 @@ class Embedder:
         Measuring this corpus with truncation left on reported zero chunks over
         the limit; with it off, 170 of 211 were over.
         """
-        tokenizer = getattr(self._model, "tokenizer", None) or getattr(
-            self._model, "_tokenizer", None
+        # fastembed nests it: TextEmbedding.model.tokenizer, not
+        # TextEmbedding.tokenizer. Looking only at the outer object found nothing
+        # and the guard below correctly refused to guess, which is how this was
+        # caught: the indexer aborted instead of silently mis-counting.
+        inner = getattr(self._model, "model", None)
+        tokenizer = (
+            getattr(inner, "tokenizer", None)
+            or getattr(self._model, "tokenizer", None)
+            or getattr(self._model, "_tokenizer", None)
         )
         if tokenizer is None:  # pragma: no cover - depends on fastembed internals
             raise RuntimeError(
