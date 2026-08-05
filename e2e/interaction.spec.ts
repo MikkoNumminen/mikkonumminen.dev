@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { test, expect, type Page } from '@playwright/test';
 import { HEALTH_PATTERN, SHOUT_PATTERN, stubChatHealth } from './support/chat-backend';
 
@@ -158,6 +160,42 @@ async function primeShoutboxBackend(
 
   return { requests };
 }
+
+/**
+ * The COMMITTED snapshot, read from disk rather than stubbed.
+ *
+ * NOT a malformed-file check. `scripts/validate-shoutbox.mjs` runs in prebuild
+ * and already refuses a bad count, a wrong version and anything off-schema; I
+ * tried all three here and the build fails before this test can run, which is
+ * the right order.
+ *
+ * What it covers is the half the validator cannot see: that a file it approves
+ * actually REACHES THE PAGE. Break the fetch path, rename the thread class, read
+ * the wrong field in `renderThread`, and the JSON still validates while the box
+ * quietly says "No messages yet." to everyone, with no error anywhere. Verified
+ * by moving `SNAPSHOT_PATH`: the validator stayed green and this went red.
+ */
+test.describe('shoutbox: the published snapshot', () => {
+  const snapshotPath = fileURLToPath(new URL('../public/data/shoutbox.json', import.meta.url));
+
+  test('every committed thread reaches the page', async ({ page }) => {
+    const committed = JSON.parse(readFileSync(snapshotPath, 'utf-8')) as {
+      count: number;
+      threads: { body: string }[];
+    };
+    test.skip(committed.threads.length === 0, 'nothing published yet');
+
+    await page.goto('/contact');
+    const threads = page.locator('.shoutbox__thread:not(.shoutbox__thread--pending)');
+    await expect(threads).toHaveCount(committed.threads.length);
+    // The bodies, not just the count: a file that parses but renders the wrong
+    // field would still pass a count check.
+    for (const thread of committed.threads) {
+      await expect(page.locator('.shoutbox__body', { hasText: thread.body })).toBeVisible();
+    }
+    await expect(page.locator('[data-shoutbox-empty]')).toBeHidden();
+  });
+});
 
 test.describe('shoutbox: submit', () => {
   test('a queued submit sends the real request shape and renders the queued state', async ({
