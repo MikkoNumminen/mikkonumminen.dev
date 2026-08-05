@@ -61,6 +61,10 @@ class IndexStats:
     # Chunks whose DOC-LEVEL metadata was refreshed without a re-embed (a
     # front-matter-only change on unchanged content — see db.refresh_doc_metadata).
     metadata_refreshed: int = 0
+    ceiling_split: int = 0
+    """Extra chunks created by the real-token ceiling pass. Reported because a
+    rising number means the word-based estimate in chunking.py is drifting
+    further from real tokens for whatever content is being added."""
 
 
 def plan(settings: Settings) -> list[FilePlan]:
@@ -142,12 +146,13 @@ async def reindex(
     # failure still hits `finally` without a NameError, and the pool is closed.
     embedder: Embedder | None = None
     chunks_total = embedded = skipped = deleted = total = metadata_refreshed = 0
+    ceiling_split = 0
     pii_skipped = 0
     pseudonyms: dict[str, str] = {}
     try:
         for fp in file_plans:
             doc = fp.doc
-            chunks_total += len(fp.chunks)
+            planned = len(fp.chunks)
             pseudonyms.update(fp.pseudonyms)
             if not is_embeddable(fp.classification):
                 pii_skipped += 1
@@ -158,9 +163,6 @@ async def reindex(
                 deleted += await db.delete_stale_chunks(doc.source, 0)
                 continue
             existing = await db.existing_chunk_hashes(doc.source)
-
-            to_embed = select_chunks_to_embed(fp.chunks, existing)
-            skipped += len(fp.chunks) - len(to_embed)
 
             if fp.chunks:
                 # Enforce the model's REAL token ceiling before deciding what to
@@ -178,7 +180,16 @@ async def reindex(
                         fp.chunks, embedder.token_count, MAX_SEQUENCE_TOKENS
                     ),
                 )
-                to_embed = select_chunks_to_embed(fp.chunks, existing)
+            # Counted AFTER the ceiling pass, because that pass replaces the
+            # chunk list. Accumulating before it reported the planned count while
+            # the database held the split one: 597 chunks against 1002 rows, and
+            # an embedded-plus-skipped total that matched neither. The split is
+            # reported too, since that number climbing over time means the word
+            # estimate is drifting further from real tokens for new content.
+            ceiling_split += len(fp.chunks) - planned
+            chunks_total += len(fp.chunks)
+            to_embed = select_chunks_to_embed(fp.chunks, existing)
+            skipped += len(fp.chunks) - len(to_embed)
 
             if to_embed:
                 if embedder is None:
@@ -247,6 +258,7 @@ async def reindex(
         pii_skipped=pii_skipped,
         pseudonyms=len(pseudonyms),
         metadata_refreshed=metadata_refreshed,
+        ceiling_split=ceiling_split,
     )
 
 
@@ -316,7 +328,9 @@ def main(argv: list[str] | None = None) -> int:
         f"({stats.embedded} embedded, {stats.skipped} unchanged, "
         f"{stats.deleted} pruned, {stats.metadata_refreshed} metadata-refreshed, "
         f"{stats.pii_skipped} pii-skipped, "
-        f"{stats.pseudonyms} pseudonym(s)) - {stats.total_in_db} rows in DB"
+        f"{stats.pseudonyms} pseudonym(s), "
+        f"{stats.ceiling_split} split at the token ceiling) "
+        f"- {stats.total_in_db} rows in DB"
     )
     return 0
 
