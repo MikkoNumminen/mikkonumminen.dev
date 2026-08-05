@@ -115,9 +115,26 @@ def test_text_mode_truncates_query_and_response() -> None:
             log_text=True,
         )
     )
-    assert len(r["query"]) == 200
-    assert len(r["response"]) == 4000
+    # The marker distinguishes a cut string from one that was exactly the cap.
+    assert r["query"] == "x" * 200 + "…[truncated]"
+    assert r["response"] == "a" * 4000 + "…[truncated]"
     assert r["response_chars"] == 5000  # true length, even when the text is truncated
+
+
+def test_text_exactly_at_the_cap_gets_no_marker() -> None:
+    r = json.loads(
+        format_log_record(
+            "x" * 200,
+            [0.2],
+            route="answered",
+            response="a" * 4000,
+            model="m",
+            latency_ms=1,
+            log_text=True,
+        )
+    )
+    assert r["query"] == "x" * 200
+    assert r["response"] == "a" * 4000
 
 
 def test_build_returns_none_when_disabled() -> None:
