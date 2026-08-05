@@ -1642,7 +1642,6 @@ def print_menu() -> None:
         print(f"    {cmd:<16}{_c(desc, '2')}")
 
 
-# --- argparse / dispatch (shared by one-shot mode and the REPL) -------------
 
 
 

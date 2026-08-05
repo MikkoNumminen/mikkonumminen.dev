@@ -7,7 +7,6 @@ from evals.scoring import (
     MUST_RETRIEVE,
     QueryResult,
     format_table,
-    hit_rate,
     mean_reciprocal_rank,
     reciprocal_rank,
     retrieval_hit_rate,
@@ -54,16 +53,6 @@ def test_out_of_corpus_fails_when_a_chunk_is_close() -> None:
 
 def test_out_of_corpus_passes_when_no_chunks() -> None:
     assert score_query([], [], best_distance=None, weak_threshold=0.7)
-
-
-def test_hit_rate() -> None:
-    results = [
-        QueryResult("q1", ["a"], ["a"], 0.2, True),
-        QueryResult("q2", ["b"], ["c"], 0.2, False),
-        QueryResult("q3", [], [], None, True),
-    ]
-    assert hit_rate(results) == 2 / 3
-    assert hit_rate([]) == 0.0
 
 
 def test_format_table_marks_pass_and_fail_and_rate() -> None:

@@ -137,6 +137,12 @@ def _filter_clause(
     return ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
 
+# Advisory-lock key for the shoutbox write path. A constant, so every submission
+# serialises against every other: see `enqueue_shout_gated` for why the queue cap
+# needs that and a per-hash key would not give it.
+_SHOUT_WRITE_LOCK_KEY = 0x53484F55  # "SHOU"
+
+
 class Database:
     """Connection pool plus the handful of queries the chat backend runs."""
 
@@ -618,19 +624,59 @@ class Database:
         )
         return int(row or 0)
 
-    async def enqueue_shout(self, body: str, body_hash: str) -> int:
-        """Insert a gated submission and return its id.
+    async def enqueue_shout_gated(
+        self, body: str, body_hash: str, *, window_seconds: int, max_pending: int
+    ) -> tuple[int | None, str | None]:
+        """Check the duplicate window and the queue cap, then insert, atomically.
 
-        The id is a small integer because the moderator types it by hand
-        (`approve 7`). The caller has already run the gate; this method does not
-        re-validate, so it must never be reachable from anywhere the gate is not.
+        Returns `(id, None)` on insert, or `(None, reason)` where reason is
+        `"duplicate"` or `"queue_full"`.
+
+        Why a lock rather than a constraint: the obvious fix for the duplicate
+        race is a UNIQUE index on `body_hash`, and sql/005_shoutbox.sql explains
+        why that is wrong here. The same text IS allowed again once the window
+        has passed, so uniqueness is time-scoped and a plain UNIQUE would refuse
+        a legitimate resubmission forever.
+
+        Why an advisory lock rather than `INSERT ... WHERE NOT EXISTS`: under
+        READ COMMITTED, the default, two concurrent transactions can both
+        evaluate NOT EXISTS against a snapshot taken before either insert, so
+        both proceed. The subquery reads like a guard and is not one.
+
+        The lock key is a constant, so every shoutbox write serialises against
+        every other, not just against the same text. That is deliberate. Keying
+        on the hash would let concurrent DIFFERENT texts each observe a
+        below-cap count and overshoot the queue limit, which is the second half
+        of the same bug. Serialising all writes costs nothing on a
+        human-moderated queue capped at a couple of hundred items, and it makes
+        both invariants exact instead of nearly exact.
         """
-        row = await self._pool.fetchval(
-            "INSERT INTO shout_queue (body, body_hash) VALUES ($1, $2) RETURNING id",
-            body,
-            body_hash,
-        )
-        return int(row)
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock($1)", _SHOUT_WRITE_LOCK_KEY
+                )
+                duplicate = await conn.fetchval(
+                    "SELECT EXISTS (SELECT 1 FROM shout_queue "
+                    "WHERE body_hash = $1 "
+                    "AND created_at > now() - make_interval(secs => $2))",
+                    body_hash,
+                    window_seconds,
+                )
+                if duplicate:
+                    return None, "duplicate"
+                pending = await conn.fetchval(
+                    "SELECT count(*) FROM shout_queue WHERE status = 'pending'"
+                )
+                if int(pending or 0) >= max_pending:
+                    return None, "queue_full"
+                row = await conn.fetchval(
+                    "INSERT INTO shout_queue (body, body_hash) "
+                    "VALUES ($1, $2) RETURNING id",
+                    body,
+                    body_hash,
+                )
+                return int(row), None
 
     async def list_pending_shouts(self, limit: int = 50) -> list[asyncpg.Record]:
         """Oldest first — the queue is worked front to back."""

@@ -29,7 +29,13 @@ from app.shoutbox import (
     state_refusal,
 )
 
-CLEAN = {"rate_exceeded": False, "pending_total": 0, "duplicate_exists": False}
+# rate_exceeded is a callable: evaluate() must not consult the limiter until the
+# shape checks pass, so the ordering is enforced by the signature.
+CLEAN = {
+    "rate_exceeded": lambda: False,
+    "pending_total": 0,
+    "duplicate_exists": False,
+}
 
 
 # --- the happy path ---------------------------------------------------------
@@ -159,8 +165,8 @@ def test_rate_exceeded_is_refused() -> None:
     # The COUNT lives in the in-memory RateLimiter (already tested in
     # test_ratelimit.py); the gate only consumes its verdict. Taking a boolean
     # here is what keeps "no IP is ever persisted" structurally true.
-    assert evaluate("hi there", **{**CLEAN, "rate_exceeded": False}).accepted
-    over = evaluate("hi there", **{**CLEAN, "rate_exceeded": True})
+    assert evaluate("hi there", **{**CLEAN, "rate_exceeded": lambda: False}).accepted
+    over = evaluate("hi there", **{**CLEAN, "rate_exceeded": lambda: True})
     assert over.refusal is Refusal.RATE
 
 
@@ -179,14 +185,14 @@ def test_shape_is_checked_before_state_so_junk_never_consumes_rate_budget() -> N
     # The handler enforces the same order structurally via shape_refusal() —
     # before this split it did NOT, and spent both database queries and a slot of
     # rate budget on junk despite this test's name.
-    v = evaluate("", rate_exceeded=True, pending_total=999, duplicate_exists=True)
+    v = evaluate("", rate_exceeded=lambda: True, pending_total=999, duplicate_exists=True)
     assert v.refusal is Refusal.EMPTY
 
 
 def test_duplicate_outranks_rate_and_queue() -> None:
     v = evaluate(
         "same words",
-        rate_exceeded=True,
+        rate_exceeded=lambda: True,
         pending_total=QUEUE_MAX_PENDING,
         duplicate_exists=True,
     )
@@ -282,7 +288,10 @@ def test_evaluate_is_exactly_the_two_phases_composed() -> None:
     # the suite exercises: shape must still win over state for the same input.
     raw = ""
     composed = evaluate(
-        raw, rate_exceeded=True, pending_total=QUEUE_MAX_PENDING, duplicate_exists=True
+        raw,
+        rate_exceeded=lambda: True,
+        pending_total=QUEUE_MAX_PENDING,
+        duplicate_exists=True,
     )
     assert composed.refusal is shape_refusal(normalise(raw))
 

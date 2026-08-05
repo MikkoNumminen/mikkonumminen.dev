@@ -17,12 +17,16 @@ from collections.abc import AsyncIterator, Sequence
 import httpx
 
 
-def parse_stream_line(line: str) -> str | None:
-    """Extract the token delta from one OpenAI-style streaming `data:` line.
+def _decode_data_line(line: str) -> dict[str, object] | None:
+    """The JSON object in one OpenAI-style streaming `data:` line, or None.
 
-    Returns the delta text, or None for lines that carry no content: the
-    `[DONE]` sentinel, keep-alives, blank lines, and empty deltas (e.g. the
-    role-only first chunk). Pure — unit-tested.
+    Every parser below needs the same four guards: the `data:` prefix, the
+    `[DONE]` sentinel, keep-alive blanks, and a payload that may not be JSON at
+    all. Three copies of that preamble is how a wire-format fix lands in two
+    places and gets forgotten in the third, so it lives here once.
+
+    Returning None rather than raising is the contract the callers rely on: a
+    malformed chunk must never crash an in-flight stream.
     """
     if not line.startswith("data:"):
         return None
@@ -33,15 +37,38 @@ def parse_stream_line(line: str) -> str | None:
         obj = json.loads(payload)
     except json.JSONDecodeError:
         return None
+    return obj if isinstance(obj, dict) else None
+
+
+def _first_choice(obj: dict[str, object]) -> dict[str, object] | None:
+    """`choices[0]` when it is a dict, else None.
+
+    A non-dict choice entry (a malformed or keep-alive chunk) is skipped like any
+    other non-content line, never raised over.
+    """
     choices = obj.get("choices")
     if not isinstance(choices, list) or not choices:
         return None
     first = choices[0]
-    if not isinstance(first, dict):
-        # A non-dict choice entry (a malformed/keepalive chunk) is skipped like
-        # any other non-content line — never crash an in-flight stream over it.
+    return first if isinstance(first, dict) else None
+
+
+def parse_stream_line(line: str) -> str | None:
+    """Extract the token delta from one OpenAI-style streaming `data:` line.
+
+    Returns the delta text, or None for lines that carry no content: the
+    `[DONE]` sentinel, keep-alives, blank lines, and empty deltas (e.g. the
+    role-only first chunk). Pure — unit-tested.
+    """
+    obj = _decode_data_line(line)
+    if obj is None:
+        return None
+    first = _first_choice(obj)
+    if first is None:
         return None
     delta = first.get("delta") or {}
+    if not isinstance(delta, dict):
+        return None
     content = delta.get("content")
     return content if isinstance(content, str) and content else None
 
@@ -55,20 +82,11 @@ def parse_finish_reason(line: str) -> str | None:
     truncated answer looks exactly like a finished one to the terminal and to
     anyone reading the request log. Pure — unit-tested.
     """
-    if not line.startswith("data:"):
+    obj = _decode_data_line(line)
+    if obj is None:
         return None
-    payload = line[len("data:") :].strip()
-    if not payload or payload == "[DONE]":
-        return None
-    try:
-        obj = json.loads(payload)
-    except json.JSONDecodeError:
-        return None
-    choices = obj.get("choices")
-    if not isinstance(choices, list) or not choices:
-        return None
-    first = choices[0]
-    if not isinstance(first, dict):
+    first = _first_choice(obj)
+    if first is None:
         return None
     reason = first.get("finish_reason")
     return reason if isinstance(reason, str) and reason else None
@@ -82,16 +100,10 @@ def parse_usage_line(line: str) -> dict[str, int] | None:
     prompt_eval_count / eval_count Ollama reports — what the context bar measures,
     never a char estimate. Returns None for every other line. Pure — unit-tested.
     """
-    if not line.startswith("data:"):
+    obj = _decode_data_line(line)
+    if obj is None:
         return None
-    payload = line[len("data:") :].strip()
-    if not payload or payload == "[DONE]":
-        return None
-    try:
-        obj = json.loads(payload)
-    except json.JSONDecodeError:
-        return None
-    usage = obj.get("usage") if isinstance(obj, dict) else None
+    usage = obj.get("usage")
     if not isinstance(usage, dict):
         return None
     prompt = usage.get("prompt_tokens")

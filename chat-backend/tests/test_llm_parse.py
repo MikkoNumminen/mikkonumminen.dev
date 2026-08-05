@@ -89,8 +89,26 @@ def test_finish_reason_is_read_even_when_the_chunk_also_carries_content() -> Non
     # ONE chunk, and some servers do that. Reading finish_reason only on empty
     # chunks would miss truncation entirely against those, which is exactly the
     # bug the detector exists to catch, reintroduced invisibly.
-    line = (
-        'data: {"choices":[{"delta":{"content":"tail"},"finish_reason":"length"}]}'
-    )
+    line = 'data: {"choices":[{"delta":{"content":"tail"},"finish_reason":"length"}]}'
     assert parse_stream_line(line) == "tail"
     assert parse_finish_reason(line) == "length"
+
+
+def test_top_level_non_object_payload_is_skipped_not_raised() -> None:
+    """A `data:` line whose JSON is an array, not an object.
+
+    Before the shared decoder these three parsers each called `.get` on whatever
+    json.loads returned, so a non-object payload raised AttributeError mid-stream.
+    A malformed chunk must never crash an in-flight stream.
+    """
+    line = "data: [1, 2, 3]"
+    assert parse_stream_line(line) is None
+    assert parse_finish_reason(line) is None
+    assert parse_usage_line(line) is None
+
+
+def test_non_dict_delta_is_skipped_not_raised() -> None:
+    """`delta` present but not an object. Same reasoning as above: the old
+    `first.get("delta") or {}` handled a missing delta but not a wrongly-typed
+    one."""
+    assert parse_stream_line('data: {"choices":[{"delta":"notadict"}]}') is None
