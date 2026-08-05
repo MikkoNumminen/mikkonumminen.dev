@@ -10,8 +10,10 @@
 //   node scripts/render-audit-pdfs.mjs --force   regenerate every served doc regardless of mtime
 //
 // Skips entirely in CI / when Chrome is absent, so the committed PDFs stay
-// canonical on hosted builds (same guard as build-skills-pdf.mjs). The replicates
-// doc is json+pdf only (no .md), so it has no source to render from and is left as-is.
+// canonical on hosted builds (same guard as build-skills-pdf.mjs). Every served
+// doc now has a source: the replicates PDF was an orphan binary for a while, its
+// regex pointing at a docs/audits/.md that never existed, so nothing could
+// regenerate it and edits to the study it reports never reached the download.
 //
 // Note: Chrome stamps a creation date into the PDF, so renders aren't byte-
 // reproducible — a --force run always yields a (metadata-only) diff even when the
@@ -35,19 +37,42 @@ const RENDERER = path.join(ROOT, 'scripts', 'render-audit-doc.mjs');
 // source. Anchored + date-then-suffix specific so optim-study and its -replicates
 // sibling never collide. The dated PDF is the .md basename with .pdf.
 const MAP = [
-  { pub: 'skills-suite-calibration.pdf', re: /^skills-suite-calibration-(\d{4}-\d{2}-\d{2})\.md$/ },
+  {
+    pub: 'skills-suite-calibration.pdf',
+    re: /^skills-suite-calibration-(\d{4}-\d{2}-\d{2})\.md$/,
+  },
   { pub: 'skills-optim-study.pdf', re: /^skills-optim-study-(\d{4}-\d{2}-\d{2})\.md$/ },
-  { pub: 'skills-optim-study-replicates.pdf', re: /^skills-optim-study-(\d{4}-\d{2}-\d{2})-replicates\.md$/ },
   { pub: 'skills-results.pdf', re: /^skills-results-(\d{4}-\d{2}-\d{2})\.md$/ },
-  // Sourced outside docs/audits: this report's .md lives with the corpus posts,
-  // which is what the RAG index reads. Duplicating it into docs/audits purely to
-  // satisfy the regex convention would reintroduce exactly the drift this driver
-  // exists to prevent, so `src` names the real source and `dated` the canonical
-  // PDF the regex would otherwise have derived from the filename.
+  // Sourced outside docs/audits: these reports' .md lives with the corpus posts,
+  // which is what the RAG index reads. Duplicating them into docs/audits purely
+  // to satisfy the regex convention would reintroduce exactly the drift this
+  // driver exists to prevent, so `src` names the real source and `dated` the
+  // canonical PDF the regex would otherwise have derived from the filename.
+  //
+  // The three below were published by hand and then left out of this driver, so
+  // nothing regenerated them. Editing their sources went straight past the
+  // served copy: all three still carried em dashes after the source lost them,
+  // and replicates had been an orphan binary with no source at all, its regex
+  // pointing at a docs/audits/.md that has never existed.
   {
     pub: 'agent-delegation.pdf',
     src: 'content/posts/agent-delegation-measured.md',
     dated: 'AGENT-DELEGATION-2026-07-26.pdf',
+  },
+  {
+    pub: 'skills-optim-study-replicates.pdf',
+    src: 'content/posts/skills-optim-replicates.md',
+    dated: 'skills-optim-study-2026-06-01-replicates.pdf',
+  },
+  {
+    pub: 'poro-finnish-review.pdf',
+    src: 'content/posts/poro-finnish-review.md',
+    dated: 'PORO-FINNISH-REVIEW-2026-07-21.pdf',
+  },
+  {
+    pub: 'rag-finnish-blind-test.pdf',
+    src: 'content/posts/rag-finnish-blind-test.md',
+    dated: 'RAG-FINNISH-BLIND-TEST-2026-07-02.pdf',
   },
 ];
 
@@ -62,11 +87,15 @@ function main() {
   const force = process.argv.includes('--force');
 
   if (process.env.CI || process.env.VERCEL || !locateChrome()) {
-    console.log('render-audit-pdfs: CI / no Chrome on PATH — committed PDFs stay canonical. Skipping.');
+    console.log(
+      'render-audit-pdfs: CI / no Chrome on PATH — committed PDFs stay canonical. Skipping.',
+    );
     process.exit(0);
   }
   if (!fs.existsSync(AUDITS_DIR)) {
-    console.log(`render-audit-pdfs: no ${path.relative(ROOT, AUDITS_DIR)} dir — skipping.`);
+    console.log(
+      `render-audit-pdfs: no ${path.relative(ROOT, AUDITS_DIR)} dir — skipping.`,
+    );
     process.exit(0);
   }
 
@@ -104,7 +133,11 @@ function main() {
     // guard is a heuristic — git doesn't preserve mtimes, so right after a fresh clone
     // the comparison reflects whatever order the checkout wrote files (worst case: one
     // spurious render). CI never reaches here (no Chrome), so this only affects local builds.
-    if (!force && fs.existsSync(datedPdf) && fs.statSync(datedPdf).mtimeMs >= fs.statSync(mdPath).mtimeMs) {
+    if (
+      !force &&
+      fs.existsSync(datedPdf) &&
+      fs.statSync(datedPdf).mtimeMs >= fs.statSync(mdPath).mtimeMs
+    ) {
       skipped += 1;
       continue;
     }
@@ -112,19 +145,29 @@ function main() {
     // Degrade gracefully: a single doc's render failure warns and keeps the existing
     // committed PDFs rather than aborting the whole prebuild (mirrors build-skills-pdf).
     try {
-      execFileSync(process.execPath, [RENDERER, '--input', mdPath, '--output', datedPdf], { stdio: 'inherit' });
+      execFileSync(
+        process.execPath,
+        [RENDERER, '--input', mdPath, '--output', datedPdf],
+        { stdio: 'inherit' },
+      );
       fs.mkdirSync(PUBLIC_DIR, { recursive: true });
       fs.copyFileSync(datedPdf, pubPdf);
       rendered += 1;
-      console.log(`render-audit-pdfs: ${mdName} → docs/audits/${path.basename(datedPdf)} + public/${pub}`);
+      console.log(
+        `render-audit-pdfs: ${mdName} → docs/audits/${path.basename(datedPdf)} + public/${pub}`,
+      );
     } catch (err) {
       failed.push(pub);
-      console.warn(`render-audit-pdfs: FAILED ${mdName} (${err.message}) — keeping existing PDFs.`);
+      console.warn(
+        `render-audit-pdfs: FAILED ${mdName} (${err.message}) — keeping existing PDFs.`,
+      );
     }
   }
 
   if (missing.length > 0) {
-    console.log(`render-audit-pdfs: no .md source for ${missing.join(', ')} — left as-is (json+pdf only).`);
+    console.log(
+      `render-audit-pdfs: no .md source for ${missing.join(', ')} — left as-is (json+pdf only).`,
+    );
   }
   console.log(
     `render-audit-pdfs: ${rendered} rendered, ${skipped} up-to-date, ${missing.length} without .md, ${failed.length} failed.`,

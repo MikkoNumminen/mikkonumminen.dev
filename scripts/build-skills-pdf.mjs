@@ -210,7 +210,7 @@ function renderHero(perRepo) {
   return `<section class="hero avoid-break">
   <h2>A/B-measured save rates by portfolio</h2>
   ${bars}
-  <p class="hero-caption"><strong>Aggregate: ${aggSignedPct}% (${aggSignedSaved} tokens across ${totalCalibrated} skills).</strong> Save rate = (arm A − arm B) / arm A, summed per portfolio. Negative means the skill costs MORE per use than going cold — those skills encode rigor (audit thoroughness, protocol discipline, spec depth), not scout-savings.</p>
+  <p class="hero-caption"><strong>Aggregate: ${aggSignedPct}% (${aggSignedSaved} tokens across ${totalCalibrated} skills).</strong> Save rate = (arm A − arm B) / arm A, summed per portfolio. Negative means the skill costs MORE per use than going cold, those skills encode rigor (audit thoroughness, protocol discipline, spec depth), not scout-savings.</p>
 </section>`;
 }
 
@@ -233,9 +233,9 @@ function renderHowToReadBox() {
   <h3>How to read this</h3>
   <ul>
     <li><strong>Per use, not annual.</strong> Every number on the row is per one invocation of the skill. Multiply by uses-per-year yourself if you want to extrapolate.</li>
-    <li><strong>Measured (green) vs estimated (italic gray).</strong> Green numbers come from real runs — production transcripts for cost, A/B calibrations for save. Italic gray numbers are the author's pre-measurement guesses.</li>
-    <li><strong>Cost and save are different regimes.</strong> Cost is from production transcripts; save is from controlled A/B calibrations on representative tasks. They often live at different scales. Do not divide save by cost to get an "efficiency %" — the percentages shown are anchored to the A/B baseline, not the production cost.</li>
-    <li><strong>N=1 for most A/B saves.</strong> One sub-agent ran the task with the skill, one without. Trust direction and rough magnitude, not two-significant-digit precision. The /review row is the exception — N=11 across four PR-size buckets.</li>
+    <li><strong>Measured (green) vs estimated (italic gray).</strong> Green numbers come from real runs: production transcripts for cost, A/B calibrations for save. Italic gray numbers are the author's pre-measurement guesses.</li>
+    <li><strong>Cost and save are different regimes.</strong> Cost is from production transcripts; save is from controlled A/B calibrations on representative tasks. They often live at different scales. Do not divide save by cost to get an "efficiency %": the percentages shown are anchored to the A/B baseline, not the production cost.</li>
+    <li><strong>N=1 for most A/B saves.</strong> One sub-agent ran the task with the skill, one without. Trust direction and rough magnitude, not two-significant-digit precision. The /review row is the exception: N=11 across four PR-size buckets.</li>
     <li><strong>Negative save (orange) is a real finding</strong>, not a bug. The skill spent MORE tokens than the unstructured baseline because it encodes work the cold arm skipped (audit thoroughness, protocol discipline). The value is completeness, not compression.</li>
     <li><strong>Estimated save column is intentionally absent.</strong> It would mechanically be 2× estimated cost (the 3× heuristic this project started with); zero independent information. The estimated cost column carries the actual author guesses.</li>
   </ul>
@@ -283,7 +283,7 @@ function renderCrossModelCallout(data) {
       ? `, as ${builtInMultiModel.length === 1 ? 'was' : 'were'} ${builtInMultiModel.length} built-in command${builtInMultiModel.length === 1 ? '' : 's'}`
       : '';
   return `<aside class="callout avoid-break">
-  <p><strong>Across-model pattern.</strong> ${n} of these skills were A/B-tested on more than one model${builtInClause}. The save rate is what changes: skills that save 50%+ on Sonnet typically settle at 20–40% on Opus. The skill arm does not get more expensive — the cold arm gets cheaper, because a stronger model needs less scaffolding to do the task well. A skill's measured value is not a fixed property; it is relative to the model underneath it. See the per-model save columns below.</p>
+  <p><strong>Across-model pattern.</strong> ${n} of these skills were A/B-tested on more than one model${builtInClause}. The save rate is what changes: skills that save 50%+ on Sonnet typically settle at 20–40% on Opus. The skill arm does not get more expensive: the cold arm gets cheaper, because a stronger model needs less scaffolding to do the task well. A skill's measured value is not a fixed property; it is relative to the model underneath it. See the per-model save columns below.</p>
 </aside>`;
 }
 
@@ -297,7 +297,7 @@ const MODEL_LABEL = { sonnet: 'Sonnet', opus: 'Opus', haiku: 'Haiku' };
 
 function costCellHtml(receipt) {
   if (!isMeasured(receipt) || typeof receipt.tokens_per_use !== 'number') {
-    return `<td class="cost-cell empty">—</td>`;
+    return `<td class="cost-cell empty">–</td>`;
   }
   const cost = receipt.tokens_per_use;
   const model = receipt.cost_model;
@@ -337,7 +337,7 @@ function costCellHtml(receipt) {
       parts.push(`range ${fmt(lo)}–${fmt(hi)}`);
     }
     if (typeof sd === 'number') parts.push(`σ ${fmt(sd)}`);
-    if (parts.length > 0) spread = ` — ${parts.join(', ')}`;
+    if (parts.length > 0) spread = `, ${parts.join(', ')}`;
   }
   return `<td class="cost-cell"><span class="num">${fmt(cost)}</span><span class="unit">tokens / use</span><span class="meta">${metaParts.join(' · ')}${spread}</span></td>`;
 }
@@ -347,12 +347,12 @@ function estCostCellHtml(receipt) {
   const value =
     receipt?.prior_estimate?.tokens_per_use ??
     (measured ? null : receipt?.tokens_per_use);
-  if (typeof value !== 'number') return `<td class="est-cost-cell empty">—</td>`;
+  if (typeof value !== 'number') return `<td class="est-cost-cell empty">–</td>`;
   return `<td class="est-cost-cell"><span class="num">${fmt(value)}</span><span class="unit">tokens / use</span></td>`;
 }
 
 function saveCellHtml(receipt, model) {
-  if (!receipt) return `<td class="save-cell empty">—</td>`;
+  if (!receipt) return `<td class="save-cell empty">–</td>`;
   let pct = null;
   let abs = null;
   let dagger = false;
@@ -391,7 +391,7 @@ function saveCellHtml(receipt, model) {
       dagger = alt.procedure_deviation === true;
     }
   }
-  if (pct == null) return `<td class="save-cell empty">—</td>`;
+  if (pct == null) return `<td class="save-cell empty">–</td>`;
   const negative = pct < 0;
   const cls = ['save-cell'];
   if (negative) cls.push('cell-negative');
@@ -523,7 +523,7 @@ function renderSpineTable(data) {
 
   return `<section class="spine-section">
   <h2>Per-skill registry</h2>
-  <p class="caption">Every figure per single invocation. <strong>Cost / use</strong> is from production transcripts (model tagged on each row); <strong>Est. cost</strong> is the author's pre-measurement guess; <strong>Save: X</strong> is an A/B calibration on model X (arm A cold − arm B with-skill). Dash means no data exists for that cell yet. A † on a save cell flags a procedure deviation — see the appendix.</p>
+  <p class="caption">Every figure per single invocation. <strong>Cost / use</strong> is from production transcripts (model tagged on each row); <strong>Est. cost</strong> is the author's pre-measurement guess; <strong>Save: X</strong> is an A/B calibration on model X (arm A cold − arm B with-skill). Dash means no data exists for that cell yet. A † on a save cell flags a procedure deviation: see the appendix.</p>
   <table class="spine">
     <thead>
       <tr>
@@ -655,7 +655,7 @@ function renderCalibrationChart(rows) {
       return `<g><line x1="${x.toFixed(1)}" y1="${axisY - 3}" x2="${x.toFixed(1)}" y2="${axisY + 3}" stroke="#888" stroke-width="0.5"/><text x="${x.toFixed(1)}" y="${axisY + 14}" font-size="9" fill="#555" text-anchor="middle">${tickLabel(v)}</text></g>`;
     })
     .join('');
-  const xAxisTitle = `<text x="${(margin.left + innerW / 2).toFixed(1)}" y="${H - 6}" font-size="9" fill="#555" text-anchor="middle">measured ÷ guessed (log scale) — left of 1× = guess too high, right = guess too low</text>`;
+  const xAxisTitle = `<text x="${(margin.left + innerW / 2).toFixed(1)}" y="${H - 6}" font-size="9" fill="#555" text-anchor="middle">measured ÷ guessed (log scale): left of 1× = guess too high, right = guess too low</text>`;
 
   const dots = marks
     .map(
@@ -684,8 +684,8 @@ function renderCalibrationChart(rows) {
 
   const grayCount = sorted.length - offCount - closeCount;
   return `<section class="page-break calibration-chart-section">
-  <h2>Calibration honesty — where my guesses landed</h2>
-  <p>Each dot is one skill: position on the x-axis shows how wrong the guess was (measured ÷ guessed). <strong>Green dots</strong> sit inside the ±10% band — the guess was effectively right (${closeCount} ${closeCount === 1 ? 'skill' : 'skills'}). <strong>Orange dots</strong> missed by 5× or more (${offCount} of ${sorted.length}). <strong>Gray dots</strong> missed by less than 5× — between the ±10% band and the 5× threshold (${grayCount} of ${sorted.length}). <strong>${underCount} of ${sorted.length} guesses were too low</strong>. The fix is not "guess better next time" — intuition about token cost is unreliable in a way better intuition will not fix. The fix is to keep measuring.</p>
+  <h2>Calibration honesty: where my guesses landed</h2>
+  <p>Each dot is one skill: position on the x-axis shows how wrong the guess was (measured ÷ guessed). <strong>Green dots</strong> sit inside the ±10% band: the guess was effectively right (${closeCount} ${closeCount === 1 ? 'skill' : 'skills'}). <strong>Orange dots</strong> missed by 5× or more (${offCount} of ${sorted.length}). <strong>Gray dots</strong> missed by less than 5×: between the ±10% band and the 5× threshold (${grayCount} of ${sorted.length}). <strong>${underCount} of ${sorted.length} guesses were too low</strong>. The fix is not "guess better next time": intuition about token cost is unreliable in a way better intuition will not fix. The fix is to keep measuring.</p>
   <div class="avoid-break">
     <svg class="calibration-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Calibration scatter: ${sorted.length} skill guesses vs measurements">
       ${band}
@@ -696,7 +696,7 @@ function renderCalibrationChart(rows) {
       ${ticks}
       ${xAxisTitle}
     </svg>
-    <p class="caption">Per-skill guess and measured numbers are in the spine table above (<em>Est. cost</em> and <em>Cost / use</em> columns). This chart shows the ratio between them. ${sorted.length} skills total — every measured row that has a prior editorial estimate on record.</p>
+    <p class="caption">Per-skill guess and measured numbers are in the spine table above (<em>Est. cost</em> and <em>Cost / use</em> columns). This chart shows the ratio between them. ${sorted.length} skills total: every measured row that has a prior editorial estimate on record.</p>
   </div>
 </section>`;
 }
@@ -710,32 +710,32 @@ function renderCalibrationChart(rows) {
 const FINDINGS = [
   {
     heading: 'Estimates were systematically wrong, and systematically low.',
-    body: 'Before measuring anything, I wrote a guess for what each skill would cost. Of 28 skills with a guess on record, 13 were off by 5× or more — and the misses ran almost entirely one direction: I guessed too low. The takeaway is not "guess better next time." Intuition about token cost is unreliable in a way better intuition will not fix. The takeaway is to measure, and to keep measuring.',
+    body: 'Before measuring anything, I wrote a guess for what each skill would cost. Of 28 skills with a guess on record, 13 were off by 5× or more, and the misses ran almost entirely one direction: I guessed too low. The takeaway is not "guess better next time." Intuition about token cost is unreliable in a way better intuition will not fix. The takeaway is to measure, and to keep measuring.',
   },
   {
     heading: "A recipe's value shrinks as the model gets more capable.",
-    body: "The same skill, A/B-tested on Sonnet, Opus, and Haiku, does not save the same amount on each. Skills that save 50%+ on Sonnet typically settle at 20–40% on Opus. The skill arm does not get more expensive — the cold arm gets cheaper, because a stronger model needs less scaffolding to do the task well. A skill's measured value is not a fixed property; it is relative to the model underneath it.",
+    body: "The same skill, A/B-tested on Sonnet, Opus, and Haiku, does not save the same amount on each. Skills that save 50%+ on Sonnet typically settle at 20–40% on Opus. The skill arm does not get more expensive: the cold arm gets cheaper, because a stronger model needs less scaffolding to do the task well. A skill's measured value is not a fixed property; it is relative to the model underneath it.",
   },
   {
-    heading: 'Some skills cost more than no skill at all — and that is the point.',
+    heading: 'Some skills cost more than no skill at all, and that is the point.',
     body: 'Several skills show a negative save: the run that followed the skill spent more tokens than the run that went in cold. These are not failures. They are audit and lifecycle skills that do thorough work the unstructured run simply skipped. Their value is completeness and discipline, not token compression. A registry that only celebrated savings would have to hide them; this one counts them.',
   },
   {
     heading: 'The measurement tooling itself had a 23× error.',
-    body: 'The parser that produced the cost numbers grouped a whole Claude Code session as one "use." A single session can contain dozens of calls to the same skill — so for /review it reported the cost of 336 invocations divided by 14, overstating per-use cost roughly 23×. A carefully collected number from a faulty instrument is still a wrong number. The measurement infrastructure needs the same scrutiny as the thing it measures — and catching this cost only attention, not compute: re-parsing transcripts is free.',
+    body: 'The parser that produced the cost numbers grouped a whole Claude Code session as one "use." A single session can contain dozens of calls to the same skill, so for /review it reported the cost of 336 invocations divided by 14, overstating per-use cost roughly 23×. A carefully collected number from a faulty instrument is still a wrong number. The measurement infrastructure needs the same scrutiny as the thing it measures, and catching this cost only attention, not compute: re-parsing transcripts is free.',
   },
   {
     heading: 'Cost and save are measured in different regimes; do not divide them.',
-    body: 'Cost per use comes from real production transcripts. Save per use comes from controlled A/B calibrations on representative tasks. They measure related but different things, often at different scales — so dividing save by cost to get an "efficiency %" produces a number that means nothing. The percentages here are anchored to the A/B baseline, stated explicitly on each row where the gap is large. Two real numbers can still be the wrong pair to compare.',
+    body: 'Cost per use comes from real production transcripts. Save per use comes from controlled A/B calibrations on representative tasks. They measure related but different things, often at different scales, so dividing save by cost to get an "efficiency %" produces a number that means nothing. The percentages here are anchored to the A/B baseline, stated explicitly on each row where the gap is large. Two real numbers can still be the wrong pair to compare.',
   },
   {
     heading:
       'Cost distributions are heavily skewed; the median and the mean tell different stories.',
-    body: "A skill's cost per use is not a single number. For /review it ranges from about 1K to nearly 1M tokens, because cost tracks the size of the work — a one-line PR and a 4,000-line PR are not the same job. A few large runs pull the mean to 48K, while the typical run — the median — costs 10K. This is not a defect to fix; it is a true property of the data. The honest response is to headline the median and show the spread, not to pretend one average describes every use.",
+    body: "A skill's cost per use is not a single number. For /review it ranges from about 1K to nearly 1M tokens, because cost tracks the size of the work, a one-line PR and a 4,000-line PR are not the same job. A few large runs pull the mean to 48K, while the typical run: the median, costs 10K. This is not a defect to fix; it is a true property of the data. The honest response is to headline the median and show the spread, not to pretend one average describes every use.",
   },
   {
     heading: 'The measured aggregate save is far below the heuristic that started this.',
-    body: "This project began with a rule of thumb: a skill saves about twice what it costs — a ~67% saving. Measurement put the portfolio aggregate at about 17%. The heuristic was roughly three times too optimistic. That gap, more than any single skill's number, is why the document exists: the way to know what tooling is worth is to measure it, not to model it.",
+    body: "This project began with a rule of thumb: a skill saves about twice what it costs, a ~67% saving. Measurement put the portfolio aggregate at about 17%. The heuristic was roughly three times too optimistic. That gap, more than any single skill's number, is why the document exists: the way to know what tooling is worth is to measure it, not to model it.",
   },
 ];
 
@@ -775,37 +775,37 @@ function renderDoesNotClaimList() {
 
 function renderAppendix() {
   return `<section class="page-break appendix">
-  <h1>Appendix — methodology</h1>
+  <h1>Appendix: methodology</h1>
   <p class="subhead">How the numbers in the spine table are produced.</p>
 
-  <h2>Per single use — the only unit</h2>
+  <h2>Per single use: the only unit</h2>
   <p>Every number is per one invocation of the skill. No annual figures, no "tokens per year." If you want a yearly figure, multiply by however many times you will actually run the skill.</p>
 
   <h2>How "measured cost / use" is produced</h2>
-  <p>Two sources, both real. <strong>Transcript measurement</strong>: every Claude Code session writes a JSON-Lines transcript to <code>~/.claude/projects/&lt;dir&gt;/&lt;sessionId&gt;.jsonl</code>, with each assistant message carrying an <code>attributionSkill</code> field when a skill is active. <code>scripts/build-review-stats.mjs</code> walks those files, groups by <code>(skill, sessionId, promptId)</code> (one user message = one invocation), sums <code>input_tokens + output_tokens + cache_creation_input_tokens</code> (cache reads excluded — paid upstream), dedupes by <code>requestId</code>, and reports per-use stats across whatever invocations landed in the 90-day window. The dominant model that spent tokens on the skill becomes its <code>cost_model</code> tag.</p>
-  <p><strong>A/B calibration arm-B</strong>: when a skill has no production transcripts, an A/B run still spends real tokens — a sub-agent followed the <code>SKILL.md</code> end-to-end on a representative task. Arm-B IS a real cost-per-use measurement, just from a controlled run instead of in-the-wild use.</p>
+  <p>Two sources, both real. <strong>Transcript measurement</strong>: every Claude Code session writes a JSON-Lines transcript to <code>~/.claude/projects/&lt;dir&gt;/&lt;sessionId&gt;.jsonl</code>, with each assistant message carrying an <code>attributionSkill</code> field when a skill is active. <code>scripts/build-review-stats.mjs</code> walks those files, groups by <code>(skill, sessionId, promptId)</code> (one user message = one invocation), sums <code>input_tokens + output_tokens + cache_creation_input_tokens</code> (cache reads excluded: paid upstream), dedupes by <code>requestId</code>, and reports per-use stats across whatever invocations landed in the 90-day window. The dominant model that spent tokens on the skill becomes its <code>cost_model</code> tag.</p>
+  <p><strong>A/B calibration arm-B</strong>: when a skill has no production transcripts, an A/B run still spends real tokens, a sub-agent followed the <code>SKILL.md</code> end-to-end on a representative task. Arm-B IS a real cost-per-use measurement, just from a controlled run instead of in-the-wild use.</p>
 
-  <h2>What counts as one "use" — the invocation-boundary correction</h2>
+  <h2>What counts as one "use": the invocation-boundary correction</h2>
   <p>The upstream <code>skill-usage</code> parser groups assistant messages by <code>(skill, sessionId)</code>: every message in one session counts as part of one invocation. That overstates tokens-per-use whenever a session contains multiple uses of the same skill. For <code>/review</code> the distortion is 23×: 14 sessions contained 336 distinct calls, so the parser's "1.15M / use" was really "cost of 336 uses divided by 14 instead of 336." <code>build-review-stats.mjs</code> corrects this by walking the <code>parentUuid</code> → originating-user-message chain on every transcript-measured row and using each user message's <code>promptId</code> as the invocation ID.</p>
 
   <h2>Median, not mean, on the cost headline</h2>
-  <p>Where a row's cost is the average of multiple invocations, the headline is the <strong>median</strong> — the cost distribution is heavily right-skewed (one or two large invocations pull the mean well above the typical use), so the median is the honest "what does one use cost" figure. The cost cell tags "median of N" when applicable.</p>
+  <p>Where a row's cost is the average of multiple invocations, the headline is the <strong>median</strong>: the cost distribution is heavily right-skewed (one or two large invocations pull the mean well above the typical use), so the median is the honest "what does one use cost" figure. The cost cell tags "median of N" when applicable.</p>
 
   <h2>How "measured save / use" is produced</h2>
-  <p>A calibration A/B test. Two sub-agents solve the same task in fresh sandboxed worktrees — arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save = arm-A tokens − arm-B tokens. <strong>N = 1 per skill, single data point</strong> on Sonnet primary; the multi-model columns repeat the A/B with a sub-agent dispatched as Opus or Haiku. Trust direction and magnitude, not two-significant-digit precision.</p>
+  <p>A calibration A/B test. Two sub-agents solve the same task in fresh sandboxed worktrees: arm A cold (no <code>SKILL.md</code> access), arm B following the skill. Save = arm-A tokens − arm-B tokens. <strong>N = 1 per skill, single data point</strong> on Sonnet primary; the multi-model columns repeat the A/B with a sub-agent dispatched as Opus or Haiku. Trust direction and magnitude, not two-significant-digit precision.</p>
   <p><strong>Exception: <code>/review</code>.</strong> N=11 A/Bs bucketed by PR size. Per-bucket medians: small (0–199 lines) 44%, medium (200–799) 26%, large (800–2499) 15%, extra-large (2500+) −10%. 63% of production /review calls are on small PRs, so the row's headline save uses the small-bucket median; the across-bucket aggregate (35%, 17K saved) sits in <code>calibration_aggregate_*</code> on the JSON. Per-bucket and per-PR data live on <code>calibration_ab_buckets</code> + <code>calibration_ab_runs</code>.</p>
 
-  <h2>Different regimes — do not divide save by cost</h2>
+  <h2>Different regimes: do not divide save by cost</h2>
   <p>Cost is from production transcripts; save is from A/B calibrations on (often smaller) representative tasks. The percentages shown on save cells are <code>save ÷ A/B arm A</code>, not <code>save ÷ production cost</code>. Several rows have an explicit scale-ratio hint (e.g. "A/B scale ~5× production" or "production scale ~11× A/B") when the two regimes diverge by 2× or more.</p>
 
   <h2>How "estimated cost / use" is produced</h2>
-  <p>The number an author wrote down before any measurement existed, parsed from the skill's <code>SKILL.md</code> frontmatter or the repo's <code>README.md</code>. There is no math behind these — they are intuition snapshots from the moment the skill was scaffolded. See the calibration honesty chart for how reliable that intuition turned out to be.</p>
+  <p>The number an author wrote down before any measurement existed, parsed from the skill's <code>SKILL.md</code> frontmatter or the repo's <code>README.md</code>. There is no math behind these. They are intuition snapshots from the moment the skill was scaffolded. See the calibration honesty chart for how reliable that intuition turned out to be.</p>
 
   <h2>Reproducibility</h2>
   <p>From inside <code>mikkonumminen.dev/</code> on a machine with Claude Code installed:</p>
   <ol>
-    <li><code>/mikko-skill-usage</code> — writes <code>.claude/agent-verdicts/SKILL-USAGE-LATEST.json</code> from local transcripts.</li>
-    <li><code>/skill-localUpdate</code> — re-walks the portfolio inventory, applies the measurement overlay, re-runs <code>build-review-stats.mjs</code>, renders this PDF.</li>
+    <li><code>/mikko-skill-usage</code>: writes <code>.claude/agent-verdicts/SKILL-USAGE-LATEST.json</code> from local transcripts.</li>
+    <li><code>/skill-localUpdate</code>: re-walks the portfolio inventory, applies the measurement overlay, re-runs <code>build-review-stats.mjs</code>, renders this PDF.</li>
   </ol>
   <p>The data the renderer reads is committed at <code>public/data/skills-registry.json</code>. The dated history lives in <code>.claude/agent-verdicts/SKILL-REGISTRY-*.json</code>. The transcript files themselves stay on the author's machine because they contain code and context from private repos.</p>
 </section>`;
@@ -937,13 +937,13 @@ function buildHtml(data, css) {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Skill registry — ${esc(generated)}</title>
+<title>Skill registry · ${esc(generated)}</title>
 <style>${css}</style>
 </head>
 <body>
 
 <header>
-  <h1>Skill registry — ${esc(generated)}</h1>
+  <h1>Skill registry · ${esc(generated)}</h1>
   <p class="lede-short">A register of every custom slash-command skill I have written for Claude Code, with measurement when I have it and an honest guess when I do not. ${data.repos.length} repos, ${activeSkills} skills, ${calibratedCount} A/B-tested.</p>
 </header>
 
@@ -997,7 +997,7 @@ function main() {
   // refresh lands in a commit.
   if (process.env.CI || process.env.VERCEL) {
     console.log(
-      'build-skills-pdf: CI environment detected — skipping regeneration, committed PDF is canonical.',
+      'build-skills-pdf: CI environment detected, skipping regeneration, committed PDF is canonical.',
     );
     process.exit(0);
   }
@@ -1022,7 +1022,8 @@ function main() {
   // document is not a no-op — it rewrites the committed PDF for no visible
   // reason the first time the developer's Chrome updates.
   const fingerprint = inputFingerprint(html, PRINT_FLAGS.join('\n'));
-  const storedFingerprint = readIfExists(FINGERPRINT_FILE)?.toString('utf8').trim() ?? null;
+  const storedFingerprint =
+    readIfExists(FINGERPRINT_FILE)?.toString('utf8').trim() ?? null;
   const existingPdf = readIfExists(OUT);
   const force = process.argv.includes('--force');
   if (
@@ -1033,14 +1034,14 @@ function main() {
       fingerprint,
     })
   ) {
-    console.log(`unchanged: ${OUT} (inputs unchanged — no render)`);
+    console.log(`unchanged: ${OUT} (inputs unchanged, no render)`);
     console.log(`preview HTML: ${previewHtml}`);
     return;
   }
 
   if (!locateChrome()) {
     console.log(
-      'build-skills-pdf: no Chrome / Chromium on PATH — leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
+      'build-skills-pdf: no Chrome / Chromium on PATH, leaving existing PDF in place. Set CHROME_PATH or install Chrome to regenerate.',
     );
     process.exit(0);
   }
