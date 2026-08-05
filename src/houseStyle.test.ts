@@ -91,6 +91,31 @@ describe('no em dashes in user-facing prose', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('no audit or study document carries one', () => {
+    const offenders: string[] = [];
+    // Recursive: the studies live in dated subdirectories, not only at the top.
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+        } else if (entry.name.endsWith('.md')) {
+          let inFence = false;
+          readFileSync(full, 'utf8')
+            .split('\n')
+            .forEach((line) => {
+              if (line.trimStart().startsWith('```')) inFence = !inFence;
+              // Inline code quotes real source; its punctuation is not ours to fix.
+              else if (!inFence && line.replace(/`[^`]*`/g, '').includes(EM_DASH))
+                offenders.push(`${full}: ${line.trim().slice(0, 100)}`);
+            });
+        }
+      }
+    };
+    walk('docs/audits');
+    expect(offenders).toEqual([]);
+  });
+
   it('no blog post carries one', () => {
     const offenders: string[] = [];
     for (const locale of readdirSync('src/content/blog')) {

@@ -1,6 +1,6 @@
-# AI-First Rating — mikkonumminen.dev
+# AI-First Rating: mikkonumminen.dev
 
-**2026-08-03 · Overall: 9.09/10** — whole-repo scope, 8 weighted dimensions,
+**2026-08-03 · Overall: 9.09/10**, whole-repo scope, 8 weighted dimensions,
 measured across three iterations. Supersedes
 [`ai-first-rating-2026-06-14.md`](ai-first-rating-2026-06-14.md) (9.12,
 frontend-only).
@@ -12,8 +12,8 @@ What that shortfall consists of is in [Remaining gaps](#remaining-gaps).
 ## Read this first: 9.09 is not worse than June's 9.12
 
 The June measurement covered `src/`, `docs/` and CI. This one covers those plus
-`chat-backend/` — a FastAPI + Postgres service with a local LLM and a public
-write endpoint that did not exist in the earlier reading — as well as
+`chat-backend/`: a FastAPI + Postgres service with a local LLM and a public
+write endpoint that did not exist in the earlier reading, as well as
 `.claude/skills/`, `content/`, and `scripts/`. Roughly half of what is measured
 here was invisible to the previous number.
 
@@ -25,9 +25,9 @@ across the scope change.
 
 | Iteration | Onboard 18% | Legible 18% | Verify 16% | Decide 12% | Auto 12% | Types 10% | Machine 7% | Sec 7% | **Overall** |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 0 — baseline | 8.7 | 9.3 | 7.7 | 8.3 | 6.8 | 8.3 | 7.6 | 6.8 | **8.12** |
-| 1–2 — docs, then code | 8.2 ▼ | 9.6 | 8.4 | 9.3 | 7.6 | 8.8 | 9.2 | 9.2 | **8.74** |
-| 3 — final | 9.3 | 9.4 | 8.9 | 9.4 | 8.3 | 8.9 | 9.0 | 9.4 | **9.09** |
+| 0, baseline | 8.7 | 9.3 | 7.7 | 8.3 | 6.8 | 8.3 | 7.6 | 6.8 | **8.12** |
+| 1–2, docs, then code | 8.2 ▼ | 9.6 | 8.4 | 9.3 | 7.6 | 8.8 | 9.2 | 9.2 | **8.74** |
+| 3, final | 9.3 | 9.4 | 8.9 | 9.4 | 8.3 | 8.9 | 9.0 | 9.4 | **9.09** |
 
 Overall is `sum(weight × score)`, computed from the per-dimension numbers, never
 estimated holistically.
@@ -45,7 +45,7 @@ is [`LEDGER.md`](ai-first-2026-08-03/LEDGER.md).
 assessors are the same model family as the author of the fixes. A 9.09 here means
 "no verified gap survives inspection against these eight definitions", not
 "objectively better than a repo scoring 8.9". Later rounds were told to attack
-the campaign's own work — to hunt for comment padding, to prove a drift guard
+the campaign's own work: to hunt for comment padding, to prove a drift guard
 could actually fail, to check whether required-check names were real. That
 catches more than a friendly panel would; it does not make the instrument
 independent.
@@ -62,17 +62,17 @@ was catching, none of which were the thing being looked for:
    file-level hit-rate stays 100% while the retrieved text goes thin.
 2. **A live high-severity dependency advisory.** `postcss` path traversal, fix
    available. The security docs described `esbuild` advisories that had stopped
-   applying and missed this one entirely — drift in both directions, because
+   applying and missed this one entirely: drift in both directions, because
    nothing runs `npm audit` in CI.
 3. **A guessable session id keying server-side conversation memory.** The
    fallback path used `Math.random()`; that id is what the backend threads
    conversation state on, so predicting one lets a third party read or poison
-   another visitor's context. Found by CodeQL — within minutes of CodeQL being
+   another visitor's context. Found by CodeQL: within minutes of CodeQL being
    repaired.
 4. **An accessibility trap in the projects drawer.** `close()`'s fall-back focus
    path is dead (`document.body.focus()` is a no-op without `tabindex`), so when
    the opening element has been removed, focus stays on a control that has just
-   been marked `aria-hidden`. Documented in a test, deliberately not fixed —
+   been marked `aria-hidden`. Documented in a test, deliberately not fixed:
    the correct behaviour is a product decision.
 
 ## Two defects this campaign itself introduced
@@ -82,11 +82,11 @@ document this rubric exists to prevent.
 
 - **CodeQL produced zero check-runs for three commits.** A language matrix was
   added with its `concurrency` block at workflow level, referencing
-  `${{ matrix.language }}` — a context that only exists inside a job. The file
+  `${{ matrix.language }}`: a context that only exists inside a job. The file
   stopped parsing; GitHub reports that as a run with zero jobs and no syntax
   error. It was validated locally with `yaml.safe_load`, which passed. Parsing
   was never the question. **Near-miss:** `ci.yml` had just been given a comment
-  telling the owner to mark those two contexts as required — doing so while they
+  telling the owner to mark those two contexts as required: doing so while they
   were silent would have deadlocked every PR.
 - **A red `check` job shipped.** A Playwright option that type-checks as unknown
   (`reducedMotion` at test level rather than in `contextOptions`) failed
@@ -123,7 +123,7 @@ The distance from 9.09 to the 9.5 target, largest first:
 **Branch protection was the single largest item and could not be changed from a
 pull request.** It was applied on 2026-08-04, after this measurement: all five
 contexts are now required with `enforce_admins` on, so a red run blocks the merge
-for everyone including the owner. The precondition matters and was met first —
+for everyone including the owner. The precondition matters and was met first:
 every context was confirmed reporting green before being required, because a
 required context that never reports blocks every PR permanently, which is not
 hypothetical here given the CodeQL outage above.
@@ -132,7 +132,7 @@ hypothetical here given the CodeQL outage above.
 splitting `ragctl.py` (refactors live operational code for points on a dimension
 already above target); extracting the GSAP math (touching working animation whose
 failure mode is visual and therefore invisible to the tests that would replace
-the risk); enabling `checkJs` (339 errors, ~80 needing real shape decisions —
+the risk); enabling `checkJs` (339 errors, ~80 needing real shape decisions:
 clearing it quickly would mean suppressions the repo currently has none of).
 
 ## Caveats

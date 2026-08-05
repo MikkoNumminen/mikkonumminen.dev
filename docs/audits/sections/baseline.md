@@ -1,4 +1,4 @@
-# VUOHITIIMI Baseline Audit — Step 0
+# VUOHITIIMI Baseline Audit: Step 0
 
 **Date:** 2026-05-17  
 **Branch:** audit/baseline (off master)  
@@ -35,7 +35,7 @@
 
 ### Recent git history (`git log --oneline -60`)
 
-Active commit rhythm — roughly 1–3 commits/day, all squash-merged PRs with conventional commit messages.  
+Active commit rhythm: roughly 1–3 commits/day, all squash-merged PRs with conventional commit messages.  
 Most recent 20 commits (HEAD = 7933574):
 
 ```
@@ -63,11 +63,11 @@ ca5d898 feat(og): polish the home link-preview card + sharper meta description (
 
 ### Remote branches of note
 Branches that look in-flight / recently merged but still present on remote:
-- `origin/feat/observability-sentry-web-vitals` — Sentry/web-vitals observability work
-- `origin/perf-adaptive-bloom` — performance optimisation not yet merged
-- `origin/perf-flags-and-diag` / `origin/perf-defaults-and-diag` — perf overlay/diagnostics (partially landed)
-- `origin/feat/ceo-scan-now-entry` — new feature branch, no corresponding merge commit visible in log
-- Several worktree branches still exist: `worktree-*` — look like historical artefacts from previous agent runs
+- `origin/feat/observability-sentry-web-vitals`: Sentry/web-vitals observability work
+- `origin/perf-adaptive-bloom`: performance optimisation not yet merged
+- `origin/perf-flags-and-diag` / `origin/perf-defaults-and-diag`: perf overlay/diagnostics (partially landed)
+- `origin/feat/ceo-scan-now-entry`: new feature branch, no corresponding merge commit visible in log
+- Several worktree branches still exist: `worktree-*`, look like historical artefacts from previous agent runs
 
 No reverts in the recent 60 commits.
 
@@ -84,14 +84,14 @@ JS chunks: 17
 CSS chunks: 5
 ```
 
-**Build warning:** `perfOverlay.CYSh3NvJ.js` (544 kB raw) triggers Rollup's `> 500 kB` warning. It is dynamically imported only when `?debug=perf` is active — not on the critical path.
+**Build warning:** `perfOverlay.CYSh3NvJ.js` (544 kB raw) triggers Rollup's `> 500 kB` warning. It is dynamically imported only when `?debug=perf` is active, not on the critical path.
 
 ### JS chunks (all routes share the same `_astro/` directory)
 
 | Chunk | Raw size | Gzipped | Notes |
 |-------|----------|---------|-------|
-| `perfOverlay.CYSh3NvJ.js` | 558 kB | 143 kB | **Contains bundled Three.js** — dynamic import, debug-only |
-| `BaseLayout.astro…C2Nez5Hz.js` | 153 kB | 52 kB | Shared layout — loaded on every route |
+| `perfOverlay.CYSh3NvJ.js` | 558 kB | 143 kB | **Contains bundled Three.js**, dynamic import, debug-only |
+| `BaseLayout.astro…C2Nez5Hz.js` | 153 kB | 52 kB | Shared layout, loaded on every route |
 | `index.CB87Sc6I.js` | 70 kB | 28 kB | GSAP bundle |
 | `homeScene.DfqBaYhG.js` | 52 kB | 17 kB | Home Three.js scene |
 | `index.BnutI203.js` | 51 kB | 18 kB | GSAP bundle (secondary) |
@@ -117,7 +117,7 @@ CSS chunks: 5
 | `experience.DfHu_pb-.css` | 13.4 kB |
 | `contact.BHC4mAic.css` | 8.6 kB (contact-specific) |
 
-### Audio (large — served from /audio/)
+### Audio (large: served from /audio/)
 | File | Size |
 |------|------|
 | `devlander.mp3` | 3.9 MB (music bed) |
@@ -125,8 +125,8 @@ CSS chunks: 5
 | `voice-landing-en.mp3` | 461 kB |
 | `voice-projects-en.mp3` | 301 kB |
 
-**Total audio: 7.4 MB** — not preloaded but present in dist.  
-Finnish and Swedish voiceovers are absent from dist (only `en` variants built — by design per recent commits).
+**Total audio: 7.4 MB**, not preloaded but present in dist.  
+Finnish and Swedish voiceovers are absent from dist (only `en` variants built, by design per recent commits).
 
 ### Route-level JS/CSS budget (uncompressed)
 
@@ -134,14 +134,14 @@ All routes load `BaseLayout.js` (153 kB) + `page.js` (2.3 kB) as their base.
 
 | Route | JS (uncompressed) | CSS (uncompressed) | HTML size | FLAG |
 |-------|------------------|--------------------|-----------|------|
-| `/` (EN) | 159.6 kB | 41.2 kB | 29.4 kB | — |
-| `/projects` (EN) | 161.2 kB | 38.7 kB | 30.2 kB | — |
-| `/experience` (EN) | 157.7 kB | 38.1 kB | 40.7 kB | — |
-| `/contact` (EN) | 161.7 kB | 33.3 kB | 18.8 kB | — |
+| `/` (EN) | 159.6 kB | 41.2 kB | 29.4 kB |, |
+| `/projects` (EN) | 161.2 kB | 38.7 kB | 30.2 kB |, |
+| `/experience` (EN) | 157.7 kB | 38.1 kB | 40.7 kB |, |
+| `/contact` (EN) | 161.7 kB | 33.3 kB | 18.8 kB |, |
 
 > All routes: the `homeScene.js` (52 kB) and `projectsScene.js` (39 kB) are **dynamically imported** and NOT counted in the above initial-load numbers. No route exceeds 162 kB JS uncompressed on initial static load, which is well under the 150 kB transferred threshold when gzipped (~52–54 kB transferred for BaseLayout alone).
 
-> **Flag:** `BaseLayout.js` at 153 kB raw / 52 kB gzipped is borderline — warrants inspection to check whether it can be further split.
+> **Flag:** `BaseLayout.js` at 153 kB raw / 52 kB gzipped is borderline, warrants inspection to check whether it can be further split.
 
 ---
 
@@ -149,7 +149,7 @@ All routes load `BaseLayout.js` (153 kB) + `page.js` (2.3 kB) as their base.
 
 All 12 required runs completed successfully.  
 `/projects` EN and SV/FI: `EPERM` error for projects-en on first attempt; re-run succeeded (exit 0, JSON valid).  
-FI/SV runs: non-fatal `LanternError: missing metric scores` warning in trace engine — scores still produced correctly.
+FI/SV runs: non-fatal `LanternError: missing metric scores` warning in trace engine, scores still produced correctly.
 
 INP is field-only data; all runs report N/A for lab INP (expected).
 
@@ -172,10 +172,10 @@ INP is field-only data; all runs report N/A for lab INP (expected).
 
 ### Key observations
 - **Performance:** All routes score 96–99/100 on mobile. Excellent.
-- **Accessibility:** All routes score 95 or 100/100. `/projects` scores 95 across all locales — investigate what accessibility issues the Lighthouse A11y audit found there.
+- **Accessibility:** All routes score 95 or 100/100. `/projects` scores 95 across all locales: investigate what accessibility issues the Lighthouse A11y audit found there.
 - **Best Practices / SEO:** Perfect 100 across all routes and locales.
-- **CLS:** 0.000 on home and projects. **0.014** on experience and contact — a small but measurable layout shift. Worth investigating.
-- **TBT:** Only measurable on home (13–20 ms) — very low, not a concern.
+- **CLS:** 0.000 on home and projects. **0.014** on experience and contact: a small but measurable layout shift. Worth investigating.
+- **TBT:** Only measurable on home (13–20 ms), very low, not a concern.
 - **LCP:** Home at ~2.5–2.6 s is the slowest; projects at ~2.1–2.3 s. All within "needs improvement" territory for field data (lab is faster than field typically). Worth monitoring.
 - Desktop spot-checks: not run due to time budget. Recommend running for `/` and `/projects` in a follow-up.
 
@@ -184,13 +184,13 @@ INP is field-only data; all runs report N/A for lab INP (expected).
 ## 4. Static Checks at HEAD
 
 ### `npm run typecheck` (astro check)
-**PASS** — 0 errors, 0 warnings, 0 hints across 106 files.
+**PASS**: 0 errors, 0 warnings, 0 hints across 106 files.
 
 ### `npm run lint` (eslint)
-**PASS** — no output, exit 0. Zero lint errors or warnings.
+**PASS**, no output, exit 0. Zero lint errors or warnings.
 
 ### `npm test` (vitest run)
-**PASS** — 3 test files, 28 tests, all passing.
+**PASS**: 3 test files, 28 tests, all passing.
 ```
 src/i18n/routing.test.ts  — 13 tests
 src/i18n/index.test.ts    — 10 tests
@@ -199,9 +199,9 @@ Duration: 2.08s
 ```
 
 ### `npm run format:check` (prettier)
-**FAIL** — Code style issues found in **118 files**. Run `prettier --write` to fix.
+**FAIL**: Code style issues found in **118 files**. Run `prettier --write` to fix.
 
-This is a widespread formatting drift — essentially the entire `src/` tree plus config files are not formatted to the current prettier config. This suggests either:
+This is a widespread formatting drift, essentially the entire `src/` tree plus config files are not formatted to the current prettier config. This suggests either:
 1. The prettier config was changed after the last format sweep, or
 2. The line endings differ from what prettier expects on this Windows machine.
 
@@ -246,21 +246,21 @@ The `fast-uri` and `yaml` issues are in dev toolchain dependencies (likely via `
 
 2. **Prettier check fails on 118 files (the entire codebase).** The `git status` in the main worktree shows several modified files that haven't been committed. The CI lint+format job presumably passes in CI (it was enforced in #75), so this is likely a Windows line-ending mismatch (`\r\n` vs `\n`) on this developer machine. Downstream agents should not treat this as a code quality issue unless confirmed in CI.
 
-3. **`/projects` Accessibility scores 95/100 across all locales.** Every other route scores 100. There is at least one A11y issue specific to the projects page — likely related to the 3D canvas or interactive planet labels. Accessibility agent should investigate.
+3. **`/projects` Accessibility scores 95/100 across all locales.** Every other route scores 100. There is at least one A11y issue specific to the projects page: likely related to the 3D canvas or interactive planet labels. Accessibility agent should investigate.
 
 4. **CLS of 0.014 on `/experience` and `/contact`.** Zero on `/` and `/projects`. The shift likely occurs during the GSAP timeline or a font swap. Small but worth identifying.
 
-5. **Only English voiceovers are in dist.** `voice-landing-en.mp3` and `voice-projects-en.mp3` are in `/audio/` — no `fi` or `sv` variants. The i18n routing for voiceover audio (feat #82) picks the locale-keyed file at runtime; the missing locale audio will silently fall back or error. The FI/SV voiceover files were never added to `public/audio/`.
+5. **Only English voiceovers are in dist.** `voice-landing-en.mp3` and `voice-projects-en.mp3` are in `/audio/`, no `fi` or `sv` variants. The i18n routing for voiceover audio (feat #82) picks the locale-keyed file at runtime; the missing locale audio will silently fall back or error. The FI/SV voiceover files were never added to `public/audio/`.
 
-6. **7.4 MB of audio in dist** — the music bed (`devlander.mp3` + `.ogg`) alone is 6.8 MB. These are not preloaded but are served as static assets. On first interaction they'll be fetched in full. No streaming/chunked delivery. For mobile users on slow connections this could be significant.
+6. **7.4 MB of audio in dist**: the music bed (`devlander.mp3` + `.ogg`) alone is 6.8 MB. These are not preloaded but are served as static assets. On first interaction they'll be fetched in full. No streaming/chunked delivery. For mobile users on slow connections this could be significant.
 
-7. **`feat/ceo-scan-now-entry` remote branch** — no merge commit in recent 60 log. Looks like an in-flight feature not yet shipped.
+7. **`feat/ceo-scan-now-entry` remote branch**, no merge commit in recent 60 log. Looks like an in-flight feature not yet shipped.
 
-8. **`perf-adaptive-bloom` remote branch** — not merged. Adaptive bloom for the Three.js post-processing pipeline is presumably waiting for review.
+8. **`perf-adaptive-bloom` remote branch**, not merged. Adaptive bloom for the Three.js post-processing pipeline is presumably waiting for review.
 
-9. **Node 24 engine mismatch** — `package.json` requires `^20 || ^22`, but Node 24 is in use. Everything works today, but upstream API changes (notably in `node:fs` internals) could cause subtle breakage. The `npm run preview` port-selection worked fine regardless.
+9. **Node 24 engine mismatch**: `package.json` requires `^20 || ^22`, but Node 24 is in use. Everything works today, but upstream API changes (notably in `node:fs` internals) could cause subtle breakage. The `npm run preview` port-selection worked fine regardless.
 
-10. **LCP of ~2.5 s on home** — while the Lighthouse score is 96/100, the LCP source is likely the Three.js canvas or the hero text render (which depends on font + GSAP animation completing). Worth checking what element Lighthouse identifies as the LCP element in the detailed JSON.
+10. **LCP of ~2.5 s on home**, while the Lighthouse score is 96/100, the LCP source is likely the Three.js canvas or the hero text render (which depends on font + GSAP animation completing). Worth checking what element Lighthouse identifies as the LCP element in the detailed JSON.
 
 ---
 

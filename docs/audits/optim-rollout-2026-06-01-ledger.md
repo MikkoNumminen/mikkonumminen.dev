@@ -1,4 +1,4 @@
-# optim-rollout 2026-06-01 — execution ledger
+# optim-rollout 2026-06-01: execution ledger
 
 Autonomous overnight run. Crash-safe: appended after every skill. Every decision logged.
 Branch/tag names and revert commands are in the **Morning report** section at the bottom
@@ -6,7 +6,7 @@ Branch/tag names and revert commands are in the **Morning report** section at th
 
 ---
 
-## Phase 0 — safety net (done once)
+## Phase 0: safety net (done once)
 
 **Run start:** 2026-06-01 (currentDate). Operator: Claude (Opus 4.8, ultracode).
 
@@ -21,15 +21,15 @@ commit atomically" applies uniformly. The actual state:
     ai-codegen-smell-audit, mikko-help, mikko-install, mikko-audit-suite, _lib).
   - `Spacepotatis/.claude/skills` (project: content-audit, balance-review, equipment, new-*,
     modular-architecture-audit, save-roundtrip-audit, security-audit, ai-codegen-smell-audit).
-  - `~/.claude/skills/` (installed copies — **NOT a git repo**, so un-taggable/un-committable;
+  - `~/.claude/skills/` (installed copies, **NOT a git repo**, so un-taggable/un-committable;
     these are what the detector actually audits, but fixes must land in the git sources above).
-- **claude-skills working tree was DIRTY** — on stale feature branch `chore/skills-token-estimates`
+- **claude-skills working tree was DIRTY**: on stale feature branch `chore/skills-token-estimates`
   (predates PRs #14–#21) with staged-but-uncommitted changes (`session-cost/`, `skill-calibration/`).
   Branching/committing there would have entangled someone's in-progress work into my "atomic" commits
   and tagged a non-canonical mid-edit state as the before-arm. **CONSERVATIVE BRANCH TAKEN:** did not
   touch that checkout at all; branched off `origin/main` (canonical, post-#21) via a fresh worktree.
 
-### Safety net as actually built (worktrees off canonical refs — non-destructive)
+### Safety net as actually built (worktrees off canonical refs: non-destructive)
 
 | Repo | Worktree path | Branch | Base ref | `pre-optim-rollout` tag |
 | --- | --- | --- | --- | --- |
@@ -46,15 +46,15 @@ commit atomically" applies uniformly. The actual state:
 
 `origin/main` of claude-skills (PR #21) and `master` of Spacepotatis (PR #280) already carry the
 prior study's optimizations (the three cost-trap guards on skills-freshness; the content-audit step-2
-cap). So the headline skills are expected to audit clean — the fix candidates this round are the
+cap). So the headline skills are expected to audit clean: the fix candidates this round are the
 **un-optimized** skills the prior rounds never touched.
 
 ---
 
-## Phase 1 — detector findings (mikko-skills-quality, canonical rules.py @ ruleset_hash 8320e59…)
+## Phase 1: detector findings (mikko-skills-quality, canonical rules.py @ ruleset_hash 8320e59…)
 
 Ran the deterministic detector (`skills-quality.py --json`) across all three skill sets:
-global (`~/.claude/skills` — 14 installed library skills), Spacepotatis project (14),
+global (`~/.claude/skills`, 14 installed library skills), Spacepotatis project (14),
 mikkonumminen.dev project (4). 32 skills audited total.
 
 **Only the three BOUNDED-mechanism rules are auto-fixable per the APPLY rule**
@@ -69,7 +69,7 @@ Bounded-mechanism hits found:
 - `unlimited_read_in_procedure`: sync-readmes (mn.dev) only.
 - `uncapped_followup`: none anywhere.
 
-## Phase 2 — priority queue + per-skill verdicts
+## Phase 2: priority queue + per-skill verdicts
 
 Priority = (production cost/use from registry) × (clarity of cost-trap match). Worked highest-first.
 Candidates with a bounded-mechanism hit that are NOT rigor-exempt: sync-readmes (~157K/use, 2 hits),
@@ -81,10 +81,10 @@ skill-registry (~65K/use, 1 hit), skill-localUpdate (1 hit). All three inspected
 
 | Skill (scope) | Detector finding | Verdict | Reason |
 | --- | --- | --- | --- |
-| **sync-readmes** (mn.dev) | unlimited_read + batch_invitation | **SKIP+log** | FALSE-POSITIVE on inspection. Batch already guarded: line 42 "**All in the same message** so they run in parallel" = single-batch dispatch (regex doesn't recognize this phrasing). unlimited_read hit (line 50 "read each agent's structured report") = reading **bounded agent return values** (schema'd block, ~1–2 lines/field), not files — `limit=` is nonsensical. The one real file read (README, agent prompt L156-158) **must be complete** for drift-detection and is inherently tiny (skill handles `<500 bytes`). No safe additive guard. |
+| **sync-readmes** (mn.dev) | unlimited_read + batch_invitation | **SKIP+log** | FALSE-POSITIVE on inspection. Batch already guarded: line 42 "**All in the same message** so they run in parallel" = single-batch dispatch (regex doesn't recognize this phrasing). unlimited_read hit (line 50 "read each agent's structured report") = reading **bounded agent return values** (schema'd block, ~1–2 lines/field), not files, `limit=` is nonsensical. The one real file read (README, agent prompt L156-158) **must be complete** for drift-detection and is inherently tiny (skill handles `<500 bytes`). No safe additive guard. |
 | **skill-registry** (mn.dev) | batch_invitation | **SKIP+log** | FALSE-POSITIVE. Line 65/67 "Dispatch one Sonnet agent per repo (parallel, **in a single message**) … **all in the same message**" = single-batch guard already present. Agents read **frontmatter only** (already `limit`-bounded in spirit). Other regex hit is in the `description:` frontmatter, not the procedure. |
 | **skill-localUpdate** (mn.dev) | batch_invitation | **SKIP+log** | FALSE-POSITIVE. Skill is a 4-step **sequencer**; "in parallel" (line 172) appears only in a descriptive **cost-note** about the downstream `/skill-registry` sub-agents, not a batch this skill issues. A batch cap here would be meaningless. |
-| mikko-audit (global) | batch_invitation + loop_prose + very_long | **SKIP+log** | **Rigor-exempt** (audit orchestrator — never auto-edit). |
+| mikko-audit (global) | batch_invitation + loop_prose + very_long | **SKIP+log** | **Rigor-exempt** (audit orchestrator, never auto-edit). |
 | mikko-security-audit (global) | batch_invitation + loop_prose | **SKIP+log** | **Rigor-exempt** (security audit). |
 | modular-architecture-audit (Spacepotatis) | batch_invitation + loop_prose | **SKIP+log** | **Rigor-exempt** (explicitly named). |
 | security-audit (Spacepotatis) | batch_invitation + loop_prose | **SKIP+log** | **Rigor-exempt**. |
@@ -103,7 +103,7 @@ skill-registry (~65K/use, 1 hit), skill-localUpdate (1 hit). All three inspected
 
 ### Why zero fixes (this is the correct result, not a stall)
 
-The canonical sources are **already optimized for the three bounded cost-traps** — the prior study's
+The canonical sources are **already optimized for the three bounded cost-traps**: the prior study's
 PRs #18/#21 (skills-freshness/-quality guards) and #280 (content-audit cap) did that work, and the
 mn.dev project skills were authored token-consciously ("all in the same message" batch guards,
 frontmatter-bounded reads). The detector's remaining hits are either (a) rigor-exempt audit skills
@@ -115,9 +115,9 @@ exists in wording `rules.py` doesn't recognize.
 
 `rules.py`'s `batch_invitation` guard set ({`single batch`, `one batch`, `all at once`,
 `don't stage`, `not in multiple batches`}) does **not** recognize **"all in the same message" /
-"in a single message"** — the idiomatic single-batch guard for `Agent`-tool dispatch. This produced
+"in a single message"**: the idiomatic single-batch guard for `Agent`-tool dispatch. This produced
 2 false positives (sync-readmes, skill-registry). Recommended ruleset improvement: add those
-alternations to `BATCH_GUARD`. **Not applied** — editing `rules.py` is a detector-tuning change
+alternations to `BATCH_GUARD`. **Not applied**: editing `rules.py` is a detector-tuning change
 (re-keys every skill), not a skill guard-wording fix, so it's out of this run's allowed scope.
 
 ### Measurement consequence
@@ -126,34 +126,34 @@ alternations to `BATCH_GUARD`. **Not applied** — editing `rules.py` is a detec
 *"IF THE QUEUE FINISHES AND QUOTA REMAINS: spend the rest adding replicates to the cells with the
 widest spread."* See Phase 5.
 
-## Phase 5 — replicates on widest-spread / N=1 cells
+## Phase 5: replicates on widest-spread / N=1 cells
 
 **Design.** Re-measure the noisiest cells fresh tonight at depth (both arms in the same window),
 pinning the before-arm by averaging cold draws. Opus first (study: "most variable model, swings up
 to 67pp"; methodology wants ≥5 opus draws). Faithful to `mikko-skill-calibration`: arm A = cold
 (no skills-quality SKILL.md / script, but DOES inspect the target skills since auditing them is the
 task), arm B = read the SKILL.md + run its script (read-only, no `--update`). Worktree isolation
-skipped — both arms read-only against `~/.claude/skills/` (same call the round-1 study made).
+skipped. Both arms read-only against `~/.claude/skills/` (same call the round-1 study made).
 
-**Accounting instrument:** `d:/tmp/draw-tokens.mjs` — sums `input + output + cache_creation` per
+**Accounting instrument:** `d:/tmp/draw-tokens.mjs`, sums `input + output + cache_creation` per
 assistant msg, dedup by `(sessionId,requestId)`, excludes `cache_read`. Validated against existing
 transcripts (e.g. 55,244 tok / 40 turns / opus). Each draw carries a `DRAW_ID:` marker in its prompt
 for bulletproof transcript→cell mapping.
 
 **Priority queue (widest spread / lowest N / opus-first):**
-1. `skills-quality/opus` — pool N=2, pct +5%(R1)/−62%(R5), **saved crosses zero** → new draws. The
+1. `skills-quality/opus`: pool N=2, pct +5%(R1)/−62%(R5), **saved crosses zero** → new draws. The
    −62% was an N=1 anomaly (cold arm short-circuited at 31K). **Highest value.**
-2. `skills-freshness/opus` — pool N=3, pct −21/+1/−1, saved crosses zero → new draws.
+2. `skills-freshness/opus`: pool N=3, pct −21/+1/−1, saved crosses zero → new draws.
 3. (if quota remains) skills-quality/sonnet, skills-freshness/haiku, etc. at N≥3.
 
-### Stage 1 — skills-quality/opus — LAUNCHED
+### Stage 1: skills-quality/opus: LAUNCHED
 
 - Workflow `wf_eb3d085c-094` (background): 5×arm-A (`q-opus-A-1..5`) + 5×arm-B (`q-opus-B-1..5`), all opus.
 - Transcript dir: `…/4647675b…/subagents/workflows/wf_eb3d085c-094`.
 - Stage 2 (skills-freshness/opus) held until Stage 1 returns and draws are verified to have done real
   work (guards against burning ~1M more tokens on a flawed prompt design).
 
-### Stage 1 — skills-quality/opus — DONE ✓ (workflow wen9wzyee, 10 agents, 140s)
+### Stage 1: skills-quality/opus: DONE ✓ (workflow wen9wzyee, 10 agents, 140s)
 
 All 10 draws `completed:true`; **no short-circuit recurred** (cold arms did full audits, 10-12 turns each).
 
@@ -169,7 +169,7 @@ the save is large and stable. This is the strongest, best-supported skills-quali
 study. Prior: R1 +5%, R5 −62% (N=1). Now: **+76% (N=5/arm)**.
 → scoreboard `skills-optim-study-2026-06-01-replicates.json`.
 
-### Stage 2 — skills-freshness/opus — DONE ✓ (workflow wxirdto7p, 10 agents, 437s)
+### Stage 2: skills-freshness/opus: DONE ✓ (workflow wxirdto7p, 10 agents, 437s)
 
 All 10 draws `completed:true`.
 
@@ -180,7 +180,7 @@ All 10 draws `completed:true`.
 
 **Cell: saved 145,606 → +76%.** **Overturns the prior near-zero/negative opus rounds** (R1 −21%,
 R2 +1%, R5 −1%). At depth the cold arm does a full staleness audit (verifying file:line citations
-against source — 172-200K) while the sha256 change-detection script short-circuits unchanged skills
+against source: 172-200K) while the sha256 change-detection script short-circuits unchanged skills
 (~46K). The prior near-zero numbers were N=1 artifacts of an unusually shallow cold arm (R1: 135K/9 turns).
 
 ### Cross-opus finding (both cells)
@@ -189,12 +189,12 @@ against source — 172-200K) while the sha256 change-detection script short-circ
 (skills-quality, skills-freshness) are **strong opus savers once the baseline does real work**; the
 study's prior near-zero/negative opus numbers (R1 quality +5%/R5 −62%; R1-R5 freshness −21/+1/−1) were
 **N=1 artifacts of unusually cheap cold arms** (short-circuited or shallow). This is precisely the
-opus-variance the study flagged ("most variable model, swings up to 67pp") — and exactly what the
+opus-variance the study flagged ("most variable model, swings up to 67pp"), and exactly what the
 pinned/averaged-baseline design at N≥5 was meant to resolve. Caveat (carried from the calibration
 skill): the absolute cold-arm cost depends on how deeply it verifies, which is task-framing-sensitive;
 trust direction + magnitude, not the exact %.
 
-### Stage 3 — sonnet+haiku cells (N=3/arm) — DONE ✓ (workflow w01t7rdr4, 24 agents, 669s)
+### Stage 3: sonnet+haiku cells (N=3/arm): DONE ✓ (workflow w01t7rdr4, 24 agents, 669s)
 
 All 24 draws `completed:true`.
 
@@ -207,7 +207,7 @@ All 24 draws `completed:true`.
 
 ---
 
-## Phase 5 synthesis — all 6 cells
+## Phase 5 synthesis: all 6 cells
 
 | Cell | N/arm | % saved (this round) | prior N=1 history | resolution |
 | --- | ---: | ---: | --- | --- |
@@ -217,20 +217,20 @@ All 24 draws `completed:true`.
 | skills-freshness/opus | 5 | **+76%** | −21% / +1% / −1% | near-zero overturned |
 | skills-freshness/sonnet | 3 | **+78%** | +43% / +14% / +1% | confirmed positive, firmed |
 | skills-freshness/haiku | 3 | **+73%** | **−70%** / +20% / +48% | headline swing confirmed positive |
-| **Aggregate** | — | **+75%** (560,294 tok) | R1 +2.5% | — |
+| **Aggregate** |, | **+75%** (560,294 tok) | R1 +2.5% |, |
 
 **The durable result of this round.** At N≥3 (≥5 on opus) with the before-arm pinned by averaging,
 **every one of the 6 cells is a strong net saver (+54% to +85%)**. Every prior negative/near-zero cell
 (quality/opus −62%, quality/sonnet −12%, freshness/opus −21%, freshness/haiku −70%) **flips strongly
-positive at depth** — confirming they were N=1 artifacts of cold arms that happened to short-circuit
+positive at depth**: confirming they were N=1 artifacts of cold arms that happened to short-circuit
 cheaply, exactly the failure mode the pinned-baseline design targets. This **overturns the original
 study's headline** ("3 of 6 cells negative, +2.5% aggregate, no portfolio save claim"): with replication
 at depth there IS a consistent, large save.
 
-**The honest caveat (load-bearing — do not drop it).** Tonight's save % is driven by how *thorough*
+**The honest caveat (load-bearing, do not drop it).** Tonight's save % is driven by how *thorough*
 the cold arm is, and that is **task-framing-sensitive**. The script-backed skills cost ~14–46K because
 their Python script does the audit in near-zero LLM tokens; the cold arm costs 54–200K because it must
-read everything itself — and the deeper it verifies (one freshness/sonnet cold draw ran **109 turns**),
+read everything itself, and the deeper it verifies (one freshness/sonnet cold draw ran **109 turns**),
 the larger the gap. My calibration prompt ("audit ALL skills, per-skill findings with severity")
 encourages a thorough cold audit; a cold arm that short-circuits (as several original N=1 draws did)
 shrinks or flips the save. So: **trust the consistent positive DIRECTION across all 6 cells and the

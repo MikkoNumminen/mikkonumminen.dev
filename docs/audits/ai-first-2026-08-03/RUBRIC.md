@@ -1,4 +1,4 @@
-# AI-First Rating — instrument definition (2026-08-03 campaign)
+# AI-First Rating: instrument definition (2026-08-03 campaign)
 
 The rubric the 2026-08-03 campaign measures against. Frozen at the start of the
 campaign so the score cannot be moved by moving the ruler: any change to weights
@@ -10,7 +10,7 @@ recorded here with a reason.
 **Whole repo.** `src/`, `chat-backend/`, `content/`, `docs/`, `scripts/`,
 `.claude/`, `.github/`, and the root config. This is wider than the 2026-06-14
 measurement, which was frontend-centric and predates roughly half the current
-code — so a *lower* number this round would not necessarily mean regression. The
+code, so a *lower* number this round would not necessarily mean regression. The
 weights are unchanged from June specifically so the per-dimension shape stays
 comparable even though the scope does not.
 
@@ -18,13 +18,13 @@ comparable even though the scope does not.
 
 | # | Dimension | Weight | What it asks |
 | --- | --- | ---: | --- |
-| 1 | Onboarding & navigation | 18% | Can an agent that has never seen this repo become productive from the committed docs alone — README, CLAUDE.md, AGENTS.md, per-directory entry points, env checks — without asking a human? |
+| 1 | Onboarding & navigation | 18% | Can an agent that has never seen this repo become productive from the committed docs alone, README, CLAUDE.md, AGENTS.md, per-directory entry points, env checks, without asking a human? |
 | 2 | Code legibility | 18% | Do files explain their own purpose and constraints at the top; are modules small and single-responsibility; are magic numbers justified; is the why-not-what comment discipline actually held? |
 | 3 | Self-verification gates | 16% | Can an agent prove its change is correct without a human? Unit/e2e/eval coverage, invariant tests, coverage ratchets, and whether the gates catch the failures that actually occur here. |
 | 4 | Decision & rationale | 12% | Are non-obvious choices recorded with rejected alternatives, and is supersession disciplined? ADRs, audit docs, and in-file rationale. |
 | 5 | Automation & tooling | 12% | CI as a hard gate: least privilege, timeouts, concurrency, security scanning, drift guards, and one-command local reproduction of what CI does. |
 | 6 | Type safety & data | 10% | Strictness settings actually held (no escape-hatch casts), validated trust boundaries, typed data modules, runtime shape guards where types cannot reach. |
-| 7 | Machine-readable artifacts | 7% | Schemas, validators, and structured outputs that a machine can consume and check — not prose an agent must parse. |
+| 7 | Machine-readable artifacts | 7% | Schemas, validators, and structured outputs that a machine can consume and check, not prose an agent must parse. |
 | 8 | Security/ops docs | 7% | Threat model, headers/CSP, containment invariants, secret handling, and runbooks accurate enough to act on. |
 
 ## Scoring rules (the "fair panel" calibration)

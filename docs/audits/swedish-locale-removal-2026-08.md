@@ -1,4 +1,4 @@
-# Swedish-locale removal — what stayed and why (2026-08-01)
+# Swedish-locale removal: what stayed and why (2026-08-01)
 
 Companion note to PR #476 (`chore(i18n): remove Swedish`, merged as commit
 `2146721`). The reasoning behind the one counterintuitive part of that removal
@@ -22,7 +22,7 @@ posts, two of which said the *opposite* of the English (see
 [PORO-FINNISH-REVIEW-2026-07-21.pdf](PORO-FINNISH-REVIEW-2026-07-21.pdf)).
 There was no reason to believe the unreviewed Swedish was any better, and no
 way to check. Publishing text in your own name that you cannot verify is
-worse than publishing nothing — and every locale slot also taxes a
+worse than publishing nothing, and every locale slot also taxes a
 translation pass, a review pass, a narration, and a test/schema slot on every
 future change to copy.
 
@@ -36,7 +36,7 @@ thing the PR tried to remove, on the theory that a language the site cannot
 serve can only ever be a wrong answer to route to. **Measured, that is
 worse:** with only EN/FI as candidates, the detector has nowhere else to put
 Swedish input, so `"Vilket projekt är mest komplext?"` was classified as
-Finnish and would have been answered in Finnish — a worse outcome than
+Finnish and would have been answered in Finnish: a worse outcome than
 English for a Swedish speaker. Restoring `SWEDISH` as a detection candidate
 (without ever serving a Swedish UI or answer) makes that same input fail
 `looks_finnish` and fall through to English instead, which a Swedish speaker
@@ -49,12 +49,12 @@ version.
 ## What a future agent might "helpfully" break
 
 - Removing `Language.SWEDISH` from lingua's candidate set to match the
-  removal of `sv` from `LOCALES` — this is the exact regression the PR
+  removal of `sv` from `LOCALES`. This is the exact regression the PR
   measured and reverted from. The two lists are intentionally different: one
   is what the site serves, the other is what the router must be able to rule
   out.
 - Two tests had hardcoded `['en', 'fi', 'sv']` instead of importing `LOCALES`
-  and still passed typecheck after the removal — a string literal in a test
+  and still passed typecheck after the removal: a string literal in a test
   isn't checked against the union. Both were fixed to import `LOCALES`
   directly; if you add a locale-list assertion, import the source of truth
   rather than retyping it.

@@ -1,10 +1,10 @@
-# RAG chat — Phase 1: narrow corpus expansion (2026-06-28)
+# RAG chat: Phase 1: narrow corpus expansion (2026-06-28)
 
 Phase 1 of the RAG upgrade, scoped **narrow** per the [Phase 0
 diagnosis](rag-phase0-diagnosis-2026-06-28.md): the corpus is already strong
 (every project's `-deepdive.md` carries the *why*), so this does **not** do a full
 per-project PR/commit scan. It adds the `doc_type`/`doc_date` metadata backbone
-the spec requires and fills the one clear corpus gap Phase 0 found — **the repo's
+the spec requires and fills the one clear corpus gap Phase 0 found: **the repo's
 own design rationale (ADRs) was not in the corpus**, so the chat could not
 ground "why is it built this way" questions.
 
@@ -13,7 +13,7 @@ ground "why is it built this way" questions.
 - **Source-genre metadata** (migration `003_doc_type_metadata.sql`): a `doc_type`
   column (`prose` | `code` | `adr`; later phases add `pr` | `commit` |
   `narrative`) and a nullable `doc_date`. Distinct from `chunk_type` (which the
-  weak-retrieval gate anchors on, kept to its two values) — an ADR is
+  weak-retrieval gate anchors on, kept to its two values): an ADR is
   `chunk_type='prose'`, `doc_type='adr'`. Existing rows backfill (`code` rows read
   `code`, the rest stay `prose`); the indexer writes the genre + date per
   (re-)embedded chunk.
@@ -39,10 +39,10 @@ prose 194.
 
 All 4 ADR questions flipped corpus-miss → PASS; the must-retrieve hits went
 20/36 → 24/36, i.e. **exactly the 4 ADR questions, zero regression** on the
-original 48 — the spec's acceptance ("lift the corpus/retrieval-miss questions
+original 48: the spec's acceptance ("lift the corpus/retrieval-miss questions
 without regressing others").
 
-Live confirmation — the chat now grounds design-rationale questions in the ADRs
+Live confirmation: the chat now grounds design-rationale questions in the ADRs
 rather than the stale portfolio summary:
 
 > *Q: Why is the RAG chat a separate local service…?* →

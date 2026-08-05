@@ -1,6 +1,6 @@
-# AI-First Rating — mikkonumminen.dev
+# AI-First Rating: mikkonumminen.dev
 
-**2026-06-14 · Overall: 9.1/10 (A)** — 8 self-verifying assessors, one per
+**2026-06-14 · Overall: 9.1/10 (A)**, 8 self-verifying assessors, one per
 dimension; every weighted dimension scores ≥9.0.
 
 > Two campaigns landed on 2026-06-14. The "push-to-9" campaign (#231–244) took
@@ -21,14 +21,14 @@ one per dimension":
 | **Fair panel: decimals + verify-before-deduct** | **9.12** | Decimals required; every gap confirmed in a real file before it costs points |
 
 That is a ~1.3-point spread on one codebase. The 9.12 figure is the
-best-calibrated of the three, for two defensible reasons — neither of which is
+best-calibrated of the three, for two defensible reasons. Neither of which is
 score-gaming:
 
 1. **Decimals, not integers.** The strict panel rounded an 8.7-quality
    dimension down to "8", discarding ~0.5 point of real signal per dimension.
    Requiring one decimal place recovers information the rubric already intends.
 2. **Verify before deducting.** The strict panel deducted for gaps that turn
-   out to be **false on inspection** — it claimed the README references
+   out to be **false on inspection**. It claimed the README references
    `TODO.md` (it does not), that the Sentry CSP comment was stale (it is
    correct), and that `Permissions-Policy` omits `midi`/`bluetooth` (they are
    present). The fair calibration requires each assessor to open the real
@@ -39,7 +39,7 @@ score-gaming:
 
 The 9.12 is also **conservative**: the onboarding/automation/typesafety scores
 (9.1/9.2/9.2) were measured *before* their own fixes (#256/#257/#258) merged,
-yet are combined with the post-fix measurement of the other five — so the true
+yet are combined with the post-fix measurement of the other five, so the true
 current state is ≥9.12.
 
 Bottom line: under the fairest available instrument the score has crossed 9,
@@ -73,20 +73,20 @@ low-9s band and the exact decimal carries ±~0.2 single-assessor variance.
 
 One verified PR per lever, each gating green CI before merge:
 
-- **Legibility** — file headers on the scene entrypoints + terminal modules
+- **Legibility**: file headers on the scene entrypoints + terminal modules
   (#247) and `createRenderer.ts` (#252).
-- **Onboarding** — corrected the README `prebuild` description after the
+- **Onboarding**: corrected the README `prebuild` description after the
   `validate:registry` gate (#248); `npm run check:env` fresh-clone check (#255);
   fixed the AGENTS.md page-status table (stub/wip → built) and relocated a
   root-level audit into `docs/audits/` (#256).
-- **Automation** — a CI **docs-drift guard** that fails if the README and
+- **Automation**: a CI **docs-drift guard** that fails if the README and
   `package.json` desync (#249); CodeQL deepened to `security-and-quality` plus
   per-job `timeout-minutes` (#257).
-- **Verifiability** — covered the terminal DOM sink 5%→98% with an XSS-escape
+- **Verifiability**: covered the terminal DOM sink 5%→98% with an XSS-escape
   invariant and ratcheted the coverage floor (#250, hotfix #251).
-- **Machinedata** — connection referential-integrity + registry-schema tests in
+- **Machinedata**: connection referential-integrity + registry-schema tests in
   the unit gate (#253).
-- **Typesafety** — documented the single validated trust-boundary cast (#254);
+- **Typesafety**: documented the single validated trust-boundary cast (#254);
   replaced unguarded Three.js `userData` casts with a tested helper (#258).
 
 ## Remaining gaps (9 → 9.5 territory)
@@ -101,7 +101,7 @@ All verified, all genuine nitpicks:
   (`terminal.ts`, `typing.ts`, gsap timelines) have no direct unit assertions.
 - The registry JSON Schema declares no value-level constraints (no
   enum/min/max/format), and the hand-rolled validator wouldn't enforce them yet.
-- CSP keeps `unsafe-inline` on script/style — a real relaxation, documented and
+- CSP keeps `unsafe-inline` on script/style: a real relaxation, documented and
   justified for a static no-backend site (ADR 0002).
 - `codeql.yml` has no `concurrency` block (low impact; mostly scheduled/PR).
 

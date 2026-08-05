@@ -1,4 +1,4 @@
-# Skills-registry PDF — current state audit
+# Skills-registry PDF: current state audit
 
 Audit date: 2026-05-21. Source commit: `3e66649` (`feat(skills): rename /skill-pdf to /skill-localUpdate`).
 
@@ -8,11 +8,11 @@ This document is the baseline reference for the redesign in PR-`chore/skills-pdf
 
 The PDF is the last hop of a five-step chain, exposed as the `/skill-localUpdate` slash command (formerly `/skill-pdf`, renamed in PR #141):
 
-1. **Measurement** — `mikko-skill-usage` (lives in `~/.claude/skills/`, not this repo) walks every `~/.claude/projects/<dir>/<session>.jsonl` transcript, filters assistant messages by the harness-emitted `attributionSkill` field, dedupes by `requestId`, and writes a dated `SKILL-USAGE-{YYYY-MM-DD}.json` (plus a `LATEST.json` symlink-equivalent) to `.claude/agent-verdicts/`. This is the only source of measured data — nothing else looks at transcripts.
-2. **Inventory** — `/skill-registry` (this repo, `.claude/skills/skill-registry/SKILL.md`) walks `D:/koodaamista/*/.claude/skills/*/SKILL.md` plus the `claude-skills` library's `skills/*/SKILL.md`, dispatches one Sonnet sub-agent per repo, and aggregates the per-skill frontmatter + editorial receipts into `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json`. Editorial only — no measurement overlay happens here.
-3. **Sync** — `scripts/sync-skill-registry.mjs` copies the latest dated registry JSON to `public/data/skills-registry.json` so the contact-page terminal and the PDF renderer both read the same file.
-4. **Overlay** — `scripts/apply-measurement-overlay.mjs` reads `SKILL-USAGE-LATEST.json` and `public/data/skills-registry.json`, replaces editorial receipts with measurement-derived ones where the skill name matches (with an `INSTALL_PREFIX = "mikko-"` strip and a `CANONICAL_DUPLICATES` map that folds consumer-repo duplicates into the library row), preserves the displaced editorial figures under `receipt.prior_estimate` for the calibration line, and rewrites `public/data/skills-registry.json` in place. Bare measurement names (e.g. `mikko-help`) match library rows via the install-prefix strip; session-attributed names use `SESSION_TO_REPO` to find the right consumer repo.
-5. **Render** — `scripts/build-skills-pdf.mjs` reads the merged JSON, builds an HTML string with embedded CSS, writes it to a temp file, then drives a locally-installed Chrome via `--print-to-pdf` (`scripts/lib/chrome-pdf.mjs`). Output lands at `public/skills-registry.pdf`. Short-circuits on CI / Vercel — the committed PDF is canonical for hosted builds.
+1. **Measurement**: `mikko-skill-usage` (lives in `~/.claude/skills/`, not this repo) walks every `~/.claude/projects/<dir>/<session>.jsonl` transcript, filters assistant messages by the harness-emitted `attributionSkill` field, dedupes by `requestId`, and writes a dated `SKILL-USAGE-{YYYY-MM-DD}.json` (plus a `LATEST.json` symlink-equivalent) to `.claude/agent-verdicts/`. This is the only source of measured data. Nothing else looks at transcripts.
+2. **Inventory**: `/skill-registry` (this repo, `.claude/skills/skill-registry/SKILL.md`) walks `D:/koodaamista/*/.claude/skills/*/SKILL.md` plus the `claude-skills` library's `skills/*/SKILL.md`, dispatches one Sonnet sub-agent per repo, and aggregates the per-skill frontmatter + editorial receipts into `.claude/agent-verdicts/SKILL-REGISTRY-{YYYY-MM-DD}.json`. Editorial only, no measurement overlay happens here.
+3. **Sync**: `scripts/sync-skill-registry.mjs` copies the latest dated registry JSON to `public/data/skills-registry.json` so the contact-page terminal and the PDF renderer both read the same file.
+4. **Overlay**: `scripts/apply-measurement-overlay.mjs` reads `SKILL-USAGE-LATEST.json` and `public/data/skills-registry.json`, replaces editorial receipts with measurement-derived ones where the skill name matches (with an `INSTALL_PREFIX = "mikko-"` strip and a `CANONICAL_DUPLICATES` map that folds consumer-repo duplicates into the library row), preserves the displaced editorial figures under `receipt.prior_estimate` for the calibration line, and rewrites `public/data/skills-registry.json` in place. Bare measurement names (e.g. `mikko-help`) match library rows via the install-prefix strip; session-attributed names use `SESSION_TO_REPO` to find the right consumer repo.
+5. **Render**: `scripts/build-skills-pdf.mjs` reads the merged JSON, builds an HTML string with embedded CSS, writes it to a temp file, then drives a locally-installed Chrome via `--print-to-pdf` (`scripts/lib/chrome-pdf.mjs`). Output lands at `public/skills-registry.pdf`. Short-circuits on CI / Vercel, the committed PDF is canonical for hosted builds.
 
 The renderer's only input is the merged `public/data/skills-registry.json`. The redesign only needs to touch step 5; steps 1–4 stay as-is.
 
@@ -70,17 +70,17 @@ The portfolio at the time of this audit (the snapshot the PDF was generated from
 
 - **33 skills** across 4 repos (AudiobookMaker 8, Spacepotatis 12, claude-skills 9, mikkonumminen.dev 4) plus 1 redirect.
 - **12 measured rows**, 20 editorial.
-- **`/review` built-in reference**: 14 invocations / 14.35M tokens in 90 days, projected to 57 uses / ~58.4M tokens per year. This number matters — the rest of the portfolio's measured annual is ~6.5M, so the built-in alone is ~9× the custom-skill measured cost.
+- **`/review` built-in reference**: 14 invocations / 14.35M tokens in 90 days, projected to 57 uses / ~58.4M tokens per year. This number matters: the rest of the portfolio's measured annual is ~6.5M, so the built-in alone is ~9× the custom-skill measured cost.
 
 ## Current layout (what `build-skills-pdf.mjs` renders today)
 
 A4 landscape, 9.5pt body. Single HTML string with embedded `<style>`. Sections in order:
 
-1. **Title + meta paragraph** — one sentence, ~10 lines, explaining the green-left-border convention, the calibration line convention, and the tokens-saved heuristic (3× baseline, 2× savings). This paragraph is the *only* place those conventions are explained.
-2. **`Reference: Claude Code built-ins`** — a one-row table showing `/review` with the same 6 columns the per-repo tables use. Marked as excluded from totals.
-3. **`Aggregate`** — 5 columns (Repo / Skills / Times run / Tokens used / yr / Tokens saved / yr), one row per repo + a totals row.
-4. **Per-repo sections** — one `<h2>` per repo, each with a 6-column table: Skill / Description / Cost / use / Times run / Tokens used / Tokens saved (est.).
-5. **Footer** — generation timestamp, measured invocation count, measured token sum.
+1. **Title + meta paragraph**: one sentence, ~10 lines, explaining the green-left-border convention, the calibration line convention, and the tokens-saved heuristic (3× baseline, 2× savings). This paragraph is the *only* place those conventions are explained.
+2. **`Reference: Claude Code built-ins`**: a one-row table showing `/review` with the same 6 columns the per-repo tables use. Marked as excluded from totals.
+3. **`Aggregate`**: 5 columns (Repo / Skills / Times run / Tokens used / yr / Tokens saved / yr), one row per repo + a totals row.
+4. **Per-repo sections**: one `<h2>` per repo, each with a 6-column table: Skill / Description / Cost / use / Times run / Tokens used / Tokens saved (est.).
+5. **Footer**: generation timestamp, measured invocation count, measured token sum.
 
 Row treatment within per-repo tables:
 
@@ -104,7 +104,7 @@ Concrete example: rows 1 and 3 in the AudiobookMaker table (`ai-codegen-smell-au
 
 ### 2. The calibration delta is the smallest type on the page
 
-When a measured row has a `prior_estimate`, the renderer shows a calibration line: `est. 4K · 93× under` in 7.5pt type (a `.subtle` class), sitting *inside* the Cost-per-use cell as the third visual line of that cell. This is the most senior-engineer-coded data in the entire document — the author admits in print "I guessed 4K and the truth was 200K, off by 93×" — and it is rendered smaller than the column header.
+When a measured row has a `prior_estimate`, the renderer shows a calibration line: `est. 4K · 93× under` in 7.5pt type (a `.subtle` class), sitting *inside* the Cost-per-use cell as the third visual line of that cell. This is the most senior-engineer-coded data in the entire document (the author admits in print "I guessed 4K and the truth was 200K, off by 93×"), and it is rendered smaller than the column header.
 
 Concrete examples from the current snapshot:
 
@@ -116,13 +116,13 @@ A senior reader scans this column and sees the order-of-magnitude misses; that's
 
 ### 3. Tokens-saved gives editorial rows equal billing with measured ones
 
-The `Tokens saved (est.)` column carries an annualized savings figure (~2× cost-per-use × uses-per-year) for every row that has any receipt — measured *or* editorial. The aggregate row says "Total tokens saved / yr ~20.5M," and that 20.5M includes contributions from rows where both `tokens_per_use` and `uses_per_year` are pure author guesses. There is no visual cue distinguishing the ~3.5M annual savings that derive from measurement-backed multipliers from the ~17M that derive from editorial multipliers stacked on editorial uses-per-year.
+The `Tokens saved (est.)` column carries an annualized savings figure (~2× cost-per-use × uses-per-year) for every row that has any receipt: measured *or* editorial. The aggregate row says "Total tokens saved / yr ~20.5M," and that 20.5M includes contributions from rows where both `tokens_per_use` and `uses_per_year` are pure author guesses. There is no visual cue distinguishing the ~3.5M annual savings that derive from measurement-backed multipliers from the ~17M that derive from editorial multipliers stacked on editorial uses-per-year.
 
-This is the document's biggest honesty problem. The hero number a senior reader will quote — "Mikko's portfolio saves ~20M tokens a year" — is roughly 80% editorial, but the document does nothing to flag that. The redesign needs to either visually downweight editorial savings contributions, split the headline number into "measured savings" + "estimated savings" pair, or both.
+This is the document's biggest honesty problem. The hero number a senior reader will quote ("Mikko's portfolio saves ~20M tokens a year") is roughly 80% editorial, but the document does nothing to flag that. The redesign needs to either visually downweight editorial savings contributions, split the headline number into "measured savings" + "estimated savings" pair, or both.
 
 ## Bonus: description column
 
-Not in the top three because it's a layout problem rather than an honesty problem, but worth recording: each skill row carries 4–8 lines of description prose in a tiny column. The "scan a row in under 2 seconds" target in the redesign brief is impossible against the current layout — a reader cannot help reading the description before they get to the numbers, because the description occupies more vertical space than every other cell combined.
+Not in the top three because it's a layout problem rather than an honesty problem, but worth recording: each skill row carries 4–8 lines of description prose in a tiny column. The "scan a row in under 2 seconds" target in the redesign brief is impossible against the current layout: a reader cannot help reading the description before they get to the numbers, because the description occupies more vertical space than every other cell combined.
 
 The redesign should drop the description to a single-sentence tagline (computed from the first sentence of the existing description), or move it to a smaller secondary line.
 

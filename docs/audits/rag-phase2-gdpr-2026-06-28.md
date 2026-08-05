@@ -1,4 +1,4 @@
-# RAG chat — Phase 2: GDPR-aware ingest-time context control (2026-06-28)
+# RAG chat: Phase 2: GDPR-aware ingest-time context control (2026-06-28)
 
 A configurable, demonstrable reference implementation of how a RAG system handles
 sensitive data. The corpus itself is public portfolio content, so the policy ships
@@ -7,7 +7,7 @@ live chat is unchanged by default; the capability is driven by a policy file
 (`GDPR_POLICY_FILE`) and proven by tests + a live demonstration.
 
 **Core principle: isolate at ingest, do not filter in front of the model.** Data
-that must never reach the model is never embedded — not filtered out after
+that must never reach the model is never embedded, not filtered out after
 retrieval, where one bug would leak it.
 
 ## The five mechanisms
@@ -16,22 +16,22 @@ retrieval, where one bug would leak it.
    is labelled `public | internal | restricted | pii` by source-prefix and/or
    content-regex rules; the **most-closed** matching rule wins (fail safe).
 2. **`pii` never embedded** (`app/indexer.py`). A pii doc yields **zero chunks** at
-   plan time — it never becomes a `DocumentRow`, never reaches the vector store.
+   plan time. It never becomes a `DocumentRow`, never reaches the vector store.
    The strongest isolation: not "filtered", never created. A doc reclassified to
    pii has its prior rows pruned.
 3. **Pseudonymisation before embedding** (`app/gdpr.py:pseudonymize`). Person
    references are replaced with stable, deterministic tokens **before chunking**,
-   so the token text is what gets hashed, embedded, and stored — the model only
+   so the token text is what gets hashed, embedded, and stored: the model only
    ever sees tokens. The reverse map lives in a separate, access-controlled table
    (`pseudonym_map`) resolved out-of-band, never via retrieval or the model.
 4. **Role-based retrieval filter** (`app/db.py`, `app/retrieval.py`). Each query
    carries a server-set role; retrieval is restricted to that role's permitted
-   classifications **in SQL, before any row leaves the database** — on all three
+   classifications **in SQL, before any row leaves the database**: on all three
    paths (dense, lexical, and the prose-anchor). The role is decided by the server
    (`policy.default_role`), never claimed by the client.
 5. **Audit log** (`app/request_log.py`). Every request records the query, the
    retrieved chunks' classifications, the requester role, and whether anything was
-   gated — the compliance trail.
+   gated: the compliance trail.
 
 Plus **data residency**: the local Ollama model means sensitive classes never
 leave the infrastructure; there is no third-party LLM call path. Asserted as a
