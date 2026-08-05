@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 # Words → estimated tokens. See the module docstring for why this errs high.
@@ -398,3 +399,52 @@ def chunk_document(
         min_tokens=min_tokens,
         overlap_tokens=overlap_tokens,
     )
+
+
+def enforce_token_ceiling(
+    chunks: list[Chunk],
+    count_tokens: Callable[[str], int],
+    ceiling: int,
+) -> list[Chunk]:
+    """Re-split any chunk whose REAL token count exceeds `ceiling`.
+
+    The word-based estimate above is calibrated on English prose and it
+    under-counts code badly: measured against this corpus with the embedder's own
+    tokenizer, real tokens ran 1.97x the estimate on average and 4.60x at worst,
+    which left 170 of 211 code chunks over the model's 512-token limit. The
+    embedder truncates silently at that limit, so the tail of those chunks was
+    never embedded and could never be retrieved.
+
+    `count_tokens` is injected rather than imported so this module stays
+    stdlib-only and unit-testable without a model, which is the property its
+    docstring is built on. The indexer passes the real tokenizer; tests pass a
+    fake.
+
+    Splitting is by lines, because a code chunk is already a definition-shaped
+    unit and cutting mid-line would produce something no reader or model can use.
+    A single line that alone exceeds the ceiling is kept whole and returned as
+    is: truncation is then the embedder's, and unavoidable without corrupting the
+    text.
+    """
+    out: list[Chunk] = []
+    for chunk in chunks:
+        if count_tokens(chunk.text) <= ceiling:
+            out.append(chunk)
+            continue
+        buf: list[str] = []
+        for line in chunk.text.split("\n"):
+            candidate = buf + [line]
+            if buf and count_tokens("\n".join(candidate)) > ceiling:
+                out.append(_rechunk(len(out), "\n".join(buf)))
+                buf = [line]
+            else:
+                buf = candidate
+        if buf:
+            out.append(_rechunk(len(out), "\n".join(buf)))
+    # Indices must be contiguous and ascending: the reconcile in indexer.py keys
+    # stored rows on (source, chunk_index), so a gap would orphan a row.
+    return [_rechunk(i, c.text) for i, c in enumerate(out)]
+
+
+def _rechunk(index: int, text: str) -> Chunk:
+    return Chunk(index=index, text=text, content_hash=hash_chunk(text))

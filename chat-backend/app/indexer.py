@@ -25,9 +25,9 @@ import argparse
 import asyncio
 import dataclasses
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from .chunking import Chunk, chunk_document, estimate_tokens
+from .chunking import Chunk, chunk_document, enforce_token_ceiling, estimate_tokens
 from .config import Settings
 from .content import ContentDoc, is_code_doc, load_docs
 from .gdpr import classify, is_embeddable, pseudonymize
@@ -122,7 +122,7 @@ async def reindex(
     """Embed and upsert the corpus idempotently. Returns run statistics."""
     # Lazy heavy imports so `plan()` / dry-run / unit tests never need them.
     from .db import Database, DocumentRow, apply_schema
-    from .embeddings import Embedder
+    from .embeddings import MAX_SEQUENCE_TOKENS, Embedder
 
     file_plans = plans if plans is not None else plan(settings)
     if not file_plans:
@@ -161,6 +161,24 @@ async def reindex(
 
             to_embed = select_chunks_to_embed(fp.chunks, existing)
             skipped += len(fp.chunks) - len(to_embed)
+
+            if fp.chunks:
+                # Enforce the model's REAL token ceiling before deciding what to
+                # embed. The word-based estimate in chunking.py is calibrated on
+                # English prose and under-counts code by ~2x on average, which
+                # left 81% of code chunks over the limit and silently truncated
+                # at embed time. The estimate still does the splitting; this only
+                # catches what it got wrong, so a corpus of prose pays one cheap
+                # token count per chunk and nothing else.
+                if embedder is None:
+                    embedder = Embedder(settings.embedding_model, settings.embedding_dim)
+                fp = replace(
+                    fp,
+                    chunks=enforce_token_ceiling(
+                        fp.chunks, embedder.token_count, MAX_SEQUENCE_TOKENS
+                    ),
+                )
+                to_embed = select_chunks_to_embed(fp.chunks, existing)
 
             if to_embed:
                 if embedder is None:
