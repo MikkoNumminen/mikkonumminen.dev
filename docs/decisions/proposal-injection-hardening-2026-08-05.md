@@ -164,6 +164,25 @@ docstring is a genuine defect either way.
 The CV override is straightforwardly testable: send an off-corpus question
 containing the word "cv" and see whether the relevance gate still refuses.
 
+> **DONE 2026-08-06, and the test said something this paragraph did not expect.**
+> Full numbers in `docs/audits/gate-steering-2026-08-06.md`.
+>
+> The code comment above the override claimed "off-corpus questions never trip
+> the CV route". Five of five did, because `wants_cv` matches the bare token
+> `cv`. The override is reachable by anyone on any question, and it is bounded to
+> a straddle band now so it can no longer skip the gate at any distance.
+>
+> But it was never load-bearing. Every laced question PASSED the gate on its own,
+> because pulling cv.md into context drops the prose anchor under the threshold.
+> The two questions that flipped from refusal to an answer did so through
+> retrieval, not through the override. I wrote a test asserting otherwise and it
+> failed, which is how I found out.
+>
+> The real finding is underneath both: three of five PLAIN off-corpus questions
+> passed the gate with no token inserted, at 0.4459, 0.4350 and 0.3691. A recipe
+> for karjalanpiirakka sits closer to this corpus than a CV question phrased in
+> the second person. Same root cause as the live acceptance failures.
+
 ## 4. The groundedness detector fires and nothing happens
 
 `unsupported_years` is the one deterministic invented-fact detector in the
