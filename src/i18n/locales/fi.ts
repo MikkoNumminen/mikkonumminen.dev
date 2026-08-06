@@ -96,6 +96,8 @@ export const fi: Translations = {
     aiBadge: 'tekoälyn generoima',
     aiNotice:
       'Tämän merkinnän on generoinut kielimalli commit-historiasta. En ole kirjoittanut sitä uudelleen. Käsittele sitä yhteenvetona muutoksista, ei jonain minun itse kirjoittamana.',
+    hasAudio: 'ääni',
+    noAudio: 'ei ääntä',
     backToIndex: 'Kaikki merkinnät',
     empty: 'Ei vielä merkintöjä.',
   },

@@ -10,7 +10,7 @@ interface Props {
 }
 
 const { entry, href } = Astro.props;
-const { title, description, date, locale, aiGenerated, tags } = entry.data;
+const { title, description, date, locale, aiGenerated, hasAudio, tags } = entry.data;
 
 const t = getTranslations(locale);
 const dateLabel = formatEntryDate(date, locale);
@@ -19,6 +19,22 @@ const dateLabel = formatEntryDate(date, locale);
 <article class="post-card">
   <div class="post-card__meta">
     <time datetime={date.toISOString()}>{dateLabel}</time>
+    {
+      /*
+      ALWAYS rendered, in both states, rather than a badge only on the posts that
+      have narration. Nine of eleven entries have it, so marking only those would
+      badge almost every card and leave the two exceptions defined by an absence,
+      which is exactly the thing a reader cannot see. Saying which it is costs one
+      short word and removes the guess.
+
+      NOT aria-hidden, unlike the AI chip beside it. That one repeats a fact
+      already inside the link's accessible name, so reading it twice is noise;
+      this fact appears nowhere else on the card.
+    */
+    }
+    <span class="post-card__audio" data-has-audio={hasAudio ? 'true' : 'false'}>
+      {hasAudio ? t.blog.hasAudio : t.blog.noAudio}
+    </span>
     {aiGenerated && <AiBadge decorative />}
   </div>
 
@@ -62,6 +78,23 @@ const dateLabel = formatEntryDate(date, locale);
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.55);
+  }
+
+  /* Reads as part of the meta line, not as a second badge competing with the AI
+     chip: same mono/uppercase treatment as the date beside it. The two states
+     differ in weight rather than colour, so "no audio" registers as a quieter
+     fact and not as a warning about the post. */
+  .post-card__audio {
+    letter-spacing: inherit;
+  }
+
+  .post-card__audio[data-has-audio='true']::before {
+    content: '▶ ';
+    color: var(--color-term-green, #4ade80);
+  }
+
+  .post-card__audio[data-has-audio='false'] {
+    opacity: 0.55;
   }
 
   .post-card__title {

@@ -84,6 +84,11 @@ export interface Translations {
     lede: string;
     /** Prominent badge on any entry whose frontmatter sets `aiGenerated: true`. */
     aiBadge: string;
+    /** Meta-row state on a blog card: this entry has narration, or it does not.
+     *  Always one or the other, never absent, so "no badge" can never be read
+     *  as "nobody got round to marking this one". */
+    hasAudio: string;
+    noAudio: string;
     /** Longer disclosure shown on the entry page itself, under the badge. */
     aiNotice: string;
     backToIndex: string;
