@@ -209,9 +209,21 @@ def _strip_markup(text: str) -> str:
 
 
 # How far past the relevance threshold the CV-intent override may rescue a
-# question. The case it was built for embedded at ~0.47 against a 0.45 gate, so
-# 0.05 covers it with room; anything farther out is not a straddle, it is an
+# question.
+#
+# MEASURED, not guessed. "what work experience do you have?" is the phrasing the
+# override was added for, and against the live corpus its prose anchor is 0.4849
+# with the gate at 0.45. The comment here used to say "~0.47"; the real number is
+# further out, and a slack of 0.03 would have refused the exact question this
+# mechanism exists to answer. 0.05 leaves 0.0151 of room.
+#
+# Of ten CV phrasings probed, that one is the ONLY one the gate refuses on its
+# own. The rest pass at 0.34 to 0.44 and never reach the override. So this is a
+# narrow rescue, and anything beyond the band is not a straddle: it is an
 # off-corpus question wearing a "cv" token.
+#
+# Tightening this needs a re-measure, not an argument. docs/audits/
+# gate-steering-2026-08-06.md has the table and the probe.
 CV_OVERRIDE_SLACK = 0.05
 
 

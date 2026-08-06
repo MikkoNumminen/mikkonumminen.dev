@@ -67,6 +67,42 @@ karjalanpiirakka sits closer to this corpus than a question about the CV phrased
 in the second person. That is the finding worth chasing, and it is the same root
 cause as the live acceptance failures.
 
+## Does bounding the override break anything it should rescue
+
+Bounding a rescue is only safe if the questions it currently rescues sit inside
+the band. **Nothing in the eval set trips the CV route**, so the golden set could
+not answer this and the override's justification existed only as a number in a
+code comment. Ten CV phrasings against the live corpus:
+
+| question | wants_cv | prose anchor | gate | in band |
+| --- | --- | ---: | --- | --- |
+| what work experience do you have? | True | **0.4849** | **refuse** | yes |
+| what is your work experience | True | 0.4115 | pass | yes |
+| what work experience does Mikko have | True | 0.3535 | pass | yes |
+| tell me about your career | True | 0.3815 | pass | yes |
+| what is in your CV | True | 0.3753 | pass | yes |
+| what does your CV say | True | 0.3653 | pass | yes |
+| mita tyokokemusta sinulla on | False | 0.4400 | pass | yes |
+| kerro urastasi | False | 0.4361 | pass | yes |
+| where have you worked | False | 0.4336 | pass | yes |
+| what jobs has Mikko had | False | 0.3465 | pass | yes |
+
+**No regressions.** One row matters: the phrasing the override was added for is
+the ONLY one of the ten the gate refuses by itself, and its anchor is **0.4849**,
+not the "~0.47" the code comment claimed. With a 0.05 slack that leaves 0.0151 of
+room. A slack of 0.03 reads as the more conservative choice and would have
+refused the exact question this mechanism exists to answer. That value is pinned
+in a test now, so tightening the slack fails loudly instead of quietly turning a
+real question into a refusal.
+
+The other nine pass the gate outright and never reach the override, which
+confirms from the other direction what the steering probe showed: this rescue is
+narrow and rarely load-bearing.
+
+One unrelated thing the table exposes: `mita tyokokemusta sinulla on` does not
+trip the CV route. The Finnish CV vocabulary presumably expects the accented
+forms. Not chased here.
+
 ## What changed as a result
 
 The override is bounded to a straddle band, so it can still rescue the ~0.47

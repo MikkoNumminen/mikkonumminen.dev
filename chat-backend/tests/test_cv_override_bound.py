@@ -63,8 +63,19 @@ class TestTheOverrideStillRescuesAStraddle:
     dressed as a security fix."""
 
     def test_the_second_person_phrasing_that_prompted_it(self) -> None:
-        # ~0.47 against a 0.45 gate: over the line, inside the slack.
-        assert _within_cv_override_slack([_chunk(0.47)], THRESHOLD)
+        """MEASURED, and the margin is thin enough to be worth pinning.
+
+        "what work experience do you have?" has a prose anchor of 0.4849 against
+        the live corpus, with the gate at 0.45. The code comment used to say
+        "~0.47", which is wrong in the dangerous direction: a slack of 0.03 reads
+        as conservative and would refuse the exact question the override exists
+        to answer. Of ten CV phrasings probed, this is the ONLY one the gate
+        refuses on its own, so it is also the only one this bound can break.
+
+        Tightening CV_OVERRIDE_SLACK below 0.035 fails here rather than silently
+        turning a real question into a refusal.
+        """
+        assert _within_cv_override_slack([_chunk(0.4849)], THRESHOLD)
 
     def test_exactly_at_the_edge_of_the_slack(self) -> None:
         assert _within_cv_override_slack(
