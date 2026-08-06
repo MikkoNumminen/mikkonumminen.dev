@@ -84,10 +84,6 @@ const dateLabel = formatEntryDate(date, locale);
      chip: same mono/uppercase treatment as the date beside it. The two states
      differ in weight rather than colour, so "no audio" registers as a quieter
      fact and not as a warning about the post. */
-  .post-card__audio {
-    letter-spacing: inherit;
-  }
-
   .post-card__audio[data-has-audio='true']::before {
     content: '▶ ';
     color: var(--color-term-green, #4ade80);
