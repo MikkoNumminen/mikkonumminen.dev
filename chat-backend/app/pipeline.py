@@ -63,6 +63,7 @@ from .guardrails import (
     smalltalk_route,
     truncation_notice,
     unsupported_years,
+    unsupported_years_caveat,
 )
 from .prompts import build_messages
 from .query_projects import detect_projects, restore_entities, wants_cv_intent
@@ -635,6 +636,37 @@ async def chat_event_stream(
         except Exception:
             logger.exception("truncation notice failed")
 
+        # Groundedness caveat. `unsupported_years` is the one deterministic
+        # invented-fact detector here, and its verdict used to reach the request
+        # log and nothing else: the visitor read the invented date with nothing
+        # to warn them, which makes a detector telemetry rather than a control.
+        #
+        # Computed ONCE, here, and reused by the log below, so the line the
+        # visitor sees and the line the log records can never disagree about
+        # which years were unsupported.
+        #
+        # Streaming means the text cannot be retracted once sent, so this is a
+        # caveat rather than a suppression. Placed right after the truncation
+        # notice and before the offer/footer: both are notes about the answer,
+        # and a warning about its accuracy outranks a nudge about what to ask
+        # next. Kept out of response_parts like the other suffixes, so the log
+        # and session memory store the substantive answer and a later turn is
+        # never primed with our own caveat. Guarded: a caveat must never be the
+        # thing that breaks a delivered answer.
+        invented: list[str] = []
+        try:
+            # `response_parts` is complete here: the generation loop has ended and
+            # only suffixes follow, and suffixes are deliberately never appended to
+            # it. `answer_text` is not bound until further down.
+            invented = unsupported_years(
+                "".join(response_parts), [c.content for c in chunks] + [query]
+            )
+            caveat = unsupported_years_caveat(invented, finnish=answer_in_finnish)
+            if caveat:
+                yield sse.sse_token(caveat)
+        except Exception:
+            logger.exception("groundedness caveat failed")
+
         # Progressive-disclosure offer: after a normal (non-expansion) answer about a
         # single project that HAS a narrative, offer to go deeper. A deterministic
         # suffix (never LLM-generated); the concise answer came FIRST, so value is
@@ -712,9 +744,7 @@ async def chat_event_stream(
                 # rate) and any stated year absent from BOTH the retrieved
                 # context and the question (the measured invented-fact class).
                 answer_lang=answer_language(answer_text),
-                invented_years=unsupported_years(
-                    answer_text, [c.content for c in chunks] + [query]
-                ),
+                invented_years=invented,
                 prose_distance=prose_distance,
             )
 

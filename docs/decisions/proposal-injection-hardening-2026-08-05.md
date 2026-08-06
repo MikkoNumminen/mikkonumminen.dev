@@ -210,6 +210,24 @@ machinery.
 **Recommendation: D1.** It uses machinery that already exists, it is honest to
 the visitor, and it is deterministic.
 
+> **DONE 2026-08-06, D1, and measuring first changed the shape of it.** Over
+> 2598 answered requests the detector had fired 3 times, 0.1%. Rare enough that
+> a caveat is a signal rather than noise, which is the number that makes D1
+> viable and D3 unnecessary.
+>
+> One of those three fires was a FALSE POSITIVE, and it had to be fixed before
+> the verdict could be shown to anyone: `2048`, in an answer about context
+> windows. It is a token count, and the only power of two the `19xx|20xx` shape
+> can match. The prose corpus spans 1905 to 2028, so the detector now ignores
+> year-shaped tokens past 2035. Wiring a visitor-facing warning to a detector
+> with a known false-positive class would have taught people to ignore it.
+>
+> The caveat names the years rather than gesturing at "a date", since a visitor
+> cannot act on a warning that will not say which part to distrust. It is
+> computed once and reused by the log, so the line the visitor sees and the line
+> the log records cannot disagree. Kept out of `response_parts` like the other
+> suffixes, so a later turn is never primed with our own caveat.
+
 ## 5. Ingestion has no symptom scan
 
 `content/code/**` is ingested verbatim under a size filter only, so any comment
