@@ -208,9 +208,22 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
             hint.classList.add('shoutbox__scroll-hint--done');
             observer.disconnect();
           },
-          // A sliver counts. Waiting for a threshold would leave the hint
-          // hovering over the top of the card it announced.
-          { threshold: 0 },
+          // A sliver counts, but the sliver has to exist. An element whose top
+          // edge sits exactly ON the viewport boundary touches the root with
+          // ZERO area and the spec still reports it as intersecting, and the
+          // terminal above is 100vh so the card starts exactly at the fold and
+          // hits that case on load. Measured against the live site: at viewport
+          // heights 800, 900, 1000 and 1200 the card had 0 visible pixels and
+          // the hint was already retired. It is one-way, so it never came back,
+          // which is the whole "there is no indicator" report.
+          //
+          // Shrinking the root by 1px at the bottom fixes it at the definition
+          // rather than in the callback. Filtering on intersectionRect.height
+          // instead does NOT work: the zero-area touch has already made
+          // isIntersecting true, so growing to real size is not a threshold
+          // crossing and the observer never fires again. Measured that too, by
+          // scrolling to the box and watching the hint fail to retire.
+          { threshold: 0, rootMargin: '0px 0px -1px 0px' },
         );
         observer.observe(card);
         controller.signal.addEventListener('abort', () => observer.disconnect());

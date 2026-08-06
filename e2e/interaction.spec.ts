@@ -175,6 +175,42 @@ async function primeShoutboxBackend(
  * quietly says "No messages yet." to everyone, with no error anywhere. Verified
  * by moving `SNAPSHOT_PATH`: the validator stayed green and this went red.
  */
+/**
+ * The scroll hint, which pointed at a box nobody could find.
+ *
+ * Reported twice as "there is no indicator to scroll down to viestit". The hint
+ * was rendering the whole time and retiring itself on LOAD: the terminal above is
+ * 100vh so the card starts exactly at the fold, an element whose top edge sits ON
+ * the viewport boundary touches the root with ZERO area, and the spec still
+ * reports that as intersecting. Measured against the live site at viewport
+ * heights 800, 900, 1000 and 1200: card visible for 0 pixels, hint already
+ * retired. One-way by design, so it never came back.
+ */
+test.describe('shoutbox: the scroll hint', () => {
+  test('survives load and retires only once the box is really on screen', async ({
+    page,
+  }) => {
+    await page.goto('/contact');
+    const hint = page.locator('[data-shoutbox-hint]');
+    const card = page.locator('.shoutbox__card');
+
+    // The card must genuinely start below the fold, or this test proves nothing:
+    // a card that is already visible SHOULD retire the hint immediately.
+    const visiblePx = await card.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+    });
+    expect(visiblePx).toBeLessThanOrEqual(0);
+
+    await expect(hint).not.toHaveClass(/shoutbox__scroll-hint--done/);
+    await expect(hint).toHaveCSS('opacity', '1');
+
+    // And it still does its one job: pointed at, then gone.
+    await card.scrollIntoViewIfNeeded();
+    await expect(hint).toHaveClass(/shoutbox__scroll-hint--done/);
+  });
+});
+
 test.describe('shoutbox: the published snapshot', () => {
   const snapshotPath = fileURLToPath(new URL('../public/data/shoutbox.json', import.meta.url));
 
