@@ -186,6 +186,60 @@ async function primeShoutboxBackend(
  * heights 800, 900, 1000 and 1200: card visible for 0 pixels, hint already
  * retired. One-way by design, so it never came back.
  */
+/**
+ * Which entries have narration, said on the card rather than found by opening it.
+ *
+ * Rendered in BOTH states on purpose. Nine of eleven entries have audio, so a
+ * badge only on those would mark almost every card and leave the two exceptions
+ * defined by an absence, which is the one thing a reader cannot see.
+ */
+test.describe('blog index: audio state', () => {
+  test('every card says whether it has narration', async ({ page }) => {
+    await page.goto('/blog');
+    const cards = page.locator('.post-card');
+    const chips = page.locator('.post-card__audio');
+    const count = await cards.count();
+    expect(count).toBeGreaterThan(0);
+    // One chip per card, no card left unmarked.
+    await expect(chips).toHaveCount(count);
+
+    // Both states present, so this is not passing because every entry happens
+    // to be labelled the same way.
+    const withAudio = page.locator("[data-has-audio='true']");
+    const without = page.locator("[data-has-audio='false']");
+    await expect(withAudio.first()).toBeVisible();
+    await expect(without.first()).toBeVisible();
+
+    // The TEXT has to differ, not just the attribute. Asserting the attribute
+    // alone let a mutation that printed "audio" on every card pass: the states
+    // were still distinct in the DOM and identical on screen, which is the only
+    // place it matters.
+    const yes = (await withAudio.first().innerText()).trim();
+    const no = (await without.first().innerText()).trim();
+    expect(yes).not.toBe(no);
+    expect(yes.length).toBeGreaterThan(0);
+    expect(no.length).toBeGreaterThan(0);
+  });
+
+  test('the chip agrees with whether the entry page offers audio', async ({ page }) => {
+    // The card must not claim narration the entry does not have. Checks the
+    // newest post, which is the one most likely to have been added without a
+    // recording.
+    await page.goto('/blog');
+    const first = page.locator('.post-card').first();
+    const says = await first.locator('.post-card__audio').getAttribute('data-has-audio');
+    await first.locator('a').first().click();
+    await page.waitForLoadState('domcontentloaded');
+    // `#blog-voice` specifically, NOT any <audio>. BackgroundAudio puts two
+    // music-bed decks on every page, so a bare `audio` locator is true
+    // everywhere and this test passed nothing while looking like it checked
+    // something. It failed on exactly that and is the reason the selector is
+    // narrow.
+    const hasPlayer = (await page.locator('#blog-voice').count()) > 0;
+    expect(hasPlayer).toBe(says === 'true');
+  });
+});
+
 test.describe('shoutbox: the scroll hint', () => {
   // VIEWPORT PINNED, and the number is measured rather than chosen. Against the
   // live site the hint retired on load at heights 800, 900, 1000 and 1200 and did

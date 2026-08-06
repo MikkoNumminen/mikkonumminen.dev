@@ -94,6 +94,8 @@ export const en: Translations = {
     aiBadge: 'AI-generated',
     aiNotice:
       'This entry was generated from commit history by a language model. I have not rewritten it. Treat it as a summary of what changed, not as something I sat down and wrote.',
+    hasAudio: 'audio',
+    noAudio: 'no audio',
     backToIndex: 'All entries',
     empty: 'No entries yet.',
   },
