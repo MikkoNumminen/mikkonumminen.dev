@@ -181,24 +181,20 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
       const t = getTranslations(document.documentElement.lang).shoutbox;
       const controller = new AbortController();
 
-      // Retire the hint once it has been acted on. One-way: it never comes back
-      // if the visitor scrolls up again, because by then they know the box is
-      // there and a signpost that keeps reappearing is just clutter.
-      //
-      // `scroll` is passive so it can never delay scrolling, and the listener
-      // removes itself on the first qualifying event rather than running for the
-      // life of the page.
-      // Retire the hint when the box it points at is actually on screen, not
-      // after an arbitrary number of pixels.
+      // Retire the hint once the box it points at is really on screen. One-way:
+      // it never comes back if the visitor scrolls up again, because by then
+      // they know the box is there and a signpost that keeps reappearing is just
+      // clutter.
       //
       // The first version fired at 80px of scroll, which is wrong in the case
       // that matters: the terminal is a full viewport tall, so 80px is a nudge
       // that reveals nothing. Someone who nudges and stops would lose the signal
-      // while the box was still an entire screen away — the hint would have
-      // disappeared precisely without doing its job.
+      // while the box was still an entire screen away. An IntersectionObserver
+      // ties the retire to the card actually appearing instead.
       //
-      // An IntersectionObserver retires it exactly when the card appears, and
-      // disconnects itself: one-way, because by then they have seen the thing.
+      // (There is no scroll listener here any more. Comments describing a
+      // passive `scroll` handler that removes itself outlived the code they
+      // described, and are gone with it.)
       const hint = document.querySelector<HTMLElement>('[data-shoutbox-hint]');
       const card = document.querySelector<HTMLElement>('.shoutbox__card');
       if (hint && card) {

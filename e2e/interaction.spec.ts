@@ -187,28 +187,45 @@ async function primeShoutboxBackend(
  * retired. One-way by design, so it never came back.
  */
 test.describe('shoutbox: the scroll hint', () => {
-  test('survives load and retires only once the box is really on screen', async ({
-    page,
-  }) => {
-    await page.goto('/contact');
-    const hint = page.locator('[data-shoutbox-hint]');
-    const card = page.locator('.shoutbox__card');
+  // VIEWPORT PINNED, and the number is measured rather than chosen. Against the
+  // live site the hint retired on load at heights 800, 900, 1000 and 1200 and did
+  // NOT at 700, because whether the zero-area edge touch is observed depends on
+  // where the 100vh terminal leaves the card relative to the fold.
+  //
+  // Playwright defaults to 720, which sits in the band where the bug is
+  // intermittent: with the fix reverted, three runs of this spec at the default
+  // gave 2 passed, 2 passed, then 1 failed. A test that catches the regression
+  // one time in three is not a guard, it is a coin toss that reads like one.
+  test.use({ viewport: { width: 1280, height: 900 } });
 
-    // The card must genuinely start below the fold, or this test proves nothing:
-    // a card that is already visible SHOULD retire the hint immediately.
-    const visiblePx = await card.evaluate((el) => {
-      const r = el.getBoundingClientRect();
-      return Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+  // Both routes. The bug was reported on the FINNISH page, and the whole point
+  // of the failure was a layout geometry rather than any logic, so proving it on
+  // /contact alone would be testing the locale nobody complained about. The
+  // component is shared, which is the reason to check rather than to assume.
+  for (const route of ['/contact', '/fi/contact']) {
+    test(`${route}: survives load and retires only once the box is on screen`, async ({
+      page,
+    }) => {
+      await page.goto(route);
+      const hint = page.locator('[data-shoutbox-hint]');
+      const card = page.locator('.shoutbox__card');
+
+      // The card must genuinely start below the fold, or this proves nothing: a
+      // card already on screen SHOULD retire the hint immediately.
+      const visiblePx = await card.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+      });
+      expect(visiblePx).toBeLessThanOrEqual(0);
+
+      await expect(hint).not.toHaveClass(/shoutbox__scroll-hint--done/);
+      await expect(hint).toHaveCSS('opacity', '1');
+
+      // And it still does its one job: pointed at, then gone.
+      await card.scrollIntoViewIfNeeded();
+      await expect(hint).toHaveClass(/shoutbox__scroll-hint--done/);
     });
-    expect(visiblePx).toBeLessThanOrEqual(0);
-
-    await expect(hint).not.toHaveClass(/shoutbox__scroll-hint--done/);
-    await expect(hint).toHaveCSS('opacity', '1');
-
-    // And it still does its one job: pointed at, then gone.
-    await card.scrollIntoViewIfNeeded();
-    await expect(hint).toHaveClass(/shoutbox__scroll-hint--done/);
-  });
+  }
 });
 
 test.describe('shoutbox: the published snapshot', () => {
