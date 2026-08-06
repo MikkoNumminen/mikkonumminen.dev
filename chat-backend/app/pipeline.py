@@ -57,6 +57,7 @@ from .guardrails import (
     is_weak_retrieval,
     looks_finnish,
     looks_non_english,
+    prose_anchor,
     requests_finnish_answer,
     research_coverage_footer,
     smalltalk_route,
@@ -214,17 +215,6 @@ def _strip_markup(text: str) -> str:
 CV_OVERRIDE_SLACK = 0.05
 
 
-def _prose_anchor(chunks: Sequence[RetrievedChunk]) -> float | None:
-    """The distance the relevance gate anchors on: the closest PROSE chunk, or
-    the closest of any kind when no prose was retrieved. Mirrors
-    `is_weak_retrieval` exactly, and exists so the log records the number the
-    decision was actually made on."""
-    if not chunks:
-        return None
-    prose = [c for c in chunks if c.chunk_type == "prose"]
-    return min(c.distance for c in (prose or chunks))
-
-
 def _within_cv_override_slack(
     chunks: Sequence[RetrievedChunk], weak_retrieval_distance: float
 ) -> bool:
@@ -233,11 +223,8 @@ def _within_cv_override_slack(
     Anchored on the same PROSE distance `is_weak_retrieval` gates on, so the two
     can never disagree about how far away the context is.
     """
-    if not chunks:
-        return False
-    prose = [c for c in chunks if c.chunk_type == "prose"]
-    best = min(c.distance for c in (prose or chunks))
-    return best <= weak_retrieval_distance + CV_OVERRIDE_SLACK
+    anchor = prose_anchor(chunks)
+    return anchor is not None and anchor <= weak_retrieval_distance + CV_OVERRIDE_SLACK
 
 
 async def chat_event_stream(
@@ -474,7 +461,7 @@ async def chat_event_stream(
     # What `is_weak_retrieval` actually gates on, logged alongside the raw list
     # so the request log can explain its own routing. Without it a gated 0.4353
     # sitting next to an answered 0.4459 reads as a contradiction.
-    prose_distance = _prose_anchor(chunks)
+    prose_distance = prose_anchor(chunks)
     # Per-classification counts of what surfaced — the audit trail's "which classes
     # of data did this retrieval touch". The role filter has already excluded any
     # class this role cannot see, so these are only ever permitted classes.

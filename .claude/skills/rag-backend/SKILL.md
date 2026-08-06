@@ -49,9 +49,11 @@ Read the real `.env` before reasoning about behaviour. As of 2026-07-31 the live
 
 One JSON object per line. Operational fields are always present; `query` and `response` only when `RAG_LOG_TEXT` is on.
 
-`ts` · `route` (`answered`, `weak_retrieval`, `greeting`, `generative`, `busy`, …) · `gated` · `model` · `latency_ms` · `prompt_eval_count` · `eval_count` · `best_distance` · `distances` · `role` · `classifications` · `answer_lang` · `query` · `response`
+`ts` · `route` (`answered`, `weak_retrieval`, `greeting`, `generative`, `busy`, …) · `gated` · `model` · `latency_ms` · `prompt_eval_count` · `eval_count` · `best_distance` · `prose_distance` · `distances` · `role` · `classifications` · `answer_lang` · `query` · `response`
 
 `eval_count` is the tokens generated, so `eval_count == LLM_NUM_PREDICT` is a deterministic truncation detector: the model was cut off rather than choosing to stop.
+
+`best_distance` is the closest chunk of ANY kind; **`prose_distance` is what the weak-retrieval gate actually compares against** (the closest prose chunk, or the closest of any kind when no prose came back). They differ, and reading the wrong one makes the routing look self-contradictory: a question gated at `best_distance` 0.4353 can sit next to one answered at 0.4459.
 
 ## Stack (confirmed from code — do not assume)
 

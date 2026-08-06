@@ -38,7 +38,8 @@ production call rather than a replica.
 
 from __future__ import annotations
 
-from app.pipeline import CV_OVERRIDE_SLACK, _prose_anchor, _within_cv_override_slack
+from app.guardrails import prose_anchor
+from app.pipeline import CV_OVERRIDE_SLACK, _within_cv_override_slack
 from app.retrieval import RetrievedChunk
 
 THRESHOLD = 0.45
@@ -98,22 +99,24 @@ class TestTheOverrideCannotDisableTheGate:
 
 
 class TestItAnchorsOnTheSameThingTheGateDoes:
-    """If these two ever disagree about how far away the context is, the override
-    could rescue on one number while the gate refused on another."""
+    """They cannot disagree, because there is now ONE definition:
+    `guardrails.prose_anchor`, used by the gate, by this slack check, and by the
+    request log. It was three separate copies for a while, which is how the log
+    ended up reporting a distance the gate never looked at."""
 
     def test_prose_wins_over_a_closer_code_chunk(self) -> None:
         chunks = [_chunk(0.30, chunk_type="code", source="code/x.py"), _chunk(0.47)]
-        assert _prose_anchor(chunks) == 0.47
+        assert prose_anchor(chunks) == 0.47
 
     def test_falls_back_to_all_chunks_when_no_prose_was_retrieved(self) -> None:
         chunks = [_chunk(0.30, chunk_type="code", source="code/x.py")]
-        assert _prose_anchor(chunks) == 0.30
+        assert prose_anchor(chunks) == 0.30
 
-    def test_the_slack_check_uses_the_prose_anchor(self) -> None:
+    def test_the_slack_check_uses_theprose_anchor(self) -> None:
         """A close code chunk must not smuggle an off-corpus question inside the
         slack, which is the same reason the gate itself anchors on prose."""
         chunks = [_chunk(0.10, chunk_type="code", source="code/x.py"), _chunk(0.90)]
         assert not _within_cv_override_slack(chunks, THRESHOLD)
 
     def test_empty_retrieval_has_no_anchor(self) -> None:
-        assert _prose_anchor([]) is None
+        assert prose_anchor([]) is None

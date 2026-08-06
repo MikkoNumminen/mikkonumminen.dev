@@ -59,8 +59,7 @@ TRUNCATED_NOTICE = (
     "Ask for a narrower slice of it to see the rest.]"
 )
 TRUNCATED_NOTICE_FI = (
-    "\n\n[Vastaus katkesi pituusrajaan. "
-    "Kysy rajatumpaa osaa, niin näet loput.]"
+    "\n\n[Vastaus katkesi pituusrajaan. Kysy rajatumpaa osaa, niin näet loput.]"
 )
 
 
@@ -169,10 +168,37 @@ def unsupported_years(response: str, supported_texts: Sequence[str]) -> list[str
 # "me" ('we'), "he" ('they'), "no" (interjection), "a"/"i" (too short).
 _ENGLISH_OVERRIDE_WORDS = frozenset(
     {
-        "what", "did", "does", "the", "at", "how", "why", "who", "when",
-        "where", "which", "your", "you", "have", "has", "with", "from",
-        "about", "that", "this", "do", "are", "was", "were", "his", "her",
-        "their", "them", "and", "but", "not",
+        "what",
+        "did",
+        "does",
+        "the",
+        "at",
+        "how",
+        "why",
+        "who",
+        "when",
+        "where",
+        "which",
+        "your",
+        "you",
+        "have",
+        "has",
+        "with",
+        "from",
+        "about",
+        "that",
+        "this",
+        "do",
+        "are",
+        "was",
+        "were",
+        "his",
+        "her",
+        "their",
+        "them",
+        "and",
+        "but",
+        "not",
     }
 )
 
@@ -500,6 +526,27 @@ def smalltalk_route(query: str) -> str | None:
     return None
 
 
+def prose_anchor(chunks: Sequence[RetrievedChunk]) -> float | None:
+    """The distance the relevance gate judges on: the closest PROSE chunk, or the
+    closest of any kind when no prose was retrieved. None when nothing came back.
+
+    ONE definition, because three callers need this exact number and they must
+    never disagree about it: the gate itself, the CV-override slack check, and the
+    request log (which recorded a DIFFERENT distance and could not explain its own
+    routing as a result). Each had its own copy for a while, which is how the log
+    ended up reporting a number the gate never looked at.
+
+    Prose rather than any chunk because the corpus holds source code: an
+    off-topic query can land a stray code chunk just inside the threshold, and
+    prose is the human-readable description of the work, so it is the honest
+    relevance signal.
+    """
+    if not chunks:
+        return None
+    prose = [c for c in chunks if c.chunk_type == "prose"]
+    return min(c.distance for c in (prose or chunks))
+
+
 def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> bool:
     """True when retrieval is too weak to ground an answer.
 
@@ -514,11 +561,8 @@ def is_weak_retrieval(chunks: Sequence[RetrievedChunk], max_distance: float) -> 
     so they are the honest relevance signal. Falls back to all chunks only when
     no prose was retrieved, so a code-only corpus still works.
     """
-    if not chunks:
-        return True
-    prose = [c for c in chunks if c.chunk_type == "prose"]
-    best = min(c.distance for c in (prose or chunks))
-    return best > max_distance
+    anchor = prose_anchor(chunks)
+    return anchor is None or anchor > max_distance
 
 
 # Deterministic "latest research" pointer, appended when the research-coverage
@@ -699,9 +743,7 @@ def is_generative_request(query: str) -> bool:
     requests can name an on-corpus topic (so the retrieval gate misses them) and
     a small LLM won't reliably refuse them from the system prompt alone.
     """
-    return bool(_GENERATIVE_RE.search(query)) or bool(
-        _GENERATIVE_FI_RE.search(query)
-    )
+    return bool(_GENERATIVE_RE.search(query)) or bool(_GENERATIVE_FI_RE.search(query))
 
 
 # Target-language group, shared by every translation-request shape below.
@@ -799,6 +841,4 @@ def is_translation_request(query: str) -> bool:
     the portfolio's own multilingual content are not caught.
     """
     stripped = query.strip()
-    return bool(_TRANSLATE_RE.search(stripped)) or bool(
-        _TRANSLATE_FI_RE.search(stripped)
-    )
+    return bool(_TRANSLATE_RE.search(stripped)) or bool(_TRANSLATE_FI_RE.search(stripped))

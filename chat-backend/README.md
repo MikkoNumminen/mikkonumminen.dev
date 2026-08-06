@@ -246,7 +246,8 @@ sole line of defense:
   `rag-logs/requests.jsonl`; set it empty to disable): one pure-JSONL line per
   request with operational telemetry only — no PII. Each record carries `ts`
   (ISO-8601 UTC), `route`, `gated`, `model`, `latency_ms`,
-  `prompt_eval_count` + `eval_count`, `best_distance` + `distances`, `role`,
+  `prompt_eval_count` + `eval_count`, `best_distance` + `prose_distance` +
+  `distances`, `role`,
   `classifications`, and `response_chars`. Set `RAG_LOG_TEXT=true` to also
   write the raw `query` + `response` text into each line — that is the only PII
   path, off by default, for local debugging only.
