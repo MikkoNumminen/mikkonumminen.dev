@@ -81,9 +81,7 @@ class QueueNotifier:
             if response.status_code != 200:
                 # Logged, not raised: a bad token should be visible in the
                 # backend log without ever reaching a visitor.
-                _log.warning(
-                    "telegram notify failed: status=%s", response.status_code
-                )
+                _log.warning("telegram notify failed: status=%s", response.status_code)
                 return False
         except Exception:  # noqa: BLE001 - best-effort by contract
             _log.warning("telegram notify failed", exc_info=True)

@@ -37,6 +37,8 @@ LLM_BUSY_REPLY_FI = "Vastaan juuri toiseen kysymykseen — odota hetki ja yritä
 # per-client usage state to race on while friends hit the chat at once.
 UsageRecorder = Callable[[int, int], Awaitable[None]]
 from .guardrails import (
+    BREACH_NOTICE,
+    BREACH_NOTICE_FI,
     COURTESY_REPLY,
     COURTESY_REPLY_FI,
     ENGLISH_ONLY_HINT,
@@ -65,6 +67,7 @@ from .guardrails import (
     unsupported_years,
     unsupported_years_caveat,
 )
+from .output_guard import breach_reason
 from .prompts import build_messages
 from .query_projects import detect_projects, restore_entities, wants_cv_intent
 from .request_log import RequestLogger
@@ -587,6 +590,7 @@ async def chat_event_stream(
             think=think,
         )
         tokens = 0
+        breach: str | None = None
         response_parts: list[str] = []
         usage: dict[str, int] = {}
         finish: dict[str, str] = {}
@@ -599,6 +603,25 @@ async def chat_event_stream(
                     tokens += 1
                     response_parts.append(cleaned)
                     yield sse.sse_token(cleaned)
+
+                    # Watch what the model is SAYING. The acceptance battery has
+                    # known how to spot a recited system prompt and an announced
+                    # jailbreak since it was written, and both detectors lived in
+                    # evals/ and nowhere else: production could commit either and
+                    # only a manual run would notice. Measured three times against
+                    # the live stack, the four must_refuse_injection cases are the
+                    # bulk of what fails.
+                    #
+                    # Checked on the ACCUMULATED text, not the token: the markers
+                    # are phrases, and a token is a word fragment.
+                    #
+                    # This cannot unsend. Some of the answer has already reached
+                    # the visitor by the time a marker appears. Stopping bounds
+                    # what follows and makes the event loggable, and saying that
+                    # plainly is better than a guard that implies more.
+                    breach = breach_reason("".join(response_parts))
+                    if breach is not None:
+                        break
         except Exception:
             logger.exception("generation failed")
             # A generation that died mid-stream consumed a GPU slot and latency;
@@ -618,6 +641,16 @@ async def chat_event_stream(
                 )
             yield sse.sse_error("generation unavailable")
             return
+
+        # A breach cut the stream short. Say so, in the visitor's language, and
+        # warn on the operator side. Deterministic text, never model-generated:
+        # the model has just demonstrated it is not in a state to be asked for
+        # anything. Placed before every other suffix because it explains why the
+        # answer stops, and an offer to "tell me more" underneath a cut-off leak
+        # would be absurd.
+        if breach is not None:
+            logger.warning("output breach, stream cut: %s", breach)
+            yield sse.sse_token(BREACH_NOTICE_FI if answer_in_finnish else BREACH_NOTICE)
 
         # Truncation, said out loud, and said FIRST. The model hitting
         # LLM_NUM_PREDICT used to be indistinguishable from the model finishing:
