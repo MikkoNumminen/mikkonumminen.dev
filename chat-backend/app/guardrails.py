@@ -82,9 +82,13 @@ UNSUPPORTED_YEARS_CAVEAT = (
     "[Careful with the dates here: {years} {verb} not in the sources this answer "
     "was built from, so treat {pronoun} as unverified.]"
 )
+# A Finnish negative existential takes a PARTITIVE subject and a singular verb:
+# "vuosilukua 2019 ei löydy", "vuosilukuja 2019, 2021 ei löydy". Writing the bare
+# year ("2019, 2021 ei löydy") drops that marking and reads as broken Finnish, so
+# the noun is inflected alongside the pronoun rather than left out.
 UNSUPPORTED_YEARS_CAVEAT_FI = (
-    "[Varaus vuosilukuihin: {years} ei löydy lähteistä joista tämä vastaus "
-    "koottiin, joten pidä {pronoun} vahvistamattomana.]"
+    "[Varaus: {noun} {years} ei löydy lähteistä, joista tämä vastaus koottiin. "
+    "Pidä {pronoun} vahvistamattomana.]"
 )
 
 
@@ -99,9 +103,10 @@ def unsupported_years_caveat(years: Sequence[str], *, finnish: bool) -> str | No
         return None
     listed = ", ".join(years)
     if finnish:
+        noun = "vuosilukua" if len(years) == 1 else "vuosilukuja"
         pronoun = "sitä" if len(years) == 1 else "niitä"
         return _SUFFIX_GAP + UNSUPPORTED_YEARS_CAVEAT_FI.format(
-            years=listed, pronoun=pronoun
+            noun=noun, years=listed, pronoun=pronoun
         )
     verb = "is" if len(years) == 1 else "are"
     pronoun = "it" if len(years) == 1 else "them"
