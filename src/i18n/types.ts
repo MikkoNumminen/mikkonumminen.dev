@@ -124,6 +124,11 @@ export interface Translations {
     }
   >;
   experiencePage: {
+    /** Language donut on the technology card. The note names the METRIC:
+     *  projects per language, which is not share of code and a reader will
+     *  assume the second one unless told. */
+    languageMixTitle: string;
+    languageMixNote: string;
     eyebrow: string;
     title: string;
     lede: string;

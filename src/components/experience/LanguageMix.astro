@@ -1,0 +1,168 @@
+---
+import { languageMix } from '../../data/projectLanguages';
+import { asLocale, getTranslations } from '../../i18n';
+
+const t = getTranslations(asLocale(Astro.currentLocale));
+const slices = languageMix();
+
+/*
+ * Hand-rolled SVG rather than a chart library, and that is the whole decision.
+ *
+ * A charting package means React on a site that has none: Astro islands, vanilla
+ * TypeScript, Three.js and GSAP, and nothing else. Pulling a framework and a
+ * renderer in for one donut of six slices would be the largest dependency on the
+ * page by an order of magnitude, and it would ship to every visitor who loads the
+ * experience view.
+ *
+ * The maths is one line of trigonometry per slice. `stroke-dasharray` on a circle
+ * draws an arc; rotating each one by the running total lays them end to end. No
+ * paths to compute, no layout engine, nothing to hydrate.
+ */
+
+const RADIUS = 52;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+// Fixed palette rather than generated hues: the site's accent family is
+// blue/green and a generated wheel would wander into the amber the AI badge owns.
+const COLOURS = ['#4ade80', '#38bdf8', '#a78bfa', '#f472b6', '#fbbf24', '#2dd4bf'];
+
+let offset = 0;
+const arcs = slices.map((slice, i) => {
+  const length = slice.share * CIRCUMFERENCE;
+  const arc = {
+    ...slice,
+    colour: COLOURS[i % COLOURS.length],
+    dash: `${length} ${CIRCUMFERENCE - length}`,
+    // -90 puts the first slice at twelve o'clock, where a reader starts.
+    rotation: (offset / CIRCUMFERENCE) * 360 - 90,
+  };
+  offset += length;
+  return arc;
+});
+---
+
+{
+  slices.length > 0 && (
+    <figure class="lang-mix">
+      <figcaption class="lang-mix__caption">
+        {t.experiencePage.languageMixTitle}
+        {/* The metric, said out loud. "Projects per language" and "share of the
+            codebase" are different claims, and the second one is the one a
+            reader assumes a donut is making. */}
+        <span class="lang-mix__note">{t.experiencePage.languageMixNote}</span>
+      </figcaption>
+
+      <div class="lang-mix__body">
+        <svg
+          class="lang-mix__chart"
+          viewBox="0 0 130 130"
+          role="img"
+          aria-label={slices.map((s) => `${s.language}: ${s.count}`).join(', ')}
+        >
+          {arcs.map((arc) => (
+            <circle
+              class="lang-mix__arc"
+              cx="65"
+              cy="65"
+              r={RADIUS}
+              fill="none"
+              stroke={arc.colour}
+              stroke-width="16"
+              stroke-dasharray={arc.dash}
+              transform={`rotate(${arc.rotation} 65 65)`}
+            />
+          ))}
+        </svg>
+
+        <ul class="lang-mix__legend">
+          {arcs.map((arc) => (
+            <li class="lang-mix__item">
+              <span
+                class="lang-mix__swatch"
+                style={`background:${arc.colour}`}
+                aria-hidden="true"
+              />
+              <span class="lang-mix__name">{arc.language}</span>
+              <span class="lang-mix__count">{arc.count}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </figure>
+  )
+}
+
+<style>
+  .lang-mix {
+    margin: 1.75rem 0 0;
+  }
+
+  .lang-mix__caption {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 1rem;
+  }
+
+  .lang-mix__note {
+    letter-spacing: 0.08em;
+    text-transform: none;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .lang-mix__body {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    flex-wrap: wrap;
+  }
+
+  .lang-mix__chart {
+    width: 130px;
+    height: 130px;
+    flex: none;
+  }
+
+  /* The arcs are the data. Nothing animates: this sits inside a view that
+     already runs a GSAP timeline and a Three.js scene, and one more moving thing
+     is noise rather than information. */
+  .lang-mix__legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.35rem 1.25rem;
+    flex: 1 1 12rem;
+  }
+
+  .lang-mix__item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .lang-mix__swatch {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 2px;
+    flex: none;
+  }
+
+  .lang-mix__name {
+    flex: 1;
+  }
+
+  .lang-mix__count {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+</style>

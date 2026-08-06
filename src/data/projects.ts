@@ -280,6 +280,7 @@ export const projects: Project[] = [
     liveUrl: 'https://readlog-a2feef.azurewebsites.net/',
     githubUrl: 'https://github.com/MikkoNumminen/Readlog-c-.net',
     tech: [
+      'C#',
       '.NET 8',
       'ASP.NET Core',
       'Razor Pages',
