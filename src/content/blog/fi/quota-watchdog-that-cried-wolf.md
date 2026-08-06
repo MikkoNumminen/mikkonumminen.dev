@@ -1,0 +1,35 @@
+---
+title: 'Vahtikoira, joka huusi sutta'
+description: 'Kiintiövahtini näppäili 62 ylimääräistä continuea sessioihin, jotka toimivat aivan hyvin, koska sen onnistumistarkistus nojasi signaaliin, joka ei koskaan voinut sanoa kyllä.'
+date: 2026-08-06
+locale: fi
+slug: quota-watchdog-that-cried-wolf
+project: claude-continue
+aiGenerated: true
+hasAudio: false
+tags: ['claude-code', 'ops', 'build']
+---
+
+claude-continue pitää Claude Coden viiden tunnin käyttöikkunat pyörimässä peräkkäin. Kun ikkuna nollautuu, se näppäilee pysähtyneisiin sessioihin `continue`, jotta kiintiö ei makaa yön yli käyttämättä. Eilen se luovutti äänekkäästi: `gave up after 30 retries (~61m): window never rolled - quota coverage has lapsed`.
+
+Lokissa oli kahdelta kuukaudelta kahdeksan tällaista, ja ne asettuivat siistiin riviin. Jokaista epäonnistumista edelsi negatiivinen Fire at -korjaus (-80m ... -120m). Jokaista onnistumista edelsi positiivinen. Kahdeksan kahdeksasta. Johtopäätös oli helppo vetää: olin asettanut laukaisuajan liian aikaiseksi, 61 minuutin uudelleenyritysbudjetti loppui 16 minuuttia ennen kuin ikkunan piti edes vaihtua, ikkuna merkittiin hoidetuksi, eikä mikään lauennut oikeankaan nollauksen kohdalla. Kaksi tuntia kuollutta kiintiötä, itse aiheutettua.
+
+Sitten luin Claude Coden omat transcriptit elokuun 5. päivän aamulta. Kello 06:49 molemmat sessiot törmäsivät rajaan, ja Claude itse oli kirjannut todellisen nollausajan: 08:40. ccusage, käyttöseuranta johon ajastin nojaa, arvioi 10:00. Minun -80 minuutin korjaukseni osoitti kohtaan 08:40. Se oli oikeassa. Kello 08:41:30 laukaisu osui, molemmat sessiot jatkoivat töitä, eikä rajavirhettä näkynyt enää. Sitten, kello 08:43 ja 09:44 välillä, vahti näppäili vielä 30 `continue`a kahteen sessioon, jotka toimivat aivan hyvin. Sama esitys uusittiin illalla, ensimmäiset laukaisut mukaan lukien, ikkunassa jossa sessiot eivät olleet törmänneet rajaan lainkaan. 62 ylimääräistä `continue`a kahdessa ikkunassa.
+
+Syy on siinä, miten ccusage rakentaa käyttölohkonsa. Se pyöristää lohkon alun alaspäin tasatuntiin ja asettaa lopun viisi tuntia myöhemmäksi. Jatko, joka osuu tuon ämpärin sisään, tuottaa viestejä, jotka ccusage kirjaa samaan lohkoon. Varmistuskysymys oli "ilmestyikö uusi ikkuna, jolla on myöhempi nollausaika?", ja tuolla kirjanpidolla vastaus ei voi koskaan olla kyllä. Joten varmistaja teki ainoan asian, jonka sen vastaus salli: yritti uudelleen, kahden minuutin välein, sessioihin jotka olivat aikaa sitten palanneet töihin. Tämä selittää myös sen kahdeksan kahdeksasta. Negatiivinen korjaus laukaisee ennen ccusagen pyöristettyä arviota, joten jatko osuu vanhan ämpärin sisään eikä ikkuna "koskaan vaihdu". Positiivinen korjaus laukaisee ämpärin päätyttyä, ja uusi lohko ilmestyy. Korrelaatio oli aito ja osoitti silti väärään syylliseen: korjaukseni vaihtoivat vain sitä, kummalle puolelle ccusagen pyöristystä laukaisu osui. Jokainen hälytys oli vilpitön. Hälytyksen perumisen ehto ei voinut koskaan täyttyä.
+
+Korjaus lukee vastauksen Claude Codelta itseltään. Rajaan pysähtynyt sessio kirjoittaa transcriptiin merkinnän, jossa on `error: "rate_limit"` ja teksti `You've hit your session limit · resets 8:40am (Europe/Helsinki)`. Siitä saa ne kaksi asiaa, jotka ajastin oikeasti tarvitsee: onko juuri tämä sessio jumissa, ja mikä on palvelimen ilmoittama todellinen nollausaika tasatuntiin pyöristetyn arvauksen sijaan. Transcriptin lukija vaati omaa kovettamistaan. Suurin yksittäinen rivi, jonka oikeasta transcriptista löysin, oli 2,5 MB, mikä rikkoi 512 KB:iin rajatun tiedoston lopun lukemisen ja sai elävän session näyttämään lukukelvottomalta.
+
+Siitä seurasi yksi yö, kolme julkaisua ja kahdeksan pull requestia (#60:stä #67:ään).
+
+v0.14.0 toi portin ja transcript-varmistuksen: näppäily kohdistuu vain sessioihin, jotka oikeasti seisovat kulutetun rajan takana. Oman pull requestin katselmointi ennen mergeä löysi siitä kahdeksan vikaa. Paras niistä laski oikean vastauksen "yhä rajalla, viritä uudelleen todelliseen nollausaikaan" ja antoi sitten kutsujan heittää sen pois.
+
+v0.14.1 on olemassa, koska Update-napin painaminen v0.14.0:ssa kaatui virheeseen `[SSL: DECRYPTION_FAILED_OR_BAD_RECORD_MAC]`. `ssl.SSLError` on `OSError`, mutta ei `URLError` eikä `ConnectionError`, joten se putosi päivityksen uudelleenyritysluokittelijan jokaisen haaran läpi ja tappoi latauksen ensimmäiseen häiriöön, kun taas tavallinen yhteyden katkeaminen olisi saanut kolme uutta yritystä. Yksi yksityiskohta naulasi koodipolun: viestin ympärillä ei ollut `<urlopen error ...>` -kuorta, ja vain rungon luvun aikana tapahtuva SSL-virhe näyttää siltä. Kättelyvirheet kääritään, ja niitä yritettiin jo valmiiksi uudelleen.
+
+v0.14.2 on olemassa, koska GUI näytti yhdelle terminaalille `state unknown`, tilan jonka uusi portti pysäyttää. Valmiiksi kirjoittamani korjaus turvautui projektin edelliseen transcriptiin, kun uusimmassa ei vielä ollut yhtään assistant-vuoroa. Sitten katsoin, mikä terminaali se oli: se, jonka olin tyhjentänyt `/clear`-komennolla tuntia aiemmin. `/clear` avaa samaan terminaaliin uuden transcriptin, joten uusimmassa tiedostossa ei ihan oikeutetusti ole vielä mitään. Varakeino olisi lukenut tyhjennystä edeltävän session kulutetun rajan ja näppäillyt `continue`n juuri tyhjennettyyn terminaaliin, mikä on täsmälleen se vahinko, jonka estämiseksi koko ominaisuus on olemassa. Tiedostot ovat levyllä 43 sekunnin päässä toisistaan, 23:47:10 ja 23:47:53. Mikään määrä koodin lukemista ei olisi paljastanut tätä. Tiesin sen, koska olin itse kirjoittanut sen `/clear`-komennon.
+
+Kaksi yön bugeista jäi kiinni ruutukaappauksista yksikkötestien pysyessä vihreinä. UTF-8 BOM, jonka Windows-työkalut kirjoittavat herkemmin kuin haluaisi (Notepadin UTF-8-with-BOM -tallennusvalinta, Windows PowerShellin `Out-File -Encoding utf8`), sai asetusten lataajan hylkäämään koko asetustiedoston äänettömästi, joten `config.json`iin kirjoitettu asetus ei muuttanut mitään. Se paljastui, koska "kytkin pois" -ruutukaappaus renderöityi identtiseksi "kytkin päällä" -kuvan kanssa. Toinen oli yllä mainittu `/clear`-väärinnimeäminen. Tekniikka, jos sitä tarvitsee: `PrintWindow(hwnd, hdc, 2)` kaappaa ikkunan oman sisällön silloinkin, kun toinen ikkuna on sen päällä.
+
+Yön pahin bugi oli omassa korjauksessani. SSL-uudelleenyritystä korjatessani siirsin tarkistussumman varmennuksen uudelleenyrityssilmukan sisään, mikä rikkoi hiljaa säännön, että mitään varmentamatonta ei asenneta: julkaisu ilman digestiä muuttui torjutusta asennetuksi ilman varmennusta. Löysin sen toistamalla tilanteen, koska diffin lukeminen oli jo kerran pettänyt minut. Sen jälkeen jokainen ajon korjaus mutaatiotestattiin: peru korjaus, varmista että sen testi oikeasti kaatuu. Kahdesti mutantti tuli takaisin tuloksella "ei jäänyt kiinni", ja molemmilla kerroilla rikki oli mutantti itse, ei testi. `return "" or X` evaluoituu muotoon `X`, mikä ei hiljennä mitään.
+
+v0.14.2 lähti ulos omasta Update-napistaan, ensimmäisenä julkaisuna jossa nappi kantoi tarvitsemansa uudelleenyrityskorjauksen. 714 testiä. Työkalu kysyy nyt jokaiselta sessiolta suoraan, onko se jumissa, ja jättää toimivat rauhaan.
