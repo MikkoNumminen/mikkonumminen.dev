@@ -1,5 +1,5 @@
 ---
-import { languageMix } from '../../data/projectLanguages';
+import { donutArcs, DONUT_RADIUS, languageMix } from '../../data/projectLanguages';
 import { asLocale, getTranslations } from '../../i18n';
 
 const t = getTranslations(asLocale(Astro.currentLocale));
@@ -19,26 +19,25 @@ const slices = languageMix();
  * paths to compute, no layout engine, nothing to hydrate.
  */
 
-const RADIUS = 52;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+// Fixed palette rather than generated hues: the site accent family is
+// blue/green and a generated wheel would wander into the amber the AI badge
+// owns. Longer than the current six languages, because the allowlist holds
+// sixteen and a seventh language appearing would otherwise reuse a colour.
+const COLOURS = [
+  '#4ade80',
+  '#38bdf8',
+  '#a78bfa',
+  '#f472b6',
+  '#fbbf24',
+  '#2dd4bf',
+  '#fb7185',
+  '#c084fc',
+];
 
-// Fixed palette rather than generated hues: the site's accent family is
-// blue/green and a generated wheel would wander into the amber the AI badge owns.
-const COLOURS = ['#4ade80', '#38bdf8', '#a78bfa', '#f472b6', '#fbbf24', '#2dd4bf'];
-
-let offset = 0;
-const arcs = slices.map((slice, i) => {
-  const length = slice.share * CIRCUMFERENCE;
-  const arc = {
-    ...slice,
-    colour: COLOURS[i % COLOURS.length],
-    dash: `${length} ${CIRCUMFERENCE - length}`,
-    // -90 puts the first slice at twelve o'clock, where a reader starts.
-    rotation: (offset / CIRCUMFERENCE) * 360 - 90,
-  };
-  offset += length;
-  return arc;
-});
+const arcs = donutArcs(slices).map((arc, i) => ({
+  ...arc,
+  colour: COLOURS[i % COLOURS.length],
+}));
 ---
 
 {
@@ -53,18 +52,17 @@ const arcs = slices.map((slice, i) => {
       </figcaption>
 
       <div class="lang-mix__body">
-        <svg
-          class="lang-mix__chart"
-          viewBox="0 0 130 130"
-          role="img"
-          aria-label={slices.map((s) => `${s.language}: ${s.count}`).join(', ')}
-        >
+        {/* Decoration, not content. The legend below is the same data as real
+            text, so labelling the donut too would announce every language twice.
+            Same reasoning as AiBadge's `decorative` prop, which exists because
+            the card already carries that fact in the link name. */}
+        <svg class="lang-mix__chart" viewBox="0 0 130 130" aria-hidden="true">
           {arcs.map((arc) => (
             <circle
               class="lang-mix__arc"
               cx="65"
               cy="65"
-              r={RADIUS}
+              r={DONUT_RADIUS}
               fill="none"
               stroke={arc.colour}
               stroke-width="16"

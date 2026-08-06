@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { languageMix, LANGUAGES, projectLanguages } from './projectLanguages';
+import {
+  DONUT_CIRCUMFERENCE,
+  donutArcs,
+  languageMix,
+  LANGUAGES,
+  projectLanguages,
+} from './projectLanguages';
 import { projects, type Project } from './projects';
 
 /**
@@ -75,5 +81,39 @@ describe('the real project data', () => {
 
   it('the allowlist has no duplicates', () => {
     expect(new Set(LANGUAGES).size).toBe(LANGUAGES.length);
+  });
+});
+
+describe('donutArcs', () => {
+  it('tiles the circle exactly once', () => {
+    // Overlapping or gapped arcs are visible only to someone looking at the
+    // page, which is why this maths is here and not inline in the component.
+    const arcs = donutArcs(languageMix());
+    const drawn = arcs.reduce((sum, a) => sum + Number(a.dash.split(' ')[0]), 0);
+    expect(drawn).toBeCloseTo(DONUT_CIRCUMFERENCE, 6);
+  });
+
+  it('starts the first slice at twelve o clock', () => {
+    expect(donutArcs(languageMix())[0]?.rotation).toBe(-90);
+  });
+
+  it('each arc starts where the previous one ended', () => {
+    const arcs = donutArcs(languageMix());
+    for (let i = 1; i < arcs.length; i += 1) {
+      const prev = arcs[i - 1]!;
+      const prevLength = Number(prev.dash.split(' ')[0]);
+      const expected = prev.rotation + (prevLength / DONUT_CIRCUMFERENCE) * 360;
+      expect(arcs[i]!.rotation).toBeCloseTo(expected, 6);
+    }
+  });
+
+  it('a single language fills the ring', () => {
+    const arcs = donutArcs([{ language: 'Python', count: 3, share: 1 }]);
+    expect(Number(arcs[0]!.dash.split(' ')[0])).toBeCloseTo(DONUT_CIRCUMFERENCE, 6);
+    expect(Number(arcs[0]!.dash.split(' ')[1])).toBeCloseTo(0, 6);
+  });
+
+  it('no slices means no arcs rather than a divide by zero', () => {
+    expect(donutArcs([])).toEqual([]);
   });
 });

@@ -93,3 +93,41 @@ export function languageMix(source: readonly Project[] = projects): LanguageSlic
     }))
     .sort((a, b) => b.count - a.count || a.language.localeCompare(b.language));
 }
+
+/** Geometry for one donut arc, ready to drop into an SVG circle. */
+export interface DonutArc extends LanguageSlice {
+  /** `stroke-dasharray`: the drawn length, then the gap to the full circle. */
+  dash: string;
+  /** Degrees to rotate this arc so it starts where the previous one ended. */
+  rotation: number;
+}
+
+/** Radius the component draws at. Here rather than in the component because the
+ *  dash lengths are computed from it and the two must not disagree. */
+export const DONUT_RADIUS = 52;
+export const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
+
+/**
+ * Lay the slices end to end around the circle.
+ *
+ * IN THIS MODULE, NOT IN THE COMPONENT, and that is the point. The maths lived
+ * inline in `LanguageMix.astro` where no unit test can reach it: rotations that
+ * overlapped, or arcs that left a gap, would have been visible only to someone
+ * looking at the page. This repo has hit that exact shape three times in a row,
+ * each time in the half nobody tested.
+ *
+ * `-90` starts the first slice at twelve o'clock, where a reader starts.
+ */
+export function donutArcs(slices: readonly LanguageSlice[]): DonutArc[] {
+  let offset = 0;
+  return slices.map((slice) => {
+    const length = slice.share * DONUT_CIRCUMFERENCE;
+    const arc: DonutArc = {
+      ...slice,
+      dash: `${length} ${DONUT_CIRCUMFERENCE - length}`,
+      rotation: (offset / DONUT_CIRCUMFERENCE) * 360 - 90,
+    };
+    offset += length;
+    return arc;
+  });
+}
