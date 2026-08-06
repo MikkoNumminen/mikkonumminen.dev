@@ -15,8 +15,13 @@ so the whole thing is deterministic and unit-tested without sleeping.
 
 from __future__ import annotations
 
+import logging
 from collections import OrderedDict, deque
 from dataclasses import dataclass
+
+from . import symptom_scan
+
+logger = logging.getLogger("chat")
 
 # Stored query/answer are capped so one turn can't bloat the prompt or memory: the
 # question is already INPUT_MAX_CHARS-bounded and the answer LLM_NUM_PREDICT-bounded,
@@ -96,6 +101,25 @@ class SessionMemory:
         """
         if not session_id:
             return
+
+        # Symptom scan on the VISITOR half only, and it logs, full stop: the turn
+        # is stored either way. Session memory replays this text into later
+        # prompts, and nothing anywhere could previously answer "has anything odd
+        # ever gone in". A scanner is detection, not a wall, and dropping a turn
+        # on a heuristic would silently break a real conversation. Guarded, since
+        # observability must never break a delivered answer.
+        try:
+            symptoms = symptom_scan.scan(query)
+            if symptoms.notable:
+                # No session id and no text: the point is that it happened and
+                # what shape it was, and this log has never carried identity.
+                logger.info(
+                    "memory write with injection symptoms: %s",
+                    ",".join(symptoms.categories),
+                )
+        except Exception:
+            logger.exception("symptom scan failed")
+
         self._expire(now)
         session = self._sessions.get(session_id)
         if session is None:

@@ -27,6 +27,7 @@ import dataclasses
 import sys
 from dataclasses import dataclass, replace
 
+from . import symptom_scan
 from .chunking import Chunk, chunk_document, enforce_token_ceiling, estimate_tokens
 from .config import Settings
 from .content import ContentDoc, is_code_doc, load_docs
@@ -65,6 +66,19 @@ class IndexStats:
     """Extra chunks created by the real-token ceiling pass. Reported because a
     rising number means the word-based estimate in chunking.py is drifting
     further from real tokens for whatever content is being added."""
+
+    symptom_notable: int = 0
+    """Chunks carrying two or more distinct prompt-injection SHAPES.
+
+    Reported, and nothing else: no chunk is dropped, altered or held back on
+    this number. content/code/** is ingested verbatim under a size filter, so a
+    comment or string in a vendored file becomes prompt text with no review
+    step, and until now nothing anywhere could answer "has anything odd ever
+    gone in". Blocking on an unmeasured heuristic in a corpus the owner curates
+    is how a pipeline silently drops good content, so this is measurement first.
+
+    Measured over the current corpus: 106 of 107 files score 0 and one scores 1,
+    so a non-zero number here means something genuinely changed."""
 
 
 def plan(settings: Settings) -> list[FilePlan]:
@@ -147,6 +161,7 @@ async def reindex(
     embedder: Embedder | None = None
     chunks_total = embedded = skipped = deleted = total = metadata_refreshed = 0
     ceiling_split = 0
+    symptom_notable = 0
     pii_skipped = 0
     pseudonyms: dict[str, str] = {}
     try:
@@ -188,6 +203,12 @@ async def reindex(
             # estimate is drifting further from real tokens for new content.
             ceiling_split += len(fp.chunks) - planned
             chunks_total += len(fp.chunks)
+            # Scored on the FINAL chunk list, after the ceiling pass, so the
+            # number describes the text that actually gets embedded rather than
+            # the text that was planned.
+            symptom_notable += sum(
+                1 for c in fp.chunks if symptom_scan.scan(c.text).notable
+            )
             to_embed = select_chunks_to_embed(fp.chunks, existing)
             skipped += len(fp.chunks) - len(to_embed)
 
@@ -259,6 +280,7 @@ async def reindex(
         pseudonyms=len(pseudonyms),
         metadata_refreshed=metadata_refreshed,
         ceiling_split=ceiling_split,
+        symptom_notable=symptom_notable,
     )
 
 
@@ -329,7 +351,8 @@ def main(argv: list[str] | None = None) -> int:
         f"{stats.deleted} pruned, {stats.metadata_refreshed} metadata-refreshed, "
         f"{stats.pii_skipped} pii-skipped, "
         f"{stats.pseudonyms} pseudonym(s), "
-        f"{stats.ceiling_split} split at the token ceiling) "
+        f"{stats.ceiling_split} split at the token ceiling, "
+        f"{stats.symptom_notable} with injection symptoms) "
         f"- {stats.total_in_db} rows in DB"
     )
     return 0

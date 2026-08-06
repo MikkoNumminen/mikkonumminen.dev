@@ -243,6 +243,30 @@ record the score, and change nothing about the behaviour until there is data on
 what a real corpus scores. Blocking on an unmeasured heuristic in a corpus the
 owner curates is how you get a pipeline that silently drops good content.
 
+> **DONE 2026-08-06, log-only, and the measuring immediately earned itself.**
+> `app/symptom_scan.py` scores text by how many distinct attack SHAPES it
+> carries (override, role change, exfiltration, frame forgery, output hijack),
+> counting categories rather than matches so a document quoting one payload
+> twenty times still scores 1. The indexer reports a count per run and
+> `SessionMemory.record` logs the shape on a visitor turn. Nothing is dropped,
+> altered or held back.
+>
+> The first version flagged 9 of 107 corpus files and **every one was a false
+> positive**: four TypeScript files matched an indented `user:` object key, four
+> matched a bare "verbatim", one was prose about the guardrails. Two markers
+> were producing nothing but noise in a corpus that contains code. Tightened
+> (role prefix only at column zero, "verbatim" only next to
+> "prompt"/"instructions") it flags 1 of 107, and that one is a project doc
+> describing how the override rules work.
+>
+> Had this shipped as a blocking gate on the first version, it would have
+> rejected four real source files on day one.
+>
+> A prediction I got wrong, recorded because it shaped the design: I expected the
+> research posts that quote injection payloads to score highly. They score at
+> most 1. The module docstring still warns about that case, since it is a
+> property of the corpus today rather than of the scanner.
+
 ## What I would sequence
 
 1. A2 or A1, the forged-history vector, because it can be closed rather than mitigated
