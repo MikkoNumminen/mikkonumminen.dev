@@ -779,6 +779,7 @@ async def chat_event_stream(
                 answer_lang=answer_language(answer_text),
                 invented_years=invented,
                 prose_distance=prose_distance,
+                breach=breach,
             )
 
         # Thread this completed turn into session memory so a follow-up ("tell me
@@ -786,7 +787,15 @@ async def chat_event_stream(
         # the gate refusals, the busy shed, and the generation-error return all
         # leave before here. Guarded so a memory failure can't break a delivered
         # answer.
-        if on_answer is not None:
+        #
+        # A BREACHED ANSWER IS NOT REMEMBERED. It is the model's output produced
+        # while it was reciting instructions or announcing a jailbreak, and
+        # memory replays remembered turns into every later prompt in the session.
+        # Storing it would feed the compromised text back as context and let one
+        # successful injection persist across turns, which is the same shape as
+        # the forged-history vector #17 closed: text the model is told is its own
+        # prior output, that nothing downstream can distinguish from a clean turn.
+        if on_answer is not None and breach is None:
             try:
                 await on_answer(query, "".join(response_parts))
             except Exception:
