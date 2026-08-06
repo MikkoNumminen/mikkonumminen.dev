@@ -25,6 +25,7 @@ import argparse
 import asyncio
 import dataclasses
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from . import symptom_scan
@@ -79,6 +80,17 @@ class IndexStats:
 
     Measured over the current corpus: 106 of 107 files score 0 and one scores 1,
     so a non-zero number here means something genuinely changed."""
+
+
+def count_symptom_chunks(chunks: Sequence[Chunk]) -> int:
+    """How many of these chunks carry two or more prompt-injection shapes.
+
+    A named function rather than an inline sum so it can be tested: `reindex`
+    needs Postgres and an embedder, so nothing that lives only inside it is
+    reachable from the fast suite. Removing the call from `reindex` used to
+    change no test at all.
+    """
+    return sum(1 for c in chunks if symptom_scan.scan(c.text).notable)
 
 
 def plan(settings: Settings) -> list[FilePlan]:
@@ -206,9 +218,7 @@ async def reindex(
             # Scored on the FINAL chunk list, after the ceiling pass, so the
             # number describes the text that actually gets embedded rather than
             # the text that was planned.
-            symptom_notable += sum(
-                1 for c in fp.chunks if symptom_scan.scan(c.text).notable
-            )
+            symptom_notable += count_symptom_chunks(fp.chunks)
             to_embed = select_chunks_to_embed(fp.chunks, existing)
             skipped += len(fp.chunks) - len(to_embed)
 

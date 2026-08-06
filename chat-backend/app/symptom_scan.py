@@ -18,12 +18,17 @@ out when an answer went missing. So this scores, the score gets recorded, and
 behaviour is unchanged until there is data on what a real corpus scores. That
 sequencing is the decision, not an implementation detail.
 
-A KNOWN AND EXPECTED FALSE POSITIVE, worth stating before anyone reads a report:
-this corpus contains research writing ABOUT prompt injection, including quoted
-payloads. Those documents SHOULD score highly. A scanner that scored them zero
-would be failing to see text it is looking straight at. Interpreting the
-distribution means separating "a document that discusses attacks" from "a
-document that is one", and no score can make that distinction for you.
+THE FALSE POSITIVE THIS WAS BUILT EXPECTING, and what actually happened. I wrote
+this module expecting the research posts that quote injection payloads to score
+highly, because a scanner that scored them zero would be failing to see text it
+is looking straight at. Measured, they score at most 1: the payloads are quoted
+in fragments and described rather than reproduced whole.
+
+The point survives even though the prediction did not. No score can separate "a
+document that discusses attacks" from "a document that is one", so a high score
+here is a reason to look, never a reason to act. Recorded rather than deleted
+because the next person to add a marker will expect the same thing and should
+know it was checked.
 
 Pure and stdlib-only, so it is unit-tested and can run inside the indexer without
 dragging in the model stack.
@@ -110,11 +115,13 @@ class SymptomScore:
         return self.score >= _NOTABLE_CATEGORIES
 
 
-# Two distinct shapes, not one. One marker fires on ordinary writing far too
-# often to be worth surfacing: "verbatim" appears in this repo's own docs, and
-# `^\s*question\s*:` appears in every eval file. The threshold exists to keep a
-# report readable, and it is a reporting choice with nothing downstream, so
-# getting it slightly wrong costs nothing but noise.
+# Two distinct shapes, not one. A single marker fires on ordinary writing often
+# enough to drown a report: `^\s*question\s*:` matches every eval file, and the
+# one corpus file that scores at all scores 1 for prose describing the override
+# rules. Requiring two shapes is what makes the number worth reading.
+#
+# It is a reporting choice with nothing downstream, so getting it slightly wrong
+# costs noise and not behaviour.
 _NOTABLE_CATEGORIES = 2
 
 
