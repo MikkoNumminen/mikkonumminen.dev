@@ -128,7 +128,7 @@ class FakeLLM:
         if usage_out is not None and self._usage is not None:
             usage_out.update(self._usage)
         if finish_out is not None and self._finish is not None:
-            finish_out['reason'] = self._finish
+            finish_out["reason"] = self._finish
 
 
 def _row(
@@ -1119,7 +1119,7 @@ def test_chatty_translation_is_cut_to_its_first_line() -> None:
     # unsolicited commentary. Only the first line may reach the embedder.
     llm = TranslatingLLM(
         [
-            "What is Miko's work experience? \n\nHowever, considering \"Miko\" "
+            'What is Miko\'s work experience? \n\nHowever, considering "Miko" '
             "might be a name, here's an alternative translation:\n\n"
             "What are his skills?"
         ],
@@ -1287,7 +1287,6 @@ def test_answered_log_carries_language_and_invented_years() -> None:
     assert captured["invented_years"] == ["2019", "2021"]
 
 
-
 # --- 2026-07-08 baseline findings A/B/C ---
 
 
@@ -1339,9 +1338,7 @@ def test_english_question_gets_english_anchor_under_allow_finnish() -> None:
         allow_finnish=True,
         force_english=False,
     )
-    assert msgs[-1]["content"].rstrip().endswith(
-        "whatever language the question is in."
-    )
+    assert msgs[-1]["content"].rstrip().endswith("whatever language the question is in.")
 
 
 def test_finnish_question_still_gets_finnish_anchor() -> None:
@@ -1360,9 +1357,7 @@ def test_cv_intent_overrides_the_weak_retrieval_gate() -> None:
     row_cv = _row("cv.md", distance=0.75)  # beyond the harness threshold 0.7
     row_cv["kind"] = "cv"
     llm = FakeLLM(["Kasvu Labs Oy 2022-2024."])
-    frames = _collect_fi(
-        "mitä työkokemusta?", db=FakeDB([row_cv]), llm=llm
-    )
+    frames = _collect_fi("mitä työkokemusta?", db=FakeDB([row_cv]), llm=llm)
     text = _token_text(frames)
     assert "Minulla ei ole tietoa tuosta" not in text
     assert "Kasvu Labs" in text
@@ -1525,7 +1520,7 @@ def test_the_truncation_notice_comes_before_the_other_suffixes() -> None:
 
 
 def test_expansion_inherits_the_prior_turn_language() -> None:
-    """"Joo" after a Finnish question must get a FINNISH deep dive.
+    """ "Joo" after a Finnish question must get a FINNISH deep dive.
 
     An expansion request carries no language of its own — "joo" is three letters,
     below the detector's minimum, so it reads as English. The turn's language
@@ -1546,9 +1541,7 @@ def test_expansion_inherits_the_prior_turn_language() -> None:
         narrative_projects=["hrm"],
     )
     llm = FakeLLM(["Syvempi vastaus."])
-    _collect_with(
-        "Joo", history, db=db, llm=llm, allow_finnish=True, force_english=False
-    )
+    _collect_with("Joo", history, db=db, llm=llm, allow_finnish=True, force_english=False)
     system, user = llm.messages[0]["content"], llm.messages[-1]["content"]
     assert "ENTIRE reply in English" not in system
     assert "KOKO vastaus suomeksi" in user
@@ -1568,7 +1561,65 @@ def test_expansion_after_an_english_turn_stays_english() -> None:
         narrative_projects=["hrm"],
     )
     llm = FakeLLM(["Deeper answer."])
-    _collect_with(
-        "yes", history, db=db, llm=llm, allow_finnish=True, force_english=False
-    )
+    _collect_with("yes", history, db=db, llm=llm, allow_finnish=True, force_english=False)
     assert "ENTIRE reply in English" in llm.messages[0]["content"]
+
+
+def test_an_invented_year_reaches_the_visitor_not_just_the_log() -> None:
+    """The whole point of #20: the detector's verdict used to go to a JSONL field
+    and nowhere else, so the visitor read the invented date with no warning.
+
+    The context here mentions no years at all, so the model stating 2019 is
+    unsupported by construction.
+    """
+    row = _row("cv.md")
+    row["content"] = "Mikko worked at Kasvu Labs on the platform team."
+    frames = _collect(
+        "when did Mikko work at Kasvu Labs?",
+        db=FakeDB([row]),
+        llm=FakeLLM(["He worked there from 2019."]),
+    )
+    text = _token_text(frames)
+    assert "He worked there from 2019." in text, "the answer itself must still stream"
+    assert "2019" in text and "unverified" in text, "no caveat reached the visitor"
+
+
+def test_a_grounded_year_gets_no_caveat() -> None:
+    """The control. A caveat on every answer would be noise, and the measured
+    fire rate is 0.1% precisely because grounded dates do not trip it."""
+    row = _row("cv.md")
+    row["content"] = "Mikko worked at Kasvu Labs from 2022 to 2024."
+    frames = _collect(
+        "when did Mikko work at Kasvu Labs?",
+        db=FakeDB([row]),
+        llm=FakeLLM(["He worked there from 2022 to 2024."]),
+    )
+    assert "unverified" not in _token_text(frames)
+
+
+def test_the_caveat_is_not_remembered_as_part_of_the_answer() -> None:
+    """Like the other deterministic suffixes, it must stay out of what the log
+    and session memory store, or a later turn is primed with our own caveat."""
+    row = _row("cv.md")
+    row["content"] = "Mikko worked at Kasvu Labs on the platform team."
+    remembered: list[str] = []
+
+    async def on_answer(_q: str, answer: str) -> None:
+        remembered.append(answer)
+
+    async def run() -> None:
+        gen = chat_event_stream(
+            "when?",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([row]),
+            llm=FakeLLM(["He worked there from 2019."]),
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            on_answer=on_answer,
+        )
+        async for _ in gen:
+            pass
+
+    asyncio.run(run())
+    assert remembered == ["He worked there from 2019."]

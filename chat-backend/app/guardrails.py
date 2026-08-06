@@ -63,6 +63,53 @@ TRUNCATED_NOTICE_FI = (
 )
 
 
+# Every deterministic suffix opens with a blank line, so it reads as a separate
+# note rather than as the tail of the answer.
+_SUFFIX_GAP = "\n\n"
+
+# Groundedness caveat, appended when `unsupported_years` finds a date in the
+# answer that appears in neither the retrieved context nor the question.
+#
+# The detector already existed and its verdict went to a log line and nowhere
+# else, which makes it telemetry rather than a control: the visitor read the
+# invented date with nothing to warn them. Streaming means the text cannot be
+# retracted once sent, so this says the answer is partly unsupported rather than
+# pretending it can unsay it.
+#
+# Names the years rather than gesturing at "a date", because a visitor cannot act
+# on a warning that does not say which part to distrust.
+UNSUPPORTED_YEARS_CAVEAT = (
+    "[Careful with the dates here: {years} {verb} not in the sources this answer "
+    "was built from, so treat {pronoun} as unverified.]"
+)
+UNSUPPORTED_YEARS_CAVEAT_FI = (
+    "[Varaus vuosilukuihin: {years} ei löydy lähteistä joista tämä vastaus "
+    "koottiin, joten pidä {pronoun} vahvistamattomana.]"
+)
+
+
+def unsupported_years_caveat(years: Sequence[str], *, finnish: bool) -> str | None:
+    """The suffix to append when the answer states unsupported years, or None.
+
+    Deterministic: same years in, same sentence out, and never model-generated.
+    Kept out of the response the log and session memory store, like the other
+    suffixes, so a later turn is never primed with our own caveat.
+    """
+    if not years:
+        return None
+    listed = ", ".join(years)
+    if finnish:
+        pronoun = "sitä" if len(years) == 1 else "niitä"
+        return _SUFFIX_GAP + UNSUPPORTED_YEARS_CAVEAT_FI.format(
+            years=listed, pronoun=pronoun
+        )
+    verb = "is" if len(years) == 1 else "are"
+    pronoun = "it" if len(years) == 1 else "them"
+    return _SUFFIX_GAP + UNSUPPORTED_YEARS_CAVEAT.format(
+        years=listed, verb=verb, pronoun=pronoun
+    )
+
+
 def truncation_notice(finish_reason: str | None, *, finnish: bool) -> str | None:
     """The suffix to append when generation was cut off, or None.
 
@@ -141,6 +188,22 @@ def answer_language(text: str) -> str:
 # and the one fact type extractable with near-zero false positives.
 _YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
 
+# "Near-zero false positives" was not zero. Over 2598 answered requests the
+# detector fired 3 times, and one of those was 2048 in an answer about context
+# windows: a token count, not a year, and the only power of two the 19xx/20xx
+# shape can match. The prose corpus spans 1905 to 2028, so a bound comfortably
+# past that keeps every real date and drops the collision.
+#
+# A constant rather than "this year + n" on purpose: this module is pure and
+# unit-tested, and a detector whose verdict depends on the wall clock cannot be
+# reproduced from a log line six months later.
+_MAX_PLAUSIBLE_YEAR = 2035
+
+
+def _plausible_years(text: str) -> set[str]:
+    """Year-shaped tokens that could actually be years in this corpus."""
+    return {y for y in _YEAR_RE.findall(text) if int(y) <= _MAX_PLAUSIBLE_YEAR}
+
 
 def unsupported_years(response: str, supported_texts: Sequence[str]) -> list[str]:
     """Years stated in `response` that appear in NONE of `supported_texts`.
@@ -150,12 +213,12 @@ def unsupported_years(response: str, supported_texts: Sequence[str]) -> list[str
     the visitor asked about may legitimately be echoed). Sorted for a stable
     log field. Empty list = every year in the answer is grounded.
     """
-    stated = set(_YEAR_RE.findall(response))
+    stated = _plausible_years(response)
     if not stated:
         return []
     supported: set[str] = set()
     for text in supported_texts:
-        supported.update(_YEAR_RE.findall(text))
+        supported.update(_plausible_years(text))
     return sorted(stated - supported)
 
 
