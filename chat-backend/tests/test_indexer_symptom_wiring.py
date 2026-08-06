@@ -10,7 +10,17 @@ signal that a shipped feature had stopped reporting.
 suite. That is exactly why the counting moved into `count_symptom_chunks`, and
 why the wiring is asserted structurally below rather than by running it. A
 structural assertion is weaker than an execution one, and it is not nothing: it
-catches the deletion that actually happened.
+catches the deletions that actually happened. Both of them, because the first
+version of this file pinned only half the wiring. It asserted that `IndexStats`
+RECEIVES the count and not that anything COMPUTES it, so deleting the
+accumulation left the counter at 0 forever, still reported, still printed, whole
+suite green. Third time in this batch the gap was in the half nobody tested, and
+the first two are what this file was written to fix.
+
+What it still cannot prove is that the call RUNS: `ast` sees source, not
+execution. Closing that needs an integration test with Postgres and an embedder,
+which is infrastructure this repo does not have and which one counter does not
+justify building.
 """
 
 from __future__ import annotations
@@ -71,6 +81,20 @@ def test_reindex_still_reports_the_count() -> None:
     assert "symptom_notable" in passed, (
         "reindex builds IndexStats without symptom_notable, so the scan runs and "
         "its result is thrown away"
+    )
+
+    # AND that something computes it. Reporting a number nothing produces is the
+    # same defect one layer along, and it is the one the first version of this
+    # test missed: deleting the accumulation left `symptom_notable` at 0 forever,
+    # still passed into IndexStats, still printed, with the whole suite green.
+    called = {
+        node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert "count_symptom_chunks" in called, (
+        "reindex reports symptom_notable but never computes it, so the count is "
+        "permanently zero"
     )
 
 
