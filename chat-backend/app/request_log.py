@@ -50,6 +50,7 @@ class RequestLogger(Protocol):
         eval_count: int | None = None,
         answer_lang: str | None = None,
         invented_years: Sequence[str] | None = None,
+        prose_distance: float | None = None,
     ) -> None: ...
 
 
@@ -89,14 +90,26 @@ def format_log_record(
     invented_years: Sequence[str] | None = None,
     log_text: bool = False,
     ts: str | None = None,
+    prose_distance: float | None = None,
 ) -> str:
     """One compact JSON line for the request log.
 
     `gated` is DERIVED from `route` (never passed in), so the two stay consistent.
-    Distances are sorted ascending (closest first); `best_distance` is the value
-    the weak-retrieval threshold compares against, and is None when retrieval did
-    not run (greeting/courtesy/generative). `model` and the token counts are None
-    on every non-`answered` route. The raw `query`/`response` are written ONLY when
+    Distances are sorted ascending (closest first). `best_distance` is the closest
+    chunk of ANY kind, and is None when retrieval did not run
+    (greeting/courtesy/generative).
+
+    `prose_distance` is what the weak-retrieval threshold ACTUALLY compares
+    against: `is_weak_retrieval` anchors on the closest PROSE chunk, because a
+    stray code chunk can sit just inside the threshold for an off-topic question.
+    This docstring used to say `best_distance` was that value. It is not, and the
+    gap is not cosmetic: a live investigation found one question gated at
+    best_distance 0.4353 and another answered at 0.4459, which reads as a
+    contradiction until you know the log was reporting a number the gate never
+    looked at. Both are recorded now, so the log can explain its own routing.
+
+    `model` and the token counts are None on every non-`answered` route. The
+    raw `query`/`response` are written ONLY when
     `log_text` is True — otherwise just `response_chars` (a non-PII length). `ts`
     defaults to the current UTC time (ISO 8601). `ensure_ascii` is off so non-ASCII
     text (when logged) is stored readably.
@@ -111,6 +124,9 @@ def format_log_record(
         "prompt_eval_count": prompt_eval_count,
         "eval_count": eval_count,
         "best_distance": round(ordered[0], 4) if ordered else None,
+        "prose_distance": (
+            round(prose_distance, 4) if prose_distance is not None else None
+        ),
         "distances": [round(d, 4) for d in ordered],
         "role": role,
         "classifications": dict(classifications or {}),
@@ -186,6 +202,7 @@ def build_request_logger(
         eval_count: int | None = None,
         answer_lang: str | None = None,
         invented_years: Sequence[str] | None = None,
+        prose_distance: float | None = None,
     ) -> None:
         try:
             logger.info(
@@ -202,6 +219,7 @@ def build_request_logger(
                     eval_count=eval_count,
                     answer_lang=answer_lang,
                     invented_years=invented_years,
+                    prose_distance=prose_distance,
                     log_text=log_text,
                 )
             )

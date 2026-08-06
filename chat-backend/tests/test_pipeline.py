@@ -590,6 +590,7 @@ def _capture_log(sink: list[dict]):
         eval_count: int | None = None,
         answer_lang: str | None = None,
         invented_years: list | None = None,
+        prose_distance: float | None = None,
     ) -> None:
         sink.append(
             {
@@ -604,6 +605,7 @@ def _capture_log(sink: list[dict]):
                 "classifications": dict(classifications or {}),
                 "answer_lang": answer_lang,
                 "invented_years": list(invented_years or []),
+                "prose_distance": prose_distance,
             }
         )
 
@@ -1256,9 +1258,11 @@ def test_answered_log_carries_language_and_invented_years() -> None:
         eval_count: int | None = None,
         answer_lang: str | None = None,
         invented_years: Sequence[str] | None = None,
+        prose_distance: float | None = None,
     ) -> None:
         if route == "answered":
             captured["answer_lang"] = answer_lang
+            captured["prose_distance"] = prose_distance
             captured["invented_years"] = list(invented_years or [])
 
     llm = FakeLLM(["Mikko worked there from 2019 to 2021, says this answer."])

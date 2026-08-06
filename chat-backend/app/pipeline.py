@@ -28,9 +28,7 @@ logger = logging.getLogger("chat")
 LLM_BUSY_REPLY = (
     "I'm handling another question right now — give me a moment and try again."
 )
-LLM_BUSY_REPLY_FI = (
-    "Vastaan juuri toiseen kysymykseen — odota hetki ja yritä uudelleen."
-)
+LLM_BUSY_REPLY_FI = "Vastaan juuri toiseen kysymykseen — odota hetki ja yritä uudelleen."
 
 # Called once after a generation completes, with (completion_tokens, latency_ms),
 # so the caller can record usage. Injected by `main`; left None in tests. Counting
@@ -69,6 +67,7 @@ from .prompts import build_messages
 from .query_projects import detect_projects, restore_entities, wants_cv_intent
 from .request_log import RequestLogger
 from .retrieval import (
+    RetrievedChunk,
     SupportsEmbedQuery,
     SupportsSearch,
     retrieve,
@@ -208,6 +207,39 @@ def _strip_markup(text: str) -> str:
     return text.replace("*", "").replace("`", "")
 
 
+# How far past the relevance threshold the CV-intent override may rescue a
+# question. The case it was built for embedded at ~0.47 against a 0.45 gate, so
+# 0.05 covers it with room; anything farther out is not a straddle, it is an
+# off-corpus question wearing a "cv" token.
+CV_OVERRIDE_SLACK = 0.05
+
+
+def _prose_anchor(chunks: Sequence[RetrievedChunk]) -> float | None:
+    """The distance the relevance gate anchors on: the closest PROSE chunk, or
+    the closest of any kind when no prose was retrieved. Mirrors
+    `is_weak_retrieval` exactly, and exists so the log records the number the
+    decision was actually made on."""
+    if not chunks:
+        return None
+    prose = [c for c in chunks if c.chunk_type == "prose"]
+    return min(c.distance for c in (prose or chunks))
+
+
+def _within_cv_override_slack(
+    chunks: Sequence[RetrievedChunk], weak_retrieval_distance: float
+) -> bool:
+    """Is retrieval close enough that CV intent should be allowed to rescue it?
+
+    Anchored on the same PROSE distance `is_weak_retrieval` gates on, so the two
+    can never disagree about how far away the context is.
+    """
+    if not chunks:
+        return False
+    prose = [c for c in chunks if c.chunk_type == "prose"]
+    best = min(c.distance for c in (prose or chunks))
+    return best <= weak_retrieval_distance + CV_OVERRIDE_SLACK
+
+
 async def chat_event_stream(
     query: str,
     history: Sequence[Mapping[str, str]],
@@ -308,9 +340,7 @@ async def chat_event_stream(
                 WEAK_RETRIEVAL_REPLY_FI if answer_in_finnish else WEAK_RETRIEVAL_REPLY
             )
         else:
-            decline_reply = (
-                GENERATIVE_REPLY_FI if answer_in_finnish else GENERATIVE_REPLY
-            )
+            decline_reply = GENERATIVE_REPLY_FI if answer_in_finnish else GENERATIVE_REPLY
         if log_request is not None:
             log_request(
                 query,
@@ -441,6 +471,10 @@ async def chat_event_stream(
     # gate below AND, when the gate passes, intentionally grounds the answer — so a
     # deep-code answer is backed by the project's own description and cites it.
     distances = [chunk.distance for chunk in chunks]
+    # What `is_weak_retrieval` actually gates on, logged alongside the raw list
+    # so the request log can explain its own routing. Without it a gated 0.4353
+    # sitting next to an answered 0.4459 reads as a contradiction.
+    prose_distance = _prose_anchor(chunks)
     # Per-classification counts of what surfaced — the audit trail's "which classes
     # of data did this retrieval touch". The role filter has already excluded any
     # class this role cannot see, so these are only ever permitted classes.
@@ -457,10 +491,29 @@ async def chat_event_stream(
     # the CV chunks are in the context, refusing on cosine distance is wrong -
     # a second-person phrasing ("what work experience do YOU have?") embeds
     # ~0.47 against a third-person corpus and straddled the 0.45 gate, measured
-    # live as a deterministic refusal of an answerable question. Off-corpus
-    # questions never trip the CV route, so they keep full gate protection.
-    cv_grounded = wants_cv_intent(query, retrieval_query) and any(
-        c.source == "cv.md" for c in chunks
+    # live as a deterministic refusal of an answerable question.
+    #
+    # BOUNDED, because the sentence that used to sit here ("off-corpus questions
+    # never trip the CV route, so they keep full gate protection") is false, and
+    # measurably so. `wants_cv` matches the bare token "cv", so "who won the cv
+    # world cup in 1998" trips the route and pulls cv.md into context: 5 of 5
+    # off-corpus questions did once the token was inserted. The override is
+    # therefore reachable by any visitor on any question.
+    #
+    # Reachable, and in those probes not load-bearing: the gate passed on its own
+    # every time, because pulling cv.md in also drags the prose anchor under the
+    # threshold. So this bound closes a hole nothing has walked through yet, and
+    # it does NOT explain the off-corpus questions that get answered. That is a
+    # separate and deeper problem with how easily the anchor is satisfied.
+    #
+    # The override exists to rescue a question that STRADDLES the threshold, so
+    # it may reach only that far. Beyond the slack the gate wins, whatever the
+    # intent looked like. Keeps the case it was built for (the ~0.47
+    # second-person phrasing), removes the unbounded reach.
+    cv_grounded = (
+        wants_cv_intent(query, retrieval_query)
+        and any(c.source == "cv.md" for c in chunks)
+        and _within_cv_override_slack(chunks, weak_retrieval_distance)
     )
     if is_weak_retrieval(chunks, weak_retrieval_distance) and not cv_grounded:
         weak_reply = (
@@ -476,6 +529,7 @@ async def chat_event_stream(
                 class_counts,
                 model=None,
                 latency_ms=int((time.monotonic() - start) * 1000),
+                prose_distance=prose_distance,
             )
         yield sse.sse_sources([])
         yield sse.sse_token(weak_reply)
@@ -662,6 +716,7 @@ async def chat_event_stream(
                 invented_years=unsupported_years(
                     answer_text, [c.content for c in chunks] + [query]
                 ),
+                prose_distance=prose_distance,
             )
 
         # Thread this completed turn into session memory so a follow-up ("tell me
@@ -705,6 +760,7 @@ async def chat_event_stream(
                 class_counts,
                 model=None,
                 latency_ms=int((time.monotonic() - start) * 1000),
+                prose_distance=prose_distance,
             )
         yield sse.sse_error("chat unavailable")
     finally:
