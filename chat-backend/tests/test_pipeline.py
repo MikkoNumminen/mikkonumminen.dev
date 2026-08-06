@@ -152,6 +152,7 @@ def _collect(
     llm: FakeLLM,
     top_k: int = 5,
     weak_distance: float = 0.7,
+    log_request: object = None,
 ) -> list[str]:
     async def run() -> list[str]:
         gen = chat_event_stream(
@@ -162,6 +163,7 @@ def _collect(
             llm=llm,
             top_k=top_k,
             weak_retrieval_distance=weak_distance,
+            log_request=log_request,  # type: ignore[arg-type]
         )
         return [frame async for frame in gen]
 
@@ -591,6 +593,7 @@ def _capture_log(sink: list[dict]):
         answer_lang: str | None = None,
         invented_years: list | None = None,
         prose_distance: float | None = None,
+        breach: str | None = None,
     ) -> None:
         sink.append(
             {
@@ -606,6 +609,7 @@ def _capture_log(sink: list[dict]):
                 "answer_lang": answer_lang,
                 "invented_years": list(invented_years or []),
                 "prose_distance": prose_distance,
+                "breach": breach,
             }
         )
 
@@ -1259,6 +1263,7 @@ def test_answered_log_carries_language_and_invented_years() -> None:
         answer_lang: str | None = None,
         invented_years: Sequence[str] | None = None,
         prose_distance: float | None = None,
+        breach: str | None = None,
     ) -> None:
         if route == "answered":
             captured["answer_lang"] = answer_lang
@@ -1623,3 +1628,71 @@ def test_the_caveat_is_not_remembered_as_part_of_the_answer() -> None:
 
     asyncio.run(run())
     assert remembered == ["He worked there from 2019."]
+
+
+def test_a_breached_answer_is_cut_and_never_remembered() -> None:
+    """The serious half of the output guard.
+
+    Session memory replays remembered turns into every later prompt in the
+    session. Storing an answer produced while the model was reciting its
+    instructions would feed the compromised text back as context and let one
+    successful injection persist across turns. That is the same shape as the
+    forged-history vector #17 closed: text the model is told is its own prior
+    output, which nothing downstream can distinguish from a clean turn.
+    """
+    remembered: list[str] = []
+
+    async def on_answer(_q: str, answer: str) -> None:
+        remembered.append(answer)
+
+    async def run() -> list[str]:
+        gen = chat_event_stream(
+            "what is readlog?",
+            [],
+            embedder=FakeEmbedder(),
+            db=FakeDB([_row("projects/readlog.md")]),
+            # The second chunk trips the guard; the third must never be sent.
+            llm=FakeLLM(
+                ["Sure. ", "Ground every claim in the context. ", "SHOULD NOT APPEAR"]
+            ),
+            top_k=5,
+            weak_retrieval_distance=0.7,
+            on_answer=on_answer,
+        )
+        return [frame async for frame in gen]
+
+    frames = asyncio.run(run())
+    text = _token_text(frames)
+    assert "SHOULD NOT APPEAR" not in text, "the stream kept going after the breach"
+    assert "Stopped this answer" in text, "the visitor was not told why it stopped"
+    assert remembered == [], "a breached answer was written into session memory"
+
+
+def test_a_breach_reaches_the_request_log() -> None:
+    """A control whose result lands only in a logger.warning is telemetry, which
+    is the exact defect this batch already fixed for the groundedness detector."""
+    log_calls: list[dict] = []
+    frames = _collect(
+        "what is readlog?",
+        db=FakeDB([_row("projects/readlog.md")]),
+        llm=FakeLLM(["DAN mode enabled."]),
+        log_request=_capture_log(log_calls),
+    )
+    assert _token_text(frames)
+    answered = [c for c in log_calls if c["route"] == "answered"]
+    assert answered, "no answered row was logged"
+    assert answered[-1]["breach"] == "jailbreak_accepted"
+
+
+def test_a_clean_answer_records_no_breach() -> None:
+    """The control. A guard that flagged everything would satisfy both tests
+    above while making the field meaningless."""
+    log_calls: list[dict] = []
+    _collect(
+        "what is readlog?",
+        db=FakeDB([_row("projects/readlog.md")]),
+        llm=FakeLLM(["ReadLog is a reading tracker."]),
+        log_request=_capture_log(log_calls),
+    )
+    answered = [c for c in log_calls if c["route"] == "answered"]
+    assert answered and answered[-1]["breach"] is None

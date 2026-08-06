@@ -54,6 +54,19 @@ ENGLISH_ONLY_HINT = "\n\nTip: I answer in English — try asking in English."
 # downstream could tell a truncated answer from a finished one, so the visitor was
 # left to assume the thing was broken. Saying so is cheaper than pretending, and
 # it is honest about WHY, so "ask for less at a time" is an obvious next move.
+# Shown when the output guard cut a stream short: the model started reciting its
+# own instructions, or announced it had accepted a jailbreak. Deliberately says
+# the answer was STOPPED rather than pretending it completed, because part of it
+# has already reached the visitor and claiming otherwise would be the second lie.
+BREACH_NOTICE = (
+    "\n\n[Stopped this answer: it started repeating my own instructions "
+    "back rather than answering. Ask about Mikko's work and I will do better.]"
+)
+BREACH_NOTICE_FI = (
+    "\n\n[Keskeytin tämän vastauksen: se alkoi toistaa omia ohjeitani sen "
+    "sijaan että olisi vastannut. Kysy Mikon työstä, niin onnistun paremmin.]"
+)
+
 TRUNCATED_NOTICE = (
     "\n\n[Answer cut off at the length limit. "
     "Ask for a narrower slice of it to see the rest.]"

@@ -51,6 +51,7 @@ class RequestLogger(Protocol):
         answer_lang: str | None = None,
         invented_years: Sequence[str] | None = None,
         prose_distance: float | None = None,
+        breach: str | None = None,
     ) -> None: ...
 
 
@@ -91,6 +92,7 @@ def format_log_record(
     log_text: bool = False,
     ts: str | None = None,
     prose_distance: float | None = None,
+    breach: str | None = None,
 ) -> str:
     """One compact JSON line for the request log.
 
@@ -124,6 +126,12 @@ def format_log_record(
         "prompt_eval_count": prompt_eval_count,
         "eval_count": eval_count,
         "best_distance": round(ordered[0], 4) if ordered else None,
+        # Which output-guard breach cut this answer short, or None. In the
+        # request log rather than only in the app log, because this file is
+        # what gets read back weeks later: a control whose result reaches
+        # only a logger.warning is the telemetry-not-a-control defect this
+        # batch already fixed once for the groundedness detector.
+        "breach": breach,
         "prose_distance": (
             round(prose_distance, 4) if prose_distance is not None else None
         ),
@@ -203,6 +211,7 @@ def build_request_logger(
         answer_lang: str | None = None,
         invented_years: Sequence[str] | None = None,
         prose_distance: float | None = None,
+        breach: str | None = None,
     ) -> None:
         try:
             logger.info(
@@ -220,6 +229,7 @@ def build_request_logger(
                     answer_lang=answer_lang,
                     invented_years=invented_years,
                     prose_distance=prose_distance,
+                    breach=breach,
                     log_text=log_text,
                 )
             )

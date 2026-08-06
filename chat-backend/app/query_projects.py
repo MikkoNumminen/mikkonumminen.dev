@@ -478,16 +478,33 @@ _PREPOSITIONAL_RESEARCH_MARKERS = (
 # reading collides head-on with the recency framing this feature exists to serve.
 # Their absence leaves "research in quantum computing" un-vetoed — today's
 # behaviour, and a cheaper miss than vetoing the flagship recency question.
-_TOPIC_PREPOSITIONS = frozenset(
-    {"on", "about", "into", "regarding", "concerning", "om"}
-)
+_TOPIC_PREPOSITIONS = frozenset({"on", "about", "into", "regarding", "concerning", "om"})
 
 # Closed-class words that name no subject: "findings on THIS" is still a sweep.
 _DEICTIC_WORDS = frozenset(
     {
-        "this", "that", "these", "those", "it", "them", "they", "the", "a", "an",
-        "your", "his", "her", "its", "their", "our", "my", "all", "any", "some",
-        "everything", "anything",
+        "this",
+        "that",
+        "these",
+        "those",
+        "it",
+        "them",
+        "they",
+        "the",
+        "a",
+        "an",
+        "your",
+        "his",
+        "her",
+        "its",
+        "their",
+        "our",
+        "my",
+        "all",
+        "any",
+        "some",
+        "everything",
+        "anything",
     }
 )
 
@@ -523,14 +540,61 @@ _TOPIC_PREP_WINDOW = 5
 _NON_SUBJECT_TAIL_WORDS = frozenset(
     {
         # temporal adverbials
-        "lately", "recently", "recent", "now", "currently", "today", "yesterday",
-        "tomorrow", "tonight", "so", "far", "then", "again", "nowadays", "year",
-        "years", "month", "months", "week", "weeks", "day", "days", "time",
-        "times", "end", "in", "ago", "since", "yet", "still", "ever", "later",
-        "before", "after", "during", "while", "first", "last", "next",
+        "lately",
+        "recently",
+        "recent",
+        "now",
+        "currently",
+        "today",
+        "yesterday",
+        "tomorrow",
+        "tonight",
+        "so",
+        "far",
+        "then",
+        "again",
+        "nowadays",
+        "year",
+        "years",
+        "month",
+        "months",
+        "week",
+        "weeks",
+        "day",
+        "days",
+        "time",
+        "times",
+        "end",
+        "in",
+        "ago",
+        "since",
+        "yet",
+        "still",
+        "ever",
+        "later",
+        "before",
+        "after",
+        "during",
+        "while",
+        "first",
+        "last",
+        "next",
         # Mikko's own publishing surface — not an outside subject
-        "blog", "site", "website", "page", "pages", "portfolio", "terminal",
-        "here", "own", "record", "paper", "papers", "post", "posts", "writeup",
+        "blog",
+        "site",
+        "website",
+        "page",
+        "pages",
+        "portfolio",
+        "terminal",
+        "here",
+        "own",
+        "record",
+        "paper",
+        "papers",
+        "post",
+        "posts",
+        "writeup",
     }
 )
 
