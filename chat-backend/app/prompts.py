@@ -206,9 +206,14 @@ def _newest_research_note(chunks: Sequence[ContextChunk]) -> str | None:
     # this claim must never be able to name the wrong post.
     newest = max(dated, key=lambda c: c.doc_date or date.min)
     label = newest.title or newest.source
+    # No corpus path in this sentence. It is the same `label (path, date)` shape
+    # `format_context` just stopped emitting, and this one sits in the prompt's
+    # most authoritative voice, so it is the likeliest of the two to be echoed
+    # into an answer. The path is redundant here anyway: the chunk it names is
+    # rendered below with its own `source:` line.
     return (
-        f"Mikko's most recent research is: {label} "
-        f"({newest.source}, published {(newest.doc_date or date.min).isoformat()}). "
+        f"Mikko's most recent research is: {label}, "
+        f"published {(newest.doc_date or date.min).isoformat()}. "
         "This is the newest of his research posts; the dated entries below are his "
         "research, listed newest first."
     )
@@ -232,10 +237,10 @@ def neutralise_untrusted(text: str) -> str:
     """Flatten visitor-authored text so it cannot forge prompt structure.
 
     THE PROBLEM. The grounded turn is assembled by string interpolation, so a
-    question containing a newline followed by `Context:` or `[1] Something
-    (source.md)` reaches the model looking exactly like the block the server
-    wrote. Nothing downstream can tell them apart, because by then they are one
-    string.
+    question containing a newline followed by `Context:` or `[1] Something` and a
+    `source:` line reaches the model looking exactly like the block the server
+    wrote (see `format_context` for the real shape). Nothing downstream can tell
+    them apart, because by then they are one string.
 
     THE APPROACH. Not a blocklist of the shapes that look dangerous today: those
     match on text the attacker controls and lose to the first variation nobody
@@ -266,7 +271,22 @@ def neutralise_untrusted(text: str) -> str:
 
 
 def format_context(chunks: Sequence[ContextChunk]) -> str:
-    """Render retrieved chunks as a numbered, source-labelled context block."""
+    """Render retrieved chunks as a numbered, source-labelled context block.
+
+    THE SOURCE IS NOT IN PARENTHESES, and that is the whole point of this shape.
+    It used to render as `[1] Title (posts/x.md, 2026-07-02)`, which is markdown
+    link syntax with one space in it. The model duly collapsed the space and
+    answered with `[Title](posts/x.md, 2026-07-02)` — a link pointing at a corpus
+    path that exists nowhere on the web. Measured in the request log: 4 of the 10
+    answers that contained a link pointed at an internal path.
+
+    A corpus path is not a URL and a visitor cannot do anything with one, so the
+    format now keeps `[N]` for the citation number and moves the provenance onto
+    its own line, where no link syntax can form.
+
+    The separator is a newline rather than a dash on purpose: the model imitates
+    the punctuation it is shown, and this site does not use em dashes.
+    """
     if not chunks:
         return "(no relevant content found)"
     blocks = []
@@ -275,13 +295,10 @@ def format_context(chunks: Sequence[ContextChunk]) -> str:
         blocks.append(note)
     for i, chunk in enumerate(chunks, start=1):
         label = chunk.title or chunk.source
+        provenance = f"source: {chunk.source}"
         if chunk.doc_date is not None:
-            blocks.append(
-                f"[{i}] {label} ({chunk.source}, {chunk.doc_date.isoformat()})\n"
-                f"{chunk.content}"
-            )
-        else:
-            blocks.append(f"[{i}] {label} ({chunk.source})\n{chunk.content}")
+            provenance = f"{provenance}, published {chunk.doc_date.isoformat()}"
+        blocks.append(f"[{i}] {label}\n{provenance}\n{chunk.content}")
     return "\n\n".join(blocks)
 
 

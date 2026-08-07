@@ -549,6 +549,76 @@ _RESEARCH_MARKERS = (
 )
 
 
+# Asking HOW TO GET the research is not a research sweep, and treating it as one
+# actively breaks the answer.
+#
+# MEASURED, from a real visitor. "miten voin kopioida tutkimusdokumentteja?" fired
+# the coverage intent on "tutkimu", which force-occupies the top three context
+# slots with the newest research posts. Those sat at 0.44 to 0.49 while the
+# document that actually answers the question (site-terminal.md, describing the
+# `download` command) sat at 0.165, the best chunk in the corpus for that query,
+# pushed to position four. On the Finnish phrasing it was crowded out of the
+# context entirely. The model dutifully listed research posts, and in the logged
+# answer recommended a build script from an unrelated project.
+#
+# Coverage forcing exists because pure similarity BURIES the newest research. That
+# reasoning does not apply when the question is about obtaining it: there the
+# ranking was already right and the forcing is what broke it.
+# WHICH DIRECTION TO ERR IN, decided once here rather than per marker. A veto
+# that fires wrongly only skips coverage forcing, and a direct content question
+# still retrieves its own document by similarity: mild. A veto that FAILS to fire
+# reproduces the original bug, where the document holding the answer is pushed
+# out of the context: a plainly wrong answer. So the list leans inclusive.
+#
+# VERBS, NOT "pdf". The first version matched the bare noun, which vetoed
+# "what does the findings pdf say" and "which experiment is in the pdf" — content
+# questions that should keep coverage. `where can i get` carries the pdf cases
+# that actually are about obtaining.
+_ACQUISITION_MARKERS = (
+    "download",
+    "lataa",  # fi: lataa / lataan / lataaminen
+    "ladat",  # fi: ladata / latasin
+    "kopioi",  # fi: kopioida / kopioin
+    "tallenna",  # fi: tallentaa / tallennan (save)
+    "ladda",  # sv: ladda ner
+    "obtain",
+    "copy",
+    "copie",  # copies
+    # KNOWN COLLATERAL, accepted: "lataa" also starts lataamo (a charging depot)
+    # and lataaja (a loader), so "onko lataamon tutkimus valmis" is vetoed. Finnish
+    # inflects by suffix, so no prefix separates them, and by the rule above a
+    # false veto is the cheap direction. Neither word can occur in this corpus.
+)
+
+# Multi-word forms whose individual words are far too common to stem. "get" and
+# "saada" would match most of the language; the phrase does not.
+_ACQUISITION_PHRASES = (
+    " get a copy ",
+    " where can i get ",
+    " where can i find ",
+    " how do i get ",
+    " how can i get ",
+    " mistä saan ",
+    " miten saan ",
+    " mistä löydän ",
+    " voinko saada ",
+)
+
+# Folded once at import, and validated by the same guard the CV vocabulary uses:
+# an entry that folds away to nothing would veto every research question, quietly
+# disabling coverage forcing for the whole site.
+_RESEARCH_MARKERS_FOLDED = tuple(sorted({_fold(m).strip() for m in _RESEARCH_MARKERS}))
+_ACQUISITION_MARKERS_FOLDED = tuple(
+    sorted({_fold(m).strip() for m in _ACQUISITION_MARKERS})
+)
+_ACQUISITION_PHRASES_FOLDED = tuple(sorted({_fold(p) for p in _ACQUISITION_PHRASES}))
+_reject_empty_vocabulary(
+    _RESEARCH_MARKERS_FOLDED + _ACQUISITION_MARKERS_FOLDED,
+    (),
+    _ACQUISITION_PHRASES_FOLDED,
+)
+
+
 def is_research_coverage_request(query: str) -> bool:
     """True when the query asks broadly about Mikko's research / latest findings.
 
@@ -557,16 +627,31 @@ def is_research_coverage_request(query: str) -> bool:
     question, served by normal project-aware retrieval) but "what research has
     Mikko published?" does. Reuses `detect_projects` for the exclusion so the two
     stay in sync. Recency words ("latest"/"viimeisin") are deliberately NOT
-    required — a plain "what research has he done" should surface the newest too;
-    if evals ever show this over-firing, the documented tightening is to also
-    require a recency marker.
+    required — a plain "what research has he done" should surface the newest too.
+
+    It also does not fire when the query asks how to OBTAIN the research rather
+    than what is in it; see `_ACQUISITION_MARKERS` for the measurement behind
+    that.
+
+    Folded through `_fold`, the same normalisation `wants_cv` uses, so a Finnish
+    question typed without diacritics is read the same as one with them. This
+    function used to lowercase only, which is the exact gap that made `wants_cv`
+    miss "mita tyokokemusta sinulla on" while matching its accented twin.
     """
-    text = "".join(c if c.isalnum() else " " for c in query.lower())
-    tokens = text.split()
+    tokens = _fold(query).split()
     has_research = any(
-        tok.startswith(marker) for tok in tokens for marker in _RESEARCH_MARKERS
+        tok.startswith(marker) for tok in tokens for marker in _RESEARCH_MARKERS_FOLDED
     )
     if not has_research:
+        return False
+    if any(
+        tok.startswith(marker)
+        for tok in tokens
+        for marker in _ACQUISITION_MARKERS_FOLDED
+    ):
+        return False
+    padded = f" {' '.join(tokens)} "
+    if any(phrase in padded for phrase in _ACQUISITION_PHRASES_FOLDED):
         return False
     # A named non-portfolio project makes this a project question, not a
     # research-corpus sweep — defer to normal project-aware retrieval.
