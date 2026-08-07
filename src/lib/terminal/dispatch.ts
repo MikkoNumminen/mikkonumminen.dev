@@ -103,5 +103,45 @@ export function tabComplete(value: string, commands: CommandSpec[]): string {
     if (candidates.length === 1 && first) return first + ' ';
     return value;
   }
-  return value;
+
+  // Argument completion, for commands that publish a closed set of values.
+  // Before this, Tab did nothing once you had typed a command name, which was
+  // most obvious on `download`: its ids are short but not memorable, and the
+  // whole point of the id form is that you type them.
+  const cmd = commands.find((c) => c.name === (tokens[0] ?? '').toLowerCase());
+  if (!cmd?.completions?.length) return value;
+
+  const partial = endsWithSpace ? '' : (tokens[tokens.length - 1] ?? '');
+  // Complete against the id, but keep whatever dashes were typed: someone
+  // writing `--bli` gets `--blindtest`, not a silent respelling of their input.
+  const dashes = /^-+/.exec(partial)?.[0] ?? '';
+  const stem = partial.slice(dashes.length).toLowerCase();
+  const matches = cmd.completions.filter((id) => id.startsWith(stem));
+  if (matches.length === 0) return value;
+
+  // A unique match always completes, and always earns a trailing space, even
+  // when the id was already typed in full: the space is the confirmation that
+  // it resolved. A shared prefix only completes if it actually adds characters,
+  // and gets no space, because the cursor is where more typing is needed. Both
+  // behaviours are what a real shell does.
+  if (matches.length === 1) {
+    const completed = dashes + matches[0] + ' ';
+    return endsWithSpace ? value + completed : value.replace(/\S*$/, completed);
+  }
+  const shared = dashes + commonPrefix(matches);
+  if (shared.length <= partial.length) return value;
+  return endsWithSpace ? value + shared : value.replace(/\S*$/, shared);
+}
+
+/** Longest string every candidate starts with. */
+function commonPrefix(values: readonly string[]): string {
+  const [head, ...rest] = values;
+  if (!head) return '';
+  let end = head.length;
+  for (const value of rest) {
+    let i = 0;
+    while (i < end && i < value.length && head[i] === value[i]) i += 1;
+    end = i;
+  }
+  return head.slice(0, end);
 }

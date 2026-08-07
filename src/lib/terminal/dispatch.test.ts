@@ -140,7 +140,56 @@ describe('tabComplete', () => {
     expect(tabComplete('ma', commands)).toBe('ma');
   });
 
-  it('does not complete once past the first token', () => {
+  it('leaves an argument alone when it matches no document', () => {
     expect(tabComplete('download arg', commands)).toBe('download arg');
+  });
+
+  it('does not complete arguments for commands that publish none', () => {
+    // `links` takes flags but declares no `completions`, so Tab must not invent
+    // any. Only `download` opts in.
+    expect(tabComplete('links --gi', commands)).toBe('links --gi');
+  });
+});
+
+describe('tabComplete on download arguments', () => {
+  it('completes a unique document id and appends a space', () => {
+    expect(tabComplete('download blind', commands)).toBe('download blindtest ');
+  });
+
+  it('completes to the shared prefix when several documents match', () => {
+    // `replicates` and `results` both start with "re". A real shell fills in the
+    // common part and waits, rather than picking one or doing nothing.
+    expect(tabComplete('download r', commands)).toBe('download re');
+  });
+
+  it('leaves the cursor unspaced on a shared prefix', () => {
+    // The absent trailing space is the signal that more typing is needed.
+    expect(tabComplete('download re', commands)).not.toMatch(/ $/);
+  });
+
+  it('keeps the dashes the visitor typed', () => {
+    // Completing `--bli` to a bare `blindtest` would silently respell their
+    // input; both spellings work, so neither should be rewritten under them.
+    expect(tabComplete('download --bli', commands)).toBe('download --blindtest ');
+  });
+
+  it('completes case-insensitively', () => {
+    expect(tabComplete('download BLIND', commands)).toBe('download blindtest ');
+  });
+
+  it('does nothing on a bare `download ` with nothing typed yet', () => {
+    // Every id matches, so the shared prefix is empty and there is nothing to
+    // fill in. Returning the value unchanged beats emitting an empty completion.
+    expect(tabComplete('download ', commands)).toBe('download ');
+  });
+
+  it('does not shorten what is already there', () => {
+    // `blindtest` is complete; completing it again must not truncate it back to
+    // a prefix or re-append a space it already has.
+    expect(tabComplete('download blindtest', commands)).toBe('download blindtest ');
+  });
+
+  it('leaves an unmatched argument untouched rather than guessing', () => {
+    expect(tabComplete('download zzz', commands)).toBe('download zzz');
   });
 });
