@@ -22,7 +22,13 @@ pipeline makes. Retrieval is deterministic, so these reproduce exactly.
 | `must_refuse_offcorpus` | 5 | 0.3295 | 0.5077 |
 
 There is a clean band between the worst legitimate question (0.3958) and the
-nearest off-corpus one (0.4249). Midpoint **0.4103**.
+nearest off-corpus one **that sits above it** (0.4249). Midpoint **0.4104**.
+
+That qualifier is load-bearing and the first draft left it out, which made the
+separation sound cleaner than it is. The genuinely nearest off-corpus question is
+at 0.3295, *below* the worst legitimate one, so the two distributions overlap and
+no threshold separates them completely. What the band describes is the gap above
+the overlap, which is where a threshold can do useful work.
 
 **Sample size, which matters more on one side than the other.** 42 answerable
 questions is a reasonable base. **Five** off-corpus questions is not: that
@@ -176,11 +182,52 @@ pulled the ceiling down with it and refused the exact question the override
 exists for. That is why the original conclusion had to block on it.
 
 It is now `CV_RESCUE_MAX_DISTANCE = 0.50`, absolute. Sized from the furthest true
-CV phrasing (0.4849), and below the nearest off-corpus question (0.5077), so it
-cannot reach anything the gate is meant to refuse. The probe checks that
-directly rather than by argument: **0 of 5 off-corpus questions are reachable by
-the CV rescue**, even though all five drag cv.md into context when laced with the
-token.
+CV phrasing (0.4849), and below the nearest off-corpus question at 0.5077.
+
+### 2b. The exposure check that measured nothing
+
+The first version of this section said "0 of 5 off-corpus questions are reachable
+by the CV rescue". That number was real and worthless. The probe ran the five
+off-corpus questions unmodified, none of them contains CV vocabulary, so
+`wants_cv` was False for all five and the rescue could never apply. It would have
+printed 0 with the ceiling set to infinity.
+
+This is the same defect the repo has now hit five times: the half that was not
+tested. A visitor does not send the eval set. They send whatever they like, and
+appending a CV trigger to an off-corpus question is one line of typing.
+
+Measured properly, appending each trigger to all five off-corpus questions:
+
+| appended trigger | answered | gated | worst anchor |
+| --- | ---: | ---: | ---: |
+| `cv` (pre-existing, 2 characters) | **5 of 5** | 0 | 0.4601 |
+| `where do you work` | 5 of 5 | 0 | 0.4784 |
+| `have you worked there` | 4 of 5 | **1** | 0.5184 |
+| `kerro urastasi` | 5 of 5 | 0 | 0.4658 |
+| `oletko ollut töissä` | 5 of 5 | 0 | 0.4696 |
+| `previous employers` | 5 of 5 | 0 | 0.4560 |
+
+**Every off-corpus question can be answered by lacing it with a CV trigger.** Two
+things follow, and they point in opposite directions, so both belong here.
+
+The first is that this PR does not cause it and does not widen it. The bar is the
+bare token `cv`, which predates all of this and already scores 5 of 5. No trigger
+added here does worse than that baseline, and one does better: `have you worked
+there` pushes a question past the ceiling and gets it gated. The same lacing
+answers the same five under the old 0.45 threshold, because the laced anchors
+(0.4560 to 0.4784) sat in the old override band too.
+
+The second is that the hole is real, total, and now the rescue is what opens it.
+An earlier finding recorded the override as "reachable but never load-bearing",
+because in those probes the gate passed on its own. Here it does not: the laced
+anchors are above the threshold and below the ceiling, so the rescue is the thing
+answering. That finding no longer holds and should not be quoted.
+
+Not fixed here. A bound on the override cannot close it, because the override is
+behaving exactly as specified: the query does contain a work-history question.
+Closing it means deciding that a CV question stapled to an unrelated one is not a
+CV question, which is a different mechanism and a different change. Filed against
+the open containment work rather than bolted on to a threshold PR.
 
 ### 3. Re-measured, the cost is zero
 
@@ -222,6 +269,10 @@ symptom would be a real question deterministically refused. The probe is the
 re-measure, and `must_retrieve` in the eval set is the tripwire.
 
 ### 5. What is still open
+
+**Lacing, measured in 2b: every off-corpus question can be answered by appending
+a CV trigger to it.** Pre-existing, not widened here, and now measurable on every
+probe run rather than assumed away.
 
 The three injection payloads at 0.3448, 0.3451 and 0.3647 remain below the worst
 legitimate question. Nothing here touches them, and nothing about a retrieval

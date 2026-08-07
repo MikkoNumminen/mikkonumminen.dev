@@ -213,14 +213,51 @@ def test_wants_cv_survives_a_finnish_question_typed_without_diacritics() -> None
 
 
 def test_wants_cv_reaches_the_career_and_at_work_forms() -> None:
-    """'ura' inflections and 'töissä', both measured as misses. 'ura' on its own
-    is too short to be safe, so only its unambiguous case stems are matched."""
+    """'ura' inflections and 'töissä', both measured as misses."""
     assert wants_cv("kerro urastasi")
+    assert wants_cv("kerro urasta")
+    assert wants_cv("mikä on urasi")
     assert wants_cv("mitä urallasi on tapahtunut")
-    assert wants_cv("kerro uranvaihdosta")
+    assert wants_cv("kerro uranvaihdosta")  # gradation: uranvaihto -> uranvaihdosta
     assert wants_cv("missä olet ollut töissä")
     assert wants_cv("missa olet ollut toissa")
+    assert wants_cv("oletko töissä jossain")
+    assert wants_cv("mitä töitä olet tehnyt")
     assert wants_cv("oletko työskennellyt konsulttina")
+    # possessive forms, which an exact-token list has to spell out
+    assert wants_cv("oletko tyytyväinen töissäsi")
+    assert wants_cv("miten menee töissäni")
+
+
+def test_the_ura_family_is_matched_by_token_not_by_prefix() -> None:
+    """The correction that mattered most in review.
+
+    `uras`/`ural`/`uran` shipped as PREFIXES first, and the comment next to them
+    claimed they could not reach unrelated words. That claim was false in three
+    ways at once, and all three are ordinary questions a visitor could ask:
+    Uranus starts with `uran`, Uralilla with `ural`, urasointi with `uras`.
+
+    Finnish inflects by suffix, so the forms can be enumerated instead, and
+    equality has no reach. Compounds are covered separately by `työura` and
+    `uranvaih`.
+    """
+    assert not wants_cv("milloin Uranus löydettiin")
+    assert not wants_cv("missä sijaitsevat Uralilla")
+    assert not wants_cv("kerro Uralin vuoristosta")
+    assert not wants_cv("mitä tarkoittaa urasointi metallityössä")
+    assert not wants_cv("onko tässä puussa syvä uras")
+
+
+def test_bare_toissa_is_temporal_and_needs_its_verb() -> None:
+    """"töissä" folds to "toissa", which is ALSO the modifier in "toissa vuonna"
+    (the year before last). A token match would claim every such sentence, so the
+    bare form is a phrase keyed on the preceding verb, which the temporal reading
+    never has."""
+    assert not wants_cv("missä asuit toissa vuonna")
+    assert not wants_cv("kävimme toissa kesänä Ruotsissa")
+    assert not wants_cv("toissapäivänä satoi")
+    assert wants_cv("missä olet ollut töissä")
+    assert wants_cv("oletko ollut töissä ulkomailla")
 
 
 def test_wants_cv_reaches_the_verb_not_only_the_noun() -> None:
@@ -243,6 +280,78 @@ def test_wants_cv_short_stems_do_not_claim_unrelated_finnish_words() -> None:
     assert not wants_cv("urheilusta")
     assert not wants_cv("toissapäivänä satoi")
     assert not wants_cv("mitä toisessa projektissa tehtiin")
+
+
+def test_a_vocabulary_entry_that_folds_to_nothing_is_rejected_at_import() -> None:
+    """The worst edit anyone can make to this module, made loud.
+
+    `"x".startswith("")` is True, so a single vocabulary entry that folds away
+    to an empty string makes `wants_cv` return True for every query. The CV route
+    skips the relevance gate, so that is the containment gate off for every
+    visitor, from an edit that looks like a typo. Import has to refuse.
+    """
+    from app.query_projects import (
+        _CV_EXACT_FOLDED,
+        _CV_PHRASES_FOLDED,
+        _CV_PREFIXES_FOLDED,
+        _fold,
+        _reject_empty_vocabulary,
+    )
+
+    # the shipped vocabulary passes, or the guard is just noise
+    _reject_empty_vocabulary(
+        _CV_PREFIXES_FOLDED, _CV_EXACT_FOLDED, _CV_PHRASES_FOLDED
+    )
+
+    # each of the three lists, poisoned the way a real edit would poison it: an
+    # entry with no alphanumerics at all, which `_fold` reduces to spaces
+    assert _fold("-") .strip() == ""
+    assert _fold("́").strip() == ""  # a lone combining acute
+
+    with pytest.raises(ValueError):
+        _reject_empty_vocabulary(("career", ""), _CV_EXACT_FOLDED, _CV_PHRASES_FOLDED)
+    with pytest.raises(ValueError):
+        _reject_empty_vocabulary(_CV_PREFIXES_FOLDED, {"cv", ""}, _CV_PHRASES_FOLDED)
+    with pytest.raises(ValueError):
+        _reject_empty_vocabulary(
+            _CV_PREFIXES_FOLDED, _CV_EXACT_FOLDED, (" work experience ", "   ")
+        )
+
+
+def test_no_question_expected_to_be_refused_claims_cv_intent() -> None:
+    """The blast radius of widening the CV vocabulary, pinned to the eval set.
+
+    CV intent is a key to the relevance-gate override, so any question the corpus
+    is supposed to REFUSE must not hold that key. This is the check that would
+    catch a future stem like "jobs" (which collides with "cron jobs") or a bare
+    "ura" turning an off-corpus question into an answerable one.
+
+    Measured at the time of writing: widening the vocabulary flipped 0 of the 58
+    eval questions in either direction.
+    """
+    import json
+
+    raw = json.loads(
+        (Path(__file__).resolve().parents[1] / "evals" / "eval_set.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    queries = raw["queries"] if isinstance(raw, dict) else raw
+    refusable = [
+        str(q["question"])
+        for q in queries
+        if str(q.get("expectation", "")).startswith("must_refuse")
+    ]
+    assert refusable, "eval set has no must_refuse cases; this test is vacuous"
+    claiming = [q for q in refusable if wants_cv(q)]
+    assert not claiming, f"refusable questions claiming CV intent: {claiming}"
+
+
+def test_the_empty_entry_really_would_match_everything() -> None:
+    """The premise of the guard above, proven rather than asserted. Without this,
+    the guard could be protecting against nothing and its test would still pass."""
+    assert "anything at all".startswith("")
+    assert " " in " how does the rag chat work "
 
 
 def test_wants_cv_accent_folding_does_not_widen_the_english_stems() -> None:

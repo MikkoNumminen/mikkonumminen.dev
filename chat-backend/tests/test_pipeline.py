@@ -1395,14 +1395,22 @@ def test_cv_intent_does_not_override_beyond_the_rescue_ceiling() -> None:
     assert "Minulla ei ole tietoa tuosta" in _token_text(frames)
 
 
-def test_the_rescue_ceiling_sits_above_the_shipped_gate() -> None:
+def test_the_rescue_ceiling_sits_above_the_shipped_gate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Otherwise the override is dead code and nothing would say so.
 
     The old `threshold + slack` shape could not have this failure: the ceiling
     moved with the gate, so it was always reachable. An absolute ceiling can be
     silently overtaken by raising WEAK_RETRIEVAL_DISTANCE past it, and every
     CV question would start being refused with no test failing.
+
+    The env var is cleared first, because otherwise this asserts something about
+    whoever's shell is running it rather than about the shipped default: with
+    WEAK_RETRIEVAL_DISTANCE=0.6 exported it fails with no code change, and a real
+    regression could equally be masked by an ambient value that happens to pass.
     """
+    monkeypatch.delenv("WEAK_RETRIEVAL_DISTANCE", raising=False)
     assert Settings.from_env().weak_retrieval_distance < CV_RESCUE_MAX_DISTANCE
 
 

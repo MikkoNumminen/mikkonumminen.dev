@@ -65,6 +65,19 @@ CV_QUESTIONS = (
 )
 
 
+# Text a visitor can append to any question to claim CV intent. "cv" first and
+# deliberately: it is the pre-existing two-character trigger, so it is the bar
+# every later addition is measured against rather than measured in isolation.
+LACING_TRIGGERS = (
+    "cv",
+    "where do you work",
+    "have you worked there",
+    "kerro urastasi",
+    "oletko ollut töissä",
+    "previous employers",
+)
+
+
 async def _anchors(
     emb: Embedder,
     db: Database,
@@ -179,22 +192,45 @@ async def main() -> None:
             print(f"      {anchor:.4f}  [{why}] {question}")
     print()
 
-    # Would the rescue answer anything the gate is meant to refuse? Only a
-    # question that is CV-positive, drags cv.md into context, AND sits under the
-    # ceiling can be rescued, so this is the whole exposure.
-    print(f"off-corpus reachable by the CV rescue (ceiling {CV_RESCUE_MAX_DISTANCE}):")
-    exposed = 0
-    for anchor, question, chunks in await _anchors(
-        emb, db, settings, by_expectation["must_refuse_offcorpus"]
-    ):
-        if anchor is None:
-            continue
-        intent = wants_cv_intent(question, question)
-        has_cv = any(c.source == "cv.md" for c in chunks)
-        if intent and has_cv and anchor <= CV_RESCUE_MAX_DISTANCE:
-            exposed += 1
-            print(f"  {anchor:.4f}  RESCUED  {question[:52]}")
-    print(f"  {exposed} of {len(offcorpus)} reachable")
+    # THE ADVERSARIAL CASE, and the reason this section is not simply
+    # "run the off-corpus questions and see if any is rescued". None of the five
+    # contains CV vocabulary, so that version reports 0 exposed no matter what
+    # the ceiling is: it would print the same reassuring number with the ceiling
+    # at infinity. A measurement that cannot fail measures nothing.
+    #
+    # A visitor appends whatever text they like. So append the CV trigger to each
+    # off-corpus question and measure what actually happens. The bare token "cv"
+    # is the baseline: it is two characters and predates this vocabulary, so any
+    # new trigger only matters if it is WORSE than "cv" already was.
+    print(f"lacing off-corpus with CV triggers (ceiling {CV_RESCUE_MAX_DISTANCE}):")
+    print("  trigger              answered/gated per question       worst anchor")
+    baseline_exposed = None
+    for trigger in LACING_TRIGGERS:
+        laced = [f"{q} {trigger}" for _, q in offcorpus]
+        exposed, gated, worst = 0, 0, 0.0
+        for anchor, question, chunks in await _anchors(emb, db, settings, laced):
+            if anchor is None:
+                continue
+            worst = max(worst, anchor)
+            intent = wants_cv_intent(question, question)
+            has_cv = any(c.source == "cv.md" for c in chunks)
+            rescued = intent and has_cv and anchor <= CV_RESCUE_MAX_DISTANCE
+            # answered = the gate let it through on its own, OR the rescue did
+            if not is_weak_retrieval(chunks, settings.weak_retrieval_distance) or rescued:
+                exposed += 1
+            else:
+                gated += 1
+        if baseline_exposed is None:
+            baseline_exposed = exposed
+        delta = (
+            ""
+            if exposed <= baseline_exposed
+            else f"  <-- WORSE THAN 'cv' (+{exposed - baseline_exposed})"
+        )
+        print(
+            f"  {trigger:<20} {exposed} answered / {gated} gated of {len(laced)}"
+            f"          {worst:.4f}{delta}"
+        )
 
     await db.close()
 
