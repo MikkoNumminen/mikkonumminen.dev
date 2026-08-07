@@ -438,8 +438,7 @@ export const fi: Translations = {
     copyFallback: 'paina ctrl+c',
     cmdHelpDesc: 'listaa käytettävissä olevat komennot',
     cmdHelpAvailable: 'käytettävissä olevat komennot:',
-    cmdHelpTip:
-      'vinkki: kokeile `whoami`, `contact --email`, `skills` tai `download --research`.',
+    cmdHelpTip: 'vinkki: kokeile `whoami`, `contact --email`, `skills` tai `download`.',
     cmdWhoamiDesc: 'lyhyt esittely',
     cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack-kehittäjä · suomi',
@@ -465,13 +464,12 @@ export const fi: Translations = {
     cmdDownloadDesc:
       'cv:ni tai tutkimus: katalogi, skills-tutkimukset, kalibrointi ja rag suomi -tutkimus (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
-    cmdDownloadIntro: 'valitse mitä haluat napata:',
+      'download [nimi]; pelkkä `download` listaa kaiken, esim. `download blindtest` tai `download cv`',
+    cmdDownloadIntro: 'kaikki mitä voit napata, kirjoita nimi ladataksesi:',
+    cmdDownloadDidYouMean: 'tarkoititko:',
     cmdDownloadOptionCv: 'cv:ni, pdf, koko ansioluettelo',
     cmdDownloadOptionSkills:
       'kesäkuu 2026 · uusin + laajin: 16 skilliä, kylmä-vs-skilli A/B kolmella mallilla; nykyinen tilannekuva',
-    cmdDownloadOptionResearch:
-      'tutkimus, 11 pdf:ää: skills-sarja + rag suomi -tutkimus + poro-löydökset + käännösauditointi + agenttidelegoinnin mittaus (ei lataus)',
     cmdDownloadResearchIntro: 'katalogi + tutkimukset, vanhimmasta uusimpaan:',
     cmdDownloadOptionCatalog:
       'jokainen skilli kaikista 4 reposta: inventaario, kustannukset mitattu (ei arvattu)',
@@ -493,11 +491,10 @@ export const fi: Translations = {
       'heinäkuu 2026 · käännösauditointi: paikallinen suomen kielen malli lukee sivuston kaikki 396 suomenkielistä merkkijonoa englanninkielistä lähdettä vasten; sen 276 ehdotetusta muutoksesta vain 2 kesti',
     cmdDownloadOptionDelegation:
       'heinäkuu 2026 · maksavatko halvat agentit itsensä takaisin: seitsemän mitattua delegointia yhdestä istunnosta; 3 seitsemästä huomasi jotain, minkä olisin itse jättänyt huomaamatta, 1 oli väärä löydös, eikä säästöä väitetä, koska vertailukohtaa ei voi mitata',
-    cmdDownloadResearchHint: 'nappaa mikä tahansa suoraan, esim. `download --catalog`.',
-    cmdDownloadTryHint:
-      'kokeile `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration` tai `download --finnish`.',
-    cmdDownloadAmbiguous:
-      'anna vain yksi seuraavista: --cv, --catalog, --study, --replicates, --results, --calibration tai --finnish.',
+    cmdDownloadResearchHint:
+      'nappaa kirjoittamalla nimi, esim. `download catalog`. myös yksilöivä alku toimii: `download blind`.',
+    cmdDownloadTryHint: 'kirjoita pelkkä `download`, niin näet kaikki dokumentit.',
+    cmdDownloadAmbiguous: 'tuo osuu useampaan kuin yhteen dokumenttiin:',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla. vielä viimeistelyssä.',
     cmdDownloadSkillsNotAvailable:
@@ -559,7 +556,7 @@ export const fi: Translations = {
     cmdCatUsage: 'käyttö: cat <polku>, kokeile `cat projects/hrm` tai `cat cv`',
     cmdCatNoSuch: 'No such file or directory',
     cmdCvDesc: 'lyhyt cv-yhteenveto',
-    cmdCvDownloadHint: 'aja `download --cv` saadaksesi koko ansioluettelon (pdf).',
+    cmdCvDownloadHint: 'aja `download cv` saadaksesi koko ansioluettelon (pdf).',
     cmdSudoDesc: 'suorita komento toisena käyttäjänä',
     cmdSudoHire:
       'pääsy myönnetty. laaditaan työtarjous. tavoitat minut yllä olevalla sähköpostilla.',

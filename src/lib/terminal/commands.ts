@@ -4,6 +4,7 @@ import { runSkillsCommand } from './skills';
 import type { CommandContext, CommandSpec } from './types';
 import { localizeProjects, type LocalizedProject } from '../../data/projects';
 import { resetChatSession } from './chat';
+import { normaliseToken, resolveDownload } from './download';
 
 const EMAIL = 'numminen.mikko.petteri@gmail.com';
 const GITHUB = 'https://github.com/MikkoNumminen';
@@ -52,7 +53,7 @@ function printProjectCard(p: LocalizedProject, ctx: CommandContext): void {
   }
 }
 
-/** Short scripted CV summary; the full résumé is the `download --cv` PDF. */
+/** Short scripted CV summary; the full résumé is the `download cv` PDF. */
 function printCv(ctx: CommandContext, tt: Translations['terminal']): void {
   ctx.print(tt.cmdWhoamiName, 'accent');
   ctx.print(tt.cmdWhoamiTitle, 'dim');
@@ -65,9 +66,9 @@ function printCv(ctx: CommandContext, tt: Translations['terminal']): void {
 /**
  * Build the terminal command set for a given locale.
  *
- * Command names (`help`, `whoami`, etc.) and their flag syntax (`--email`,
- * `--cv`) are intentionally NOT translated — they are part of the CLI
- * surface and stay in English across all locales. Only the descriptions,
+ * Command names (`help`, `whoami`, etc.), their flag syntax (`--email`) and the
+ * download ids (`cv`, `blindtest`) are intentionally NOT translated — they are
+ * part of the CLI surface and stay in English across all locales. Only the descriptions,
  * output text, and error messages are localized.
  *
  * `callbacks.onAfterClear` is called by the `clear` handler after wiping the
@@ -169,16 +170,21 @@ export function buildCommands(
       description: tt.cmdDownloadDesc,
       usage: tt.cmdDownloadUsage,
       handler: async (args, ctx) => {
-        // Flag → downloadable target. `tier` drives the two-level menu: bare
-        // `download` lists the 'primary' rows (just the cv) plus a synthetic
-        // `--research` row; `download --research` then lists the 'research' rows
-        // (the catalog, the study/replicates/results methodology trail, and the
-        // calibration snapshot), so the default view never floods. Every
-        // entry in THIS array is a real download — `--research` is deliberately
-        // NOT here, because it lists rather than downloads (a flag with no url
-        // would 404 through the download branch); it's appended as a menu row
-        // below. Adding a target is a one-line append; selection, listing, and
-        // ambiguity handling below all drive off this array.
+        // Flag → downloadable target. Bare `download` now lists ALL of these in
+        // one flat menu; `tier` survives only so `download research` can narrow
+        // to the research trail (the catalog, the study/replicates/results
+        // methodology trail, and the calibration snapshot).
+        //
+        // It used to be two levels, and that was the bug: the default view showed
+        // the cv plus a synthetic `--research` row, so a visitor who wanted the
+        // research saw neither the research nor an error, and went and asked the
+        // chat instead. Twelve rows is not a flood.
+        //
+        // `research` is deliberately NOT an entry here, because it lists rather
+        // than downloads (a flag with no url would 404 through the download
+        // branch); `resolveDownload` treats it as a listing token. Adding a
+        // target is a one-line append: ids, listing, prefix matching and
+        // ambiguity all drive off this array.
         const targets: {
           flag: string;
           tier: 'primary' | 'research';
@@ -285,11 +291,11 @@ export function buildCommands(
           },
         ];
 
-        // Render an aligned flag/description list. The description column lines
-        // up to the longest flag in *this* list, so each tier aligns on its own
-        // — the bare menu's short flags don't inherit the research flags' width.
-        // Typed to the minimal {flag,label} shape so the synthetic `--research`
-        // row (which has no url) can be passed alongside real targets.
+        // Render an aligned name/description list. The description column lines
+        // up to the longest name in *this* list, so the narrowed research view
+        // aligns on its own rather than inheriting the full menu's width. The
+        // `flag` field here carries the id a visitor types, not the dashed
+        // spelling; the shape is kept minimal so any {name,label} pair renders.
         const printOptions = (rows: { flag: string; label: string }[]) => {
           const INDENT = 2;
           const GAP = 4;
@@ -302,44 +308,60 @@ export function buildCommands(
           });
         };
 
-        const selected = targets.filter((tgt) => args.includes(tgt.flag));
-        if (selected.length === 0) {
-          if (args.includes('--research')) {
-            ctx.print(tt.cmdDownloadResearchIntro, 'dim');
-            printOptions(targets.filter((tgt) => tgt.tier === 'research'));
-            ctx.print('');
-            ctx.print(tt.cmdDownloadResearchHint, 'dim');
-            return;
-          }
-          // A leftover `--` token that's neither a known target flag nor
-          // `--research` is a typo, not a request for the menu — error on it
-          // the way contact/links/skills do, instead of silently showing the
-          // default list. Bare `download` (no `--` tokens) still falls through
-          // to the menu below.
-          const known = new Set(targets.map((tgt) => tgt.flag));
-          const unknown = args.filter((a) => a.startsWith('--') && !known.has(a));
-          if (unknown.length > 0) {
-            ctx.print(`${tt.cmdLinksUnknownFlag} ${unknown.join(' ')}`, 'err');
+        // `id` is the flag without its dashes, and it is what a visitor is
+        // expected to type: `download blindtest`. The `--flag` spelling still
+        // resolves (normaliseToken strips the dashes) because the site copy and
+        // the RAG corpus document both teach it, and breaking a documented form
+        // to gain a shorter one is a bad trade.
+        const idOf = (flag: string) => flag.replace(/^--/, '');
+        const ids = targets.map((tgt) => idOf(tgt.flag));
+        const resolution = resolveDownload(args, ids);
+
+        if (resolution.kind === 'unknown') {
+          // Echo what was TYPED, not the normalised form: someone who typed
+          // `--skills` should see `--skills` back, or the error looks like it is
+          // about a different word than the one they wrote.
+          const asTyped =
+            args.find((a) => normaliseToken(a) === resolution.token) ?? resolution.token;
+          ctx.print(`${tt.cmdLinksUnknownFlag} ${asTyped}`, 'err');
+          if (resolution.suggestion) {
+            ctx.print(`${tt.cmdDownloadDidYouMean} ${resolution.suggestion}`, 'dim');
+          } else {
             ctx.print(tt.cmdDownloadTryHint, 'dim');
-            return;
           }
-          // `--research` rides in the green flag column as a first-class row so
-          // a skimmer discovers it by the same scan that reads cv/skills — but
-          // it's a listing trigger, handled by the branch above, not a target.
-          ctx.print(tt.cmdDownloadIntro, 'dim');
-          printOptions([
-            ...targets.filter((tgt) => tgt.tier === 'primary'),
-            { flag: '--research', label: tt.cmdDownloadOptionResearch },
-          ]);
           return;
         }
-        if (selected.length > 1) {
-          ctx.print(tt.cmdDownloadAmbiguous, 'err');
-          ctx.print(tt.cmdDownloadTryHint, 'dim');
+        if (resolution.kind === 'ambiguous') {
+          ctx.print(
+            `${tt.cmdDownloadAmbiguous} ${resolution.candidates.join(', ')}`,
+            'err',
+          );
           return;
         }
-        const target = selected[0];
-        if (!target) return; // unreachable: length is exactly 1 here
+        if (resolution.kind === 'list') {
+          // ONE FLAT LIST. It used to be two levels, primary (the cv) plus a
+          // synthetic `--research` row that had to be typed to see anything
+          // else, so the default view showed two rows and none of the research.
+          // Twelve rows is not a flood, and hiding them behind a second command
+          // is what sent people to the chat to ask where the documents were.
+          const rows =
+            resolution.tier === 'research'
+              ? targets.filter((tgt) => tgt.tier === 'research')
+              : targets;
+          ctx.print(
+            resolution.tier === 'research'
+              ? tt.cmdDownloadResearchIntro
+              : tt.cmdDownloadIntro,
+            'dim',
+          );
+          printOptions(rows.map((tgt) => ({ flag: idOf(tgt.flag), label: tgt.label })));
+          ctx.print('');
+          ctx.print(tt.cmdDownloadResearchHint, 'dim');
+          return;
+        }
+
+        const target = targets.find((tgt) => idOf(tgt.flag) === resolution.id);
+        if (!target) return; // unreachable: resolveDownload only returns known ids
 
         ctx.print(tt.cmdDownloadPreparing, 'dim');
 

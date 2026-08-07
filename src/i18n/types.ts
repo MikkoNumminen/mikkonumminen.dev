@@ -253,9 +253,9 @@ export interface Translations {
     cmdDownloadDesc: string;
     cmdDownloadUsage: string;
     cmdDownloadIntro: string;
+    cmdDownloadDidYouMean: string;
     cmdDownloadOptionCv: string;
     cmdDownloadOptionSkills: string;
-    cmdDownloadOptionResearch: string;
     cmdDownloadResearchIntro: string;
     cmdDownloadOptionCatalog: string;
     cmdDownloadOptionStudy: string;

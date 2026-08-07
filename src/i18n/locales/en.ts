@@ -433,8 +433,7 @@ export const en: Translations = {
     copyFallback: 'press ctrl+c',
     cmdHelpDesc: 'list available commands',
     cmdHelpAvailable: 'available commands:',
-    cmdHelpTip:
-      'tip: try `whoami`, `contact --email`, `skills`, or `download --research`.',
+    cmdHelpTip: 'tip: try `whoami`, `contact --email`, `skills`, or `download`.',
     cmdWhoamiDesc: 'short bio',
     cmdWhoamiName: 'Mikko Numminen',
     cmdWhoamiTitle: 'full-stack developer · finland',
@@ -459,13 +458,12 @@ export const en: Translations = {
     cmdDownloadDesc:
       'my cv, or the research: catalog, skills studies, calibration, and a rag finnish study (pdf)',
     cmdDownloadUsage:
-      'download [--cv|--research]; --research lists [--catalog|--study|--replicates|--results|--calibration|--finnish]',
-    cmdDownloadIntro: "pick what you'd like to grab:",
+      'download [name]; bare `download` lists everything, e.g. `download blindtest` or `download cv`',
+    cmdDownloadIntro: 'everything you can grab, type the name to download it:',
+    cmdDownloadDidYouMean: 'did you mean:',
     cmdDownloadOptionCv: 'my cv: pdf, full résumé',
     cmdDownloadOptionSkills:
       'jun 2026 · latest + broadest: 16 skills, cold-vs-skill A/B across 3 models; the current snapshot',
-    cmdDownloadOptionResearch:
-      'the research, 11 pdfs: the skills suite + the rag finnish study + the poro findings + the translation audit + the agent delegation measurement (not a download)',
     cmdDownloadResearchIntro: 'the catalog + the studies, oldest → newest:',
     cmdDownloadOptionCatalog:
       'every skill across all 4 repos: the inventory, with measured (not guessed) costs',
@@ -487,11 +485,10 @@ export const en: Translations = {
       "jul 2026 · the translation audit: a local Finnish model re-reads all 396 of the site's Finnish strings against their English source; only 2 of its 276 proposed rewrites held up",
     cmdDownloadOptionDelegation:
       'jul 2026 · do the cheap agents pay for themselves: seven instrumented delegations from one session; 3 of 7 caught something I had missed, 1 was a false finding, and no saving is claimed because the counterfactual is not measurable',
-    cmdDownloadResearchHint: 'grab any directly, e.g. `download --catalog`.',
-    cmdDownloadTryHint:
-      'try `download --cv`, `download --catalog`, `download --study`, `download --replicates`, `download --results`, `download --calibration`, or `download --finnish`.',
-    cmdDownloadAmbiguous:
-      'specify only one of --cv, --catalog, --study, --replicates, --results, --calibration, or --finnish.',
+    cmdDownloadResearchHint:
+      'type the name to grab one, e.g. `download catalog`. a unique prefix works too: `download blind`.',
+    cmdDownloadTryHint: 'type `download` on its own to see every document.',
+    cmdDownloadAmbiguous: 'that matches more than one document:',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet. still being polished.',
     cmdDownloadSkillsNotAvailable:
@@ -552,7 +549,7 @@ export const en: Translations = {
     cmdCatUsage: 'usage: cat <path>, try `cat projects/hrm` or `cat cv`',
     cmdCatNoSuch: 'No such file or directory',
     cmdCvDesc: 'short cv summary',
-    cmdCvDownloadHint: 'run `download --cv` for the full résumé (pdf).',
+    cmdCvDownloadHint: 'run `download cv` for the full résumé (pdf).',
     cmdSudoDesc: 'execute a command as another user',
     cmdSudoHire:
       'access granted. drafting the offer letter. reach me at the email above.',

@@ -214,16 +214,16 @@ describe('command handlers — happy-path output', () => {
 
   it('cat cv prints the scripted CV summary', async () => {
     const { output } = await run('cat', ['cv']);
-    // Name is locale-stable (not translated); the `download --cv` hint is the
+    // Name is locale-stable (not translated); the `download cv` hint is the
     // CLI-syntax pointer to the full résumé and stays literal across locales too.
     expect(output.textContent).toContain('Mikko Numminen');
-    expect(output.textContent).toContain('download --cv');
+    expect(output.textContent).toContain('download cv');
   });
 
   it('cv command prints the same scripted summary as `cat cv`', async () => {
     const { output } = await run('cv');
     expect(output.textContent).toContain('Mikko Numminen');
-    expect(output.textContent).toContain('download --cv');
+    expect(output.textContent).toContain('download cv');
   });
 
   it('man with no target prints a usage hint', async () => {
