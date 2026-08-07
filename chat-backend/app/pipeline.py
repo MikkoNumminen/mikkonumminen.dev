@@ -212,35 +212,36 @@ def _strip_markup(text: str) -> str:
     return text.replace("*", "").replace("`", "")
 
 
-# How far past the relevance threshold the CV-intent override may rescue a
-# question.
+# The furthest prose anchor at which CV intent may rescue a question from the
+# relevance gate.
 #
-# MEASURED, not guessed. "what work experience do you have?" is the phrasing the
-# override was added for, and against the live corpus its prose anchor is 0.4849
-# with the gate at 0.45. The comment here used to say "~0.47"; the real number is
-# further out, and a slack of 0.03 would have refused the exact question this
-# mechanism exists to answer. 0.05 leaves 0.0151 of room.
+# ABSOLUTE, NOT `threshold + slack`. It used to be the latter, and that coupling
+# was a bug with a long fuse: how far cv.md sits from a CV question is a fact
+# about the corpus, while the gate threshold is a policy about everything else.
+# Tying them meant lowering the threshold silently pulled the CV ceiling down
+# with it and started refusing the exact questions the override exists for.
+# `docs/audits/relevance-gate-threshold-2026-08-07.md` measured that and could
+# not recommend the threshold change because of it.
 #
-# Of ten CV phrasings probed, that one is the ONLY one the gate refuses on its
-# own. The rest pass at 0.34 to 0.44 and never reach the override. So this is a
-# narrow rescue, and anything beyond the band is not a straddle: it is an
-# off-corpus question wearing a "cv" token.
+# MEASURED, not guessed. Across the CV phrasings probed, the furthest true one is
+# "what work experience do you have?" at 0.4849. 0.50 leaves 0.0151 of room —
+# the same headroom the old slack was chosen to give, now independent of the
+# threshold. The nearest off-corpus question sits at 0.5077, so the ceiling also
+# stays below anything the gate is meant to refuse.
 #
-# Tightening this needs a re-measure, not an argument. docs/audits/
-# gate-steering-2026-08-06.md has the table and the probe.
-CV_OVERRIDE_SLACK = 0.05
+# Widening this needs a re-measure, not an argument. `evals/gate_threshold_probe`
+# regenerates the whole table.
+CV_RESCUE_MAX_DISTANCE = 0.50
 
 
-def _within_cv_override_slack(
-    chunks: Sequence[RetrievedChunk], weak_retrieval_distance: float
-) -> bool:
+def _within_cv_rescue_range(chunks: Sequence[RetrievedChunk]) -> bool:
     """Is retrieval close enough that CV intent should be allowed to rescue it?
 
     Anchored on the same PROSE distance `is_weak_retrieval` gates on, so the two
     can never disagree about how far away the context is.
     """
     anchor = prose_anchor(chunks)
-    return anchor is not None and anchor <= weak_retrieval_distance + CV_OVERRIDE_SLACK
+    return anchor is not None and anchor <= CV_RESCUE_MAX_DISTANCE
 
 
 async def chat_event_stream(
@@ -509,14 +510,14 @@ async def chat_event_stream(
     # it does NOT explain the off-corpus questions that get answered. That is a
     # separate and deeper problem with how easily the anchor is satisfied.
     #
-    # The override exists to rescue a question that STRADDLES the threshold, so
-    # it may reach only that far. Beyond the slack the gate wins, whatever the
-    # intent looked like. Keeps the case it was built for (the ~0.47
-    # second-person phrasing), removes the unbounded reach.
+    # The override reaches as far as cv.md actually sits from a CV question and
+    # no further (CV_RESCUE_MAX_DISTANCE). Beyond that the gate wins, whatever
+    # the intent looked like: an anchor past the furthest real CV phrasing is not
+    # a straddle, it is an off-corpus question wearing a "cv" token.
     cv_grounded = (
         wants_cv_intent(query, retrieval_query)
         and any(c.source == "cv.md" for c in chunks)
-        and _within_cv_override_slack(chunks, weak_retrieval_distance)
+        and _within_cv_rescue_range(chunks)
     )
     if is_weak_retrieval(chunks, weak_retrieval_distance) and not cv_grounded:
         weak_reply = (

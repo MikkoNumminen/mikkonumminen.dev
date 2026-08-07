@@ -29,6 +29,7 @@ from app.config import Settings
 from app.db import Database
 from app.embeddings import Embedder
 from app.guardrails import is_weak_retrieval, prose_anchor
+from app.pipeline import CV_RESCUE_MAX_DISTANCE
 from app.query_projects import wants_cv_intent
 from app.retrieval import RetrievedChunk
 from evals.production_retrieval import retrieve_as_production
@@ -53,6 +54,14 @@ CV_QUESTIONS = (
     "kerro urastasi",
     "where have you worked",
     "what jobs has Mikko had",
+    # Added after the first run, which showed the four refusals were not all the
+    # same failure: three of them never reached the override because `wants_cv`
+    # did not recognise the phrasing at all. These probe that half.
+    "mitä työkokemusta sinulla on",
+    "missä olet ollut töissä",
+    "missa olet ollut toissa",
+    "who have you worked for",
+    "oletko työskennellyt konsulttina",
 )
 
 
@@ -124,6 +133,12 @@ async def main() -> None:
         )
     print()
 
+    print("off-corpus questions (below the worst answerable one = ungatable):")
+    for a, q in sorted(offcorpus):
+        mark = "unreachable" if a < worst_ok else "gatable"
+        print(f"  {a:.4f}  {mark:<12} {q[:52]}")
+    print()
+
     print("injection payloads (three sit below the worst answerable question):")
     for a, q in sorted(injection):
         mark = "unreachable" if a < worst_ok else "gatable"
@@ -131,23 +146,55 @@ async def main() -> None:
     print()
 
     # The regression the eval set cannot see.
-    print("CV questions at each candidate threshold (refusals are the cost):")
     cv = await _anchors(emb, db, settings, CV_QUESTIONS)
+
+    # Split the two reasons a CV question gets refused. They look identical in
+    # the totals and have completely different fixes: a vocabulary miss means the
+    # override never ran, a ceiling miss means it ran and was not allowed to
+    # reach. The first version of this probe reported only the total, and the
+    # audit it produced blamed the ceiling for all four.
+    print("CV intent, per question (anchor · wants_cv · cv.md retrieved):")
+    for anchor, question, chunks in sorted(cv, key=lambda r: -(r[0] or 0)):
+        has_cv = any(c.source == "cv.md" for c in chunks)
+        print(
+            f"  {anchor:.4f}  cv_intent={str(wants_cv_intent(question, question)):<5} "
+            f"cv_chunk={str(has_cv):<5} {question}"
+        )
+    print()
+
+    print("CV questions at each candidate threshold (refusals are the cost):")
     for t in CANDIDATE_THRESHOLDS:
         refused = []
         for anchor, question, chunks in cv:
             if anchor is None:
                 continue
-            rescued = (
-                wants_cv_intent(question, question)
-                and any(c.source == "cv.md" for c in chunks)
-                and anchor <= t + 0.05
-            )
+            intent = wants_cv_intent(question, question)
+            has_cv = any(c.source == "cv.md" for c in chunks)
+            rescued = intent and has_cv and anchor <= CV_RESCUE_MAX_DISTANCE
             if is_weak_retrieval(chunks, t) and not rescued:
-                refused.append((anchor, question))
+                why = "no cv intent" if not intent else "past the ceiling"
+                refused.append((anchor, question, why))
         print(f"  threshold {t:.2f}: {len(refused)} of {len(cv)} refused")
-        for anchor, question in sorted(refused):
-            print(f"      {anchor:.4f}  {question}")
+        for anchor, question, why in sorted(refused):
+            print(f"      {anchor:.4f}  [{why}] {question}")
+    print()
+
+    # Would the rescue answer anything the gate is meant to refuse? Only a
+    # question that is CV-positive, drags cv.md into context, AND sits under the
+    # ceiling can be rescued, so this is the whole exposure.
+    print(f"off-corpus reachable by the CV rescue (ceiling {CV_RESCUE_MAX_DISTANCE}):")
+    exposed = 0
+    for anchor, question, chunks in await _anchors(
+        emb, db, settings, by_expectation["must_refuse_offcorpus"]
+    ):
+        if anchor is None:
+            continue
+        intent = wants_cv_intent(question, question)
+        has_cv = any(c.source == "cv.md" for c in chunks)
+        if intent and has_cv and anchor <= CV_RESCUE_MAX_DISTANCE:
+            exposed += 1
+            print(f"  {anchor:.4f}  RESCUED  {question[:52]}")
+    print(f"  {exposed} of {len(offcorpus)} reachable")
 
     await db.close()
 

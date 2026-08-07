@@ -76,7 +76,7 @@ prompt:
 - **Grounded-only generation.** The system prompt answers strictly from the
   retrieved CONTEXT and declines when the answer isn't there.
 - **Pre-LLM relevance gate.** If the best retrieval is too weak
-  (`WEAK_RETRIEVAL_DISTANCE`, default 0.45), the request short-circuits to a
+  (`WEAK_RETRIEVAL_DISTANCE`, default 0.41), the request short-circuits to a
   fixed out-of-scope reply _before_ the model ever runs. The gate anchors on the
   closest _prose_ chunk, so off-topic queries that only graze a stray code chunk
   still get declined.
