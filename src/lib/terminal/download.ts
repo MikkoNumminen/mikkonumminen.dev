@@ -24,7 +24,11 @@ export type DownloadList = { kind: 'list'; tier: 'all' | 'research' };
 export type DownloadResolution =
   | DownloadList
   | { kind: 'target'; id: string }
+  /** One token that prefixes several ids: `download re` when `re` is shared. */
   | { kind: 'ambiguous'; token: string; candidates: string[] }
+  /** Several ids named outright: `download cv poro`. A different mistake, and
+   * it needs a different sentence: nothing was unclear, there were just two. */
+  | { kind: 'multiple'; ids: string[] }
   | { kind: 'unknown'; token: string; suggestion: string | null };
 
 /**
@@ -43,10 +47,18 @@ const LIST_TOKENS = new Set(['research', 'list', 'all', 'help']);
  */
 const MIN_PREFIX = 3;
 
-/** Strip the optional `--`, lowercase, and drop surrounding punctuation. */
+/**
+ * Strip leading dashes, lowercase, and drop surrounding punctuation.
+ *
+ * EVERY leading dash, not one or two. `^--?` left a third dash in place, so
+ * `---blindtest` normalised to `-blindtest` and came back as "unknown, did you
+ * mean blindtest?" while `--blindtest` downloaded. Nobody types three dashes on
+ * purpose, but inconsistent handling of a typo is still a worse answer than the
+ * obvious one.
+ */
 export function normaliseToken(token: string): string {
   return token
-    .replace(/^--?/, '')
+    .replace(/^-+/, '')
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '');
 }
@@ -79,6 +91,11 @@ function editDistance(a: string, b: string): number {
  */
 export function suggestId(token: string, ids: readonly string[]): string | null {
   if (!token) return null;
+  // Containment is checked before distance and is NOT distance-bounded, on
+  // purpose: a token that spells out part of exactly one id names that id no
+  // matter how short it is, so `v` suggests `cv`. A suggestion never downloads
+  // anything, it only prints, so being generous here costs nothing. When two or
+  // more ids contain the token it is not a hint at all, and this falls through.
   const contains = ids.filter((id) => id.includes(token) || token.includes(id));
   if (contains.length === 1) return contains[0] ?? null;
 
@@ -137,6 +154,11 @@ export function resolveDownload(
         continue;
       }
       if (prefixed.length > 1) {
+        // UNREACHABLE WITH THE IDS SHIPPED TODAY: all twelve have a distinct
+        // three-character prefix, and MIN_PREFIX is 3, so no token can straddle
+        // two. Kept because that is a property of the current list, not of the
+        // design, and adding one id (`resume` next to `results`) reinstates it.
+        // Its unit test uses a synthetic id list for exactly that reason.
         ambiguous ??= { token, candidates: prefixed };
         continue;
       }
@@ -146,9 +168,7 @@ export function resolveDownload(
 
   const selected = [...matched];
   if (selected.length === 1) return { kind: 'target', id: selected[0] as string };
-  if (selected.length > 1) {
-    return { kind: 'ambiguous', token: selected.join(' '), candidates: selected };
-  }
+  if (selected.length > 1) return { kind: 'multiple', ids: selected };
   if (ambiguous) return { kind: 'ambiguous', ...ambiguous };
   if (listTier) return { kind: 'list', tier: listTier };
   if (firstUnknown) {

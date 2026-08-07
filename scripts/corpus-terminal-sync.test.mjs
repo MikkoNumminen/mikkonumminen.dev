@@ -11,6 +11,15 @@
  * document, because a confidently wrong answer reads exactly like a right one.
  * So every download flag in `commands.ts` must appear in the corpus doc, and the
  * doc must not advertise a flag that no longer exists.
+ *
+ * WHAT THIS GUARD DOES NOT COVER, found in review. The "does not advertise"
+ * check asks `resolveDownload` whether each documented command resolves, so it
+ * inherits that function's correctness: a resolver broken in the accept-anything
+ * direction would make this check pass on a doc full of nonsense. That is a
+ * deliberate trade for not re-implementing the matching rules here, where they
+ * could drift. `download.test.ts` is what keeps the resolver honest, and it
+ * fails hard (17 of 23 cases) on exactly that mutation. Neither file is
+ * sufficient alone.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';

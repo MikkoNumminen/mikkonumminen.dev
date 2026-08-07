@@ -489,6 +489,7 @@ export const en: Translations = {
       'type the name to grab one, e.g. `download catalog`. a unique prefix works too: `download blind`.',
     cmdDownloadTryHint: 'type `download` on its own to see every document.',
     cmdDownloadAmbiguous: 'that matches more than one document:',
+    cmdDownloadPickOne: 'one at a time, please. you named:',
     cmdDownloadPreparing: 'preparing download...',
     cmdDownloadNotAvailable: 'cv not available yet. still being polished.',
     cmdDownloadSkillsNotAvailable:

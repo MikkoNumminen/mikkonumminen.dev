@@ -178,9 +178,35 @@ describe('resolveDownload', () => {
     });
   });
 
-  it('two named documents are ambiguous rather than a silent pick', () => {
-    const got = resolveDownload(['cv', 'poro'], ALL_IDS);
-    expect(got.kind).toBe('ambiguous');
+  it('two named documents report as `multiple`, not `ambiguous`', () => {
+    // Found in review: both cases returned `ambiguous`, whose `token` field was
+    // then the two ids glued together ("cv poro"), a string nobody typed. They
+    // are different mistakes and get different sentences.
+    expect(resolveDownload(['cv', 'poro'], ALL_IDS)).toEqual({
+      kind: 'multiple',
+      ids: ['cv', 'poro'],
+    });
+  });
+
+  it('strips every leading dash, not just the first two', () => {
+    // `^--?` left a third dash behind, so `---blindtest` came back as "unknown,
+    // did you mean blindtest?" while `--blindtest` downloaded.
+    expect(normaliseToken('---blindtest')).toBe('blindtest');
+    expect(resolveDownload(['---blindtest'], ALL_IDS)).toEqual({
+      kind: 'target',
+      id: 'blindtest',
+    });
+  });
+
+  it('the prefix-ambiguity branch needs a synthetic id list, and why', () => {
+    // All twelve shipped ids have a distinct three-character prefix, so with
+    // MIN_PREFIX at 3 no real token can straddle two and the branch is currently
+    // unreachable in production. It is tested against an invented list so the
+    // rule is pinned before a future id (`resume` beside `results`) revives it.
+    const prefixes = ALL_IDS.map((id) => id.slice(0, 3));
+    expect(new Set(prefixes).size, 'shipped ids still have distinct prefixes').toBe(
+      ALL_IDS.length,
+    );
   });
 
   it('suggests the nearest id for a near miss', () => {

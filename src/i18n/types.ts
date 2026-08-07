@@ -270,6 +270,7 @@ export interface Translations {
     cmdDownloadResearchHint: string;
     cmdDownloadTryHint: string;
     cmdDownloadAmbiguous: string;
+    cmdDownloadPickOne: string;
     cmdDownloadPreparing: string;
     cmdDownloadNotAvailable: string;
     cmdDownloadSkillsNotAvailable: string;

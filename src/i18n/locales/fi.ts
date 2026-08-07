@@ -495,6 +495,7 @@ export const fi: Translations = {
       'nappaa kirjoittamalla nimi, esim. `download catalog`. myös yksilöivä alku toimii: `download blind`.',
     cmdDownloadTryHint: 'kirjoita pelkkä `download`, niin näet kaikki dokumentit.',
     cmdDownloadAmbiguous: 'tuo osuu useampaan kuin yhteen dokumenttiin:',
+    cmdDownloadPickOne: 'yksi kerrallaan. nimesit:',
     cmdDownloadPreparing: 'valmistellaan latausta...',
     cmdDownloadNotAvailable: 'cv ei vielä saatavilla. vielä viimeistelyssä.',
     cmdDownloadSkillsNotAvailable:

@@ -338,6 +338,13 @@ export function buildCommands(
           );
           return;
         }
+        if (resolution.kind === 'multiple') {
+          // Naming two documents is a different mistake from typing a prefix
+          // that fits two, and it deserves its own sentence: nothing was
+          // unclear, there were simply two, and only one can go at a time.
+          ctx.print(`${tt.cmdDownloadPickOne} ${resolution.ids.join(', ')}`, 'err');
+          return;
+        }
         if (resolution.kind === 'list') {
           // ONE FLAT LIST. It used to be two levels, primary (the cv) plus a
           // synthetic `--research` row that had to be typed to see anything
