@@ -225,6 +225,8 @@ export const fi: Translations = {
     },
   },
   experiencePage: {
+    languageMixTitle: 'kielet projekteissa',
+    languageMixNote: 'projekteja per kieli, ei osuutta koodista',
     eyebrow: 'kiipeäminen',
     title: 'Kokemus',
     lede: 'Scrollaa vuorta ylöspäin. Jokainen merkki on askel sinne missä olen tänään.',

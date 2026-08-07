@@ -223,6 +223,8 @@ export const en: Translations = {
     },
   },
   experiencePage: {
+    languageMixTitle: 'languages across the projects',
+    languageMixNote: 'projects per language, not share of code',
     eyebrow: 'the climb',
     title: 'Experience',
     lede: 'Scroll up the mountain. Each marker is a step from base camp to where I stand today.',
