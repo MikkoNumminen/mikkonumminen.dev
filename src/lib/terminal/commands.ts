@@ -82,6 +82,133 @@ export function buildCommands(
   const tt = t.terminal;
   const localized = localizeProjects(t);
 
+  // `id` is the flag without dashes, and it is what a visitor types. Hoisted
+  // out of the handler so the command spec can publish the ids for tab
+  // completion: a list only the handler could see was a list nothing else
+  // could complete against.
+  const idOf = (flag: string) => flag.replace(/^--/, '');
+  // Flag → downloadable target. Bare `download` now lists ALL of these in
+  // one flat menu; `tier` survives only so `download research` can narrow
+  // to the research trail (the catalog, the study/replicates/results
+  // methodology trail, and the calibration snapshot).
+  //
+  // It used to be two levels, and that was the bug: the default view showed
+  // the cv plus a synthetic `--research` row, so a visitor who wanted the
+  // research saw neither the research nor an error, and went and asked the
+  // chat instead. Twelve rows is not a flood.
+  //
+  // `research` is deliberately NOT an entry here, because it lists rather
+  // than downloads (a flag with no url would 404 through the download
+  // branch); `resolveDownload` treats it as a listing token. Adding a
+  // target is a one-line append: ids, listing, prefix matching and
+  // ambiguity all drive off this array.
+  const targets: {
+    flag: string;
+    tier: 'primary' | 'research';
+    label: string;
+    url: string;
+    filename: string;
+    notAvailableMsg: string;
+  }[] = [
+    {
+      flag: '--cv',
+      tier: 'primary',
+      label: tt.cmdDownloadOptionCv,
+      url: CV_PATH,
+      filename: 'mikko-numminen-cv.pdf',
+      notAvailableMsg: tt.cmdDownloadNotAvailable,
+    },
+    {
+      flag: '--catalog',
+      tier: 'research',
+      label: tt.cmdDownloadOptionCatalog,
+      url: REGISTRY_PDF_PATH,
+      filename: 'skills-registry.pdf',
+      notAvailableMsg: tt.cmdDownloadCatalogNotAvailable,
+    },
+    {
+      flag: '--study',
+      tier: 'research',
+      label: tt.cmdDownloadOptionStudy,
+      url: STUDY_PDF_PATH,
+      filename: 'skills-optim-study.pdf',
+      notAvailableMsg: tt.cmdDownloadStudyNotAvailable,
+    },
+    {
+      flag: '--replicates',
+      tier: 'research',
+      label: tt.cmdDownloadOptionReplicates,
+      url: REPLICATES_PDF_PATH,
+      filename: 'skills-optim-study-replicates.pdf',
+      notAvailableMsg: tt.cmdDownloadReplicatesNotAvailable,
+    },
+    {
+      flag: '--results',
+      tier: 'research',
+      label: tt.cmdDownloadOptionResults,
+      url: RESULTS_PDF_PATH,
+      filename: 'skills-results.pdf',
+      notAvailableMsg: tt.cmdDownloadResultsNotAvailable,
+    },
+    {
+      flag: '--calibration',
+      tier: 'research',
+      label: tt.cmdDownloadOptionSkills,
+      url: CALIBRATION_PDF_PATH,
+      filename: 'skills-suite-calibration.pdf',
+      notAvailableMsg: tt.cmdDownloadSkillsNotAvailable,
+    },
+    {
+      flag: '--finnish',
+      tier: 'research',
+      label: tt.cmdDownloadOptionFinnish,
+      url: FINNISH_STUDY_PDF_PATH,
+      filename: 'rag-finnish-experiment.pdf',
+      notAvailableMsg: tt.cmdDownloadFinnishNotAvailable,
+    },
+    {
+      flag: '--methodology',
+      tier: 'research',
+      label: tt.cmdDownloadOptionMethodology,
+      url: METHODOLOGY_PDF_PATH,
+      filename: 'rag-finnish-methodology.pdf',
+      notAvailableMsg: tt.cmdDownloadMethodologyNotAvailable,
+    },
+    {
+      flag: '--blindtest',
+      tier: 'research',
+      label: tt.cmdDownloadOptionBlindTest,
+      url: BLIND_TEST_PDF_PATH,
+      filename: 'rag-finnish-blind-test.pdf',
+      notAvailableMsg: tt.cmdDownloadBlindTestNotAvailable,
+    },
+    {
+      flag: '--poro',
+      tier: 'research',
+      label: tt.cmdDownloadOptionPoro,
+      url: PORO_FINDINGS_PDF_PATH,
+      filename: 'poro-findings.pdf',
+      notAvailableMsg: tt.cmdDownloadPoroNotAvailable,
+    },
+    {
+      flag: '--translations',
+      tier: 'research',
+      label: tt.cmdDownloadOptionTranslations,
+      url: PORO_REVIEW_PDF_PATH,
+      filename: 'poro-finnish-review.pdf',
+      notAvailableMsg: tt.cmdDownloadTranslationsNotAvailable,
+    },
+    {
+      flag: '--delegation',
+      tier: 'research',
+      label: tt.cmdDownloadOptionDelegation,
+      url: DELEGATION_PDF_PATH,
+      filename: 'agent-delegation.pdf',
+      notAvailableMsg: tt.cmdDownloadDelegationNotAvailable,
+    },
+  ];
+  const downloadIds = targets.map((tgt) => idOf(tgt.flag));
+
   const cmds: CommandSpec[] = [
     {
       name: 'help',
@@ -169,128 +296,8 @@ export function buildCommands(
       name: 'download',
       description: tt.cmdDownloadDesc,
       usage: tt.cmdDownloadUsage,
+      completions: downloadIds,
       handler: async (args, ctx) => {
-        // Flag → downloadable target. Bare `download` now lists ALL of these in
-        // one flat menu; `tier` survives only so `download research` can narrow
-        // to the research trail (the catalog, the study/replicates/results
-        // methodology trail, and the calibration snapshot).
-        //
-        // It used to be two levels, and that was the bug: the default view showed
-        // the cv plus a synthetic `--research` row, so a visitor who wanted the
-        // research saw neither the research nor an error, and went and asked the
-        // chat instead. Twelve rows is not a flood.
-        //
-        // `research` is deliberately NOT an entry here, because it lists rather
-        // than downloads (a flag with no url would 404 through the download
-        // branch); `resolveDownload` treats it as a listing token. Adding a
-        // target is a one-line append: ids, listing, prefix matching and
-        // ambiguity all drive off this array.
-        const targets: {
-          flag: string;
-          tier: 'primary' | 'research';
-          label: string;
-          url: string;
-          filename: string;
-          notAvailableMsg: string;
-        }[] = [
-          {
-            flag: '--cv',
-            tier: 'primary',
-            label: tt.cmdDownloadOptionCv,
-            url: CV_PATH,
-            filename: 'mikko-numminen-cv.pdf',
-            notAvailableMsg: tt.cmdDownloadNotAvailable,
-          },
-          {
-            flag: '--catalog',
-            tier: 'research',
-            label: tt.cmdDownloadOptionCatalog,
-            url: REGISTRY_PDF_PATH,
-            filename: 'skills-registry.pdf',
-            notAvailableMsg: tt.cmdDownloadCatalogNotAvailable,
-          },
-          {
-            flag: '--study',
-            tier: 'research',
-            label: tt.cmdDownloadOptionStudy,
-            url: STUDY_PDF_PATH,
-            filename: 'skills-optim-study.pdf',
-            notAvailableMsg: tt.cmdDownloadStudyNotAvailable,
-          },
-          {
-            flag: '--replicates',
-            tier: 'research',
-            label: tt.cmdDownloadOptionReplicates,
-            url: REPLICATES_PDF_PATH,
-            filename: 'skills-optim-study-replicates.pdf',
-            notAvailableMsg: tt.cmdDownloadReplicatesNotAvailable,
-          },
-          {
-            flag: '--results',
-            tier: 'research',
-            label: tt.cmdDownloadOptionResults,
-            url: RESULTS_PDF_PATH,
-            filename: 'skills-results.pdf',
-            notAvailableMsg: tt.cmdDownloadResultsNotAvailable,
-          },
-          {
-            flag: '--calibration',
-            tier: 'research',
-            label: tt.cmdDownloadOptionSkills,
-            url: CALIBRATION_PDF_PATH,
-            filename: 'skills-suite-calibration.pdf',
-            notAvailableMsg: tt.cmdDownloadSkillsNotAvailable,
-          },
-          {
-            flag: '--finnish',
-            tier: 'research',
-            label: tt.cmdDownloadOptionFinnish,
-            url: FINNISH_STUDY_PDF_PATH,
-            filename: 'rag-finnish-experiment.pdf',
-            notAvailableMsg: tt.cmdDownloadFinnishNotAvailable,
-          },
-          {
-            flag: '--methodology',
-            tier: 'research',
-            label: tt.cmdDownloadOptionMethodology,
-            url: METHODOLOGY_PDF_PATH,
-            filename: 'rag-finnish-methodology.pdf',
-            notAvailableMsg: tt.cmdDownloadMethodologyNotAvailable,
-          },
-          {
-            flag: '--blindtest',
-            tier: 'research',
-            label: tt.cmdDownloadOptionBlindTest,
-            url: BLIND_TEST_PDF_PATH,
-            filename: 'rag-finnish-blind-test.pdf',
-            notAvailableMsg: tt.cmdDownloadBlindTestNotAvailable,
-          },
-          {
-            flag: '--poro',
-            tier: 'research',
-            label: tt.cmdDownloadOptionPoro,
-            url: PORO_FINDINGS_PDF_PATH,
-            filename: 'poro-findings.pdf',
-            notAvailableMsg: tt.cmdDownloadPoroNotAvailable,
-          },
-          {
-            flag: '--translations',
-            tier: 'research',
-            label: tt.cmdDownloadOptionTranslations,
-            url: PORO_REVIEW_PDF_PATH,
-            filename: 'poro-finnish-review.pdf',
-            notAvailableMsg: tt.cmdDownloadTranslationsNotAvailable,
-          },
-          {
-            flag: '--delegation',
-            tier: 'research',
-            label: tt.cmdDownloadOptionDelegation,
-            url: DELEGATION_PDF_PATH,
-            filename: 'agent-delegation.pdf',
-            notAvailableMsg: tt.cmdDownloadDelegationNotAvailable,
-          },
-        ];
-
         // Render an aligned name/description list. The description column lines
         // up to the longest name in *this* list, so the narrowed research view
         // aligns on its own rather than inheriting the full menu's width. The
@@ -313,9 +320,7 @@ export function buildCommands(
         // resolves (normaliseToken strips the dashes) because the site copy and
         // the RAG corpus document both teach it, and breaking a documented form
         // to gain a shorter one is a bad trade.
-        const idOf = (flag: string) => flag.replace(/^--/, '');
-        const ids = targets.map((tgt) => idOf(tgt.flag));
-        const resolution = resolveDownload(args, ids);
+        const resolution = resolveDownload(args, downloadIds);
 
         if (resolution.kind === 'unknown') {
           // Echo what was TYPED, not the normalised form: someone who typed

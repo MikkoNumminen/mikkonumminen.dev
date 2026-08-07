@@ -103,5 +103,55 @@ export function tabComplete(value: string, commands: CommandSpec[]): string {
     if (candidates.length === 1 && first) return first + ' ';
     return value;
   }
-  return value;
+
+  // Argument completion, for commands that publish a closed set of values.
+  // Before this, Tab did nothing once you had typed a command name, which was
+  // most obvious on `download`: its ids are short but not memorable, and the
+  // whole point of the id form is that you type them.
+  const cmd = commands.find((c) => c.name === (tokens[0] ?? '').toLowerCase());
+  if (!cmd?.completions?.length) return value;
+
+  // FIRST ARGUMENT ONLY, and mid-token. `download` takes one document, so
+  // completing a second walks the visitor into the "you named two" error:
+  // `download cv bli` + Tab produced `download cv blindtest`, a line that cannot
+  // succeed. Tab should not help build a command that is already wrong.
+  //
+  // A trailing space is always a refusal here. After the command name alone
+  // ("download ") the first-token branch above has already returned, so reaching
+  // this line with a trailing space means the cursor sits past a first argument
+  // and is starting a second.
+  if (endsWithSpace || tokens.length !== 2) return value;
+
+  const partial = tokens[1] ?? '';
+  // Complete against the id, but keep whatever dashes were typed: someone
+  // writing `--bli` gets `--blindtest`, not a silent respelling of their input.
+  const dashes = /^-+/.exec(partial)?.[0] ?? '';
+  const stem = partial.slice(dashes.length).toLowerCase();
+  const matches = cmd.completions.filter((id) => id.startsWith(stem));
+  if (matches.length === 0) return value;
+
+  // A unique match always completes, and always earns a trailing space, even
+  // when the id was already typed in full: the space is the confirmation that
+  // it resolved. A shared prefix only completes if it actually adds characters,
+  // and gets no space, because the cursor is where more typing is needed. Both
+  // behaviours are what a real shell does.
+  // Rewriting the trailing non-space run leaves any leading or internal spacing
+  // the visitor typed exactly as it was.
+  if (matches.length === 1) return value.replace(/\S*$/, dashes + matches[0] + ' ');
+  const shared = dashes + commonPrefix(matches);
+  if (shared.length <= partial.length) return value;
+  return value.replace(/\S*$/, shared);
+}
+
+/** Longest string every candidate starts with. */
+function commonPrefix(values: readonly string[]): string {
+  const [head, ...rest] = values;
+  if (!head) return '';
+  let end = head.length;
+  for (const value of rest) {
+    let i = 0;
+    while (i < end && i < value.length && head[i] === value[i]) i += 1;
+    end = i;
+  }
+  return head.slice(0, end);
 }

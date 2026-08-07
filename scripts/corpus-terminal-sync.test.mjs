@@ -38,14 +38,24 @@ const corpusDoc = readFileSync(
 );
 
 /**
- * Download flags as the terminal actually defines them. Scoped to the block that
- * carries a `filename`, so `--research` (a menu row, not a download) and flags
+ * Download flags as the terminal actually defines them.
+ *
+ * Anchored on the `targets` declaration rather than on `name: 'download'`. It
+ * used to slice between the download and skills command specs, which broke the
+ * moment the array was hoisted out of the handler to expose the ids for tab
+ * completion: the slice came back empty and every downstream assertion would
+ * have passed on zero targets. The `finds the real download targets` case caught
+ * exactly that, which is what it is for.
+ *
+ * Scoped to the array so `--research` (a menu row, not a download) and flags
  * belonging to other commands are not swept in.
  */
 function downloadFlags(source) {
-  const start = source.indexOf("name: 'download'");
-  expect(start, 'commands.ts no longer defines a `download` command').toBeGreaterThan(-1);
-  const end = source.indexOf("name: 'skills'", start);
+  const start = source.indexOf('const targets: {');
+  expect(start, 'commands.ts no longer declares a download `targets` array').toBeGreaterThan(
+    -1,
+  );
+  const end = source.indexOf('\n  ];', start);
   const block = source.slice(start, end === -1 ? undefined : end);
   const entries = [...block.matchAll(/flag: '(--[a-z]+)',[\s\S]{0,200}?filename: '([^']+)'/g)];
   return entries.map(([, flag, filename]) => ({ flag, filename }));
