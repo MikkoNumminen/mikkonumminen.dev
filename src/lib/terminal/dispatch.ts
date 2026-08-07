@@ -111,7 +111,18 @@ export function tabComplete(value: string, commands: CommandSpec[]): string {
   const cmd = commands.find((c) => c.name === (tokens[0] ?? '').toLowerCase());
   if (!cmd?.completions?.length) return value;
 
-  const partial = endsWithSpace ? '' : (tokens[tokens.length - 1] ?? '');
+  // FIRST ARGUMENT ONLY, and mid-token. `download` takes one document, so
+  // completing a second walks the visitor into the "you named two" error:
+  // `download cv bli` + Tab produced `download cv blindtest`, a line that cannot
+  // succeed. Tab should not help build a command that is already wrong.
+  //
+  // A trailing space is always a refusal here. After the command name alone
+  // ("download ") the first-token branch above has already returned, so reaching
+  // this line with a trailing space means the cursor sits past a first argument
+  // and is starting a second.
+  if (endsWithSpace || tokens.length !== 2) return value;
+
+  const partial = tokens[1] ?? '';
   // Complete against the id, but keep whatever dashes were typed: someone
   // writing `--bli` gets `--blindtest`, not a silent respelling of their input.
   const dashes = /^-+/.exec(partial)?.[0] ?? '';
@@ -124,13 +135,12 @@ export function tabComplete(value: string, commands: CommandSpec[]): string {
   // it resolved. A shared prefix only completes if it actually adds characters,
   // and gets no space, because the cursor is where more typing is needed. Both
   // behaviours are what a real shell does.
-  if (matches.length === 1) {
-    const completed = dashes + matches[0] + ' ';
-    return endsWithSpace ? value + completed : value.replace(/\S*$/, completed);
-  }
+  // Rewriting the trailing non-space run leaves any leading or internal spacing
+  // the visitor typed exactly as it was.
+  if (matches.length === 1) return value.replace(/\S*$/, dashes + matches[0] + ' ');
   const shared = dashes + commonPrefix(matches);
   if (shared.length <= partial.length) return value;
-  return endsWithSpace ? value + shared : value.replace(/\S*$/, shared);
+  return value.replace(/\S*$/, shared);
 }
 
 /** Longest string every candidate starts with. */

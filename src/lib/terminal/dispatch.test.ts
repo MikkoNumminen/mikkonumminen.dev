@@ -178,8 +178,10 @@ describe('tabComplete on download arguments', () => {
   });
 
   it('does nothing on a bare `download ` with nothing typed yet', () => {
-    // Every id matches, so the shared prefix is empty and there is nothing to
-    // fill in. Returning the value unchanged beats emitting an empty completion.
+    // Not the argument path at all: `tokenize` trims, so this is still one
+    // token and the first-token branch re-completes the command name to the
+    // same string. Worth pinning because it is the boundary between the two
+    // branches, and it is why the argument path never sees a trailing space.
     expect(tabComplete('download ', commands)).toBe('download ');
   });
 
@@ -191,5 +193,30 @@ describe('tabComplete on download arguments', () => {
 
   it('leaves an unmatched argument untouched rather than guessing', () => {
     expect(tabComplete('download zzz', commands)).toBe('download zzz');
+  });
+
+  it('does not complete a second document', () => {
+    // Found in review. `download` takes ONE document, so completing a second
+    // built `download cv blindtest`, a line that can only reach the "you named
+    // two" error. Tab must not help assemble a command that is already wrong.
+    expect(tabComplete('download cv bli', commands)).toBe('download cv bli');
+    expect(tabComplete('download cv ', commands)).toBe('download cv ');
+    expect(tabComplete('download blindtest po', commands)).toBe('download blindtest po');
+  });
+
+  it('still completes the first argument after leading whitespace', () => {
+    // `tokenize` trims, so the position of the token being completed cannot be
+    // read off the token count alone. This is the case that would break if it
+    // were.
+    expect(tabComplete('   download bli', commands)).toBe('   download blindtest ');
+  });
+
+  it('preserves odd internal spacing while completing', () => {
+    expect(tabComplete('download   blind', commands)).toBe('download   blindtest ');
+  });
+
+  it('is idempotent under repeated presses', () => {
+    const once = tabComplete('download bli', commands);
+    expect(tabComplete(once, commands)).toBe(once);
   });
 });
