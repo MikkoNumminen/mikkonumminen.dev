@@ -160,7 +160,7 @@ def test_phase4_defaults(clean_env: None) -> None:
     settings = Settings.from_env()
     assert settings.retrieval_top_k == 6
     assert settings.cors_allow_origins == ["*"]
-    assert settings.weak_retrieval_distance == 0.45
+    assert settings.weak_retrieval_distance == 0.41
     assert settings.rate_limit_requests == 30
     assert settings.rate_limit_window_seconds == 60.0
     assert settings.max_body_bytes == 16384

@@ -191,7 +191,7 @@ order:
    (code chunks lower off-topic distances, so gating on prose keeps off-topic
    queries that only match stray code out; `db.closest_prose` fetches the nearest
    prose explicitly when the top-k has none). If that distance exceeds
-   `WEAK_RETRIEVAL_DISTANCE` (default 0.45), the request **short-circuits before
+   `WEAK_RETRIEVAL_DISTANCE` (default 0.41), the request **short-circuits before
    the LLM** and returns the fixed out-of-scope reply.
 7. **Grounded generation** — a hardened system prompt (answer only from the
    retrieved context, `FORCE_ENGLISH`) feeds the local Ollama model, whose
@@ -223,7 +223,7 @@ sole line of defense:
   `is_translation_request`) decline poem/story/song/joke and "translate X to Y"
   before retrieval, since those are tasks that often name on-corpus topics.
 - **Relevance gate** — the pre-LLM weak-retrieval short-circuit
-  (`WEAK_RETRIEVAL_DISTANCE`, default 0.45), anchored on the best **prose**-chunk
+  (`WEAK_RETRIEVAL_DISTANCE`, default 0.41), anchored on the best **prose**-chunk
   distance so code chunks can't lower an off-topic query under the bar; a clearly
   off-topic question never reaches the model and so can't be answered from
   hallucinated content.
@@ -309,7 +309,7 @@ for the override surface and its per-knob commentary.
 | `RETRIEVAL_EXCLUDE_DOC_TYPES` | `adr`                           | Comma-separated `doc_type`s hidden from visitor retrieval; empty string disables the filter.                        |
 | `RETRIEVAL_DIVERSITY_MAX_PER_PROJECT` | `3`                     | Per-project chunk cap on generic, no-project-named queries; must be positive. Named-project queries are never capped. |
 | `RESEARCH_COVERAGE_TOP_N`     | `3`                             | Forces this many newest research posts into context on a recency intent; `0` disables; must be `<= TOP_K`.          |
-| `WEAK_RETRIEVAL_DISTANCE`     | `0.45`                          | Best **prose**-distance threshold for the pre-LLM out-of-scope gate.                                                |
+| `WEAK_RETRIEVAL_DISTANCE`     | `0.41`                          | Best **prose**-distance threshold for the pre-LLM out-of-scope gate.                                                |
 | `LLM_NUM_PREDICT`             | `1024`                          | Hard `num_predict` cap on generated tokens (output cap).                                                            |
 | `INPUT_MAX_CHARS`             | `800`                           | Max `message` length; over → HTTP 400.                                                                              |
 | `LLM_MAX_CONCURRENCY`         | `2`                             | Semaphore permits around Ollama generation.                                                                         |

@@ -345,7 +345,7 @@ class Settings:
                 "RETRIEVAL_DIVERSITY_MAX_PER_PROJECT", 3
             ),
             research_coverage_top_n=_get_int("RESEARCH_COVERAGE_TOP_N", 3),
-            weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.45),
+            weak_retrieval_distance=_get_float("WEAK_RETRIEVAL_DISTANCE", 0.41),
             rate_limit_requests=_get_int("RATE_LIMIT_REQUESTS", 30),
             rate_limit_window_seconds=_get_float("RATE_LIMIT_WINDOW_SECONDS", 60.0),
             max_body_bytes=_get_int("MAX_BODY_BYTES", 16384),

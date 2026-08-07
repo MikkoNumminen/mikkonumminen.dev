@@ -9,13 +9,18 @@ from typing import Any
 
 import pytest
 
+from app.config import Settings
 from app.guardrails import (
     COURTESY_REPLY,
     EXPANSION_OFFER,
     GREETING_REPLY,
     WEAK_RETRIEVAL_REPLY,
 )
-from app.pipeline import LLM_BUSY_REPLY, chat_event_stream
+from app.pipeline import (
+    CV_RESCUE_MAX_DISTANCE,
+    LLM_BUSY_REPLY,
+    chat_event_stream,
+)
 
 
 class FakeEmbedder:
@@ -1160,6 +1165,7 @@ def _collect_fi(
     allow_finnish: bool = True,
     semaphore: asyncio.Semaphore | None = None,
     acquire_timeout: float = 0.5,
+    weak_distance: float = 0.7,
 ) -> list[str]:
     async def run() -> list[str]:
         gen = chat_event_stream(
@@ -1169,7 +1175,7 @@ def _collect_fi(
             db=db,
             llm=llm,
             top_k=5,
-            weak_retrieval_distance=0.7,
+            weak_retrieval_distance=weak_distance,
             allow_finnish=allow_finnish,
             semaphore=semaphore,
             acquire_timeout=acquire_timeout,
@@ -1356,16 +1362,56 @@ def test_finnish_question_still_gets_finnish_anchor() -> None:
 
 
 def test_cv_intent_overrides_the_weak_retrieval_gate() -> None:
-    # measured live: second-person translated phrasing embeds ~0.47 against the
-    # third-person corpus, past the 0.45 gate - but the CV route already proved
-    # the question is about work experience, so refusing is wrong
-    row_cv = _row("cv.md", distance=0.75)  # beyond the harness threshold 0.7
+    # measured live: "what work experience do you have?" anchors at 0.4849
+    # against the third-person corpus, past the 0.41 gate - but the CV route
+    # already proved the question is about work experience, so refusing is wrong.
+    #
+    # The rest of this file runs against a harness gate of 0.7, which is ABOVE
+    # CV_RESCUE_MAX_DISTANCE and would make the override unreachable by
+    # construction. These three cases therefore use the shipped numbers.
+    row_cv = _row("cv.md", distance=0.4849)
     row_cv["kind"] = "cv"
     llm = FakeLLM(["Kasvu Labs Oy 2022-2024."])
-    frames = _collect_fi("mitä työkokemusta?", db=FakeDB([row_cv]), llm=llm)
+    frames = _collect_fi(
+        "mitä työkokemusta?", db=FakeDB([row_cv]), llm=llm, weak_distance=0.41
+    )
     text = _token_text(frames)
     assert "Minulla ei ole tietoa tuosta" not in text
     assert "Kasvu Labs" in text
+
+
+def test_cv_intent_does_not_override_beyond_the_rescue_ceiling() -> None:
+    # the bound, exercised through the pipeline rather than the helper: CV intent
+    # plus cv.md in context is still not enough once the anchor is past the
+    # ceiling. Without this, the two tests around it pass with no ceiling at all.
+    row_cv = _row("cv.md", distance=CV_RESCUE_MAX_DISTANCE + 0.01)
+    row_cv["kind"] = "cv"
+    frames = _collect_fi(
+        "mitä työkokemusta?",
+        db=FakeDB([row_cv]),
+        llm=FakeLLM(["should not run"]),
+        weak_distance=0.41,
+    )
+    assert "Minulla ei ole tietoa tuosta" in _token_text(frames)
+
+
+def test_the_rescue_ceiling_sits_above_the_shipped_gate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Otherwise the override is dead code and nothing would say so.
+
+    The old `threshold + slack` shape could not have this failure: the ceiling
+    moved with the gate, so it was always reachable. An absolute ceiling can be
+    silently overtaken by raising WEAK_RETRIEVAL_DISTANCE past it, and every
+    CV question would start being refused with no test failing.
+
+    The env var is cleared first, because otherwise this asserts something about
+    whoever's shell is running it rather than about the shipped default: with
+    WEAK_RETRIEVAL_DISTANCE=0.6 exported it fails with no code change, and a real
+    regression could equally be masked by an ambient value that happens to pass.
+    """
+    monkeypatch.delenv("WEAK_RETRIEVAL_DISTANCE", raising=False)
+    assert Settings.from_env().weak_retrieval_distance < CV_RESCUE_MAX_DISTANCE
 
 
 def test_gate_still_refuses_off_corpus_without_cv_intent() -> None:

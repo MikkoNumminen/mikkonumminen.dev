@@ -27,9 +27,13 @@ trip the CV route on any question, and an unbounded override would then skip the
 gate at any distance. It does NOT close the flips above, which have a different
 cause and are filed with the live containment failures.
 
-The override exists to rescue a question that STRADDLES the threshold: a
-second-person phrasing ("what work experience do YOU have?") embeds around 0.47
-against a 0.45 gate. The slack is sized to cover that and no more.
+WHY THE BOUND IS ABSOLUTE AND NOT `threshold + slack`. It was the latter, and
+that shape coupled two unrelated facts: how far cv.md sits from a CV question
+(a property of the corpus) and where the gate sits (a policy about every other
+question). Lowering the threshold therefore pulled the CV ceiling down with it
+and started refusing the exact questions the override exists for — measured in
+`docs/audits/relevance-gate-threshold-2026-08-07.md`, which could not recommend
+the threshold change for that reason. The ceiling is now its own number.
 
 Pure-function tests on the bound. The retrieval numbers came from a probe run
 against the live stack through `evals.production_retrieval`, so they are the
@@ -39,10 +43,11 @@ production call rather than a replica.
 from __future__ import annotations
 
 from app.guardrails import prose_anchor
-from app.pipeline import CV_OVERRIDE_SLACK, _within_cv_override_slack
+from app.pipeline import CV_RESCUE_MAX_DISTANCE, _within_cv_rescue_range
 from app.retrieval import RetrievedChunk
 
-THRESHOLD = 0.45
+# The shipped gate. Present only to prove the ceiling does NOT move with it.
+THRESHOLD = 0.41
 
 
 def _chunk(
@@ -66,52 +71,81 @@ class TestTheOverrideStillRescuesAStraddle:
         """MEASURED, and the margin is thin enough to be worth pinning.
 
         "what work experience do you have?" has a prose anchor of 0.4849 against
-        the live corpus, with the gate at 0.45. The code comment used to say
-        "~0.47", which is wrong in the dangerous direction: a slack of 0.03 reads
-        as conservative and would refuse the exact question the override exists
-        to answer. Of ten CV phrasings probed, this is the ONLY one the gate
-        refuses on its own, so it is also the only one this bound can break.
+        the live corpus. Of the CV phrasings probed it is the furthest out, so it
+        is the one that sizes this ceiling and the only one the ceiling can
+        break.
 
-        Tightening CV_OVERRIDE_SLACK below 0.035 fails here rather than silently
-        turning a real question into a refusal.
+        Tightening CV_RESCUE_MAX_DISTANCE below 0.4849 fails here rather than
+        silently turning a real question into a refusal.
         """
-        assert _within_cv_override_slack([_chunk(0.4849)], THRESHOLD)
+        assert _within_cv_rescue_range([_chunk(0.4849)])
 
-    def test_exactly_at_the_edge_of_the_slack(self) -> None:
-        assert _within_cv_override_slack(
-            [_chunk(THRESHOLD + CV_OVERRIDE_SLACK)], THRESHOLD
-        )
+    def test_the_finnish_and_verb_phrasings_the_vocabulary_now_reaches(self) -> None:
+        """These three used to be refused for a different reason: `wants_cv` did
+        not recognise them at all, so the override never ran. Now that it does,
+        the ceiling has to actually cover them.
+
+        0.4336 "where have you worked" · 0.4361 "kerro urastasi"
+        0.4400 "mita tyokokemusta sinulla on" (unaccented, as typed)
+        """
+        for anchor in (0.4336, 0.4361, 0.4400):
+            assert _within_cv_rescue_range([_chunk(anchor)])
+
+    def test_exactly_at_the_ceiling(self) -> None:
+        assert _within_cv_rescue_range([_chunk(CV_RESCUE_MAX_DISTANCE)])
 
     def test_a_comfortably_relevant_question(self) -> None:
-        assert _within_cv_override_slack([_chunk(0.20)], THRESHOLD)
+        assert _within_cv_rescue_range([_chunk(0.20)])
+
+
+class TestTheCeilingDoesNotMoveWithTheThreshold:
+    """The regression that motivated the change. Under the old
+    `threshold + 0.05` shape, dropping the gate to 0.41 dropped the CV ceiling to
+    0.46 and refused the 0.4849 question. Nothing here reads THRESHOLD except to
+    assert independence."""
+
+    def test_the_rescue_reaches_past_the_gate_by_more_than_the_old_slack(
+        self,
+    ) -> None:
+        assert CV_RESCUE_MAX_DISTANCE > THRESHOLD + 0.05
+
+    def test_the_measured_worst_case_survives_the_lowered_gate(self) -> None:
+        """The single assertion the old shape could not make."""
+        assert 0.4849 > THRESHOLD + 0.05
+        assert _within_cv_rescue_range([_chunk(0.4849)])
 
 
 class TestTheOverrideCannotDisableTheGate:
-    def test_just_past_the_slack(self) -> None:
-        assert not _within_cv_override_slack(
-            [_chunk(THRESHOLD + CV_OVERRIDE_SLACK + 0.001)], THRESHOLD
-        )
+    def test_just_past_the_ceiling(self) -> None:
+        assert not _within_cv_rescue_range([_chunk(CV_RESCUE_MAX_DISTANCE + 0.001)])
 
     def test_a_genuinely_distant_question_is_refused(self) -> None:
-        assert not _within_cv_override_slack([_chunk(0.60)], THRESHOLD)
+        assert not _within_cv_rescue_range([_chunk(0.60)])
 
-    def test_the_bound_does_not_reach_the_plain_off_corpus_distances(self) -> None:
+    def test_the_ceiling_stays_under_the_nearest_off_corpus_question(self) -> None:
+        """0.5077 is the closest `must_refuse_offcorpus` question in the eval set.
+        The ceiling has to sit below it, or the rescue reaches something the gate
+        exists to refuse."""
+        assert CV_RESCUE_MAX_DISTANCE < 0.5077
+        assert not _within_cv_rescue_range([_chunk(0.5077)])
+
+    def test_the_bound_does_not_reach_every_off_corpus_distance(self) -> None:
         """HONEST SCOPE. 0.4871 is what "what time is it in New York" produced,
-        and it sits INSIDE the slack: this bound would not have refused it. Said
-        out loud because the tempting claim is that bounding the override fixes
-        the flips the probe found, and it does not. Those come from retrieval
-        moving the anchor, not from the override firing."""
-        assert _within_cv_override_slack([_chunk(0.4871)], THRESHOLD)
+        and it sits INSIDE the ceiling: this bound would not have refused it.
+        Said out loud because the tempting claim is that bounding the override
+        fixes the flips the probe found, and it does not. Those come from
+        retrieval moving the anchor, not from the override firing."""
+        assert _within_cv_rescue_range([_chunk(0.4871)])
 
     def test_no_chunks_is_never_a_rescue(self) -> None:
         """An empty retrieval is the strongest possible signal that nothing was
         found. CV intent must not turn it into an answer."""
-        assert not _within_cv_override_slack([], THRESHOLD)
+        assert not _within_cv_rescue_range([])
 
 
 class TestItAnchorsOnTheSameThingTheGateDoes:
     """They cannot disagree, because there is now ONE definition:
-    `guardrails.prose_anchor`, used by the gate, by this slack check, and by the
+    `guardrails.prose_anchor`, used by the gate, by this ceiling check, and by the
     request log. It was three separate copies for a while, which is how the log
     ended up reporting a distance the gate never looked at."""
 
@@ -123,11 +157,11 @@ class TestItAnchorsOnTheSameThingTheGateDoes:
         chunks = [_chunk(0.30, chunk_type="code", source="code/x.py")]
         assert prose_anchor(chunks) == 0.30
 
-    def test_the_slack_check_uses_theprose_anchor(self) -> None:
-        """A close code chunk must not smuggle an off-corpus question inside the
-        slack, which is the same reason the gate itself anchors on prose."""
+    def test_the_ceiling_check_uses_the_prose_anchor(self) -> None:
+        """A close code chunk must not smuggle an off-corpus question under the
+        ceiling, which is the same reason the gate itself anchors on prose."""
         chunks = [_chunk(0.10, chunk_type="code", source="code/x.py"), _chunk(0.90)]
-        assert not _within_cv_override_slack(chunks, THRESHOLD)
+        assert not _within_cv_rescue_range(chunks)
 
     def test_empty_retrieval_has_no_anchor(self) -> None:
         assert prose_anchor([]) is None

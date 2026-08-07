@@ -16,6 +16,9 @@ projects at once.
 
 from __future__ import annotations
 
+import unicodedata
+from collections.abc import Iterable, Sequence
+
 # project_id -> the lowercased phrases a visitor might use to name it. Order
 # within a list does not matter; matching is longest-alias-first across all
 # projects (see detect_projects), so a specific alias ("readlog .net") wins over
@@ -315,10 +318,17 @@ _CV_PREFIXES = (
     "työhistoria",
     "työura",  # työura / työurasta / työurallasi… ("ura" alone is too short/risky)
     "työpaik",  # työpaikka / työpaikoista…
+    "työsk",  # työskennellyt / työskentelet / työskentely…
+    # Career-change compounds, long enough to be unambiguous. The bare `ura`
+    # stem is NOT a prefix here; see _CV_EXACT for why.
+    # Cut BEFORE the gradating consonant: uranvaihto but uranvaihDosta, so a
+    # stem ending in "t" misses every inflected form.
+    "uranvaih",  # uranvaihto / uranvaihdosta / uranvaihdon…
     "ansioluettelo",
     "arbetserfarenhet",  # Swedish visitors ask too; the boost is language-neutral
     "career",
     "employment",
+    "employer",
     "resume",
     "résumé",
     # Asking about a named EMPLOYER is a work-experience question — the answer
@@ -327,11 +337,64 @@ _CV_PREFIXES = (
     # teki kasvulabsissa?"). The prefix absorbs Finnish case endings.
     "kasvulabs",  # kasvulabsissa / kasvulabsin…
 )
-_CV_EXACT = ("cv",)
+# WHOLE TOKENS, NOT PREFIXES, and this list is where the Finnish `ura` (career)
+# family lives. Prefix matching was tried first and was wrong: `uran` also starts
+# Uranus, `ural` starts Uralilla, and `uras` starts urasointi, so three ordinary
+# astronomy/geography/machining questions claimed CV intent. Finnish inflects by
+# suffix, so the inflected forms can simply be enumerated, and equality has no
+# reach at all. The compound support that prefixes gave up is covered by `työura`
+# and `uranvaiht` above.
+#
+# "töissä" is here for the same reason at one remove: it folds to "toissa", and
+# `toiss` as a prefix would claim "toissapäivänä". The BARE form is handled in
+# _CV_PHRASES instead, because "toissa" on its own is also the temporal modifier
+# in "toissa vuonna" (the year before last); only the possessive forms are
+# unambiguous enough to match as tokens.
+_CV_EXACT = (
+    "cv",
+    "töitä",
+    "töihin",
+    "töissäsi",
+    "töissäni",
+    "töissään",
+    "ura",
+    "uran",
+    "urani",
+    "urasi",
+    "uransa",
+    "uranne",
+    "uraa",
+    "uraan",
+    "urat",
+    "uralla",
+    "urallasi",
+    "urallani",
+    "urallaan",
+    "uralle",
+    "uralta",
+    "urasta",
+    "urastasi",
+    "urastani",
+    "urastaan",
+)
 _CV_PHRASES = (
     " work experience ",
     " work history ",
     " employment history ",
+    # The verb, which the noun phrases above all miss: "where have you worked",
+    # "who have you worked for", "have you worked anywhere" were each measured
+    # as a miss.
+    " have you worked ",
+    " did you work ",
+    " where do you work ",
+    # Bare "töissä" (at work), which cannot be a token match: it folds to
+    # "toissa", the temporal modifier in "toissa vuonna" / "toissa kesänä". The
+    # preceding verb is what separates the two readings, and the temporal one
+    # never has it.
+    " ollut töissä ",
+    " olet töissä ",
+    " oletko töissä ",
+    " olitko töissä ",
     # No trailing space: suffix-tolerant, so the spaced-AND-inflected form a
     # visitor may type ("Kasvu Labsissa") matches too, not only the exact
     # canonical spelling a translated query carries.
@@ -384,18 +447,75 @@ def wants_cv_intent(original: str, retrieval_query: str) -> bool:
     return wants_cv(f"{retrieval_query}\n{original}")
 
 
+def _fold(text: str) -> str:
+    """Lowercase, strip diacritics, and reduce non-alphanumerics to spaces.
+
+    THE DIACRITIC STRIPPING IS THE POINT. Finnish visitors type from whatever
+    keyboard they have, and "mita tyokokemusta sinulla on" is a question this
+    module used to miss entirely while its accented twin matched — measured, not
+    supposed. Folding both the query and the vocabulary means one stem covers
+    both spellings, so nobody has to remember to add the ASCII variant.
+
+    It also makes "résumé" and "resume" the same string, so the two spellings
+    collapse to a single entry rather than needing to stay in sync.
+
+    DELIBERATELY NOT the language router's normalisation, which this used to
+    share. `guardrails.looks_finnish` reads ä and ö as evidence a query is
+    Finnish, so folding them there would destroy the signal it runs on. The two
+    want opposite things from the same characters; do not re-unify them.
+    """
+    decomposed = unicodedata.normalize("NFKD", text.lower())
+    unaccented = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return "".join(c if c.isalnum() else " " for c in unaccented)
+
+
+# Folded once at import: the query side is folded per call, and comparing a
+# folded query against unfolded vocabulary would silently match nothing for
+# every accented entry above.
+_CV_PREFIXES_FOLDED = tuple(sorted({_fold(p).strip() for p in _CV_PREFIXES}))
+_CV_EXACT_FOLDED = frozenset(_fold(e).strip() for e in _CV_EXACT)
+# NOT stripped: the padding is load-bearing. " kasvu labs" has no trailing space
+# on purpose, which is what lets it match "Kasvu Labsissa". Every phrase above is
+# ASCII, so folding leaves its leading/trailing spaces exactly where they were.
+# (`_fold` is not length-preserving in general — NFKD expands ligatures and
+# fractions, "ﬁ" to "fi" and "½" to "1 2" — so a non-ASCII phrase added later
+# would need its padding rechecked.)
+_CV_PHRASES_FOLDED = tuple(sorted({_fold(p) for p in _CV_PHRASES}))
+
+def _reject_empty_vocabulary(
+    prefixes: Sequence[str], exact: Iterable[str], phrases: Sequence[str]
+) -> None:
+    """Refuse a CV vocabulary entry that folds away to nothing.
+
+    THE FAILURE THIS PREVENTS IS TOTAL, AND SILENT. `"x".startswith("")` is True
+    and a blank phrase is a substring of every padded query, so ONE entry that
+    folds to an empty string makes `wants_cv` return True for every question the
+    site is ever asked. The CV route skips the relevance gate, so that is the
+    containment gate off for every visitor, caused by an edit that looks like a
+    typo (a stray "-", an entry that is only a combining mark).
+
+    Called at import, so the process refuses to start rather than serving an
+    unguarded model. A separate function rather than an inline `if` so the check
+    can be tested with a bad vocabulary, which a module-level statement cannot.
+    """
+    if not all(prefixes) or not all(exact):
+        raise ValueError("a CV vocabulary entry folds to an empty token")
+    if not all(phrase.strip() for phrase in phrases):
+        raise ValueError("a CV phrase folds to whitespace only")
+
+
+_reject_empty_vocabulary(_CV_PREFIXES_FOLDED, _CV_EXACT_FOLDED, _CV_PHRASES_FOLDED)
+
+
 def wants_cv(query: str) -> bool:
     """True when the query asks about work experience / career / the CV itself."""
-    # Same normalization as the language router: non-alphanumerics fold to spaces
-    # so "CV?" and "työkokemusta?" tokenize cleanly; accents (é) survive isalnum.
-    text = "".join(c if c.isalnum() else " " for c in query.lower())
-    tokens = text.split()
-    if any(tok in _CV_EXACT for tok in tokens):
+    tokens = _fold(query).split()
+    if any(tok in _CV_EXACT_FOLDED for tok in tokens):
         return True
-    if any(tok.startswith(prefix) for tok in tokens for prefix in _CV_PREFIXES):
+    if any(tok.startswith(prefix) for tok in tokens for prefix in _CV_PREFIXES_FOLDED):
         return True
     padded = f" {' '.join(tokens)} "
-    return any(phrase in padded for phrase in _CV_PHRASES)
+    return any(phrase in padded for phrase in _CV_PHRASES_FOLDED)
 
 
 # Research / recency-coverage intent. "tell me about Mikko's latest research",
