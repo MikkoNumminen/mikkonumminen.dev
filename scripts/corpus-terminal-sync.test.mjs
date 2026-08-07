@@ -11,11 +11,21 @@
  * document, because a confidently wrong answer reads exactly like a right one.
  * So every download flag in `commands.ts` must appear in the corpus doc, and the
  * doc must not advertise a flag that no longer exists.
+ *
+ * WHAT THIS GUARD DOES NOT COVER, found in review. The "does not advertise"
+ * check asks `resolveDownload` whether each documented command resolves, so it
+ * inherits that function's correctness: a resolver broken in the accept-anything
+ * direction would make this check pass on a doc full of nonsense. That is a
+ * deliberate trade for not re-implementing the matching rules here, where they
+ * could drift. `download.test.ts` is what keeps the resolver honest, and it
+ * fails hard (17 of 23 cases) on exactly that mutation. Neither file is
+ * sufficient alone.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { resolveDownload } from '../src/lib/terminal/download.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const commands = readFileSync(
@@ -41,14 +51,21 @@ function downloadFlags(source) {
   return entries.map(([, flag, filename]) => ({ flag, filename }));
 }
 
-/** Every `download --x` the corpus doc tells a visitor to type. */
-function documentedFlags(doc) {
-  return [...doc.matchAll(/`download (--[a-z]+)`/g)].map((m) => m[1]);
+/**
+ * Every download the corpus doc tells a visitor to type, as an id.
+ *
+ * Both spellings are accepted because the command accepts both: the bare id
+ * (`download blindtest`) is what the doc teaches now, and the dashed form is
+ * kept working for the site copy that still uses it. Matching only one spelling
+ * would let the doc drift to the other and still pass.
+ */
+function documentedIds(doc) {
+  return [...doc.matchAll(/`download (?:--)?([a-z]+)`/g)].map((m) => m[1]);
 }
 
 describe('content/site-terminal.md ↔ terminal commands', () => {
-  const real = downloadFlags(commands);
-  const documented = new Set(documentedFlags(corpusDoc));
+  const real = downloadFlags(commands).map((r) => ({ ...r, id: r.flag.replace(/^--/, '') }));
+  const documented = new Set(documentedIds(corpusDoc));
 
   it('finds the real download targets', () => {
     // Guards the guard: a regex that silently matches nothing would make every
@@ -57,10 +74,10 @@ describe('content/site-terminal.md ↔ terminal commands', () => {
   });
 
   it('documents every download flag the terminal offers', () => {
-    for (const { flag } of real) {
+    for (const { id } of real) {
       expect(
-        documented.has(flag),
-        `content/site-terminal.md does not mention \`download ${flag}\` — the chat cannot tell a visitor about a document it has never heard of`,
+        documented.has(id),
+        `content/site-terminal.md does not mention \`download ${id}\` — the chat cannot tell a visitor about a document it has never heard of`,
       ).toBe(true);
     }
   });
@@ -82,21 +99,27 @@ describe('content/site-terminal.md ↔ terminal commands', () => {
       '--research is now a real download target; drop this exemption so it is checked like any other flag',
     ).toBe(false);
 
-    const realFlags = new Set([...real.map((r) => r.flag), MENU_ONLY]);
-    for (const flag of documented) {
+    // Checked through the REAL resolver rather than against a set of ids, so the
+    // doc may teach anything the command actually accepts: an exact id, a unique
+    // prefix (`download blind`), or the listing word. Re-implementing those rules
+    // here would let the guard and the command disagree, which is the exact class
+    // of drift this file exists to prevent.
+    const ids = real.map((r) => r.id);
+    for (const token of documented) {
+      const kind = resolveDownload([token], ids).kind;
       expect(
-        realFlags.has(flag),
-        `content/site-terminal.md tells visitors to type \`download ${flag}\`, which commands.ts no longer defines`,
+        kind === 'target' || kind === 'list',
+        `content/site-terminal.md tells visitors to type \`download ${token}\`, which resolves to "${kind}" instead of a document`,
       ).toBe(true);
     }
   });
 
   it('every documented download resolves to a file in public/', () => {
-    for (const { flag, filename } of real) {
+    for (const { id, filename } of real) {
       const served = path.join(root, 'public', filename);
       expect(
         readFileSync(served).length,
-        `\`download ${flag}\` points at public/${filename}, which is missing or empty`,
+        `\`download ${id}\` points at public/${filename}, which is missing or empty`,
       ).toBeGreaterThan(0);
     }
   });
