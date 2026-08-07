@@ -20,9 +20,63 @@ def test_format_context_numbers_and_labels_chunks() -> None:
         ContextChunk(source="cv.md", title="CV", content="A developer."),
     ]
     out = format_context(chunks)
-    assert "[1] HRM (projects/hrm.md)" in out
-    assert "[2] CV (cv.md)" in out
+    assert "[1] HRM" in out
+    assert "source: projects/hrm.md" in out
+    assert "[2] CV" in out
+    assert "source: cv.md" in out
     assert "A platform." in out and "A developer." in out
+
+
+class TestTheContextCannotBeReadAsAMarkdownLink:
+    """The bug a visitor actually hit.
+
+    The format was `[1] Title (posts/x.md, 2026-07-02)`, which is markdown link
+    syntax with one space in it. The model closed the space and answered with
+    `[Title](posts/x.md, 2026-07-02)`, a link to a corpus path that exists
+    nowhere on the web. 4 of the 10 link-bearing answers in the request log
+    pointed at an internal path like that.
+
+    The visitor asked how to download the research documents and got what looked
+    like links and led nowhere.
+    """
+
+    def _rendered(self) -> str:
+        from datetime import date
+
+        return format_context(
+            [
+                ContextChunk(
+                    source="posts/rag-finnish-blind-test.md",
+                    title="Which local model writes the best Finnish?",
+                    content="Poro won 26 of 30.",
+                    doc_date=date(2026, 7, 2),
+                )
+            ]
+        )
+
+    def test_no_bracket_is_immediately_followed_by_a_parenthesis(self) -> None:
+        """The exact shape that makes a markdown link. Anything matching this is
+        one deleted space away from being emitted as one."""
+        import re
+
+        assert not re.search(r"\]\s*\(", self._rendered())
+
+    def test_the_source_path_is_not_inside_parentheses(self) -> None:
+        out = self._rendered()
+        assert "(posts/rag-finnish-blind-test.md" not in out
+        assert "source: posts/rag-finnish-blind-test.md" in out
+
+    def test_the_provenance_is_still_there_and_still_dated(self) -> None:
+        """The fix must not quietly drop provenance: the recency work depends on
+        the model seeing publication dates."""
+        out = self._rendered()
+        assert "posts/rag-finnish-blind-test.md" in out
+        assert "2026-07-02" in out
+
+    def test_no_em_dash_reaches_the_model(self) -> None:
+        """The model imitates the punctuation it is shown, and this site does not
+        use em dashes anywhere a reader can see."""
+        assert "—" not in self._rendered()
 
 
 def test_build_messages_shape() -> None:

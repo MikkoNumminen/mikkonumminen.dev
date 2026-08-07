@@ -549,6 +549,31 @@ _RESEARCH_MARKERS = (
 )
 
 
+# Asking HOW TO GET the research is not a research sweep, and treating it as one
+# actively breaks the answer.
+#
+# MEASURED, from a real visitor. "miten voin kopioida tutkimusdokumentteja?" fired
+# the coverage intent on "tutkimu", which force-occupies the top three context
+# slots with the newest research posts. Those sat at 0.44 to 0.49 while the
+# document that actually answers the question (site-terminal.md, describing the
+# `download` command) sat at 0.165, the best chunk in the corpus for that query,
+# pushed to position four. On the Finnish phrasing it was crowded out of the
+# context entirely. The model dutifully listed research posts, and in the logged
+# answer recommended a build script from an unrelated project.
+#
+# Coverage forcing exists because pure similarity BURIES the newest research. That
+# reasoning does not apply when the question is about obtaining it: there the
+# ranking was already right and the forcing is what broke it.
+_ACQUISITION_MARKERS = (
+    "download",
+    "lataa",  # fi: lataa / lataan / lataaminen
+    "ladat",  # fi: ladata / latasin
+    "kopioi",  # fi: kopioida / kopioin
+    "ladda",  # sv: ladda ner
+    "pdf",
+)
+
+
 def is_research_coverage_request(query: str) -> bool:
     """True when the query asks broadly about Mikko's research / latest findings.
 
@@ -557,9 +582,11 @@ def is_research_coverage_request(query: str) -> bool:
     question, served by normal project-aware retrieval) but "what research has
     Mikko published?" does. Reuses `detect_projects` for the exclusion so the two
     stay in sync. Recency words ("latest"/"viimeisin") are deliberately NOT
-    required — a plain "what research has he done" should surface the newest too;
-    if evals ever show this over-firing, the documented tightening is to also
-    require a recency marker.
+    required — a plain "what research has he done" should surface the newest too.
+
+    It also does not fire when the query asks how to OBTAIN the research rather
+    than what is in it; see `_ACQUISITION_MARKERS` for the measurement behind
+    that.
     """
     text = "".join(c if c.isalnum() else " " for c in query.lower())
     tokens = text.split()
@@ -567,6 +594,10 @@ def is_research_coverage_request(query: str) -> bool:
         tok.startswith(marker) for tok in tokens for marker in _RESEARCH_MARKERS
     )
     if not has_research:
+        return False
+    if any(
+        tok.startswith(marker) for tok in tokens for marker in _ACQUISITION_MARKERS
+    ):
         return False
     # A named non-portfolio project makes this a project question, not a
     # research-corpus sweep — defer to normal project-aware retrieval.

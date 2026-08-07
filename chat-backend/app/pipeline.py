@@ -208,6 +208,16 @@ class SupportsStreamChat(Protocol):
 # single characters with no cross-token state (a `**` split across two tokens
 # still loses each `*`). `#` is deliberately NOT stripped: it occurs in real
 # content (e.g. "C#").
+#
+# MARKDOWN LINKS ARE NOT HANDLED HERE, and cannot be. `[text](url)` spans many
+# tokens, so removing it needs buffering, which is exactly the cross-token state
+# this function does not have. The fix for those went in upstream instead:
+# `prompts.format_context` no longer renders a source as `[N] Title (path)`,
+# which is markdown link syntax with one space in it and which the model was
+# copying back out as a link to a corpus path. Measured before that change: 10 of
+# 697 logged answers contained a link and 4 of those pointed at an internal path.
+# If the rate does not fall, a buffering filter is the next step, not a wider
+# per-token strip: `]` and `)` occur constantly in ordinary prose.
 def _strip_markup(text: str) -> str:
     return text.replace("*", "").replace("`", "")
 

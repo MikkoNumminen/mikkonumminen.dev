@@ -431,6 +431,34 @@ def test_research_coverage_fires_on_research_markers() -> None:
     assert is_research_coverage_request("berätta om den senaste forskningen")
 
 
+def test_research_coverage_does_not_fire_on_how_do_i_get_it() -> None:
+    """The reported bug, from a real visitor.
+
+    "miten voin kopioida tutkimusdokumentteja?" hit the coverage intent on
+    "tutkimu", which force-occupies the top three context slots with the newest
+    research posts. Those sat at 0.44 to 0.49 while the document that answers the
+    question (site-terminal.md, describing the `download` command) sat at 0.165,
+    the closest chunk in the corpus, pushed to position four. The model listed
+    research posts and recommended a build script from an unrelated project.
+
+    Asking how to OBTAIN the research is not a request for a research sweep.
+    """
+    assert not is_research_coverage_request("miten voin kopioida tutkimusdokumentteja?")
+    assert not is_research_coverage_request("how can I download the research documents?")
+    assert not is_research_coverage_request("how do I download the research")
+    assert not is_research_coverage_request("where can I download the findings pdf")
+    assert not is_research_coverage_request("mistä voin ladata tutkimukset")
+    assert not is_research_coverage_request("var kan jag ladda ner forskningen")
+
+
+def test_research_coverage_still_fires_when_the_question_is_about_content() -> None:
+    """The veto above must not swallow the intent it sits inside. These ask what
+    the research SAYS, and still need the newest posts forced into context."""
+    assert is_research_coverage_request("what research has Mikko published?")
+    assert is_research_coverage_request("kerro viimeisimmistä tutkimuksista")
+    assert is_research_coverage_request("what did the experiment find?")
+
+
 def test_research_coverage_needs_a_research_marker() -> None:
     # Recency or generic curiosity alone is not enough — "latest project" is a
     # project question, not a research sweep.
