@@ -78,6 +78,30 @@ class TestTheContextCannotBeReadAsAMarkdownLink:
         use em dashes anywhere a reader can see."""
         assert "—" not in self._rendered()
 
+    def test_the_recency_note_does_not_put_a_corpus_path_in_prose(self) -> None:
+        """The other half, found in review. `_newest_research_note` rendered
+        `<title> (posts/x.md, published ...)`: the same shape, in the prompt's
+        most authoritative sentence, so the likeliest of the two to be echoed.
+        Fixing only `format_context` left the leak in place.
+        """
+        from datetime import date
+
+        out = format_context(
+            [
+                ContextChunk(
+                    source="posts/rag-finnish-blind-test.md",
+                    title="The blind test",
+                    content="Poro won.",
+                    doc_date=date(2026, 7, 2),
+                    is_coverage=True,
+                )
+            ]
+        )
+        note = out.split("[1]")[0]
+        assert "most recent research" in note, "the recency note stopped rendering"
+        assert "posts/rag-finnish-blind-test.md" not in note
+        assert "2026-07-02" in note, "the date is the point of the note"
+
 
 def test_build_messages_shape() -> None:
     chunks = [ContextChunk(source="cv.md", title="CV", content="ships apps.")]

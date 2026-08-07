@@ -71,10 +71,16 @@ describe('content/site-terminal.md ↔ terminal commands', () => {
     // download branch) and appends it as a menu row. It is still a real thing to
     // type, and the corpus doc should say so, so it is accepted here by name.
     const MENU_ONLY = '--research';
+    // Assert what the comment claims, not merely that the string appears
+    // somewhere in the file. A raw `commands.includes('--research')` passes on
+    // the unrelated `args.includes('--research')` branch, so it would keep
+    // passing if --research were promoted into `targets` and became a real
+    // download, which is the one change that should force this exemption to be
+    // revisited.
     expect(
-      commands.includes(MENU_ONLY),
-      'commands.ts no longer mentions --research; update this exemption',
-    ).toBe(true);
+      real.some((r) => r.flag === MENU_ONLY),
+      '--research is now a real download target; drop this exemption so it is checked like any other flag',
+    ).toBe(false);
 
     const realFlags = new Set([...real.map((r) => r.flag), MENU_ONLY]);
     for (const flag of documented) {

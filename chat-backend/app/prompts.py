@@ -206,9 +206,14 @@ def _newest_research_note(chunks: Sequence[ContextChunk]) -> str | None:
     # this claim must never be able to name the wrong post.
     newest = max(dated, key=lambda c: c.doc_date or date.min)
     label = newest.title or newest.source
+    # No corpus path in this sentence. It is the same `label (path, date)` shape
+    # `format_context` just stopped emitting, and this one sits in the prompt's
+    # most authoritative voice, so it is the likeliest of the two to be echoed
+    # into an answer. The path is redundant here anyway: the chunk it names is
+    # rendered below with its own `source:` line.
     return (
-        f"Mikko's most recent research is: {label} "
-        f"({newest.source}, published {(newest.doc_date or date.min).isoformat()}). "
+        f"Mikko's most recent research is: {label}, "
+        f"published {(newest.doc_date or date.min).isoformat()}. "
         "This is the newest of his research posts; the dated entries below are his "
         "research, listed newest first."
     )

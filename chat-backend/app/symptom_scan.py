@@ -74,7 +74,15 @@ _MARKERS: dict[str, tuple[str, ...]] = {
     # Trying to forge the frame the server writes around retrieved text.
     "frame_forgery": (
         r"^\s*(context|question)\s*:",
+        # BOTH citation-row shapes, and the pair has to stay that way. The first
+        # is the parenthesised form `[1] Title (x.md)` that `format_context` used
+        # to emit; the second is the `source:` line it emits now. Keeping only the
+        # current one would stop flagging forgeries of the old shape, which are
+        # still forgeries, and keeping only the old one left this detector blind
+        # to the format actually in use — which is what happened when the format
+        # changed and this pattern did not.
         r"^\s*\[\d+\]\s+\S+\s+\(",
+        r"^\s*source\s*:\s+\S+",
         r"<\|.*?\|>",
         # Column zero, no leading whitespace. Indented "user:" / "system:" is an
         # object key, and this corpus is full of TypeScript permission maps: the
