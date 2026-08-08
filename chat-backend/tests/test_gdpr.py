@@ -91,9 +91,7 @@ def test_token_for_is_stable_and_distinct() -> None:
 
 
 def test_pseudonymize_replaces_with_token_and_maps_back() -> None:
-    pol = GdprPolicy(
-        pseudonymize_patterns=(re.compile(r"Dr\. [A-Z][a-z]+ [A-Z][a-z]+"),)
-    )
+    pol = GdprPolicy(pseudonymize_patterns=(re.compile(r"Dr\. [A-Z][a-z]+ [A-Z][a-z]+"),))
     text, mapping = pseudonymize("Signed by Dr. Jane Doe today.", pol)
     token = token_for("Dr. Jane Doe")
     assert "Dr. Jane Doe" not in text  # the raw name never survives to embedding
@@ -102,9 +100,7 @@ def test_pseudonymize_replaces_with_token_and_maps_back() -> None:
 
 
 def test_pseudonymize_stable_across_occurrences() -> None:
-    pol = GdprPolicy(
-        pseudonymize_patterns=(re.compile(r"Dr\. [A-Z][a-z]+ [A-Z][a-z]+"),)
-    )
+    pol = GdprPolicy(pseudonymize_patterns=(re.compile(r"Dr\. [A-Z][a-z]+ [A-Z][a-z]+"),))
     text, mapping = pseudonymize("Dr. Jane Doe met Dr. Jane Doe.", pol)
     token = token_for("Dr. Jane Doe")
     assert text.count(token) == 2  # same value -> same token, retrieval-coherent

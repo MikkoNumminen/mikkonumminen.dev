@@ -86,10 +86,7 @@ class FakeDB:
         if projects is not None:
             out = [r for r in out if r["project"] in projects]
         if classifications is not None:
-            out = [
-                r for r in out
-                if r.get("classification", "public") in classifications
-            ]
+            out = [r for r in out if r.get("classification", "public") in classifications]
         if exclude_doc_types:
             out = [r for r in out if r.get("doc_type", "prose") not in exclude_doc_types]
         if kinds:
@@ -122,9 +119,9 @@ class FakeDB:
     ) -> Sequence[Mapping[str, Any]]:
         self.lexical_calls.append((query, top_k))
         self.classification_args.append(classifications)
-        return self._filter(
-            self._lexical, projects, classifications, exclude_doc_types
-        )[:top_k]
+        return self._filter(self._lexical, projects, classifications, exclude_doc_types)[
+            :top_k
+        ]
 
 
 def _row(
@@ -216,9 +213,7 @@ def test_named_project_chunks_float_to_front() -> None:
 
 
 def test_no_project_named_is_byte_identical_to_plain_search() -> None:
-    db = FakeDB(
-        [_row("a.md", 0.1, project="hrm"), _row("b.md", 0.2, project="platform")]
-    )
+    db = FakeDB([_row("a.md", 0.1, project="hrm"), _row("b.md", 0.2, project="platform")])
     result = asyncio.run(
         retrieve(FakeEmbedder(), db, "what is the most complex thing here?", top_k=2)
     )
@@ -258,9 +253,7 @@ def test_hybrid_keeps_dense_gate_anchor_distance() -> None:
     dense = [_row("close.md", 0.12)]
     lexical = [_row("kw.md", 0.0), _row("close.md", 0.12)]
     db = FakeDB(dense, lexical_rows=lexical)
-    result = asyncio.run(
-        retrieve(FakeEmbedder(), db, "keyword", top_k=3, hybrid=True)
-    )
+    result = asyncio.run(retrieve(FakeEmbedder(), db, "keyword", top_k=3, hybrid=True))
     assert min(c.distance for c in result) == 0.12  # the dense anchor
     kw = next(c for c in result if c.source == "kw.md")
     assert kw.distance == 2.0  # lexical-only sentinel, can't satisfy the gate
@@ -785,12 +778,18 @@ def test_research_coverage_injects_newest_and_leads() -> None:
         # skills is the CLOSER of the two (0.10) but OLDER — so poro leading can
         # only come from doc_date ordering, not distance.
         _row(
-            "posts/skills.md", 0.10, project="portfolio",
-            doc_type="research", doc_date="2026-06-02",
+            "posts/skills.md",
+            0.10,
+            project="portfolio",
+            doc_type="research",
+            doc_date="2026-06-02",
         ),
         _row(
-            "posts/poro.md", 0.30, project="portfolio",
-            doc_type="research", doc_date="2026-07-15",
+            "posts/poro.md",
+            0.30,
+            project="portfolio",
+            doc_type="research",
+            doc_date="2026-07-15",
         ),
     ]
     db = FakeDB(semantic, research_rows=research)
@@ -829,8 +828,11 @@ def test_offcorpus_research_topic_injects_but_may_not_claim_recency() -> None:
     semantic = [_row("projects/hrm.md", 0.20, project="hrm")]
     research = [
         _row(
-            "posts/poro.md", 0.30, project="portfolio",
-            doc_type="research", doc_date="2026-07-15",
+            "posts/poro.md",
+            0.30,
+            project="portfolio",
+            doc_type="research",
+            doc_date="2026-07-15",
         ),
     ]
     db = FakeDB(semantic, research_rows=research)
@@ -855,8 +857,11 @@ def test_translated_finnish_sweep_claims_off_the_english_line() -> None:
     # the veto structurally cannot read it as the English preposition "on".
     research = [
         _row(
-            "posts/poro.md", 0.30, project="portfolio",
-            doc_type="research", doc_date="2026-07-15",
+            "posts/poro.md",
+            0.30,
+            project="portfolio",
+            doc_type="research",
+            doc_date="2026-07-15",
         ),
     ]
     db = FakeDB([_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research)
@@ -880,8 +885,11 @@ def test_translated_offcorpus_query_may_not_claim_off_the_finnish_line() -> None
     # materialises the structure the veto reads.
     research = [
         _row(
-            "posts/poro.md", 0.30, project="portfolio",
-            doc_type="research", doc_date="2026-07-15",
+            "posts/poro.md",
+            0.30,
+            project="portfolio",
+            doc_type="research",
+            doc_date="2026-07-15",
         ),
     ]
     db = FakeDB([_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research)
@@ -911,12 +919,18 @@ def test_research_coverage_bypasses_diversity_cap() -> None:
     ]
     research = [
         _row(
-            "posts/poro.md", 0.30, project="portfolio",
-            doc_type="research", doc_date="2026-07-15",
+            "posts/poro.md",
+            0.30,
+            project="portfolio",
+            doc_type="research",
+            doc_date="2026-07-15",
         ),
         _row(
-            "posts/blind.md", 0.31, project="portfolio",
-            doc_type="research", doc_date="2026-07-02",
+            "posts/blind.md",
+            0.31,
+            project="portfolio",
+            doc_type="research",
+            doc_date="2026-07-02",
         ),
     ]
     db = FakeDB(semantic, research_rows=research)
@@ -948,8 +962,11 @@ def test_research_coverage_injection_preserves_far_gate_signal() -> None:
     semantic = [_row("projects/hrm.md", 0.80, project="hrm")]  # far
     research = [
         _row(
-            "posts/poro.md", 0.85, project="portfolio",
-            doc_type="research", doc_date="2026-07-15",
+            "posts/poro.md",
+            0.85,
+            project="portfolio",
+            doc_type="research",
+            doc_date="2026-07-15",
         ),
     ]
     db = FakeDB(semantic, research_rows=research)
@@ -970,9 +987,7 @@ def test_research_coverage_injection_preserves_far_gate_signal() -> None:
 def test_research_coverage_not_injected_without_intent() -> None:
     # A non-research query never triggers the guaranteed set, even with the knob on.
     research = [_row("posts/poro.md", 0.30, project="portfolio", doc_type="research")]
-    db = FakeDB(
-        [_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research
-    )
+    db = FakeDB([_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research)
     got = asyncio.run(
         retrieve(
             FakeEmbedder(),
@@ -990,9 +1005,7 @@ def test_research_coverage_disabled_by_zero_knob() -> None:
     # research_coverage_top_n=0 (the default) is byte-identical to the old flow:
     # the intent fires but the fetch is never made.
     research = [_row("posts/poro.md", 0.30, project="portfolio", doc_type="research")]
-    db = FakeDB(
-        [_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research
-    )
+    db = FakeDB([_row("projects/hrm.md", 0.20, project="hrm")], research_rows=research)
     got = asyncio.run(
         retrieve(
             FakeEmbedder(),

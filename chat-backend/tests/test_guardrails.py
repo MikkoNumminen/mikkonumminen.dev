@@ -314,7 +314,7 @@ def test_expansion_matches_regardless_of_unicode_normalisation() -> None:
     "query", ["kerro tästä", "kerro siitä lisää", "tell me about it"]
 )
 def test_demonstrative_filler_is_intentionally_an_expansion(query: str) -> None:
-    """"tell me about it" / "kerro tästä" carry a PRONOUN, not a topic — the
+    """ "tell me about it" / "kerro tästä" carry a PRONOUN, not a topic — the
     referent is the previous turn, which is exactly what an expansion resolves.
     Pinned so the behaviour reads as deliberate rather than accidental."""
     assert is_expansion_request(query)

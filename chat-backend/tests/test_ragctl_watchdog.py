@@ -193,9 +193,7 @@ def test_start_is_idempotent_when_already_running(
     assert ragctl.start_watchdog_daemon() == 777
 
 
-def test_stop_kills_running_watchdog(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-) -> None:
+def test_stop_kills_running_watchdog(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     pidfile = tmp_path / "watchdog.pid"
     pidfile.write_text("555")
     monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", pidfile)
