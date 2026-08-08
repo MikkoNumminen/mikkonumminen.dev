@@ -28,59 +28,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { locateChrome } from './lib/chrome-pdf.mjs';
+// MAP + latestMd moved to lib/paper-sources.mjs so the /research reader
+// renders the SAME markdown this script prints. Two copies would let a
+// visitor read one text online and download another.
+import { MAP, latestMd } from './lib/paper-sources.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AUDITS_DIR = path.join(ROOT, 'docs', 'audits');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const RENDERER = path.join(ROOT, 'scripts', 'render-audit-doc.mjs');
-
-// Each entry maps a served public/ download to the regex matching its dated .md
-// source. Anchored + date-then-suffix specific so optim-study and its -replicates
-// sibling never collide. The dated PDF is the .md basename with .pdf.
-const MAP = [
-  {
-    pub: 'skills-suite-calibration.pdf',
-    re: /^skills-suite-calibration-(\d{4}-\d{2}-\d{2})\.md$/,
-  },
-  { pub: 'skills-optim-study.pdf', re: /^skills-optim-study-(\d{4}-\d{2}-\d{2})\.md$/ },
-  { pub: 'skills-results.pdf', re: /^skills-results-(\d{4}-\d{2}-\d{2})\.md$/ },
-  // Sourced outside docs/audits: these reports' .md lives with the corpus posts,
-  // which is what the RAG index reads. Duplicating them into docs/audits purely
-  // to satisfy the regex convention would reintroduce exactly the drift this
-  // driver exists to prevent, so `src` names the real source and `dated` the
-  // canonical PDF the regex would otherwise have derived from the filename.
-  //
-  // A `src` entry is only correct when the post IS the document, not a shorter
-  // write-up of it. Verified for both below: agent-delegation renders to the same
-  // length it always had, and skills-optim-replicates carries the full six-cell
-  // table matching the scoreboard JSON. That one had been an orphan binary with
-  // no source at all, its regex pointing at a docs/audits/.md that has never
-  // existed, so nothing could regenerate it.
-  //
-  // poro-finnish-review.pdf and rag-finnish-blind-test.pdf are deliberately NOT
-  // here. Their corpus posts are condensed versions: rendering the served copy
-  // from poro-finnish-review.md dropped about a quarter of the published text.
-  // Those two downloads keep their committed bytes, and their em dashes with
-  // them, because a complete document beats a tidier truncated one. Wiring them
-  // up needs their real sources, which are not in this repo.
-  {
-    pub: 'agent-delegation.pdf',
-    src: 'content/posts/agent-delegation-measured.md',
-    dated: 'AGENT-DELEGATION-2026-07-26.pdf',
-  },
-  {
-    pub: 'skills-optim-study-replicates.pdf',
-    src: 'content/posts/skills-optim-replicates.md',
-    dated: 'skills-optim-study-2026-06-01-replicates.pdf',
-  },
-];
-
-function latestMd(names, re) {
-  return names
-    .map((name) => ({ name, match: re.exec(name) }))
-    .filter((e) => e.match !== null)
-    .sort((a, b) => b.match[1].localeCompare(a.match[1]))[0]?.name;
-}
 
 function main() {
   const force = process.argv.includes('--force');

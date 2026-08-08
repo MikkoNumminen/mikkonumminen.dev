@@ -1,0 +1,115 @@
+/**
+ * The research reader's source resolution and rendering.
+ *
+ * THE BUG THIS EXISTS FOR was silent. `ROOT` was derived from `import.meta.url`,
+ * Vite bundled the module into `dist/.prerender/chunks/`, every source lookup
+ * returned "no source", `getStaticPaths` emitted nothing, and the build reported
+ * success with ten pages missing. Nothing failed. The page count in the build log
+ * was the only evidence, and it is not something anyone reads.
+ *
+ * So the count is asserted here, and a mapped-but-missing source now throws
+ * instead of returning null.
+ */
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+import { MAP, ROOT, sourceFor } from './paper-sources.mjs';
+import { isReadable, readPaperBody } from './paper-body.mjs';
+
+const RENDER_SCRIPT = readFileSync(path.join(ROOT, 'scripts/render-audit-pdfs.mjs'), 'utf8');
+
+describe('paper sources', () => {
+  it('resolves the repo root, not a build directory', () => {
+    // Direct assertion on the failure mode: the root must contain the repo, not
+    // `dist/`. A root under dist is how every lookup came back empty.
+    expect(ROOT).not.toMatch(/[\\/]dist([\\/]|$)/);
+    expect(() => readFileSync(path.join(ROOT, 'astro.config.mjs'))).not.toThrow();
+  });
+
+  it('has papers to resolve at all', () => {
+    // Guards the guard: an empty MAP would make every case below vacuous, and
+    // that is exactly the state the silent bug simulated.
+    expect(MAP.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('resolves every mapped paper to a file that exists', () => {
+    for (const { pub } of MAP) {
+      const abs = sourceFor(pub);
+      expect(abs, `${pub} resolved to nothing`).toBeTruthy();
+      expect(() => readFileSync(abs), `${pub} -> ${abs}`).not.toThrow();
+    }
+  });
+
+  it('is the only copy of the map', () => {
+    // The PDF renderer and the reader must resolve the SAME markdown, or a
+    // visitor reads one text and downloads another. Sharing the module is what
+    // makes that true; a re-added local copy would silently un-make it.
+    expect(RENDER_SCRIPT).toMatch(/from '\.\/lib\/paper-sources\.mjs'/);
+    expect(
+      RENDER_SCRIPT,
+      'render-audit-pdfs.mjs has its own MAP again; the reader and the PDF can now diverge',
+    ).not.toMatch(/^const MAP = \[/m);
+  });
+
+  it('throws rather than returning null when a mapped source is missing', () => {
+    // The silent-null is what hid the root bug. A paper that SHOULD have a
+    // source and does not is a fault, and must read as one.
+    expect(() => sourceFor('skills-results.pdf')).not.toThrow();
+    const original = MAP.find((e) => e.pub === 'skills-results.pdf');
+    const saved = { ...original };
+    try {
+      delete original.re;
+      original.src = 'docs/audits/this-file-does-not-exist.md';
+      expect(() => sourceFor('skills-results.pdf')).toThrow(/does not exist/);
+    } finally {
+      Object.assign(original, saved);
+      if (saved.re === undefined) delete original.re;
+      if (saved.src === undefined) delete original.src;
+    }
+  });
+
+  it('reports no source for a paper that has none, without throwing', () => {
+    // Two published papers exist here only as condensed copies. "None" is the
+    // correct answer for them and must stay distinguishable from a fault.
+    expect(isReadable('poro-finnish-review.pdf')).toBe(false);
+    expect(readPaperBody('rag-finnish-blind-test.pdf')).toBeNull();
+  });
+});
+
+describe('rendered paper bodies', () => {
+  const readable = MAP.map((e) => e.pub);
+
+  it.each(readable)('%s renders usable HTML', (pub) => {
+    const body = readPaperBody(pub);
+    expect(body, `${pub} has no body`).not.toBeNull();
+    expect(body.html.length, 'suspiciously short render').toBeGreaterThan(2000);
+
+    // The page supplies its own <h1>; the document's leading title must be
+    // stripped or every paper ships two.
+    expect((body.html.match(/<h1/g) ?? []).length, 'duplicate top-level heading').toBe(0);
+
+    // Sibling links (`./x.json`, `./x.pdf`) point at files that are not served.
+    // Left alone they 404, which makes a complete-looking page hand out dead
+    // links — worse than the PDF-only state the reader replaces.
+    const relative = [...body.html.matchAll(/href="(\.\/[^"]*)"/g)].map((m) => m[1]);
+    expect(relative, `${pub} keeps unserved relative links`).toEqual([]);
+
+    expect(body.source, 'source path should be repo-relative').not.toMatch(/^[A-Za-z]:|^\//);
+  });
+
+  it('rewrites sibling links to the public repo', () => {
+    const body = readPaperBody('skills-optim-study.pdf');
+    expect(body.html).toMatch(
+      /href="https:\/\/github\.com\/MikkoNumminen\/mikkonumminen\.dev\/blob\/master\/docs\/audits\//,
+    );
+  });
+
+  it('keeps the colour legend with the coloured tables', () => {
+    // The legend explains the green/red cells and is added by the renderer only
+    // when something is coloured. A reader without it shows colours that mean
+    // nothing stated.
+    const coloured = readPaperBody('skills-optim-study.pdf');
+    expect(coloured.html).toContain('class="legend"');
+  });
+});

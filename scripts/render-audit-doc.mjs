@@ -159,7 +159,10 @@ function renderFigure(caption, tableBlock) {
   return `<figure class="figure"><figcaption>${inline(caption)}</figcaption>\n${items}\n</figure>`;
 }
 
-function renderBody(md) {
+// Exported for the /research reader, which renders the same document as a web
+// page. One renderer means the page and the PDF cannot disagree about a table,
+// a figure or a coloured cell.
+export function renderBody(md) {
   const blocks = mdToBlocks(md);
   const out = [];
   let listType = null;
@@ -226,20 +229,32 @@ function renderBody(md) {
   return out;
 }
 
-export function buildHtml(md, title) {
+const COLOUR_LEGEND =
+  '<p class="legend"><span class="pos">green</span> = saved &ge;20% &middot; ' +
+  '<span class="neg">red</span> = cost &ge;20% more &middot; black = within &plusmn;20% = direction-at-best. ' +
+  'The &plusmn;20% band is the noise floor this doc demonstrates (cross-session drift ~8pp + N=1 task variance), ' +
+  'so within-band magnitudes are not coloured as signal. Colours the &ldquo;% saved&rdquo; columns only; ' +
+  'swing/pp and token columns stay neutral.</p>';
+
+/**
+ * The document body as one HTML string, legend included when any cell is
+ * coloured. Exported for the /research reader; `buildHtml` wraps the same output
+ * in the print document. Both go through here so the legend can never appear on
+ * one and not the other.
+ */
+export function renderBodyHtml(md) {
   state.coloured = false;
   const out = renderBody(md);
   if (state.coloured) {
-    const legend =
-      '<p class="legend"><span class="pos">green</span> = saved &ge;20% &middot; ' +
-      '<span class="neg">red</span> = cost &ge;20% more &middot; black = within &plusmn;20% = direction-at-best. ' +
-      'The &plusmn;20% band is the noise floor this doc demonstrates (cross-session drift ~8pp + N=1 task variance), ' +
-      'so within-band magnitudes are not coloured as signal. Colours the &ldquo;% saved&rdquo; columns only; ' +
-      'swing/pp and token columns stay neutral.</p>';
     const h1idx = out.findIndex((b) => b.startsWith('<h1'));
-    if (h1idx >= 0) out.splice(h1idx + 1, 0, legend);
-    else out.unshift(legend);
+    if (h1idx >= 0) out.splice(h1idx + 1, 0, COLOUR_LEGEND);
+    else out.unshift(COLOUR_LEGEND);
   }
+  return out.join('\n');
+}
+
+export function buildHtml(md, title) {
+  const body = renderBodyHtml(md);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -280,7 +295,7 @@ export function buildHtml(md, title) {
 </style>
 </head>
 <body>
-${out.join('\n')}
+${body}
 <footer>mikkonumminen.dev &middot; ${esc(title)}</footer>
 </body>
 </html>

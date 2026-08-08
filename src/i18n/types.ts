@@ -86,10 +86,16 @@ export interface Translations {
     eyebrow: string;
     title: string;
     lede: string;
-    /** Text of the download link on each row. */
     pdfLabel: string;
-    /** Accessible name for the same link, with the paper title interpolated. */
     downloadAria: string;
+    /** Link label on a paper that can be read in the browser. */
+    readLabel: string;
+    readAria: string;
+    backToList: string;
+    /** Why the body is English on the Finnish route. */
+    englishNotice: string;
+    sourceLabel: string;
+    pdfAlsoLabel: string;
   };
   blog: {
     eyebrow: string;
