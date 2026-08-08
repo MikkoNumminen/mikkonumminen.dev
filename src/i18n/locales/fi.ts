@@ -103,9 +103,16 @@ export const fi: Translations = {
   researchPage: {
     eyebrow: 'mitattua',
     title: 'Tutkimus',
-    lede: 'Tutkimuksia omasta työstäni, julkaistuna niiden lukujen kanssa. Uusin ensin. Jokainen on PDF jonka voit ottaa mukaasi, ja yksi niistä peruu aiemman löydökseni.',
+    lede: 'Tutkimuksia omasta työstäni, julkaistuna lukujen kanssa. Uusin ensin. Jokaisesta saa PDF:n mukaansa, ja yksi niistä peruu aiemman löydökseni.',
     pdfLabel: 'PDF',
     downloadAria: 'Lataa {title} PDF-tiedostona',
+    readLabel: 'Lue',
+    readAria: 'Lue {title} selaimessa',
+    backToList: 'Kaikki tutkimukset',
+    englishNotice:
+      'Tämä dokumentti on englanniksi. Muu sivusto on käännetty, paperit eivät, koska käännetty mittaus on eri dokumentti ja luen mieluummin sen, jonka oikeasti ajoin.',
+    sourceLabel: 'Lähde',
+    pdfAlsoLabel: 'Myös PDF:nä',
   },
   blog: {
     eyebrow: 'kirjoituksia',

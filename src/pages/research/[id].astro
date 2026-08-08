@@ -1,0 +1,26 @@
+---
+/**
+ * Route shim. The paths come from `src/data/papers.ts` filtered to the papers
+ * whose markdown lives in this repo, so a paper with no faithful source simply
+ * has no reader route and the listing offers it as a PDF only.
+ */
+import type { GetStaticPaths } from 'astro';
+import ResearchPaperPage from '../../page-content/ResearchPaperPage.astro';
+import { getTranslations } from '../../i18n';
+import { localizePapers } from '../../data/papers';
+import { readPaperBody } from '../../../scripts/lib/paper-body.mjs';
+
+export const getStaticPaths = (() => {
+  const t = getTranslations('en');
+  return localizePapers(t)
+    .filter((paper) => paper.tier === 'research')
+    .flatMap((paper) => {
+      const body = readPaperBody(paper.filename);
+      return body ? [{ params: { id: paper.id }, props: { paper, ...body } }] : [];
+    });
+}) satisfies GetStaticPaths;
+
+const { paper, html, source } = Astro.props;
+---
+
+<ResearchPaperPage paper={paper} html={html} source={source} />

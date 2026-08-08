@@ -104,6 +104,13 @@ export const en: Translations = {
     lede: 'Studies I ran on my own work, published with the numbers behind them. Newest first. Every one is a PDF you can take away, and one of them is a retraction of an earlier finding of mine.',
     pdfLabel: 'PDF',
     downloadAria: 'Download {title} as a PDF',
+    readLabel: 'Read',
+    readAria: 'Read {title} in the browser',
+    backToList: 'All research',
+    englishNotice:
+      'This document is in English. The rest of the site is translated; the papers are not, because a translated measurement is a different document and I would rather you read the one I actually ran.',
+    sourceLabel: 'Rendered from',
+    pdfAlsoLabel: 'Also as a PDF',
   },
   blog: {
     eyebrow: 'writing',

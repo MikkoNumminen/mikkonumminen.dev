@@ -1,0 +1,259 @@
+---
+/**
+ * One research paper, readable in the browser.
+ *
+ * THE BODY IS ENGLISH IN BOTH LOCALES, and says so. The documents are English
+ * artefacts: `papers.ts` already refuses to translate their titles on the
+ * grounds that a Finnish title promises a Finnish paper that does not exist,
+ * and the same argument applies with more force to the text. A translated
+ * measurement is a different document. The chrome around it is translated,
+ * so a Finnish reader gets Finnish navigation and an explanation rather than
+ * an unexplained wall of English.
+ *
+ * NOT EVERY PAPER HAS ONE. `getStaticPaths` only emits a route for papers whose
+ * markdown is in this repo. Two published papers exist here only as condensed
+ * corpus copies, and `paper-sources.mjs` refuses to render a summary of a
+ * document as if it were the document.
+ *
+ * The HTML comes from the renderer that prints the PDFs, so the page and the
+ * download cannot disagree about a table or a coloured cell.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { asLocale, getTranslations, localizePath } from '../i18n';
+import { monthLabel, type LocalizedPaper } from '../data/papers';
+
+interface Props {
+  paper: LocalizedPaper;
+  html: string;
+  source: string;
+}
+
+const { paper, html, source } = Astro.props;
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+const listHref = localizePath('/research', locale);
+---
+
+<BaseLayout
+  title={`${paper.title} · Mikko Numminen`}
+  description={paper.summary}
+  theme="home"
+>
+  <article class="paper">
+    <nav class="paper__back" aria-label={t.researchPage.title}>
+      <a href={listHref}>&larr; {t.researchPage.backToList}</a>
+    </nav>
+
+    <header class="paper__header">
+      {
+        /* Same formatter as the listing, so a paper does not show "2026-05"
+          on one page and "may 2026" on the other. */
+      }
+      <time class="paper__date" datetime={paper.date}
+        >{monthLabel(paper.date, locale)}</time
+      >
+      <h1 class="paper__title">{paper.title}</h1>
+      <p class="paper__summary">{paper.summary}</p>
+      <p class="paper__actions">
+        <a class="paper__pdf" href={paper.url} download={paper.filename}>
+          {t.researchPage.pdfAlsoLabel}
+        </a>
+      </p>
+      {
+        locale !== 'en' && (
+          <p class="paper__notice" lang="fi">
+            {t.researchPage.englishNotice}
+          </p>
+        )
+      }
+    </header>
+
+    {
+      /*
+      set:html is safe here and nowhere near a user input: the string comes from
+      markdown committed to this repo, rendered by `render-audit-doc.mjs`, whose
+      `inline()` escapes the text before it applies any markup.
+    */
+    }
+    <div class="paper__body" lang="en" set:html={html} />
+
+    <footer class="paper__footer">
+      <p>{t.researchPage.sourceLabel}: <code>{source}</code></p>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .paper {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 7vw, 5rem) 1.25rem 5rem;
+  }
+
+  .paper__back {
+    margin-bottom: 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .paper__back a {
+    color: var(--color-text-dim);
+    text-decoration: none;
+  }
+
+  .paper__back a:hover,
+  .paper__back a:focus-visible {
+    color: var(--color-text);
+  }
+
+  .paper__date {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+
+  .paper__title {
+    margin: 0.5rem 0 1rem;
+    font-size: clamp(1.6rem, 4.5vw, 2.4rem);
+    line-height: 1.15;
+  }
+
+  .paper__summary {
+    margin: 0 0 1.25rem;
+    max-width: 68ch;
+    color: var(--color-text-muted);
+    line-height: 1.65;
+  }
+
+  .paper__actions {
+    margin: 0 0 1.5rem;
+  }
+
+  .paper__pdf {
+    display: inline-block;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.18));
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-decoration: none;
+    color: var(--color-text);
+  }
+
+  .paper__pdf:hover,
+  .paper__pdf:focus-visible {
+    border-color: var(--color-accent, rgba(255, 255, 255, 0.5));
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .paper__notice {
+    margin: 0 0 2rem;
+    padding: 0.75rem 1rem;
+    max-width: 68ch;
+    border-left: 2px solid var(--color-border, rgba(255, 255, 255, 0.2));
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--color-text-dim);
+  }
+
+  .paper__body {
+    border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    padding-top: 2rem;
+    line-height: 1.7;
+    overflow-wrap: break-word;
+  }
+
+  /*
+   * The rendered markdown is not scoped-styled by Astro (it arrives as a string),
+   * so these need :global. Kept to typography and table legibility: the document
+   * brings its own structure and the page should not re-author it.
+   */
+  .paper__body :global(h2) {
+    margin: 2.5rem 0 0.75rem;
+    font-size: clamp(1.15rem, 2.6vw, 1.45rem);
+    line-height: 1.3;
+  }
+
+  .paper__body :global(h3) {
+    margin: 1.75rem 0 0.5rem;
+    font-size: 1.05rem;
+  }
+
+  .paper__body :global(p),
+  .paper__body :global(li) {
+    color: var(--color-text-muted);
+  }
+
+  .paper__body :global(a) {
+    color: var(--color-text);
+  }
+
+  .paper__body :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .paper__body :global(blockquote) {
+    margin: 1.25rem 0;
+    padding: 0.5rem 1rem;
+    border-left: 2px solid var(--color-border, rgba(255, 255, 255, 0.2));
+    color: var(--color-text-dim);
+  }
+
+  /* Wide measurement tables are the point of these documents, so they scroll in
+     their own box rather than forcing the page to scroll sideways. */
+  .paper__body :global(figure),
+  .paper__body :global(.table-wrap) {
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+
+  .paper__body :global(table) {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.82rem;
+  }
+
+  .paper__body :global(th),
+  .paper__body :global(td) {
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .paper__body :global(th) {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .paper__body :global(.pos) {
+    color: #4ade80;
+  }
+
+  .paper__body :global(.neg) {
+    color: #ff5f57;
+  }
+
+  .paper__body :global(.legend) {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+  }
+
+  .paper__footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+  }
+
+  .paper__footer code {
+    font-family: var(--font-mono);
+  }
+</style>

@@ -21,6 +21,8 @@ const PAGES: PageCase[] = [
   { path: '/projects', name: 'projects', primary: 'canvas', expectCanvas: true },
   { path: '/experience', name: 'experience', primary: 'main', expectCanvas: false },
   { path: '/research', name: 'research', primary: 'main', expectCanvas: false },
+  // A reader page injects a large pre-rendered HTML blob; worth its own smoke.
+  { path: '/research/study', name: 'research paper', primary: 'main', expectCanvas: false },
   {
     path: '/contact',
     name: 'contact',

@@ -556,10 +556,102 @@ test.describe('research index', () => {
     expect(dates).toEqual([...dates].sort().reverse());
   });
 
-  test('renders in Finnish too', async ({ page }) => {
-    await page.goto('/fi/research');
-    await expect(page.locator('main h1, h1').first()).toBeVisible();
-    await expect(page.locator('a[href$=".pdf"]').first()).toBeVisible();
+  // A DEFAULT CONTEXT CANNOT TEST A FINNISH ROUTE. BaseLayout redirects a
+  // browser to the locale its `navigator.languages` asks for, and says so in a
+  // comment that ends "Set the context locale instead". The first version of the
+  // case below did not, so it opened /fi/research, was moved to /research, and
+  // asserted that the ENGLISH page had a heading and a PDF link. It passed for
+  // weeks while checking nothing about Finnish.
+  test.describe('in a Finnish browser', () => {
+    test.use({ locale: 'fi-FI' });
+
+    test('renders the Finnish listing, and stays on it', async ({ page }) => {
+      await page.goto('/fi/research');
+      await expect(page).toHaveURL(/\/fi\/research$/);
+      // Assert the CONTENT is Finnish, not merely that a heading exists: the
+      // English page has a heading too, which is how the old case passed.
+      await expect(page.locator('h1')).toHaveText(/Tutkimus/);
+      await expect(page.locator('a[href$=".pdf"]').first()).toBeVisible();
+    });
+  });
+});
+
+/**
+ * The reader routes exist and carry the document.
+ *
+ * `paper-body.test.mjs` proves the resolution and the HTML. What it cannot see
+ * is whether Astro emitted the pages: the first build of this feature produced
+ * zero reader routes, reported success, and only the page count in the log said
+ * otherwise. This asserts the count from the outside.
+ */
+test.describe('research reader', () => {
+  test('a paper page renders the document, not a summary of it', async ({ page }) => {
+    await page.goto('/research/study');
+    // The listing summary is one line; the document is thousands of words. A
+    // length floor is the cheap way to catch a page that rendered the wrong one.
+    const body = page.locator('.paper__body');
+    await expect(body).toBeVisible();
+    expect((await body.innerText()).length).toBeGreaterThan(3000);
+
+    // Exactly one h1: the page's title. The document's own leading heading is
+    // stripped, and a second one is both a duplicate and an a11y fault.
+    await expect(page.locator('h1')).toHaveCount(1);
+
+    // The measurement tables are the reason to read these at all.
+    expect(await page.locator('.paper__body table').count()).toBeGreaterThan(0);
+  });
+
+  test('every Read link on the listing resolves', async ({ page }) => {
+    await page.goto('/research');
+    const reads = page.locator('.research__read');
+    const count = await reads.count();
+    expect(count).toBeGreaterThanOrEqual(5);
+    for (let i = 0; i < count; i += 1) {
+      const href = await reads.nth(i).getAttribute('href');
+      const res = await page.request.get(href!);
+      expect(res.status(), `${href} did not serve`).toBe(200);
+    }
+  });
+
+  test('the English route carries no Finnish notice', async ({ page }) => {
+    await page.goto('/research/study');
+    await expect(page.locator('.paper__notice')).toHaveCount(0);
+  });
+
+  test.describe('in a Finnish browser', () => {
+    test.use({ locale: 'fi-FI' });
+
+    test('the Finnish route serves the English body with Finnish chrome', async ({
+      page,
+    }) => {
+      await page.goto('/fi/research/study');
+      // Without the locale context above, BaseLayout moves the browser to the
+      // English page and every assertion below silently measures that instead.
+      await expect(page).toHaveURL(/\/fi\/research\/study$/);
+      // The explanation must be there: an unexplained wall of English on a
+      // Finnish route reads as a broken translation rather than a decision.
+      await expect(page.locator('.paper__notice')).toBeVisible();
+      await expect(page.locator('.paper__body')).toBeVisible();
+      await expect(page.locator('.paper__back a')).toHaveText(/Kaikki tutkimukset/);
+    });
+  });
+
+  test('a paper with no in-repo source offers no reader link', async ({ page }) => {
+    // blindtest and translations exist here only as condensed copies, so the
+    // listing must not offer a Read link that would render a summary as the
+    // document. Named rather than counted: `reads < total` also passes for the
+    // wrong reasons and would FAIL the day the remaining papers get sources,
+    // which is progress and should not read as a regression.
+    await page.goto('/research');
+    for (const id of ['blindtest', 'translations']) {
+      await expect(
+        page.locator(`a[href$="/research/${id}"]`),
+        `${id} has no faithful source in this repo, so it must not link a reader`,
+      ).toHaveCount(0);
+    }
+    // Guards the guard: if the listing stopped rendering Read links entirely,
+    // the loop above would pass while the feature was gone.
+    expect(await page.locator('.research__read').count()).toBeGreaterThanOrEqual(5);
   });
 });
 
