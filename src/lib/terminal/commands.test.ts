@@ -242,18 +242,25 @@ describe('command handlers — happy-path output', () => {
     }
   });
 
-  it('every line the listing prints actually resolves to a document', async () => {
+  it('every `download x` the command prints resolves to a document', async () => {
     // Stronger than "contains the right substrings": the printed tokens are fed
     // back through the REAL resolver. A listing that advertised a command the
     // command itself rejects is the failure mode worth catching, and it is not
     // caught by checking the ids came from the same array they were printed from.
+    //
+    // Scope is the WHOLE output, not just the rows, and that is deliberate. The
+    // hint below the rows carries its own example (`download blind`), which is
+    // a prefix rather than an id and is exactly as capable of going stale. The
+    // first version of this case only meant to read the rows and swept up the
+    // hint by accident; the accident is the better property, so it is stated.
     const { output } = await run('download');
     const printed = [...(output.textContent ?? '').matchAll(/download ([a-z]+)/g)].map(
       (m) => m[1] as string,
     );
     // Guards the guard: a rendering change that stopped printing commands would
-    // otherwise leave an empty loop asserting nothing.
-    expect(new Set(printed).size).toBeGreaterThanOrEqual(PAPER_IDS.length);
+    // otherwise leave an empty loop asserting nothing. One row per paper plus
+    // the hint's prefix example, so the floor is the paper count.
+    expect(new Set(printed).size).toBeGreaterThan(PAPER_IDS.length);
     for (const token of new Set(printed)) {
       const kind = resolveDownload([token], PAPER_IDS).kind;
       expect(

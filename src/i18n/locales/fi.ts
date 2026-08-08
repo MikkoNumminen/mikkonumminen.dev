@@ -494,7 +494,7 @@ export const fi: Translations = {
       'cv:ni tai tutkimus: katalogi, skills-tutkimukset, kalibrointi ja rag suomi -tutkimus (pdf)',
     cmdDownloadUsage:
       'download [nimi]; pelkkä `download` listaa kaiken, esim. `download blindtest` tai `download cv`',
-    cmdDownloadIntro: 'kaikki mitä voit napata. kirjoita vasemmalla näkyvä komento:',
+    cmdDownloadIntro: 'kaikki mitä voit napata. kirjoita mikä tahansa näistä:',
     cmdDownloadDidYouMean: 'tarkoititko:',
     cmdDownloadOptionCv: 'cv:ni, pdf, koko ansioluettelo',
     cmdDownloadOptionSkills:
@@ -521,7 +521,7 @@ export const fi: Translations = {
     cmdDownloadOptionDelegation:
       'heinäkuu 2026 · maksavatko halvat agentit itsensä takaisin: seitsemän mitattua delegointia yhdestä istunnosta; 3 seitsemästä huomasi jotain, minkä olisin itse jättänyt huomaamatta, 1 oli väärä löydös, eikä säästöä väitetä, koska vertailukohtaa ei voi mitata',
     cmdDownloadResearchHint:
-      'myös yksilöivä alku toimii, eli `download blind` nappaa sokkotestin.',
+      'yksilöivä alku riittää, eli `download blind` nappaa sokkotestin.',
     cmdDownloadPageHint:
       'tai avaa /fi/research, jossa on tiivistelmät ja kaikki dokumentit yhdellä sivulla.',
     cmdDownloadTryHint: 'kirjoita pelkkä `download`, niin näet kaikki dokumentit.',
