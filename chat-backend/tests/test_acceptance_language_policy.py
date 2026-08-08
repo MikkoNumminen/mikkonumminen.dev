@@ -142,3 +142,31 @@ class TestVagueGrounding:
         )
         ok, note = acceptance._check_vague_grounded(_result(english))
         assert ok, note
+
+
+class TestTheCliDefault:
+    """The bug was a DEFAULT, so the default is what gets asserted.
+
+    `--allow-finnish` defaulted to off and silently disagreed with the
+    deployment for weeks. A default observable only by running the whole battery
+    against a live GPU is a default nobody checks, which is why `build_parser`
+    is extracted and reachable from here.
+    """
+
+    def test_the_default_is_detect_not_english(self) -> None:
+        args = acceptance.build_parser().parse_args([])
+        assert args.allow_finnish is None, (
+            "the language flag has a hard default again; None means 'ask the "
+            "deployment', and anything else re-creates the original bug"
+        )
+
+    def test_the_overrides_still_work_in_both_directions(self) -> None:
+        parser = acceptance.build_parser()
+        assert parser.parse_args(["--allow-finnish"]).allow_finnish is True
+        assert parser.parse_args(["--force-english"]).allow_finnish is False
+
+    def test_the_two_overrides_are_mutually_exclusive(self) -> None:
+        # Passing both is a contradiction, and argparse should reject it rather
+        # than silently letting the last one win.
+        with pytest.raises(SystemExit):
+            acceptance.build_parser().parse_args(["--allow-finnish", "--force-english"])

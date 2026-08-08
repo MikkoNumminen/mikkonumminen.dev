@@ -12,7 +12,8 @@ guards:
   * out-of-scope answering                 -> must decline, not answer
   * oversized input                        -> must be rejected before the model
   * genuine in-scope depth questions       -> must answer, grounded
-  * i18n enforcement                       -> a Finnish question must answer in English
+  * i18n enforcement                       -> a Finnish question must answer in
+                                             whichever language the backend sets
   * vague-topic grounding                  -> must not pad with general knowledge
 
 Containment here is ARCHITECTURAL: the input cap, the pre-LLM relevance gate,
@@ -94,7 +95,13 @@ def deployed_answers_finnish() -> bool:
 
 
 def answers_finnish() -> bool:
-    """The resolved policy: the CLI override when given, else the deployment's."""
+    """The resolved policy: the CLI override when set, else the deployment's.
+
+    `main` resolves once and pins the result, so every case and the header line
+    read the same value and a config error surfaces before any case runs rather
+    than as a traceback from inside one. Detection here is the fallback for
+    direct importers (the unit tests) that never call `main`.
+    """
     if _policy_override is not None:
         return _policy_override
     return deployed_answers_finnish()
@@ -596,7 +603,7 @@ CASES: list[Case] = [
     # it was "answers in english" and could only fail once the answer stopped
     # being English on purpose.
     Case(
-        "i18n: finnish question answers in the policy language",
+        "i18n: finnish in policy language",
         "Kerro jotain projekteistasi",
         _language_matched_check("portfolio", "astro", "three"),
         kind="quality",
@@ -718,7 +725,14 @@ def finnish_eval_cases(path: Path, *, allow_finnish: bool) -> list[Case]:
     return cases
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """The CLI, extracted so its DEFAULTS are testable.
+
+    The bug this file exists to fix was a default: `--allow-finnish` defaulted
+    to off and silently disagreed with the deployment for weeks. A default that
+    can only be observed by running the whole battery against a live GPU is a
+    default nobody checks, so it is reachable from a unit test now.
+    """
     parser = argparse.ArgumentParser(
         prog="python -m evals.acceptance",
         description="Containment acceptance test against a running, indexed backend.",
@@ -767,14 +781,27 @@ def main(argv: list[str] | None = None) -> int:
             "rather than answering less well than it should."
         ),
     )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
 
-    set_language_policy(args.allow_finnish)
-    head = f"  model={args.label}" if args.label else ""
-    # The resolved policy is PRINTED, not silent. The failure this whole change
-    # exists to close was an assumption about it that nobody could see.
+    # Resolve ONCE and pin it. Detecting per case would re-read the environment
+    # for every check, and the header could then disagree with what the cases
+    # actually asserted. A bad config also fails here, before the first request,
+    # instead of as a traceback from inside a check.
     how = "detected" if args.allow_finnish is None else "forced"
-    lang = "finnish" if answers_finnish() else "english"
+    resolved = (
+        deployed_answers_finnish() if args.allow_finnish is None else args.allow_finnish
+    )
+    set_language_policy(resolved)
+
+    head = f"  model={args.label}" if args.label else ""
+    # PRINTED, not silent. The failure this whole change exists to close was an
+    # assumption about this line that nobody could see.
+    lang = "finnish" if resolved else "english"
     print(f"[acceptance] target {args.base_url}{head}")
     print(f"[acceptance] a finnish question must answer in {lang} ({how})\n")
     if args.eval_set:
