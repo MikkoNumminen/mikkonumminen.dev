@@ -102,6 +102,20 @@ describe('handleCommand routing', () => {
     expect(asked).toEqual([]);
     expect(lines.join('\n')).toContain(t.terminal.cmdHelpAvailable);
   });
+
+  it('runs `download` scripted with chat up, bare and with an argument', async () => {
+    // The case above covers the same branch with `help`, which takes no
+    // arguments. `download` is the command the whole discoverability effort
+    // rests on — if a live backend swallowed it, every hint pointing a visitor
+    // at it would send them to the model instead — and it is the argument-taking
+    // path, so `download blindtest` is checked as well as the bare form.
+    for (const input of ['download', 'download blindtest']) {
+      const { router, asked } = fakeChat(true);
+      const { lines } = await run(input, router);
+      expect(asked, `"${input}" reached the model`).toEqual([]);
+      expect(lines.join('\n'), `"${input}" printed nothing`).not.toBe('');
+    }
+  });
 });
 
 describe('tokenize', () => {

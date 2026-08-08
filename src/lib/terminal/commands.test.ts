@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { buildCommands } from './commands';
 import { getTranslations, LOCALES } from '../../i18n';
+import { PAPERS } from '../../data/papers';
+import { resolveDownload } from './download';
+
+const PAPER_IDS = PAPERS.map((p) => p.id);
 import { makeContext, type TerminalElements } from './dom';
 import type { CommandContext } from './types';
 
@@ -224,6 +228,46 @@ describe('command handlers — happy-path output', () => {
     const { output } = await run('cv');
     expect(output.textContent).toContain('Mikko Numminen');
     expect(output.textContent).toContain('download cv');
+  });
+
+  it('the download listing prints commands a visitor can type verbatim', async () => {
+    // The point of the change this defends: the listing used to show bare ids
+    // (`blindtest`), which a visitor has to recognise as an argument to a
+    // command they typed a moment ago and then retype together. Reading a line
+    // and typing a line should be the same act.
+    const { output } = await run('download');
+    const text = output.textContent ?? '';
+    for (const id of PAPER_IDS) {
+      expect(text, `no typeable line for ${id}`).toContain(`download ${id}`);
+    }
+  });
+
+  it('every `download x` the command prints resolves to a document', async () => {
+    // Stronger than "contains the right substrings": the printed tokens are fed
+    // back through the REAL resolver. A listing that advertised a command the
+    // command itself rejects is the failure mode worth catching, and it is not
+    // caught by checking the ids came from the same array they were printed from.
+    //
+    // Scope is the WHOLE output, not just the rows, and that is deliberate. The
+    // hint below the rows carries its own example (`download blind`), which is
+    // a prefix rather than an id and is exactly as capable of going stale. The
+    // first version of this case only meant to read the rows and swept up the
+    // hint by accident; the accident is the better property, so it is stated.
+    const { output } = await run('download');
+    const printed = [...(output.textContent ?? '').matchAll(/download ([a-z]+)/g)].map(
+      (m) => m[1] as string,
+    );
+    // Guards the guard: a rendering change that stopped printing commands would
+    // otherwise leave an empty loop asserting nothing. One row per paper plus
+    // the hint's prefix example, so the floor is the paper count.
+    expect(new Set(printed).size).toBeGreaterThan(PAPER_IDS.length);
+    for (const token of new Set(printed)) {
+      const kind = resolveDownload([token], PAPER_IDS).kind;
+      expect(
+        kind,
+        `the listing offers \`download ${token}\`, which resolves to "${kind}"`,
+      ).toBe('target');
+    }
   });
 
   it('man with no target prints a usage hint', async () => {
