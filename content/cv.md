@@ -16,7 +16,7 @@ Open to full-stack and AI engineering roles. Remote-friendly.
 
 I work on systems built around language models, with a focus on what happens when the model is wrong. I keep deterministic work deterministic, put the model only where language genuinely cannot be rule-coded, and enforce grounding through validation rather than prompt wording. I measure results and publish corrections when a measurement turns out to be broken.
 
-Underneath that is ordinary full-stack work, end to end, SQL to ops. Twelve projects carry it: a multi-tenant community platform serving a live WoW guild, a browser game built from an empty repo to live in 12 days, a Windows desktop app for audiobook generation, a reading tracker built twice in two ecosystems, a zero-knowledge password manager in Rust, and this site. Every repo runs CI on every push.
+Underneath that is ordinary full-stack work, end to end, SQL to ops. Thirteen projects carry it: a multi-tenant community platform serving a live WoW guild, a browser game built from an empty repo to live in 12 days, a Windows desktop app for audiobook generation, a reading tracker built twice in two ecosystems, a zero-knowledge password manager in Rust, and this site. Every repo runs CI on every push.
 
 Domain strengths, from 24 years before this one: retail, construction-trade B2B, ERP and POS environments as a two-decade daily user, and supply chain and warehouse operations.
 
@@ -58,7 +58,7 @@ Two years of professional development at Kasvu Labs, two years of independent pr
 
 **AI-native workflows** (2025–2026): agentic, AI-assisted development as a versioned discipline. Custom Claude Code skills as production artifacts. Parallel subagent orchestration, measured A/B calibration.
 
-**The 2026 build** (2026): twelve projects carried from empty repo to running system. Real users, real ops, full ownership across schema, app code, CI, deploys, and signed Windows installers.
+**The 2026 build** (2026): thirteen projects carried from empty repo to running system. Real users, real ops, full ownership across schema, app code, CI, deploys, and signed Windows installers.
 
 
 ## Hardware retail, 1998 to 2022
