@@ -33,8 +33,19 @@ import { projects } from '../src/data/projects.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Corpus documents that describe how things are now, not how they were. */
-const LIVE_DOCS = ['content/cv.md'];
+/**
+ * Corpus documents that describe how things are now, not how they were.
+ *
+ * Widened after review found a second stale count outside the original scope:
+ * `portfolio-deepdive.md` said an unknown project id "fails the build with the
+ * twelve valid ones printed". That sentence now states no number at all, because
+ * the count was never what it was about and stating it only created a surface to
+ * drift. Listed here anyway, so a future count added to it is checked.
+ */
+const LIVE_DOCS = ['content/cv.md', 'content/projects/portfolio-deepdive.md'];
+
+/** Documents expected to make a count claim. Others are watched, not required. */
+const MUST_CLAIM = new Set(['content/cv.md']);
 
 const NUMBER_WORDS = {
   eight: 8,
@@ -70,10 +81,12 @@ describe('corpus facts the repo can check', () => {
     for (const doc of LIVE_DOCS) {
       const text = readFileSync(path.join(root, doc), 'utf8');
       const claims = claimedProjectCounts(text);
-      expect(
-        claims.length,
-        `${doc} makes no project-count claim; if the sentence was removed, drop it from LIVE_DOCS`,
-      ).toBeGreaterThan(0);
+      if (MUST_CLAIM.has(doc)) {
+        expect(
+          claims.length,
+          `${doc} makes no project-count claim; if the sentence was removed, drop it from MUST_CLAIM`,
+        ).toBeGreaterThan(0);
+      }
       for (const claimed of claims) {
         expect(
           claimed,

@@ -35,12 +35,13 @@ log through production retrieval.
 | 100 | 43 | 7.3% | 26 |
 
 Then the fires were read in full rather than in summary, which is the step that
-settled it. At window 30, all three:
+settled it: truncated, the first of these looks like the reported bug. All three,
+with every binding each one flagged:
 
 | fire | verdict |
 | --- | --- |
 | `kesk 1998`, `kesk 2012` | **false positive.** The answer was correct: *"at Keijo Numminen Oy (1998-2012) and later at Kesko Oyj (2020-2021)"*. Its own list puts "Kesko" 19 characters from "2012". |
-| `node 2024` | **false positive.** Correct answer, same list adjacency. |
+| `azur 2025`, `node 2024` | **false positive.** Correct answer: Kasvu Labs dated 2022-2024, Node.js named in the same clause, Azure named beside a separate 2025 span. Both bindings are list adjacency. Azure is also not the kind of entity a date belongs to, which the detector has no way to know. |
 | `mikk 2026` | **noise.** The answer WAS wrong (Kasvu Labs dated 2019-2021, really 2022-2024), but the flagged pair is not the error, and `unsupported_years` already catches it, because 2019 is absent from the context. |
 
 **Zero true positives. Three artifacts.**

@@ -16,9 +16,10 @@ is false.
 
 WHY IT FAILS, and it is not a tuning problem. Prose lists dates next to names.
 "Keijo Numminen Oy (1998-2012) and later at Kesko Oyj (2020-2021)" is a CORRECT
-sentence in which "Kesko" sits 22 characters from "2012", and the standard CV
-entry "**Kasvu Labs Oy** (2022-2024)" puts a name 22 characters from its own
-year. Those distances are identical, so no window separates them.
+sentence in which "Kesko" sits 19 characters from "2012", while the standard CV
+entry "**Kasvu Labs Oy** (2022-2024)" puts a name 22 characters from its OWN
+year. The spurious binding is the tighter of the two, so any window wide enough
+to see a real one is necessarily wide enough to see the accident.
 
 Kept runnable so the next person with this idea can re-derive the result in one
 command instead of rebuilding the detector to find out.
@@ -42,13 +43,16 @@ from pathlib import Path
 from app.config import Settings
 from app.db import Database
 from app.embeddings import Embedder
-from app.guardrails import (
-    _MAX_PLAUSIBLE_YEAR,
-    _YEAR_RE,
-    looks_finnish,
-    unsupported_years,
-)
+from app.guardrails import looks_finnish, unsupported_years
 from evals.production_retrieval import retrieve_as_production
+
+# Mirrored from `guardrails`, not imported from it. Both are private there,
+# and nothing would catch a rename breaking an eval that CI never runs.
+# Mirroring also keeps this file reproducing the measurement AS TAKEN: if the
+# shipped bound moves later, this probe should still report what it reported
+# here.
+_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+_MAX_PLAUSIBLE_YEAR = 2035
 
 LOG = Path("/srv/rag-logs/requests.jsonl")
 
