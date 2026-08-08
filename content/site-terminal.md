@@ -1,7 +1,7 @@
 ---
 title: How to reach the research: the /research page and the terminal
 project: portfolio
-date: 2026-08-07
+date: 2026-08-08
 type: reference
 ---
 

@@ -546,7 +546,10 @@ test.describe('research index', () => {
 
     // Descending. The dates are machine-readable exactly so this is checkable
     // rather than a claim in the lede.
-    const dates = await page.locator('time[datetime]').evaluateAll((nodes) =>
+    // Scoped to the listing's own class. `time[datetime]` page-wide happens to
+    // match only these eleven today, so the assertion would have kept passing
+    // while silently also ranking a footer or byline date.
+    const dates = await page.locator('.research__date[datetime]').evaluateAll((nodes) =>
       nodes.map((n) => n.getAttribute('datetime') ?? ''),
     );
     expect(dates.length).toBeGreaterThanOrEqual(10);

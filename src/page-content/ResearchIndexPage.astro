@@ -4,14 +4,16 @@
  *
  * WHY IT EXISTS. Eleven papers were reachable only by typing `download` into the
  * terminal on the contact page, and nothing told a visitor that command was
- * there. `commands.ts` carries the receipt: a visitor who wanted the research
- * "saw neither the research nor an error, and went and asked the chat instead."
+ * there. `download.ts` records where that leads: a terminal that answers a named
+ * document with a generic menu "reads as the terminal ignoring you, which is
+ * exactly when a visitor gives up on commands and asks the chat instead". The
+ * fix taken then made the command forgiving. It could not make it discoverable.
  *
  * A LISTING, NOT A READER. Every row links its PDF. Reading a paper in the
  * browser is deliberately later work, because it is gated on translating each
- * document into Finnish (`slugParity.test.ts` fails the build on a published
- * slug with no Finnish counterpart), while the one-line summaries below were
- * already translated for the terminal and cost nothing to reuse.
+ * document into Finnish (`src/lib/blog/slugParity.test.ts` fails the build on a
+ * published slug with no Finnish counterpart), while the one-line summaries
+ * below were already translated for the terminal and cost nothing to reuse.
  *
  * The page owns no list of its own. `src/data/papers.ts` is the single source,
  * shared with the terminal command, and `papers.test.ts` keeps it honest.
@@ -20,7 +22,7 @@ import { statSync } from 'node:fs';
 import path from 'node:path';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { asLocale, getTranslations } from '../i18n';
-import { localizePapers, type LocalizedPaper } from '../data/papers';
+import { localizePapers, monthLabel, type LocalizedPaper } from '../data/papers';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
@@ -54,13 +56,21 @@ const sizeOf = (filename: string): string => {
   return `${Math.round(bytes / 1024)} KB`;
 };
 
-const dateFormat = new Intl.DateTimeFormat(locale === 'fi' ? 'fi-FI' : 'en-GB', {
-  year: 'numeric',
-  month: 'long',
-});
-/** `'2026-07'` rendered for humans. Day-of-month is not part of the data. */
-const readableDate = (date: string): string =>
-  dateFormat.format(new Date(`${date}-01T00:00:00Z`));
+/**
+ * Dates are rendered through `monthLabel`, the same function that checks the
+ * terminal labels, rather than through `Intl.DateTimeFormat`.
+ *
+ * The first version used Intl and produced the right words by luck. ICU's
+ * Finnish `month: 'long'` currently yields the nominative "heinäkuu", which
+ * matches the terminal labels; the partitive "heinäkuuta" is equally valid
+ * Finnish and an ICU update could switch to it, at which point this page and
+ * the labels would disagree while every test stayed green. One source, and it
+ * is already guarded.
+ *
+ * `formatEntryDate` is the blog's formatter and is deliberately not reused: it
+ * renders a day-of-month, which papers do not have, so using it would mean
+ * inventing one.
+ */
 ---
 
 <BaseLayout
@@ -80,7 +90,7 @@ const readableDate = (date: string): string =>
         papers.map((paper) => (
           <li class="research__item">
             <time class="research__date" datetime={paper.date}>
-              {readableDate(paper.date)}
+              {monthLabel(paper.date, locale)}
             </time>
             <h2 class="research__name">{paper.title}</h2>
             <p class="research__summary">{paper.summary}</p>

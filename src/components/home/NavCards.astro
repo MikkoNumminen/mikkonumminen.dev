@@ -131,6 +131,12 @@ const cards = [
    * two-thirds full with a visible hole where a sixth card would go, and a
    * `repeat(5, 1fr)` squeezes every label. The spans are reset at the first
    * breakpoint, where the grid is two columns and an even split needs no help.
+   *
+   * THIS ENCODES A CARD COUNT. Rows 4 and 5 are named explicitly rather than as
+   * `:nth-child(n + 4)`, which was the first version and would have given a
+   * sixth card a 3-column span in a 6-column grid — a ragged third row that
+   * nobody would connect back to this rule. A sixth card falls back to span 2
+   * and needs a decision here; `NavCards.test.ts` fails until someone makes it.
    */
   .nav-cards__grid {
     display: grid;
@@ -142,7 +148,8 @@ const cards = [
     grid-column: span 2;
   }
 
-  .nav-cards__grid > .nav-card:nth-child(n + 4) {
+  .nav-cards__grid > .nav-card:nth-child(4),
+  .nav-cards__grid > .nav-card:nth-child(5) {
     grid-column: span 3;
   }
 
@@ -286,7 +293,8 @@ const cards = [
     }
 
     .nav-cards__grid > .nav-card,
-    .nav-cards__grid > .nav-card:nth-child(n + 4) {
+    .nav-cards__grid > .nav-card:nth-child(4),
+    .nav-cards__grid > .nav-card:nth-child(5) {
       grid-column: auto;
     }
   }
