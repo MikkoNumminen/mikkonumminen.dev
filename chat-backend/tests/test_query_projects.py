@@ -270,6 +270,36 @@ def test_wants_cv_reaches_the_verb_not_only_the_noun() -> None:
     assert wants_cv("tell me about previous employers")
 
 
+def test_wants_cv_reaches_the_24_years_before_programming() -> None:
+    """The CV gained a full hardware-retail history (1998 to 2022), and none of
+    the ways a visitor asks about it were in the vocabulary.
+
+    Measured against the live corpus before this: with the CV route off, the
+    retail chunks did not appear in the top six for any of these questions, so
+    the chat answered "no specific information provided" while citing the very
+    document that contained it. With the route on they rank second and third.
+    """
+    assert wants_cv("what did Mikko do before programming?")
+    assert wants_cv("what did Mikko do before he became a developer")
+    assert wants_cv("did Mikko work in retail")
+    assert wants_cv("was Mikko a salesperson")
+    assert wants_cv("tell me about his time in the hardware store")
+    assert wants_cv("what does Mikko know about ERP and POS systems")
+    # Finnish, accented and not
+    assert wants_cv("kerro Mikon myyntiurasta rautakaupassa")
+    assert wants_cv("mitä mikko teki ennen ohjelmointia")
+    assert wants_cv("mita mikko teki ennen ohjelmointia")
+
+
+def test_wants_cv_new_retail_stems_stay_off_project_questions() -> None:
+    """The cost of the stems above, priced. "pos" is a whole token so it must not
+    claim "position", and the kiosk app's own sales views are a project question
+    that happens to share the word."""
+    assert not wants_cv("what position does the cursor start at")
+    assert not wants_cv("what sales views did the kiosk app have")
+    assert not wants_cv("how does the RAG chat work")
+
+
 def test_wants_cv_short_stems_do_not_claim_unrelated_finnish_words() -> None:
     """The cost of the stems above, priced. Each of these begins with the same
     letters as a CV stem and must not match: urakka/urakoitsija (ura-), uraani
