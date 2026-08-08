@@ -41,6 +41,7 @@ export const en: Translations = {
     projects: 'projects',
     experience: 'experience',
     blog: 'blog',
+    research: 'research',
     contact: 'contact',
     primaryAria: 'Primary',
     languageSwitcherAria: 'Language',

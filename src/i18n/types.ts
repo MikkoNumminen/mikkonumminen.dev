@@ -41,6 +41,7 @@ export interface Translations {
     projects: string;
     experience: string;
     blog: string;
+    research: string;
     contact: string;
     primaryAria: string;
     languageSwitcherAria: string;

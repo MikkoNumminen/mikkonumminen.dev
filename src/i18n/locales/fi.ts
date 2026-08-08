@@ -41,6 +41,7 @@ export const fi: Translations = {
     projects: 'projektit',
     experience: 'kokemus',
     blog: 'blogi',
+    research: 'tutkimus',
     contact: 'yhteystiedot',
     primaryAria: 'Päänavigaatio',
     languageSwitcherAria: 'Kieli',
