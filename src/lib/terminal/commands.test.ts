@@ -259,6 +259,44 @@ describe('buildCommands across locales', () => {
     }
   });
 
+  it('points each locale at its own research page', () => {
+    // The path is baked into the translated string rather than composed from a
+    // locale, which is cheaper but silently wrong the moment a translator copies
+    // the English line. A Finnish visitor sent to /research gets the English
+    // page, which is the failure this whole change exists to stop repeating.
+    //
+    // Found by SCANNING every terminal string rather than naming the two that
+    // carry a path today. The first version checked `cmdDownloadPageHint` by
+    // name and left `chatIntroDownloads` — same string shape, same failure mode,
+    // written in the same commit — completely unguarded.
+    const expected: Record<string, string> = { en: '/research', fi: '/fi/research' };
+    let checked = 0;
+    for (const locale of LOCALES) {
+      const strings = Object.entries(getTranslations(locale).terminal).filter(
+        ([, value]) => typeof value === 'string' && value.includes('/research'),
+      );
+      for (const [key, value] of strings) {
+        checked += 1;
+        expect(value as string, `${locale}.terminal.${key}`).toContain(expected[locale]);
+        // `/fi/research` contains `/research`, so the assertion above accepts
+        // the Finnish path inside an English string. That direction is only
+        // caught by forbidding the prefix outright.
+        if (locale === 'en') {
+          expect(
+            value as string,
+            `en.terminal.${key} carries a Finnish path`,
+          ).not.toContain('/fi/');
+        }
+      }
+    }
+    // Guard the guard: a renamed key or a rewritten sentence would empty the
+    // scan, and an empty loop asserts nothing. Two strings per locale today.
+    expect(
+      checked,
+      'no terminal string mentions /research any more',
+    ).toBeGreaterThanOrEqual(2 * LOCALES.length);
+  });
+
   it('localizes descriptions — every command has a non-empty description in every locale', () => {
     for (const locale of LOCALES) {
       for (const c of buildCommands(getTranslations(locale))) {

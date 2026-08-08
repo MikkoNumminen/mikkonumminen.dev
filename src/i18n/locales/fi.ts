@@ -30,6 +30,11 @@ export const fi: Translations = {
       description:
         'Työmuistiinpanoja Mikko Nummisen projekteista. Commit-historiasta kirjoitetut merkinnät on merkitty tekoälyn generoimiksi.',
     },
+    research: {
+      title: 'Tutkimus · Mikko Numminen',
+      description:
+        'Mitattuja tutkimuksia kielimallien kustannuksista, suomenkielisistä malleista ja agenttien delegoinnista. Jokainen julkaistu lukuineen ja ladattavissa PDF:nä.',
+    },
   },
   nav: {
     home: 'etusivu',
@@ -82,12 +87,24 @@ export const fi: Translations = {
       description:
         'Työmuistiinpanoja siitä, mitä olen rakentanut, osa koottu commit-historiasta.',
     },
+    research: {
+      label: 'Tutkimus',
+      description:
+        'Mitattuja tutkimuksia lukuineen, mukaan lukien se jossa mittaus itse osoittautui rikkinäiseksi.',
+    },
     contact: {
       label: 'Yhteystiedot',
       description: 'Hyppää terminaaliin ja ota yhteyttä suoraan.',
     },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'tehty: astro · three.js · gsap',
+  },
+  researchPage: {
+    eyebrow: 'mitattua',
+    title: 'Tutkimus',
+    lede: 'Tutkimuksia omasta työstäni, julkaistuna niiden lukujen kanssa. Uusin ensin. Jokainen on PDF jonka voit ottaa mukaasi, ja yksi niistä peruu aiemman löydökseni.',
+    pdfLabel: 'PDF',
+    downloadAria: 'Lataa {title} PDF-tiedostona',
   },
   blog: {
     eyebrow: 'kirjoituksia',
@@ -410,6 +427,7 @@ export const fi: Translations = {
     hintType: 'kirjoita',
     hintHistory: 'historia',
     hintComplete: 'täydennä',
+    hintDownloads: 'paperit',
     noscriptIntro:
       'Tämä sivu on interaktiivinen terminaali, joka toimii vain JavaScriptin kanssa.',
     noscriptReachMe: 'Voit tavoittaa minut suoraan:',
@@ -439,7 +457,8 @@ export const fi: Translations = {
     bootLoading: '[ ok ] ladataan projektit, kokemus, yhteystiedot',
     bootComms: '[ ok ] muodostetaan yhteyslinkki',
     bootWelcome: 'tervetuloa. Mikko Numminen, full-stack-kehittäjä.',
-    bootTypeHelp: 'kirjoita `help` nähdäksesi mitä osaan.',
+    bootTypeHelp:
+      'kirjoita `help` nähdäksesi mitä osaan, tai `download` saadaksesi paperit.',
     commandNotFound: 'komentoa ei löydy:',
     typeHelpHint: 'kirjoita `help` nähdäksesi käytettävissä olevat komennot.',
     errorPrefix: 'virhe:',
@@ -503,6 +522,8 @@ export const fi: Translations = {
       'heinäkuu 2026 · maksavatko halvat agentit itsensä takaisin: seitsemän mitattua delegointia yhdestä istunnosta; 3 seitsemästä huomasi jotain, minkä olisin itse jättänyt huomaamatta, 1 oli väärä löydös, eikä säästöä väitetä, koska vertailukohtaa ei voi mitata',
     cmdDownloadResearchHint:
       'nappaa kirjoittamalla nimi, esim. `download catalog`. myös yksilöivä alku toimii: `download blind`.',
+    cmdDownloadPageHint:
+      'tai avaa /fi/research, jossa on tiivistelmät ja kaikki dokumentit yhdellä sivulla.',
     cmdDownloadTryHint: 'kirjoita pelkkä `download`, niin näet kaikki dokumentit.',
     cmdDownloadAmbiguous: 'tuo osuu useampaan kuin yhteen dokumenttiin:',
     cmdDownloadPickOne: 'yksi kerrallaan. nimesit:',
@@ -576,7 +597,9 @@ export const fi: Translations = {
     cmdRmRefusal:
       'pelkäänpä etten voi antaa sinun tehdä niin. mikään täällä ei ole sinun poistettavissasi.',
     chatIntroReady: 'keskustelutila päällä.',
-    chatIntroHow: 'kysy projekteista omin sanoin, komentoa ei tarvita.',
+    chatIntroHow: 'kysy projekteista omin sanoin. komennot toimivat silti.',
+    chatIntroDownloads:
+      'kirjoita `download` saadaksesi tutkimuspaperit, tai avaa /fi/research selataksesi niitä.',
     chatThinking: '...ajatellaan',
     chatError: 'yhteys katkesi. palataan käsikirjoitettuun tilaan.',
     chatAskUsage: 'käyttö: ask "kysymyksesi projekteista"',

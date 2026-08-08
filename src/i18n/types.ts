@@ -34,6 +34,7 @@ export interface Translations {
     projects: { title: string; description: string };
     experience: { title: string; description: string };
     blog: { title: string; description: string };
+    research: { title: string; description: string };
   };
   nav: {
     home: string;
@@ -74,9 +75,20 @@ export interface Translations {
     projects: { label: string; description: string };
     experience: { label: string; description: string };
     blog: { label: string; description: string };
+    research: { label: string; description: string };
     contact: { label: string; description: string };
     footerCopyright: string;
     footerBuiltWith: string;
+  };
+  /** The research listing at /research. Papers themselves stay English. */
+  researchPage: {
+    eyebrow: string;
+    title: string;
+    lede: string;
+    /** Text of the download link on each row. */
+    pdfLabel: string;
+    /** Accessible name for the same link, with the paper title interpolated. */
+    downloadAria: string;
   };
   blog: {
     eyebrow: string;
@@ -192,6 +204,8 @@ export interface Translations {
     hintType: string;
     hintHistory: string;
     hintComplete: string;
+    /** Fourth footer hint, pointing at the papers. */
+    hintDownloads: string;
     noscriptIntro: string;
     noscriptReachMe: string;
     noscriptEmailLabel: string;
@@ -268,6 +282,8 @@ export interface Translations {
     cmdDownloadOptionTranslations: string;
     cmdDownloadOptionDelegation: string;
     cmdDownloadResearchHint: string;
+    /** Points the listing at /research, which is the closest thing to "download all". */
+    cmdDownloadPageHint: string;
     cmdDownloadTryHint: string;
     cmdDownloadAmbiguous: string;
     cmdDownloadPickOne: string;
@@ -340,6 +356,8 @@ export interface Translations {
     /** Announced once in the output when the chat backend comes online. */
     chatIntroReady: string;
     chatIntroHow: string;
+    /** Dim line naming the download command and the /research page. */
+    chatIntroDownloads: string;
     chatThinking: string;
     /** Shell-style line shown when a chat turn fails; chat then degrades. */
     chatError: string;

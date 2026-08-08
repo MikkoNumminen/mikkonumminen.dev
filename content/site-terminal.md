@@ -1,17 +1,26 @@
 ---
-title: The site terminal: commands, and how to download the research
+title: How to reach the research: the /research page and the terminal
 project: portfolio
-date: 2026-08-07
+date: 2026-08-08
 type: reference
 ---
 
-# The site terminal: commands, and how to download the research
+# How to reach the research: the /research page and the terminal
 
-The contact page is a terminal. This chat runs inside it, so a visitor asking
+There are two ways, and the page is the easier one.
+
+## The research page
+
+Every research document is listed at **/research** (Finnish: **/fi/research**),
+newest first, with a one-line summary and a download link. That page is the
+answer to "where can I find your research?" and it needs no command and no
+terminal. It is also linked from the front page, in the card grid.
+
+## The terminal
+
+The contact page is a terminal, and this chat runs inside it, so a visitor asking
 "how do I download the research documents?" is asking about a command that is one
-line away from them, not about anything they need to find elsewhere.
-
-## Downloading the research
+line away from them.
 
 Type `download` in the terminal. It lists every document. To grab one, type its
 name: `download blindtest`. A unique prefix works too, so `download blind` gets

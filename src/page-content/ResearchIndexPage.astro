@@ -1,0 +1,201 @@
+---
+/**
+ * The research listing.
+ *
+ * WHY IT EXISTS. Eleven papers were reachable only by typing `download` into the
+ * terminal on the contact page, and nothing told a visitor that command was
+ * there. `download.ts` records where that leads: a terminal that answers a named
+ * document with a generic menu "reads as the terminal ignoring you, which is
+ * exactly when a visitor gives up on commands and asks the chat instead". The
+ * fix taken then made the command forgiving. It could not make it discoverable.
+ *
+ * A LISTING, NOT A READER. Every row links its PDF. Reading a paper in the
+ * browser is deliberately later work, because it is gated on translating each
+ * document into Finnish (`src/lib/blog/slugParity.test.ts` fails the build on a
+ * published slug with no Finnish counterpart), while the one-line summaries
+ * below were already translated for the terminal and cost nothing to reuse.
+ *
+ * The page owns no list of its own. `src/data/papers.ts` is the single source,
+ * shared with the terminal command, and `papers.test.ts` keeps it honest.
+ */
+import { statSync } from 'node:fs';
+import path from 'node:path';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { asLocale, getTranslations } from '../i18n';
+import { localizePapers, monthLabel, type LocalizedPaper } from '../data/papers';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
+/**
+ * Newest first, which is the opposite of the terminal.
+ *
+ * The data is stored oldest-first because the terminal renders it as a trail and
+ * says so ("oldest to newest"). A listing of current work reads the other way,
+ * so the reversal happens here rather than in the data, and neither surface has
+ * to apologise for the other's order.
+ */
+const papers: LocalizedPaper[] = localizePapers(t)
+  .filter((paper) => paper.tier === 'research')
+  .reverse();
+
+/**
+ * Size, read at build time.
+ *
+ * Resolved from `process.cwd()` and NOT from `import.meta.url`, which was the
+ * first attempt and broke the build: this frontmatter is bundled into
+ * `dist/.prerender/chunks/`, so a URL relative to the module resolved to
+ * `dist/public/…` and every stat threw ENOENT. `astro build` and `astro dev`
+ * both run from the project root, which the chunk's own location does not track.
+ *
+ * A missing file fails the build rather than degrading, because a listing that
+ * silently drops a paper is the failure this whole page exists to fix.
+ */
+const sizeOf = (filename: string): string => {
+  const bytes = statSync(path.join(process.cwd(), 'public', filename)).size;
+  return `${Math.round(bytes / 1024)} KB`;
+};
+
+/**
+ * Dates are rendered through `monthLabel`, the same function that checks the
+ * terminal labels, rather than through `Intl.DateTimeFormat`.
+ *
+ * The first version used Intl and produced the right words by luck. ICU's
+ * Finnish `month: 'long'` currently yields the nominative "heinäkuu", which
+ * matches the terminal labels; the partitive "heinäkuuta" is equally valid
+ * Finnish and an ICU update could switch to it, at which point this page and
+ * the labels would disagree while every test stayed green. One source, and it
+ * is already guarded.
+ *
+ * `formatEntryDate` is the blog's formatter and is deliberately not reused: it
+ * renders a day-of-month, which papers do not have, so using it would mean
+ * inventing one.
+ */
+---
+
+<BaseLayout
+  title={t.meta.research.title}
+  description={t.meta.research.description}
+  theme="home"
+>
+  <section class="research" aria-label={t.researchPage.title}>
+    <header class="research__header">
+      <p class="research__eyebrow">{t.researchPage.eyebrow}</p>
+      <h1 class="research__title">{t.researchPage.title}</h1>
+      <p class="research__lede">{t.researchPage.lede}</p>
+    </header>
+
+    <ol class="research__list">
+      {
+        papers.map((paper) => (
+          <li class="research__item">
+            <time class="research__date" datetime={paper.date}>
+              {monthLabel(paper.date, locale)}
+            </time>
+            <h2 class="research__name">{paper.title}</h2>
+            <p class="research__summary">{paper.summary}</p>
+            <a
+              class="research__download"
+              href={paper.url}
+              download={paper.filename}
+              aria-label={t.researchPage.downloadAria.replace('{title}', paper.title)}
+            >
+              {t.researchPage.pdfLabel} · {sizeOf(paper.filename)}
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+</BaseLayout>
+
+<style>
+  .research {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: clamp(3rem, 8vw, 6rem) 1.25rem 5rem;
+  }
+
+  .research__eyebrow {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+
+  .research__title {
+    margin: 0 0 1rem;
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.1;
+  }
+
+  .research__lede {
+    margin: 0 0 3rem;
+    max-width: 62ch;
+    color: var(--color-text-muted);
+    line-height: 1.7;
+  }
+
+  .research__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2.25rem;
+  }
+
+  .research__item {
+    display: grid;
+    gap: 0.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  }
+
+  .research__item:last-child {
+    border-bottom: none;
+  }
+
+  .research__date {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+
+  .research__name {
+    margin: 0;
+    font-size: clamp(1.1rem, 2.6vw, 1.4rem);
+    line-height: 1.35;
+  }
+
+  .research__summary {
+    margin: 0;
+    max-width: 68ch;
+    color: var(--color-text-muted);
+    line-height: 1.65;
+  }
+
+  .research__download {
+    justify-self: start;
+    margin-top: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.18));
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-decoration: none;
+    color: var(--color-text);
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .research__download:hover,
+  .research__download:focus-visible {
+    border-color: var(--color-accent, rgba(255, 255, 255, 0.5));
+    background: rgba(255, 255, 255, 0.06);
+  }
+</style>
