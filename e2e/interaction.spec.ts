@@ -637,13 +637,21 @@ test.describe('research reader', () => {
   });
 
   test('a paper with no in-repo source offers no reader link', async ({ page }) => {
-    // blindtest and translations exist here only as condensed copies. The
-    // listing must not offer a Read link that renders a summary as the document.
+    // blindtest and translations exist here only as condensed copies, so the
+    // listing must not offer a Read link that would render a summary as the
+    // document. Named rather than counted: `reads < total` also passes for the
+    // wrong reasons and would FAIL the day the remaining papers get sources,
+    // which is progress and should not read as a regression.
     await page.goto('/research');
-    const rows = page.locator('.research__item');
-    const total = await rows.count();
-    const reads = await page.locator('.research__read').count();
-    expect(reads).toBeLessThan(total);
+    for (const id of ['blindtest', 'translations']) {
+      await expect(
+        page.locator(`a[href$="/research/${id}"]`),
+        `${id} has no faithful source in this repo, so it must not link a reader`,
+      ).toHaveCount(0);
+    }
+    // Guards the guard: if the listing stopped rendering Read links entirely,
+    // the loop above would pass while the feature was gone.
+    expect(await page.locator('.research__read').count()).toBeGreaterThanOrEqual(5);
   });
 });
 

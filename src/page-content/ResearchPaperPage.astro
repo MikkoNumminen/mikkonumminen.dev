@@ -20,7 +20,7 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { asLocale, getTranslations, localizePath } from '../i18n';
-import type { LocalizedPaper } from '../data/papers';
+import { monthLabel, type LocalizedPaper } from '../data/papers';
 
 interface Props {
   paper: LocalizedPaper;
@@ -45,7 +45,13 @@ const listHref = localizePath('/research', locale);
     </nav>
 
     <header class="paper__header">
-      <time class="paper__date" datetime={paper.date}>{paper.date}</time>
+      {
+        /* Same formatter as the listing, so a paper does not show "2026-05"
+          on one page and "may 2026" on the other. */
+      }
+      <time class="paper__date" datetime={paper.date}
+        >{monthLabel(paper.date, locale)}</time
+      >
       <h1 class="paper__title">{paper.title}</h1>
       <p class="paper__summary">{paper.summary}</p>
       <p class="paper__actions">
