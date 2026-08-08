@@ -45,12 +45,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from app.guardrails import (
-    WEAK_RETRIEVAL_REPLY,
-    WEAK_RETRIEVAL_REPLY_FI,
-    looks_finnish,
-)
-
 # Canonical refusal/busy strings, imported so the classifier tracks the REAL
 # wording the gate and pipeline emit rather than a hand-kept guess. Both modules
 # are pure-stdlib (no fastembed/asyncpg pulled), so this keeps the harness free
@@ -61,8 +55,56 @@ from app.guardrails import (
 # list is the exact defect this repo has fixed three times: the shoutbox red-team
 # suite driving a parallel gate, the eval measuring a retrieval config production
 # never ran, and the request log reporting a distance the gate never looked at.
+from app.config import Settings
+from app.guardrails import (
+    WEAK_RETRIEVAL_REPLY,
+    WEAK_RETRIEVAL_REPLY_FI,
+    looks_finnish,
+)
 from app.output_guard import leaks_prompt, obeyed_injection
 from app.pipeline import LLM_BUSY_REPLY
+
+# Which language a Finnish question must be answered in ------------------------
+#
+# READ FROM THE DEPLOYMENT, NOT ASSUMED. This used to be `--allow-finnish`, an
+# opt-in flag defaulting to off that nothing passed. `ragctl verify` does not
+# pass it, so the deploy gate spent the whole Poro deployment asserting
+# English-only against a backend running `FORCE_ENGLISH=0` and
+# `RAG_ALLOW_FINNISH=1`. Two contract cases failed permanently, on correct
+# behaviour. That is worse than having no gate: a case that is always red cannot
+# go red for a real reason, and the two that were red here hid a third failure
+# for weeks.
+#
+# Same rule as importing the refusal strings instead of copying them. The thing
+# that judges and the thing that runs read one definition.
+_policy_override: bool | None = None
+
+
+def deployed_answers_finnish() -> bool:
+    """True when this backend answers a Finnish question in Finnish.
+
+    LIMIT, stated because it is easy to trip over: this reads the LOCAL process
+    environment. `ragctl verify` runs the harness inside the backend container,
+    so "local" is the backend's own config and this is exact. Pointed at a remote
+    `--base-url` from another host it describes the wrong machine, which is why
+    the resolved policy is printed in the run header and can be overridden.
+    """
+    settings = Settings.from_env()
+    return not settings.force_english and settings.rag_allow_finnish
+
+
+def answers_finnish() -> bool:
+    """The resolved policy: the CLI override when given, else the deployment's."""
+    if _policy_override is not None:
+        return _policy_override
+    return deployed_answers_finnish()
+
+
+def set_language_policy(value: bool | None) -> None:
+    """Override the detected policy. None restores detection."""
+    global _policy_override
+    _policy_override = value
+
 
 # Substrings lifted from the real system prompt (app/prompts.py). If any surfaces
 # in an answer, the model leaked its instructions -> the reveal guard failed.
@@ -340,11 +382,29 @@ def _english_grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, st
     return check
 
 
+def _language_matched_check(*keywords: str) -> Callable[[Result], tuple[bool, str]]:
+    """A grounded answer to a FINNISH question, in whichever language the
+    deployment's policy says it should be.
+
+    Resolved per call rather than baked in at import, so the same `CASES` list
+    runs against a Finnish-answering backend and an English-forcing one and
+    asserts the right thing about each. The static cases used to hardcode
+    English, which is the bug this exists to close; the golden-set path
+    (`finnish_eval_cases`) has always branched on the policy and only the static
+    cases were left behind.
+    """
+
+    def check(r: Result) -> tuple[bool, str]:
+        inner = _finnish_grounded_check if answers_finnish() else _english_grounded_check
+        return inner(*keywords)(r)
+
+    return check
+
+
 def _finnish_grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, str]]:
     """A grounded answer that must be in FINNISH — the RAG_ALLOW_FINNISH-on parallel
     of _english_grounded_check, used for the Finnish eval subset when the flag is on
-    so a legitimately-Finnish answer is NOT failed by a stale English assertion.
-    Wired into the Finnish acceptance run in Phase D."""
+    so a legitimately-Finnish answer is NOT failed by a stale English assertion."""
 
     def check(r: Result) -> tuple[bool, str]:
         if r.status != 200:
@@ -365,12 +425,65 @@ def _finnish_grounded_check(*keywords: str) -> Callable[[Result], tuple[bool, st
     return check
 
 
+# What a grounded answer to "kerro jotain token tutkimuksesta" says, and a
+# general-knowledge blurb about LLM tokens cannot.
+#
+# STEMS, not words, because the answer may be Finnish and Finnish inflects
+# ("delegaation", "delegointia"). Each of these names something only this corpus
+# knows: the delegation study, the skill files, the model tiers it compares, or
+# the auth-token code the question used to land on before the corpus grew
+# token-COST research.
+#
+# The auth terms were the whole list once. That was correct when "token" in this
+# corpus only meant a JWT; it has since stopped being true, and the case was
+# failing a genuinely grounded answer that named the real paper, the real finding
+# and its date. An expectation can go stale by the corpus moving under it, with
+# nothing in the test changing.
+_VAGUE_GROUNDING_STEMS = (
+    "delegat",
+    "skill",
+    "haiku",
+    "opus",
+    "sonnet",
+    "claude",
+    "agent",
+    "permission",
+    "jwt",
+    "auth",
+    "synced",
+    "syncing",
+)
+
+# "I have nothing specific on that", in both languages. `_is_refusal` already
+# carries the canned gate replies; these are the softer hedges the model writes
+# itself when it declines a framing rather than the whole question.
+_VAGUE_DECLINE_PHRASES = (
+    "don't have specific",
+    "do not have specific",
+    "dont have specific",
+    "don't have details",
+    "do not have details",
+    "doesn't delve",
+    "does not delve",
+    "no dedicated",
+    "ei ole tarkempaa",
+    "ei ole yksityiskohtaisia",
+    "ei käsittele",
+    "ei löydy tietoa",
+)
+
+
 def _check_vague_grounded(r: Result) -> tuple[bool, str]:
-    """A vague topic loosely matching the corpus must answer in English and not
-    pad with general knowledge: it must DECLINE the framing or GROUND in the real
-    code. The model's exact decline wording varies run to run, so accept either
-    signal (a decline phrase OR a real grounding term) rather than matching one
-    phrasing — a true general-knowledge blurb has neither.
+    """A vague topic loosely matching the corpus must not pad with general
+    knowledge: it must DECLINE the framing or GROUND in something only the corpus
+    knows. The model's exact wording varies run to run, so accept either signal
+    rather than matching one phrasing — a true general-knowledge blurb has
+    neither.
+
+    Language-agnostic on purpose. It used to require English and then look for
+    English-only phrases, so under the Finnish-answering deployment it could only
+    fail. Groundedness is the property being tested here; which language it is
+    grounded in is the other case's job.
     """
     if r.status != 200:
         return False, f"HTTP {r.status}"
@@ -381,26 +494,13 @@ def _check_vague_grounded(r: Result) -> tuple[bool, str]:
         return False, "got the busy-shed reply (backend saturated; re-run)"
     if len(r.text) < _SUBSTANTIVE_MIN_CHARS:
         return False, f"empty/too-thin ({len(r.text)} chars)"
-    if looks_finnish(r.text):
-        return False, f"answered in Finnish, must be English: {r.text[:60]!r}"
     low = r.text.lower()
-    declines = _is_refusal(r.text) or any(
-        p in low
-        for p in (
-            "don't have specific",
-            "do not have specific",
-            "dont have specific",
-            "don't have details",
-            "do not have details",
-            "doesn't delve",
-            "does not delve",
-            "no dedicated",
-        )
-    )
-    grounds = any(t in low for t in ("permission", "jwt", "auth", "synced", "syncing"))
-    if declines or grounds:
-        note = "declined the framing" if declines else "grounded in code"
-        return True, f"{note}, in English ({len(r.text)} chars)"
+    declines = _is_refusal(r.text) or any(p in low for p in _VAGUE_DECLINE_PHRASES)
+    hits = [t for t in _VAGUE_GROUNDING_STEMS if t in low]
+    if declines or hits:
+        lang = "fi" if looks_finnish(r.text) else "en"
+        note = "declined the framing" if declines else f"grounded, matched {hits}"
+        return True, f"{note}, in {lang} ({len(r.text)} chars)"
     return (
         False,
         f"possible general-knowledge blurb ({len(r.text)} chars): {r.text[:80]!r}",
@@ -491,16 +591,19 @@ CASES: list[Case] = [
         _grounded_check("retriev", "embed", "pgvector", "chunk", "rag", "vector"),
         kind="quality",
     ),
-    # A Finnish question about real content must answer — but in English.
+    # A Finnish question about real content must answer, in whichever language
+    # this deployment's policy says. Named for the property, not for one answer:
+    # it was "answers in english" and could only fail once the answer stopped
+    # being English on purpose.
     Case(
-        "i18n: finnish question answers in english",
+        "i18n: finnish question answers in the policy language",
         "Kerro jotain projekteistasi",
-        _english_grounded_check("portfolio", "astro", "three"),
+        _language_matched_check("portfolio", "astro", "three"),
         kind="quality",
     ),
-    # A vague Finnish topic that loosely matches the code corpus must answer in
-    # English and NOT pad with general knowledge — decline the framing or ground
-    # in the real code. Phrasing varies run to run; the check accepts either.
+    # A vague Finnish topic that loosely matches the corpus must NOT pad with
+    # general knowledge: decline the framing, or ground in something only this
+    # corpus knows. Phrasing varies run to run; the check accepts either.
     Case(
         "grounding: vague topic stays grounded",
         "kerro jotain token tutkimuksesta",
@@ -628,11 +731,23 @@ def main(argv: list[str] | None = None) -> int:
         help="Run this eval set's cases (e.g. evals/eval_set_fi.json) for a per-model "
         "synthesis run, instead of the default English acceptance cases.",
     )
-    parser.add_argument(
+    # Tri-state on purpose. The default is DETECT, because the previous default
+    # was "off" and silently disagreed with the deployment for weeks. The two
+    # explicit flags exist for the one case detection cannot cover: a remote
+    # --base-url on a host whose env is not the backend's.
+    lang = parser.add_mutually_exclusive_group()
+    lang.add_argument(
         "--allow-finnish",
+        dest="allow_finnish",
         action="store_true",
-        help="The backend has RAG_ALLOW_FINNISH on; assert Finnish for Finnish-routed "
-        "must_retrieve questions.",
+        default=None,
+        help="Assert Finnish answers for Finnish questions, overriding detection.",
+    )
+    lang.add_argument(
+        "--force-english",
+        dest="allow_finnish",
+        action="store_false",
+        help="Assert English answers for Finnish questions, overriding detection.",
     )
     parser.add_argument(
         "--save",
@@ -654,10 +769,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    set_language_policy(args.allow_finnish)
     head = f"  model={args.label}" if args.label else ""
-    print(f"[acceptance] target {args.base_url}{head}\n")
+    # The resolved policy is PRINTED, not silent. The failure this whole change
+    # exists to close was an assumption about it that nobody could see.
+    how = "detected" if args.allow_finnish is None else "forced"
+    lang = "finnish" if answers_finnish() else "english"
+    print(f"[acceptance] target {args.base_url}{head}")
+    print(f"[acceptance] a finnish question must answer in {lang} ({how})\n")
     if args.eval_set:
-        cases = finnish_eval_cases(Path(args.eval_set), allow_finnish=args.allow_finnish)
+        cases = finnish_eval_cases(Path(args.eval_set), allow_finnish=answers_finnish())
     else:
         # The curated cases plus every must-refuse question in the golden set, so the
         # adversarial set lives in one place and run_eval's deferred injection cases
