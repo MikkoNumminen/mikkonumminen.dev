@@ -325,6 +325,18 @@ _CV_PREFIXES = (
     # stem ending in "t" misses every inflected form.
     "uranvaih",  # uranvaihto / uranvaihdosta / uranvaihdon…
     "ansioluettelo",
+    # THE 24 YEARS BEFORE THIS ONE. The CV now carries a full hardware-retail
+    # history (1998 to 2022), and none of the ways a visitor asks about it were
+    # in this vocabulary: "did Mikko work in retail" and "what did he do before
+    # programming" both scored False, so the chunks that answer them were only
+    # reachable when some other word happened to trip the route. Measured
+    # against the live corpus: with the route off, the retail chunks do not
+    # appear in the top six at all; with it on they are second and third.
+    "retail",
+    "salesper",  # salesperson / salespeople
+    "myyj",  # fi: myyjä / myyjänä / myyjänpaikka
+    "myynti",  # fi: myynti / myyntiura / myyntityö
+    "rautakau",  # fi: rautakauppa / rautakaupassa / rautakaupan
     "arbetserfarenhet",  # Swedish visitors ask too; the boost is language-neutral
     "career",
     "employment",
@@ -357,6 +369,10 @@ _CV_EXACT = (
     "töissäsi",
     "töissäni",
     "töissään",
+    # Systems he used daily for two decades, and the reason the domain knowledge
+    # is on the CV at all. Whole tokens: "pos" as a prefix would claim "position".
+    "erp",
+    "pos",
     "ura",
     "uran",
     "urani",
@@ -391,6 +407,18 @@ _CV_PHRASES = (
     # "toissa", the temporal modifier in "toissa vuonna" / "toissa kesänä". The
     # preceding verb is what separates the two readings, and the temporal one
     # never has it.
+    # Asking what came BEFORE the programming, which is how the career change is
+    # usually raised and which no single word covers.
+    " before programming ",
+    " before software ",
+    " before he became ",
+    " before becoming ",
+    " previous career ",
+    " career change ",
+    " work in retail ",
+    " worked in retail ",
+    " hardware store ",
+    " ennen ohjelmointia ",
     " ollut töissä ",
     " olet töissä ",
     " oletko töissä ",
