@@ -98,6 +98,28 @@ backend and needs Postgres, Ollama and a GPU.
   injection payload and the model is a distance threshold and prompt wording. The
   distance gate is deterministic and real, but it refuses on IRRELEVANCE, not on
   malice, so a payload that retrieves something close enough passes it.
+
+  > **B1 IS BACK, 2026-08-08, and the correction above was itself half wrong.**
+  > The table is accurate and stays: the TASK-TYPE gates do not catch these, and
+  > they never will. The wrong part is the conclusion that no deterministic gate
+  > could, which followed from testing the gates that happened to exist rather
+  > than from anything about the payloads.
+  >
+  > Measured on the live stack, three runs per payload: three of the four were
+  > being ANSWERED, and the last sentence above says exactly why: "a payload that
+  > retrieves something close enough passes it". This corpus is about prompts,
+  > grounding and injection defence, so those payloads retrieve very well. What no
+  > run showed was obedience: no prompt text leaked, no jailbreak phrase was
+  > echoed. The model was answering, not complying.
+  >
+  > `is_injection_attempt` (ADR 0010, `tests/test_injection_gate.py`) is the
+  > CI-runnable subset B1 asked for. It keys on grammar rather than task type: a
+  > second-person imperative aimed at the assistant, versus a third-person
+  > question about the system. Four golden payloads plus twelve other shapes are
+  > caught with no model; eighteen legitimate corpus questions are not.
+  >
+  > It is one more shape-matcher, with a shape-matcher's ceiling. B2 is still the
+  > real gate.
 - **B2. A deploy-time gate.** `ragctl up` runs the full acceptance battery and
   refuses to report healthy if any must-refuse case fails. This is the one that
   matches what ADR 0010 claims.
@@ -112,6 +134,13 @@ common case.** B2 is the real gate and should follow.
 > translation, trivia or small-talk gate, because those screen for TASK TYPE and
 > an injection attempt is not a task type. `tests/test_injection_coverage.py`
 > pins it. Whatever catches these needs the model, so it needs the stack.
+>
+> **SUPERSEDED 2026-08-08 on the last sentence only.** Everything above about the
+> TASK-TYPE gates is still true and still pinned. "Whatever catches these needs
+> the model" was the overreach: it generalised from four gates that exist to
+> every gate that could. A fifth gate keyed on grammar rather than task type
+> catches all four with no model, and B1 shipped as `is_injection_attempt`. The
+> deploy gate below is still the one that matters.
 >
 > B2 shipped as `ragctl verify`, run automatically by `ragctl up` unless
 > `--skip-verify`. It runs only the cases now marked `kind="contract"`, because
