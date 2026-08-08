@@ -142,10 +142,10 @@ _GENUINE_RECENCY_FRAMING = [
 
 # --- MUST CLAIM: the subject slot names no outside subject ---
 _GENUINE_EXEMPT_SLOTS = [
-    "any findings on this",              # deictic: names no subject
+    "any findings on this",  # deictic: names no subject
     "what are your findings on the experiments",  # genre self-reference
     "what research went into building the chat",  # subject IS a corpus project
-    "what research has Mikko done on RAG",        # a topic the corpus covers
+    "what research has Mikko done on RAG",  # a topic the corpus covers
 ]
 
 

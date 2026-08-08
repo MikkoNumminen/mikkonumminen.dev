@@ -6,18 +6,25 @@ the injection cases in CI without a model. They cannot: measured against all fou
 translation, trivia or small-talk gate. Those screen for TASK TYPE, and an
 injection attempt is not a task type.
 
-These tests do not add protection. They pin the CURRENT SHAPE of the protection
-so it cannot change silently:
+SOMEONE DID ADD ONE, 2026-08-08. `is_injection_attempt` catches all four, and
+this file worked exactly as designed: it was written to fail on the day a gate
+started catching them, and pointed at the proposal and ADR 0010 as the things to
+update. Both were updated. The map below is the new one.
+
+These tests do not add protection. They pin the CURRENT SHAPE of it so it cannot
+change silently:
 
 - the injection payloads still exist and are still marked must-refuse, so nobody
   deletes the adversarial cases while the suite stays green
 - the system prompt still carries the rules those payloads attack
-- the deterministic gates still do NOT catch them, which is the fact the proposal
-  got wrong
+- the TASK-TYPE gates still do not catch them, which remains true and is worth
+  keeping: it is why a fourth gate had to be written rather than a third one
+  widened
+- the instruction-attack gate does catch them, which is now the load-bearing
+  deterministic layer for this class
 
-That last one is deliberately asserted rather than assumed. If someone adds an
-input-symptom scanner, this test fails and tells them the coverage map moved,
-which is the moment to update the proposal and the ADR rather than a year later.
+The behaviour of that gate, and the false-positive suite that keeps it from
+eating real questions, live in `test_injection_gate.py`. This file is the map.
 """
 
 from __future__ import annotations
@@ -29,6 +36,7 @@ import pytest
 
 from app.guardrails import (
     is_generative_request,
+    is_injection_attempt,
     is_personal_trivia,
     is_translation_request,
     smalltalk_route,
@@ -62,13 +70,13 @@ def test_the_adversarial_cases_still_exist() -> None:
 
 
 @pytest.mark.parametrize("payload", _injection_payloads())
-def test_no_pre_retrieval_gate_catches_an_injection_payload(payload: str) -> None:
-    """The fact a merged proposal got wrong, pinned so it stays honest.
+def test_no_task_type_gate_catches_an_injection_payload(payload: str) -> None:
+    """The fact a merged proposal got wrong, still pinned.
 
-    If this starts failing, a gate has begun catching injection. That is good
-    news and a documentation change: update
-    docs/decisions/proposal-injection-hardening-2026-08-05.md, which currently
-    states that nothing deterministic catches these.
+    An injection attempt is not a task type, so widening the poem/translation/
+    trivia gates to cover one would mean widening them past what they describe.
+    Keeping this red-line here is what forced `is_injection_attempt` to be a
+    separate rule with its own false-positive suite instead.
     """
     caught_by = [
         name
@@ -81,10 +89,20 @@ def test_no_pre_retrieval_gate_catches_an_injection_payload(payload: str) -> Non
         if hit
     ]
     assert caught_by == [], (
-        f"a deterministic gate now catches this payload ({caught_by}). That is an "
-        "improvement, but the injection proposal and ADR 0010 both describe the "
-        "opposite: update them."
+        f"a TASK-TYPE gate now catches this payload ({caught_by}). Injection is "
+        "not a task type; if one of those gates grew this far it has probably "
+        "grown too far. The instruction-attack gate is the intended home."
     )
+
+
+@pytest.mark.parametrize("payload", _injection_payloads())
+def test_the_instruction_attack_gate_does_catch_it(payload: str) -> None:
+    """The other half of the map, asserted here so the two facts sit together.
+
+    Without this, the case above reads as "nothing catches these", which is what
+    this file used to mean and no longer does.
+    """
+    assert is_injection_attempt(payload)
 
 
 @pytest.mark.parametrize(
@@ -96,9 +114,9 @@ def test_no_pre_retrieval_gate_catches_an_injection_payload(payload: str) -> Non
     ],
 )
 def test_the_system_prompt_still_carries_the_rule_the_payloads_attack(rule: str) -> None:
-    """With no deterministic gate in front of them, the prompt is one of only two
-    things left. Its wording is therefore load-bearing, whatever ADR 0010 says
-    about not relying on wording alone."""
+    """The gate in front of them declines named shapes, so anything phrased
+    outside those shapes still arrives here. The prompt's wording stays
+    load-bearing, whatever ADR 0010 says about not relying on wording alone."""
     assert rule in build_system_prompt(force_english=True), (
         f"the system prompt no longer contains {rule!r}, which the "
         "must_refuse_injection cases are written to attack"

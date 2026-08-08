@@ -48,9 +48,7 @@ def test_refusal_case_passes_on_finnish_template() -> None:
         "question": "Mikä on Mikon lempiväri?",
         "expectation": "must_refuse_offcorpus",
     }
-    row = score_case(
-        case, "Minulla ei ole tietoa tuosta. Kokeile `help`-komentoa.", []
-    )
+    row = score_case(case, "Minulla ei ole tietoa tuosta. Kokeile `help`-komentoa.", [])
     assert row["ok"]
 
 

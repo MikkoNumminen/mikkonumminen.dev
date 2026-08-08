@@ -168,10 +168,7 @@ def test_chunk_code_keeps_python_decorators_with_their_def() -> None:
 
 
 def test_chunk_code_keeps_csharp_attribute_with_its_method() -> None:
-    cs = (
-        "public class C\n{\n"
-        '    [HttpGet("/x")]\n    public int Get() { return 1; }\n}\n'
-    )
+    cs = 'public class C\n{\n    [HttpGet("/x")]\n    public int Get() { return 1; }\n}\n'
     chunks = chunk_code(cs, "csharp", **CODE_PARAMS)
     for c in chunks:
         if "public int Get" in c.text:

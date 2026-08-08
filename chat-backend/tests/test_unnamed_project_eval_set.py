@@ -23,11 +23,7 @@ import pytest
 
 from app.query_projects import detect_projects
 
-EVAL_SET = (
-    Path(__file__).resolve().parents[1]
-    / "evals"
-    / "eval_set_unnamed_project.json"
-)
+EVAL_SET = Path(__file__).resolve().parents[1] / "evals" / "eval_set_unnamed_project.json"
 
 
 def _cases() -> list[dict]:

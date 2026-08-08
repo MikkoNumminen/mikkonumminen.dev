@@ -78,9 +78,7 @@ def test_record_expires_a_stale_session() -> None:
     m = SessionMemory(max_turns=2, max_sessions=10, ttl_seconds=10)
     m.record("s", "first", "a1", now=1.0)
     m.record("s", "second", "a2", now=100.0)  # past the ttl -> "s" expired first
-    users = [
-        msg["content"] for msg in m.history("s", now=101.0) if msg["role"] == "user"
-    ]
+    users = [msg["content"] for msg in m.history("s", now=101.0) if msg["role"] == "user"]
     assert users == ["second"]
 
 

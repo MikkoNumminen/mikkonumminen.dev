@@ -96,9 +96,7 @@ def test_plan_pii_doc_is_classified_and_never_chunked(
     assert fp.chunks == []  # pii is NEVER chunked or embedded
 
 
-def test_plan_pseudonymizes_before_chunking(
-    settings: Settings, tmp_path: Path
-) -> None:
+def test_plan_pseudonymizes_before_chunking(settings: Settings, tmp_path: Path) -> None:
     name = "Dr. Jane Doe"
     (tmp_path / "projects").mkdir()
     (tmp_path / "projects" / "contract.md").write_text(

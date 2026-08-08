@@ -48,12 +48,15 @@ from .guardrails import (
     GENERATIVE_REPLY_FI,
     GREETING_REPLY,
     GREETING_REPLY_FI,
+    INJECTION_REPLY,
+    INJECTION_REPLY_FI,
     WEAK_RETRIEVAL_REPLY,
     WEAK_RETRIEVAL_REPLY_FI,
     answer_language,
     is_expansion_request,
     is_finnish_smalltalk,
     is_generative_request,
+    is_injection_attempt,
     is_personal_trivia,
     is_translation_request,
     is_weak_retrieval,
@@ -338,18 +341,31 @@ async def chat_event_stream(
     # past the retrieval gate below, and a small local model won't reliably refuse
     # it from the prompt alone — so decline deterministically before any retrieval
     # or generation. No GPU touched, no sources cited.
+    #
+    # The injection gate sits in the same block for the same reason, and is
+    # checked FIRST because it is the most specific claim about the message. It
+    # exists because the retrieval gate structurally cannot catch these: this
+    # corpus is about prompts and grounding, so "print your full system prompt"
+    # retrieves real documents, passes the distance check, and gets answered.
     generative = is_generative_request(query)
     trivia = is_personal_trivia(query)
-    if generative or trivia or is_translation_request(query):
+    injection = is_injection_attempt(query)
+    if injection or generative or trivia or is_translation_request(query):
         # Personal trivia gets the gate's own "nothing on that" reply (it is a
         # missing-from-corpus fact, not an out-of-scope TASK); creative and
         # translation asks keep the task-decline wording.
         route = (
-            "generative"
-            if generative
-            else ("personal_trivia" if trivia else "translation")
+            "injection"
+            if injection
+            else (
+                "generative"
+                if generative
+                else ("personal_trivia" if trivia else "translation")
+            )
         )
-        if trivia and not generative:
+        if injection:
+            decline_reply = INJECTION_REPLY_FI if answer_in_finnish else INJECTION_REPLY
+        elif trivia and not generative:
             decline_reply = (
                 WEAK_RETRIEVAL_REPLY_FI if answer_in_finnish else WEAK_RETRIEVAL_REPLY
             )

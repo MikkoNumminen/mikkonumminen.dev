@@ -37,13 +37,32 @@ pipeline order:
   handler (HTTP 400), with a Pydantic `max_length=4000` backstop (422) and a
   `MAX_BODY_BYTES` (default 16384) byte cap in ASGI middleware. A request can't
   smuggle a large instruction payload in the first place.
-- **Pre-retrieval task gates.** Two deterministic checks run _before_ retrieval
-  and decline outright: `is_generative_request` ("write me a poem/story/song/
-  joke/…") and `is_translation_request` ("translate &lt;text&gt; to &lt;language&gt;").
+- **Pre-retrieval task gates.** Deterministic checks run _before_ retrieval and
+  decline outright: `is_generative_request` ("write me a poem/story/song/joke/…")
+  and `is_translation_request` ("translate &lt;text&gt; to &lt;language&gt;").
   These are TASK requests that often name an on-corpus topic, so retrieval alone
   wouldn't catch them: the small model would happily perform the task. Catching
   them by shape, before a single vector is fetched, closes that hole. (Added by
   [ADR 0011](0011-hybrid-retrieval-and-code-corpus.md)'s Workstream B.)
+- **Pre-retrieval instruction-attack gate.** `is_injection_attempt` declines a
+  message addressed AT the assistant telling it to override its rules, recite its
+  prompt, or become a different assistant. Added after measuring that three of the
+  four `must_refuse_injection` cases were being ANSWERED, and for a reason the
+  earlier layers could not reach: this corpus is largely about prompts, grounding
+  and injection defence, so an attack retrieves real documents, passes the
+  relevance gate as genuinely relevant, and gets a grounded answer. No prompt text
+  leaked and no jailbreak was accepted in any measured run, so the output guard
+  had nothing to catch; the model never obeyed, it simply answered.
+
+  The gate keys on GRAMMAR, not topic: second-person imperative at the assistant,
+  versus a third-person question about the system. That distinction is what lets
+  the chat keep answering "how does the system prompt stop injection?", which is
+  one of the things this site most wants to explain. The false-positive suite in
+  `tests/test_injection_gate.py` is the load-bearing half.
+
+  Like every layer here it declines named SHAPES. A payload phrased outside them
+  reaches the model exactly as before, and a green acceptance run is not evidence
+  that one would not.
 - **Relevance gate (prose-anchored).** Before the LLM is ever called, the
   weak-retrieval gate (`guardrails.is_weak_retrieval`) short-circuits the request
   when the best **prose-chunk** cosine distance exceeds `WEAK_RETRIEVAL_DISTANCE`

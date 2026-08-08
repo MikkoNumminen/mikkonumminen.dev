@@ -136,6 +136,8 @@ def _as_int(token: str) -> int | None:
     if token.isdigit():
         return int(token)
     return _WORD_NUMBERS.get(token.lower())
+
+
 # Only claims sitting near this vocabulary are about THIS harness. Deliberately
 # NOT the bare word "harness": the rag-experiment skill has its own harness and
 # quotes per-model tallies like "containment refuse 9/3/3", which a looser

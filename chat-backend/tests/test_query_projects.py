@@ -250,7 +250,7 @@ def test_the_ura_family_is_matched_by_token_not_by_prefix() -> None:
 
 
 def test_bare_toissa_is_temporal_and_needs_its_verb() -> None:
-    """"töissä" folds to "toissa", which is ALSO the modifier in "toissa vuonna"
+    """ "töissä" folds to "toissa", which is ALSO the modifier in "toissa vuonna"
     (the year before last). A token match would claim every such sentence, so the
     bare form is a phrase keyed on the preceding verb, which the temporal reading
     never has."""
@@ -349,13 +349,11 @@ def test_a_vocabulary_entry_that_folds_to_nothing_is_rejected_at_import() -> Non
     )
 
     # the shipped vocabulary passes, or the guard is just noise
-    _reject_empty_vocabulary(
-        _CV_PREFIXES_FOLDED, _CV_EXACT_FOLDED, _CV_PHRASES_FOLDED
-    )
+    _reject_empty_vocabulary(_CV_PREFIXES_FOLDED, _CV_EXACT_FOLDED, _CV_PHRASES_FOLDED)
 
     # each of the three lists, poisoned the way a real edit would poison it: an
     # entry with no alphanumerics at all, which `_fold` reduces to spaces
-    assert _fold("-") .strip() == ""
+    assert _fold("-").strip() == ""
     assert _fold("́").strip() == ""  # a lone combining acute
 
     with pytest.raises(ValueError):
@@ -469,9 +467,7 @@ def test_wants_cv_intent_sees_both_texts() -> None:
 
 def test_research_coverage_fires_on_research_markers() -> None:
     # The reported bug: a Finnish "latest research" question.
-    assert is_research_coverage_request(
-        "kerro jotain mikon viimeisimmistä tutkimuksista"
-    )
+    assert is_research_coverage_request("kerro jotain mikon viimeisimmistä tutkimuksista")
     # English (also the translate-for-retrieval anchor of the Finnish above).
     assert is_research_coverage_request("tell me about Mikko's latest research")
     assert is_research_coverage_request("what research has Mikko published?")
@@ -551,9 +547,7 @@ def test_research_coverage_needs_a_research_marker() -> None:
 def test_research_coverage_defers_to_a_named_project() -> None:
     # A research marker BUT a specific project named -> that project's question,
     # served by normal project-aware retrieval, not the corpus-wide sweep.
-    assert not is_research_coverage_request(
-        "how did you research the HRM domain model?"
-    )
+    assert not is_research_coverage_request("how did you research the HRM domain model?")
     assert not is_research_coverage_request("what experiments did spacepotatis run?")
     # Naming the portfolio itself still counts as a research sweep, not a project.
     assert is_research_coverage_request("what research is in your portfolio?")
@@ -572,9 +566,7 @@ def test_research_coverage_is_deliberately_topic_permissive() -> None:
     # harmless (the model hedged correctly) and the recency CLAIM is gated
     # separately — see query_projects.names_offcorpus_research_topic and
     # tests/test_research_coverage_precision.py.
-    assert is_research_coverage_request(
-        "what's the latest research on quantum computing"
-    )
+    assert is_research_coverage_request("what's the latest research on quantum computing")
 
 
 # --- Finnish inflection --------------------------------------------------
