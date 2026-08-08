@@ -265,6 +265,11 @@ export async function initTerminal(
             conversationAnnounced = true;
             ctx.print(t.terminal.chatIntroReady, 'accent');
             ctx.print(t.terminal.chatIntroHow, 'dim');
+            // Chat arriving used to be the moment the commands got buried: the
+            // old copy said "no command needed" and the chips were all model
+            // questions, so the papers became unreachable exactly when the
+            // terminal looked most capable.
+            ctx.print(t.terminal.chatIntroDownloads, 'dim');
             ctx.print('');
           }
           revealChatHint(root, t);
@@ -323,15 +328,32 @@ function hideChatHint(root: ParentNode): void {
   root.querySelector<HTMLElement>('.terminal__hint--chat')?.remove();
 }
 
-// A few example questions shown as clickable chips when chat is available, so
-// visitors aren't staring at a blank prompt. English-only on purpose: the chat
-// itself answers only in English (see chat-backend prompt), so the starters that
-// seed it are not translated.
-const STARTER_QUESTIONS = [
-  'Which project is the most complex?',
-  'How did Spacepotatis bridge Phaser and Three.js?',
-  "What is ReadLog .NET's stack?",
-  'How does claude-continue know when a usage window resets?',
+/**
+ * The clickable chips shown once chat is available, so visitors aren't staring
+ * at a blank prompt.
+ *
+ * `label` and `submit` are separate because the first chip is not a question:
+ * it submits the `download` command. `submitStarter` routes through
+ * `handleCommand`, which resolves commands before it ever reaches the chat, so
+ * the chip runs the command with no new machinery. It leads the list because
+ * the papers are what a visitor is least likely to discover on their own.
+ *
+ * English-only, and no longer because "the chat answers only in English" —
+ * `FORCE_ENGLISH` has been off since the Poro deployment, so a Finnish question
+ * gets a Finnish answer. These stay English because they are example prompts,
+ * and a visitor who reads them in either language can type their own.
+ */
+const STARTER_QUESTIONS: readonly { label: string; submit: string }[] = [
+  { label: 'Show me the research papers', submit: 'download' },
+  {
+    label: 'Which project is the most complex?',
+    submit: 'Which project is the most complex?',
+  },
+  {
+    label: 'How did Spacepotatis bridge Phaser and Three.js?',
+    submit: 'How did Spacepotatis bridge Phaser and Three.js?',
+  },
+  { label: "What is ReadLog .NET's stack?", submit: "What is ReadLog .NET's stack?" },
 ];
 
 /**
@@ -347,13 +369,13 @@ function revealStarters(
 ): void {
   const box = root.querySelector<HTMLElement>('.terminal__starters');
   if (!box || box.childElementCount > 0) return;
-  for (const question of STARTER_QUESTIONS) {
+  for (const starter of STARTER_QUESTIONS) {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'terminal__starter';
     // textContent (not innerHTML): static strings, never an HTML sink.
-    chip.textContent = question;
-    chip.addEventListener('click', () => onPick(question), { signal });
+    chip.textContent = starter.label;
+    chip.addEventListener('click', () => onPick(starter.submit), { signal });
     box.appendChild(chip);
   }
 }

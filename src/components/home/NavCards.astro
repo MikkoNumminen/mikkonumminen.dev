@@ -4,6 +4,7 @@ import PlanetIcon from './icons/PlanetIcon.astro';
 import MountainIcon from './icons/MountainIcon.astro';
 import PenIcon from './icons/PenIcon.astro';
 import TerminalIcon from './icons/TerminalIcon.astro';
+import ChartIcon from './icons/ChartIcon.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
@@ -29,6 +30,13 @@ const cards = [
     description: t.navCards.blog.description,
     accent: 'blog',
     icon: 'pen' as const,
+  },
+  {
+    href: localizePath('/research', locale),
+    label: t.navCards.research.label,
+    description: t.navCards.research.description,
+    accent: 'research',
+    icon: 'chart' as const,
   },
   {
     href: localizePath('/contact', locale),
@@ -67,6 +75,7 @@ const cards = [
               {card.icon === 'mountain' && <MountainIcon />}
               {card.icon === 'pen' && <PenIcon />}
               {card.icon === 'terminal' && <TerminalIcon />}
+              {card.icon === 'chart' && <ChartIcon />}
             </span>
             <span class="nav-card__label">{card.label}</span>
             <span class="nav-card__desc">{card.description}</span>
@@ -116,10 +125,25 @@ const cards = [
     max-width: 18ch;
   }
 
+  /*
+   * Six columns for five cards: three spanning 2 on the first row, two spanning
+   * 3 on the second. A plain `repeat(3, 1fr)` would leave the second row
+   * two-thirds full with a visible hole where a sixth card would go, and a
+   * `repeat(5, 1fr)` squeezes every label. The spans are reset at the first
+   * breakpoint, where the grid is two columns and an even split needs no help.
+   */
   .nav-cards__grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 1.25rem;
+  }
+
+  .nav-cards__grid > .nav-card {
+    grid-column: span 2;
+  }
+
+  .nav-cards__grid > .nav-card:nth-child(n + 4) {
+    grid-column: span 3;
   }
 
   .nav-card {
@@ -207,6 +231,16 @@ const cards = [
     color: #4ade80;
   }
 
+  .nav-card[data-accent='research'] {
+    --accent-color: rgba(129, 140, 248, 0.22);
+  }
+  .nav-card[data-accent='research']:hover {
+    border-color: rgba(129, 140, 248, 0.5);
+  }
+  .nav-card[data-accent='research'] .nav-card__icon {
+    color: #818cf8;
+  }
+
   .nav-card__icon {
     width: 2.5rem;
     height: 2.5rem;
@@ -249,6 +283,11 @@ const cards = [
   @media (max-width: 1024px) {
     .nav-cards__grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .nav-cards__grid > .nav-card,
+    .nav-cards__grid > .nav-card:nth-child(n + 4) {
+      grid-column: auto;
     }
   }
 

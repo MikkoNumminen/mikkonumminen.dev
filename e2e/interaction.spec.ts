@@ -517,3 +517,45 @@ test.describe('shoutbox: gated when the backend is down', () => {
     await expect(status).toHaveText('sending messages is off for a moment');
   });
 });
+
+/**
+ * The research listing, checked as a route rather than as a component.
+ *
+ * `papers.test.ts` already proves the data is sound and that the page derives
+ * its list from it. What that cannot see is whether the page is actually
+ * reachable and renders in both locales, which is the entire point of the page:
+ * the papers were sound before too, they were just unreachable.
+ */
+test.describe('research index', () => {
+  test('lists every paper with a working PDF link, newest first', async ({ page }) => {
+    await page.goto('/research');
+
+    const links = page.locator('a[href$=".pdf"]');
+    const count = await links.count();
+    // Ten research papers today; asserted as a floor so adding one does not
+    // fail the suite, but a page that rendered an empty list would.
+    expect(count).toBeGreaterThanOrEqual(10);
+
+    // Every link resolves. A listing that 404s is worse than no listing: the
+    // visitor now believes the document is gone rather than hidden.
+    const first = links.first();
+    const href = await first.getAttribute('href');
+    expect(href).toBeTruthy();
+    const res = await page.request.get(href!);
+    expect(res.status(), `${href} did not serve`).toBe(200);
+
+    // Descending. The dates are machine-readable exactly so this is checkable
+    // rather than a claim in the lede.
+    const dates = await page.locator('time[datetime]').evaluateAll((nodes) =>
+      nodes.map((n) => n.getAttribute('datetime') ?? ''),
+    );
+    expect(dates.length).toBeGreaterThanOrEqual(10);
+    expect(dates).toEqual([...dates].sort().reverse());
+  });
+
+  test('renders in Finnish too', async ({ page }) => {
+    await page.goto('/fi/research');
+    await expect(page.locator('main h1, h1').first()).toBeVisible();
+    await expect(page.locator('a[href$=".pdf"]').first()).toBeVisible();
+  });
+});

@@ -20,6 +20,7 @@ const PAGES: PageCase[] = [
   { path: '/', name: 'home', primary: 'canvas', expectCanvas: true },
   { path: '/projects', name: 'projects', primary: 'canvas', expectCanvas: true },
   { path: '/experience', name: 'experience', primary: 'main', expectCanvas: false },
+  { path: '/research', name: 'research', primary: 'main', expectCanvas: false },
   {
     path: '/contact',
     name: 'contact',

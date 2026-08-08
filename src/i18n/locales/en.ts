@@ -30,6 +30,11 @@ export const en: Translations = {
       description:
         'Working notes from the projects of Mikko Numminen. Entries written from the commit history are labelled as machine-generated.',
     },
+    research: {
+      title: 'Research · Mikko Numminen',
+      description:
+        'Measured studies on LLM cost, Finnish language models and agent delegation, each published with its numbers and downloadable as a PDF.',
+    },
   },
   nav: {
     home: 'home',
@@ -80,12 +85,24 @@ export const en: Translations = {
       description:
         'Working notes on what I have been building, some drafted from the commit history.',
     },
+    research: {
+      label: 'Research',
+      description:
+        'Measured studies with their numbers attached, including the one where the measurement itself turned out to be broken.',
+    },
     contact: {
       label: 'Contact',
       description: 'Drop into a terminal and reach me directly.',
     },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'built with astro · three.js · gsap',
+  },
+  researchPage: {
+    eyebrow: 'measured',
+    title: 'Research',
+    lede: 'Studies I ran on my own work, published with the numbers behind them. Newest first. Every one is a PDF you can take away, and one of them is a retraction of an earlier finding of mine.',
+    pdfLabel: 'PDF',
+    downloadAria: 'Download {title} as a PDF',
   },
   blog: {
     eyebrow: 'writing',
@@ -408,6 +425,7 @@ export const en: Translations = {
     hintType: 'type',
     hintHistory: 'history',
     hintComplete: 'complete',
+    hintDownloads: 'papers',
     noscriptIntro: 'This page is an interactive terminal that requires JavaScript.',
     noscriptReachMe: 'You can still reach me directly:',
     noscriptEmailLabel: 'Email:',
@@ -434,7 +452,7 @@ export const en: Translations = {
     bootLoading: '[ ok ] loading projects, experience, contact',
     bootComms: '[ ok ] establishing comms link',
     bootWelcome: 'welcome to Mikko Numminen, full-stack developer.',
-    bootTypeHelp: 'type `help` to see what i can do.',
+    bootTypeHelp: 'type `help` to see what i can do, or `download` for the papers.',
     commandNotFound: 'command not found:',
     typeHelpHint: 'type `help` to see available commands.',
     errorPrefix: 'error:',
@@ -497,6 +515,8 @@ export const en: Translations = {
       'jul 2026 · do the cheap agents pay for themselves: seven instrumented delegations from one session; 3 of 7 caught something I had missed, 1 was a false finding, and no saving is claimed because the counterfactual is not measurable',
     cmdDownloadResearchHint:
       'type the name to grab one, e.g. `download catalog`. a unique prefix works too: `download blind`.',
+    cmdDownloadPageHint:
+      'or open /research to read the summaries and grab them from one page.',
     cmdDownloadTryHint: 'type `download` on its own to see every document.',
     cmdDownloadAmbiguous: 'that matches more than one document:',
     cmdDownloadPickOne: 'one at a time, please. you named:',
@@ -568,7 +588,10 @@ export const en: Translations = {
     cmdRmDesc: 'remove files',
     cmdRmRefusal: "i'm afraid i can't let you do that. nothing here is yours to delete.",
     chatIntroReady: 'conversation mode online.',
-    chatIntroHow: 'ask about the projects in your own words, no command needed.',
+    chatIntroHow:
+      'ask about the projects in your own words. the commands still work too.',
+    chatIntroDownloads:
+      'type `download` for the research papers, or open /research to browse them.',
     chatThinking: '...thinking',
     chatError: 'connection lost. back to scripted mode.',
     chatAskUsage: 'usage: ask "your question about the projects"',

@@ -109,6 +109,10 @@ const prompt = 'guest@mikkonumminen:~$';
         <span>{t.contactPage.hintType} <kbd>help</kbd></span>
         <span><kbd>↑</kbd>/<kbd>↓</kbd> {t.contactPage.hintHistory}</span>
         <span><kbd>tab</kbd> {t.contactPage.hintComplete}</span>
+        <!-- Static rather than revealed with the chat, because the papers are
+             reachable in both states and the chat-off terminal was hiding them
+             just as thoroughly. -->
+        <span><kbd>download</kbd> {t.contactPage.hintDownloads}</span>
       </div>
 
       <!-- Starter-question chips, populated by terminal.ts only when chat is

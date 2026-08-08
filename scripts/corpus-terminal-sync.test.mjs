@@ -9,8 +9,16 @@
  * A hand-written description of another file's contents goes stale the first
  * time someone adds a download target and forgets. That is worse than having no
  * document, because a confidently wrong answer reads exactly like a right one.
- * So every download flag in `commands.ts` must appear in the corpus doc, and the
- * doc must not advertise a flag that no longer exists.
+ * So every paper must appear in the corpus doc, and the doc must not advertise
+ * one that no longer exists.
+ *
+ * IT IMPORTS THE LIST NOW RATHER THAN GREPPING FOR IT. Two earlier versions
+ * scraped `commands.ts` source: the first sliced between two command specs and
+ * broke when the array was hoisted, the second anchored on the array
+ * declaration and broke when the array moved to `src/data/papers.ts`. Both
+ * failed loudly, which is the only reason neither shipped silently, but a guard
+ * that parses source is a guard with its own bugs. `src/data/papers.ts` exists
+ * partly so this file can read data instead.
  *
  * WHAT THIS GUARD DOES NOT COVER, found in review. The "does not advertise"
  * check asks `resolveDownload` whether each documented command resolves, so it
@@ -26,40 +34,13 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { resolveDownload } from '../src/lib/terminal/download.ts';
+import { PAPERS } from '../src/data/papers.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const commands = readFileSync(
-  path.join(root, 'src/lib/terminal/commands.ts'),
-  'utf8',
-);
 const corpusDoc = readFileSync(
   path.join(root, 'content/site-terminal.md'),
   'utf8',
 );
-
-/**
- * Download flags as the terminal actually defines them.
- *
- * Anchored on the `targets` declaration rather than on `name: 'download'`. It
- * used to slice between the download and skills command specs, which broke the
- * moment the array was hoisted out of the handler to expose the ids for tab
- * completion: the slice came back empty and every downstream assertion would
- * have passed on zero targets. The `finds the real download targets` case caught
- * exactly that, which is what it is for.
- *
- * Scoped to the array so `--research` (a menu row, not a download) and flags
- * belonging to other commands are not swept in.
- */
-function downloadFlags(source) {
-  const start = source.indexOf('const targets: {');
-  expect(start, 'commands.ts no longer declares a download `targets` array').toBeGreaterThan(
-    -1,
-  );
-  const end = source.indexOf('\n  ];', start);
-  const block = source.slice(start, end === -1 ? undefined : end);
-  const entries = [...block.matchAll(/flag: '(--[a-z]+)',[\s\S]{0,200}?filename: '([^']+)'/g)];
-  return entries.map(([, flag, filename]) => ({ flag, filename }));
-}
 
 /**
  * Every download the corpus doc tells a visitor to type, as an id.
@@ -74,7 +55,7 @@ function documentedIds(doc) {
 }
 
 describe('content/site-terminal.md ↔ terminal commands', () => {
-  const real = downloadFlags(commands).map((r) => ({ ...r, id: r.flag.replace(/^--/, '') }));
+  const real = PAPERS.map((p) => ({ id: p.id, filename: p.filename }));
   const documented = new Set(documentedIds(corpusDoc));
 
   it('finds the real download targets', () => {
@@ -93,20 +74,18 @@ describe('content/site-terminal.md ↔ terminal commands', () => {
   });
 
   it('does not advertise a flag the terminal no longer has', () => {
-    // `--research` lists rather than downloads, so commands.ts deliberately keeps
-    // it out of the targets array (a flag with no url would 404 through the
-    // download branch) and appends it as a menu row. It is still a real thing to
-    // type, and the corpus doc should say so, so it is accepted here by name.
-    const MENU_ONLY = '--research';
-    // Assert what the comment claims, not merely that the string appears
-    // somewhere in the file. A raw `commands.includes('--research')` passes on
-    // the unrelated `args.includes('--research')` branch, so it would keep
-    // passing if --research were promoted into `targets` and became a real
-    // download, which is the one change that should force this exemption to be
-    // revisited.
+    // `research` lists rather than downloads, so it is deliberately not a paper
+    // (an entry with no file would 404 through the download branch); the command
+    // treats it as a listing token. It is still a real thing to type, and the
+    // corpus doc should say so, so it is accepted here by name.
+    //
+    // Asserted rather than assumed: if `research` ever became a real paper this
+    // exemption would be hiding it from every check below, which is the one
+    // change that should force it to be revisited.
+    const MENU_ONLY = 'research';
     expect(
-      real.some((r) => r.flag === MENU_ONLY),
-      '--research is now a real download target; drop this exemption so it is checked like any other flag',
+      real.some((r) => r.id === MENU_ONLY),
+      'research is now a real paper; drop this exemption so it is checked like any other id',
     ).toBe(false);
 
     // Checked through the REAL resolver rather than against a set of ids, so the
@@ -121,6 +100,26 @@ describe('content/site-terminal.md ↔ terminal commands', () => {
         kind === 'target' || kind === 'list',
         `content/site-terminal.md tells visitors to type \`download ${token}\`, which resolves to "${kind}" instead of a document`,
       ).toBe(true);
+    }
+  });
+
+  it('tells visitors the research page exists, in both locales', () => {
+    // The command is no longer the only route, and the chat is the surface most
+    // likely to be asked "where is your research?". If this doc only names the
+    // terminal, the chat keeps sending people to a command when a page would do.
+    //
+    // Checked against the BODY, not the whole file. The first version of this
+    // case read the raw document and stayed green when both mentions were
+    // deleted, because the title still contained the path — a guard satisfied
+    // by the sentence describing the guard.
+    const body = corpusDoc
+      .replace(/^---\n[\s\S]*?\n---\n/, '')
+      .replace(/^#[^\n]*\n/, '');
+    for (const path of ['/research', '/fi/research']) {
+      expect(
+        body,
+        `content/site-terminal.md never names ${path} in its body — the chat cannot point at a page it has not been told about`,
+      ).toContain(path);
     }
   });
 

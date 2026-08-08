@@ -259,6 +259,21 @@ describe('buildCommands across locales', () => {
     }
   });
 
+  it('points each locale at its own research page', () => {
+    // The path is baked into the translated string rather than composed from a
+    // locale, which is cheaper but silently wrong the moment a translator copies
+    // the English line. A Finnish visitor sent to /research gets the English
+    // page, which is the failure this whole change exists to stop repeating.
+    const expected: Record<string, string> = { en: '/research', fi: '/fi/research' };
+    for (const locale of LOCALES) {
+      const hint = getTranslations(locale).terminal.cmdDownloadPageHint;
+      expect(hint, `locale=${locale}`).toContain(expected[locale]);
+    }
+    // `/fi/research` contains `/research`, so the loop above accepts the Finnish
+    // path in the English file. That direction needs its own assertion.
+    expect(getTranslations('en').terminal.cmdDownloadPageHint).not.toContain('/fi/');
+  });
+
   it('localizes descriptions — every command has a non-empty description in every locale', () => {
     for (const locale of LOCALES) {
       for (const c of buildCommands(getTranslations(locale))) {
