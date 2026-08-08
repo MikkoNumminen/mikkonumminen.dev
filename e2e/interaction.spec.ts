@@ -562,3 +562,41 @@ test.describe('research index', () => {
     await expect(page.locator('a[href$=".pdf"]').first()).toBeVisible();
   });
 });
+
+/**
+ * The nav bar on a narrow phone.
+ *
+ * Six links plus EN/FI do not fit a 360px viewport, and the plan that first
+ * added `/research` left it out of the nav for exactly that reason. The CSS had
+ * already solved it — the row scrolls under 600px — but "it scrolls" was an
+ * assumption read off a stylesheet, not a measured fact, and the failure it
+ * guards against (an item clipped out of reach) is invisible on a desktop run.
+ */
+test.describe('site nav: narrow phone', () => {
+  test.use({ viewport: { width: 360, height: 740 } });
+
+  test('every link is reachable, none clipped out of reach', async ({ page }) => {
+    await page.goto('/');
+    const row = page.locator('.site-nav > ul');
+    await expect(row).toBeVisible();
+
+    const links = page.locator('.site-nav__link');
+    const count = await links.count();
+    expect(count).toBeGreaterThanOrEqual(6);
+
+    // The row must actually be scrollable, otherwise the overflow is clipped
+    // rather than reachable and the last items are simply gone.
+    const { scrollWidth, clientWidth } = await row.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    }));
+    expect(scrollWidth).toBeGreaterThan(clientWidth);
+
+    // And the last one can be brought into view and clicked.
+    const last = links.nth(count - 1);
+    await last.scrollIntoViewIfNeeded();
+    const box = await last.boundingBox();
+    expect(box, 'the last nav link has no box').not.toBeNull();
+    expect(box!.width, 'the last nav link is collapsed to nothing').toBeGreaterThan(20);
+  });
+});

@@ -32,9 +32,10 @@ describe('SiteNav', () => {
 
   it('finds destinations in both components', () => {
     // Guards the guard: a renamed helper would empty both lists and make the
-    // comparison below vacuously true.
-    expect(navPaths.length).toBeGreaterThanOrEqual(5);
-    expect(cardPaths.length).toBeGreaterThanOrEqual(4);
+    // comparison below vacuously true. Floors are the counts that ship, so a
+    // dropped link fails here rather than passing a stale threshold.
+    expect(navPaths.length).toBeGreaterThanOrEqual(6);
+    expect(cardPaths.length).toBeGreaterThanOrEqual(5);
   });
 
   it('offers every destination the front-page cards do', () => {
