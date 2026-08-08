@@ -39,7 +39,7 @@ settled it. At window 30, all three:
 
 | fire | verdict |
 | --- | --- |
-| `kesk 1998`, `kesk 2012` | **false positive.** The answer was correct: *"at Keijo Numminen Oy (1998-2012) and later at Kesko Oyj (2020-2021)"*. Its own list puts "Kesko" 22 characters from "2012". |
+| `kesk 1998`, `kesk 2012` | **false positive.** The answer was correct: *"at Keijo Numminen Oy (1998-2012) and later at Kesko Oyj (2020-2021)"*. Its own list puts "Kesko" 19 characters from "2012". |
 | `node 2024` | **false positive.** Correct answer, same list adjacency. |
 | `mikk 2026` | **noise.** The answer WAS wrong (Kasvu Labs dated 2019-2021, really 2022-2024), but the flagged pair is not the error, and `unsupported_years` already catches it, because 2019 is absent from the context. |
 
@@ -49,10 +49,15 @@ settled it. At window 30, all three:
 
 Prose lists dates next to names. "Keijo Numminen Oy (1998-2012) and later at
 Kesko Oyj (2020-2021)" is a correct sentence in which a name and an unrelated
-year sit 22 characters apart, and the standard CV entry `**Kasvu Labs Oy**
-(2022-2024)` puts a name 22 characters from its own year. Those two distances are
-the same. No window separates them, because in surface text the correct case and
-the wrong case have the same shape.
+year sit **19** characters apart. The standard CV entry `**Kasvu Labs Oy**
+(2022-2024)` puts a name **22** characters from its own year, and `**Kesko Oyj**
+(2020-2021)` puts one **13** apart.
+
+So the spurious binding is TIGHTER than a real one. Any window wide enough to
+see that Kasvu Labs is dated 2022-2024, which is the whole point of having a
+window, is necessarily wide enough to bind Kesko to a year belonging to the
+employer listed before it. The two cases are not merely close, they are ordered
+against the detector.
 
 Two narrower rules were tried inside the same loop and are recorded because both
 are tempting. Requiring a name to appear mid-sentence somewhere still admitted
