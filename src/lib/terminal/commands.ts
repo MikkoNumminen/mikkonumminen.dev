@@ -175,11 +175,19 @@ export function buildCommands(
       usage: tt.cmdDownloadUsage,
       completions: downloadIds,
       handler: async (args, ctx) => {
-        // Render an aligned name/description list. The description column lines
-        // up to the longest name in *this* list, so the narrowed research view
-        // aligns on its own rather than inheriting the full menu's width. The
-        // `flag` field here carries the id a visitor types, not the dashed
-        // spelling; the shape is kept minimal so any {name,label} pair renders.
+        // Render an aligned command/description list. The description column
+        // lines up to the longest command in *this* list, so the narrowed
+        // research view aligns on its own rather than inheriting the full
+        // menu's width.
+        //
+        // The left column is the WHOLE command, `download blindtest`, not the
+        // bare id. It listed ids first, which is a menu you have to already
+        // know how to use: a visitor reading `blindtest` in a column has to
+        // infer that it is an argument, to a command they typed a moment ago,
+        // and retype both. That inference is exactly what fails when the chat
+        // is up, because the terminal is in a mode where free text is expected
+        // to work. The nine extra characters per row buy a line that can be
+        // read and typed without a step in between.
         const printOptions = (rows: { flag: string; label: string }[]) => {
           const INDENT = 2;
           const GAP = 4;
@@ -243,7 +251,9 @@ export function buildCommands(
               : tt.cmdDownloadIntro,
             'dim',
           );
-          printOptions(rows.map((tgt) => ({ flag: idOf(tgt.flag), label: tgt.label })));
+          printOptions(
+            rows.map((tgt) => ({ flag: `download ${idOf(tgt.flag)}`, label: tgt.label })),
+          );
           ctx.print('');
           ctx.print(tt.cmdDownloadResearchHint, 'dim');
           ctx.print(tt.cmdDownloadPageHint, 'dim');

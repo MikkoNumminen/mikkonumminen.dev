@@ -487,7 +487,7 @@ export const en: Translations = {
       'my cv, or the research: catalog, skills studies, calibration, and a rag finnish study (pdf)',
     cmdDownloadUsage:
       'download [name]; bare `download` lists everything, e.g. `download blindtest` or `download cv`',
-    cmdDownloadIntro: 'everything you can grab, type the name to download it:',
+    cmdDownloadIntro: 'everything you can grab. type the command on the left:',
     cmdDownloadDidYouMean: 'did you mean:',
     cmdDownloadOptionCv: 'my cv: pdf, full résumé',
     cmdDownloadOptionSkills:
@@ -514,7 +514,7 @@ export const en: Translations = {
     cmdDownloadOptionDelegation:
       'jul 2026 · do the cheap agents pay for themselves: seven instrumented delegations from one session; 3 of 7 caught something I had missed, 1 was a false finding, and no saving is claimed because the counterfactual is not measurable',
     cmdDownloadResearchHint:
-      'type the name to grab one, e.g. `download catalog`. a unique prefix works too: `download blind`.',
+      'a unique prefix works too, so `download blind` gets the blind test.',
     cmdDownloadPageHint:
       'or open /research to read the summaries and grab them from one page.',
     cmdDownloadTryHint: 'type `download` on its own to see every document.',
