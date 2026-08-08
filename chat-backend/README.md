@@ -280,20 +280,26 @@ The classifiers are anchored on the real refusal wording so a regression can't
 false-pass.
 
 **It does not all pass, and the number is the point.** Measured live on
-2026-08-08: **24 of 27**. Off-topic code-chunk leaks, poem and translate tasks
+2026-08-08: **26 of 27**. Off-topic code-chunk leaks, poem and translate tasks
 all refuse, and so do all four injection payloads since the instruction-attack
-gate landed (they were 1 of 4 before it). Three cases still fail, each tracked
-rather than papered over:
+gate landed (they were 1 of 4 before it). One case still fails:
 
-- `i18n: finnish question answers in english` — the case asserts English-only
-  while the deployment runs `FORCE_ENGLISH=0` and `RAG_ALLOW_FINNISH=1` on
-  purpose. The test is wrong, not the system, and it should assert that the
-  answer language matches the question's.
 - `golden/offcorpus: refuse-out_of_scope-5` — a karjalanpiirakka recipe request
   retrieves the Finnish-language research posts and gets answered from them. The
   Finnish-magnet retrieval residual, not a new fault.
-- `grounding: vague topic stays grounded` — answers in Finnish, so it may be
-  tripping the same English-only assumption as the first; unclassified.
+
+**Two of the three former failures were the harness being wrong, not the
+backend.** `--allow-finnish` defaulted to off and nothing passed it, `ragctl
+verify` included, so the gate asserted English-only against a deployment running
+`FORCE_ENGLISH=0` and `RAG_ALLOW_FINNISH=1`. The policy is detected from the
+backend's own settings now and printed in the run header. The vague-grounding
+case was stale a second way: its grounding terms were auth-token vocabulary from
+before this corpus grew token-COST research, so it failed an answer that named
+the real paper and the real finding.
+
+Both had been red since the deploy gate first ran, which is the part worth
+remembering. A permanently-red case cannot go red for a real reason, and these
+two sat beside a third failure that was real.
 
 An earlier version of this paragraph said "containment holds" while the suite sat
 at 21 of 27. A README that grades itself is worth less than the harness it
