@@ -211,6 +211,16 @@ export const en: Translations = {
         'MIT licensed',
       ],
     },
+    songgenerator: {
+      tagline: 'Swaps out a singer for a handful of sung words',
+      description:
+        'Takes a song, throws the singer away, and puts a small bank of recorded words back in their place, on the same notes and at the same moments. Nothing musical is invented: when each syllable starts, how long it lasts and what note it lands on are all read off the original vocal before that vocal is discarded. Which is why a song with no singing is refused rather than botched. It runs on one GPU at home, and every run writes fourteen versions so you can pick by ear.',
+      highlights: [
+        'Every musical decision stolen, none invented',
+        'Real recordings, no voice synthesis',
+        'Fourteen versions a run, pick by ear',
+      ],
+    },
     'feedback-intelligence': {
       tagline: 'Reads customer feedback without making things up',
       description:

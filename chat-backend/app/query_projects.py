@@ -91,6 +91,18 @@ PROJECT_ALIASES: dict[str, list[str]] = {
         "palautetta",
         "palautteet",
     ],
+    "songgenerator": [
+        "songgenerator",
+        "song generator",
+        "song-generator",
+        # What a visitor calls it when they do not know the name. These are
+        # specific enough not to collide: AudiobookMaker is the other audio
+        # project and it synthesises speech from text rather than moving a
+        # singer's notes around.
+        "word bank",
+        "sanapankki",
+        "biisigeneraattori",
+    ],
     # chat/RAG terms point at the portfolio: the RAG chat IS a portfolio artifact,
     # and without these a "where does this chat run?" question retrieves other
     # projects' deploy chunks (Vercel/Neon/Azure) and the model welds their hosting
@@ -149,7 +161,16 @@ TECH_ALIASES: dict[str, tuple[str, ...]] = {
     "rust": ("passwordmanager",),
     "webassembly": ("passwordmanager",),
     "wasm": ("passwordmanager",),
-    "python": ("audiobookmaker", "claude-continue", "portfolio"),
+    "python": ("audiobookmaker", "claude-continue", "portfolio", "songgenerator"),
+    # Audio DSP. These belong to SongGenerator alone: AudiobookMaker is the other
+    # audio project, but it synthesises speech from text and never separates a
+    # mix or moves a note, so none of these terms is ambiguous between them.
+    "demucs": ("songgenerator",),
+    "pitch shift": ("songgenerator",),
+    "pitch-shift": ("songgenerator",),
+    "formant": ("songgenerator",),
+    "vocal separation": ("songgenerator",),
+    "stem separation": ("songgenerator",),
     "typescript": ("hrm", "platform", "portfolio", "readlog", "spacepotatis"),
     "javascript": ("strudel-patterns", "passwordmanager", "feedback-intelligence"),
     "astro": ("portfolio",),

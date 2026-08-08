@@ -466,6 +466,34 @@ export const projects: Project[] = [
     status: 'live',
   },
   {
+    id: 'songgenerator',
+    name: 'SongGenerator',
+    // A CLI driven by a config file, so 'tool' by the shape rule above, and
+    // every tool in this list rides tier 2. The outermost orbit is the newest
+    // work, continuing the 1.4-unit spacing the other tier-2 planets use.
+    category: 'tool',
+    tier: 2,
+    scale: 0.66,
+    orbitRadius: 22.8,
+    orbitSpeed: 0.01,
+    phase: 18.1,
+    tilt: 0.07,
+    color: '#84cc16',
+    githubUrl: 'https://github.com/MikkoNumminen/SongGenerator',
+    tech: [
+      'Python',
+      'PyTorch',
+      'Demucs',
+      'librosa',
+      'torchcrepe',
+      'WORLD',
+      'pyloudnorm',
+      'soundfile',
+      'pytest',
+    ],
+    status: 'live',
+  },
+  {
     id: 'feedback-intelligence',
     name: 'Feedback Intelligence',
     category: 'app',

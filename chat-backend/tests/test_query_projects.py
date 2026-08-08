@@ -114,6 +114,7 @@ def test_every_language_routes_to_its_projects() -> None:
         "audiobookmaker",
         "claude-continue",
         "portfolio",
+        "songgenerator",
     }
     assert detect_projects("how much TypeScript is there") == {
         "hrm",
