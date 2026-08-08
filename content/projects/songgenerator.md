@@ -52,10 +52,10 @@ Two clips get special handling. A **shout** is never pitch-shifted, time-stretch
 
 ## Stack and status
 
-Python 3.11 on Windows with an NVIDIA GPU. PyTorch and torchaudio, Demucs for separation, librosa for analysis utilities, torchcrepe for pitch extraction, pyworld for formant-preserving pitch shift, pyloudnorm for level matching, soundfile for wav I/O, yt-dlp for fetching a song from a page address. Ruff and mypy in strict mode. MIT licensed and public.
+Python 3.11 on Windows with an NVIDIA GPU. PyTorch and torchaudio, Demucs for separation, librosa for analysis utilities, torchcrepe for pitch extraction, pyworld for formant-preserving pitch shift, pyloudnorm for level matching, soundfile for wav I/O, yt-dlp for fetching a song from a page address. Ruff, with each of its ignores justified in the config, and mypy. MIT licensed and public.
 
-First commit 2026-08-03, which makes it the newest project in the portfolio.
+SongGenerator's first commit was 2026-08-03, which makes SongGenerator the newest project in the portfolio.
 
 All four build stages are done: separation and mode detection, melody and timing extraction, word mapping, and formant-corrected pitch shifting. 561 tests. A full run of fourteen renders takes about four minutes on an RTX 3080 Ti.
 
-An HTTP edge and a web interface are designed but not built: the ports are written down before they have two implementations, because retrofitting them later would touch every caller. Mode B, the no-vocal case, remains deliberately unimplemented.
+The web interface is designed and not yet built, and its ports are written down before they have two implementations because retrofitting them later would touch every caller. An HTTP edge is being built to that design, shelling out to the same entry points the CLI uses so no frontend has to import pipeline internals. Mode B, the no-vocal case, remains deliberately unimplemented.
