@@ -469,12 +469,18 @@ export const projects: Project[] = [
     id: 'songgenerator',
     name: 'SongGenerator',
     // A CLI driven by a config file, so 'tool' by the shape rule above, and
-    // every tool in this list rides tier 2. The outermost orbit is the newest
-    // work, continuing the 1.4-unit spacing the other tier-2 planets use.
+    // every tool in this list rides tier 2.
+    //
+    // 23.0 rather than the 22.8 that just continues the belt's 1.4-unit
+    // spacing. Spacing is not the constraint, clearance is: a planet renders at
+    // PLANET_BASE_RADIUS * scale, so this one and claude-agents together span
+    // 1.408 and a 1.4 gap puts them in contact. Their orbit speeds differ, so
+    // every relative phase comes round eventually and they would visibly clip.
+    // `projects.test.ts` now asserts the clearance for every pair.
     category: 'tool',
     tier: 2,
     scale: 0.66,
-    orbitRadius: 22.8,
+    orbitRadius: 23.0,
     orbitSpeed: 0.01,
     phase: 18.1,
     tilt: 0.07,

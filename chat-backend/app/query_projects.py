@@ -95,13 +95,26 @@ PROJECT_ALIASES: dict[str, list[str]] = {
         "songgenerator",
         "song generator",
         "song-generator",
-        # What a visitor calls it when they do not know the name. These are
-        # specific enough not to collide: AudiobookMaker is the other audio
-        # project and it synthesises speech from text rather than moving a
-        # singer's notes around.
-        "word bank",
+        # What a visitor calls it when they do not know the name. Both are
+        # specific: AudiobookMaker is the other audio project and it synthesises
+        # speech from text rather than moving a singer's notes around, so
+        # neither word reaches it.
+        #
+        # "word bank" was here and is not, because it is not a name for this
+        # project so much as two ordinary words: "do you have a word bank of
+        # skills" claimed it, and "the readlog word bank" pulled it in alongside
+        # readlog. A wrong guess only re-orders candidates, but a phrase that
+        # common re-orders them constantly, and the project has a real name.
+        # Finnish inflections spelled out, because alias matching is
+        # word-boundary rather than stemmed: "sanapankki" alone does not see
+        # "sanapankista", which is how the question is actually asked.
         "sanapankki",
+        "sanapankin",
+        "sanapankista",
+        "sanapankkia",
         "biisigeneraattori",
+        "biisigeneraattorin",
+        "biisigeneraattorista",
     ],
     # chat/RAG terms point at the portfolio: the RAG chat IS a portfolio artifact,
     # and without these a "where does this chat run?" question retrieves other
