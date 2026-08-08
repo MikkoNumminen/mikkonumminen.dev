@@ -114,6 +114,7 @@ def test_every_language_routes_to_its_projects() -> None:
         "audiobookmaker",
         "claude-continue",
         "portfolio",
+        "songgenerator",
     }
     assert detect_projects("how much TypeScript is there") == {
         "hrm",
@@ -268,6 +269,25 @@ def test_wants_cv_reaches_the_verb_not_only_the_noun() -> None:
     assert wants_cv("have you worked anywhere interesting")
     assert wants_cv("where did you work before")
     assert wants_cv("tell me about previous employers")
+
+
+def test_songgenerator_aliases_do_not_claim_ordinary_words() -> None:
+    """Found in review. "word bank" was an alias, and it is two ordinary words
+    rather than a name: "do you have a word bank of skills" claimed the project,
+    and "the readlog word bank" dragged it in beside readlog. A wrong guess only
+    re-orders candidates, but a phrase that common re-orders them constantly.
+    """
+    assert detect_projects("do you have a word bank of skills") == set()
+    assert detect_projects("tell me about the readlog word bank") == {"readlog"}
+
+
+def test_songgenerator_is_found_by_its_name_and_finnish_inflections() -> None:
+    """Alias matching is word-boundary, not stemmed, so every Finnish case has
+    to be spelled out: "sanapankki" alone does not see "sanapankista"."""
+    assert detect_projects("what is songgenerator") == {"songgenerator"}
+    assert detect_projects("song generator") == {"songgenerator"}
+    assert detect_projects("kerro sanapankista") == {"songgenerator"}
+    assert detect_projects("mika on biisigeneraattori") == {"songgenerator"}
 
 
 def test_wants_cv_reaches_the_24_years_before_programming() -> None:

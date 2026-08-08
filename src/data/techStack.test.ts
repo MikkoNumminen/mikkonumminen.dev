@@ -159,6 +159,13 @@ const DELIBERATELY_OMITTED: Readonly<Record<string, string>> = {
   Neon: 'a managed Postgres vendor; provisioning is not a skill',
   'Bootstrap 5': 'a Tailwind competitor, not a sub-technology, and dated',
   'wasm-bindgen': 'implementation detail of WebAssembly + Rust, both listed',
+  // SongGenerator's audio stack. Demucs, librosa and WORLD are shown as Python
+  // secondaries because each is a distinct capability (separation, analysis,
+  // formant-preserving pitch shift). These three are not.
+  torchcrepe:
+    'a pitch-tracking model wrapper; the capability is the analysis, not the wrapper',
+  pyloudnorm: 'commodity library — loudness normalisation to a standard',
+  soundfile: 'commodity library — wav read/write',
 };
 
 describe('techStack curation', () => {

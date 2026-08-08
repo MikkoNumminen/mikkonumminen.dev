@@ -35,6 +35,8 @@ AI-native development is part of the toolchain, not a side note. I maintain a ca
 
 - **ReadLog**: reading tracker. Next.js, PostgreSQL, parallel multi-source book search (Open Library + Google Books) with deduplication. [read-log-pi.vercel.app](https://read-log-pi.vercel.app)
 
+- **SongGenerator**: replaces a song's vocal with a bank of sung word clips, on the same notes and at the same moments. Python, PyTorch, Demucs separation, formant-preserving pitch shift via WORLD. Nothing musical is invented: note, onset and duration are read off the original vocal before it is discarded, and a song with no singing is refused rather than attempted. Runs locally on one GPU. 561 tests. [github.com/MikkoNumminen/SongGenerator](https://github.com/MikkoNumminen/SongGenerator)
+
 - **Strudel Patterns**: algorithmic music library in Strudel (JS port of TidalCycles). Scores Spacepotatis and this portfolio site.
 
 - **Portfolio**: this site. Astro, Three.js, GSAP, Tailwind CSS v4. Four pages, each a distinct interactive concept. The pages are static; the contact terminal talks to a self-hosted LLM (FastAPI, pgvector, hybrid retrieval) running on my own GPU behind a Tailscale funnel.

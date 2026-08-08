@@ -167,6 +167,35 @@ describe('solar-system layout', () => {
     expect(radius).toBeLessThan(68);
   });
 
+  it('keeps the tier-2 belt clear of itself', () => {
+    // Spacing is not the constraint, clearance is. A planet renders as a sphere
+    // of PLANET_BASE_RADIUS * scale, so two neighbours need a radius gap wider
+    // than the sum of those or the bodies touch, and since orbit speeds differ
+    // every relative phase comes round eventually: a pair that can overlap will.
+    //
+    // Written after adding a planet at the belt's usual 1.4-unit spacing with a
+    // larger scale than its neighbour, which put the sum of radii at 1.408
+    // against a 1.4 gap. Negative by 0.008, and nothing failed.
+    //
+    // SCOPED TO TIER 2 ON PURPOSE. The inner belt runs far closer than sphere
+    // clearance and always has (platform to hrm is -0.905 by this measure), so
+    // asserting it there would fail the shipped layout rather than protect it.
+    // Out here the margins are all positive, which makes it a real invariant
+    // and makes a new planet that breaks it a real regression.
+    const belt = projects
+      .filter((p) => !p.isSun && !p.moonOf && p.tier === 2)
+      .sort((a, b) => a.orbitRadius - b.orbitRadius);
+    expect(belt.length).toBeGreaterThanOrEqual(5);
+    const touching = belt.slice(1).flatMap((p, i) => {
+      const inner = belt[i]!;
+      const gap = p.orbitRadius - inner.orbitRadius;
+      const spans = PLANET_BASE_RADIUS * (inner.scale + p.scale);
+      const margin = Number((gap - spans).toFixed(3));
+      return margin > 0 ? [] : [{ pair: `${inner.id}->${p.id}`, margin }];
+    });
+    expect(touching).toEqual([]);
+  });
+
   it('gives the star no orbit of its own', () => {
     // Phase and tilt describe a path around something. The star has none, so
     // non-zero values there are stale layout data pretending to be real.

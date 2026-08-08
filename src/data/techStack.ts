@@ -95,6 +95,9 @@ export const techStack: TechCategory[] = [
         name: 'Python',
         secondaries: [
           { name: 'PyTorch' },
+          { name: 'Demucs' },
+          { name: 'librosa' },
+          { name: 'WORLD' },
           { name: 'PyMuPDF' },
           { name: 'ebooklib' },
           { name: 'Tesseract' },

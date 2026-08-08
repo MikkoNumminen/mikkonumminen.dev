@@ -213,6 +213,16 @@ export const fi: Translations = {
         'MIT-lisenssi',
       ],
     },
+    songgenerator: {
+      tagline: 'Vaihtaa laulajan kouralliseen laulettuja sanoja',
+      description:
+        'Ottaa kappaleen, heittää laulajan pois ja laittaa tilalle pienen pankin äänitettyjä sanoja, samoille nuoteille ja samoihin kohtiin. Mitään musiikillista ei keksitä: jokaisen tavun alkuhetki, kesto ja nuotti luetaan alkuperäisestä lauluraidasta ennen kuin raita heitetään pois. Siksi kappale, jossa ei lauleta, torjutaan mieluummin kuin sössitään. Pyörii yhdellä näytönohjaimella kotona, ja jokainen ajo kirjoittaa neljätoista versiota, joista voi valita korvakuulolta.',
+      highlights: [
+        'Jokainen musiikillinen päätös varastettu, ei yhtään keksitty',
+        'Oikeita äänityksiä, ei äänisynteesiä',
+        'Neljätoista versiota per ajo, valinta korvakuulolta',
+      ],
+    },
     'feedback-intelligence': {
       tagline: 'Lukee asiakaspalautetta keksimättä omiaan',
       description:

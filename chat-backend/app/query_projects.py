@@ -91,6 +91,31 @@ PROJECT_ALIASES: dict[str, list[str]] = {
         "palautetta",
         "palautteet",
     ],
+    "songgenerator": [
+        "songgenerator",
+        "song generator",
+        "song-generator",
+        # What a visitor calls it when they do not know the name. Both are
+        # specific: AudiobookMaker is the other audio project and it synthesises
+        # speech from text rather than moving a singer's notes around, so
+        # neither word reaches it.
+        #
+        # "word bank" was here and is not, because it is not a name for this
+        # project so much as two ordinary words: "do you have a word bank of
+        # skills" claimed it, and "the readlog word bank" pulled it in alongside
+        # readlog. A wrong guess only re-orders candidates, but a phrase that
+        # common re-orders them constantly, and the project has a real name.
+        # Finnish inflections spelled out, because alias matching is
+        # word-boundary rather than stemmed: "sanapankki" alone does not see
+        # "sanapankista", which is how the question is actually asked.
+        "sanapankki",
+        "sanapankin",
+        "sanapankista",
+        "sanapankkia",
+        "biisigeneraattori",
+        "biisigeneraattorin",
+        "biisigeneraattorista",
+    ],
     # chat/RAG terms point at the portfolio: the RAG chat IS a portfolio artifact,
     # and without these a "where does this chat run?" question retrieves other
     # projects' deploy chunks (Vercel/Neon/Azure) and the model welds their hosting
@@ -149,7 +174,16 @@ TECH_ALIASES: dict[str, tuple[str, ...]] = {
     "rust": ("passwordmanager",),
     "webassembly": ("passwordmanager",),
     "wasm": ("passwordmanager",),
-    "python": ("audiobookmaker", "claude-continue", "portfolio"),
+    "python": ("audiobookmaker", "claude-continue", "portfolio", "songgenerator"),
+    # Audio DSP. These belong to SongGenerator alone: AudiobookMaker is the other
+    # audio project, but it synthesises speech from text and never separates a
+    # mix or moves a note, so none of these terms is ambiguous between them.
+    "demucs": ("songgenerator",),
+    "pitch shift": ("songgenerator",),
+    "pitch-shift": ("songgenerator",),
+    "formant": ("songgenerator",),
+    "vocal separation": ("songgenerator",),
+    "stem separation": ("songgenerator",),
     "typescript": ("hrm", "platform", "portfolio", "readlog", "spacepotatis"),
     "javascript": ("strudel-patterns", "passwordmanager", "feedback-intelligence"),
     "astro": ("portfolio",),
