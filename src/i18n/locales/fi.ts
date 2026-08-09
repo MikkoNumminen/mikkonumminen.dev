@@ -107,7 +107,11 @@ export const fi: Translations = {
     pdfLabel: 'PDF',
     downloadAria: 'Lataa {title} PDF-tiedostona',
     readLabel: 'Lue',
+    aboutLabel: 'Tietoa',
     readAria: 'Lue {title} selaimessa',
+    aboutAria: 'Tietoa dokumentista {title}',
+    companionNotice:
+      'PDF on julkaistu dokumentti. Tämä sivu on sen oheisteksti, eikä siinä ole PDF:n kuvia ja taulukoita.',
     backToList: 'Kaikki tutkimukset',
     englishNotice:
       'Tämä dokumentti on englanniksi. Muu sivusto on käännetty, paperit eivät, koska käännetty mittaus on eri dokumentti ja luen mieluummin sen, jonka oikeasti ajoin.',

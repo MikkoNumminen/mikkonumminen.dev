@@ -23,7 +23,7 @@ import path from 'node:path';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { asLocale, getTranslations, localizePath } from '../i18n';
 import { localizePapers, monthLabel, type LocalizedPaper } from '../data/papers';
-import { isReadable } from '../../scripts/lib/paper-body.mjs';
+import { kindFor } from '../../scripts/lib/paper-sources.mjs';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
@@ -88,34 +88,50 @@ const sizeOf = (filename: string): string => {
 
     <ol class="research__list">
       {
-        papers.map((paper) => (
-          <li class="research__item">
-            <time class="research__date" datetime={paper.date}>
-              {monthLabel(paper.date, locale)}
-            </time>
-            <h2 class="research__name">{paper.title}</h2>
-            <p class="research__summary">{paper.summary}</p>
-            <p class="research__actions">
-              {isReadable(paper.filename) && (
+        papers.map((paper) => {
+          // Resolved once: the listing and the route must agree on which papers
+          // have a page, and calling the predicate three times invites them to
+          // drift apart in a future edit.
+          const kind = kindFor(paper.filename);
+          return (
+            <li class="research__item">
+              <time class="research__date" datetime={paper.date}>
+                {monthLabel(paper.date, locale)}
+              </time>
+              <h2 class="research__name">{paper.title}</h2>
+              <p class="research__summary">{paper.summary}</p>
+              <p class="research__actions">
+                {/*
+                'About' rather than 'Read' for a companion page, so the
+                distinction reaches a visitor before the click instead of as a
+                notice after it.
+              */}
+                {kind && (
+                  <a
+                    class="research__read"
+                    href={`${localizePath('/research', locale)}/${paper.id}`}
+                    aria-label={(kind === 'full'
+                      ? t.researchPage.readAria
+                      : t.researchPage.aboutAria
+                    ).replace('{title}', paper.title)}
+                  >
+                    {kind === 'full'
+                      ? t.researchPage.readLabel
+                      : t.researchPage.aboutLabel}
+                  </a>
+                )}
                 <a
-                  class="research__read"
-                  href={`${localizePath('/research', locale)}/${paper.id}`}
-                  aria-label={t.researchPage.readAria.replace('{title}', paper.title)}
+                  class="research__download"
+                  href={paper.url}
+                  download={paper.filename}
+                  aria-label={t.researchPage.downloadAria.replace('{title}', paper.title)}
                 >
-                  {t.researchPage.readLabel}
+                  {t.researchPage.pdfLabel} · {sizeOf(paper.filename)}
                 </a>
-              )}
-              <a
-                class="research__download"
-                href={paper.url}
-                download={paper.filename}
-                aria-label={t.researchPage.downloadAria.replace('{title}', paper.title)}
-              >
-                {t.researchPage.pdfLabel} · {sizeOf(paper.filename)}
-              </a>
-            </p>
-          </li>
-        ))
+              </p>
+            </li>
+          );
+        })
       }
     </ol>
   </section>

@@ -95,6 +95,87 @@ export const MAP = [
   },
 ];
 
+/**
+ * Markdown the READER may render, over and above what `MAP` regenerates.
+ *
+ * WHY THIS IS A SECOND LIST. `MAP` answers "what regenerates this PDF", and the
+ * prebuild acts on it: adding an entry there makes `render-audit-pdfs` overwrite
+ * the served PDF. Two of the papers below are DESIGNED documents — kickers,
+ * numbered sections, stat callouts, page furniture — that were not produced by
+ * `render-audit-doc.mjs` and would be destroyed by re-rendering them from prose.
+ * Their markdown is nonetheless the same text, so it is safe to READ and unsafe
+ * to RENDER BACK. Conflating the two questions would have quietly replaced a
+ * designed report with a plain one on the next build.
+ *
+ * ADMISSION CRITERION, measured per paper with `pdftotext` against the served
+ * PDF rather than assumed from a filename:
+ *
+ *   paper                     md/pdf words   sentences absent   verdict
+ *   poro-findings                     100%              2 / 69   text matches
+ *   rag-finnish-methodology            91%              6 / 37   the 6 are page
+ *                                                                furniture + 1
+ *
+ * DELIBERATELY ABSENT, same measurement, opposite answer:
+ *
+ *   rag-finnish-experiment            100%             20 / 36   equal length,
+ *       different document: the PDF is an infographic report with a VRAM table
+ *       and a discipline table the post does not contain.
+ *   rag-finnish-blind-test             72%             67 / 67   different
+ *   poro-finnish-review                66%             34 / 39   different
+ *
+ * The last three would render a parallel write-up as though it were the paper.
+ * `skills-registry.pdf` is absent for a different reason: it is generated from
+ * JSON, so it has no prose source at all.
+ */
+export const READER_ONLY = [
+  { pub: 'poro-findings.pdf', src: 'content/posts/poro-findings.md' },
+  {
+    pub: 'rag-finnish-methodology.pdf',
+    src: 'content/posts/rag-finnish-methodology.md',
+  },
+];
+
+/**
+ * Papers whose in-repo prose is a COMPANION to the PDF, not the PDF's text.
+ *
+ * Measured the same way as `READER_ONLY` and failing the same test: 66-72% of
+ * the published words for two of them, and for `rag-finnish-experiment` a full
+ * word count with 20 of 36 sentences absent, because that PDF is an infographic
+ * report carrying tables the post never had.
+ *
+ * The earlier answer was to leave all three as a download and nothing else,
+ * which is defensible and unhelpful: a visitor deciding whether a 227 KB PDF is
+ * worth opening got a one-line summary and no way to find out. These render as
+ * their own page, labelled for what they are, with the PDF named as the
+ * document. An introduction to a paper is worth having; an introduction
+ * PRESENTED as the paper is not, and the label is the whole difference.
+ */
+export const COMPANION = [
+  {
+    pub: 'rag-finnish-experiment.pdf',
+    src: 'content/posts/rag-finnish-experiment.md',
+  },
+  {
+    pub: 'rag-finnish-blind-test.pdf',
+    src: 'content/posts/rag-finnish-blind-test.md',
+  },
+  { pub: 'poro-finnish-review.pdf', src: 'content/posts/poro-finnish-review.md' },
+];
+
+/**
+ * How faithfully a paper's page reproduces its PDF: 'full', 'companion', or
+ * null when there is no prose at all (`skills-registry.pdf` is generated from
+ * JSON). The page renders a notice for 'companion' and the listing labels the
+ * link differently, so the distinction reaches a reader before the click rather
+ * than after it.
+ */
+export function kindFor(pubPdf) {
+  if (MAP.some((e) => e.pub === pubPdf) || READER_ONLY.some((e) => e.pub === pubPdf)) {
+    return 'full';
+  }
+  return COMPANION.some((e) => e.pub === pubPdf) ? 'companion' : null;
+}
+
 /** Newest dated file matching `re`, by the date in the filename. */
 export function latestMd(names, re) {
   return names
@@ -111,7 +192,10 @@ export function latestMd(names, re) {
  * reason the regex form exists and why the reader must not hardcode a filename.
  */
 export function sourceFor(pubPdf) {
-  const entry = MAP.find((e) => e.pub === pubPdf);
+  const entry =
+    MAP.find((e) => e.pub === pubPdf) ??
+    READER_ONLY.find((e) => e.pub === pubPdf) ??
+    COMPANION.find((e) => e.pub === pubPdf);
   // Not in the map is a real answer: two published papers deliberately have no
   // faithful source here.
   if (!entry) return null;

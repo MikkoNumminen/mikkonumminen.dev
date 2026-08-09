@@ -636,22 +636,49 @@ test.describe('research reader', () => {
     });
   });
 
+  test('a companion page says so, and a full one does not', async ({ page }) => {
+    // The label is the whole difference between an introduction and a
+    // misrepresentation, so it is asserted on both sides rather than just the
+    // side that carries the notice.
+    await page.goto('/research/blindtest');
+    await expect(page.locator('.paper__notice--companion')).toBeVisible();
+    await expect(page.locator('.paper__body')).toBeVisible();
+
+    await page.goto('/research/study');
+    await expect(page.locator('.paper__notice--companion')).toHaveCount(0);
+  });
+
+  test('the listing distinguishes Read from About before the click', async ({ page }) => {
+    await page.goto('/research');
+    // Whitespace-tolerant: the Astro template leaves newlines inside the anchor,
+    // so an anchored /^Read$/ matches nothing.
+    const read = page.locator('.research__read', { hasText: /^\s*Read\s*$/ });
+    const about = page.locator('.research__read', { hasText: /^\s*About\s*$/ });
+    expect(await read.count(), 'no full readers').toBeGreaterThanOrEqual(7);
+    expect(await about.count(), 'no companion pages').toBeGreaterThanOrEqual(3);
+    // The companion papers specifically must not be offered as full reads.
+    for (const id of ['blindtest', 'translations', 'finnish']) {
+      await expect(page.locator(`a[href$="/research/${id}"]`)).toHaveText('About');
+    }
+  });
+
   test('a paper with no in-repo source offers no reader link', async ({ page }) => {
     // blindtest and translations exist here only as condensed copies, so the
     // listing must not offer a Read link that would render a summary as the
     // document. Named rather than counted: `reads < total` also passes for the
     // wrong reasons and would FAIL the day the remaining papers get sources,
     // which is progress and should not read as a regression.
+    // `catalog` is generated from JSON and has no prose at all, so it gets no
+    // page. This case named blindtest and translations until they became
+    // companion pages; the property is unchanged, the paper it applies to moved.
     await page.goto('/research');
-    for (const id of ['blindtest', 'translations']) {
-      await expect(
-        page.locator(`a[href$="/research/${id}"]`),
-        `${id} has no faithful source in this repo, so it must not link a reader`,
-      ).toHaveCount(0);
-    }
-    // Guards the guard: if the listing stopped rendering Read links entirely,
-    // the loop above would pass while the feature was gone.
-    expect(await page.locator('.research__read').count()).toBeGreaterThanOrEqual(5);
+    await expect(
+      page.locator('a[href$="/research/catalog"]'),
+      'the catalog is generated from JSON and has no prose to introduce',
+    ).toHaveCount(0);
+    // Guards the guard: if the listing stopped rendering links entirely, the
+    // assertion above would pass while the feature was gone.
+    expect(await page.locator('.research__read').count()).toBeGreaterThanOrEqual(10);
   });
 });
 

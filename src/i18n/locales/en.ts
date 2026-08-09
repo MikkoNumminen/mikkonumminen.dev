@@ -105,7 +105,11 @@ export const en: Translations = {
     pdfLabel: 'PDF',
     downloadAria: 'Download {title} as a PDF',
     readLabel: 'Read',
+    aboutLabel: 'About',
     readAria: 'Read {title} in the browser',
+    aboutAria: 'About {title}',
+    companionNotice:
+      'The PDF is the published document. This page is the write-up that goes with it, and it does not carry the figures and tables the PDF does.',
     backToList: 'All research',
     englishNotice:
       'This document is in English. The rest of the site is translated; the papers are not, because a translated measurement is a different document and I would rather you read the one I actually ran.',
