@@ -23,7 +23,7 @@ export const getStaticPaths = (() => {
 // `kind` is non-null by construction: this route only exists for papers
 // `readPaperBody` returned a body for, and that is the same condition.
 const { paper, html, source, kind } = Astro.props as typeof Astro.props & {
-  kind: 'full' | 'companion';
+  kind: 'full' | 'companion' | 'generated';
 };
 ---
 

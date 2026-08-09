@@ -163,18 +163,41 @@ export const COMPANION = [
 ];
 
 /**
- * How faithfully a paper's page reproduces its PDF: 'full', 'companion', or
- * null when there is no prose at all (`skills-registry.pdf` is generated from
- * JSON). The page renders a notice for 'companion' and the listing labels the
- * link differently, so the distinction reaches a reader before the click rather
- * than after it.
+ * How faithfully a paper's page reproduces its PDF:
+ *
+ *   'full'       the page IS the PDF's text
+ *   'companion'  prose that accompanies the PDF, measured as not reproducing it
+ *   'generated'  the same source data as the PDF, rendered a second way
+ *   null         no page at all
+ *
+ * The page renders a notice for the two inexact kinds, worded differently
+ * because they are inexact for different reasons, and the listing labels the
+ * link so the distinction reaches a reader before the click.
  */
 export function kindFor(pubPdf) {
   if (MAP.some((e) => e.pub === pubPdf) || READER_ONLY.some((e) => e.pub === pubPdf)) {
     return 'full';
   }
-  return COMPANION.some((e) => e.pub === pubPdf) ? 'companion' : null;
+  if (COMPANION.some((e) => e.pub === pubPdf)) return 'companion';
+  // 'generated' rather than 'companion': the page is not a write-up that
+  // accompanies the PDF, it is the same data rendered a second way, and telling
+  // a reader otherwise would be inaccurate in the direction this whole tier
+  // exists to avoid.
+  return GENERATED.some((e) => e.pub === pubPdf) ? 'generated' : null;
 }
+
+/**
+ * The paper with no prose anywhere: its page is built from the same JSON the PDF
+ * is built from.
+ *
+ * Faithful by construction rather than by comparison — there is no second text
+ * that could drift, because there is only one source. It is still a COMPANION,
+ * because `build-skills-pdf.mjs` renders a hero, a calibration chart, a findings
+ * section and an appendix that the page does not carry.
+ */
+export const GENERATED = [
+  { pub: 'skills-registry.pdf', src: 'public/data/skills-registry.json' },
+];
 
 /** Newest dated file matching `re`, by the date in the filename. */
 export function latestMd(names, re) {
@@ -195,7 +218,8 @@ export function sourceFor(pubPdf) {
   const entry =
     MAP.find((e) => e.pub === pubPdf) ??
     READER_ONLY.find((e) => e.pub === pubPdf) ??
-    COMPANION.find((e) => e.pub === pubPdf);
+    COMPANION.find((e) => e.pub === pubPdf) ??
+    GENERATED.find((e) => e.pub === pubPdf);
   // Not in the map is a real answer: two published papers deliberately have no
   // faithful source here.
   if (!entry) return null;

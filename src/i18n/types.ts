@@ -96,6 +96,8 @@ export interface Translations {
     aboutAria: string;
     /** Shown on a companion page, naming the PDF as the document. */
     companionNotice: string;
+    /** Shown on a page generated from the same data as its PDF. */
+    generatedNotice: string;
     backToList: string;
     /** Why the body is English on the Finnish route. */
     englishNotice: string;

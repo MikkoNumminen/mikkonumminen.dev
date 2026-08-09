@@ -10,15 +10,16 @@
  * so a Finnish reader gets Finnish navigation and an explanation rather than
  * an unexplained wall of English.
  *
- * TWO KINDS OF PAGE. A 'full' page reproduces the PDF's text and says nothing
+ * THREE KINDS OF PAGE. A 'full' page reproduces the PDF's text and says nothing
  * about it. A 'companion' renders prose that ACCOMPANIES the PDF — measured at
- * 66-72% of the published words, or a different document at the same length —
- * and carries a notice naming the PDF as the document. An introduction to a
- * paper is worth having; an introduction presented as the paper is not, and the
- * notice is the entire difference. `paper-sources.mjs` decides which is which.
+ * 66-72% of the published words, or a different document at the same length. A
+ * 'generated' page is built from the same data the PDF is built from, so its
+ * numbers agree by construction while its presentation does not.
  *
- * Not every paper gets one at all: `skills-registry.pdf` is generated from JSON
- * and has no prose to introduce.
+ * The last two carry a notice, worded differently because they are inexact for
+ * different reasons. An introduction to a paper is worth having; an
+ * introduction presented as the paper is not, and the notice is the entire
+ * difference. `paper-sources.mjs` decides which is which.
  *
  * The HTML comes from the renderer that prints the PDFs, so a full page and the
  * download cannot disagree about a table or a coloured cell.
@@ -31,8 +32,12 @@ interface Props {
   paper: LocalizedPaper;
   html: string;
   source: string;
-  /** 'full' reproduces the PDF's text; 'companion' accompanies it. */
-  kind: 'full' | 'companion';
+  /**
+   * 'full' reproduces the PDF's text, 'companion' accompanies it, 'generated'
+   * is the same source data rendered a second way. The last two carry a notice,
+   * worded differently because they are inexact for different reasons.
+   */
+  kind: 'full' | 'companion' | 'generated';
 }
 
 const { paper, html, source, kind } = Astro.props;
@@ -75,11 +80,13 @@ const listHref = localizePath('/research', locale);
       */
       }
       {
-        (kind === 'companion' || locale !== 'en') && (
+        (kind !== 'full' || locale !== 'en') && (
           <aside class="paper__notice">
-            {kind === 'companion' && (
+            {kind !== 'full' && (
               <p class="paper__notice-line paper__notice--companion">
-                {t.researchPage.companionNotice}
+                {kind === 'generated'
+                  ? t.researchPage.generatedNotice
+                  : t.researchPage.companionNotice}
               </p>
             )}
             {locale !== 'en' && (
