@@ -662,24 +662,24 @@ test.describe('research reader', () => {
     }
   });
 
-  test('a paper with no in-repo source offers no reader link', async ({ page }) => {
-    // blindtest and translations exist here only as condensed copies, so the
-    // listing must not offer a Read link that would render a summary as the
-    // document. Named rather than counted: `reads < total` also passes for the
-    // wrong reasons and would FAIL the day the remaining papers get sources,
-    // which is progress and should not read as a regression.
-    // `catalog` is generated from JSON and has no prose at all, so it gets no
-    // page. This case named blindtest and translations until they became
-    // companion pages; the property is unchanged, the paper it applies to moved.
+  test('every paper on the listing has a page', async ({ page }) => {
+    // Rewritten twice by papers gaining pages: it named blindtest and
+    // translations, then catalog. Every research paper has one now, so the
+    // property it was really protecting is asserted directly instead — the
+    // listing never links somewhere that does not exist.
     await page.goto('/research');
-    await expect(
-      page.locator('a[href$="/research/catalog"]'),
-      'the catalog is generated from JSON and has no prose to introduce',
-    ).toHaveCount(0);
-    // Guards the guard: if the listing stopped rendering links entirely, the
-    // assertion above would pass while the feature was gone.
-    expect(await page.locator('.research__read').count()).toBeGreaterThanOrEqual(10);
+    const rows = await page.locator('.research__item').count();
+    const links = page.locator('.research__read');
+    expect(rows, 'no papers listed').toBeGreaterThanOrEqual(11);
+    expect(await links.count(), 'a listed paper has no page').toBe(rows);
+
+    for (let i = 0; i < rows; i += 1) {
+      const href = await links.nth(i).getAttribute('href');
+      const res = await page.request.get(href!);
+      expect(res.status(), `${href} did not serve`).toBe(200);
+    }
   });
+
 });
 
 /**

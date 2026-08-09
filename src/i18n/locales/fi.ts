@@ -112,6 +112,8 @@ export const fi: Translations = {
     aboutAria: 'Tietoa dokumentista {title}',
     companionNotice:
       'PDF on julkaistu dokumentti. Tämä sivu on sen oheisteksti, eikä siinä ole PDF:n kuvia ja taulukoita.',
+    generatedNotice:
+      'Tämä sivu ja PDF rakennetaan samasta rekisteridatasta, joten luvut täsmäävät jo rakenteeltaan. PDF:ssä on lisäksi kalibrointikaaviot ja löydösosio, joita tällä sivulla ei ole.',
     backToList: 'Kaikki tutkimukset',
     englishNotice:
       'Tämä dokumentti on englanniksi. Muu sivusto on käännetty, paperit eivät, koska käännetty mittaus on eri dokumentti ja luen mieluummin sen, jonka oikeasti ajoin.',

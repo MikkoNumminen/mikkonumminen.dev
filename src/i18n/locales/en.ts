@@ -110,6 +110,8 @@ export const en: Translations = {
     aboutAria: 'About {title}',
     companionNotice:
       'The PDF is the published document. This page is the write-up that goes with it, and it does not carry the figures and tables the PDF does.',
+    generatedNotice:
+      'This page and the PDF are built from the same registry data, so the numbers agree by construction. The PDF adds the calibration charts and the findings section this page does not carry.',
     backToList: 'All research',
     englishNotice:
       'This document is in English. The rest of the site is translated; the papers are not, because a translated measurement is a different document and I would rather you read the one I actually ran.',

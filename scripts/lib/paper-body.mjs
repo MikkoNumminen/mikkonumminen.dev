@@ -14,7 +14,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { renderBodyHtml } from '../render-audit-doc.mjs';
-import { kindFor, ROOT, sourceFor } from './paper-sources.mjs';
+import { catalogMarkdown } from './catalog-markdown.mjs';
+import { GENERATED, kindFor, ROOT, sourceFor } from './paper-sources.mjs';
 
 const BLOB = 'https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master';
 
@@ -64,7 +65,11 @@ function rewriteSiblingLinks(md, sourceAbs) {
 export function readPaperBody(pubPdf) {
   const abs = sourceFor(pubPdf);
   if (!abs) return null;
-  const raw = fs.readFileSync(abs, 'utf8');
+  // A generated paper has data where the others have prose. Everything after
+  // this point is identical, so it renders through the same pipeline.
+  const raw = GENERATED.some((e) => e.pub === pubPdf)
+    ? catalogMarkdown()
+    : fs.readFileSync(abs, 'utf8');
   const prepared = rewriteSiblingLinks(stripLeadingH1(stripFrontmatter(raw)), abs);
   return {
     /** 'full' when this reproduces the PDF's text, 'companion' when it accompanies it. */

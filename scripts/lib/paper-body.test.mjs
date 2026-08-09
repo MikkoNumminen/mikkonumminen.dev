@@ -69,14 +69,17 @@ describe('paper sources', () => {
     }
   });
 
-  it('reports no source for a paper that has none, without throwing', () => {
-    // This case used to name poro-finnish-review and rag-finnish-blind-test,
-    // because a condensed copy was treated as no copy. They are COMPANION pages
-    // now, labelled as accompanying their PDF rather than reproducing it, so the
-    // only paper left with no prose at all is the one generated from JSON.
-    // "None" is still a correct answer and must stay distinguishable from a
-    // fault, which is what this asserts.
-    expect(readPaperBody('skills-registry.pdf')).toBeNull();
+  it('reports no source for a paper that is in no list, without throwing', () => {
+    // This case has now been rewritten twice by the papers it named getting
+    // pages: first poro-finnish-review and rag-finnish-blind-test (which became
+    // companions), then skills-registry (which is generated from its JSON). The
+    // PROPERTY has not moved once: an unknown paper is "none", not a fault, and
+    // must stay distinguishable from a mapped source that is missing. There is
+    // no real paper left without a page, so it is asserted on a name that is not
+    // a paper at all.
+    expect(sourceFor('not-a-paper.pdf')).toBeNull();
+    expect(readPaperBody('not-a-paper.pdf')).toBeNull();
+    expect(kindFor('not-a-paper.pdf')).toBeNull();
   });
 });
 
@@ -197,10 +200,13 @@ describe('a companion page never claims to be the paper', () => {
     expect(both, `${both.join(', ')} is both full and companion`).toEqual([]);
   });
 
-  it('gives no page at all to a paper with no prose', () => {
-    // skills-registry.pdf is generated from JSON. A page built from nothing
-    // would be a title and a download button pretending to be an introduction.
-    expect(kindFor('skills-registry.pdf')).toBeNull();
-    expect(readPaperBody('skills-registry.pdf')).toBeNull();
+  it('labels the generated paper as generated, not as prose', () => {
+    // skills-registry.pdf had no page at all until it was built from the same
+    // JSON the PDF is built from. It is not 'companion': that word means prose
+    // written alongside the document, and this is the document's own data.
+    expect(kindFor('skills-registry.pdf')).toBe('generated');
+    expect(readPaperBody('skills-registry.pdf')?.source).toBe(
+      'public/data/skills-registry.json',
+    );
   });
 });
