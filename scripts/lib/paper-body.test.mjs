@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { MAP, ROOT, sourceFor } from './paper-sources.mjs';
+import { MAP, READER_ONLY, ROOT, sourceFor } from './paper-sources.mjs';
 import { isReadable, readPaperBody } from './paper-body.mjs';
 
 const RENDER_SCRIPT = readFileSync(path.join(ROOT, 'scripts/render-audit-pdfs.mjs'), 'utf8');
@@ -77,8 +77,39 @@ describe('paper sources', () => {
   });
 });
 
+describe('the reader list and the PDF-regeneration list stay separate', () => {
+  // THE TRAP THIS GUARDS. `MAP` drives `render-audit-pdfs`, so an entry there
+  // means "rebuild this PDF from that markdown on the next prebuild". Two of the
+  // readable papers are DESIGNED documents — kickers, numbered sections, stat
+  // callouts — that no script in this repo produced. Their prose matches, so
+  // they are safe to READ; regenerating them would replace a designed report
+  // with a plain render and the loss would arrive as a silent build artifact.
+  it('never lists the same paper in both', () => {
+    const inBoth = READER_ONLY.filter((r) => MAP.some((m) => m.pub === r.pub)).map(
+      (r) => r.pub,
+    );
+    expect(
+      inBoth,
+      `${inBoth.join(', ')} is in MAP as well as READER_ONLY, so the next prebuild ` +
+        'will overwrite the served PDF with a plain render of its markdown',
+    ).toEqual([]);
+  });
+
+  it('has entries in both lists', () => {
+    // Guards the guard: either list going empty makes the check above vacuous.
+    expect(MAP.length).toBeGreaterThanOrEqual(5);
+    expect(READER_ONLY.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('resolves every reader-only source to a file that exists', () => {
+    for (const { pub } of READER_ONLY) {
+      expect(sourceFor(pub), `${pub} resolved to nothing`).toBeTruthy();
+    }
+  });
+});
+
 describe('rendered paper bodies', () => {
-  const readable = MAP.map((e) => e.pub);
+  const readable = [...MAP, ...READER_ONLY].map((e) => e.pub);
 
   it.each(readable)('%s renders usable HTML', (pub) => {
     const body = readPaperBody(pub);

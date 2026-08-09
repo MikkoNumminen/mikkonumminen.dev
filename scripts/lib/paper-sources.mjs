@@ -95,6 +95,46 @@ export const MAP = [
   },
 ];
 
+/**
+ * Markdown the READER may render, over and above what `MAP` regenerates.
+ *
+ * WHY THIS IS A SECOND LIST. `MAP` answers "what regenerates this PDF", and the
+ * prebuild acts on it: adding an entry there makes `render-audit-pdfs` overwrite
+ * the served PDF. Two of the papers below are DESIGNED documents — kickers,
+ * numbered sections, stat callouts, page furniture — that were not produced by
+ * `render-audit-doc.mjs` and would be destroyed by re-rendering them from prose.
+ * Their markdown is nonetheless the same text, so it is safe to READ and unsafe
+ * to RENDER BACK. Conflating the two questions would have quietly replaced a
+ * designed report with a plain one on the next build.
+ *
+ * ADMISSION CRITERION, measured per paper with `pdftotext` against the served
+ * PDF rather than assumed from a filename:
+ *
+ *   paper                     md/pdf words   sentences absent   verdict
+ *   poro-findings                     100%              2 / 69   text matches
+ *   rag-finnish-methodology            91%              6 / 37   the 6 are page
+ *                                                                furniture + 1
+ *
+ * DELIBERATELY ABSENT, same measurement, opposite answer:
+ *
+ *   rag-finnish-experiment            100%             20 / 36   equal length,
+ *       different document: the PDF is an infographic report with a VRAM table
+ *       and a discipline table the post does not contain.
+ *   rag-finnish-blind-test             72%             67 / 67   different
+ *   poro-finnish-review                66%             34 / 39   different
+ *
+ * The last three would render a parallel write-up as though it were the paper.
+ * `skills-registry.pdf` is absent for a different reason: it is generated from
+ * JSON, so it has no prose source at all.
+ */
+export const READER_ONLY = [
+  { pub: 'poro-findings.pdf', src: 'content/posts/poro-findings.md' },
+  {
+    pub: 'rag-finnish-methodology.pdf',
+    src: 'content/posts/rag-finnish-methodology.md',
+  },
+];
+
 /** Newest dated file matching `re`, by the date in the filename. */
 export function latestMd(names, re) {
   return names
@@ -111,7 +151,7 @@ export function latestMd(names, re) {
  * reason the regex form exists and why the reader must not hardcode a filename.
  */
 export function sourceFor(pubPdf) {
-  const entry = MAP.find((e) => e.pub === pubPdf);
+  const entry = MAP.find((e) => e.pub === pubPdf) ?? READER_ONLY.find((e) => e.pub === pubPdf);
   // Not in the map is a real answer: two published papers deliberately have no
   // faithful source here.
   if (!entry) return null;
