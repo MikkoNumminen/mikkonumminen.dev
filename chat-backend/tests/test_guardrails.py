@@ -388,6 +388,19 @@ def test_generative_requests_are_declined() -> None:
         "generate a short story set in space",
         "draft an essay on TTS",
         "write me a rap about audiobooks",
+        # A recipe is an artefact like any other: the ask is to AUTHOR content.
+        # This was the last acceptance failure, and it was filed as a Finnish
+        # retrieval problem for weeks. It is not. Measured prose distance:
+        # karjalanpiirakka 0.3295, the same question about Neapolitan pizza
+        # 0.3934, both inside the 0.41 gate. The two off-corpus questions that
+        # DO refuse measure 0.4466 and 0.5418. The framing is what lands close
+        # to this corpus, not the topic.
+        "Can you give me a recipe for an authentic Finnish karjalanpiirakka?",
+        "Can you give me a recipe for an authentic Neapolitan pizza?",
+        "give me a recipe for rye bread",
+        "I want a recipe for karjalanpiirakka",
+        "Anna minulle resepti karjalanpiirakoille.",
+        "Kirjoita resepti ruisleivälle.",
         # verbs the first cut missed
         "pen a poem",
         "tell me a joke",
@@ -416,6 +429,19 @@ def test_real_questions_are_not_generative() -> None:
         "what song-playback library does strudel use?",
         "generate the build script — how is it set up?",
         "tell me about AudiobookMaker",
+        # "recipe" is REAL corpus vocabulary, which is why adding it to the
+        # artefact list needed these: the Spacepotatis project page says each
+        # skill "encodes a project-specific recipe", and the ci-failure-triage
+        # skill is described as walking a "recipe library". Asking about either
+        # must still answer.
+        "What does the ci-failure-triage recipe library contain?",
+        "Tell me about the recipe library in the CI triage skill.",
+        "What recipe does each Spacepotatis skill encode?",
+        "Which skill uses a recipe library built from commit history?",
+        # `anna` was added to the Finnish verbs for "anna minulle resepti"; it is
+        # a common verb, so the artefact anchor is what keeps these answering.
+        "Anna esimerkki Mikon projekteista.",
+        "Kerro reseptikirjastosta.",
         # artefact words NOT anchored to a producing determiner (was a false decline)
         "give me an overview of the songs feature",
         "give a summary of the essays project",

@@ -929,7 +929,19 @@ GENERATIVE_REPLY_FI = (
 # Creative ARTEFACT group, shared by both shapes below.
 _ARTEFACT = (
     r"poems?|haikus?|limericks?|sonnets?|verses?|rhymes?|songs?|lyrics|raps?|"
-    r"jokes?|riddles?|essays?|screenplays?|novels?|poetry|stor(?:y|ies)|tales?"
+    r"jokes?|riddles?|essays?|screenplays?|novels?|poetry|stor(?:y|ies)|tales?|"
+    # `recipes?` added after the karjalanpiirakka case, the last acceptance
+    # failure. "Give me a recipe for X" asks the assistant to author content,
+    # exactly like "write me a poem", and the retrieval gate cannot see the
+    # difference: measured prose distance 0.3295 against a 0.41 threshold, so it
+    # passes as relevant and gets answered from whatever it happened to retrieve.
+    #
+    # NOT a Finnish problem, though it was filed as one for weeks. The same
+    # question about Neapolitan pizza measures 0.3934 and passes too. It is the
+    # "can you give me a recipe for" FRAMING that sits close to this corpus's
+    # instructional prose; the topic is irrelevant. The two questions that DO
+    # refuse (weather, Eurovision) measure 0.4466 and 0.5418.
+    r"recipes?"
 )
 
 # A request like "write me a poem about Helsinki" names an on-corpus topic, so it
@@ -963,10 +975,14 @@ _GENERATIVE_RE = re.compile(
 # excluded — "kerro tarina HRM:n takana" is a legitimate question about a
 # project's story, not a request to author one.
 _GENERATIVE_FI_RE = re.compile(
-    r"\b(?:kirjoita|sepitä|laadi|keksi|runoile|tee|luo)\b(?:\s+\S+){0,2}?\s+"
+    # `anna` (give) is here only because the artefact anchor below constrains it:
+    # "anna esimerkki projektista" is a legitimate request and stays one, because
+    # `esimerkki` is not an artefact. Added with `resepti` because the Finnish
+    # phrasing of the recipe request passes the retrieval gate too, at 0.3699.
+    r"\b(?:kirjoita|sepitä|laadi|keksi|runoile|tee|luo|anna)\b(?:\s+\S+){0,2}?\s+"
     # satu(?!nnai): 'satunnainen' (random) starts with the fairy-tale stem -
     # 'tee satunnainen haku' is a question, not a creative request.
-    r"(?:runo|laulu|tarina|satu(?!nnai)|vitsi|riimi|essee|räppi|loru)\w*",
+    r"(?:runo|laulu|tarina|satu(?!nnai)|vitsi|riimi|essee|räppi|loru|resepti)\w*",
     re.IGNORECASE,
 )
 

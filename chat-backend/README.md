@@ -256,7 +256,7 @@ sole line of defense:
 
 ## Eval + acceptance harness
 
-**Retrieval eval.** `evals/eval_set.json` holds 58 questions with the source(s)
+**Retrieval eval.** `evals/eval_set.json` holds 59 questions with the source(s)
 that must be retrieved (plus out-of-corpus questions that should be refused). The
 runner measures retrieval hit-rate and prints a PASS/FAIL table — the credibility
 metric for the RAG layer and the lever for tuning `WEAK_RETRIEVAL_DISTANCE`.
@@ -272,21 +272,32 @@ docker compose run --rm backend python -m evals.run_eval --min-hit-rate 0.8
 contract** suite run against a _running_ backend: injection no-dump,
 prompt-reveal blocked, off-topic poem + trivia declined, the input cap (400) and
 oversized body (422), and grounded technical answers (answered from the actual
-source under `content/code/`). It runs **27 cases** — **11 static** contract
-cases written here, plus **16 golden** must-refuse queries pulled live from
+source under `content/code/`). It runs **28 cases** — **11 static** contract
+cases written here, plus **17 golden** must-refuse queries pulled live from
 `eval_set.json`, so the eval set stays the single source of adversarial truth
 and a refusal case added there is automatically asserted against the live model.
 The classifiers are anchored on the real refusal wording so a regression can't
 false-pass.
 
-**It does not all pass, and the number is the point.** Measured live on
-2026-08-08: **26 of 27**. Off-topic code-chunk leaks, poem and translate tasks
-all refuse, and so do all four injection payloads since the instruction-attack
-gate landed (they were 1 of 4 before it). One case still fails:
+**It all passes, and the number is still the point.** Measured live on
+2026-08-09: **28 of 28**. It was 21 of 27 four days earlier, and the way it got
+here matters more than the number: of the six that were failing, three were the
+backend (the injection payloads), two were the harness asserting a policy the
+deployment had reversed, and one was a misdiagnosis that survived weeks in this
+file.
 
-- `golden/offcorpus: refuse-out_of_scope-5` — a karjalanpiirakka recipe request
-  retrieves the Finnish-language research posts and gets answered from them. The
-  Finnish-magnet retrieval residual, not a new fault.
+That last one was recorded here as "the Finnish-magnet retrieval residual": a
+karjalanpiirakka recipe request supposedly pulled the Finnish-language research
+posts. Measured, it is not about Finnish at all. The prose distance is 0.3295
+against a 0.41 gate, and the identical question about Neapolitan pizza measures
+0.3934 with no Finnish in it anywhere. It is the "can you give me a recipe for"
+FRAMING that sits close to this corpus's instructional prose. A recipe is
+content to author, like a poem, so `is_generative_request` declines it before
+retrieval. The pizza control is `refuse-out_of_scope-6` in the golden set, so
+the correction is asserted rather than just written down.
+
+A number here going green is worth less than knowing why. Two of these were
+green-adjacent for the wrong reasons for weeks.
 
 **Two of the three former failures were the harness being wrong, not the
 backend.** `--allow-finnish` defaulted to off and nothing passed it, `ragctl

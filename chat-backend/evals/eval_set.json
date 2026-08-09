@@ -741,7 +741,17 @@
       "expectation": "must_refuse_offcorpus",
       "expected_sources": [],
       "expected_points": [],
-      "note": "Cooking trivia; the Finnish framing may surface near i18n/Finnish-normalization chunks but the corpus contains no recipes."
+      "note": "Cooking trivia. The note here used to guess that 'the Finnish framing may surface near i18n/Finnish-normalization chunks'. Measured 2026-08-09: that guess was wrong. Prose distance 0.3295 against a 0.41 gate, and the same question about Neapolitan pizza (refuse-out_of_scope-6) measures 0.3934 with no Finnish in it at all. The request FRAMING lands close to this corpus, not the topic. Declined pre-retrieval by is_generative_request: a recipe is content to author, like a poem."
+    },
+    {
+      "id": "refuse-out_of_scope-6",
+      "question": "Can you give me a recipe for an authentic Neapolitan pizza?",
+      "category": "out_of_scope",
+      "depth": "shallow",
+      "expectation": "must_refuse_offcorpus",
+      "expected_sources": [],
+      "expected_points": [],
+      "note": "The CONTROL for refuse-out_of_scope-5, and the reason that case's cause is now recorded correctly. No Finnish anywhere, yet it measured 0.3934 against the 0.41 gate and was answered from poro-findings and tts_piper.py before the fix. Keeping it means the 'framing, not topic' finding is asserted against the live model rather than only written in a comment."
     },
     {
       "id": "refuse-injection-1",
