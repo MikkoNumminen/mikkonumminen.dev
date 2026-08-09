@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { ROOT } from './paper-sources.mjs';
-import { catalogMarkdown, REGISTRY_PATH } from './catalog-markdown.mjs';
+import { catalogMarkdown, escapeCell, REGISTRY_PATH } from './catalog-markdown.mjs';
 import { readPaperBody } from './paper-body.mjs';
 
 const registry = JSON.parse(
@@ -124,6 +124,28 @@ describe('the catalog is built from the registry', () => {
       }
     }
     expect(tables, 'no tables found').toBeGreaterThanOrEqual(registry.repos.length + 1);
+  });
+
+  it('escapes a backslash before it escapes a pipe', () => {
+    // CodeQL found this (`js/incomplete-sanitization`) and the column-counting
+    // case below could not: that case treats any pipe preceded by a backslash as
+    // escaped, which is exactly the assumption the buggy code made. A test built
+    // on the same misunderstanding as the code will agree with it every time.
+    //
+    // Escaping pipes alone turns `\|` into `\\|`, which markdown reads as an
+    // escaped BACKSLASH followed by a live pipe: a phantom column.
+    expect(escapeCell('a|b')).toBe('a\\|b');
+    expect(escapeCell('a\\|b')).toBe('a\\\\\\|b');
+    expect(escapeCell('a\\b')).toBe('a\\\\b');
+    expect(escapeCell('plain'), 'ordinary text should pass through').toBe('plain');
+
+    // The property behind the examples: after escaping, every pipe is preceded
+    // by an ODD number of backslashes, so markdown sees each one as escaped.
+    for (const raw of ['a|b', 'a\\|b', '\\\\|', '|||', 'a\\\\\\|b']) {
+      for (const m of escapeCell(raw).matchAll(/(\\*)\|/g)) {
+        expect(m[1].length % 2, `pipe left live in ${JSON.stringify(raw)}`).toBe(1);
+      }
+    }
   });
 
   it('stamps the date the registry was generated', () => {

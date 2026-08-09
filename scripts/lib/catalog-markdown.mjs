@@ -29,8 +29,24 @@ export const REGISTRY_PATH = 'public/data/skills-registry.json';
 /** Thousands separators, so 31180138 reads as a number rather than a smear. */
 const num = (n) => Number(n).toLocaleString('en-US');
 
-/** A pipe inside a cell ends the cell, so it has to go. */
-const cell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim();
+/**
+ * Make a string safe to sit inside a `| a | b |` row.
+ *
+ * BACKSLASHES FIRST, then pipes. Escaping only the pipes turns an input that
+ * already contains a backslash-pipe pair into an escaped BACKSLASH followed by a
+ * live pipe, which adds a phantom column and shifts every cell after it.
+ *
+ * Found by CodeQL as `js/incomplete-sanitization`, not by the column-counting
+ * test in this module's suite — that test treats any pipe preceded by a
+ * backslash as escaped, which is precisely the mistake the code was making. A
+ * test written from the same misunderstanding as the code cannot catch it.
+ */
+export const escapeCell = (s) =>
+  String(s ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 /**
  * First sentence of a description, capped.
@@ -90,8 +106,8 @@ export function catalogMarkdown() {
       // longer resolves, and hiding it makes the count in the summary wrong.
       const saved = skill.receipt?.tokens_saved_per_use;
       out.push(
-        `| ${cell(skill.name)}${skill.redirect ? ' *(redirect)*' : ''} ` +
-          `| ${cell(summarise(skill.description))} ` +
+        `| ${escapeCell(skill.name)}${skill.redirect ? ' *(redirect)*' : ''} ` +
+          `| ${escapeCell(summarise(skill.description))} ` +
           `| ${saved ? num(saved) : '—'} |`,
       );
     }
@@ -102,7 +118,7 @@ export function catalogMarkdown() {
     out.push(
       `## Reference: ${ref.label ?? ref.name}`,
       '',
-      `${cell(ref.description)} Measured over ${ref.measurement_window_days} days: ` +
+      `${escapeCell(ref.description)} Measured over ${ref.measurement_window_days} days: ` +
         `${num(ref.invocations_in_window)} invocations, ` +
         `${num(ref.tokens_per_use_avg)} tokens per use on average, ` +
         `${num(ref.annual_total)} a year at that rate.`,
