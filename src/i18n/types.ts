@@ -90,7 +90,12 @@ export interface Translations {
     downloadAria: string;
     /** Link label on a paper that can be read in the browser. */
     readLabel: string;
+    /** Link label for a page that accompanies the PDF rather than reproducing it. */
+    aboutLabel: string;
     readAria: string;
+    aboutAria: string;
+    /** Shown on a companion page, naming the PDF as the document. */
+    companionNotice: string;
     backToList: string;
     /** Why the body is English on the Finnish route. */
     englishNotice: string;

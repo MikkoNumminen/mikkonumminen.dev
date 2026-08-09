@@ -26,9 +26,11 @@ interface Props {
   paper: LocalizedPaper;
   html: string;
   source: string;
+  /** 'full' reproduces the PDF's text; 'companion' accompanies it. */
+  kind: 'full' | 'companion';
 }
 
-const { paper, html, source } = Astro.props;
+const { paper, html, source, kind } = Astro.props;
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 const listHref = localizePath('/research', locale);
@@ -59,6 +61,20 @@ const listHref = localizePath('/research', locale);
           {t.researchPage.pdfAlsoLabel}
         </a>
       </p>
+      {
+        /*
+        Above the English notice on purpose: what this page IS matters more to a
+        reader than what language it is in, and three of the papers are
+        companions rather than reproductions.
+      */
+      }
+      {
+        kind === 'companion' && (
+          <p class="paper__notice paper__notice--companion">
+            {t.researchPage.companionNotice}
+          </p>
+        )
+      }
       {
         locale !== 'en' && (
           <p class="paper__notice" lang="fi">
@@ -146,6 +162,11 @@ const listHref = localizePath('/research', locale);
   .paper__pdf:focus-visible {
     border-color: var(--color-accent, rgba(255, 255, 255, 0.5));
     background: rgba(255, 255, 255, 0.06);
+  }
+
+  .paper__notice--companion {
+    border-left-color: rgba(129, 140, 248, 0.55);
+    color: var(--color-text-muted);
   }
 
   .paper__notice {

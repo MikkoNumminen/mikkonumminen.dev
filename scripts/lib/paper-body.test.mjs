@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { MAP, READER_ONLY, ROOT, sourceFor } from './paper-sources.mjs';
+import { COMPANION, kindFor, MAP, READER_ONLY, ROOT, sourceFor } from './paper-sources.mjs';
 import { isReadable, readPaperBody } from './paper-body.mjs';
 
 const RENDER_SCRIPT = readFileSync(path.join(ROOT, 'scripts/render-audit-pdfs.mjs'), 'utf8');
@@ -70,10 +70,14 @@ describe('paper sources', () => {
   });
 
   it('reports no source for a paper that has none, without throwing', () => {
-    // Two published papers exist here only as condensed copies. "None" is the
-    // correct answer for them and must stay distinguishable from a fault.
-    expect(isReadable('poro-finnish-review.pdf')).toBe(false);
-    expect(readPaperBody('rag-finnish-blind-test.pdf')).toBeNull();
+    // This case used to name poro-finnish-review and rag-finnish-blind-test,
+    // because a condensed copy was treated as no copy. They are COMPANION pages
+    // now, labelled as accompanying their PDF rather than reproducing it, so the
+    // only paper left with no prose at all is the one generated from JSON.
+    // "None" is still a correct answer and must stay distinguishable from a
+    // fault, which is what this asserts.
+    expect(isReadable('skills-registry.pdf')).toBe(false);
+    expect(readPaperBody('skills-registry.pdf')).toBeNull();
   });
 });
 
@@ -109,7 +113,7 @@ describe('the reader list and the PDF-regeneration list stay separate', () => {
 });
 
 describe('rendered paper bodies', () => {
-  const readable = [...MAP, ...READER_ONLY].map((e) => e.pub);
+  const readable = [...MAP, ...READER_ONLY, ...COMPANION].map((e) => e.pub);
 
   it.each(readable)('%s renders usable HTML', (pub) => {
     const body = readPaperBody(pub);
@@ -142,5 +146,42 @@ describe('rendered paper bodies', () => {
     // nothing stated.
     const coloured = readPaperBody('skills-optim-study.pdf');
     expect(coloured.html).toContain('class="legend"');
+  });
+});
+
+
+describe('a companion page never claims to be the paper', () => {
+  // The distinction this tier exists for. A companion carries 66-72% of the
+  // published words (or, for the experiment report, a full word count and a
+  // different document), so rendering one unlabelled would hand a visitor a
+  // parallel write-up as the paper. The label is the entire difference between
+  // useful and dishonest, which makes it worth a test rather than a convention.
+  it('classifies every paper that has a page', () => {
+    for (const { pub } of [...MAP, ...READER_ONLY]) {
+      expect(kindFor(pub), `${pub} should reproduce its PDF`).toBe('full');
+    }
+    for (const { pub } of COMPANION) {
+      expect(kindFor(pub), `${pub} only accompanies its PDF`).toBe('companion');
+    }
+  });
+
+  it('has both kinds, so neither branch is dead', () => {
+    expect(COMPANION.length).toBeGreaterThanOrEqual(3);
+    expect([...MAP, ...READER_ONLY].length).toBeGreaterThanOrEqual(7);
+  });
+
+  it('never files one paper under two kinds', () => {
+    // A paper in COMPANION *and* MAP would render as 'full' and lose its notice,
+    // which is the failure that silently misrepresents a document.
+    const full = new Set([...MAP, ...READER_ONLY].map((e) => e.pub));
+    const both = COMPANION.filter((c) => full.has(c.pub)).map((c) => c.pub);
+    expect(both, `${both.join(', ')} is both full and companion`).toEqual([]);
+  });
+
+  it('gives no page at all to a paper with no prose', () => {
+    // skills-registry.pdf is generated from JSON. A page built from nothing
+    // would be a title and a download button pretending to be an introduction.
+    expect(kindFor('skills-registry.pdf')).toBeNull();
+    expect(readPaperBody('skills-registry.pdf')).toBeNull();
   });
 });

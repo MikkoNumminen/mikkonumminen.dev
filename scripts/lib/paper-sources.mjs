@@ -135,6 +135,47 @@ export const READER_ONLY = [
   },
 ];
 
+/**
+ * Papers whose in-repo prose is a COMPANION to the PDF, not the PDF's text.
+ *
+ * Measured the same way as `READER_ONLY` and failing the same test: 66-72% of
+ * the published words for two of them, and for `rag-finnish-experiment` a full
+ * word count with 20 of 36 sentences absent, because that PDF is an infographic
+ * report carrying tables the post never had.
+ *
+ * The earlier answer was to leave all three as a download and nothing else,
+ * which is defensible and unhelpful: a visitor deciding whether a 227 KB PDF is
+ * worth opening got a one-line summary and no way to find out. These render as
+ * their own page, labelled for what they are, with the PDF named as the
+ * document. An introduction to a paper is worth having; an introduction
+ * PRESENTED as the paper is not, and the label is the whole difference.
+ */
+export const COMPANION = [
+  {
+    pub: 'rag-finnish-experiment.pdf',
+    src: 'content/posts/rag-finnish-experiment.md',
+  },
+  {
+    pub: 'rag-finnish-blind-test.pdf',
+    src: 'content/posts/rag-finnish-blind-test.md',
+  },
+  { pub: 'poro-finnish-review.pdf', src: 'content/posts/poro-finnish-review.md' },
+];
+
+/**
+ * How faithfully a paper's page reproduces its PDF: 'full', 'companion', or
+ * null when there is no prose at all (`skills-registry.pdf` is generated from
+ * JSON). The page renders a notice for 'companion' and the listing labels the
+ * link differently, so the distinction reaches a reader before the click rather
+ * than after it.
+ */
+export function kindFor(pubPdf) {
+  if (MAP.some((e) => e.pub === pubPdf) || READER_ONLY.some((e) => e.pub === pubPdf)) {
+    return 'full';
+  }
+  return COMPANION.some((e) => e.pub === pubPdf) ? 'companion' : null;
+}
+
 /** Newest dated file matching `re`, by the date in the filename. */
 export function latestMd(names, re) {
   return names
@@ -151,7 +192,10 @@ export function latestMd(names, re) {
  * reason the regex form exists and why the reader must not hardcode a filename.
  */
 export function sourceFor(pubPdf) {
-  const entry = MAP.find((e) => e.pub === pubPdf) ?? READER_ONLY.find((e) => e.pub === pubPdf);
+  const entry =
+    MAP.find((e) => e.pub === pubPdf) ??
+    READER_ONLY.find((e) => e.pub === pubPdf) ??
+    COMPANION.find((e) => e.pub === pubPdf);
   // Not in the map is a real answer: two published papers deliberately have no
   // faithful source here.
   if (!entry) return null;

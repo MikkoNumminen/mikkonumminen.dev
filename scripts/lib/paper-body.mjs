@@ -14,7 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { renderBodyHtml } from '../render-audit-doc.mjs';
-import { ROOT, sourceFor } from './paper-sources.mjs';
+import { kindFor, ROOT, sourceFor } from './paper-sources.mjs';
 
 const BLOB = 'https://github.com/MikkoNumminen/mikkonumminen.dev/blob/master';
 
@@ -67,6 +67,8 @@ export function readPaperBody(pubPdf) {
   const raw = fs.readFileSync(abs, 'utf8');
   const prepared = rewriteSiblingLinks(stripLeadingH1(stripFrontmatter(raw)), abs);
   return {
+    /** 'full' when this reproduces the PDF's text, 'companion' when it accompanies it. */
+    kind: kindFor(pubPdf),
     html: renderBodyHtml(prepared),
     /** Repo-relative, shown to the reader so the source is nameable. */
     source: path.relative(ROOT, abs).replace(/\\/g, '/'),

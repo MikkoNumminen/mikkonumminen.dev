@@ -23,7 +23,7 @@ import path from 'node:path';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { asLocale, getTranslations, localizePath } from '../i18n';
 import { localizePapers, monthLabel, type LocalizedPaper } from '../data/papers';
-import { isReadable } from '../../scripts/lib/paper-body.mjs';
+import { kindFor } from '../../scripts/lib/paper-sources.mjs';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
@@ -96,13 +96,23 @@ const sizeOf = (filename: string): string => {
             <h2 class="research__name">{paper.title}</h2>
             <p class="research__summary">{paper.summary}</p>
             <p class="research__actions">
-              {isReadable(paper.filename) && (
+              {/*
+                'About' rather than 'Read' for a companion page, so the
+                distinction reaches a visitor before the click instead of as a
+                notice after it.
+              */}
+              {kindFor(paper.filename) && (
                 <a
                   class="research__read"
                   href={`${localizePath('/research', locale)}/${paper.id}`}
-                  aria-label={t.researchPage.readAria.replace('{title}', paper.title)}
+                  aria-label={(kindFor(paper.filename) === 'full'
+                    ? t.researchPage.readAria
+                    : t.researchPage.aboutAria
+                  ).replace('{title}', paper.title)}
                 >
-                  {t.researchPage.readLabel}
+                  {kindFor(paper.filename) === 'full'
+                    ? t.researchPage.readLabel
+                    : t.researchPage.aboutLabel}
                 </a>
               )}
               <a
