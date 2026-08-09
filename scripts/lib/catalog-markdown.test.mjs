@@ -59,11 +59,71 @@ describe('the catalog is built from the registry', () => {
     expect(md).toContain('*(redirect)*');
   });
 
-  it('quotes the registry totals verbatim, not a recomputation', () => {
+  it('headlines the same skill count the PDF headlines', () => {
+    // THE FINDING THIS EXISTS FOR. The first version quoted `totals.skills`,
+    // so the page said 34 where the PDF said 33 — same file, same day. The PDF
+    // derives ACTIVE skills from the per-skill redirect flags and says why: a
+    // redirect is a tombstone with no receipt, and a stale `totals.redirects`
+    // in a hand-edited registry would desync the headline from the tables.
+    //
+    // "Built from the same source" does not imply "shows the same number". It
+    // only holds if both sides derive it the same way, which is what this pins.
+    const all = registry.repos.flatMap((r) => r.skills);
+    const active = all.filter((skill) => !skill.redirect).length;
     const n = (x) => Number(x).toLocaleString('en-US');
-    expect(md).toContain(n(registry.totals.skills));
+
+    expect(active, 'no redirects in the registry, so this proves nothing').toBeLessThan(
+      all.length,
+    );
+    expect(md).toContain(`${n(active)} skills across`);
+    expect(md).toContain(`| Active skills | ${n(active)} |`);
+    expect(md, 'the page is headlining the raw total again').not.toContain(
+      `${n(all.length)} skills across`,
+    );
+  });
+
+  it('derives it the way build-skills-pdf still derives it', () => {
+    // A source check, because the number above only agrees while the PDF keeps
+    // computing it this way. If that script changes its headline, this fails and
+    // names the file to look at rather than leaving two documents quietly
+    // disagreeing about how many skills exist.
+    const builder = readFileSync(path.join(ROOT, 'scripts/build-skills-pdf.mjs'), 'utf8');
+    expect(
+      builder,
+      'build-skills-pdf.mjs no longer derives activeSkills from the redirect flags; ' +
+        'the catalog page copies that derivation and will now disagree with the PDF',
+    ).toMatch(/const activeSkills[\s\S]{0,200}filter\(\(s\) => !s\.redirect\)/);
+  });
+
+  it('quotes the registry totals it does not derive', () => {
+    const n = (x) => Number(x).toLocaleString('en-US');
     expect(md).toContain(n(registry.totals.annual_tokens_saved));
     expect(md).toContain(n(registry.totals.with_receipts));
+  });
+
+  it('gives every table a non-empty header row', () => {
+    // The summary table shipped as `| | |`, which renders two empty <th> cells:
+    // a blank header row on screen and nothing at all for a screen reader
+    // announcing the column. Every table's first row must name its columns.
+    let tables = 0;
+    let expectHeader = true;
+    for (const line of md.split('\n')) {
+      if (!line.startsWith('|')) {
+        expectHeader = true;
+        continue;
+      }
+      if (!expectHeader) continue;
+      expectHeader = false;
+      tables += 1;
+      const cells = line
+        .split(/(?<!\\)\|/)
+        .slice(1, -1)
+        .map((c) => c.trim());
+      for (const c of cells) {
+        expect(c, `a table header cell is empty: ${line}`).not.toBe('');
+      }
+    }
+    expect(tables, 'no tables found').toBeGreaterThanOrEqual(registry.repos.length + 1);
   });
 
   it('stamps the date the registry was generated', () => {

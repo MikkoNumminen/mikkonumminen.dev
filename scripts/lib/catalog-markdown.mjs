@@ -53,16 +53,30 @@ export function catalogMarkdown() {
   const out = [];
 
   const t = data.totals ?? {};
+  const all = data.repos.flatMap((r) => r.skills);
+  // ACTIVE skills, derived from the per-skill redirect flags, exactly as
+  // `build-skills-pdf.mjs` derives its own headline. Two reasons, both its:
+  // a redirect is a tombstone with no receipt, so counting it in a receipts
+  // document invites "where is the untested one?"; and deriving from the flags
+  // means the headline and the per-repo tables can never disagree, which a
+  // stale `totals.redirects` in a hand-edited registry would.
+  //
+  // This page headlined `totals.skills` at first and so said 34 where the PDF
+  // said 33 — from the same file, on the same day. "Same source" is not the
+  // same as "same number": it only holds if both sides derive it the same way.
+  const active = all.filter((skill) => !skill.redirect);
+  const redirects = all.length - active.length;
+
   out.push(
-    `${num(t.skills)} skills across ${data.repos.length} repositories, ` +
+    `${num(active.length)} skills across ${data.repos.length} repositories, ` +
       `${num(t.with_receipts)} of them with a measured token receipt. ` +
       `Generated from \`${REGISTRY_PATH}\` on ${String(data.generated_at).slice(0, 10)}.`,
     '',
-    '| | |',
+    '| Measure | Value |',
     '| --- | --- |',
-    `| Skills | ${num(t.skills)} |`,
+    `| Active skills | ${num(active.length)} |`,
     `| With receipts | ${num(t.with_receipts)} |`,
-    `| Redirect stubs | ${num(t.redirects)} |`,
+    `| Redirect stubs | ${num(redirects)} |`,
     `| Annual tokens saved | ${num(t.annual_tokens_saved)} |`,
     '',
   );
