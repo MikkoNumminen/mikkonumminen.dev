@@ -10,10 +10,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * nothing here would have told us either way. web-vitals shipped a major two
  * weeks before that with real API removals. The next one will not be a no-op.
  *
- * WHAT IT PINS is the contract with two third-party packages: the five metric
- * registrars we call, and the four `Metric` fields we read off the callback.
- * Renamed or dropped, they fail here rather than as vitals quietly missing from
- * a dashboard nobody checks daily.
+ * WHAT IT PINS, precisely, because the first draft of this comment overclaimed.
+ * Most of the file mocks `web-vitals`, so it pins OUR WIRING: that all five
+ * registrars are called, and that `reportVital` reads the `Metric` fields it
+ * thinks it reads. A mocked package cannot catch an upstream rename — the mock
+ * would happily keep providing `onTTFB` after Google deleted it.
+ *
+ * The upstream half is covered two other ways: `npm run typecheck` fails on a
+ * named import that no longer exists, and the last describe here imports the
+ * REAL package with `importActual` and asserts the five exports are callable.
+ * That is the case that would have gone red on a v6-style removal.
  *
  * The privacy guards are pinned for a different reason: Do Not Track and the
  * missing-DSN case are the two paths where the correct behaviour is to do
@@ -53,7 +59,12 @@ async function load({ dsn = DSN, dnt = false }: { dsn?: string; dnt?: boolean } 
   vi.resetModules();
   registered.clear();
   vi.stubEnv('PUBLIC_SENTRY_DSN', dsn);
-  vi.stubGlobal('navigator', { ...navigator, doNotTrack: dnt ? '1' : undefined });
+  // NOT `{ ...navigator, ... }`: navigator's properties live on the prototype,
+  // so the spread copies exactly zero of them and the result only looks like a
+  // preserved navigator. Measured, not assumed. The module reads `doNotTrack`
+  // and nothing else, so a minimal stub is the honest shape.
+  vi.stubGlobal('navigator', { doNotTrack: dnt ? '1' : undefined });
+  vi.stubGlobal('window', { ...globalThis.window, doNotTrack: undefined });
   const mod = await import('./initObservability');
   mod.initObservability();
   return mod;
@@ -116,7 +127,7 @@ describe('initObservability: the web-vitals contract', () => {
       rating: 'good',
       delta: 42,
     });
-    expect(crumb.data.id).toBeTruthy();
+    expect(crumb.data.id).toBe('v1-INP');
   });
 });
 
@@ -125,6 +136,22 @@ describe('initObservability: the paths that must do nothing', () => {
     await load({ dnt: true });
     expect(sentry.init).not.toHaveBeenCalled();
     expect(registered.size, 'vitals were collected despite DNT').toBe(0);
+  });
+
+  it('honours the Safari spelling, on window rather than navigator', async () => {
+    // `dntEnabled` reads BOTH `navigator.doNotTrack` and `window.doNotTrack`,
+    // because Safari historically put it on window. Only the navigator branch
+    // was covered, so half a privacy check was load-bearing and untested.
+    vi.resetModules();
+    registered.clear();
+    vi.stubEnv('PUBLIC_SENTRY_DSN', DSN);
+    vi.stubGlobal('navigator', { doNotTrack: undefined });
+    vi.stubGlobal('window', { ...globalThis.window, doNotTrack: 'yes' });
+    const mod = await import('./initObservability');
+    mod.initObservability();
+
+    expect(sentry.init).not.toHaveBeenCalled();
+    expect(registered.size).toBe(0);
   });
 
   it('stays silent without a DSN', async () => {
@@ -142,5 +169,23 @@ describe('initObservability: the paths that must do nothing', () => {
     // property rather than a preference.
     expect(options.sendDefaultPii).toBe(false);
     expect(options.replaysSessionSampleRate).toBe(0);
+  });
+});
+
+describe('the real web-vitals package still exports what we import', () => {
+  // The rest of this file mocks `web-vitals`, which means it CANNOT see an
+  // upstream rename: the mock would go on providing `onTTFB` long after Google
+  // deleted it. This case reaches the installed package with `importActual`.
+  //
+  // `npm run typecheck` also catches a missing named export, and catches it
+  // earlier. This is here because a type-only guard disappears the moment
+  // someone reaches for `any` or the package ships looser types, and because a
+  // failure that names the function is faster to read than a compiler error in
+  // a file nobody was editing.
+  it('exports the five registrars as callables', async () => {
+    const wv = await vi.importActual<Record<string, unknown>>('web-vitals');
+    for (const fn of ['onCLS', 'onFCP', 'onINP', 'onLCP', 'onTTFB']) {
+      expect(typeof wv[fn], `web-vitals no longer exports ${fn}`).toBe('function');
+    }
   });
 });
