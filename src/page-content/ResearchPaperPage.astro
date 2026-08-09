@@ -10,12 +10,17 @@
  * so a Finnish reader gets Finnish navigation and an explanation rather than
  * an unexplained wall of English.
  *
- * NOT EVERY PAPER HAS ONE. `getStaticPaths` only emits a route for papers whose
- * markdown is in this repo. Two published papers exist here only as condensed
- * corpus copies, and `paper-sources.mjs` refuses to render a summary of a
- * document as if it were the document.
+ * TWO KINDS OF PAGE. A 'full' page reproduces the PDF's text and says nothing
+ * about it. A 'companion' renders prose that ACCOMPANIES the PDF — measured at
+ * 66-72% of the published words, or a different document at the same length —
+ * and carries a notice naming the PDF as the document. An introduction to a
+ * paper is worth having; an introduction presented as the paper is not, and the
+ * notice is the entire difference. `paper-sources.mjs` decides which is which.
  *
- * The HTML comes from the renderer that prints the PDFs, so the page and the
+ * Not every paper gets one at all: `skills-registry.pdf` is generated from JSON
+ * and has no prose to introduce.
+ *
+ * The HTML comes from the renderer that prints the PDFs, so a full page and the
  * download cannot disagree about a table or a coloured cell.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -63,23 +68,26 @@ const listHref = localizePath('/research', locale);
       </p>
       {
         /*
-        Above the English notice on purpose: what this page IS matters more to a
-        reader than what language it is in, and three of the papers are
-        companions rather than reproductions.
+        One bordered block, not one per sentence. A Finnish companion page has
+        both things to say, and two stacked grey boxes read as an apology before
+        the article rather than a note on it. The companion line comes first:
+        what this page IS matters more than what language it is in.
       */
       }
       {
-        kind === 'companion' && (
-          <p class="paper__notice paper__notice--companion">
-            {t.researchPage.companionNotice}
-          </p>
-        )
-      }
-      {
-        locale !== 'en' && (
-          <p class="paper__notice" lang="fi">
-            {t.researchPage.englishNotice}
-          </p>
+        (kind === 'companion' || locale !== 'en') && (
+          <aside class="paper__notice">
+            {kind === 'companion' && (
+              <p class="paper__notice-line paper__notice--companion">
+                {t.researchPage.companionNotice}
+              </p>
+            )}
+            {locale !== 'en' && (
+              <p class="paper__notice-line" lang="fi">
+                {t.researchPage.englishNotice}
+              </p>
+            )}
+          </aside>
         )
       }
     </header>
@@ -164,9 +172,18 @@ const listHref = localizePath('/research', locale);
     background: rgba(255, 255, 255, 0.06);
   }
 
-  .paper__notice--companion {
+  .paper__notice-line {
+    margin: 0;
+  }
+
+  .paper__notice-line + .paper__notice-line {
+    margin-top: 0.6rem;
+  }
+
+  /* Companion pages take the accent the research card uses, so "this is not the
+     document" is what the eye lands on first. */
+  .paper__notice:has(.paper__notice--companion) {
     border-left-color: rgba(129, 140, 248, 0.55);
-    color: var(--color-text-muted);
   }
 
   .paper__notice {

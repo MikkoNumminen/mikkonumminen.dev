@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { COMPANION, kindFor, MAP, READER_ONLY, ROOT, sourceFor } from './paper-sources.mjs';
-import { isReadable, readPaperBody } from './paper-body.mjs';
+import { readPaperBody } from './paper-body.mjs';
 
 const RENDER_SCRIPT = readFileSync(path.join(ROOT, 'scripts/render-audit-pdfs.mjs'), 'utf8');
 
@@ -76,7 +76,6 @@ describe('paper sources', () => {
     // only paper left with no prose at all is the one generated from JSON.
     // "None" is still a correct answer and must stay distinguishable from a
     // fault, which is what this asserts.
-    expect(isReadable('skills-registry.pdf')).toBe(false);
     expect(readPaperBody('skills-registry.pdf')).toBeNull();
   });
 });
@@ -149,6 +148,26 @@ describe('rendered paper bodies', () => {
   });
 });
 
+
+describe('the listing and the routes agree on which papers have a page', () => {
+  // TWO PREDICATES, ONE PROPERTY. `[id].astro` emits a route when
+  // `readPaperBody` returns a body; the listing renders a link when `kindFor`
+  // returns a kind. They agree today because both read the same three lists,
+  // and nothing said so. Drift in one direction links a visitor to a 404; in
+  // the other it hides a page that exists, which nobody would ever notice.
+  const everyPub = [...MAP, ...READER_ONLY, ...COMPANION].map((e) => e.pub);
+
+  it.each([...everyPub, 'skills-registry.pdf'])('%s', (pub) => {
+    const linked = kindFor(pub) !== null;
+    const routed = readPaperBody(pub) !== null;
+    expect(
+      linked,
+      linked
+        ? `the listing links ${pub} but no route is generated for it (404)`
+        : `a route is generated for ${pub} but the listing never links it`,
+    ).toBe(routed);
+  });
+});
 
 describe('a companion page never claims to be the paper', () => {
   // The distinction this tier exists for. A companion carries 66-72% of the

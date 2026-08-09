@@ -74,8 +74,3 @@ export function readPaperBody(pubPdf) {
     source: path.relative(ROOT, abs).replace(/\\/g, '/'),
   };
 }
-
-/** True when this paper can be read in the browser. */
-export function isReadable(pubPdf) {
-  return sourceFor(pubPdf) !== null;
-}
