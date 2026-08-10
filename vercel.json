@@ -21,6 +21,26 @@
     {
       "source": "/api/rag/shout",
       "destination": "https://paskamyrsky.tail6ed53b.ts.net/shout"
+    },
+    {
+      "source": "/api/songgen/health",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/health"
+    },
+    {
+      "source": "/api/songgen/banks",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/banks"
+    },
+    {
+      "source": "/api/songgen/jobs",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/jobs"
+    },
+    {
+      "source": "/api/songgen/jobs/:id",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/jobs/:id"
+    },
+    {
+      "source": "/api/songgen/jobs/:id/cancel",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/jobs/:id/cancel"
     }
   ],
   "redirects": [
@@ -62,6 +82,11 @@
       "permanent": false
     },
     {
+      "source": "/songgenerator",
+      "destination": "https://green-bay-0f4fe1d03.7.azurestaticapps.net",
+      "permanent": false
+    },
+    {
       "source": "/audiobookmaker",
       "destination": "https://github.com/MikkoNumminen/AudiobookMaker/releases",
       "permanent": false
@@ -90,6 +115,13 @@
   "headers": [
     {
       "source": "/api/rag/(.*)",
+      "headers": [
+        { "key": "x-vercel-enable-rewrite-caching", "value": "0" },
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/api/songgen/(.*)",
       "headers": [
         { "key": "x-vercel-enable-rewrite-caching", "value": "0" },
         { "key": "Cache-Control", "value": "no-store" }
