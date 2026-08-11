@@ -8,11 +8,20 @@
  *
  * The two backends get different rules because they authenticate differently.
  *
- * SongGenerator checks a verified Google token against a server-side allowlist
- * on every route but `/health`, so a wildcard forwards unknown paths to a door
- * that is already locked. Enumeration there bought no security and charged a PR
- * in this repo for every endpoint added upstream, which is why a shipped admin
- * panel and player 404'd through the site while answering 401 direct.
+ * SongGenerator checks a verified Google token against a server-side allowlist,
+ * so a wildcard mostly forwards unknown paths into a 401. Measured against port
+ * 10000 on 2026-08-12: `/library`, `/users`, `/jobs` and `/banks` all 401,
+ * `/health` is 200, an unrouted path is 404. Enumeration bought nothing against
+ * that and charged a PR in this repo per endpoint added upstream, which is why a
+ * shipped admin panel and player 404'd through the site while answering 401
+ * direct.
+ *
+ * "Mostly" because the same probe found `/docs`, `/redoc` and `/openapi.json`
+ * answering 200 unauthenticated, so this wildcard publishes FastAPI's schema and
+ * Swagger UI at `/api/songgen/docs`. The funnel already served them to anyone who
+ * read this file for the hostname, but off the site's own origin is where they
+ * had been sitting. Gate them on the backend if that matters. Re-enumerating here
+ * to paper over it is what this test exists to argue against.
  *
  * The RAG chat authenticates nothing. Absence from this list hides nothing
  * either — the funnel proxies its whole origin, as `SECURITY.md` and the
@@ -42,7 +51,7 @@ const FUNNEL = 'paskamyrsky.tail6ed53b.ts.net';
 /** `:path*` and `(.*)` both match an unbounded suffix. */
 const WILDCARD = /:[a-z]+\*|\(\.\*\)|\*$/i;
 
-/** Backends that refuse every non-public route without a verified token. */
+/** Backends whose own auth, rather than this list, decides what a stranger reaches. */
 const AUTHENTICATED = new Set(['songgen']);
 
 /** The `/api/<prefix>/` segment that picks which backend a rewrite reaches. */
