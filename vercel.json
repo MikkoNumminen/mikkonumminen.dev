@@ -23,24 +23,8 @@
       "destination": "https://paskamyrsky.tail6ed53b.ts.net/shout"
     },
     {
-      "source": "/api/songgen/health",
-      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/health"
-    },
-    {
-      "source": "/api/songgen/banks",
-      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/banks"
-    },
-    {
-      "source": "/api/songgen/jobs",
-      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/jobs"
-    },
-    {
-      "source": "/api/songgen/jobs/:id",
-      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/jobs/:id"
-    },
-    {
-      "source": "/api/songgen/jobs/:id/cancel",
-      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/jobs/:id/cancel"
+      "source": "/api/songgen/:path*",
+      "destination": "https://paskamyrsky.tail6ed53b.ts.net:10000/:path*"
     }
   ],
   "redirects": [
