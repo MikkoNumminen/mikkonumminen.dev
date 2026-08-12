@@ -26,6 +26,13 @@ export interface Translations {
   common: {
     /** Appended to aria-labels on links that open in a new browser tab. */
     opensInNewTab: string;
+    /**
+     * The accessible name for every CV download control. Shared rather than
+     * per-surface: the hero pill and the footer link point at the same file,
+     * and two copies of one sentence are two chances for a screen reader to be
+     * told different things about it. `{size}` is substituted at build time.
+     */
+    downloadCvAria: string;
   };
   meta: {
     jobTitle: string;
@@ -57,7 +64,6 @@ export interface Translations {
     scrollHint: string;
     /** The masthead's CV download. Its href is derived from `papers.ts`. */
     cvLabel: string;
-    cvAria: string;
   };
   intro: {
     sectionAria: string;
@@ -85,7 +91,6 @@ export interface Translations {
     footerBuiltWith: string;
     /** Footer CV link. Lives here because the footer's other two strings do. */
     footerCv: string;
-    footerCvAria: string;
   };
   /** The research listing at /research. Papers themselves stay English. */
   researchPage: {

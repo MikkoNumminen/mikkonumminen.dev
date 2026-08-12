@@ -1,26 +1,14 @@
 ---
-import { statSync } from 'node:fs';
-import path from 'node:path';
 import { asLocale, getTranslations } from '../../i18n';
 import { cvPaper, paperUrl } from '../../data/papers';
+import { publicFileSize } from '../../lib/publicFileSize';
 import HeroVoiceover from './HeroVoiceover.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
 const cv = cvPaper();
-
-/**
- * Size, read at build time, resolved from `process.cwd()` rather than from
- * `import.meta.url` for the reason `ResearchIndexPage.astro` records: this
- * frontmatter is bundled into `dist/.prerender/chunks/`, so a module-relative
- * URL resolves into `dist/` and the stat throws ENOENT.
- *
- * A missing file fails the build. A download whose size the page guessed is
- * worse than no size, and a CV that is not on disk is the one failure this
- * whole control exists to prevent.
- */
-const cvSize = `${Math.round(statSync(path.join(process.cwd(), 'public', cv.filename)).size / 1024)} KB`;
+const cvSize = publicFileSize(cv.filename);
 ---
 
 <section class="hero" data-section-hero aria-label={t.hero.sectionAria}>
@@ -46,7 +34,7 @@ const cvSize = `${Math.round(statSync(path.join(process.cwd(), 'public', cv.file
       href={paperUrl(cv)}
       download={cv.filename}
       data-astro-prefetch="false"
-      aria-label={`${t.hero.cvAria} (${cvSize})`}
+      aria-label={t.common.downloadCvAria.replace('{size}', cvSize)}
     >
       <span class="hero__cv-label">{t.hero.cvLabel}</span>
       <span class="hero__cv-size" aria-hidden="true">{cvSize}</span>
@@ -140,6 +128,13 @@ const cvSize = `${Math.round(statSync(path.join(process.cwd(), 'public', cv.file
     flex-direction: column;
     align-items: center;
     gap: 0.65rem;
+    /* An absolutely positioned box with `left: 50%` and no `right` gets a
+       shrink-to-fit width capped at the space to its right, which is half the
+       hero. At 360px that is 180px, and the subtitle wrapped to four lines
+       inside it while looking correct on every desktop width. `max-content`
+       takes the natural width instead; the cap keeps it off the edges. */
+    width: max-content;
+    max-width: calc(100% - 3rem);
   }
 
   .hero__eyebrow {
@@ -169,6 +164,16 @@ const cvSize = `${Math.round(statSync(path.join(process.cwd(), 'public', cv.file
     .hero__title-fallback {
       display: block;
     }
+
+    /* Phones are the one place the masthead and the centred fallback title
+       compete for the same band: the title is real DOM here rather than
+       particles, and it centres at 43vh because .hero__content reserves 14vh
+       at the bottom. At 360x640 the gap between them was already down to 10px
+       before the masthead grew a third line, so the block moves up to take it
+       back. 6rem still clears the nav, which ends at 52px. */
+    .hero__masthead {
+      top: 6rem;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -193,7 +198,9 @@ const cvSize = `${Math.round(statSync(path.join(process.cwd(), 'public', cv.file
      #c4d4ff is what a link looks like everywhere else here and the green
      belongs to the contact terminal. */
   .hero__cv {
-    margin-top: 0.5rem;
+    /* No margin-top: the parent's `gap` already spaces flex children, and the
+       two do not collapse, so a margin here is added to the gap rather than
+       replacing it. */
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
@@ -221,10 +228,19 @@ const cvSize = `${Math.round(statSync(path.join(process.cwd(), 'public', cv.file
   }
 
   /* Quieter than the label, matching how the corner markers rank their
-     numerals below their words. */
+     numerals below their words, but only as quiet as WCAG AA allows. The
+     corner markers get to sit at 0.3 because they are decorative frame
+     ornaments; a file size on a download control is information someone uses
+     to decide whether to click, so it is held to 4.5:1. Measured against the
+     composited pill fill: 0.45 was 3.4:1, 0.65 is 5.9:1.
+
+     `text-transform` is reset because the pill lowercases its label, and the
+     unit is not a word: lowercased, "54 KB" becomes "54 kb", which reads as
+     kilobits and disagrees with the research pill this one is modelled on. */
   .hero__cv-size {
-    color: rgba(196, 212, 255, 0.45);
+    color: rgba(196, 212, 255, 0.65);
     letter-spacing: 0.1em;
+    text-transform: none;
   }
 
   .hero__scroll-hint {
