@@ -97,4 +97,40 @@ const blog = defineCollection({
   }),
 });
 
-export const collections = { blog };
+/**
+ * The CV, as one entry.
+ *
+ * `content/cv.md` is not new and is not authored for this site: it is the RAG
+ * corpus copy, retrieved behind the contact terminal's answers, and
+ * `houseStyle.test.ts` already holds it to the same prose rules as everything
+ * else a reader sees. Rendering `/cv` from it means the page a visitor reads
+ * and the text the terminal answers from cannot disagree, and it costs no
+ * third copy of the CV.
+ *
+ * A collection rather than `readFileSync` plus a markdown renderer, because
+ * the blog already renders prose this way and `render()` gives the same
+ * pipeline for free. Based at the repo's `content/` rather than
+ * `src/content/`: the corpus lives outside `src/` because other tooling reads
+ * it from there, and the `pattern` deliberately names the one file rather than
+ * globbing a directory that also holds the terminal's corpus, the narratives
+ * and the per-project notes.
+ *
+ * The PDF at `public/mikko-numminen-cv.pdf` is still a hand-maintained binary
+ * with no generator, so it and this markdown can drift. That is pre-existing
+ * and out of scope here, but the page now makes the drift visible to a reader
+ * rather than leaving it between two files nobody diffs.
+ */
+const cv = defineCollection({
+  loader: glob({
+    base: './content',
+    pattern: 'cv.md',
+    generateId: () => 'cv',
+  }),
+  schema: z.object({
+    title: z.string(),
+    /** The corpus's own document-type marker. Kept so the schema matches the file. */
+    kind: z.literal('cv'),
+  }),
+});
+
+export const collections = { blog, cv };

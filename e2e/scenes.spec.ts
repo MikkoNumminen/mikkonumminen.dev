@@ -23,6 +23,11 @@ const PAGES: PageCase[] = [
   { path: '/research', name: 'research', primary: 'main', expectCanvas: false },
   // A reader page injects a large pre-rendered HTML blob; worth its own smoke.
   { path: '/research/study', name: 'research paper', primary: 'main', expectCanvas: false },
+  // Rendered from `content/cv.md` through a content collection, so a missing or
+  // renamed source throws at build. This covers the other half: that the page
+  // actually mounts, since it is the one route whose markdown lives outside
+  // `src/` and is shared with the RAG corpus.
+  { path: '/cv', name: 'cv', primary: '.cv__body', expectCanvas: false },
   {
     path: '/contact',
     name: 'contact',

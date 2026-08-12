@@ -1,0 +1,313 @@
+---
+/**
+ * The CV as a page.
+ *
+ * WHY IT EXISTS. The CV is the one document most visitors come for, and until
+ * now taking it meant committing to a download before seeing a word of it. The
+ * two things anyone wants to do with a CV are read it and keep a copy, so both
+ * are offered here, and the download is repeated at the end where someone who
+ * has just finished reading is most likely to want it.
+ *
+ * BLOG TREATMENT, DELIBERATELY. This page is typographic only: no particle
+ * field, no GSAP, no scroll reveals, none of the editorial primitives the home
+ * page uses. That is the blog's lane and this page joins it, because a CV is
+ * read rather than watched, and because a recruiter skimming on a phone is the
+ * reader who matters most. The measurements and the prose rules below are
+ * lifted from `BlogPostPage.astro` on purpose; see PARALLEL TO note there.
+ *
+ * ONE H1, AND IT COMES FROM THE MARKDOWN. `content/cv.md` opens with its own
+ * `# Mikko Numminen` followed by the contact block, so this page does NOT
+ * render a title of its own. Adding one would put two `h1`s on the page and
+ * state the name twice. The consequence is that the action row sits above the
+ * name as page chrome rather than below it, which is why it is styled as a
+ * header rule rather than as a call to action.
+ */
+import { getEntry, render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { asLocale, getTranslations, localizePath } from '../i18n';
+import { cvPaper, paperUrl } from '../data/papers';
+import { publicFileSize } from '../lib/publicFileSize';
+
+const locale = asLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
+/**
+ * Thrown rather than rendered as an empty page.
+ *
+ * `paper-sources.mjs` records the failure this guards: a content lookup that
+ * quietly yields nothing while the build still exits 0, so the page ships blank
+ * and no gate notices. A renamed or moved `content/cv.md` is a build-time
+ * mistake, and it should read as one.
+ */
+const entry = await getEntry('cv', 'cv');
+if (!entry) throw new Error('cv: content/cv.md is missing from the cv collection');
+
+const { Content } = await render(entry);
+
+const cv = cvPaper();
+const cvSize = publicFileSize(cv.filename);
+const downloadAria = t.common.downloadCvAria.replace('{size}', cvSize);
+---
+
+<BaseLayout title={t.meta.cv.title} description={t.meta.cv.description} theme="home">
+  <article class="cv">
+    <header class="cv__header">
+      <p class="cv__eyebrow">{t.cvPage.eyebrow}</p>
+
+      <a
+        class="cv__download cv__download--inline"
+        href={paperUrl(cv)}
+        download={cv.filename}
+        data-astro-prefetch="false"
+        aria-label={downloadAria}
+      >
+        <span>{t.cvPage.downloadLabel}</span>
+        <span class="cv__download-size" aria-hidden="true">{cvSize}</span>
+      </a>
+    </header>
+
+    {
+      locale !== 'en' && (
+        <aside class="cv__notice" lang="fi">
+          <p>{t.cvPage.englishNotice}</p>
+        </aside>
+      )
+    }
+
+    {
+      /* `lang="en"` for the same reason `ResearchPaperPage.astro` marks its
+        body: on /fi/cv the document language is Finnish and this prose is not,
+        so without it a screen reader reads the whole CV with Finnish
+        pronunciation rules. */
+    }
+    <div class="cv__body" lang="en">
+      <Content />
+    </div>
+
+    <footer class="cv__actions">
+      <p class="cv__actions-note">{t.cvPage.pdfNotice}</p>
+      <a
+        class="cv__download"
+        href={paperUrl(cv)}
+        download={cv.filename}
+        data-astro-prefetch="false"
+        aria-label={downloadAria}
+      >
+        <span>{t.cvPage.downloadLabel}</span>
+        <span class="cv__download-size" aria-hidden="true">{cvSize}</span>
+      </a>
+    </footer>
+
+    <a class="cv__back" href={localizePath('/', locale)}>{t.cvPage.backHome}</a>
+  </article>
+</BaseLayout>
+
+<style>
+  /* Measurements match `BlogPostPage.astro`: same column, same top padding,
+     same prose width, so /cv and a blog entry read as the same kind of page. */
+  .cv {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 7rem 1.5rem 4rem;
+  }
+
+  /* The eyebrow and the download share one rule at the top. The download is
+     above the name in reading order because the name is an <h1> inside the
+     markdown and there is only one of it; keeping this row visually as chrome
+     stops it reading as the page's opening statement. */
+  .cv__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 2.5rem;
+  }
+
+  .cv__eyebrow {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  /* The research listing's hairline pill, which is the site's established
+     "this downloads a PDF" affordance. Padding is deliberate rather than
+     decorative: text alone leaves the anchor under the 24px minimum target in
+     WCAG 2.2 SC 2.5.8, and this is a standalone control rather than a link in
+     running prose, so the inline exception does not apply. */
+  .cv__download {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(196, 212, 255, 0.35);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: rgba(196, 212, 255, 0.9);
+    background: rgba(196, 212, 255, 0.04);
+    transition:
+      border-color 0.3s ease,
+      background-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  .cv__download:hover,
+  .cv__download:focus-visible {
+    border-color: rgba(196, 212, 255, 0.85);
+    background: rgba(196, 212, 255, 0.1);
+    color: #fff;
+  }
+
+  /* Held to 4.5:1 against the composited pill fill rather than to the 0.3-ish
+     alpha the decorative frame markers use: a file size on a download control
+     is information someone reads before deciding to click. `text-transform` is
+     reset because the unit is not a word, and uppercasing turns KB into a
+     shout while lowercasing it would read as kilobits. */
+  .cv__download-size {
+    color: rgba(196, 212, 255, 0.65);
+    letter-spacing: 0.1em;
+    text-transform: none;
+  }
+
+  .cv__notice {
+    margin: 0 0 2.5rem;
+    padding: 1rem 1.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-left-width: 3px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .cv__notice p {
+    margin: 0;
+    max-width: 62ch;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Astro's scoping never reaches markdown rendered through <Content />, so
+     every prose rule has to be written through :global from this wrapper. */
+  .cv__body {
+    max-width: 70ch;
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  /* The markdown's own title, and the page's only h1. */
+  .cv__body :global(h1) {
+    font-size: clamp(2.1rem, 5vw, 3.25rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    color: #fff;
+    margin: 0 0 1.25rem;
+  }
+
+  .cv__body :global(p) {
+    margin: 0 0 1.4rem;
+  }
+
+  .cv__body :global(h2) {
+    font-size: clamp(1.4rem, 3vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    color: #fff;
+    margin: 3rem 0 1rem;
+  }
+
+  .cv__body :global(h3) {
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.92);
+    margin: 2.25rem 0 0.75rem;
+  }
+
+  .cv__body :global(ul),
+  .cv__body :global(ol) {
+    margin: 0 0 1.4rem;
+    padding-left: 1.35rem;
+  }
+
+  /* For a TIGHT list only. The Projects section is authored with blank lines
+     between its entries, so markdown makes it loose and wraps each `li` in a
+     `p`; that `p`'s 1.4rem bottom margin collapses through the `li` (no padding
+     or border to stop it) and wins, which is what actually gives those
+     paragraph-length entries paragraph spacing. This value governs the day a
+     section is written as tight bullets instead, so do not tune the Projects
+     gap here — it is set by :global(p) above. */
+  .cv__body :global(li) {
+    margin: 0 0 0.9rem;
+  }
+
+  .cv__body :global(a) {
+    color: var(--color-home-accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(196, 212, 255, 0.4);
+    text-underline-offset: 3px;
+  }
+
+  .cv__body :global(a:hover) {
+    text-decoration-color: var(--color-home-accent);
+  }
+
+  .cv__body :global(strong) {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .cv__body :global(hr) {
+    border: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 2.5rem 0;
+  }
+
+  /* Repeated at the end, where a reader who has just finished is most likely
+     to want the file. */
+  .cv__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-top: 3.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .cv__actions-note {
+    margin: 0;
+    max-width: 62ch;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .cv__back {
+    display: inline-block;
+    margin-top: 2.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.65);
+    text-decoration: none;
+  }
+
+  .cv__back:hover,
+  .cv__back:focus-visible {
+    color: #fff;
+  }
+</style>

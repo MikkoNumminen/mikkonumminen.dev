@@ -1,5 +1,5 @@
 ---
-import { asLocale, getTranslations } from '../../i18n';
+import { asLocale, getTranslations, localizePath } from '../../i18n';
 import { cvPaper, paperUrl } from '../../data/papers';
 import { publicFileSize } from '../../lib/publicFileSize';
 import HeroVoiceover from './HeroVoiceover.astro';
@@ -29,16 +29,32 @@ const cvSize = publicFileSize(cv.filename);
         `download` plus an explicit filename, so the browser saves rather
         than opening a viewer tab the visitor then has to save out of. */
     }
-    <a
-      class="hero__cv"
-      href={paperUrl(cv)}
-      download={cv.filename}
-      data-astro-prefetch="false"
-      aria-label={t.common.downloadCvAria.replace('{size}', cvSize)}
-    >
-      <span class="hero__cv-label">{t.hero.cvLabel}</span>
-      <span class="hero__cv-size" aria-hidden="true">{cvSize}</span>
-    </a>
+    <div class="hero__cv-row">
+      <a
+        class="hero__cv"
+        href={paperUrl(cv)}
+        download={cv.filename}
+        data-astro-prefetch="false"
+        aria-label={t.common.downloadCvAria.replace('{size}', cvSize)}
+      >
+        <span class="hero__cv-label">{t.hero.cvLabel}</span>
+        <span class="hero__cv-size" aria-hidden="true">{cvSize}</span>
+      </a>
+
+      {
+        /* Beside the pill rather than under it. A second line here costs about
+          27px of masthead height, and at 360x640 the masthead already came
+          within 10px of the fallback title before the pill existed; a row
+          keeps the block one line tall. */
+      }
+      <a
+        class="hero__cv-read"
+        href={localizePath('/cv', locale)}
+        aria-label={t.hero.cvReadAria}
+      >
+        {t.hero.cvReadLabel}
+      </a>
+    </div>
   </div>
 
   <div class="hero__content">
@@ -174,6 +190,18 @@ const cvSize = publicFileSize(cv.filename);
     .hero__masthead {
       top: 6rem;
     }
+
+    /* The pill and the read link have to share one line here. Together they
+       need 311px against a 297px cap at 360px wide, so the row wrapped and
+       took 47px of the clearance this block exists to protect, putting the
+       masthead 21px INTO the fallback title.
+       The size is the part that goes: it is decorative markup
+       (`aria-hidden`), the accessible name still announces it, and dropping it
+       leaves 51px of slack instead of 6px, which is the difference between a
+       fix and a fix that breaks on the next font change. */
+    .hero__cv-size {
+      display: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -197,6 +225,17 @@ const cvSize = publicFileSize(cv.filename);
      learned it. Accent blue rather than the terminal's green, because
      #c4d4ff is what a link looks like everywhere else here and the green
      belongs to the contact terminal. */
+  /* Wraps only if the two controls genuinely cannot share a line, which at the
+     narrowest supported width they can: the pill is about 94px and the read
+     link about 120px inside a 312px cap. */
+  .hero__cv-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+  }
+
   .hero__cv {
     /* No margin-top: the parent's `gap` already spaces flex children, and the
        two do not collapse, so a margin here is added to the gap rather than
@@ -241,6 +280,34 @@ const cvSize = publicFileSize(cv.filename);
     color: rgba(196, 212, 255, 0.65);
     letter-spacing: 0.1em;
     text-transform: none;
+  }
+
+  /* Ranked below the pill: reading is the alternative, downloading is what
+     most visitors came for. Underlined rather than bordered so it does not
+     read as a second button competing with the first.
+
+     The vertical padding brings the hit box to the pill's height, which keeps
+     it over the 24px floor in WCAG 2.2 SC 2.5.8 and costs the masthead no
+     extra height, since the row is already as tall as the pill. */
+  .hero__cv-read {
+    padding: 0.5rem 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    color: rgba(255, 255, 255, 0.72);
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.3);
+    text-underline-offset: 4px;
+    transition:
+      color 0.3s ease,
+      text-decoration-color 0.3s ease;
+  }
+
+  .hero__cv-read:hover,
+  .hero__cv-read:focus-visible {
+    color: #fff;
+    text-decoration-color: rgba(255, 255, 255, 0.8);
   }
 
   .hero__scroll-hint {
