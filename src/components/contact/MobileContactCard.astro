@@ -1,9 +1,12 @@
 ---
 import '../../styles/mobile-contact-card.css';
 import { asLocale, getTranslations } from '../../i18n';
+import { cvPaper, paperUrl } from '../../data/papers';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
+
+const cv = cvPaper();
 
 const m = t.mobileContact;
 ---
@@ -70,8 +73,8 @@ const m = t.mobileContact;
     </a>
     <a
       class="mcc__btn"
-      href="/mikko-numminen-cv.pdf"
-      download="mikko-numminen-cv.pdf"
+      href={paperUrl(cv)}
+      download={cv.filename}
       data-astro-prefetch="false"
     >
       {m.btnDownloadCv}

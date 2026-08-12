@@ -1,9 +1,14 @@
 ---
 import { asLocale, getTranslations } from '../../i18n';
+import { cvPaper, paperUrl } from '../../data/papers';
+import { publicFileSize } from '../../lib/publicFileSize';
 import HeroVoiceover from './HeroVoiceover.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
+
+const cv = cvPaper();
+const cvSize = publicFileSize(cv.filename);
 ---
 
 <section class="hero" data-section-hero aria-label={t.hero.sectionAria}>
@@ -12,6 +17,28 @@ const t = getTranslations(locale);
   <div class="hero__masthead">
     <p class="hero__eyebrow">{t.hero.eyebrow}</p>
     <p class="hero__subtitle">{t.hero.subtitle}</p>
+
+    {
+      /* The one action on the cover. It sits in the masthead rather than in
+        a fixed corner because every corner is already spoken for (audio
+        bottom-left, field log bottom-right, coordinate markers top), and
+        because the masthead is the only block that renders identically on
+        all three paths: the WebGL field, the ≤640px fallback and
+        reduced-motion. One control, no duplicate to keep in step.
+
+        `download` plus an explicit filename, so the browser saves rather
+        than opening a viewer tab the visitor then has to save out of. */
+    }
+    <a
+      class="hero__cv"
+      href={paperUrl(cv)}
+      download={cv.filename}
+      data-astro-prefetch="false"
+      aria-label={t.common.downloadCvAria.replace('{size}', cvSize)}
+    >
+      <span class="hero__cv-label">{t.hero.cvLabel}</span>
+      <span class="hero__cv-size" aria-hidden="true">{cvSize}</span>
+    </a>
   </div>
 
   <div class="hero__content">
@@ -101,6 +128,13 @@ const t = getTranslations(locale);
     flex-direction: column;
     align-items: center;
     gap: 0.65rem;
+    /* An absolutely positioned box with `left: 50%` and no `right` gets a
+       shrink-to-fit width capped at the space to its right, which is half the
+       hero. At 360px that is 180px, and the subtitle wrapped to four lines
+       inside it while looking correct on every desktop width. `max-content`
+       takes the natural width instead; the cap keeps it off the edges. */
+    width: max-content;
+    max-width: calc(100% - 3rem);
   }
 
   .hero__eyebrow {
@@ -130,6 +164,16 @@ const t = getTranslations(locale);
     .hero__title-fallback {
       display: block;
     }
+
+    /* Phones are the one place the masthead and the centred fallback title
+       compete for the same band: the title is real DOM here rather than
+       particles, and it centres at 43vh because .hero__content reserves 14vh
+       at the bottom. At 360x640 the gap between them was already down to 10px
+       before the masthead grew a third line, so the block moves up to take it
+       back. 6rem still clears the nav, which ends at 52px. */
+    .hero__masthead {
+      top: 6rem;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -145,6 +189,58 @@ const t = getTranslations(locale);
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.55);
     margin: 0;
+  }
+
+  /* The research page's hairline download pill, restyled into the home
+     register. Same shape on purpose: it is the site's only established
+     "this downloads a PDF" affordance, so a returning visitor has already
+     learned it. Accent blue rather than the terminal's green, because
+     #c4d4ff is what a link looks like everywhere else here and the green
+     belongs to the contact terminal. */
+  .hero__cv {
+    /* No margin-top: the parent's `gap` already spaces flex children, and the
+       two do not collapse, so a margin here is added to the gap rather than
+       replacing it. */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 1rem;
+    border: 1px solid rgba(196, 212, 255, 0.35);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    text-decoration: none;
+    color: rgba(196, 212, 255, 0.9);
+    background: rgba(196, 212, 255, 0.04);
+    transition:
+      border-color 0.3s ease,
+      background-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  .hero__cv:hover,
+  .hero__cv:focus-visible {
+    border-color: rgba(196, 212, 255, 0.85);
+    background: rgba(196, 212, 255, 0.1);
+    color: #fff;
+  }
+
+  /* Quieter than the label, matching how the corner markers rank their
+     numerals below their words, but only as quiet as WCAG AA allows. The
+     corner markers get to sit at 0.3 because they are decorative frame
+     ornaments; a file size on a download control is information someone uses
+     to decide whether to click, so it is held to 4.5:1. Measured against the
+     composited pill fill: 0.45 was 3.4:1, 0.65 is 5.9:1.
+
+     `text-transform` is reset because the pill lowercases its label, and the
+     unit is not a word: lowercased, "54 KB" becomes "54 kb", which reads as
+     kilobits and disagrees with the research pill this one is modelled on. */
+  .hero__cv-size {
+    color: rgba(196, 212, 255, 0.65);
+    letter-spacing: 0.1em;
+    text-transform: none;
   }
 
   .hero__scroll-hint {

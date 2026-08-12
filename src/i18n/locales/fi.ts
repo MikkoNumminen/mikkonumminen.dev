@@ -3,6 +3,7 @@ import type { Translations } from '../types';
 export const fi: Translations = {
   common: {
     opensInNewTab: '(avautuu uuteen välilehteen)',
+    downloadCvAria: 'Lataa CV:ni PDF-tiedostona ({size})',
   },
   meta: {
     jobTitle: 'Fullstack-kehittäjä',
@@ -55,6 +56,7 @@ export const fi: Translations = {
     titleFallbackBottom: 'NUMMINEN',
     subtitle: 'full-stack-kehittäjä · suomi',
     scrollHint: 'vieritä',
+    cvLabel: 'cv · pdf ↓',
   },
   intro: {
     sectionAria: 'Tietoja',
@@ -99,6 +101,7 @@ export const fi: Translations = {
     },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'tehty: astro · three.js · gsap',
+    footerCv: 'cv · pdf ↓',
   },
   researchPage: {
     eyebrow: 'mitattua',

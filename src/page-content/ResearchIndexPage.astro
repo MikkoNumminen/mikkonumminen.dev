@@ -18,11 +18,10 @@
  * The page owns no list of its own. `src/data/papers.ts` is the single source,
  * shared with the terminal command, and `papers.test.ts` keeps it honest.
  */
-import { statSync } from 'node:fs';
-import path from 'node:path';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { asLocale, getTranslations, localizePath } from '../i18n';
 import { localizePapers, monthLabel, type LocalizedPaper } from '../data/papers';
+import { publicFileSize } from '../lib/publicFileSize';
 import { kindFor } from '../../scripts/lib/paper-sources.mjs';
 
 const locale = asLocale(Astro.currentLocale);
@@ -39,23 +38,6 @@ const t = getTranslations(locale);
 const papers: LocalizedPaper[] = localizePapers(t)
   .filter((paper) => paper.tier === 'research')
   .reverse();
-
-/**
- * Size, read at build time.
- *
- * Resolved from `process.cwd()` and NOT from `import.meta.url`, which was the
- * first attempt and broke the build: this frontmatter is bundled into
- * `dist/.prerender/chunks/`, so a URL relative to the module resolved to
- * `dist/public/…` and every stat threw ENOENT. `astro build` and `astro dev`
- * both run from the project root, which the chunk's own location does not track.
- *
- * A missing file fails the build rather than degrading, because a listing that
- * silently drops a paper is the failure this whole page exists to fix.
- */
-const sizeOf = (filename: string): string => {
-  const bytes = statSync(path.join(process.cwd(), 'public', filename)).size;
-  return `${Math.round(bytes / 1024)} KB`;
-};
 
 /**
  * Dates are rendered through `monthLabel`, the same function that checks the
@@ -120,13 +102,20 @@ const sizeOf = (filename: string): string => {
                       : t.researchPage.aboutLabel}
                   </a>
                 )}
+                {/* Opted out of prefetch, as every download anchor on the site
+                    is. `prefetchAll` with `defaultStrategy: 'viewport'` warms
+                    sibling ROUTES so ClientRouter can swap them in; a PDF is
+                    not a route and cannot be swapped in, so the only effect
+                    here is pulling all 2.7 MB of papers down as the listing
+                    scrolls, for a visitor who asked for none of them. */}
                 <a
                   class="research__download"
                   href={paper.url}
                   download={paper.filename}
+                  data-astro-prefetch="false"
                   aria-label={t.researchPage.downloadAria.replace('{title}', paper.title)}
                 >
-                  {t.researchPage.pdfLabel} · {sizeOf(paper.filename)}
+                  {t.researchPage.pdfLabel} · {publicFileSize(paper.filename)}
                 </a>
               </p>
             </li>

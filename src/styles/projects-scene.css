@@ -410,12 +410,18 @@ body[data-theme='projects'] .site-footer {
     letter-spacing: 0.15em;
   }
   /* Fallback grid is the visible surface here — restore normal document
-     flow and the global site footer that lives below it. */
+     flow and the global site footer that lives below it.
+
+     `grid`, matching what BaseLayout gives the footer. This said `flex` while
+     the footer was a flex row; once it became a grid, re-enabling it as flex
+     from here — at higher specificity, so it won — dropped the column tracks
+     and, with `justify-content: space-between` gone, packed all three items
+     flush against each other. */
   body[data-theme='projects'] {
     overflow: auto;
   }
   body[data-theme='projects'] .site-footer {
-    display: flex;
+    display: grid;
   }
 }
 
@@ -424,7 +430,7 @@ body[data-theme='projects'] .site-footer {
     overflow: auto;
   }
   body[data-theme='projects'] .site-footer {
-    display: flex;
+    display: grid;
   }
 }
 

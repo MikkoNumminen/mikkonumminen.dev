@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   LABEL_DATE_PREFIX,
   PAPERS,
+  cvPaper,
   localizePapers,
   monthLabel,
   paperUrl,
@@ -58,6 +59,13 @@ describe('papers', () => {
     for (const paper of PAPERS) {
       expect(paperUrl(paper)).toBe(`/${paper.filename}`);
     }
+  });
+
+  it('resolves the CV by id for the surfaces that link it', () => {
+    // The hero and the footer both go through this rather than naming the
+    // file, so a rename has one place to be wrong instead of three.
+    expect(cvPaper().id).toBe('cv');
+    expect(paperUrl(cvPaper())).toBe(`/${cvPaper().filename}`);
   });
 });
 
