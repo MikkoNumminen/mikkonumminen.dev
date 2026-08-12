@@ -12,11 +12,13 @@
  */
 
 /** Shape names as the log says them, keyed by shapeCycle's index order. */
+/** Indexed by LANE order, matching SHAPES in `field/tuning.ts`. */
 export const SHAPE_LABELS = [
   'MIKKO NUMMINEN',
   'galaxy variant',
   'wordmark',
   'sparse field',
+  'curriculum vitae',
 ] as const;
 
 export const LOG_COPY = {

@@ -11,6 +11,17 @@
 export interface DistributeNameTargetsOptions {
   /** Glyph sample points as [x, y] pairs in world units (len = 2*n). */
   candidates: Float32Array;
+  /**
+   * Optional per-candidate dim value in 0..1 (len = n), for a shape whose
+   * own ink is not uniformly bright. Absent means every glyph point is
+   * fully lit, which is what the name and the wordmark want.
+   *
+   * The CV block uses it to fade its unreadable tail: dim is already the
+   * channel the shader shrinks and darkens a particle through, so a
+   * continuous value gets the fade for free rather than needing a second
+   * attribute. Nothing here assumes the flag is binary.
+   */
+  candidateDim?: Float32Array;
   /** Total particle count to assign. */
   count: number;
   /** Fraction of particles that become background dust (not glyphs). */
@@ -73,6 +84,7 @@ export function isInsideNameBounds(
 export function distributeNameTargets(opts: DistributeNameTargetsOptions): NameTargetSet {
   const {
     candidates,
+    candidateDim,
     count,
     dustFraction = 0.35,
     glyphDepth = 0.35,
@@ -121,7 +133,7 @@ export function distributeNameTargets(opts: DistributeNameTargetsOptions): NameT
       positions[i3] = candidates[c * 2] ?? 0;
       positions[i3 + 1] = candidates[c * 2 + 1] ?? 0;
       positions[i3 + 2] = (random() - 0.5) * glyphDepth;
-      dim[i] = 0;
+      dim[i] = candidateDim?.[c] ?? 0;
     } else {
       positions[i3] = (random() * 2 - 1) * dustHalfWidth;
       positions[i3 + 1] = (random() * 2 - 1) * dustHalfHeight;

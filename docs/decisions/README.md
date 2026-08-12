@@ -23,6 +23,7 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0015](0015-home-field-name-state-life.md)        | Life in the home field's name state (builds on 0014), shader micro-life, a dedicated click impulse on the letterforms, and a delta-driven idle choreography cycling alternative formations; one tuning block, frame delta bounded at source | Accepted (idle choreography superseded by 0016) |
 | [0016](0016-continuous-shape-cycle.md)            | The home field reshapes continuously and the name is one shape of four (supersedes the idle-choreography half of 0015), four-shape rotation on a 5 s hold / 3 s morph, clicks strike any shape, per-shape micro-life | Accepted                                 |
 | [0017](0017-shoutbox-moderation-queue.md)         | Shoutbox moderation queue, a public write endpoint that cannot publish: deterministic no-LLM gate, moderation verbs off the public HTTP surface, Telegram digest, committed-snapshot publication | Accepted                                 |
+| [0018](0018-cv-formation-reads-as-a-document.md) | The field forms the CV as readable prose rather than a CV-shaped monogram (extends 0016 with a fifth shape), appended lane so existing indices hold, per-shape sprite size and hold, skipped rather than degraded when it cannot be read | Accepted |
 
 ## Writing a new one
 

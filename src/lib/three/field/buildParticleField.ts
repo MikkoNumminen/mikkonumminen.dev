@@ -41,7 +41,7 @@ import {
   Vector4,
 } from 'three';
 import { makeRadialSpriteTexture } from '../textures';
-import { FIELD_TUNING, glslFloat } from './tuning';
+import { FIELD_TUNING, glslFloat, glslShapeTable } from './tuning';
 
 export interface ParticleFieldOptions {
   count: number;
@@ -58,6 +58,12 @@ export interface ParticleFieldOptions {
    *  but the attributes must still exist for the program to link. */
   wordPositions: Float32Array;
   wordDim: Float32Array;
+  /** CV-state positions at unit scale (len = count*3) and its dim channel
+   *  (len = count). The dim values here are CONTINUOUS, not a 0/1 flag:
+   *  the block's unreadable tail fades through them. Zero-filled when the
+   *  raster failed, same contract as the wordmark. */
+  cvPositions: Float32Array;
+  cvDim: Float32Array;
   /** Starfield-state positions in world space (len = count*3). */
   starPositions: Float32Array;
   /** World-space anchor of the galaxy disk. Mutable via the uniform. */
@@ -98,8 +104,17 @@ export interface ParticleFieldUniforms {
    *  unit lerp. */
   uCrossFrom: { value: Vector4 };
   uCrossTo: { value: Vector4 };
+  /** The fifth lane's weight, riding beside the vec4 above. Separate
+   *  rather than a vec4 widened to five, because appending kept every
+   *  existing lane index and swizzle untouched. See SHAPES in tuning.ts. */
+  uCrossFrom5: { value: number };
+  uCrossTo5: { value: number };
   /** Raw morph progress 0→1, unstaggered. */
   uCross: { value: number };
+  /** Fit scale for the CV block, computed against its own design width.
+   *  It cannot share `uNameScale`: the block is ~37 world units wide
+   *  against the name's 20, so it needs a different reduction to fit. */
+  uCvScale: { value: number };
   /** Cycle galaxy variant: xyz = world anchor, w = scale. */
   uCycleGalaxy: { value: Vector4 };
   uCycleGalaxyTilt: { value: Matrix3 };
@@ -140,6 +155,8 @@ attribute vec3 aNamePos;
 attribute float aNameDim;
 attribute vec3 aWordPos;
 attribute float aWordDim;
+attribute vec3 aCvPos;
+attribute float aCvDim;
 attribute vec3 aStarPos;
 attribute vec4 aSeed; // x: stagger/phase 0..1, y: size jitter, z: density rank 0..1, w: palette mix 0..1
 
@@ -166,7 +183,10 @@ uniform vec4 uImpulses[2];
 uniform float uShape;
 uniform vec4 uCrossFrom;
 uniform vec4 uCrossTo;
+uniform float uCrossFrom5;
+uniform float uCrossTo5;
 uniform float uCross;
+uniform float uCvScale;
 uniform vec4 uCycleGalaxy;
 uniform mat3 uCycleGalaxyTilt;
 uniform float uCycleGalaxySpin;
@@ -210,16 +230,21 @@ const float SPARSE_RADIUS = ${glslFloat(C.sparseRadius)};
 const float SPARSE_ASPECT = ${glslFloat(C.sparseAspect)};
 const float SPARSE_DEPTH = ${glslFloat(C.sparseDepth)};
 
-// Per-shape tables, ordered [name, galaxy, wordmark, sparse] to match
-// the weight vec4. Base micro-life amplitudes are sized against the
-// NAME's stroke; SHAPE_LIFE rescales them per shape, because the
-// wordmark's stroke is roughly a third as thick (unscaled shimmer
-// wobbles the mark) while the two non-typographic shapes have no
-// legibility budget to spend at all.
-const vec4 SHAPE_LIFE = vec4(${C.shapeLife.map(glslFloat).join(', ')});
-const vec4 SHAPE_SWAY = vec4(${C.shapeSway.map(glslFloat).join(', ')});
-const vec4 SHAPE_TWINKLE = vec4(${C.shapeTwinkle.map(glslFloat).join(', ')});
-const vec4 SHAPE_WAVE_FREQ = vec4(${C.shapeWaveFreq.map(glslFloat).join(', ')});
+// Per-shape tables, ordered [name, galaxy, wordmark, sparse] in the vec4
+// with the fifth lane (cv) as the companion _CV float. Base micro-life
+// amplitudes are sized against the NAME's stroke; SHAPE_LIFE rescales
+// them per shape, because the wordmark's stroke is roughly a third as
+// thick (unscaled shimmer wobbles the mark), the CV block's is thinner
+// still, and the two non-typographic shapes have no legibility budget to
+// spend at all.
+//
+// Read ONLY through shapeVal() below, never with a bare dot() — that is
+// what keeps the fifth lane from being silently dropped from a term.
+${glslShapeTable('SHAPE_LIFE', C.shapeLife)}
+${glslShapeTable('SHAPE_SWAY', C.shapeSway)}
+${glslShapeTable('SHAPE_TWINKLE', C.shapeTwinkle)}
+${glslShapeTable('SHAPE_WAVE_FREQ', C.shapeWaveFreq)}
+${glslShapeTable('SHAPE_SIZE', C.shapeSize)}
 
 const float PI = 3.14159265;
 const float TAU = 6.28318531;
@@ -228,6 +253,13 @@ const float TAU = 6.28318531;
 // morph, high seeds trail, so transitions sweep through the field.
 float staggered(float u, float sd) {
   return smoothstep(0.0, 1.0, clamp(u * 1.35 - sd * 0.35, 0.0, 1.0));
+}
+
+// Read a per-shape table at the current blend. The weights are passed in
+// rather than read from globals so every call site is visibly complete: a
+// term that forgets the fifth lane cannot compile as a shorter call.
+float shapeVal(vec4 w4, float w5, vec4 table4, float table5) {
+  return dot(w4, table4) + w5 * table5;
 }
 
 // Hash11 (Dave Hoskins). The seed attribute's four components are all
@@ -284,7 +316,9 @@ void main() {
   // staggered PER PARTICLE, not blended on the CPU: that stagger is
   // what makes every morph sweep through the field instead of moving
   // as a rigid unit, and it is the field's dominant motion signature.
-  vec4 w = mix(uCrossFrom, uCrossTo, staggered(uCross, sd));
+  float crossT = staggered(uCross, sd);
+  vec4 w = mix(uCrossFrom, uCrossTo, crossT);
+  float w5 = mix(uCrossFrom5, uCrossTo5, crossT);
 
   if (uShape > 0.0) {
     float ic = cos(uCycleGalaxySpin);
@@ -296,7 +330,8 @@ void main() {
     vec3 shaped = w.x * (aNamePos * uNameScale)
       + w.y * ig
       + w.z * (aWordPos * uNameScale)
-      + w.w * sparseTarget(aSeed);
+      + w.w * sparseTarget(aSeed)
+      + w5 * (aCvPos * uCvScale);
     // uShape is 0 during the load-in and 1 once the name has formed.
     // The snap is continuous because at that instant the cycle holds
     // the name, so both operands of this mix are the same point.
@@ -319,7 +354,7 @@ void main() {
     cos(t * 0.7 + sd * 9.0 + pos.x * 0.30),
     sin(t * 0.5 + aSeed.w * 6.2831)
   );
-  float shapeSway = dot(w, SHAPE_SWAY);
+  float shapeSway = shapeVal(w, w5, SHAPE_SWAY, SHAPE_SWAY_CV);
   float amp = mix(mix(1.0, shapeSway, form), 0.55, dissolve) * uDriftAmp;
   pos += wob * amp;
 
@@ -332,10 +367,10 @@ void main() {
   // Only the two typographic shapes carry background dust; the galaxy
   // and the sparse cloud have no subject to protect, and their zero
   // weight drops the dimming entirely.
-  float shapeDust = w.x * aNameDim + w.z * aWordDim;
+  float shapeDust = w.x * aNameDim + w.z * aWordDim + w5 * aCvDim;
   // Micro-life now belongs to whatever shape is on screen, scaled by
   // that shape's legibility budget.
-  float live = nameState * (1.0 - shapeDust) * dot(w, SHAPE_LIFE);
+  float live = nameState * (1.0 - shapeDust) * shapeVal(w, w5, SHAPE_LIFE, SHAPE_LIFE_CV);
 
   // Faster than the sway above and out of phase per particle: amplitude
   // alone just makes the name lean, frequency is what reads as shimmer.
@@ -424,12 +459,16 @@ void main() {
   // galaxy and sparse formations have no subject to protect, and their
   // zero weight drops the dimming entirely.
   float dust = shapeDust * nameState;
-  float stateSize = mix(mix(1.0, 0.75, form), 0.7, dissolve) * (1.0 - dust * 0.35);
+  // Per-shape point size, folded in at full weight only once a shape is
+  // held: the CV block's body-text stroke needs a far smaller sprite than
+  // the name's, or its letterforms merge into a glowing ribbon.
+  float shapeSizeMul = mix(1.0, shapeVal(w, w5, SHAPE_SIZE, SHAPE_SIZE_CV), form);
+  float stateSize = mix(mix(1.0, 0.75, form), 0.7, dissolve) * (1.0 - dust * 0.35) * shapeSizeMul;
   gl_PointSize = uSize * aSeed.y * stateSize * vis * uPixelRatio * (12.0 / -mv.z);
 
   // Twinkle — loud in the galaxy, restrained in the name state so the
   // letterforms hold steady, gentle in the starfield.
-  float twAmp = mix(mix(0.30, dot(w, SHAPE_TWINKLE), form), 0.22, dissolve);
+  float twAmp = mix(mix(0.30, shapeVal(w, w5, SHAPE_TWINKLE, SHAPE_TWINKLE_CV), form), 0.22, dissolve);
   float tw = 1.0 - twAmp + twAmp * sin(uTime * (1.2 + aSeed.y) + sd * 6.2831);
 
   // Brightness wave: a highlight travelling across whatever shape is on
@@ -443,7 +482,7 @@ void main() {
   // coherent modulation — drift and twinkle both carry per-particle seed
   // phase — so on dust spread evenly across the frame it reads as bands
   // rather than as a highlight on the subject.
-  float wavePhase = uTime * (TAU / WAVE_PERIOD) - shapeX * dot(w, SHAPE_WAVE_FREQ);
+  float wavePhase = uTime * (TAU / WAVE_PERIOD) - shapeX * shapeVal(w, w5, SHAPE_WAVE_FREQ, SHAPE_WAVE_FREQ_CV);
   float wave = pow(0.5 + 0.5 * cos(wavePhase), WAVE_SHARPNESS);
 
   vColor = mix(uColorA, uColorB, aSeed.w);
@@ -482,6 +521,8 @@ export function buildParticleField(opts: ParticleFieldOptions): ParticleFieldHan
   geometry.setAttribute('aNameDim', new BufferAttribute(opts.nameDim, 1));
   geometry.setAttribute('aWordPos', new BufferAttribute(opts.wordPositions, 3));
   geometry.setAttribute('aWordDim', new BufferAttribute(opts.wordDim, 1));
+  geometry.setAttribute('aCvPos', new BufferAttribute(opts.cvPositions, 3));
+  geometry.setAttribute('aCvDim', new BufferAttribute(opts.cvDim, 1));
   geometry.setAttribute('aStarPos', new BufferAttribute(starPositions, 3));
   geometry.setAttribute('aSeed', new BufferAttribute(seeds, 4));
   // The shader displaces far beyond the raw attribute bounds; hand the
@@ -530,7 +571,10 @@ export function buildParticleField(opts: ParticleFieldOptions): ParticleFieldHan
     uShape: { value: 0 },
     uCrossFrom: { value: new Vector4(1, 0, 0, 0) },
     uCrossTo: { value: new Vector4(1, 0, 0, 0) },
+    uCrossFrom5: { value: 0 },
+    uCrossTo5: { value: 0 },
     uCross: { value: 0 },
+    uCvScale: { value: 1 },
     uCycleGalaxy: {
       value: new Vector4(
         C.galaxyVariant.x,

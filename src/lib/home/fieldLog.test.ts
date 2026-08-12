@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createFieldLog, formatLogLine, shortenForPopup } from './fieldLog';
 import { LOG_COPY, SHAPE_LABELS } from './fieldLogMessages';
+import { SHAPES } from '../three/field/tuning';
 
 describe('formatLogLine', () => {
   it('names each shape from the cycle index', () => {
@@ -16,7 +17,20 @@ describe('formatLogLine', () => {
     // The cycle's shape list and this label list are separate arrays; if
     // one grows the log should degrade, not throw inside a tick.
     expect(formatLogLine({ kind: 'shape', shape: 99 })).toContain('unknown');
-    expect(SHAPE_LABELS.length).toBe(4);
+  });
+
+  it('carries a label for every shape the field can hold', () => {
+    // Checked against SHAPES rather than a hardcoded count, because the
+    // graceful degradation above is what HID this: adding the CV lane left
+    // the labels at four, and the log printed "shape · unknown" for a
+    // quarter of every lap without failing anything.
+    expect(SHAPE_LABELS.length).toBe(SHAPES.length);
+    SHAPES.forEach((_shape, index) => {
+      expect(
+        formatLogLine({ kind: 'shape', shape: index }),
+        `lane ${index}`,
+      ).not.toContain('unknown');
+    });
   });
 
   it('rounds impulse coordinates — the log is not a debugger', () => {
