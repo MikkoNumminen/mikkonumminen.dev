@@ -36,6 +36,11 @@ export const en: Translations = {
       description:
         'Measured studies on LLM cost, Finnish language models and agent delegation, each published with its numbers and downloadable as a PDF.',
     },
+    cv: {
+      title: 'CV · Mikko Numminen',
+      description:
+        'The CV of Mikko Numminen, full-stack developer: projects, dominant tech, and 24 years of retail and operations before the code. Readable here or downloadable as a PDF.',
+    },
   },
   nav: {
     home: 'home',
@@ -57,6 +62,8 @@ export const en: Translations = {
     subtitle: 'full-stack developer · finland',
     scrollHint: 'scroll',
     cvLabel: 'cv · pdf ↓',
+    cvReadLabel: 'or read it here',
+    cvReadAria: 'Read my CV on this site',
   },
   intro: {
     sectionAria: 'About',
@@ -120,6 +127,15 @@ export const en: Translations = {
       'This document is in English. The rest of the site is translated; the papers are not, because a translated measurement is a different document and I would rather you read the one I actually ran.',
     sourceLabel: 'Rendered from',
     pdfAlsoLabel: 'Also as a PDF',
+  },
+  cvPage: {
+    eyebrow: 'curriculum vitae',
+    downloadLabel: 'download pdf',
+    pdfNotice:
+      'The PDF is the version to attach to an application. This page is the same CV as text, so you can read it without downloading anything.',
+    englishNotice:
+      'This CV is in English. The rest of the site is translated; the CV is not, because the roles it is written for are advertised in English and a second version is a second document to keep current.',
+    backHome: 'back to the front page',
   },
   blog: {
     eyebrow: 'writing',

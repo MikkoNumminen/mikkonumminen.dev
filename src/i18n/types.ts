@@ -42,6 +42,7 @@ export interface Translations {
     experience: { title: string; description: string };
     blog: { title: string; description: string };
     research: { title: string; description: string };
+    cv: { title: string; description: string };
   };
   nav: {
     home: string;
@@ -64,6 +65,14 @@ export interface Translations {
     scrollHint: string;
     /** The masthead's CV download. Its href is derived from `papers.ts`. */
     cvLabel: string;
+    /**
+     * The masthead's second CV control, pointing at `/cv`. Paired with
+     * `cvLabel` and deliberately quieter: the two things a visitor can do with
+     * the CV are read it and take it, and the download is the one most of them
+     * came for.
+     */
+    cvReadLabel: string;
+    cvReadAria: string;
   };
   intro: {
     sectionAria: string;
@@ -114,6 +123,24 @@ export interface Translations {
     englishNotice: string;
     sourceLabel: string;
     pdfAlsoLabel: string;
+  };
+  cvPage: {
+    eyebrow: string;
+    /**
+     * The download control's visible label. The file size is appended at build
+     * time; the accessible name comes from `common.downloadCvAria`, shared with
+     * the hero pill and the footer link.
+     */
+    downloadLabel: string;
+    /**
+     * Names the PDF as the document to send on. The page and the PDF are
+     * maintained separately, so this deliberately does not claim they are the
+     * same bytes.
+     */
+    pdfNotice: string;
+    /** Why the body is English on the Finnish route. Mirrors `researchPage`. */
+    englishNotice: string;
+    backHome: string;
   };
   blog: {
     eyebrow: string;

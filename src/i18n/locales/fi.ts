@@ -36,6 +36,11 @@ export const fi: Translations = {
       description:
         'Mitattuja tutkimuksia kielimallien kustannuksista, suomenkielisistä malleista ja agenttien delegoinnista. Jokainen julkaistu lukuineen ja ladattavissa PDF:nä.',
     },
+    cv: {
+      title: 'CV · Mikko Numminen',
+      description:
+        'Mikko Nummisen CV, full-stack-kehittäjä: projektit, keskeiset teknologiat ja 24 vuotta kaupan ja operaatioiden parissa ennen koodia. Luettavissa täällä tai ladattavissa PDF:nä.',
+    },
   },
   nav: {
     home: 'etusivu',
@@ -57,6 +62,8 @@ export const fi: Translations = {
     subtitle: 'full-stack-kehittäjä · suomi',
     scrollHint: 'vieritä',
     cvLabel: 'cv · pdf ↓',
+    cvReadLabel: 'tai lue se täällä',
+    cvReadAria: 'Lue CV:ni tällä sivustolla',
   },
   intro: {
     sectionAria: 'Tietoja',
@@ -122,6 +129,15 @@ export const fi: Translations = {
       'Tämä dokumentti on englanniksi. Muu sivusto on käännetty, paperit eivät, koska käännetty mittaus on eri dokumentti ja luen mieluummin sen, jonka oikeasti ajoin.',
     sourceLabel: 'Lähde',
     pdfAlsoLabel: 'Myös PDF:nä',
+  },
+  cvPage: {
+    eyebrow: 'ansioluettelo',
+    downloadLabel: 'lataa pdf',
+    pdfNotice:
+      'PDF on se versio, jonka liität hakemukseen. Tämä sivu on sama CV tekstinä, joten voit lukea sen lataamatta mitään.',
+    englishNotice:
+      'Tämä CV on englanniksi. Muu sivusto on käännetty, CV ei, koska sen kohteena olevat tehtävät ilmoitetaan englanniksi ja toinen kieliversio on toinen dokumentti pidettävänä ajan tasalla.',
+    backHome: 'takaisin etusivulle',
   },
   blog: {
     eyebrow: 'kirjoituksia',
