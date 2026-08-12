@@ -1,9 +1,26 @@
 ---
+import { statSync } from 'node:fs';
+import path from 'node:path';
 import { asLocale, getTranslations } from '../../i18n';
+import { cvPaper, paperUrl } from '../../data/papers';
 import HeroVoiceover from './HeroVoiceover.astro';
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
+
+const cv = cvPaper();
+
+/**
+ * Size, read at build time, resolved from `process.cwd()` rather than from
+ * `import.meta.url` for the reason `ResearchIndexPage.astro` records: this
+ * frontmatter is bundled into `dist/.prerender/chunks/`, so a module-relative
+ * URL resolves into `dist/` and the stat throws ENOENT.
+ *
+ * A missing file fails the build. A download whose size the page guessed is
+ * worse than no size, and a CV that is not on disk is the one failure this
+ * whole control exists to prevent.
+ */
+const cvSize = `${Math.round(statSync(path.join(process.cwd(), 'public', cv.filename)).size / 1024)} KB`;
 ---
 
 <section class="hero" data-section-hero aria-label={t.hero.sectionAria}>
@@ -12,6 +29,28 @@ const t = getTranslations(locale);
   <div class="hero__masthead">
     <p class="hero__eyebrow">{t.hero.eyebrow}</p>
     <p class="hero__subtitle">{t.hero.subtitle}</p>
+
+    {
+      /* The one action on the cover. It sits in the masthead rather than in
+        a fixed corner because every corner is already spoken for (audio
+        bottom-left, field log bottom-right, coordinate markers top), and
+        because the masthead is the only block that renders identically on
+        all three paths: the WebGL field, the ≤640px fallback and
+        reduced-motion. One control, no duplicate to keep in step.
+
+        `download` plus an explicit filename, so the browser saves rather
+        than opening a viewer tab the visitor then has to save out of. */
+    }
+    <a
+      class="hero__cv"
+      href={paperUrl(cv)}
+      download={cv.filename}
+      data-astro-prefetch="false"
+      aria-label={`${t.hero.cvAria} (${cvSize})`}
+    >
+      <span class="hero__cv-label">{t.hero.cvLabel}</span>
+      <span class="hero__cv-size" aria-hidden="true">{cvSize}</span>
+    </a>
   </div>
 
   <div class="hero__content">
@@ -145,6 +184,47 @@ const t = getTranslations(locale);
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.55);
     margin: 0;
+  }
+
+  /* The research page's hairline download pill, restyled into the home
+     register. Same shape on purpose: it is the site's only established
+     "this downloads a PDF" affordance, so a returning visitor has already
+     learned it. Accent blue rather than the terminal's green, because
+     #c4d4ff is what a link looks like everywhere else here and the green
+     belongs to the contact terminal. */
+  .hero__cv {
+    margin-top: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 1rem;
+    border: 1px solid rgba(196, 212, 255, 0.35);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    text-decoration: none;
+    color: rgba(196, 212, 255, 0.9);
+    background: rgba(196, 212, 255, 0.04);
+    transition:
+      border-color 0.3s ease,
+      background-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  .hero__cv:hover,
+  .hero__cv:focus-visible {
+    border-color: rgba(196, 212, 255, 0.85);
+    background: rgba(196, 212, 255, 0.1);
+    color: #fff;
+  }
+
+  /* Quieter than the label, matching how the corner markers rank their
+     numerals below their words. */
+  .hero__cv-size {
+    color: rgba(196, 212, 255, 0.45);
+    letter-spacing: 0.1em;
   }
 
   .hero__scroll-hint {

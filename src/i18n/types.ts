@@ -55,6 +55,9 @@ export interface Translations {
     titleFallbackBottom: string;
     subtitle: string;
     scrollHint: string;
+    /** The masthead's CV download. Its href is derived from `papers.ts`. */
+    cvLabel: string;
+    cvAria: string;
   };
   intro: {
     sectionAria: string;
@@ -80,6 +83,9 @@ export interface Translations {
     contact: { label: string; description: string };
     footerCopyright: string;
     footerBuiltWith: string;
+    /** Footer CV link. Lives here because the footer's other two strings do. */
+    footerCv: string;
+    footerCvAria: string;
   };
   /** The research listing at /research. Papers themselves stay English. */
   researchPage: {

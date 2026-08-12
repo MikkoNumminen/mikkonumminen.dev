@@ -174,6 +174,22 @@ export const PAPERS: readonly Paper[] = [
 export const paperUrl = (paper: Paper): string => `/${paper.filename}`;
 
 /**
+ * The CV, resolved by id.
+ *
+ * Several surfaces link it now (the hero, the footer, the terminal) and none of
+ * them may hardcode `mikko-numminen-cv.pdf`: the filename is written once, at
+ * `filename` above, and everything else derives it. A function rather than a
+ * module-level constant because this module is bundled into the browser for the
+ * terminal, and a top-level throw there would take the page down for a
+ * condition that can only be a build-time mistake.
+ */
+export function cvPaper(): Paper {
+  const cv = PAPERS.find((paper) => paper.id === 'cv');
+  if (!cv) throw new Error('papers: the cv entry is missing');
+  return cv;
+}
+
+/**
  * The month prefix the terminal labels carry ("jul 2026 · the blind test…").
  *
  * Exported because two callers need the SAME regex: `papers.test.ts` asserts the

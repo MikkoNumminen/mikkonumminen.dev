@@ -55,6 +55,8 @@ export const en: Translations = {
     titleFallbackBottom: 'NUMMINEN',
     subtitle: 'full-stack developer · finland',
     scrollHint: 'scroll',
+    cvLabel: 'cv · pdf ↓',
+    cvAria: 'Download my CV as a PDF',
   },
   intro: {
     sectionAria: 'About',
@@ -97,6 +99,8 @@ export const en: Translations = {
     },
     footerCopyright: '© 2026 Mikko Numminen',
     footerBuiltWith: 'built with astro · three.js · gsap',
+    footerCv: 'cv · pdf ↓',
+    footerCvAria: 'Download my CV as a PDF',
   },
   researchPage: {
     eyebrow: 'measured',

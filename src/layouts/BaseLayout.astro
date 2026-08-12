@@ -12,6 +12,7 @@ import {
   DEFAULT_LOCALE,
   type Locale,
 } from '../i18n';
+import { cvPaper, paperUrl } from '../data/papers';
 import type { Theme } from '../lib/theme';
 
 interface Props {
@@ -34,6 +35,8 @@ interface Props {
 
 const locale = asLocale(Astro.currentLocale);
 const t = getTranslations(locale);
+
+const cvFile = cvPaper();
 
 const {
   title,
@@ -200,8 +203,23 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
     }
     <BackgroundAudio />
 
+    {
+      /* The CV reaches every route from here. The hero pill only exists on
+        the landing page, and the fixed nav is already six links plus the
+        language switcher and scrolls horizontally under 600px, so the
+        footer is the one place a persistent link costs nothing. */
+    }
     <footer class="site-footer" data-site-footer>
       <span>{t.navCards.footerCopyright}</span>
+      <a
+        class="site-footer__cv"
+        href={paperUrl(cvFile)}
+        download={cvFile.filename}
+        data-astro-prefetch="false"
+        aria-label={t.navCards.footerCvAria}
+      >
+        {t.navCards.footerCv}
+      </a>
       <span>{t.navCards.footerBuiltWith}</span>
     </footer>
 
@@ -220,6 +238,19 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
         letter-spacing: 0.15em;
         text-transform: uppercase;
         color: rgba(255, 255, 255, 0.5);
+      }
+
+      /* Brighter than the two spans beside it: those are notices, this is
+         the one thing in the footer a visitor might want to click. */
+      .site-footer__cv {
+        color: rgba(196, 212, 255, 0.85);
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+
+      .site-footer__cv:hover,
+      .site-footer__cv:focus-visible {
+        color: #fff;
       }
 
       @media (max-width: 860px) {
