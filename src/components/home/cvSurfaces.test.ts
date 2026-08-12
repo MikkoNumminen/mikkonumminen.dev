@@ -195,11 +195,20 @@ describe('CV download surfaces', () => {
     // nested div of its own, which is asserted rather than assumed, because
     // that is exactly the assumption the earlier version of this test made
     // about the MASTHEAD and which adding the row quietly invalidated.
+    // Both halves of the nesting argument, and the first one is not optional:
+    // the "before any div closes" check alone is satisfied by a row that sits
+    // entirely BEFORE the masthead, since then rowIndex precedes mastheadIndex
+    // and so precedes every closing tag after it too. Moving the row above the
+    // masthead is a real way to break this, and it takes both bounds to reject.
     const firstCloseAfterMasthead = hero.indexOf('</div>', mastheadIndex);
     expect(
       firstCloseAfterMasthead,
       'could not find any closing div after the masthead opens',
     ).toBeGreaterThan(-1);
+    expect(
+      rowIndex,
+      'hero__cv-row must open after hero__masthead opens, or the row precedes the masthead rather than sitting inside it',
+    ).toBeGreaterThan(mastheadIndex);
     expect(
       rowIndex,
       'hero__cv-row must open before any div closes after the masthead, or the row is not inside the masthead',

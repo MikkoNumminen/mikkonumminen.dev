@@ -94,15 +94,17 @@ describe('content/cv.md', () => {
     ).toMatch(/^kind:\s*cv\s*$/m);
   });
 
-  it('opens its body with a top-level # heading', () => {
+  it('carries exactly one top-level # heading', () => {
     // CvPage.astro deliberately renders no title of its own and relies on
-    // this file's own h1 being the page's only one. If the markdown loses
-    // its h1, /cv ships with no h1 at all rather than falling back to a
-    // second one somewhere else.
+    // this file's own h1 being the page's only one. Counted rather than merely
+    // found, because the invariant has two sides: losing the `#` ships /cv with
+    // no h1 at all, and a second `#` further down ships it with two, and only
+    // the first of those is a missing heading.
+    const topLevel = body.match(/^#\s+\S/gm) ?? [];
     expect(
-      body,
-      "content/cv.md has no top-level # heading; CvPage.astro depends on this being the page's only h1",
-    ).toMatch(/^#\s+\S/m);
+      topLevel.length,
+      "content/cv.md must carry exactly one top-level # heading; CvPage.astro renders no title of its own and depends on this being the page's only h1",
+    ).toBe(1);
   });
 });
 

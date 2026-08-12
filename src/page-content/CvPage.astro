@@ -74,7 +74,13 @@ const downloadAria = t.common.downloadCvAria.replace('{size}', cvSize);
       )
     }
 
-    <div class="cv__body">
+    {
+      /* `lang="en"` for the same reason `ResearchPaperPage.astro` marks its
+        body: on /fi/cv the document language is Finnish and this prose is not,
+        so without it a screen reader reads the whole CV with Finnish
+        pronunciation rules. */
+    }
+    <div class="cv__body" lang="en">
       <Content />
     </div>
 
@@ -235,8 +241,13 @@ const downloadAria = t.common.downloadCvAria.replace('{size}', cvSize);
     padding-left: 1.35rem;
   }
 
-  /* The Projects section is a list of paragraph-length entries rather than
-     short bullets, so each one gets the spacing of a paragraph. */
+  /* For a TIGHT list only. The Projects section is authored with blank lines
+     between its entries, so markdown makes it loose and wraps each `li` in a
+     `p`; that `p`'s 1.4rem bottom margin collapses through the `li` (no padding
+     or border to stop it) and wins, which is what actually gives those
+     paragraph-length entries paragraph spacing. This value governs the day a
+     section is written as tight bullets instead, so do not tune the Projects
+     gap here — it is set by :global(p) above. */
   .cv__body :global(li) {
     margin: 0 0 0.9rem;
   }
