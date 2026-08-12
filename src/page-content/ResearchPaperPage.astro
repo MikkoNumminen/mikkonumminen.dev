@@ -67,7 +67,12 @@ const listHref = localizePath('/research', locale);
       <h1 class="paper__title">{paper.title}</h1>
       <p class="paper__summary">{paper.summary}</p>
       <p class="paper__actions">
-        <a class="paper__pdf" href={paper.url} download={paper.filename}>
+        <a
+          class="paper__pdf"
+          href={paper.url}
+          download={paper.filename}
+          data-astro-prefetch="false"
+        >
           {t.researchPage.pdfAlsoLabel}
         </a>
       </p>

@@ -4,12 +4,13 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 /**
- * Two surfaces link the CV: the hero masthead pill and the site-wide footer
- * link. Both must derive the filename from `src/data/papers.ts` via
- * `cvPaper()` / `paperUrl()` rather than hardcoding `mikko-numminen-cv.pdf`.
- * A hardcoded filename here would silently drift from the data module the day
- * the PDF is renamed or replaced, producing a dead download link that no build
- * step would catch.
+ * Three surfaces link the CV: the hero masthead pill, the site-wide footer
+ * link, and the mobile contact card's button. All must derive the filename from
+ * `src/data/papers.ts` via `cvPaper()` / `paperUrl()` rather than hardcoding
+ * `mikko-numminen-cv.pdf`. A hardcoded filename here would silently drift from
+ * the data module the day the PDF is renamed or replaced, producing a dead
+ * download link that no build step would catch — which is what the mobile card
+ * did, unguarded, for as long as it had a CV button.
  *
  * Source-read rather than rendered, matching `SiteNav.test.ts`: the property
  * worth holding is what the `.astro` source contains, not one render of it.
@@ -28,6 +29,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const heroSource = readFileSync(path.join(here, 'Hero.astro'), 'utf8');
 const baseLayoutSource = readFileSync(
   path.join(here, '../../layouts/BaseLayout.astro'),
+  'utf8',
+);
+const mobileContactCardSource = readFileSync(
+  path.join(here, '../contact/MobileContactCard.astro'),
   'utf8',
 );
 
@@ -76,6 +81,7 @@ const stripComments = (source: string): string =>
 
 const hero = stripComments(heroSource);
 const baseLayout = stripComments(baseLayoutSource);
+const mobileContactCard = stripComments(mobileContactCardSource);
 
 /**
  * The CV anchor's opening tag, isolated so attribute checks cannot be satisfied
@@ -89,7 +95,16 @@ const cvAnchor = (code: string): string | undefined =>
 const SURFACES: readonly [string, string][] = [
   ['Hero.astro', hero],
   ['BaseLayout.astro', baseLayout],
+  ['MobileContactCard.astro', mobileContactCard],
 ];
+
+/**
+ * The subset whose CV anchor carries a class of its own. The mobile card's
+ * three buttons all share `mcc__btn`, so there is nothing in its markup that
+ * identifies the CV one — it is held to the derivation checks, which is where
+ * the rename drift lives, and not to the anchor-shape one.
+ */
+const CLASSED_SURFACES = SURFACES.filter(([name]) => name !== 'MobileContactCard.astro');
 
 describe('CV download surfaces', () => {
   it.each(SURFACES)(
@@ -111,29 +126,32 @@ describe('CV download surfaces', () => {
     ).not.toContain('mikko-numminen-cv.pdf');
   });
 
-  it.each(SURFACES)('%s builds the CV anchor from the papers module', (_name, code) => {
-    const anchor = cvAnchor(code);
-    // Scoped to the one tag rather than searched across the file: the first
-    // version checked `href={paperUrl(` and `download={` independently, which
-    // an unrelated anchor carrying one of them could satisfy on behalf of a CV
-    // anchor missing the other.
-    expect(
-      anchor,
-      'no anchor carries the CV class; either it was removed or `class` no longer appears in its opening tag',
-    ).toBeTruthy();
-    expect(
-      anchor,
-      'the anchor href must call paperUrl(...) rather than a literal path',
-    ).toMatch(/href=\{paperUrl\(/);
-    expect(
-      anchor,
-      'the anchor must carry a download attribute so the browser saves the PDF instead of opening a viewer tab',
-    ).toMatch(/download=\{/);
-    expect(
-      anchor,
-      'the visible label reads "cv · pdf ↓", which is unreadable to a screen reader without an aria-label',
-    ).toMatch(/aria-label=/);
-  });
+  it.each(CLASSED_SURFACES)(
+    '%s builds the CV anchor from the papers module',
+    (_name, code) => {
+      const anchor = cvAnchor(code);
+      // Scoped to the one tag rather than searched across the file: the first
+      // version checked `href={paperUrl(` and `download={` independently, which
+      // an unrelated anchor carrying one of them could satisfy on behalf of a CV
+      // anchor missing the other.
+      expect(
+        anchor,
+        'no anchor carries the CV class; either it was removed or `class` no longer appears in its opening tag',
+      ).toBeTruthy();
+      expect(
+        anchor,
+        'the anchor href must call paperUrl(...) rather than a literal path',
+      ).toMatch(/href=\{paperUrl\(/);
+      expect(
+        anchor,
+        'the anchor must carry a download attribute so the browser saves the PDF instead of opening a viewer tab',
+      ).toMatch(/download=\{/);
+      expect(
+        anchor,
+        'the visible label reads "cv · pdf ↓", which is unreadable to a screen reader without an aria-label',
+      ).toMatch(/aria-label=/);
+    },
+  );
 
   it('keeps the hero CV pill inside .hero__masthead', () => {
     const mastheadIndex = hero.indexOf('hero__masthead');

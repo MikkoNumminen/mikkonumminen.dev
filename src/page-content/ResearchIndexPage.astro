@@ -102,10 +102,17 @@ const papers: LocalizedPaper[] = localizePapers(t)
                       : t.researchPage.aboutLabel}
                   </a>
                 )}
+                {/* Opted out of prefetch, as every download anchor on the site
+                    is. `prefetchAll` with `defaultStrategy: 'viewport'` warms
+                    sibling ROUTES so ClientRouter can swap them in; a PDF is
+                    not a route and cannot be swapped in, so the only effect
+                    here is pulling all 2.7 MB of papers down as the listing
+                    scrolls, for a visitor who asked for none of them. */}
                 <a
                   class="research__download"
                   href={paper.url}
                   download={paper.filename}
+                  data-astro-prefetch="false"
                   aria-label={t.researchPage.downloadAria.replace('{title}', paper.title)}
                 >
                   {t.researchPage.pdfLabel} · {publicFileSize(paper.filename)}
