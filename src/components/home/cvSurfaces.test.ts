@@ -31,11 +31,30 @@ const baseLayoutSource = readFileSync(
   'utf8',
 );
 
-const stripComments = (source: string): string =>
-  source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/^\s*\/\/.*$/gm, '');
+/**
+ * Repeated to a fixed point rather than applied once.
+ *
+ * One pass over a nested or unterminated opener can leave the delimiter behind
+ * (`<!-- <!-- x -->` reduces to a bare `<!--`), which is both a real hole in
+ * what this is for and what CodeQL's incomplete-multi-character-sanitization
+ * rule flags. The rule's stated consequence, HTML injection, does not apply to
+ * a string that is only ever regex-matched in assertions, but the underlying
+ * observation about a single pass is correct. Termination is guaranteed: every
+ * iteration only removes characters, and the loop stops as soon as one changes
+ * nothing.
+ */
+const stripComments = (source: string): string => {
+  let out = source;
+  let previous = '';
+  while (out !== previous) {
+    previous = out;
+    out = out
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+  }
+  return out;
+};
 
 const hero = stripComments(heroSource);
 const baseLayout = stripComments(baseLayoutSource);
