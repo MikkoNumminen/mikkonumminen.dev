@@ -2,7 +2,7 @@
 
 Personal portfolio of Mikko Numminen, full-stack developer from Finland.
 
-**Live:** https://mikkonumminen-dev.vercel.app
+**Live:** https://mikkonumminen.dev
 
 This is intentionally not a typical web app. It's a visual showcase, with each page built as its own concept and animation.
 
