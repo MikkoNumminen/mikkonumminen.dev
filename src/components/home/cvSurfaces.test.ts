@@ -31,30 +31,48 @@ const baseLayoutSource = readFileSync(
   'utf8',
 );
 
+const HTML_OPEN = '<!--';
+const HTML_CLOSE = '-->';
+
 /**
- * Repeated to a fixed point rather than applied once.
+ * HTML comments removed by scanning for the delimiters rather than by
+ * `replace`-ing a regex.
  *
- * One pass over a nested or unterminated opener can leave the delimiter behind
- * (`<!-- <!-- x -->` reduces to a bare `<!--`), which is both a real hole in
- * what this is for and what CodeQL's incomplete-multi-character-sanitization
- * rule flags. The rule's stated consequence, HTML injection, does not apply to
- * a string that is only ever regex-matched in assertions, but the underlying
- * observation about a single pass is correct. Termination is guaranteed: every
- * iteration only removes characters, and the loop stops as soon as one changes
- * nothing.
+ * A regex that removes `<!--…-->` in one pass leaves the opener behind when
+ * there is no closer, and CodeQL flags that as incomplete sanitization. Its
+ * stated consequence, HTML injection, does not apply to a string that is only
+ * ever regex-matched in assertions and never rendered. The underlying
+ * observation is still right, and neither one pass nor a fixed-point loop
+ * settles it, so this scans instead: every opener found is excluded along with
+ * everything up to its closer, and an unterminated opener discards the rest of
+ * the file. No delimiter can survive, by construction rather than by argument.
  */
-const stripComments = (source: string): string => {
-  let out = source;
-  let previous = '';
-  while (out !== previous) {
-    previous = out;
-    out = out
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/^\s*\/\/.*$/gm, '');
+const stripHtmlComments = (source: string): string => {
+  const kept: string[] = [];
+  let cursor = 0;
+  for (;;) {
+    const open = source.indexOf(HTML_OPEN, cursor);
+    if (open === -1) {
+      kept.push(source.slice(cursor));
+      break;
+    }
+    kept.push(source.slice(cursor, open));
+    const close = source.indexOf(HTML_CLOSE, open + HTML_OPEN.length);
+    if (close === -1) break;
+    cursor = close + HTML_CLOSE.length;
   }
-  return out;
+  return kept.join('');
 };
+
+/**
+ * All three comment syntaxes an `.astro` file can carry. `//` matters as much
+ * as the rest: an import commented out mid-refactor would otherwise satisfy
+ * the import case while the real import was gone.
+ */
+const stripComments = (source: string): string =>
+  stripHtmlComments(source)
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
 
 const hero = stripComments(heroSource);
 const baseLayout = stripComments(baseLayoutSource);
