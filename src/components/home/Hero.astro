@@ -268,7 +268,8 @@ const cvSize = publicFileSize(cv.filename);
   }
 
   /* While the field is holding the CV formation, the two controls that
-     actually hand over the document light up.
+     actually hand over the document light up. `data-field-shape` is written
+     by `lib/home/fieldShapeState.ts`, which carries the why.
 
      There is deliberately no `prefers-reduced-motion` variant, and no mobile
      one. Both of those paths never boot the scene at all (the canvas is
@@ -276,10 +277,7 @@ const cvSize = publicFileSize(cv.filename);
      emitted and `data-field-shape` is never set: the controls simply stay in
      their resting state, which is the honest answer when there is no
      formation to connect them to. A transition override here would be CSS
-     that cannot fire. The formation shows the top of
-     the CV as readable prose for eleven seconds of every lap and cannot be
-     clicked (the canvas is pointer-events: none, deliberately); this is what
-     connects what a visitor is reading to what they can do about it.
+     that cannot fire.
 
      COLOUR AND GLOW ONLY. Nothing here may change a box's size or its
      layout: `.hero__masthead` is absolutely positioned above the fallback
@@ -304,6 +302,26 @@ const cvSize = publicFileSize(cv.filename);
     text-decoration-color: rgba(226, 236, 255, 0.75);
   }
 
+  /* The lit rules above out-specify `:hover` / `:focus-visible` (an attribute
+     plus two classes against one class and a pseudo), so without these the two
+     controls stop answering the pointer for the fourteen seconds a lap they are
+     brightest — and the lit fill is already brighter than the hover fill, so
+     there is nothing left to see. Restated at the lit specificity rather than
+     by weakening the rules above with `:where()`: hover has to go PAST the lit
+     state to read as hover at all. */
+  .hero[data-field-shape='cv'] .hero__cv:hover,
+  .hero[data-field-shape='cv'] .hero__cv:focus-visible {
+    background: rgba(196, 212, 255, 0.2);
+    box-shadow:
+      0 0 0 1px rgba(196, 212, 255, 0.32),
+      0 0 26px rgba(140, 175, 255, 0.45);
+  }
+
+  .hero[data-field-shape='cv'] .hero__cv-read:hover,
+  .hero[data-field-shape='cv'] .hero__cv-read:focus-visible {
+    text-decoration-color: #fff;
+  }
+
   /* Quieter than the label, matching how the corner markers rank their
      numerals below their words, but only as quiet as WCAG AA allows. The
      corner markers get to sit at 0.3 because they are decorative frame
@@ -318,6 +336,10 @@ const cvSize = publicFileSize(cv.filename);
     color: rgba(196, 212, 255, 0.65);
     letter-spacing: 0.1em;
     text-transform: none;
+    /* Its own, matching the pill's: the size sets `color` explicitly, so it
+       does not inherit the parent's transition and would otherwise snap to the
+       lit value while the pill around it fades. */
+    transition: color 0.3s ease;
   }
 
   /* Ranked below the pill: reading is the alternative, downloading is what

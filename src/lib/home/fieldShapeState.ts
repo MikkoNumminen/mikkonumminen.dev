@@ -7,13 +7,16 @@
  * visitor take or read that document are sitting in the hero masthead the
  * whole time. Brightening them while the formation is up connects the two.
  *
- * WHY NOT A CLICKABLE FORMATION. The original plan put a transparent
- * `<a download>` over the formation's projected bounds, mounted only while
- * the shape held, because `.field-canvas` is `pointer-events: none`. That is
- * a tab stop which exists for part of every lap and not the rest, which is
- * worse for a keyboard user than no control at all. The hero's anchors are
- * already permanent, focusable and named; pointing attention at them costs
- * nothing and takes nothing away.
+ * WHY NOT A CLICKABLE FORMATION. A click inside the formation is already
+ * seen — `homeScene`'s `pointerdown` hit-test strikes the field with an
+ * impulse — but nothing there can be followed or focused, and it takes a DOM
+ * overlay to change that, since `.field-canvas` is `pointer-events: none`.
+ * The original plan put a transparent `<a download>` over the formation's
+ * projected bounds, mounted only while the shape held. That is a tab stop
+ * which exists for part of every lap and not the rest, which is worse for a
+ * keyboard user than no control at all. The hero's anchors are already
+ * permanent, focusable and named; pointing attention at them costs nothing
+ * and takes nothing away.
  *
  * It rides the existing `field:log` event rather than adding a second
  * channel. That event already fires the moment the cycle COMMITS to a new
@@ -29,9 +32,23 @@
  * one.
  */
 import { onFieldLog } from './fieldLogEvents';
-import { SHAPES } from '../three/field/tuning';
 
 export const FIELD_SHAPE_ATTR = 'data-field-shape';
+
+/**
+ * Attribute value per LANE index, in `SHAPES` order.
+ *
+ * Its own list rather than an import of `SHAPES`, matching `SHAPE_LABELS` in
+ * `fieldLogMessages.ts` and for the same two reasons. This module rides the
+ * hero's EAGER bundle, and a static import of `field/tuning` puts that whole
+ * chunk (GLSL emitters included) on the critical path of every home load —
+ * including the mobile and reduced-motion paths, where the scene never boots
+ * and no shape is ever published. And a drift guard is cheaper than a
+ * dependency: `fieldShapeState.test.ts` imports `SHAPES` and asserts this
+ * list against it lane for lane, so a rename or a sixth lane fails there
+ * instead of silently unmatching the CSS.
+ */
+const SHAPE_ATTR_VALUES = ['name', 'galaxy', 'word', 'sparse', 'cv'] as const;
 
 /**
  * Lane index to attribute value. Returns null for an index the shape list
@@ -39,7 +56,7 @@ export const FIELD_SHAPE_ATTR = 'data-field-shape';
  * writing `undefined` into the DOM and leaving a selector matching on it.
  */
 export function shapeAttrValue(shape: number): string | null {
-  return SHAPES[shape] ?? null;
+  return SHAPE_ATTR_VALUES[shape] ?? null;
 }
 
 /**
