@@ -508,11 +508,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       launchImpulse(e.clientX, e.clientY, 1);
       // Only the typographic shapes suppress the commit popup, and only
       // for the reason ADR 0015 gave: a mono label rising through
-      // letterforms fights the legibility they exist to have. The galaxy
-      // and the sparse cloud have no legibility to protect, so they keep
-      // the easter egg — otherwise it would vanish for half of every
-      // cycle, which is not a trade anyone asked for.
-      if (shape === SHAPE_NAME || shape === SHAPE_WORD) return;
+      // letterforms fights the legibility they exist to have. That reason
+      // is strongest for the CV block, which is the one shape a visitor is
+      // asked to READ. The galaxy and the sparse cloud have no legibility
+      // to protect, so they keep the easter egg — otherwise it would
+      // vanish for most of every cycle, which is not a trade anyone asked
+      // for.
+      if (shape === SHAPE_NAME || shape === SHAPE_WORD || shape === SHAPE_CV) return;
     }
     const strength = target?.closest(TEXT_TARGET_SELECTOR) ? 1.25 : 1;
     launchRipple(e.clientX, e.clientY, strength);
@@ -524,7 +526,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const resize = createResizeHandler(
     renderer,
     camera,
-    () => {
+    (_width, height) => {
       const aspect = camera.aspect;
 
       // Name block: scale down (never up) so it always fits the frustum
@@ -544,8 +546,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         (visibleHalfWidth - NAME_FIT_PADDING) / CV_DESIGN_HALF_WIDTH,
       );
       field.uniforms.uCvScale.value = cvScale;
-      cvLegible =
-        cvBodyTextPx(window.innerHeight, halfHeightAtZ0 * 2, cvScale) >= CV_MIN_BODY_PX;
+      cvLegible = cvBodyTextPx(height, halfHeightAtZ0 * 2, cvScale) >= CV_MIN_BODY_PX;
 
       // Galaxy: pull toward centre on narrow viewports just enough that
       // the disk's left edge stays inside the frame; never push it

@@ -97,6 +97,32 @@ describe('createShapeCycle', () => {
     expect(c.current()).toBe(CV);
   });
 
+  it('leaves the CV early if it stops being showable while it is held', () => {
+    // A window dragged narrow mid-hold takes the block below the size its
+    // body text needs. Gating only the NEXT target would leave an unreadable
+    // smear up for the rest of an 11 second window.
+    const c = createShapeCycle();
+    step(c); // name -> galaxy
+    step(c); // galaxy -> cv
+    expect(c.current()).toBe(CV);
+    expect(run(c, 1).phase).toBe('holding');
+
+    // One advance with the shape no longer showable is enough to start the
+    // morph away from it, well inside its hold window.
+    const s = c.advance({ delta: STEP, wordReady: true, cvReady: false });
+    expect(s.phase).toBe('crossing');
+    expect(s.from).toBe(CV);
+    expect(s.to).not.toBe(CV);
+  });
+
+  it('does not cut a shape short while it is still showable', () => {
+    // The other half of the same branch: the early exit must not fire on
+    // the ordinary path, or every shape would morph on its first frame.
+    const c = createShapeCycle();
+    expect(run(c, holdOf(NAME) - 0.5).phase).toBe('holding');
+    expect(c.current()).toBe(NAME);
+  });
+
   it('skips the CV block when it is not ready, and still reaches the wordmark', () => {
     const c = createShapeCycle();
     step(c); // name -> galaxy

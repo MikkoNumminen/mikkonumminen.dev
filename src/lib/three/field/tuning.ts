@@ -62,8 +62,13 @@ export type FieldShape = (typeof SHAPES)[number];
  * theatrical entrance in the rotation: a disk of stars resolving into
  * readable prose. It also puts the two text shapes apart rather than
  * back to back.
+ *
+ * Typed as `readonly number[]` rather than a literal tuple so the cycle
+ * walker can `indexOf` a plain lane index without a cast. `fifthLane.test`
+ * holds the property the literal type would have implied: every lane
+ * appears exactly once.
  */
-export const CYCLE_ORDER = [0, 1, 4, 2, 3] as const;
+export const CYCLE_ORDER: readonly number[] = [0, 1, 4, 2, 3];
 
 /**
  * Emit a per-shape table as the GLSL pair the shader reads: a `vec4` for

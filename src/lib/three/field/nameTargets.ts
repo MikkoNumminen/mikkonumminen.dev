@@ -15,6 +15,10 @@
  * Failure of any canvas step falls back to a soft ellipsoid blob at the
  * name's position (generateNameTargetsStub) rather than breaking the
  * scene.
+ *
+ * PARALLEL TO `wordmarkTargets.ts` and `cvTargets.ts`: the same raster →
+ * alpha-threshold sample loop → `distributeNameTargets` pipeline, kept
+ * duplicated on purpose. Mirror fixes to the sample loop into all three.
  */
 import { distributeNameTargets, type NameTargetSet } from './nameDistribution';
 

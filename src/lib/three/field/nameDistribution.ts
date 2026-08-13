@@ -49,8 +49,12 @@ export interface NameBounds {
 export interface NameTargetSet {
   /** World-space positions at unit scale (len = count*3). */
   positions: Float32Array;
-  /** Per-particle dim flag: 0 = glyph (full brightness), 1 = dust
-   *  (dimmed hard while the name is formed). len = count. */
+  /** Per-particle dim value, 0 = full brightness … 1 = dust (dimmed hard
+   *  while the shape is formed). len = count. CONTINUOUS, not a flag: the
+   *  name and the wordmark only ever produce 0 or 1, but a shape that
+   *  passes `candidateDim` fades its glyph particles through the middle of
+   *  the range (the CV block's unreadable tail does). Nothing downstream
+   *  may assume it is binary. */
   dim: Float32Array;
   /** Where the letterforms actually are. Measured from the sampled ink
    *  rather than hardcoded from the raster geometry, so it survives font
@@ -96,6 +100,16 @@ export function distributeNameTargets(opts: DistributeNameTargetsOptions): NameT
   } = opts;
 
   const candidateCount = Math.floor(candidates.length / 2);
+  // A dim array shorter than the candidate list would fail SILENTLY: the
+  // `?? 0` below reads a missing entry as full brightness, so a raster that
+  // sliced one of the two arrays to the wrong length would render its faded
+  // tail at full ink instead of erroring. ADR 0016's whole point about this
+  // field's masks is that they do not announce themselves.
+  if (candidateDim && candidateDim.length < candidateCount) {
+    throw new Error(
+      `distributeNameTargets: candidateDim has ${candidateDim.length} entries for ${candidateCount} candidates`,
+    );
+  }
   const positions = new Float32Array(count * 3);
   const dim = new Float32Array(count);
   const glyphCount = candidateCount > 0 ? Math.round(count * (1 - dustFraction)) : 0;

@@ -3,14 +3,20 @@
  * and distributed over the field's particles, so the formation a visitor
  * sees IS the document rather than a picture of one.
  *
- * WHY THIS IS LEGIBLE AT ALL. Body text costs far fewer particles than the
- * name does. Measured against the name's own raster, the two-line
- * "MIKKO NUMMINEN" is ~94k ink pixels; this whole block is ~6.5k sampled
- * points, because a 40px stroke is thick and a 2.5px one is not. The
- * particle budget was never the constraint. Sprite SIZE is: at the field's
- * default 13px the glow bleeds ~5px past a body-text stroke, the counters
- * of a, e and o fill in and words merge into a ribbon. `shapeSize` in
- * tuning.ts drops this shape to ~6px, which is the size that reads.
+ * WHY THIS IS LEGIBLE AT ALL, AND WHAT THE CONSTRAINT ACTUALLY IS.
+ * Measured in a browser at the shared 2px stride: this block yields ~36.1k
+ * sample points, the name's raster ~30.3k, the wordmark's ~5.5k. So a page
+ * of body text is NOT cheap relative to the name; it needs about a fifth
+ * more points. It works anyway because both text shapes already have more
+ * candidate points than the field has glyph particles (~21.1k of 24k), so
+ * both are stride-subsampled and neither is limited by the budget.
+ *
+ * Sprite SIZE is the real constraint. At the field's default 13px the glow
+ * bleeds ~5px past a body-text stroke, the counters of a, e and o fill in
+ * and words merge into a ribbon. Compared at 13px, 6px and 2.6px; 6px is
+ * the size that reads, so `shapeSize` in tuning.ts drops this shape to
+ * 0.45. Bloom comes down with it, since bloom is what smears a thin stroke,
+ * and brightness goes up to pay for the light a smaller sprite loses.
  *
  * SCALE, AND WHY THE CANVAS IS WIDER THAN THE NAME'S. World-per-pixel is
  * shared with nameTargets.ts, so a canvas pixel is a fixed world distance
@@ -35,6 +41,14 @@
  * Failure returns null and the cycle skips the shape. A blob is a
  * reasonable stand-in for a name that must appear; it is nothing at all as
  * a stand-in for a CV.
+ *
+ * PARALLEL TO `nameTargets.ts` and `wordmarkTargets.ts`: all three run the
+ * same raster → alpha-threshold sample loop → `distributeNameTargets`
+ * pipeline, with different canvases, copy and sampling. Left duplicated
+ * rather than extracted because each one's differences are in the middle of
+ * the loop (this one carries a per-row fade and scatter, the name carries a
+ * blob fallback); a fix to the shared sample logic has to be mirrored into
+ * all three by hand.
  */
 import { distributeNameTargets, type NameTargetSet } from './nameDistribution';
 
@@ -49,21 +63,24 @@ const CANVAS_H = 1080;
 export const CV_DESIGN_HALF_WIDTH = (CANVAS_W * WORLD_PER_PX) / 2;
 
 const MARGIN_X = 70;
+/** Baseline of the name line, canvas px. Leaves room above for the cap
+ *  height and ascent of a 104px face, whatever face that turns out to be. */
+const FIRST_BASELINE_Y = 120;
 const CENTER_Y = 0.5;
 const ALPHA_THRESHOLD = 128;
 /**
- * 1px, where every other shape samples at 2px.
+ * 2px, the same as the other two rasters.
  *
- * Not a quality knob, a coverage one. At 2px this block yields ~6.5k sample
- * points against ~21k glyph particle slots, and `distributeNameTargets`
- * resolves that surplus by CYCLING: three particles land on the same point,
- * differing only in depth jitter. The strokes end up thinly covered and the
- * whole block reads dim no matter how far its brightness is pushed. At 1px
- * there are ~26k distinct points, so the surplus flips to a stride
- * subsample and the particles spread across the letterforms instead of
- * stacking on them.
+ * There is a floor under this, and it is worth knowing where: the stride has
+ * to leave MORE candidate points than the field has glyph particles (~21.1k
+ * of 24k). At 2px this block yields ~36.1k and `distributeNameTargets`
+ * stride-subsamples them, which spreads the particles over the letterforms.
+ * At 3px it yields ~15.9k, the distributor switches to CYCLING, and several
+ * particles pile onto each point differing only in depth jitter, leaving the
+ * strokes thinly covered. Sampling finer than 2px was tried and is
+ * indistinguishable on screen at four times the work.
  */
-const SAMPLE_STEP = 1;
+const SAMPLE_STEP = 2;
 
 const FONT_STACK = 'Inter, system-ui, -apple-system, sans-serif';
 const NAME_FONT_PX = 104;
@@ -89,10 +106,20 @@ const SHARP_BODY =
 const FADING_BODY =
   'Underneath that is ordinary full-stack work, end to end, SQL to ops. Thirteen projects carry it: a multi-tenant community platform serving a live WoW guild, a browser game built from an empty repo to live in 12 days, a Windows desktop app for audiobook generation, a reading tracker built twice in two ecosystems, a zero-knowledge password manager in Rust, and this site.';
 
-/** Peak scatter at the very bottom of the block, canvas px. */
-const MAX_SCATTER_PX = 30;
+/**
+ * Scatter and fade at the very last row of ink, which the ramp below now
+ * actually reaches.
+ *
+ * Lower than the 30 / 0.82 first written here, and deliberately so: those
+ * were never achieved. The ramp measured against a span a fifth longer than
+ * the text, so the deepest row only ever got to ~0.79 of the way through a
+ * quadratic and peaked at 18px of scatter and 0.58 of fade. Those are the
+ * numbers that were tuned by eye in a browser, so they are the numbers kept
+ * here now that the span is exact. Raising them is a look change, not a fix.
+ */
+const MAX_SCATTER_PX = 18.5;
 /** How dim the least-resolved text gets. 1 would erase it entirely. */
-const MAX_FADE = 0.82;
+const MAX_FADE = 0.58;
 
 export interface RasterizeCvOptions {
   count: number;
@@ -136,7 +163,7 @@ export function rasterizeCvTargets(opts: RasterizeCvOptions): NameTargetSet | nu
     ctx.textBaseline = 'alphabetic';
 
     const maxWidth = CANVAS_W - MARGIN_X * 2;
-    let y = 120;
+    let y = FIRST_BASELINE_Y;
 
     ctx.font = `700 ${NAME_FONT_PX}px ${FONT_STACK}`;
     ctx.fillText(NAME_LINE, MARGIN_X, y);
@@ -156,6 +183,17 @@ export function rasterizeCvTargets(opts: RasterizeCvOptions): NameTargetSet | nu
       y += BODY_LINE_PX;
     }
 
+    // The readable half must fit. It does with Inter, with ~350px to spare,
+    // but a fallback face that wraps it to more lines would push baselines
+    // past the canvas: the lines drawn beyond it are simply absent from
+    // getImageData, and `blurStartY` would land past CANVAS_H, which makes
+    // `depth` zero everywhere and disables the fade. The block would render
+    // truncated AND completely sharp, and nothing would report it. Failing
+    // here hands the decision to the null-means-skip contract instead.
+    if (y > CANVAS_H - BODY_LINE_PX) {
+      throw new Error(`cv sharp body overflows the canvas (last baseline ${y})`);
+    }
+
     // Everything below this line is the part that cannot resolve.
     const blurStartY = y - BODY_LINE_PX * 0.5;
     y += 26;
@@ -165,23 +203,44 @@ export function rasterizeCvTargets(opts: RasterizeCvOptions): NameTargetSet | nu
       y += BODY_LINE_PX;
     }
 
-    // Where the ink actually is, vertically. Mapping around the canvas
-    // centre put the block in the upper half of the frame with dead space
-    // below it, because the copy does not fill the canvas it is drawn on.
-    // Centring on the TEXT rather than on the canvas also keeps the block
-    // clear of the hero masthead, which sits at the top of the same frame.
-    const inkTop = 120 - NAME_FONT_PX;
-    const inkBottom = y;
-    const inkCenterY = (inkTop + inkBottom) / 2;
-
     const image = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H).data;
-    const maxCandidates =
-      Math.ceil(CANVAS_W / SAMPLE_STEP) * Math.ceil(CANVAS_H / SAMPLE_STEP);
-    const candidates = new Float32Array(maxCandidates * 2);
-    const candidateDim = new Float32Array(maxCandidates);
-    // Measured against the ink, not the canvas: a span that ran to the
-    // bottom edge would spend most of the ramp on empty rows and leave the
-    // fading text barely faded.
+    // Counted first, then allocated exactly. Sizing from the sample GRID
+    // the way the other two rasters do would reserve 2.8M slots to hold
+    // ~26k points: 34 MB of scratch on the main thread, inside the
+    // load-in's critical path. The extra alpha read is over a buffer
+    // already in cache and touches no `random()`, so the sampled result is
+    // identical.
+    //
+    // The same pass measures where the ink actually STARTS and ENDS, which
+    // two things below need and neither can get from the layout variables.
+    // Baselines are not ink: the first baseline sits below the cap line by
+    // an ascent this module does not know, and the final `y` is a full line
+    // height past the last baseline. Estimating from them put the block in
+    // the upper half of the frame, and left the fade ramp measuring against
+    // a span ~21% longer than the text, so the tail could never reach the
+    // scatter and fade the constants below name.
+    let inkCount = 0;
+    let inkTop = CANVAS_H;
+    let inkBottom = 0;
+    for (let py = 0; py < CANVAS_H; py += SAMPLE_STEP) {
+      let rowHasInk = false;
+      for (let px = 0; px < CANVAS_W; px += SAMPLE_STEP) {
+        if ((image[(py * CANVAS_W + px) * 4 + 3] ?? 0) >= ALPHA_THRESHOLD) {
+          inkCount++;
+          rowHasInk = true;
+        }
+      }
+      if (rowHasInk) {
+        if (py < inkTop) inkTop = py;
+        inkBottom = py;
+      }
+    }
+    const candidates = new Float32Array(inkCount * 2);
+    const candidateDim = new Float32Array(inkCount);
+    // Centred on the ink, which is what keeps the block clear of the hero
+    // masthead at the top of the same frame.
+    const inkCenterY = (inkTop + inkBottom) / 2;
+    // Spans the fading text exactly, so the ramp below reaches its ends.
     const blurSpan = Math.max(1, inkBottom - blurStartY);
     let n = 0;
 
@@ -192,7 +251,10 @@ export function rasterizeCvTargets(opts: RasterizeCvOptions): NameTargetSet | nu
       // than a deliberate fade.
       const depth = Math.max(0, py - blurStartY) / blurSpan;
       const scatter = depth * depth * MAX_SCATTER_PX;
-      const fade = Math.min(MAX_FADE, depth * depth * MAX_FADE * 1.15);
+      // No overshoot factor: it existed to let the fade reach MAX_FADE
+      // before the end of a span that ran past the text, and against an
+      // exact span it would only clip the last rows flat.
+      const fade = depth * depth * MAX_FADE;
 
       for (let px = 0; px < CANVAS_W; px += SAMPLE_STEP) {
         const alpha = image[(py * CANVAS_W + px) * 4 + 3] ?? 0;

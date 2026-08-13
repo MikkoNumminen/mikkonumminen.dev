@@ -23,11 +23,15 @@ the particles fail to organise into words.
 Two beliefs had to be tested before committing, because both could have killed
 it:
 
-- **Could 24,000 particles render body text at all?** Measured against the
-  field's own raster: the two-line `MIKKO NUMMINEN` wordmark is ~94,000 ink
-  pixels, and the entire CV block is ~26,000 sample points. Body text is
-  **cheaper** than the name, because a 40px stroke is thick and a 2.5px one is
-  not. The particle budget was never the constraint.
+- **Could 24,000 particles render body text at all?** Yes, and not for the
+  reason first assumed. Measured in a browser at the shared 2px stride, the CV
+  block yields ~36,100 sample points against the name raster's ~30,300: body
+  text needs about a fifth **more** points, not fewer. It works because both
+  text shapes already exceed the ~21,100 glyph particles the field spends on a
+  shape, so both are stride-subsampled and neither is limited by the budget.
+  An earlier draft of this record claimed body text was far cheaper, from an
+  offline comparison of ink AREA between different text at different sizes.
+  That comparison was not measuring the same thing and the claim was wrong.
 - **Would it be legible?** No, not at the field's default sprite size, and this
   is the finding that mattered. Rendered at 13px the glow bleeds ~5px past a
   body-text stroke: the counters of `a`, `e` and `o` fill in and words merge
@@ -82,11 +86,12 @@ smaller sprite loses.
   body text needs a ~40px canvas font that will not fit the narrower canvas.
 - It has its own `uCvScale`, since it spans ~37 world units against the name's
   20 and needs a different reduction to fit.
-- It samples at **1px** where every other shape samples at 2px. Not a quality
-  knob: at 2px the block yields fewer sample points than it has particles, and
-  the distributor resolves that surplus by stacking three particles on each
-  point. The strokes stayed thinly covered and the block read dim at any
-  brightness.
+- It samples at **2px**, the same as the other two rasters, but there is a
+  floor: the stride must leave more candidate points than the field has glyph
+  particles, or the distributor switches from stride-subsampling to cycling and
+  piles several particles onto each point. 2px yields ~36,100 points, 3px only
+  ~15,900 against ~21,100 particles. Sampling at 1px was tried, is
+  indistinguishable on screen, and costs four times the work.
 - It is mapped around the centre of its **ink** rather than of its canvas, which
   is what keeps it clear of the hero masthead.
 
@@ -102,8 +107,11 @@ The shape is skipped, not degraded, when it cannot work:
   it. A half-resolved CV is worse than no CV.
 - **Small viewports.** The field maps a fixed world span onto the window, so the
   body text shrinks with it; below 15 CSS px the formation is a smear rather
-  than a document. Re-evaluated on every resize rather than captured once,
-  because a window drag changes the answer mid-cycle.
+  than a document. Re-evaluated on every resize rather than captured once, and
+  acted on mid-cycle: a shape that stops being showable while it is ON SCREEN
+  has its hold cut short instead of being held to the end of its window. Gating
+  only the next target would have left an unreadable smear up for the rest of an
+  11-second hold, which is the one shape where that is a long time.
 - **Raster failure**, same null-means-skip contract the wordmark already uses.
 
 Because two of the five shapes can now be unavailable at once, skipping is a
@@ -119,9 +127,18 @@ because the same CV is real DOM at `/cv` and a real link in the hero and footer;
 it would not be acceptable as the only copy.
 
 **Per-particle cost rises.** Two new attributes (`aCvPos`, `aCvDim`) take the
-field from 72 to 88 bytes per particle, about 2.1 MB at 24,000. The tick loop is
-unchanged and still allocation-free: the shape costs uniform writes, not CPU
-work per frame.
+field from 72 to 88 bytes per particle, about 2.1 MB at 24,000. The shape costs
+uniform writes per frame, not CPU work: nothing touches per-particle data after
+construction.
+
+**One-time raster cost, measured rather than assumed:** 19.6 ms in total for the
+whole block (2 ms drawing, 4.1 ms `getImageData`, 13.5 ms across the two sample
+passes), on the load-in path and off the frame loop.
+
+**The advance call still allocates one object per frame.** `cycle.advance({...})`
+builds a literal every tick, which predates this change and contradicts ADR
+0014's allocation-free rule; the shape scan inside the cycle was written to avoid
+adding a second allocation to it. Worth fixing, not fixed here.
 
 **The dim channel is now continuous.** It was a 0/1 glyph-or-dust flag; the CV
 block's fade rides it as a real number. Nothing in the shader assumed the flag

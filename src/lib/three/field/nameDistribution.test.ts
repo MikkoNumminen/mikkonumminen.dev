@@ -86,6 +86,37 @@ describe('distributeNameTargets', () => {
     });
     expect(dim.every((d) => d === 1)).toBe(true);
   });
+
+  it('carries a per-candidate dim through to the particle that lands on it', () => {
+    // The CV block's fading tail rides this: the dim channel is CONTINUOUS,
+    // not the 0/1 glyph-or-dust flag the name and wordmark produce.
+    const { dim } = distributeNameTargets({
+      candidates: CANDIDATES,
+      // Exactly representable in float32, so the assertion is about the
+      // wiring rather than about rounding.
+      candidateDim: new Float32Array([0, 0.25, 0.5, 0.75]),
+      count: 8,
+      dustFraction: 0.5,
+      glyphDepth: 0,
+      random: seededRandom(6),
+    });
+    // Four glyph particles cycling over four candidates, then four dust.
+    expect([...dim.subarray(0, 4)]).toEqual([0, 0.25, 0.5, 0.75]);
+    expect([...dim.subarray(4)]).toEqual([1, 1, 1, 1]);
+  });
+
+  it('refuses a dim array shorter than the candidate list', () => {
+    // Silent otherwise: the missing entries read as full brightness, so a
+    // mis-sliced pair of arrays would render the faded tail at full ink.
+    expect(() =>
+      distributeNameTargets({
+        candidates: CANDIDATES,
+        candidateDim: new Float32Array([0, 0.5]),
+        count: 8,
+        random: seededRandom(7),
+      }),
+    ).toThrow(/candidateDim has 2 entries for 4 candidates/);
+  });
 });
 
 describe('name bounds', () => {

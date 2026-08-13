@@ -19,10 +19,12 @@
  * per-particle data after construction. This is the invariant that keeps
  * scroll handling off the critical path — preserve it.
  *
- * The field cycles continuously through four shapes — name, galaxy,
- * wordmark, sparse cloud — while the lander is mounted; `shapeCycle.ts`
- * owns the schedule and `tuning.ts` owns every number, interpolated into
- * the GLSL below as compile-time constants.
+ * The field cycles continuously through five shapes — name, galaxy, CV
+ * block, wordmark, sparse cloud — while the lander is mounted;
+ * `shapeCycle.ts` owns the schedule and `tuning.ts` owns every number,
+ * interpolated into the GLSL below as compile-time constants. The first
+ * four ride the weight `vec4`; the fifth rides the scalar beside it (see
+ * SHAPES in tuning.ts, and ADR 0018 for why it was appended).
  */
 import {
   AdditiveBlending,
@@ -304,7 +306,8 @@ void main() {
 
   vec3 pos = mix(g, aNamePos * uNameScale, form);
 
-  // Weights over [name, galaxy, wordmark, sparse]. Four weighted targets
+  // Weights over [name, galaxy, wordmark, sparse] in the vec4, with the
+  // CV lane's weight in the scalar beside it. Weighted targets
   // rather than a swappable buffer or a branch, so ANY shape can
   // cross-fade to any other; the rotation has consecutive alternatives,
   // and routing each one through the name would flash the name
@@ -462,7 +465,12 @@ void main() {
   // Per-shape point size, folded in at full weight only once a shape is
   // held: the CV block's body-text stroke needs a far smaller sprite than
   // the name's, or its letterforms merge into a glowing ribbon.
-  float shapeSizeMul = mix(1.0, shapeVal(w, w5, SHAPE_SIZE, SHAPE_SIZE_CV), form);
+  //
+  // Released again by uDissolve, exactly as the sway and twinkle terms
+  // above are: the starfield is no longer any shape, so it must not
+  // inherit the sprite size of whichever shape the cycle happens to be
+  // holding behind the scrolled page.
+  float shapeSizeMul = mix(mix(1.0, shapeVal(w, w5, SHAPE_SIZE, SHAPE_SIZE_CV), form), 1.0, dissolve);
   float stateSize = mix(mix(1.0, 0.75, form), 0.7, dissolve) * (1.0 - dust * 0.35) * shapeSizeMul;
   gl_PointSize = uSize * aSeed.y * stateSize * vis * uPixelRatio * (12.0 / -mv.z);
 

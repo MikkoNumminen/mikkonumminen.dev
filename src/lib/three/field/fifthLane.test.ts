@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { CYCLE_ORDER, FIELD_TUNING, SHAPES, glslShapeTable } from './tuning';
+import { cvBodyTextPx } from './cvTargets';
 
 /**
  * The fifth shape lane, guarded at the seam where it can fail quietly.
@@ -100,5 +101,35 @@ describe('lane and cycle order', () => {
   it('gives every lane a hold window', () => {
     expect(FIELD_TUNING.cycle.shapeHold.length).toBe(SHAPES.length);
     for (const hold of FIELD_TUNING.cycle.shapeHold) expect(hold).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The legibility gate. Silent in the same way as the masks above: if this
+ * returned world units instead of CSS px, or nothing at all, the CV shape
+ * would simply never appear and no test or console line would say so.
+ */
+describe('cvBodyTextPx', () => {
+  // 2 * tan(fov/2) * cameraZ at the home camera (fov 50, z 26).
+  const WORLD_HEIGHT = 2 * Math.tan((50 * Math.PI) / 180 / 2) * 26;
+
+  it('reports CSS pixels, not world units', () => {
+    // A 40px canvas font at the shared world-per-pixel, mapped onto a
+    // 1080-tall window: ~25 CSS px, comfortably over the 15px gate.
+    expect(cvBodyTextPx(1080, WORLD_HEIGHT, 1)).toBeCloseTo(25.45, 1);
+  });
+
+  it('shrinks with the window and with the fit scale', () => {
+    const full = cvBodyTextPx(1080, WORLD_HEIGHT, 1);
+    expect(cvBodyTextPx(540, WORLD_HEIGHT, 1)).toBeCloseTo(full / 2, 5);
+    expect(cvBodyTextPx(1080, WORLD_HEIGHT, 0.5)).toBeCloseTo(full / 2, 5);
+    // A short window is where the gate has to bite: the block is fitted to
+    // width, so a 600px-tall viewport lands under 15px and the cycle skips.
+    expect(cvBodyTextPx(600, WORLD_HEIGHT, 1)).toBeLessThan(15);
+  });
+
+  it('returns 0 rather than dividing by a degenerate frustum height', () => {
+    expect(cvBodyTextPx(1080, 0, 1)).toBe(0);
+    expect(cvBodyTextPx(1080, -1, 1)).toBe(0);
   });
 });

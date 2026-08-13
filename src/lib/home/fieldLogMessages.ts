@@ -11,8 +11,9 @@
  * is a lie in a panel whose whole premise is that it is truthful.
  */
 
-/** Shape names as the log says them, keyed by shapeCycle's index order. */
-/** Indexed by LANE order, matching SHAPES in `field/tuning.ts`. */
+/** Shape names as the log says them, indexed by LANE order — the same
+ *  order as SHAPES in `field/tuning.ts`, which is NOT the order the shapes
+ *  are shown in. */
 export const SHAPE_LABELS = [
   'MIKKO NUMMINEN',
   'galaxy variant',
