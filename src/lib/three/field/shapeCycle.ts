@@ -1,5 +1,5 @@
 /**
- * The home field's shape cycle: which of the four shapes the particles
+ * The home field's shape cycle: which of the five shapes the particles
  * are holding, and how far through a morph they are.
  *
  * This is NOT idle behaviour. It runs continuously while the lander is
@@ -20,13 +20,37 @@
  * of the crossfade. Blending on the CPU would flatten every transition
  * the page shows.
  */
-import { FIELD_TUNING, SHAPES } from './tuning';
+import { CYCLE_ORDER, FIELD_TUNING } from './tuning';
 
 const T = FIELD_TUNING.cycle;
 
-/** Index into SHAPES: 0 name, 1 galaxy, 2 wordmark, 3 sparse. */
+/** LANE index into SHAPES: 0 name, 1 galaxy, 2 wordmark, 3 sparse, 4 cv.
+ *  Lane order is not show order — that is CYCLE_ORDER in tuning.ts. */
 export const NAME_SHAPE = 0;
 const WORD_SHAPE = 2;
+const CV_SHAPE = 4;
+
+/**
+ * Seconds the given lane is held. Per-shape because the CV block has to be
+ * readable, and 5 seconds is not long enough to read a paragraph.
+ */
+function holdFor(shape: number): number {
+  return T.shapeHold[shape] ?? T.hold;
+}
+
+/**
+ * Can this lane be shown right now? One place, so a lane that grows a
+ * readiness gate cannot be wired into the scan and forgotten here.
+ *
+ * Takes the advance input rather than a predicate closure: the scan runs
+ * inside the tick loop, which is required to be allocation-free (ADR
+ * 0014), and a closure built per shape change is an allocation.
+ */
+function laneReady(shape: number, input: CycleAdvanceInput): boolean {
+  if (shape === WORD_SHAPE) return input.wordReady;
+  if (shape === CV_SHAPE) return input.cvReady;
+  return true;
+}
 
 export type CyclePhase = 'holding' | 'crossing';
 
@@ -36,6 +60,18 @@ export interface CycleAdvanceInput {
   /** False until the wordmark raster has landed. Its attribute is
    *  zero-filled until then, so the shape must be skipped, not shown. */
   wordReady: boolean;
+  /**
+   * False when the CV block must not be shown. Two different reasons, both
+   * of which have to skip the shape: the raster failed (attribute is
+   * zero-filled, morphing into it would collapse the field onto the
+   * origin), or the viewport is too small for the block's body text to be
+   * legible. The second is why this is read every advance rather than
+   * captured once: a window resize can change the answer mid-cycle, and it
+   * is acted on mid-cycle too — a shape that stops being showable while it
+   * is ON SCREEN is left early, not held out to the end of its window. That
+   * matters most for exactly this shape, whose window is 11 seconds.
+   */
+  cvReady: boolean;
 }
 
 export interface CycleState {
@@ -76,12 +112,21 @@ export function createShapeCycle(opts: ShapeCycleOptions = {}): ShapeCycle {
   // required to be allocation-free (ADR 0014), and this runs in it.
   const state: CycleState = { from, to, cross: 0, phase };
 
-  const nextShape = (after: number, wordReady: boolean): number => {
-    let next = (after + 1) % SHAPES.length;
-    // The wordmark raster can fail; its attribute is zero-filled then,
-    // and morphing into it would collapse the field onto the origin.
-    if (next === WORD_SHAPE && !wordReady) next = (next + 1) % SHAPES.length;
-    return next;
+  // Walks CYCLE_ORDER (show order), not SHAPES (lane order). Skipping is a
+  // bounded scan rather than a single hop because two of the five shapes
+  // can be unavailable at once: with both the wordmark raster failed and
+  // the viewport too narrow for the CV block, a one-step skip would land
+  // on the other unavailable shape and show a collapsed field.
+  const nextShape = (after: number, input: CycleAdvanceInput): number => {
+    const at = CYCLE_ORDER.indexOf(after);
+    for (let step = 1; step <= CYCLE_ORDER.length; step++) {
+      const candidate = CYCLE_ORDER[(at + step) % CYCLE_ORDER.length];
+      if (candidate === undefined) continue;
+      if (laneReady(candidate, input)) return candidate;
+    }
+    // Every other shape unavailable: hold what we have rather than morph
+    // into a zero-filled attribute.
+    return after;
   };
 
   return {
@@ -92,9 +137,16 @@ export function createShapeCycle(opts: ShapeCycleOptions = {}): ShapeCycle {
       t += delta;
 
       if (phase === 'holding') {
-        if (t >= T.hold) {
+        // A shape can stop being showable WHILE it is held: dragging the
+        // window narrow takes the CV block below the size its body text
+        // needs. Gating only the next target would leave an unreadable
+        // smear on screen for the rest of an 11-second hold, so the hold is
+        // cut short instead. `nextShape` will not pick it again while it
+        // stays unavailable, and cannot pick a different unavailable one.
+        const heldStillShowable = laneReady(to, input);
+        if (t >= holdFor(to) || !heldStillShowable) {
           from = to;
-          to = nextShape(from, input.wordReady);
+          to = nextShape(from, input);
           phase = 'crossing';
           t = 0;
         }

@@ -18,6 +18,10 @@
  * — it relies on `rasterizeNameTargets` having already awaited it. Call
  * it after that, never before, or the mark silently rasterises in the
  * fallback face while the name uses Inter.
+ *
+ * PARALLEL TO `nameTargets.ts` and `cvTargets.ts`: the same raster →
+ * alpha-threshold sample loop → `distributeNameTargets` pipeline, kept
+ * duplicated on purpose. Mirror fixes to the sample loop into all three.
  */
 import { distributeNameTargets, type NameTargetSet } from './nameDistribution';
 

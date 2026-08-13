@@ -46,6 +46,11 @@ import { generateStarfieldTargets } from './field/starfieldTargets';
 import { rasterizeNameTargets } from './field/nameTargets';
 import { isInsideNameBounds } from './field/nameDistribution';
 import { rasterizeWordmarkTargets } from './field/wordmarkTargets';
+import {
+  cvBodyTextPx,
+  CV_DESIGN_HALF_WIDTH,
+  rasterizeCvTargets,
+} from './field/cvTargets';
 import { createShapeCycle } from './field/shapeCycle';
 import { FIELD_TUNING, SHAPES } from './field/tuning';
 import { emitFieldLog } from '../home/fieldLogEvents';
@@ -175,16 +180,34 @@ const SHAPE_NAME = SHAPES.indexOf('name');
 const SHAPE_GALAXY = SHAPES.indexOf('galaxy');
 const SHAPE_WORD = SHAPES.indexOf('word');
 const SHAPE_SPARSE = SHAPES.indexOf('sparse');
+const SHAPE_CV = SHAPES.indexOf('cv');
 
-/** Rewrite a Vector4 in place as a one-hot over the four shapes. The
- *  tick loop must not allocate (ADR 0014). */
-function setOneHot(v: Vector4, index: number): void {
+/**
+ * Smallest on-screen body-text height, CSS px, at which the CV block is
+ * worth showing. Below this the formation stops being a document and
+ * becomes a smear, so the cycle skips it rather than showing prose nobody
+ * can read. The other four shapes need no such gate: none of them is text
+ * the visitor is expected to READ, and the name is enormous at any size.
+ */
+const CV_MIN_BODY_PX = 15;
+
+/**
+ * Rewrite a Vector4 in place as a one-hot over the first four lanes and
+ * RETURN the fifth lane's weight, which lives in its own scalar uniform.
+ *
+ * Mutating and returning at once is unusual, and it is here because the
+ * tick loop must not allocate (ADR 0014): the alternative is a second
+ * function the caller could forget to call, and a forgotten fifth weight
+ * shows up as the CV shape morphing to the origin rather than as an error.
+ */
+function setOneHot(v: Vector4, index: number): number {
   v.set(
     index === SHAPE_NAME ? 1 : 0,
     index === SHAPE_GALAXY ? 1 : 0,
     index === SHAPE_WORD ? 1 : 0,
     index === SHAPE_SPARSE ? 1 : 0,
   );
+  return index === SHAPE_CV ? 1 : 0;
 }
 
 /** Blend a per-shape presentation table across the current morph.
@@ -241,6 +264,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // then skips the wordmark shape rather than showing a stand-in that
   // isn't the mark.
   const wordTargets = rasterizeWordmarkTargets({ count: particleCount });
+  // Third raster, same gate and the same null-means-skip contract. The low
+  // tier is excluded outright rather than degraded: 8k particles at a 17px
+  // sprite cannot render body text, and a half-resolved CV is worse than
+  // no CV.
+  const cvTargets = perfFlags.lowPerf
+    ? null
+    : rasterizeCvTargets({ count: particleCount });
   const field = buildParticleField({
     count: particleCount,
     galaxyPositions: generateGalaxyTargets({
@@ -251,6 +281,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     nameDim: nameTargets.dim,
     wordPositions: wordTargets?.positions ?? new Float32Array(particleCount * 3),
     wordDim: wordTargets?.dim ?? new Float32Array(particleCount),
+    cvPositions: cvTargets?.positions ?? new Float32Array(particleCount * 3),
+    cvDim: cvTargets?.dim ?? new Float32Array(particleCount),
     starPositions: generateStarfieldTargets({ count: particleCount }),
     galaxyCenter: [GALAXY_DESIGN_X, GALAXY_Y, GALAXY_Z],
     // Fewer particles on the low tier read sparser at the same size, so
@@ -381,6 +413,12 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   // loop when the tab hides without its own visibility bookkeeping.
   const cycle = createShapeCycle();
   const wordReady = wordTargets !== null;
+  // Two conditions, and the second changes with the window: the raster has
+  // to have landed AND the block's body text has to be big enough on screen
+  // to read. `resize` maintains the second.
+  const cvRasterOk = cvTargets !== null;
+  let cvLegible = false;
+  const cvReady = (): boolean => cvRasterOk && cvLegible;
   let cycleGalaxySpin = 0;
   // -1 so the first shape the cycle holds is reported like any other.
   let lastLoggedShape = -1;
@@ -445,6 +483,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       if (!wordTargets) return false;
       return isInsideNameBounds(wordTargets.bounds, scale, x, y, IMPULSE.hitPadding);
     }
+    if (shape === SHAPE_CV) {
+      if (!cvTargets) return false;
+      // Its own scale, not uNameScale: the block is fitted independently.
+      return isInsideNameBounds(
+        cvTargets.bounds,
+        field.uniforms.uCvScale.value,
+        x,
+        y,
+        IMPULSE.hitPadding,
+      );
+    }
     const r = shape === SHAPE_GALAXY ? GALAXY_HIT_RADIUS : CYCLE.sparseHitRadius; // sparse: see the tuning note
     const dx = x - (shape === SHAPE_GALAXY ? CYCLE.galaxyVariant.x : 0);
     const dy = y - (shape === SHAPE_GALAXY ? CYCLE.galaxyVariant.y : 0);
@@ -459,11 +508,13 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       launchImpulse(e.clientX, e.clientY, 1);
       // Only the typographic shapes suppress the commit popup, and only
       // for the reason ADR 0015 gave: a mono label rising through
-      // letterforms fights the legibility they exist to have. The galaxy
-      // and the sparse cloud have no legibility to protect, so they keep
-      // the easter egg — otherwise it would vanish for half of every
-      // cycle, which is not a trade anyone asked for.
-      if (shape === SHAPE_NAME || shape === SHAPE_WORD) return;
+      // letterforms fights the legibility they exist to have. That reason
+      // is strongest for the CV block, which is the one shape a visitor is
+      // asked to READ. The galaxy and the sparse cloud have no legibility
+      // to protect, so they keep the easter egg — otherwise it would
+      // vanish for most of every cycle, which is not a trade anyone asked
+      // for.
+      if (shape === SHAPE_NAME || shape === SHAPE_WORD || shape === SHAPE_CV) return;
     }
     const strength = target?.closest(TEXT_TARGET_SELECTOR) ? 1.25 : 1;
     launchRipple(e.clientX, e.clientY, strength);
@@ -475,7 +526,7 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
   const resize = createResizeHandler(
     renderer,
     camera,
-    () => {
+    (_width, height) => {
       const aspect = camera.aspect;
 
       // Name block: scale down (never up) so it always fits the frustum
@@ -485,6 +536,17 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
         1,
         (visibleHalfWidth - NAME_FIT_PADDING) / NAME_DESIGN_HALF_WIDTH,
       );
+
+      // CV block: same shrink-to-fit, against its own far wider design
+      // width. Then the legibility gate — shrinking to fit is exactly what
+      // makes the body text too small to read on a narrow window, so the
+      // fit result decides whether the shape is offered at all.
+      const cvScale = Math.min(
+        1,
+        (visibleHalfWidth - NAME_FIT_PADDING) / CV_DESIGN_HALF_WIDTH,
+      );
+      field.uniforms.uCvScale.value = cvScale;
+      cvLegible = cvBodyTextPx(height, halfHeightAtZ0 * 2, cvScale) >= CV_MIN_BODY_PX;
 
       // Galaxy: pull toward centre on narrow viewports just enough that
       // the disk's left edge stays inside the frame; never push it
@@ -589,7 +651,11 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
     // formation's ~2.7 s runs down the name's very first hold, and the
     // name a first-time visitor just watched assemble morphs away
     // almost immediately.
-    const cycleState = cycle.advance({ delta: form >= 1 ? delta : 0, wordReady });
+    const cycleState = cycle.advance({
+      delta: form >= 1 ? delta : 0,
+      wordReady,
+      cvReady: cvReady(),
+    });
     // Emitted when the cycle COMMITS to a new target, not when the morph
     // finishes: the log should say what the field is doing, and by the
     // time a 3 s morph completes it has been visibly doing it for 3 s.
@@ -601,8 +667,8 @@ export async function createHomeScene(opts: HomeSceneOptions): Promise<HomeScene
       lastLoggedShape = cycleState.to;
       emitFieldLog({ kind: 'shape', shape: cycleState.to });
     }
-    setOneHot(u.uCrossFrom.value, cycleState.from);
-    setOneHot(u.uCrossTo.value, cycleState.to);
+    u.uCrossFrom5.value = setOneHot(u.uCrossFrom.value, cycleState.from);
+    u.uCrossTo5.value = setOneHot(u.uCrossTo.value, cycleState.to);
     u.uCross.value = cycleState.cross;
 
     // Accumulated rather than derived from `elapsed`, so it pauses with
