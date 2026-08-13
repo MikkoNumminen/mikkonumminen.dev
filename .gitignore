@@ -46,7 +46,10 @@ pnpm-debug.log*
 .vercel
 
 # notes & planning (local only)
-CLAUDE.md
+#
+# CLAUDE.md is NOT here: this is an AI-first repository, so the file agents are
+# told to read first has to travel with it. Anything genuinely private belongs
+# in .local/ below, which stays ignored.
 TODO.md
 NOTES.md
 .notes/
@@ -74,6 +77,7 @@ NOTES.md
 #
 # Everything else (settings, worktrees, transcripts) stays local.
 .claude/*
+!.claude/settings.json
 !.claude/skills/
 !.claude/agent-verdicts/
 .claude/agent-verdicts/*
