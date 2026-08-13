@@ -13,7 +13,13 @@ These rules have been violated repeatedly. They are hard walls, not preferences.
 ## Working conventions
 
 - **One worktree per PR.** Create at `.claude/worktrees/<short-name>` from `master`, branch off there, push, open a PR. Don't commit directly to `master`. The worktree pattern keeps the main checkout clean and lets multiple branches coexist.
-- **No Anthropic attribution on commits or PRs.** Never add a `Co-Authored-By: Claude` trailer or a "Generated with Claude Code" PR footer. This is a hard preference.
+- **Never attribute a commit or PR to Claude.** No `Co-Authored-By: Claude`
+  trailer, no "Generated with Claude Code" footer, no mention of the assistant
+  in a commit message, PR title or PR body. This is about AUTHORSHIP, not
+  secrecy: the AI-assisted development is documented openly in the README, the
+  ADRs and a published skills catalog. What this repository will not do is
+  enter Claude as an author in git metadata or as a contributor on GitHub, and
+  a `Co-Authored-By` trailer is exactly what GitHub reads to build that list.
 - **PR title format**: `<type>(<scope>): <imperative>` — `feat(hero):`, `fix(projects):`, `chore(projects):`, `docs(readme):`. Match recent merged PR titles.
 - **Translate locales last.** While iterating on user-facing copy, edit only `src/i18n/locales/en.ts`. Mirror to `fi.ts` once the English text is approved (Swedish was removed in 2026-08) — translating every iteration is wasted work.
 - **Delegate routine subtasks to the cost-routing agents (`~/.claude/agents/`) instead of doing them inline.** Bright-line triggers, not a preference: a Grep/Read fan-out across 3+ files → `scout`; the same edit repeated across 3+ files, or an already-specified mechanical change + its verify → `mechanic`; a formatter/lint pass → `tidy`; writing tests in an existing pattern → `test-writer`; extracting/aggregating log/JSONL/CSV → `log-miner`; drafting a commit/PR body from a diff → `scribe`. Each agent is pinned to the cheapest model **and** effort for its job, so delegating a mechanical task is strictly cheaper than running it in this session — the win holds even at high session effort. Keep on the main (Opus) session — or `architect` when it needs a written plan first — only the correctness-critical logic (auth, RAG containment, concurrency) and deciding the *shape* of the work.
