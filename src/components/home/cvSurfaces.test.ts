@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { FIELD_SHAPE_ATTR, shapeAttrValue } from '../../lib/home/fieldShapeState';
+import { SHAPES } from '../../lib/three/field/tuning';
 
 /**
  * Three surfaces link the CV: the hero masthead pill, the site-wide footer
@@ -238,6 +240,40 @@ describe('CV download surfaces', () => {
         `${label} must appear before hero__content, or it has drifted into a pointer-events:none / aria-hidden block and become unclickable or unnameable`,
       ).toBeLessThan(contentIndex);
     }
+  });
+
+  /**
+   * The highlight that lights both controls while the field holds the CV
+   * formation is a string match ACROSS files: `fieldShapeState.ts` writes
+   * `shapeAttrValue(cv lane)` into `FIELD_SHAPE_ATTR` on the element carrying
+   * `data-section-hero`, and only this stylesheet knows either name. Rename
+   * the attribute or the lane, or drop the `hero` class off the marked
+   * section, and typecheck, lint and every unit test stay green while the
+   * highlight silently never fires again.
+   *
+   * Matched against the comment-stripped source for the same reason the
+   * filename case is: the block comment above the rule names the attribute
+   * while explaining it, and it must not be able to satisfy this on the real
+   * rule's behalf.
+   */
+  it('keeps the CV highlight selector in step with the state module', () => {
+    const cvValue = shapeAttrValue(SHAPES.indexOf('cv'));
+    expect(cvValue, 'the field no longer has a cv lane').not.toBeNull();
+
+    expect(
+      hero,
+      `no rule selects [${FIELD_SHAPE_ATTR}='${cvValue}']; the attribute or the lane name was renamed without the stylesheet`,
+    ).toMatch(new RegExp(`\\[${FIELD_SHAPE_ATTR}=['"]?${cvValue}['"]?\\]`));
+
+    // The tracker targets `[data-section-hero]`; the rules key off `.hero`.
+    // They have to be the same element or the attribute lands somewhere no
+    // selector reads.
+    const marked = hero.match(/<section\s[^>]*\bdata-section-hero\b[^>]*>/)?.[0];
+    expect(marked, 'no <section> carries data-section-hero').toBeTruthy();
+    expect(
+      marked,
+      'the element the shape attribute is written onto must carry the class the highlight rules select',
+    ).toMatch(new RegExp(`class="[^"]*\\bhero${CLASS_END}`));
   });
 
   /**
