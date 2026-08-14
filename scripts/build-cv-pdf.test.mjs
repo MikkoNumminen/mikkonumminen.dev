@@ -68,6 +68,47 @@ describe('toHtml', () => {
     expect(toHtml('`Rust · axum`\n')).toContain('class="stack"');
     expect(toHtml('Ordinary sentence.\n')).not.toContain('class="stack"');
   });
+
+  it('renders the shapes a markdown author will reach for', () => {
+    // Every one of these used to fall through to `<p>` and print as literal
+    // source, while `/cv` rendered it properly through Astro. The two outputs
+    // are only "the same document" if the shapes agree.
+    expect(toHtml('a\n\n---\n\nb\n'), 'a rule printed as three dashes').toBe(
+      '<p>a</p>\n<hr>\n<p>b</p>',
+    );
+    expect(toHtml('1. one\n2. two\n')).toBe('<ol>\n<li>one</li>\n<li>two</li>\n</ol>');
+    expect(toHtml('an *emphasis* here\n')).toBe('<p>an <em>emphasis</em> here</p>');
+  });
+
+  it('joins a soft-wrapped paragraph instead of splitting it', () => {
+    // Markdown folds consecutive lines into one paragraph. Emitting one `<p>`
+    // per source line meant a re-wrapped `content/cv.md` printed as a column
+    // of one-line paragraphs while `/cv` still read as prose.
+    expect(toHtml('one paragraph\nover two lines.\n')).toBe(
+      '<p>one paragraph over two lines.</p>',
+    );
+    expect(toHtml('- item one\n  continues here\n- item two\n')).toBe(
+      '<ul>\n<li>item one continues here</li>\n<li>item two</li>\n</ul>',
+    );
+  });
+
+  it.each([
+    ['a heading deeper than ###', '#### Sub\n'],
+    ['a blockquote', '> quoted\n'],
+    ['a table', '| a | b |\n'],
+    ['a * bullet', '* star\n'],
+    ['a nested list', '- top\n  - nested\n'],
+    ['an image', '![alt](https://example.com/x.png)\n'],
+  ])('refuses %s rather than printing it as source', (_what, markdown) => {
+    // Loud beats literal. The document is read once, by an employer, after
+    // nobody re-read it — so an unprintable shape has to stop the build.
+    expect(() => toHtml(markdown)).toThrow(/does not print/);
+  });
+
+  it('refuses a link target outside http, https and mailto', () => {
+    expect(() => toHtml('[x](javascript:alert(1))\n')).toThrow(/refusing to print/);
+    expect(toHtml('[m](mailto:a@b.com)\n')).toContain('href="mailto:a@b.com"');
+  });
 });
 
 describe('content/cv.md survives the converter', () => {
@@ -76,7 +117,15 @@ describe('content/cv.md survives the converter', () => {
   it('emits no literal markdown the converter failed to understand', () => {
     // The silent-degradation check. Any of these surviving into the HTML means
     // a shape reached the page as raw source.
-    expect(html).not.toMatch(/^#{1,6}\s/m);
+    //
+    // Anchored INSIDE the emitted element, not at the start of a line. An
+    // unconverted heading comes out as `<p>#### Sub</p>`, which starts with
+    // `<`, so the `/^#{1,6}\s/m` this check used to carry could never fire
+    // whatever the converter did — it passed on the exact input it was written
+    // to catch.
+    expect(html, 'a heading reached the body as text').not.toMatch(/<p[^>]*>#{1,6}\s/);
+    expect(html, 'a bullet reached the body as text').not.toMatch(/<p[^>]*>[-*+]\s/);
+    expect(html, 'a table row reached the body as text').not.toMatch(/<p[^>]*>\|/);
     expect(html, 'an unconverted bold or emphasis marker').not.toContain('**');
     expect(html, 'an unconverted link').not.toMatch(/\]\(http/);
     expect(html, 'frontmatter reached the body').not.toContain('kind: cv');
@@ -100,15 +149,21 @@ describe('content/cv.md survives the converter', () => {
     }
   });
 
-  it('links every project it claims is live', () => {
-    // A CV whose live links 404 is worse than one that omits them.
-    for (const url of [
-      'https://mikkonumminen.dev',
-      'https://hr-manager-pearl.vercel.app',
-      'https://vuohiliitto.com',
-      'https://spacepotatis.vercel.app',
-    ]) {
-      expect(html, `missing live link: ${url}`).toContain(`href="${url}"`);
+  it('turns every link in the source into a real href', () => {
+    // A CV whose live links 404 is worse than one that omits them, so every
+    // link has to survive the converter.
+    //
+    // Derived from the markdown rather than listed here. The listed version
+    // named four URLs and silently skipped the two newest — including the
+    // Feedback Intelligence host, which is the generated Azure name most
+    // likely to change — so the check covered everything except the links
+    // worth checking.
+    const targets = [...cv.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map((m) => m[1]);
+    expect(targets.length, 'no links found; the extraction is broken').toBeGreaterThan(4);
+    for (const url of targets) {
+      expect(html, `missing live link: ${url}`).toContain(
+        `href="${url.replace(/&/g, '&amp;')}"`,
+      );
     }
   });
 });
