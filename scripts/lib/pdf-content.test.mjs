@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { inputFingerprint, pdfContentEquals, shouldRender } from './pdf-content.mjs';
+import {
+  inputFingerprint,
+  pdfContentEquals,
+  pdfContentHash,
+  shouldRender,
+} from './pdf-content.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REAL_PDF = path.join(ROOT, 'public', 'skills-registry.pdf');
@@ -40,8 +45,29 @@ describe('inputFingerprint', () => {
   });
 });
 
+describe('pdfContentHash', () => {
+  it('agrees with pdfContentEquals on both answers', () => {
+    // The recorded form of the same comparison: a build that checks a
+    // COMMITTED pdf against the render it should have come from has only one
+    // buffer, so it stores this and compares hashes. If the two ever disagreed,
+    // a CI gate built on the hash would pass a document the equality check
+    // rejects.
+    const a = pdf();
+    const stamped = pdf({ date: DATE_B, id: ID_B });
+    const different = pdf({ body: 'a different document body' });
+    expect(pdfContentHash(a)).toBe(pdfContentHash(stamped));
+    expect(pdfContentEquals(a, stamped)).toBe(true);
+    expect(pdfContentHash(a)).not.toBe(pdfContentHash(different));
+  });
+});
+
 describe('shouldRender', () => {
-  const base = { force: false, pdfExists: true, storedFingerprint: 'x', fingerprint: 'x' };
+  const base = {
+    force: false,
+    pdfExists: true,
+    storedFingerprint: 'x',
+    fingerprint: 'x',
+  };
 
   it('skips the render when the inputs have not moved', () => {
     // The Chrome-upgrade case: same html, a browser that would emit different

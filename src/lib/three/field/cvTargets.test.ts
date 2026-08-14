@@ -56,9 +56,18 @@ describe('the hero CV block quotes content/cv.md', () => {
     // The block is the TOP of the document: name, tagline, contact, then the
     // first two paragraphs in order. Quoting real-but-scattered sentences
     // would satisfy the check above while drawing a document nobody wrote.
-    const positions = ['NAME_LINE', 'TITLE_LINE', 'CONTACT_LINE', 'SHARP_BODY'].map(
-      (name) => plainText.indexOf(constant(name)),
-    );
+    //
+    // FADING_BODY is in the list for that reason. Left out, the one constant
+    // the field renders as unresolved cloud was the one free to come from
+    // anywhere in the CV, which is the half of the block a reader is least
+    // able to check by eye.
+    const positions = [
+      'NAME_LINE',
+      'TITLE_LINE',
+      'CONTACT_LINE',
+      'SHARP_BODY',
+      'FADING_BODY',
+    ].map((name) => plainText.indexOf(constant(name)));
     expect(positions.every((at) => at >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });

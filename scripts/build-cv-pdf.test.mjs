@@ -47,6 +47,15 @@ describe('inline', () => {
     expect(inline('**bold**')).toBe('<strong>bold</strong>');
     expect(inline('`code`')).toBe('<code>code</code>');
   });
+
+  it('leaves markdown punctuation inside a code span alone', () => {
+    // Inside backticks the punctuation is the content. Running the emphasis
+    // rules over it printed `*args` as the opening of an italic and swallowed
+    // the asterisk — in the one place on the page a reader is entitled to read
+    // the characters literally.
+    expect(inline('`fn(*args, **kwargs)`')).toBe('<code>fn(*args, **kwargs)</code>');
+    expect(inline('`a*b*c` and *this*')).toBe('<code>a*b*c</code> and <em>this</em>');
+  });
 });
 
 describe('toHtml', () => {
@@ -92,6 +101,19 @@ describe('toHtml', () => {
     );
   });
 
+  it('converts an inline span that straddles a soft wrap inside a bullet', () => {
+    // A list item is buffered as source and converted once, the same as a
+    // paragraph. Converting each source line on its own cut every span at the
+    // wrap, so a bullet re-wrapped by an editor printed `**` and `](http` as
+    // literal text — silently, and only in the download.
+    expect(toHtml('- a **bold\nspan** here\n')).toBe(
+      '<ul>\n<li>a <strong>bold span</strong> here</li>\n</ul>',
+    );
+    expect(toHtml('- see [the\nsite](https://example.com)\n')).toBe(
+      '<ul>\n<li>see <a href="https://example.com">the site</a></li>\n</ul>',
+    );
+  });
+
   it.each([
     ['a heading deeper than ###', '#### Sub\n'],
     ['a blockquote', '> quoted\n'],
@@ -99,6 +121,10 @@ describe('toHtml', () => {
     ['a * bullet', '* star\n'],
     ['a nested list', '- top\n  - nested\n'],
     ['an image', '![alt](https://example.com/x.png)\n'],
+    // Anchored, the image rule only saw an image that opened a line; one in
+    // the middle of a sentence reached `inline`, which matched its link half
+    // and printed a stray `!` in front of a link to the image file.
+    ['an image mid-sentence', 'a shot ![alt](https://example.com/x.png) of it\n'],
   ])('refuses %s rather than printing it as source', (_what, markdown) => {
     // Loud beats literal. The document is read once, by an employer, after
     // nobody re-read it — so an unprintable shape has to stop the build.

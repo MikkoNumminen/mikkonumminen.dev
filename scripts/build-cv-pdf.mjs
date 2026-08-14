@@ -34,14 +34,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { locateChrome, printHtmlToPdf, PRINT_FLAGS } from './lib/chrome-pdf.mjs';
 import { escapeHtml, isSafeHref } from './lib/escape.mjs';
-import { inputFingerprint, pdfContentEquals, shouldRender } from './lib/pdf-content.mjs';
+import {
+  inputFingerprint,
+  pdfContentEquals,
+  pdfContentHash,
+  shouldRender,
+} from './lib/pdf-content.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const INPUT = path.join(ROOT, 'content', 'cv.md');
 const OUTPUT = path.join(ROOT, 'public', 'mikko-numminen-cv.pdf');
 // Committed, for the same reason `skills-pdf.input.sha256` is: a fresh clone
 // with no stored hash cannot tell "nothing changed" from "never rendered", and
-// the CI gate below has nothing to compare against.
+// the CI gate below has nothing to compare against. Two lines, input then
+// output — see `readStored`.
 const FINGERPRINT_FILE = path.join(ROOT, 'scripts', 'cv-pdf.input.sha256');
 
 /**
@@ -68,16 +74,30 @@ function assertHref(href) {
   );
 }
 
-/** Inline markdown: links, bold, italic, and backtick code. Escaped first. */
+/**
+ * Inline markdown: links, bold, italic, and backtick code. Escaped first.
+ *
+ * Code spans are cut out before the other rules run and put back verbatim,
+ * because a code span is the one place where markdown punctuation is content:
+ * running the emphasis rules over `a*b*c` italicises the inside of a literal.
+ * The split's capture group makes every odd element a span, so the parity
+ * check below is the whole of the bookkeeping.
+ */
 export function inline(text) {
   return escapeHtml(text)
-    .replace(
-      /\[([^\]]+)\]\(([^)\s]+)\)/g,
-      (_m, label, href) => `<a href="${assertHref(href)}">${label}</a>`,
+    .split(/(`[^`]+`)/)
+    .map((part, i) =>
+      i % 2
+        ? `<code>${part.slice(1, -1)}</code>`
+        : part
+            .replace(
+              /\[([^\]]+)\]\(([^)\s]+)\)/g,
+              (_m, label, href) => `<a href="${assertHref(href)}">${label}</a>`,
+            )
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*]+)\*/g, '<em>$1</em>'),
     )
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>');
+    .join('');
 }
 
 /**
@@ -96,7 +116,11 @@ const UNSUPPORTED = [
   [/^>\s?/, 'blockquotes'],
   [/^\|/, 'tables'],
   [/^[*+]\s/, 'the * and + bullet markers (use -)'],
-  [/^!\[/, 'images'],
+  // The only entry not anchored to the start of the line, because an image is
+  // the only shape here that is legal mid-sentence. Anchored, a mid-line
+  // `![alt](src)` slipped past the refusal and `inline` then matched its link
+  // half, printing a stray `!` in front of a link to the image file.
+  [/!\[/, 'images'],
 ];
 
 /** The per-project technology strip: a line that opens with inline code. */
@@ -116,19 +140,36 @@ export function toHtml(markdown) {
   let list = null;
   /** Soft-wrapped source lines waiting to be joined into one paragraph. */
   let para = [];
+  /**
+   * The same, for the open list item. Buffered as SOURCE and converted once on
+   * flush, exactly like a paragraph: converting each source line on its own
+   * splits every inline span that straddles a soft wrap, so a `**bold**` or a
+   * `[label](url)` opened on the bullet line and closed on the next printed as
+   * literal markdown — the silent degradation `UNSUPPORTED` exists to refuse.
+   */
+  let item = null;
 
   const flushPara = () => {
     if (!para.length) return;
     out.push(`<p>${inline(para.join(' '))}</p>`);
     para = [];
   };
+  const flushItem = () => {
+    if (!item) return;
+    out.push(`<li>${inline(item.join(' '))}</li>`);
+    item = null;
+  };
   const closeList = () => {
+    flushItem();
     if (!list) return;
     out.push(`</${list}>`);
     list = null;
   };
   const openList = (kind) => {
-    if (list === kind) return;
+    if (list === kind) {
+      flushItem();
+      return;
+    }
     closeList();
     out.push(`<${kind}>`);
     list = kind;
@@ -169,8 +210,7 @@ export function toHtml(markdown) {
     // that item, indented or not (lazy continuation); emitting it separately
     // is what used to cut one list into two with a stray paragraph between.
     if (list && !/^(?:#{1,3}\s|-{3,}$|-\s|\d+\.\s|`)/.test(trimmed)) {
-      const last = out.length - 1;
-      out[last] = out[last].replace(/<\/li>$/, ` ${inline(trimmed)}</li>`);
+      item.push(trimmed);
       continue;
     }
 
@@ -194,7 +234,7 @@ export function toHtml(markdown) {
     if (bullet) {
       flushPara();
       openList('ul');
-      out.push(`<li>${inline(bullet[1])}</li>`);
+      item = [bullet[1]];
       continue;
     }
 
@@ -202,7 +242,7 @@ export function toHtml(markdown) {
     if (numbered) {
       flushPara();
       openList('ol');
-      out.push(`<li>${inline(numbered[1])}</li>`);
+      item = [numbered[1]];
       continue;
     }
 
@@ -277,6 +317,39 @@ ${toHtml(markdown)}
 
 const readIfExists = (file) => (fs.existsSync(file) ? fs.readFileSync(file) : null);
 
+/**
+ * The two hashes the fingerprint file carries, in order: the HTML the markdown
+ * converts to, and the content hash of the PDF that HTML was printed to.
+ *
+ * The second exists because the first alone cannot answer the question the CI
+ * gate asks. A fingerprint file records what the last LOCAL run rendered, so on
+ * its own it proves only that this text file was regenerated — `git add
+ * scripts/` stages it and leaves `public/*.pdf` behind, and the gate then
+ * reports a match while the repository holds the previous CV. Hashing the
+ * committed artifact too makes the check read the thing it is making a claim
+ * about.
+ */
+function readStored() {
+  const [html, pdf] = (readIfExists(FINGERPRINT_FILE)?.toString('utf8') ?? '')
+    .trim()
+    .split(/\r?\n/)
+    .map((entry) => entry.trim());
+  return { html: html || null, pdf: pdf || null };
+}
+
+/**
+ * Why the committed PDF is not the one this markdown renders to, or null when
+ * it is.
+ */
+function committedPdfProblem(stored, fingerprint) {
+  const committed = readIfExists(OUTPUT);
+  if (!committed) return `${path.relative(ROOT, OUTPUT)} is missing`;
+  if (stored.html !== fingerprint || stored.pdf !== pdfContentHash(committed)) {
+    return `the committed PDF does not match ${path.relative(ROOT, INPUT)}`;
+  }
+  return null;
+}
+
 function main() {
   const keepHtml = process.argv.includes('--keep-html');
   const force = process.argv.includes('--force');
@@ -286,23 +359,21 @@ function main() {
   const markdown = fs.readFileSync(INPUT, 'utf8');
   const html = buildHtml(markdown);
   const fingerprint = inputFingerprint(html, PRINT_FLAGS.join('\n'));
-  const stored = readIfExists(FINGERPRINT_FILE)?.toString('utf8').trim() ?? null;
+  const stored = readStored();
 
   // Vercel first: `CI` is set there too, and a stale PDF is a reason to shout
   // at a pull request, not to refuse a production deploy of everything else.
   if (process.env.VERCEL) {
-    if (stored !== fingerprint) {
-      console.warn(
-        'build-cv-pdf: WARNING, the committed PDF was not rendered from the current content/cv.md.',
-      );
-    }
+    const problem = committedPdfProblem(stored, fingerprint);
+    if (problem) console.warn(`build-cv-pdf: WARNING, ${problem}.`);
     console.log('build-cv-pdf: Vercel build, the committed PDF is canonical.');
     return;
   }
   if (process.env.CI) {
-    if (stored !== fingerprint) {
+    const problem = committedPdfProblem(stored, fingerprint);
+    if (problem) {
       console.error(
-        'build-cv-pdf: the committed PDF does not match content/cv.md.\n' +
+        `build-cv-pdf: ${problem}.\n` +
           '  /cv renders the markdown and the download serves the PDF, so this ships a\n' +
           '  visitor two different CVs. Run `npm run build:cv-pdf` locally and commit\n' +
           `  ${path.relative(ROOT, OUTPUT)} and ${path.relative(ROOT, FINGERPRINT_FILE)}.`,
@@ -325,12 +396,11 @@ function main() {
     console.log(`build-cv-pdf: html ${path.relative(ROOT, previewHtml)}`);
   }
 
-  const existingPdf = readIfExists(OUTPUT);
   if (
     !shouldRender({
       force,
-      pdfExists: existingPdf !== null,
-      storedFingerprint: stored,
+      pdfExists: fs.existsSync(OUTPUT),
+      storedFingerprint: stored.html,
       fingerprint,
     })
   ) {
@@ -341,18 +411,21 @@ function main() {
     console.log('build-cv-pdf: no local Chrome, skipping (the committed PDF stands)');
     return;
   }
+  const existingPdf = readIfExists(OUTPUT);
 
   // Rendered to a temp file and copied only on a real content change. Chrome
   // stamps a fresh /CreationDate, /ModDate and /ID into every render, so
   // writing straight to the committed PDF dirtied the working tree on every
   // single build.
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-pdf-'));
+  let rendered;
   try {
     const tmpHtml = path.join(tmpDir, 'cv.html');
     const tmpPdf = path.join(tmpDir, 'cv.pdf');
     fs.writeFileSync(tmpHtml, html, 'utf8');
     printHtmlToPdf({ htmlPath: tmpHtml, pdfPath: tmpPdf });
-    if (existingPdf && pdfContentEquals(existingPdf, fs.readFileSync(tmpPdf))) {
+    rendered = fs.readFileSync(tmpPdf);
+    if (existingPdf && pdfContentEquals(existingPdf, rendered)) {
       console.log(`build-cv-pdf: unchanged (${path.relative(ROOT, OUTPUT)})`);
     } else {
       fs.copyFileSync(tmpPdf, OUTPUT);
@@ -364,7 +437,9 @@ function main() {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
   // Recorded even when the bytes were kept, so the next build short-circuits.
-  fs.writeFileSync(FINGERPRINT_FILE, `${fingerprint}\n`);
+  // The PDF hash is of the RENDER, which is content-equal to whichever copy
+  // now sits at OUTPUT — that equality is what the branch above just decided.
+  fs.writeFileSync(FINGERPRINT_FILE, `${fingerprint}\n${pdfContentHash(rendered)}\n`);
 }
 
 // CLI only, so the pure helpers above stay importable by the test.

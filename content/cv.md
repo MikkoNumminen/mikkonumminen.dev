@@ -55,7 +55,7 @@ A production HR system, and the largest test surface I maintain. **PostgreSQL** 
 
 ## Other work
 
-- **AudiobookMaker** · Windows desktop app turning PDF, EPUB and scanned books into audiobooks through four neural TTS engines. A forward-hook leak in `resemble-ai/chatterbox` root-caused down to a discarded hook handle, with a repro, a fix and a pull request filed upstream. 3,710 tests. `Python · PyTorch · CUDA`
+- **AudiobookMaker** · Windows desktop app turning PDF, EPUB and scanned books into audiobooks through three neural TTS engines, cloud, offline CPU and GPU voice cloning. A forward-hook leak in `resemble-ai/chatterbox` root-caused down to a discarded hook handle, with a repro, a fix and a pull request filed upstream. 3,710 tests. `Python · PyTorch · CUDA`
 - **Platform** · Multi-tenant community site in production use by a live guild, carrying HRM as a git submodule so the HR product ships inside the platform without a fork. GDPR export and erasure. `Turborepo · Next.js · Prisma` · [vuohiliitto.com](https://vuohiliitto.com)
 - **Spacepotatis** · Browser game running two engines in one app, with server-authoritative anti-cheat validating every save against the player's stored progression. `Phaser 4 · Three.js · Kysely` · [live](https://spacepotatis.vercel.app)
 - **PasswordManager** · Zero-knowledge password manager. One Rust crypto core compiles natively and to WebAssembly, so CLI, server, browser and extension share one implementation. Argon2id at 256 MiB, XChaCha20-Poly1305 bound to record identity. `Rust · WebAssembly · axum`
