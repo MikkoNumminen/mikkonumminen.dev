@@ -90,21 +90,29 @@ const BODY_FONT_PX = 40;
 const BODY_LINE_PX = 58;
 
 /**
- * The block's copy.
+ * The block's copy, quoted verbatim from the opening of `content/cv.md`.
  *
- * Held here rather than read from `content/cv.md` because this module is
- * bundled into the browser and the markdown is a build-time file, and
- * because the field can only ever show the first few hundred characters:
- * pulling in the whole document to discard 95% of it would ship the CV
- * twice to every visitor. The `/cv` page renders the real thing.
+ * Held here rather than read from that file because this module is bundled
+ * into the browser and the markdown is a build-time file, and because the
+ * field can only ever show the first few hundred characters: pulling in the
+ * whole document to discard 95% of it would ship the CV twice to every
+ * visitor. The `/cv` page renders the real thing.
+ *
+ * COPIED, THEREFORE GUARDED. A copy is only defensible while it agrees with
+ * its source, and it did not: the CV was rewritten and this block went on
+ * rasterising the previous one, so the formation that is supposed to BE the
+ * document showed a title, a contact line and two paragraphs that no longer
+ * appeared anywhere in it. `cvTargets.test.ts` now holds every constant below
+ * to the markdown.
  */
 const NAME_LINE = 'Mikko Numminen';
-const TITLE_LINE = 'Full-Stack Developer · Finland';
-const CONTACT_LINE = 'numminen.mikko.petteri@gmail.com · github.com/MikkoNumminen';
+const TITLE_LINE = 'AI engineering and full-stack development';
+const CONTACT_LINE =
+  'Tampere, Finland · numminen.mikko.petteri@gmail.com · github.com/MikkoNumminen';
 const SHARP_BODY =
-  'I work on systems built around language models, with a focus on what happens when the model is wrong. I keep deterministic work deterministic, put the model only where language genuinely cannot be rule-coded, and enforce grounding through validation rather than prompt wording.';
+  'I build systems around language models and design them for what happens when the model is wrong. Deterministic work stays deterministic, the model is used only where language genuinely cannot be rule-coded, and grounding is enforced by validation rather than by prompt wording.';
 const FADING_BODY =
-  'Underneath that is ordinary full-stack work, end to end, SQL to ops. Thirteen projects carry it: a multi-tenant community platform serving a live WoW guild, a browser game built from an empty repo to live in 12 days, a Windows desktop app for audiobook generation, a reading tracker built twice in two ecosystems, a zero-knowledge password manager in Rust, and this site.';
+  'Underneath that is ordinary full-stack work, end to end, SQL to ops, in TypeScript, C#, Python and Rust. Four years of software: two employed, two independent and in production. Before that, 24 years in hardware retail and construction-trade B2B, which is why my main AI project is a Finnish retail system rather than a chatbot demo.';
 
 /**
  * Scatter and fade at the very last row of ink, which the ramp below now

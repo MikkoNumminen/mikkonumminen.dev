@@ -58,12 +58,12 @@ export const PAPERS: readonly Paper[] = [
   {
     id: 'cv',
     tier: 'primary',
-    // Last revised 2026-07, from the commit that replaced the file. The CV is
-    // not listed on /research, so this date is carried for completeness rather
-    // than displayed.
+    // Last revised 2026-08, from the commit that rewrote `content/cv.md`, which
+    // is now the PDF's source. The CV is not listed on /research, so this date
+    // is carried for completeness rather than displayed.
     title: 'Curriculum vitae',
     filename: 'mikko-numminen-cv.pdf',
-    date: '2026-07',
+    date: '2026-08',
     labelKey: 'cmdDownloadOptionCv',
     notAvailableKey: 'cmdDownloadNotAvailable',
   },

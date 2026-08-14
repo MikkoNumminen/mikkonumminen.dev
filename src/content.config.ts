@@ -115,10 +115,11 @@ const blog = defineCollection({
  * globbing a directory that also holds the terminal's corpus, the narratives
  * and the per-project notes.
  *
- * The PDF at `public/mikko-numminen-cv.pdf` is still a hand-maintained binary
- * with no generator, so it and this markdown can drift. That is pre-existing
- * and out of scope here, but the page now makes the drift visible to a reader
- * rather than leaving it between two files nobody diffs.
+ * The PDF at `public/mikko-numminen-cv.pdf` is generated from this same file by
+ * `scripts/build-cv-pdf.mjs`, which `prebuild` runs, so the page and the
+ * download are one document rather than two that drift. That script's CI check
+ * is what keeps it true: it fails the build when the committed PDF was not
+ * rendered from the current markdown.
  */
 const cv = defineCollection({
   loader: glob({
