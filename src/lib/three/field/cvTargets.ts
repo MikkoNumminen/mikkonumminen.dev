@@ -112,7 +112,7 @@ const CONTACT_LINE =
 const SHARP_BODY =
   'I build systems around language models and design them for what happens when the model is wrong. Deterministic work stays deterministic, the model is used only where language genuinely cannot be rule-coded, and grounding is enforced by validation rather than by prompt wording.';
 const FADING_BODY =
-  'Underneath that is ordinary full-stack work, end to end, SQL to ops, in TypeScript, C#, Python and Rust. Four years of software: two employed, two independent and in production. Before that, 24 years in hardware retail and construction-trade B2B, which is why my main AI project is a Finnish retail system rather than a chatbot demo.';
+  'Underneath that is ordinary full-stack work, end to end, SQL to ops, in TypeScript, C#, Python and Rust, moving data between APIs, databases, documents and files: PDF and EPUB through OCR, CSV and JSON open data, and code and prose chunked for retrieval.';
 
 /**
  * Scatter and fade at the very last row of ink, which the ramp below now
