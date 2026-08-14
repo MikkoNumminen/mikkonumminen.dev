@@ -355,9 +355,9 @@ export const en: Translations = {
     },
     '2026-build': {
       title: 'The 2026 build',
-      body: 'As of June 2026: nine projects shipped solo in twelve months. Full-stack web apps, a desktop tool, and a ReadLog port running live on Azure. Real users, real ops, full ownership from schema to deploy.',
+      body: 'As of August 2026: thirteen projects shipped solo. Full-stack web apps, a desktop tool, a browser game, a Rust password manager and a ReadLog port running live on Azure. Real users, real ops, full ownership from schema to deploy.',
       tags: [
-        '9 repos',
+        '13 repos',
         'Real users',
         'Next.js',
         'Astro',
@@ -395,7 +395,7 @@ export const en: Translations = {
         },
         {
           title: 'Solo full-stack, no queues',
-          body: 'SQL, app code, CI, Vercel and Azure deploys, signed Windows installers via GitHub Releases, OpenTelemetry. Owned end to end across all nine projects.',
+          body: 'SQL, app code, CI, Vercel and Azure deploys, signed Windows installers via GitHub Releases, OpenTelemetry. Owned end to end across all thirteen projects.',
         },
       ],
     },

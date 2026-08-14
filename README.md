@@ -236,6 +236,13 @@ Several `scripts/` and `scripts/lib/` modules have co-located `*.test.mjs` suite
 
 ## AI tooling
 
+**Working on this repo with an agent?** Read
+[`docs/portfolio-facts.md`](docs/portfolio-facts.md) first. It records where the
+canonical facts about these projects live, which of the sibling repositories are
+the same project under two names, and how to re-measure a number before quoting
+it. It exists because those facts were repeatedly re-derived from scratch, more
+slowly and less accurately than reading `src/data/`.
+
 Custom Claude Code skills live in [`.claude/skills/`](.claude/skills/): version-controlled, reviewed when added, audited per run. The automation skills spawn N parallel Sonnet sub-agents that return structured reports; an Opus synthesizer applies the agreed-on rules and opens a PR, and the orchestrator never merges: human review is the gate. The RAG skills are knowledge-and-harness specs a session loads instead of re-deriving the architecture or test battery from scratch.
 
 ### Skills shipped in this repo
