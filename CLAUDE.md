@@ -28,7 +28,7 @@ These rules have been violated repeatedly. They are hard walls, not preferences.
 ## Code conventions
 
 - **Comments explain *why*, not *what*.** Default is no comments. Add one when the WHY is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, behavior that would surprise a reader. Don't reference the current task / fix / callers in comments — that belongs in the PR description.
-- **Rule of three before refactoring.** Wait for the third duplicate before extracting a shared helper. `HeroVoiceover.astro` and `ProjectsVoiceover.astro` are intentionally duplicated; add a "PARALLEL TO" header comment in both so bug fixes get mirrored.
+- **Rule of three before refactoring.** Wait for the third duplicate before extracting a shared helper. `HeroVoiceover.astro`, `ProjectsVoiceover.astro` and `blog/BlogVoiceover.astro` are intentionally duplicated; each carries a "PARALLEL TO" header naming the other two, so a fix in one gets mirrored into all three.
 - **TypeScript strict + `noUncheckedIndexedAccess`.** Don't suppress with `as` / `!` unless the invariant is documented.
 - **Don't bolt on test infra for a single fix.** If the repo has a test suite, use its existing patterns. If it doesn't yet, file the gap rather than spinning up a one-off harness.
 
@@ -36,9 +36,9 @@ These rules have been violated repeatedly. They are hard walls, not preferences.
 
 - **Static output only.** No SSR, no edge functions, no runtime secrets. The build must remain portable across static hosts.
 - **Astro 7 + Three.js + GSAP + Tailwind v4.** Three.js scenes live in `src/lib/three/`; dynamically imported and skipped on small viewports / `prefers-reduced-motion`.
-- **Audio orchestration is centralized.** `BackgroundAudio.astro` owns the music bed and dispatches `bg-audio:state` events that voice layers listen for. Locale-keyed audio files live in `public/audio/` (`voice-landing-{en|fi|sv}.mp3`, `voice-projects-{en|fi|sv}.mp3`), and blog narration in `public/audio/blog/<slug>-<locale>.mp3` keyed by entry as well as locale, gated by the required `hasAudio` frontmatter flag. Missing locale files 404 silently — the `voice.play()` try/catch handles it.
+- **Audio orchestration is centralized.** `BackgroundAudio.astro` owns the music bed and dispatches `bg-audio:state` events that voice layers listen for. Locale-keyed audio files live in `public/audio/` (`voice-landing-<locale>.mp3`, `voice-projects-<locale>.mp3`; only the `en` pair is recorded today), and blog narration in `public/audio/blog/<slug>-<locale>.mp3` (`en` and `fi`) keyed by entry as well as locale, gated by the required `hasAudio` frontmatter flag. Missing locale files 404 silently — the `voice.play()` try/catch handles it.
 - **`prefers-reduced-motion: reduce`** is honored by Three.js scenes (skipped entirely) and voiceover layers (suppressed). Music continues; toggling-on at runtime requires a reload.
-- **Always run `npm run typecheck && npm run lint` before pushing.** CI gates on both plus `format:check`. Run `npm run format` if you've edited anything substantial.
+- **Run `npm run verify` before pushing.** It is the CI chain in one command: `typecheck`, `format:check`, `lint`, `test:coverage`, `build`. CI gates on all five, so `typecheck && lint` alone is not enough to know a push is green. Backend changes have their own gate, `npm run verify:backend` (ruff, mypy, pytest). Run `npm run format` if you've edited anything substantial.
 
 ## Where to look
 

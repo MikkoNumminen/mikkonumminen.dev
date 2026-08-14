@@ -35,11 +35,12 @@ utilities or hosting vendors) and it records where each technology was used:
 own projects. That distinction is invisible from the repositories themselves.
 
 There are **13 projects** in `src/data/projects.ts`, and `content/cv.md` says
-"thirteen" in prose. A third copy of the count lives in the `2026-build`
-timeline entry in `src/i18n/locales/en.ts` and `fi.ts`, and it is already out of
-step: it still reads "nine projects" and tags "9 repos" while the CV's entry for
-the same year says thirteen. Adding a fourteenth means changing all four files,
-and the drift between them is open today.
+"thirteen" in prose. Two more copies of the count live in the `2026-build`
+timeline entry in `src/i18n/locales/en.ts` and `fi.ts`, once in the body and
+once as a `13 repos` tag. Those two lagged at "nine projects" and "9 repos"
+until August 2026, while the CV's entry for the same year already said
+thirteen. Adding a fourteenth means changing all four files, and no test checks
+that they agree.
 
 ## Numbers on the project pages are point-in-time
 

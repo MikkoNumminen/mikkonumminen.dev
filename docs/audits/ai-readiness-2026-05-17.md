@@ -81,4 +81,6 @@ are both tracked in this repository, the suite runs 816 tests across 81 files,
 and the ADRs run to 0018. The "zero automated tests" finding above was true on
 2026-05-17 and is the starting point that number should be read against.
 
-Items 2–4 are tracked in Claude's per-project memory (outside the repo, in `~/.claude/projects/...`) so the roadmap survives across sessions.
+Until then the roadmap lived only in Claude's per-project memory, outside the
+repo in `~/.claude/projects/...`. The status table above is the in-repo record
+that replaced it.

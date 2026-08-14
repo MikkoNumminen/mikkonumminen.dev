@@ -75,9 +75,14 @@ NOTES.md
 # Other skills that should ship their docs add a
 # `!.claude/agent-verdicts/<FILE>` line of their own.
 #
+# `.claude/settings.json` deliberately stays LOCAL. It is configuration rather
+# than documentation, and tracking it would make its allowlist the default for
+# every clone. That allowlist pre-approves `gh pr merge`, and the permission
+# prompt is the last mechanical stop in front of the one action this repo calls
+# unrecoverable. Share it only after narrowing it.
+#
 # Everything else (settings, worktrees, transcripts) stays local.
 .claude/*
-!.claude/settings.json
 !.claude/skills/
 !.claude/agent-verdicts/
 .claude/agent-verdicts/*
