@@ -46,7 +46,10 @@ pnpm-debug.log*
 .vercel
 
 # notes & planning (local only)
-CLAUDE.md
+#
+# CLAUDE.md is NOT here: this is an AI-first repository, so the file agents are
+# told to read first has to travel with it. Anything genuinely private belongs
+# in .local/ below, which stays ignored.
 TODO.md
 NOTES.md
 .notes/
@@ -71,6 +74,12 @@ NOTES.md
 #  - `README-SYNC-AGENT.md` — token-economics receipt for /sync-readmes
 # Other skills that should ship their docs add a
 # `!.claude/agent-verdicts/<FILE>` line of their own.
+#
+# `.claude/settings.json` deliberately stays LOCAL. It is configuration rather
+# than documentation, and tracking it would make its allowlist the default for
+# every clone. That allowlist pre-approves `gh pr merge`, and the permission
+# prompt is the last mechanical stop in front of the one action this repo calls
+# unrecoverable. Share it only after narrowing it.
 #
 # Everything else (settings, worktrees, transcripts) stays local.
 .claude/*

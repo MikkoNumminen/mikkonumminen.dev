@@ -357,9 +357,9 @@ export const fi: Translations = {
     },
     '2026-build': {
       title: 'Rakennusvuosi 2026',
-      body: 'Kesäkuussa 2026: yhdeksän projektia tuotantoon yksin yhden vuoden sisällä. Full-stack-verkkosovelluksia, työpöytätyökalu ja Azureen julkaistu ReadLog-käännös. Oikeita käyttäjiä, oikeaa ops-puolta, täysi omistajuus skeemasta deployhin.',
+      body: 'Elokuussa 2026: kolmetoista projektia tuotantoon yksin. Full-stack-verkkosovelluksia, työpöytätyökalu, selainpeli, Rust-salasanahallinta ja Azureen julkaistu ReadLog-käännös. Oikeita käyttäjiä, oikeaa ops-puolta, täysi omistajuus skeemasta deployhin.',
       tags: [
-        '9 repoa',
+        '13 repoa',
         'Oikeita käyttäjiä',
         'Next.js',
         'Astro',
@@ -397,7 +397,7 @@ export const fi: Translations = {
         },
         {
           title: 'Yksin full-stack, ei jonoja',
-          body: 'SQL, sovelluskoodi, CI, Vercel- ja Azure-deployt, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry. Omistettuna päästä päähän kaikissa yhdeksässä projektissa.',
+          body: 'SQL, sovelluskoodi, CI, Vercel- ja Azure-deployt, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry. Omistettuna päästä päähän kaikissa kolmessatoista projektissa.',
         },
       ],
     },

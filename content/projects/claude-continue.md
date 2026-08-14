@@ -40,7 +40,7 @@ Python 3.9+ (stdlib only: zero runtime third-party packages), Tkinter, PyInstall
 - Verify-and-retry correctness: the raw ccusage estimate is treated as approximate; the loop confirms the window rolled before re-arming
 - Four distinct terminal-driving mechanisms across four platforms, each with its own skip-busy logic
 - Self-update with SHA-256 verification and detached helper swap, surviving antivirus on Windows
-- Full injectable test seam: ~300 tests run offline in ~0.4 s
+- Full injectable test seam: 714 tests, all offline, 707 of them running on any one platform, whole suite in about 10 s
 
 ## Status
 
