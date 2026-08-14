@@ -23,7 +23,7 @@
     "sync:skills-registry": "node scripts/sync-skill-registry.mjs",
     "render:audit-pdfs": "node scripts/render-audit-pdfs.mjs",
     "blog:drafts": "node scripts/generate-blog-drafts.mjs",
-    "prebuild": "npm run validate:registry && npm run validate:shoutbox && npm run render:audit-pdfs && npm run build:skills-pdf",
+    "prebuild": "npm run validate:registry && npm run validate:shoutbox && npm run render:audit-pdfs && npm run build:skills-pdf && npm run build:cv-pdf",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,mjs,astro,json,css}\" \"*.{ts,mjs,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,mjs,astro,json,css}\" \"*.{ts,mjs,json}\"",
     "lint": "eslint .",
@@ -33,7 +33,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "validate:registry": "node scripts/validate-registry.mjs",
-    "validate:shoutbox": "node scripts/validate-shoutbox.mjs"
+    "validate:shoutbox": "node scripts/validate-shoutbox.mjs",
+    "build:cv-pdf": "node scripts/build-cv-pdf.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
