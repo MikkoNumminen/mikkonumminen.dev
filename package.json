@@ -54,15 +54,15 @@
     "@types/three": "^0.185.4",
     "@vitest/coverage-v8": "^4.1.10",
     "astro-eslint-parser": "^3.0.0",
-    "eslint": "^10.8.0",
+    "eslint": "^10.8.1",
     "eslint-plugin-astro": "^3.1.0",
-    "globals": "^17.9.0",
+    "globals": "^17.10.0",
     "jsdom": "^30.0.1",
     "prettier": "3.9.6",
     "prettier-plugin-astro": "^0.14.1",
     "sharp": "^0.35.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.66.0",
+    "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.8"
   },
   "overrides": {
