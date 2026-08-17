@@ -218,6 +218,7 @@ export const projects: Project[] = [
     tech: [
       'Astro',
       'Three.js',
+      'GLSL',
       'GSAP',
       'TypeScript',
       'Tailwind CSS',

@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { techStack, type TechContext } from './techStack';
 import { projects } from './projects';
 import { techProjects } from './techProjects';
@@ -250,5 +253,56 @@ describe('techProjects (attribution behind the by-project view)', () => {
       .map(([name]) => name)
       .sort();
     expect(unattributed).toEqual(['Dioxus', 'Kubernetes', 'PgTyped', 'Recharts', 'zbus']);
+  });
+});
+
+/**
+ * The CV's own Languages row, held against this box.
+ *
+ * This guard exists because the drift it catches ran unnoticed through several
+ * releases. Every other fact in `content/cv.md` has a keeper: the project count
+ * answers to `corpus-facts-sync.test.mjs`, the links answer to
+ * `build-cv-pdf.test.mjs`, the prose answers to `houseStyle.test.ts`. The one
+ * list a reader scans first had none, so the box gained AppleScript and the CV
+ * never heard about it, and both surfaces missed GLSL entirely.
+ *
+ * Only the box-to-CV direction is checked. The reverse would need a list of
+ * what counts as a language name, and a third list is how the first two came
+ * to disagree.
+ */
+describe('content/cv.md agrees with the languages the box claims', () => {
+  const cv = readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), '../../content/cv.md'),
+    'utf8',
+  );
+
+  // The Technology section's row, not the `## Languages` heading further down
+  // that lists Finnish and English. Matching the wrong one would compare the
+  // stack against a list of spoken languages and pass on nothing.
+  const row = cv.match(/^\*\*Languages\*\*\s*·\s*(.+)$/m)?.[1];
+
+  it('has a Languages row to check at all', () => {
+    expect(row, 'no **Languages** · row found in content/cv.md').toBeTruthy();
+  });
+
+  const languages = techStack.find((c) => c.id === 'languages');
+
+  it.each(languages?.primaries.map((p) => p.name) ?? [])('claims %s', (name: string) => {
+    // Split on the slash so `TypeScript / JavaScript` requires both words
+    // without dictating that the CV punctuate it the same way. The CV writes
+    // it as "TypeScript and JavaScript", which is one skill said once, and
+    // that is the wording the box's own comment argues for.
+    for (const part of name.split('/').map((s) => s.trim())) {
+      // Bounded on letters rather than a substring search, because the
+      // careless version of this check passes on the wrong word: a plain
+      // `toContain('SQL')` is satisfied by `PostgreSQL`, so the row could
+      // drop SQL entirely and still look guarded. `\b` is no use here, `C#`
+      // ends on a non-word character.
+      const escaped = part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      expect(
+        row,
+        `the box lists ${name} as a language but content/cv.md does not claim ${part}`,
+      ).toMatch(new RegExp(`(?<![A-Za-z])${escaped}(?![A-Za-z])`));
+    }
   });
 });

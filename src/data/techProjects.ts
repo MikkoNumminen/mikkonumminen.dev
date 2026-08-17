@@ -54,7 +54,16 @@ export const techProjects: Readonly<Record<string, readonly string[]>> = {
   Argon2id: ['passwordmanager'],
   'XChaCha20-Poly1305': ['passwordmanager'],
   zeroize: ['passwordmanager'],
+  SQL: ['hrm', 'platform', 'portfolio', 'spacepotatis'],
+  // One project, which is the honest count. The shaders are this site's.
+  GLSL: ['portfolio'],
   Bash: ['claude-agents'],
+  PowerShell: [
+    'audiobookmaker',
+    'claude-continue',
+    'feedback-intelligence',
+    'passwordmanager',
+  ],
   AppleScript: ['claude-continue'],
   'iTerm2 automation': ['claude-continue'],
   'Next.js': ['hrm', 'platform', 'readlog', 'spacepotatis'],

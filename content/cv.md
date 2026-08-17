@@ -46,7 +46,7 @@ A feedback-analysis engine for Finnish retail, and where the 24 years and the AI
 ### Portfolio site and its RAG backend
 
 A static site whose contact terminal answers from a self-hosted retrieval system. Containment is built in independent layers rather than asked for in a prompt: a byte cap before parsing, an input cap, a deterministic weak-retrieval gate that refuses before any model call, a hard generation cap, bounded concurrency, and per-IP limits. Retrieval fuses dense **pgvector** search with full-text ranking over chunks split on function and class boundaries. A May 2026 audit measured Lighthouse performance 96 to 99 across all twelve routes then served, with zero layout shift on every WebGL page.
-`Astro · Three.js · FastAPI · pgvector · TypeScript` · [live](https://mikkonumminen.dev) · [repo](https://github.com/MikkoNumminen/mikkonumminen.dev).
+`Astro · Three.js · GLSL · FastAPI · pgvector · TypeScript` · [live](https://mikkonumminen.dev) · [repo](https://github.com/MikkoNumminen/mikkonumminen.dev).
 
 ### HRM
 
@@ -67,7 +67,7 @@ A production HR system, and the largest test surface I maintain. **PostgreSQL** 
 
 ## Technology
 
-**Languages** · TypeScript, JavaScript, Python, C#, Rust, SQL, Bash.
+**Languages** · TypeScript and JavaScript, Python, C#, Rust, SQL, GLSL vertex and fragment shaders, Bash and PowerShell, AppleScript generated and run at runtime.
 
 **AI and LLM** · Agent and pipeline design, evaluation harnesses, blind A/B model comparison, grounding validation and citation checking, structured-output salvage, prompt-injection containment and red-teaming, cost and latency measurement, RAG with hybrid retrieval and relevance gating, pgvector, local serving with Ollama, Microsoft.Extensions.AI, neural TTS.
 
