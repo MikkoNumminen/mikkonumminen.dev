@@ -130,7 +130,22 @@ export const techStack: TechCategory[] = [
           { name: 'zeroize' },
         ],
       },
+      // Distinct from the PostgreSQL row one category down, which claims the
+      // database. This one claims the language: hand-written DDL behind the
+      // RAG backend and Spacepotatis, and migrations shaped by hand rather
+      // than accepted as Prisma emitted them.
+      { name: 'SQL' },
+      // Not a Three.js secondary. Three.js is the runtime that compiles these;
+      // the eleven vertex and fragment programs across five files are written
+      // by hand, and the hardest of them morphs 24,000 particles between five
+      // shapes in one draw call. Filed under Three.js it would read as "used a
+      // library that happens to have shaders".
+      { name: 'GLSL' },
       { name: 'Bash' },
+      // Beside Bash by the same standard, not under Packaging: seven build and
+      // publish scripts across four projects, each a real script rather than a
+      // one-line shell-out from Python.
+      { name: 'PowerShell' },
       // Not a dotfile: claude-continue *generates* AppleScript — session
       // matching, string escaping, a busy guard on iTerm2's `is processing`
       // so a resume never types into a mid-flight turn — and runs it through
