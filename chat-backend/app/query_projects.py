@@ -32,6 +32,16 @@ PROJECT_ALIASES: dict[str, list[str]] = {
         "readlog csharp",
         "readlog-csharp",
     ],
+    # The third ReadLog. "readlog laravel" beats bare "readlog" the same way the
+    # .NET aliases do, longest match first.
+    "readlog-laravel": [
+        "readlog laravel",
+        "readlog-laravel",
+        "ask your library",
+        "ask-your-library",
+        "readlog php",
+        "laravel readlog",
+    ],
     "readlog": ["readlog"],
     "hrm": ["hrm", "hrmanager", "hr manager"],
     # "spacepotatikse" is the gradated Finnish stem: a noun ending in -s inflects
@@ -185,6 +195,11 @@ TECH_ALIASES: dict[str, tuple[str, ...]] = {
     "vocal separation": ("songgenerator",),
     "stem separation": ("songgenerator",),
     "typescript": ("hrm", "platform", "portfolio", "readlog", "spacepotatis"),
+    # PHP ecosystem: one project. "blade" alone is a knife, "pest" alone is an
+    # insect and "eloquent" alone is an adjective, so only the framework and
+    # the language route by themselves.
+    "php": ("readlog-laravel",),
+    "laravel": ("readlog-laravel",),
     "javascript": ("strudel-patterns", "passwordmanager", "feedback-intelligence"),
     "astro": ("portfolio",),
     "bash": ("claude-agents",),
