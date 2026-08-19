@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Neuromancer · ReadLog</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📚</text></svg>">
+    <link rel="stylesheet" href="/readlog-laravel/css/site.css">
+</head>
+<body>
+    <a class="rl-skip" href="#main">Skip to content</a>
+
+    <header class="rl-navbar">
+        <div class="rl-container">
+            <a class="rl-brand" href="/readlog-laravel">📚 ReadLog</a>
+
+            <ul class="rl-nav">
+                <li><a href="/readlog-laravel" >Home</a></li>
+                <li><a href="/readlog-laravel/library" >Library</a></li>
+                <li><a href="/readlog-laravel/log" >Log a book</a></li>
+                <li><a href="/readlog-laravel/account" >Account</a></li>
+            </ul>
+
+            <form class="rl-demo" method="post" action="/readlog-laravel/demo-user" data-auto-submit>
+        <input type="hidden" name="_token" value="dtdG30NqShkoWIZ1reuLfFTrjR8W03I9ouGG4wKI" autocomplete="off">        <label for="demo-user">Reading as</label>
+        <select id="demo-user" name="user_id">
+                            <option value="1" selected>Mikko</option>
+                            <option value="2" >Sam Reader</option>
+                    </select>
+        <noscript><button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Switch</button></noscript>
+    </form>
+        </div>
+    </header>
+
+    <div class="rl-container rl-main">
+        <main id="main">
+<div class="rl-notice" role="note">This is a static snapshot of ReadLog (Laravel). Search, forms and the multi-source book lookup are inactive here. The full app runs locally with one Docker command; the source is at <a href="https://github.com/MikkoNumminen/readlog-laravel">github.com/MikkoNumminen/readlog-laravel</a>.</div>
+            
+            <div class="rl-narrow">
+    <p><a href="/readlog-laravel">&larr; Back to feed</a></p>
+    <h1 class="rl-page-title">Neuromancer</h1>
+
+            <p class="rl-muted">No details available for this book.</p>
+    </div>
+        </main>
+    </div>
+
+    <footer class="rl-footer">
+        <div class="rl-container">
+            ReadLog, track the books you&#39;ve read.
+            A Laravel migration of <a href="https://github.com/MikkoNumminen/readlog-dotnet">readlog-dotnet</a>.
+        </div>
+    </footer>
+</body>
+</html>

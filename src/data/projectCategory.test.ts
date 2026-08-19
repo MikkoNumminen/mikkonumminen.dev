@@ -26,7 +26,7 @@ describe('project category', () => {
     // Pinned deliberately. If this fails because a project was added, the fix
     // is to decide which side it falls on and update this number, not to make
     // the assertion loose.
-    expect({ apps: APPS.length, tools: TOOLS.length }).toEqual({ apps: 9, tools: 4 });
+    expect({ apps: APPS.length, tools: TOOLS.length }).toEqual({ apps: 10, tools: 4 });
   });
 
   it('classifies the three that decide the split the way the rule says', () => {

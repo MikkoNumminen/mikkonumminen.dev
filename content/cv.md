@@ -21,7 +21,7 @@ Underneath that is ordinary full-stack work, end to end, SQL to ops, in TypeScri
 
 ### Independent software development alongside university studies · 2024 to present
 
-Thirteen projects taken from empty repository to running system, with real users and ownership across schema, application code, CI, deployment and signed installers. Every repository runs CI on every push.
+Fourteen projects taken from empty repository to running system, with real users and ownership across schema, application code, CI, deployment and signed installers. Every repository runs CI on every push.
 
 - Built and operate a local LLM stack on my own hardware: **Ollama** serving quantised models on an RTX 3080 Ti, reached from cloud front ends over a **Tailscale Funnel**, at no per-query cost.
 - Design the model boundary the same way every time: a deterministic layer that cannot hallucinate by construction, the model confined to what only language can do, and validation that drops uncited output instead of shipping it.
@@ -60,14 +60,14 @@ A production HR system, and the largest test surface I maintain. **PostgreSQL** 
 - **Spacepotatis** · Browser game running two engines in one app, with server-authoritative anti-cheat validating every save against the player's stored progression. `Phaser 4 · Three.js · Kysely` · [live](https://spacepotatis.vercel.app) · [repo](https://github.com/MikkoNumminen/Spacepotatis).
 - **PasswordManager** · Zero-knowledge password manager. One Rust crypto core compiles natively and to WebAssembly, so CLI, server, browser and extension share one implementation. Argon2id at 256 MiB, XChaCha20-Poly1305 bound to record identity. `Rust · WebAssembly · axum` · [repo](https://github.com/MikkoNumminen/PasswordManager).
 - **SongGenerator** · Replaces a song's vocal with sung word clips on the original melody's notes and timings. Nothing musical is invented, and a song with no singing is refused rather than attempted. `Python · PyTorch · Demucs` · [repo](https://github.com/MikkoNumminen/SongGenerator).
-- **ReadLog, twice** · The same application built and deployed in two ecosystems, the port documented decision by decision, adding security the original lacked. `Next.js · C# · ASP.NET Core · EF Core` · [Next.js live](https://read-log-pi.vercel.app) · [.NET live](https://readlog-a2feef.azurewebsites.net/) · [repo](https://github.com/MikkoNumminen/ReadLog).
+- **ReadLog, three times** · The same application built in three ecosystems, TypeScript to C# to PHP, each port documented decision by decision, the .NET one adding security the original lacked and the Laravel one written up where Active Record and data mapper disagree. `Next.js · C# · ASP.NET Core · EF Core · PHP · Laravel` · [Next.js live](https://read-log-pi.vercel.app) · [.NET live](https://readlog-a2feef.azurewebsites.net/) · [Laravel snapshot](https://mikkonumminen.dev/readlog-laravel) · [repo](https://github.com/MikkoNumminen/ReadLog).
 - **AI tooling, published** · `claude-agents`, an MIT library of 14 cost-routing subagents written after measuring five review workflows fan out roughly 3.8 million tokens at frontier rates, and `claude-skills`, 16 installable skills whose own documentation revised a 67% estimate down to a measured 22%. `Python · Claude Code` · [claude-agents](https://github.com/MikkoNumminen/claude-agents) · [claude-skills](https://github.com/MikkoNumminen/claude-skills).
 - **claude-continue** · Cross-platform scheduler for long autonomous runs, driving terminals through four platform mechanisms including Windows console injection, on a three-OS CI matrix. `Python` · [repo](https://github.com/MikkoNumminen/claude-continue).
 - **Strudel Patterns** · Algorithmic music, AI-directed, scoring Spacepotatis and this site. `JavaScript · Web Audio` · [repo](https://github.com/MikkoNumminen/strudel-patterns).
 
 ## Technology
 
-**Languages** · TypeScript and JavaScript, Python, C#, Rust, SQL, GLSL vertex and fragment shaders, Bash and PowerShell, AppleScript generated and run at runtime.
+**Languages** · TypeScript and JavaScript, Python, C#, PHP, Rust, SQL, GLSL vertex and fragment shaders, Bash and PowerShell, AppleScript generated and run at runtime.
 
 **AI and LLM** · Agent and pipeline design, evaluation harnesses, blind A/B model comparison, grounding validation and citation checking, structured-output salvage, prompt-injection containment and red-teaming, cost and latency measurement, RAG with hybrid retrieval and relevance gating, pgvector, local serving with Ollama, Microsoft.Extensions.AI, neural TTS.
 

@@ -25,6 +25,7 @@ const KIND_BY_ID: Record<string, SurfaceKindName> = {
   'feedback-intelligence': 'banded',
   readlog: 'rocky',
   'readlog-dotnet': 'rocky',
+  'readlog-laravel': 'rocky',
   spacepotatis: 'rocky',
   'strudel-patterns': 'crystalline',
   'claude-continue': 'icy',
