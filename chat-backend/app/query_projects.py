@@ -38,6 +38,7 @@ PROJECT_ALIASES: dict[str, list[str]] = {
         "readlog laravel",
         "readlog-laravel",
         "ask your library",
+        "ask-your-library",
         "readlog php",
         "laravel readlog",
     ],
@@ -194,12 +195,11 @@ TECH_ALIASES: dict[str, tuple[str, ...]] = {
     "vocal separation": ("songgenerator",),
     "stem separation": ("songgenerator",),
     "typescript": ("hrm", "platform", "portfolio", "readlog", "spacepotatis"),
-    # PHP ecosystem: one project. "blade" alone is a knife and "pest" alone is
-    # an insect, so only the framework and the language route by themselves;
-    # the ORM name is unambiguous enough in a developer portfolio.
+    # PHP ecosystem: one project. "blade" alone is a knife, "pest" alone is an
+    # insect and "eloquent" alone is an adjective, so only the framework and
+    # the language route by themselves.
     "php": ("readlog-laravel",),
     "laravel": ("readlog-laravel",),
-    "eloquent": ("readlog-laravel",),
     "javascript": ("strudel-patterns", "passwordmanager", "feedback-intelligence"),
     "astro": ("portfolio",),
     "bash": ("claude-agents",),
