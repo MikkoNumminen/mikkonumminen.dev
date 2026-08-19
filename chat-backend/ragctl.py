@@ -1036,7 +1036,14 @@ def cmd_verify(full: bool = False) -> int:
     # model, generous enough that a slow GPU is not mistaken for a hang. A wedged
     # model would otherwise hold the deploy open forever.
     try:
-        proc = subprocess.run(cmd, cwd=REPO, timeout=VERIFY_TIMEOUT_SECONDS)
+        proc = subprocess.run(
+            cmd,
+            cwd=REPO,
+            timeout=VERIFY_TIMEOUT_SECONDS,
+            # compose exec always attaches stdin (-T only skips the TTY), so an
+            # inherited terminal would let the battery eat REPL type-ahead.
+            stdin=subprocess.DEVNULL,
+        )
     except subprocess.TimeoutExpired:
         print()
         print(_c("  * UNVERIFIED: the battery timed out.", "33"))
