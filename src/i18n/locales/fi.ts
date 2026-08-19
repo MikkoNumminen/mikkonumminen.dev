@@ -212,6 +212,16 @@ export const fi: Translations = {
         'Muistiinpanot joka valinnasta',
       ],
     },
+    'readlog-laravel': {
+      tagline: 'ReadLog kolmannen kerran, Laravelilla',
+      description:
+        'Sama lukupäiväkirja vielä kerran, nyt .NET-versiosta Laraveliin: TypeScriptistä C#:iin ja siitä PHP:hen, ja joka käännös piti edellistä versiota määrittelynään. Eloquent EF Coren tilalla, Blade Razorin tilalla, yksi Docker-komento käynnistykseen. Sovellus pyörii tekijän omalla koneella ja avataan julkiseen osoitteeseen vain esittelyn ajaksi; tämä sivusto linkittää staattiseen tilannekuvaan, jossa haku ja lomakkeet eivät toimi. Migraatiomuistiinpanot kertovat, missä Active Record ja data mapper oikeasti eroavat, ja jokaisen kohdan, jossa tekoälyavusteinen käännös meni pieleen ja miten se huomattiin.',
+      highlights: [
+        'Saman sovelluksen kolmas käännös',
+        'Pyörii SQLitellä tai Postgresilla',
+        'Staattinen tilannekuva, ei hostattu kopio',
+      ],
+    },
     audiobookmaker: {
       tagline: 'Tekee kirjoista äänikirjoja',
       description:
@@ -357,9 +367,9 @@ export const fi: Translations = {
     },
     '2026-build': {
       title: 'Rakennusvuosi 2026',
-      body: 'Elokuussa 2026: kolmetoista projektia tuotantoon yksin. Full-stack-verkkosovelluksia, työpöytätyökalu, selainpeli, Rust-salasanahallinta ja Azureen julkaistu ReadLog-käännös. Oikeita käyttäjiä, oikeaa ops-puolta, täysi omistajuus skeemasta deployhin.',
+      body: 'Elokuussa 2026: neljätoista projektia tuotantoon yksin. Full-stack-verkkosovelluksia, työpöytätyökalu, selainpeli, Rust-salasanahallinta ja Azureen julkaistu ReadLog-käännös. Oikeita käyttäjiä, oikeaa ops-puolta, täysi omistajuus skeemasta deployhin.',
       tags: [
-        '13 repoa',
+        '14 repoa',
         'Oikeita käyttäjiä',
         'Next.js',
         'Astro',
@@ -397,7 +407,7 @@ export const fi: Translations = {
         },
         {
           title: 'Yksin full-stack, ei jonoja',
-          body: 'SQL, sovelluskoodi, CI, Vercel- ja Azure-deployt, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry. Omistettuna päästä päähän kaikissa kolmessatoista projektissa.',
+          body: 'SQL, sovelluskoodi, CI, Vercel- ja Azure-deployt, allekirjoitetut Windows-asentajat GitHub Releasesin kautta, OpenTelemetry. Omistettuna päästä päähän kaikissa neljässätoista projektissa.',
         },
       ],
     },

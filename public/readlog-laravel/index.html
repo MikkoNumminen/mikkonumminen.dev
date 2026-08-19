@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Recently Read · ReadLog</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📚</text></svg>">
+    <link rel="stylesheet" href="/readlog-laravel/css/site.css">
+</head>
+<body>
+    <a class="rl-skip" href="#main">Skip to content</a>
+
+    <header class="rl-navbar">
+        <div class="rl-container">
+            <a class="rl-brand" href="/readlog-laravel">📚 ReadLog</a>
+
+            <ul class="rl-nav">
+                <li><a href="/readlog-laravel"  aria-current="page" >Home</a></li>
+                <li><a href="/readlog-laravel/library" >Library</a></li>
+                <li><a href="/readlog-laravel/log" >Log a book</a></li>
+                <li><a href="/readlog-laravel/account" >Account</a></li>
+            </ul>
+
+            <form class="rl-demo" method="post" action="/readlog-laravel/demo-user" data-auto-submit>        <label for="demo-user">Reading as</label>
+        <select id="demo-user" name="user_id">
+                            <option value="1" selected>Mikko</option>
+                            <option value="2" >Sam Reader</option>
+                    </select>
+        <noscript><button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Switch</button></noscript>
+    </form>
+        </div>
+    </header>
+
+    <div class="rl-container rl-main">
+        <main id="main">
+<div class="rl-notice" role="note">This is a static snapshot of ReadLog (Laravel). Search, forms and the multi-source book lookup are inactive here. The full app runs locally with one Docker command; the source is at <a href="https://github.com/MikkoNumminen/readlog-laravel">github.com/MikkoNumminen/readlog-laravel</a>.</div>
+            
+            <div class="rl-narrow">
+    <h1 class="rl-page-title">Recently Read</h1>
+    <p class="rl-muted">See what people are reading.</p>
+
+            <div class="rl-stack">
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/dune-frank-herbert">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/11481354-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Dune</h2>
+                                                    <p class="rl-muted rl-small">Frank Herbert</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">🎧 Audiobook</span>
+                            <span class="rl-muted rl-small">Aug 10, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="4 / 5" aria-label="4 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star ">☆</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/dune-frank-herbert">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/11481354-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Dune</h2>
+                                                    <p class="rl-muted rl-small">Frank Herbert</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📖 Book</span>
+                            <span class="rl-muted rl-small">Aug 6, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="5 / 5" aria-label="5 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/the-hobbit-jrr-tolkien">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/14627509-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">The Hobbit</h2>
+                                                    <p class="rl-muted rl-small">J.R.R. Tolkien</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">🎧 Audiobook</span>
+                            <span class="rl-muted rl-small">Jul 24, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="4 / 5" aria-label="4 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star ">☆</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/thinking-fast-and-slow-daniel-kahneman">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/13290711-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Thinking, fast and slow</h2>
+                                                    <p class="rl-muted rl-small">Daniel Kahneman</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📖 Book</span>
+                            <span class="rl-muted rl-small">Jul 16, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="3 / 5" aria-label="3 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star ">☆</span>
+                    <span class="rl-star ">☆</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/neuromancer-william-gibson">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/283860-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Neuromancer</h2>
+                                                    <p class="rl-muted rl-small">William Gibson</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📱 E-book</span>
+                            <span class="rl-muted rl-small">Jul 9, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="4 / 5" aria-label="4 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star ">☆</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/the-left-hand-of-darkness-ursula-k-le-guin">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/10618463-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">The Left Hand of Darkness</h2>
+                                                    <p class="rl-muted rl-small">Ursula K. Le Guin</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📖 Book</span>
+                            <span class="rl-muted rl-small">Jun 21, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="5 / 5" aria-label="5 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/piranesi-susanna-clarke">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/10226290-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Piranesi</h2>
+                                                    <p class="rl-muted rl-small">Susanna Clarke</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📱 E-book</span>
+                            <span class="rl-muted rl-small">Jun 18, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="5 / 5" aria-label="5 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/project-hail-mary-andy-weir">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/11200092-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Project Hail Mary</h2>
+                                                    <p class="rl-muted rl-small">Andy Weir</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">🎧 Audiobook</span>
+                            <span class="rl-muted rl-small">Jun 5, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="5 / 5" aria-label="5 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/snow-crash-neal-stephenson">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/392508-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Snow Crash</h2>
+                                                    <p class="rl-muted rl-small">Neal Stephenson</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📖 Book</span>
+                            <span class="rl-muted rl-small">May 14, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="3 / 5" aria-label="3 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star ">☆</span>
+                    <span class="rl-star ">☆</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/project-hail-mary-andy-weir">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/11200092-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Project Hail Mary</h2>
+                                                    <p class="rl-muted rl-small">Andy Weir</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📖 Book</span>
+                            <span class="rl-muted rl-small">Apr 30, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="0 / 5" aria-label="0 out of 5 stars">
+                    <span class="rl-star ">☆</span>
+                    <span class="rl-star ">☆</span>
+                    <span class="rl-star ">☆</span>
+                    <span class="rl-star ">☆</span>
+                    <span class="rl-star ">☆</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/the-name-of-the-wind-patrick-rothfuss">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/11480483-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">The Name of the Wind</h2>
+                                                    <p class="rl-muted rl-small">Patrick Rothfuss</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📱 E-book</span>
+                            <span class="rl-muted rl-small">Apr 10, 2026</span>
+                        </div>
+                                            </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/kalevala-elias-lonnrot">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/12600036-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Kalevala</h2>
+                                                    <p class="rl-muted rl-small">Elias Lönnrot</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📖 Book</span>
+                            <span class="rl-muted rl-small">Feb 9, 2026</span>
+                        </div>
+                        <span class="rl-stars" title="2 / 5" aria-label="2 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star ">☆</span>
+                    <span class="rl-star ">☆</span>
+                    <span class="rl-star ">☆</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/sapiens-yuval-noah-harari">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/8634250-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">Sapiens</h2>
+                                                    <p class="rl-muted rl-small">Yuval Noah Harari</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">🎧 Audiobook</span>
+                            <span class="rl-muted rl-small">Dec 21, 2025</span>
+                        </div>
+                        <span class="rl-stars" title="4 / 5" aria-label="4 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star ">☆</span>
+            </span>
+                    </div>
+                </a>
+                            <a class="rl-card rl-row" style="align-items: flex-start"
+                   href="/readlog-laravel/book/the-pragmatic-programmer-andy-hunt">
+                    <img class="rl-cover rl-cover-md" src="/readlog-laravel/assets/covers/10143650-m.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <div>
+                        <h2 class="rl-card-title">The Pragmatic Programmer</h2>
+                                                    <p class="rl-muted rl-small">Andy Hunt</p>
+                                                <div class="rl-row">
+                            <span class="rl-badge">📱 E-book</span>
+                            <span class="rl-muted rl-small">Oct 22, 2025</span>
+                        </div>
+                        <span class="rl-stars" title="5 / 5" aria-label="5 out of 5 stars">
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+                    <span class="rl-star  rl-star-filled ">★</span>
+            </span>
+                    </div>
+                </a>
+                    </div>
+    </div>
+        </main>
+    </div>
+
+    <footer class="rl-footer">
+        <div class="rl-container">
+            ReadLog, track the books you&#39;ve read.
+            A Laravel migration of <a href="https://github.com/MikkoNumminen/readlog-dotnet">readlog-dotnet</a>.
+        </div>
+    </footer>
+</body>
+</html>

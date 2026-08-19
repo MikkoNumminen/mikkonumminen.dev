@@ -209,6 +209,16 @@ export const en: Translations = {
         'Porting notes for every decision',
       ],
     },
+    'readlog-laravel': {
+      tagline: 'ReadLog, a third time, in Laravel',
+      description:
+        "The same reading log once more, this time from the .NET version into Laravel: TypeScript to C# to PHP, each port treating the previous one as the specification. Eloquent instead of EF Core, Blade instead of Razor, one Docker command to run it. It runs on the author's own machine and is put on a public URL only for a demo; what this site links to is a static snapshot, so search and forms are inactive there. The migration notes record where Active Record and data mapper genuinely disagree, and every place the AI-assisted port was wrong and how it was caught.",
+      highlights: [
+        'Third port of the same app',
+        'Runs on SQLite or Postgres',
+        'Static snapshot, not a hosted copy',
+      ],
+    },
     audiobookmaker: {
       tagline: 'Turns books into audiobooks',
       description:
@@ -355,9 +365,9 @@ export const en: Translations = {
     },
     '2026-build': {
       title: 'The 2026 build',
-      body: 'As of August 2026: thirteen projects shipped solo. Full-stack web apps, a desktop tool, a browser game, a Rust password manager and a ReadLog port running live on Azure. Real users, real ops, full ownership from schema to deploy.',
+      body: 'As of August 2026: fourteen projects shipped solo. Full-stack web apps, a desktop tool, a browser game, a Rust password manager and a ReadLog port running live on Azure. Real users, real ops, full ownership from schema to deploy.',
       tags: [
-        '13 repos',
+        '14 repos',
         'Real users',
         'Next.js',
         'Astro',
@@ -395,7 +405,7 @@ export const en: Translations = {
         },
         {
           title: 'Solo full-stack, no queues',
-          body: 'SQL, app code, CI, Vercel and Azure deploys, signed Windows installers via GitHub Releases, OpenTelemetry. Owned end to end across all thirteen projects.',
+          body: 'SQL, app code, CI, Vercel and Azure deploys, signed Windows installers via GitHub Releases, OpenTelemetry. Owned end to end across all fourteen projects.',
         },
       ],
     },

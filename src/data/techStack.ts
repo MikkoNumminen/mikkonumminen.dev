@@ -115,6 +115,15 @@ export const techStack: TechCategory[] = [
           { name: 'EF Core' },
         ],
       },
+      {
+        name: 'PHP',
+        secondaries: [
+          { name: 'Laravel' },
+          { name: 'Blade' },
+          { name: 'Eloquent' },
+          { name: 'Pest' },
+        ],
+      },
       // Trimmed to the crates that carry the security argument. A Cargo.toml
       // dump would bury Argon2id and XChaCha20-Poly1305 among nine utilities.
       {
