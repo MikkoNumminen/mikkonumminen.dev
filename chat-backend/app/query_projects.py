@@ -37,6 +37,7 @@ PROJECT_ALIASES: dict[str, list[str]] = {
     "readlog-laravel": [
         "readlog laravel",
         "readlog-laravel",
+        "ask your library",
         "readlog php",
         "laravel readlog",
     ],
