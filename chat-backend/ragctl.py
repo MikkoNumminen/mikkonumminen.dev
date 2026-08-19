@@ -144,6 +144,10 @@ def run(cmd: list[str], timeout: int = 30, cwd: Path | None = None) -> tuple[int
             text=True,
             errors="replace",  # Windows exes (tasklist) emit non-UTF-8 bytes
             timeout=timeout,
+            # Never hand children the REPL's terminal: a child (especially a
+            # Windows exe over WSL interop) with the TTY as stdin competes with
+            # readline for keystrokes and silently eats type-ahead.
+            stdin=subprocess.DEVNULL,
         )
         return p.returncode, (p.stdout or "") + (p.stderr or "")
     except FileNotFoundError:
@@ -812,7 +816,17 @@ def ensure_docker() -> bool:
         print("  ○ Docker Desktop not found — start it manually")
         return False
     print("  ◐ starting Docker Desktop …")
-    subprocess.Popen([DOCKER_DESKTOP_EXE])
+    # Fully detached, stdio to DEVNULL: with inherited stdio, the WSL interop
+    # stub for the exe stays attached to the REPL's TTY for as long as Docker
+    # Desktop runs (days), and its stdin relay races readline for every
+    # keystroke — keys intermittently vanish until pressed repeatedly.
+    subprocess.Popen(
+        [DOCKER_DESKTOP_EXE],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
     if _wait_for(check_docker_engine, timeout=180, every=5):
         print("  ● Docker engine up")
         return True
