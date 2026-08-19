@@ -131,6 +131,19 @@ def test_every_language_routes_to_its_projects() -> None:
     assert detect_projects("what runs on WebAssembly / wasm?") == {"passwordmanager"}
     assert detect_projects("is the site built with Astro?") == {"portfolio"}
     assert detect_projects("any bash scripting?") == {"claude-agents"}
+    assert detect_projects("has he written any PHP?") == {"readlog-laravel"}
+    assert detect_projects("what did he build with Laravel") == {"readlog-laravel"}
+
+
+def test_three_readlogs_are_told_apart() -> None:
+    # The same longest-alias rule that separates ReadLog .NET from bare ReadLog
+    # separates ReadLog Laravel from both.
+    assert detect_projects("how does readlog laravel differ from readlog .net?") == {
+        "readlog-laravel",
+        "readlog-dotnet",
+    }
+    assert detect_projects("tell me about the readlog php port") == {"readlog-laravel"}
+    assert detect_projects("readlog") == {"readlog"}
 
 
 def test_language_aliases_respect_word_boundaries() -> None:
@@ -138,6 +151,8 @@ def test_language_aliases_respect_word_boundaries() -> None:
     # "bashful" must not fire — same boundary rule as the identity aliases.
     assert detect_projects("I trust the crust of this pie") == set()
     assert detect_projects("very pythonic and bashful prose") == set()
+    # "php" inside a longer token, e.g. a file name, must not fire either.
+    assert detect_projects("the phpunit.xml file") == set()
 
 
 def test_tech_alias_targets_are_known_project_ids() -> None:
