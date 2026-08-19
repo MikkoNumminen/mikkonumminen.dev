@@ -47,6 +47,17 @@
     <div role="status" aria-live="polite">
             </div>
 
+            
+        <form method="get" role="search" class="rl-field">
+            <label class="rl-label" for="ask">Ask your library</label>
+            <input class="rl-input" type="search" id="ask" name="ask" value=""
+                   placeholder="e.g. audiobooks I rated 5 last year, or the one about a desert planet">
+            <p class="rl-muted rl-small">Answered by a model running on this machine, from your entries only. Nothing leaves it.</p>
+        </form>
+
+        <div role="status" aria-live="polite">
+                    </div>
+    
             <div class="rl-row" style="justify-content: flex-end; margin-bottom: 0.5rem">
             <a class="rl-btn rl-btn-sm  rl-btn-outline "
                href="/readlog-laravel/library">Grid</a>
