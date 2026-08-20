@@ -24,6 +24,7 @@ decision supersedes an earlier one with a new record rather than an edit.
 | [0016](0016-continuous-shape-cycle.md)            | The home field reshapes continuously and the name is one shape of four (supersedes the idle-choreography half of 0015), four-shape rotation on a 5 s hold / 3 s morph, clicks strike any shape, per-shape micro-life | Accepted                                 |
 | [0017](0017-shoutbox-moderation-queue.md)         | Shoutbox moderation queue, a public write endpoint that cannot publish: deterministic no-LLM gate, moderation verbs off the public HTTP surface, Telegram digest, committed-snapshot publication | Accepted                                 |
 | [0018](0018-cv-formation-reads-as-a-document.md) | The field forms the CV as readable prose rather than a CV-shaped monogram (extends 0016 with a fifth shape), appended lane so existing indices hold, per-shape sprite size and hold, skipped rather than degraded when it cannot be read | Accepted |
+| [0019](0019-readlog-portal-runtime-function.md) | One runtime function, `api/readlog-portal.mjs`, so `/readlog-laravel` serves the live app when the author's machine answers and the snapshot when it does not; the documented exception to the static-output rule, with a confined upstream and no secrets | Accepted |
 
 ## Writing a new one
 
