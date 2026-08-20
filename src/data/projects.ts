@@ -308,8 +308,9 @@ export const projects: Project[] = [
     phase: 4.1,
     tilt: -0.02,
     color: '#b79cff',
-    // A static snapshot served by this site, not a hosted instance: the app runs
-    // locally and is exposed on demand. The snapshot pages say so themselves.
+    // Served through the readlog portal: the live app proxied from the author's
+    // machine when it is on, the committed static snapshot when it is not.
+    // See api/readlog-portal.mjs.
     liveUrl: 'https://mikkonumminen.dev/readlog-laravel',
     githubUrl: 'https://github.com/MikkoNumminen/readlog-laravel',
     tech: [
