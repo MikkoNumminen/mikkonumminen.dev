@@ -7,6 +7,14 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/readlog-laravel",
+      "destination": "/api/readlog-portal?path="
+    },
+    {
+      "source": "/readlog-laravel/:path*",
+      "destination": "/api/readlog-portal?path=:path*"
+    },
+    {
       "source": "/api/rag/health",
       "destination": "https://paskamyrsky.tail6ed53b.ts.net/health"
     },
@@ -28,8 +36,16 @@
     }
   ],
   "redirects": [
-    { "source": "/sv", "destination": "/", "permanent": true },
-    { "source": "/sv/:path*", "destination": "/:path*", "permanent": true },
+    {
+      "source": "/sv",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/sv/:path*",
+      "destination": "/:path*",
+      "permanent": true
+    },
     {
       "source": "/hrm",
       "destination": "https://hr-manager-pearl.vercel.app",
@@ -100,15 +116,27 @@
     {
       "source": "/api/rag/(.*)",
       "headers": [
-        { "key": "x-vercel-enable-rewrite-caching", "value": "0" },
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
     },
     {
       "source": "/api/songgen/(.*)",
       "headers": [
-        { "key": "x-vercel-enable-rewrite-caching", "value": "0" },
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
     },
     {
@@ -131,22 +159,46 @@
     },
     {
       "source": "/favicon.svg",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
     },
     {
       "source": "/og-(.*)\\.(svg|png)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
     },
     {
       "source": "/(.*)\\.pdf",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
+      ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=63072000; includeSubDomains; preload"
@@ -160,6 +212,28 @@
           "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src 'self'; connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://paskamyrsky.tail6ed53b.ts.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; worker-src 'none'; manifest-src 'none'; frame-src 'none'; upgrade-insecure-requests"
         }
       ]
+    },
+    {
+      "source": "/readlog-laravel(.*)",
+      "headers": [
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://covers.openlibrary.org https://books.google.com; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+        }
+      ]
     }
-  ]
+  ],
+  "functions": {
+    "api/readlog-portal.mjs": {
+      "maxDuration": 60
+    }
+  }
 }
