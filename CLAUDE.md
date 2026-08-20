@@ -34,7 +34,7 @@ These rules have been violated repeatedly. They are hard walls, not preferences.
 
 ## Project specifics
 
-- **Static output only.** No SSR, no edge functions, no runtime secrets. The build must remain portable across static hosts.
+- **Static output only.** No SSR, no edge functions, no runtime secrets. The build must remain portable across static hosts. One documented exception: `api/readlog-portal.mjs`, which switches `/readlog-laravel` between the live app and its snapshot per request ([ADR 0019](docs/decisions/0019-readlog-portal-runtime-function.md)). Adding a second function needs its own record.
 - **Astro 7 + Three.js + GSAP + Tailwind v4.** Three.js scenes live in `src/lib/three/`; dynamically imported and skipped on small viewports / `prefers-reduced-motion`.
 - **Audio orchestration is centralized.** `BackgroundAudio.astro` owns the music bed and dispatches `bg-audio:state` events that voice layers listen for. Locale-keyed audio files live in `public/audio/` (`voice-landing-<locale>.mp3`, `voice-projects-<locale>.mp3`; only the `en` pair is recorded today), and blog narration in `public/audio/blog/<slug>-<locale>.mp3` (`en` and `fi`) keyed by entry as well as locale, gated by the required `hasAudio` frontmatter flag. Missing locale files 404 silently — the `voice.play()` try/catch handles it.
 - **`prefers-reduced-motion: reduce`** is honored by Three.js scenes (skipped entirely) and voiceover layers (suppressed). Music continues; toggling-on at runtime requires a reload.

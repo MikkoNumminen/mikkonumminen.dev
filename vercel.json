@@ -8,11 +8,11 @@
   "rewrites": [
     {
       "source": "/readlog-laravel",
-      "destination": "/api/readlog-portal?path="
+      "destination": "/api/readlog-portal?__portal_path="
     },
     {
       "source": "/readlog-laravel/:path*",
-      "destination": "/api/readlog-portal?path=:path*"
+      "destination": "/api/readlog-portal?__portal_path=:path*"
     },
     {
       "source": "/api/rag/health",
@@ -227,6 +227,15 @@
         {
           "key": "Content-Security-Policy",
           "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://covers.openlibrary.org https://books.google.com; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+        }
+      ]
+    },
+    {
+      "source": "/readlog-laravel-snapshot(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
         }
       ]
     }
