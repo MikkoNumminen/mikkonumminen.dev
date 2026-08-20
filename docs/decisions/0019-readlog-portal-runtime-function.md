@@ -69,15 +69,15 @@ guard test `scripts/readlog-portal.test.mjs` pins the confinement, the pinned
 snapshot origin, the marker requirement and the header placement, so the
 narrowness above is enforced rather than remembered.
 
-Two things this record does not settle, both to be checked against the running
-deployment rather than argued here:
+One thing this record left open has since been measured against the running
+deployment: a later `headers` entry in `vercel.json` **replaces** an earlier
+one's `Content-Security-Policy` rather than adding a second copy. Confirmed on
+2026-08-20 with `curl -I https://mikkonumminen.dev/readlog-laravel/library`:
+exactly one policy arrives, the portal's, so hot-linked book covers render on
+the live view and every other page keeps the site-wide policy untouched.
 
-- Whether a later `headers` entry in `vercel.json` replaces an earlier one's
-  `Content-Security-Policy` or whether both are sent. If both are sent the
-  browser applies the intersection, which is the site-wide policy: strictly no
-  weaker than the rest of the site, and hot-linked book covers will not render.
-  The portal entry is written to be correct in the replacing case and harmless
-  in the other.
+One thing it still does not settle, to be checked the same way rather than
+argued here:
 - Whether the funnel's own latency makes the live view pleasant enough to keep
   pointing the canonical address at it. If it is not, the fallback becomes the
   default and the live view moves behind a query string or a second address.
