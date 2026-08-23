@@ -157,7 +157,7 @@ describe('readlog portal headers', () => {
     expect(index).toBeGreaterThan(global);
   });
 
-  it('allows exactly the two cover hosts beyond self, and stays uncached', () => {
+  it('allows exactly the cover hosts beyond self, and stays uncached', () => {
     const headers = Object.fromEntries(
       vercel.headers[index].headers.map((h) => [h.key, h.value]),
     );
@@ -165,9 +165,16 @@ describe('readlog portal headers', () => {
       .split(';')
       .map((d) => d.trim())
       .find((d) => d.startsWith('img-src'));
+    // The Internet Archive is not a third party here: it is where Open Library
+    // keeps the files. A cover is served either directly or through two 302s,
+    // archive.org/download/... and then ia######.us.archive.org, and CSP checks
+    // img-src again on every hop, so both the bare host and its subdomains are
+    // needed; naming only the last hop left every redirected cover blocked.
     expect(img.split(' ').slice(1).sort()).toEqual([
       "'self'",
       'data:',
+      'https://*.archive.org',
+      'https://archive.org',
       'https://books.google.com',
       'https://covers.openlibrary.org',
     ]);
