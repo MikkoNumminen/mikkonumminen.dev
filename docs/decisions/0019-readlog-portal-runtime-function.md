@@ -82,16 +82,19 @@ lets through. It said hot-linked covers render. Opened in a browser on
 same page served straight from the app on port 8080 rendered all ten. `curl -L`
 had reported a valid JPEG for every cover it was pointed at, because curl
 follows redirects without enforcing a policy. Open Library serves a cover
-either directly or as a 302 into `ia######.us.archive.org`, its storage at the
-Internet Archive, and CSP checks the host again on each redirect hop. Naming
-`covers.openlibrary.org` alone allowed the request and blocked the file.
-`https://*.us.archive.org` is now in `img-src` for that reason, which is the
-same provider named where it keeps the files. Measured the same day across 118
-cover URLs from both providers, every redirect chain ends on one of three
-hosts: `books.google.com`, `covers.openlibrary.org` and
-`ia######.us.archive.org`, so the list is now complete rather than plausible.
-From here on, what a page renders is checked in a browser, and `curl` is used
-for what the headers say.
+either directly or through two redirects, into `archive.org/download/...` and
+then into `ia######.us.archive.org`, its storage at the Internet Archive, and
+CSP checks `img-src` again on every hop. Naming `covers.openlibrary.org` alone
+allowed the request and blocked the file. `https://archive.org` and
+`https://*.archive.org` are now in `img-src` for that reason, which is the same
+provider named where it keeps the files. Measured the same day across 118 cover
+URLs from both providers, every chain is one of those shapes and nothing lands
+anywhere else. The first version of this fix named only the last hop, and the
+production page could not have told that apart from no fix at all; the pull
+request's preview deployment, opened in the same browser, still blocked seven
+of ten, which is how the middle hop was found. From here on, what a page
+renders is checked in a browser, on the preview before the merge, and `curl` is
+used for what the headers say.
 
 One thing it still does not settle, to be checked the same way rather than
 argued here:
