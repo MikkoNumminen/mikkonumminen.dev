@@ -10,6 +10,7 @@
 <body>
     <a class="rl-skip" href="#main">Skip to content</a>
 
+
     <header class="rl-navbar">
         <div class="rl-container">
             <a class="rl-brand" href="/readlog-laravel">📚 ReadLog</a>
@@ -18,16 +19,15 @@
                 <li><a href="/readlog-laravel" >Home</a></li>
                 <li><a href="/readlog-laravel/library" >Library</a></li>
                 <li><a href="/readlog-laravel/log" >Log a book</a></li>
-                <li><a href="/readlog-laravel/account" >Account</a></li>
-            </ul>
+                
+                                    <li><a href="/readlog-laravel/account" >Account</a></li>
+                            </ul>
 
-            <form class="rl-demo" method="post" action="/readlog-laravel/demo-user" data-auto-submit>        <label for="demo-user">Reading as</label>
-        <select id="demo-user" name="user_id">
-                            <option value="1" selected>Mikko</option>
-                            <option value="2" >Sam Reader</option>
-                    </select>
-        <noscript><button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Switch</button></noscript>
-    </form>
+            <div class="rl-account-menu">
+                <span class="rl-muted rl-small">Mikko</span>
+        <form method="post" action="/readlog-laravel/signout">            <button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Sign out</button>
+        </form>
+    </div>
         </div>
     </header>
 
@@ -39,8 +39,28 @@
     <p><a href="/readlog-laravel">&larr; Back to feed</a></p>
     <h1 class="rl-page-title">The Name of the Wind</h1>
 
-            <p class="rl-muted">No details available for this book.</p>
-    </div>
+                    <div class="rl-row" style="align-items: flex-start; margin-bottom: 1rem">
+            <img class="rl-cover rl-cover-lg" src="/readlog-laravel/assets/covers/content-784f0edd.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+            <div>
+                                    <p class="rl-strong">Patrick Rothfuss</p>
+                                                    <p class="rl-muted rl-small">Published: 2007-03-27</p>
+                                                    <p class="rl-muted rl-small">Publisher: Astra Publishing House</p>
+                                                    <p class="rl-muted rl-small">674 pages</p>
+                                                    <p class="rl-muted rl-small">Language: EN</p>
+                            </div>
+        </div>
+
+                    <div class="rl-row" style="margin-bottom: 1rem">
+                                    <span class="rl-badge">Fiction</span>
+                            </div>
+        
+                    
+            <div class="rl-description">Discover #1 New York Times-bestselling Patrick Rothfuss’ epic fantasy series, The Kingkiller Chronicle. “I just love the world of Patrick Rothfuss.” —Lin-Manuel Miranda OVER 1 MILLION COPIES SOLD! DAY ONE: THE NAME OF THE WIND My name is Kvothe. I have stolen princesses back from sleeping barrow kings. I burned down the town of Trebon. I have spent the night with Felurian and left with both my sanity and my life. I was expelled from the University at a younger age than most people are allowed in. I tread paths by moonlight that others fear to speak of during day. I have talked to Gods, loved women, and written songs that make the minstrels weep. You may have heard of me. So begins a tale unequaled in fantasy literature—the story of a hero told in his own voice. It is a tale of sorrow, a tale of survival, a tale of one man’s search for meaning in his universe, and how that search, and the indomitable will that drove it, gave birth to a legend.</div>
+        
+                    <p style="margin-top: 1rem">
+                <a href="https://play.google.com/store/books/details?id=OlmJEAAAQBAJ&amp;source=gbs_api" target="_blank" rel="noopener noreferrer">More on Google Books &#8599;</a>
+            </p>
+            </div>
         </main>
     </div>
 

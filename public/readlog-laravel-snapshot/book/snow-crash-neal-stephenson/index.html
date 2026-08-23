@@ -10,6 +10,7 @@
 <body>
     <a class="rl-skip" href="#main">Skip to content</a>
 
+
     <header class="rl-navbar">
         <div class="rl-container">
             <a class="rl-brand" href="/readlog-laravel">📚 ReadLog</a>
@@ -18,16 +19,15 @@
                 <li><a href="/readlog-laravel" >Home</a></li>
                 <li><a href="/readlog-laravel/library" >Library</a></li>
                 <li><a href="/readlog-laravel/log" >Log a book</a></li>
-                <li><a href="/readlog-laravel/account" >Account</a></li>
-            </ul>
+                
+                                    <li><a href="/readlog-laravel/account" >Account</a></li>
+                            </ul>
 
-            <form class="rl-demo" method="post" action="/readlog-laravel/demo-user" data-auto-submit>        <label for="demo-user">Reading as</label>
-        <select id="demo-user" name="user_id">
-                            <option value="1" selected>Mikko</option>
-                            <option value="2" >Sam Reader</option>
-                    </select>
-        <noscript><button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Switch</button></noscript>
-    </form>
+            <div class="rl-account-menu">
+                <span class="rl-muted rl-small">Mikko</span>
+        <form method="post" action="/readlog-laravel/signout">            <button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Sign out</button>
+        </form>
+    </div>
         </div>
     </header>
 
@@ -39,8 +39,28 @@
     <p><a href="/readlog-laravel">&larr; Back to feed</a></p>
     <h1 class="rl-page-title">Snow Crash</h1>
 
-            <p class="rl-muted">No details available for this book.</p>
-    </div>
+                    <div class="rl-row" style="align-items: flex-start; margin-bottom: 1rem">
+            <img class="rl-cover rl-cover-lg" src="/readlog-laravel/assets/covers/content-85281b6c.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+            <div>
+                                    <p class="rl-strong">Neal Stephenson</p>
+                                                    <p class="rl-muted rl-small">Published: 1992</p>
+                                                    <p class="rl-muted rl-small">Publisher: Spectra</p>
+                                                    <p class="rl-muted rl-small">488 pages</p>
+                                                    <p class="rl-muted rl-small">Language: EN</p>
+                            </div>
+        </div>
+
+                    <div class="rl-row" style="margin-bottom: 1rem">
+                                    <span class="rl-badge">Fiction</span>
+                            </div>
+        
+                    
+            <div class="rl-description">First arriving on the scene in 1992 to critical acclaim, this definitive novel of the information age weaves virtual reality, Sumerian myth, and just about everything in between. Stephenson is author of the bestselling &#34;Cryptonomicon&#34; and &#34;The Diamond Age&#34;. Copyright © Libri GmbH. All rights reserved.</div>
+        
+                    <p style="margin-top: 1rem">
+                <a href="http://books.google.fi/books?id=B0xbAAAAMAAJ&amp;dq=Snow+Crash+Neal+Stephenson&amp;hl=&amp;source=gbs_api" target="_blank" rel="noopener noreferrer">More on Google Books &#8599;</a>
+            </p>
+            </div>
         </main>
     </div>
 

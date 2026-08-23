@@ -10,6 +10,7 @@
 <body>
     <a class="rl-skip" href="#main">Skip to content</a>
 
+
     <header class="rl-navbar">
         <div class="rl-container">
             <a class="rl-brand" href="/readlog-laravel">📚 ReadLog</a>
@@ -18,16 +19,15 @@
                 <li><a href="/readlog-laravel" >Home</a></li>
                 <li><a href="/readlog-laravel/library" >Library</a></li>
                 <li><a href="/readlog-laravel/log" >Log a book</a></li>
-                <li><a href="/readlog-laravel/account" >Account</a></li>
-            </ul>
+                
+                                    <li><a href="/readlog-laravel/account" >Account</a></li>
+                            </ul>
 
-            <form class="rl-demo" method="post" action="/readlog-laravel/demo-user" data-auto-submit>        <label for="demo-user">Reading as</label>
-        <select id="demo-user" name="user_id">
-                            <option value="1" selected>Mikko</option>
-                            <option value="2" >Sam Reader</option>
-                    </select>
-        <noscript><button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Switch</button></noscript>
-    </form>
+            <div class="rl-account-menu">
+                <span class="rl-muted rl-small">Mikko</span>
+        <form method="post" action="/readlog-laravel/signout">            <button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Sign out</button>
+        </form>
+    </div>
         </div>
     </header>
 
@@ -39,8 +39,28 @@
     <p><a href="/readlog-laravel">&larr; Back to feed</a></p>
     <h1 class="rl-page-title">The Left Hand of Darkness</h1>
 
-            <p class="rl-muted">No details available for this book.</p>
-    </div>
+                    <div class="rl-row" style="align-items: flex-start; margin-bottom: 1rem">
+            <img class="rl-cover rl-cover-lg" src="/readlog-laravel/assets/covers/content-04dd26d9.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+            <div>
+                                    <p class="rl-strong">Ursula K. Le Guin</p>
+                                                    <p class="rl-muted rl-small">Published: 2000-07-01</p>
+                                                    <p class="rl-muted rl-small">Publisher: Penguin</p>
+                                                    <p class="rl-muted rl-small">337 pages</p>
+                                                    <p class="rl-muted rl-small">Language: EN</p>
+                            </div>
+        </div>
+
+                    <div class="rl-row" style="margin-bottom: 1rem">
+                                    <span class="rl-badge">Fiction</span>
+                            </div>
+        
+                    
+            <div class="rl-description">50TH ANNIVERSARY EDITION—WITH A NEW INTRODUCTION BY DAVID MITCHELL AND A NEW AFTERWORD BY CHARLIE JANE ANDERS Ursula K. Le Guin’s groundbreaking work of science fiction—winner of the Hugo and Nebula Awards. A lone human ambassador is sent to the icebound planet of Winter, a world without sexual prejudice, where the inhabitants’ gender is fluid. His goal is to facilitate Winter’s inclusion in a growing intergalactic civilization. But to do so he must bridge the gulf between his own views and those of the strange, intriguing culture he encounters... Embracing the aspects of psychology, society, and human emotion on an alien world, The Left Hand of Darkness stands as a landmark achievement in the annals of intellectual science fiction.</div>
+        
+                    <p style="margin-top: 1rem">
+                <a href="https://play.google.com/store/books/details?id=zhERCgAAQBAJ&amp;source=gbs_api" target="_blank" rel="noopener noreferrer">More on Google Books &#8599;</a>
+            </p>
+            </div>
         </main>
     </div>
 

@@ -10,6 +10,7 @@
 <body>
     <a class="rl-skip" href="#main">Skip to content</a>
 
+
     <header class="rl-navbar">
         <div class="rl-container">
             <a class="rl-brand" href="/readlog-laravel">📚 ReadLog</a>
@@ -18,16 +19,15 @@
                 <li><a href="/readlog-laravel" >Home</a></li>
                 <li><a href="/readlog-laravel/library" >Library</a></li>
                 <li><a href="/readlog-laravel/log" >Log a book</a></li>
-                <li><a href="/readlog-laravel/account" >Account</a></li>
-            </ul>
+                
+                                    <li><a href="/readlog-laravel/account" >Account</a></li>
+                            </ul>
 
-            <form class="rl-demo" method="post" action="/readlog-laravel/demo-user" data-auto-submit>        <label for="demo-user">Reading as</label>
-        <select id="demo-user" name="user_id">
-                            <option value="1" selected>Mikko</option>
-                            <option value="2" >Sam Reader</option>
-                    </select>
-        <noscript><button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Switch</button></noscript>
-    </form>
+            <div class="rl-account-menu">
+                <span class="rl-muted rl-small">Mikko</span>
+        <form method="post" action="/readlog-laravel/signout">            <button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Sign out</button>
+        </form>
+    </div>
         </div>
     </header>
 
@@ -39,8 +39,27 @@
     <p><a href="/readlog-laravel">&larr; Back to feed</a></p>
     <h1 class="rl-page-title">The Hobbit</h1>
 
-            <p class="rl-muted">No details available for this book.</p>
-    </div>
+                    <div class="rl-row" style="align-items: flex-start; margin-bottom: 1rem">
+            <img class="rl-cover rl-cover-lg" src="/readlog-laravel/assets/covers/content-5615a503.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+            <div>
+                                    <p class="rl-strong">John Ronald Reuel Tolkien</p>
+                                                    <p class="rl-muted rl-small">Published: 1981</p>
+                                                                    <p class="rl-muted rl-small">292 pages</p>
+                                                    <p class="rl-muted rl-small">Language: EN</p>
+                            </div>
+        </div>
+
+                    <div class="rl-row" style="margin-bottom: 1rem">
+                                    <span class="rl-badge">Fiction</span>
+                            </div>
+        
+                    
+            <div class="rl-description">Bilbo Baggins, the hobbit, is a peaceful sort who lives in a cozy hole in the Shire, a place where adventures are uncommon - and rather unwanted. So when the wizard Gandalf whisks him away on a treasure-hunting expedition with a troop of rowdy dwarves, he&#039;s not entirely thrilled. Encountering ruthless trolls, beastly orcs, gigantic spiders, and hungry wolves, Bilbo discovers within himself astonishing strength and courage. And at the ultimate confrontation with the fearsome dragon Smaug, the hobbit will brave the dangers of the dark and dragon fire alone and unaided.</div>
+        
+                    <p style="margin-top: 1rem">
+                <a href="http://books.google.fi/books?id=i9VCwtU1Z3IC&amp;dq=The+Hobbit+J.R.R.+Tolkien&amp;hl=&amp;source=gbs_api" target="_blank" rel="noopener noreferrer">More on Google Books &#8599;</a>
+            </p>
+            </div>
         </main>
     </div>
 

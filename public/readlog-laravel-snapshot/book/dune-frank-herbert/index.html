@@ -10,6 +10,7 @@
 <body>
     <a class="rl-skip" href="#main">Skip to content</a>
 
+
     <header class="rl-navbar">
         <div class="rl-container">
             <a class="rl-brand" href="/readlog-laravel">📚 ReadLog</a>
@@ -18,16 +19,15 @@
                 <li><a href="/readlog-laravel" >Home</a></li>
                 <li><a href="/readlog-laravel/library" >Library</a></li>
                 <li><a href="/readlog-laravel/log" >Log a book</a></li>
-                <li><a href="/readlog-laravel/account" >Account</a></li>
-            </ul>
+                
+                                    <li><a href="/readlog-laravel/account" >Account</a></li>
+                            </ul>
 
-            <form class="rl-demo" method="post" action="/readlog-laravel/demo-user" data-auto-submit>        <label for="demo-user">Reading as</label>
-        <select id="demo-user" name="user_id">
-                            <option value="1" selected>Mikko</option>
-                            <option value="2" >Sam Reader</option>
-                    </select>
-        <noscript><button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Switch</button></noscript>
-    </form>
+            <div class="rl-account-menu">
+                <span class="rl-muted rl-small">Mikko</span>
+        <form method="post" action="/readlog-laravel/signout">            <button class="rl-btn rl-btn-sm rl-btn-outline" type="submit">Sign out</button>
+        </form>
+    </div>
         </div>
     </header>
 
@@ -39,8 +39,28 @@
     <p><a href="/readlog-laravel">&larr; Back to feed</a></p>
     <h1 class="rl-page-title">Dune</h1>
 
-            <p class="rl-muted">No details available for this book.</p>
-    </div>
+                    <div class="rl-row" style="align-items: flex-start; margin-bottom: 1rem">
+            <img class="rl-cover rl-cover-lg" src="/readlog-laravel/assets/covers/content.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
+            <div>
+                                    <p class="rl-strong">Frank Herbert</p>
+                                                    <p class="rl-muted rl-small">Published: 2021-09-21</p>
+                                                    <p class="rl-muted rl-small">Publisher: Penguin</p>
+                                                    <p class="rl-muted rl-small">705 pages</p>
+                                                    <p class="rl-muted rl-small">Language: EN</p>
+                            </div>
+        </div>
+
+                    <div class="rl-row" style="margin-bottom: 1rem">
+                                    <span class="rl-badge">Fiction</span>
+                            </div>
+        
+                    
+            <div class="rl-description">NOW A MAJOR MOTION PICTURE directed by Denis Villeneuve, starring Timothée Chalamet, Zendaya, Jason Momoa, Rebecca Ferguson, Oscar Isaac, Josh Brolin, Stellan Skarsgård, Dave Bautista, David Dastmalchian, Stephen McKinley Henderson, Chang Chen, Sharon Duncan-Brewster, Charlotte Rampling, and Javier Bardem. Frank Herbert’s classic masterpiece—a triumph of the imagination and one of the bestselling science fiction novels of all time. A mythic and emotionally charged hero’s journey, Dune tells the story of Paul Atreides, a brilliant and gifted young man born into a great destiny beyond his understanding, who must travel to the most dangerous planet in the universe to ensure the future of his family and his people. As malevolent forces explode into conflict over the planet’s exclusive supply of the most precious resource in existence—a commodity capable of unlocking humanity’s greatest potential—only those who can conquer their fear will survive.</div>
+        
+                    <p style="margin-top: 1rem">
+                <a href="http://books.google.fi/books?id=AQk_EAAAQBAJ&amp;dq=Dune+Frank+Herbert&amp;hl=&amp;source=gbs_api" target="_blank" rel="noopener noreferrer">More on Google Books &#8599;</a>
+            </p>
+            </div>
         </main>
     </div>
 
