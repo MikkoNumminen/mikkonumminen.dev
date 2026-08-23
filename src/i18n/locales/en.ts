@@ -216,7 +216,7 @@ export const en: Translations = {
       highlights: [
         'Third port of the same app',
         'Runs on SQLite or Postgres',
-        'Live when the machine is on, snapshot when it is off',
+        'Live when the machine is on, else a snapshot',
       ],
     },
     audiobookmaker: {

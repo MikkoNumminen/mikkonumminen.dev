@@ -219,7 +219,7 @@ export const fi: Translations = {
       highlights: [
         'Saman sovelluksen kolmas käännös',
         'Pyörii SQLitellä tai Postgresilla',
-        'Elävänä kun kone on päällä, tilannekuvana kun ei',
+        'Elävänä kun kone on päällä, muuten tilannekuva',
       ],
     },
     audiobookmaker: {
