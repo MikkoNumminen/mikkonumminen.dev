@@ -73,8 +73,25 @@ One thing this record left open has since been measured against the running
 deployment: a later `headers` entry in `vercel.json` **replaces** an earlier
 one's `Content-Security-Policy` rather than adding a second copy. Confirmed on
 2026-08-20 with `curl -I https://mikkonumminen.dev/readlog-laravel/library`:
-exactly one policy arrives, the portal's, so hot-linked book covers render on
-the live view and every other page keeps the site-wide policy untouched.
+exactly one policy arrives, the portal's, and every other page keeps the
+site-wide policy untouched.
+
+That measurement was right about which policy arrives and wrong about what it
+lets through. It said hot-linked covers render. Opened in a browser on
+2026-08-23, seven of the ten covers on the library page were blocked, and the
+same page served straight from the app on port 8080 rendered all ten. `curl -L`
+had reported a valid JPEG for every cover it was pointed at, because curl
+follows redirects without enforcing a policy. Open Library serves a cover
+either directly or as a 302 into `ia######.us.archive.org`, its storage at the
+Internet Archive, and CSP checks the host again on each redirect hop. Naming
+`covers.openlibrary.org` alone allowed the request and blocked the file.
+`https://*.us.archive.org` is now in `img-src` for that reason, which is the
+same provider named where it keeps the files. Measured the same day across 118
+cover URLs from both providers, every redirect chain ends on one of three
+hosts: `books.google.com`, `covers.openlibrary.org` and
+`ia######.us.archive.org`, so the list is now complete rather than plausible.
+From here on, what a page renders is checked in a browser, and `curl` is used
+for what the headers say.
 
 One thing it still does not settle, to be checked the same way rather than
 argued here:

@@ -157,7 +157,7 @@ describe('readlog portal headers', () => {
     expect(index).toBeGreaterThan(global);
   });
 
-  it('allows exactly the two cover hosts beyond self, and stays uncached', () => {
+  it('allows exactly the cover hosts beyond self, and stays uncached', () => {
     const headers = Object.fromEntries(
       vercel.headers[index].headers.map((h) => [h.key, h.value]),
     );
@@ -165,9 +165,13 @@ describe('readlog portal headers', () => {
       .split(';')
       .map((d) => d.trim())
       .find((d) => d.startsWith('img-src'));
+    // *.us.archive.org is not a third host. Open Library serves a cover either
+    // directly or as a 302 into ia######.us.archive.org, its storage at the
+    // Internet Archive, and CSP re-checks the host on every redirect hop.
     expect(img.split(' ').slice(1).sort()).toEqual([
       "'self'",
       'data:',
+      'https://*.us.archive.org',
       'https://books.google.com',
       'https://covers.openlibrary.org',
     ]);
