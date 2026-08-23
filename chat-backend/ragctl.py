@@ -89,6 +89,10 @@ UPLINK_PROBE_URL = "https://mikkonumminen-dev.vercel.app/"
 # something a reconnect can't fix — expired tailscale auth, a Vercel incident.
 WATCHDOG_RECONNECT_CAP = 3
 DOCKER_DESKTOP_EXE = "/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
+# The Windows docker CLI, reached over interop. It talks to the engine through
+# the Windows named pipe, so it answers even when this distro's own `docker`
+# (the WSL-integration socket) is dead. That difference is the diagnosis.
+DOCKER_CLI_WIN = "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
 
 # "effort" presets -> (temperature, num_predict). Low temperature for grounded
 # RAG; effort mainly buys answer length (num_predict = max output tokens).
@@ -808,10 +812,80 @@ def _wait_for(
     return False
 
 
+def docker_desktop_settings_path() -> Path | None:
+    """Docker Desktop's settings-store.json, as seen from inside WSL, or None."""
+    ps = powershell_exe()
+    if not ps:
+        return None
+    rc, out = run([ps, "-NoProfile", "-Command", "$env:APPDATA"], timeout=10)
+    appdata = out.replace("\x00", "").strip()
+    if rc != 0 or ":" not in appdata:
+        return None
+    drive, _, rest = appdata.partition(":")
+    rest = rest.replace("\\", "/").strip("/")
+    return Path("/mnt") / drive.lower() / rest / "Docker" / "settings-store.json"
+
+
+def wsl_integration_off_in_settings() -> bool | None:
+    """True when Docker Desktop's own settings say the integration with the
+    default distro is off, False when on, None when that cannot be read. The
+    update-time error dialog's "Skip WSL distro integration" button is what
+    writes it off, and nothing in the GUI says so afterwards."""
+    path = docker_desktop_settings_path()
+    if path is None:
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    flag = data.get("EnableIntegrationWithDefaultWslDistro")
+    return None if not isinstance(flag, bool) else (flag is False)
+
+
+def diagnose_docker_unreachable() -> list[str]:
+    """Why `docker` fails HERE, when it may be perfectly fine on Windows.
+
+    Empty when the engine is down everywhere, which the caller answers by
+    starting Docker Desktop. Non-empty when the Windows CLI reaches the engine
+    and this distro does not: then starting Docker Desktop again changes
+    nothing and waiting 180 s for it is what the old code did, and the real
+    cause is Docker Desktop's WSL integration, seen broken after its 4.87
+    update. The lines are the message to print, fix included."""
+    win = _win_exe("docker.exe", DOCKER_CLI_WIN)
+    if not win:
+        return []
+    rc, _ = run([win, "info"], timeout=15)
+    if rc != 0:
+        return []
+    lines = [
+        "Docker is up on Windows, but this WSL distro cannot reach it:",
+        "Docker Desktop's WSL integration for this distro is not working.",
+    ]
+    if wsl_integration_off_in_settings():
+        lines.append(
+            'It is switched OFF in Docker Desktop\'s settings; the update error dialog\'s'
+            ' "Skip WSL distro integration" button does that.'
+        )
+    lines += [
+        "Fix: Docker Desktop > Settings > Resources > WSL integration > enable this",
+        "distro > Apply; or in PowerShell: docker desktop restart. If it stays dead,",
+        "wsl --shutdown and start Docker Desktop again (that stops every WSL session).",
+    ]
+    return lines
+
+
 def ensure_docker() -> bool:
     if check_docker_engine()[0] == "ok":
         print("  ● Docker engine already up")
         return True
+    why = diagnose_docker_unreachable()
+    if why:
+        print("  ○ " + why[0])
+        for extra in why[1:]:
+            print("    " + extra)
+        return False
     if not Path(DOCKER_DESKTOP_EXE).exists():
         print("  ○ Docker Desktop not found — start it manually")
         return False
