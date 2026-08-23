@@ -212,11 +212,11 @@ export const en: Translations = {
     'readlog-laravel': {
       tagline: 'ReadLog, a third time, in Laravel',
       description:
-        "The same reading log once more, this time from the .NET version into Laravel: TypeScript to C# to PHP, each port treating the previous one as the specification. Eloquent instead of EF Core, Blade instead of Razor, one Docker command to run it. It runs on the author's own machine and is put on a public URL only for a demo; what this site links to is a static snapshot, so search and forms are inactive there. The migration notes record where Active Record and data mapper genuinely disagree, and every place the AI-assisted port was wrong and how it was caught.",
+        "The same reading log once more, this time from the .NET version into Laravel: TypeScript to C# to PHP, each port treating the previous one as the specification. Eloquent instead of EF Core, Blade instead of Razor, one Docker command to run it. It runs on the author's own machine; this site serves the live app from that machine while it is on, and a static snapshot, on which search and forms are inactive, while it is off. The migration notes record where Active Record and data mapper genuinely disagree, and every place the AI-assisted port was wrong and how it was caught.",
       highlights: [
         'Third port of the same app',
         'Runs on SQLite or Postgres',
-        'Static snapshot, not a hosted copy',
+        'Live when the machine is on, snapshot when it is off',
       ],
     },
     audiobookmaker: {

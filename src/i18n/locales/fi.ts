@@ -215,11 +215,11 @@ export const fi: Translations = {
     'readlog-laravel': {
       tagline: 'ReadLog kolmannen kerran, Laravelilla',
       description:
-        'Sama lukupäiväkirja vielä kerran, nyt .NET-versiosta Laraveliin: TypeScriptistä C#:iin ja siitä PHP:hen, ja joka käännös piti edellistä versiota määrittelynään. Eloquent EF Coren tilalla, Blade Razorin tilalla, yksi Docker-komento käynnistykseen. Sovellus pyörii tekijän omalla koneella ja avataan julkiseen osoitteeseen vain esittelyn ajaksi; tämä sivusto linkittää staattiseen tilannekuvaan, jossa haku ja lomakkeet eivät toimi. Migraatiomuistiinpanot kertovat, missä Active Record ja data mapper oikeasti eroavat, ja jokaisen kohdan, jossa tekoälyavusteinen käännös meni pieleen ja miten se huomattiin.',
+        'Sama lukupäiväkirja vielä kerran, nyt .NET-versiosta Laraveliin: TypeScriptistä C#:iin ja siitä PHP:hen, ja joka käännös piti edellistä versiota määrittelynään. Eloquent EF Coren tilalla, Blade Razorin tilalla, yksi Docker-komento käynnistykseen. Sovellus pyörii tekijän omalla koneella; tämä sivusto näyttää siitä elävän version, kun kone on päällä, ja staattisen tilannekuvan, jossa haku ja lomakkeet eivät toimi, kun se on pois päältä. Migraatiomuistiinpanot kertovat, missä Active Record ja data mapper oikeasti eroavat, ja jokaisen kohdan, jossa tekoälyavusteinen käännös meni pieleen ja miten se huomattiin.',
       highlights: [
         'Saman sovelluksen kolmas käännös',
         'Pyörii SQLitellä tai Postgresilla',
-        'Staattinen tilannekuva, ei hostattu kopio',
+        'Elävänä kun kone on päällä, tilannekuvana kun ei',
       ],
     },
     audiobookmaker: {

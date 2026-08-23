@@ -18,18 +18,18 @@ The source is at https://github.com/MikkoNumminen/readlog-laravel. There is no h
 | Framework | Laravel 13, Blade views, no JavaScript framework and no build step |
 | ORM | Eloquent (Active Record), hand-written migrations |
 | Database | SQLite by default; tested against a stock Postgres 16 in CI; the connection is entirely environment-driven |
-| Auth | None in version 1, deliberately: a session-backed demo reader switcher stands in |
-| Tests | Pest 4, 308 tests, run against both SQLite and Postgres |
+| Auth | Google sign-in and nothing else: no local accounts, no password field. Reading is public and writing needs an account; the author's deployment also has a demo-writes switch on, so a visitor can add to the showcase library without signing in |
+| Tests | Pest 4, 404 tests, run against both SQLite and Postgres |
 | Static analysis | PHPStan via Larastan, level 6, in CI |
 | Container | Docker Compose: nginx in front of php-fpm, SQLite in a named volume, Postgres as an opt-in override |
-| Exposure | Cloudflare quick tunnel on demand (`scripts/tunnel-up.sh`), `readlog:smoke` to verify a running instance |
+| Exposure | The portfolio address, through a Tailscale Funnel behind this site's portal function while the author's machine is on; a Cloudflare quick tunnel (`scripts/tunnel-up.sh`) for a one-off demo; `readlog:smoke` to verify a running instance |
 | AI search | Local Ollama: `nomic-embed-text` for embeddings, `qwen2.5:7b` to phrase answers; one embedding per entry in a plain JSON column, cosine in PHP; optional, degrades to title search |
 | Operations | `ops/desktop/readlogctl.py`, a Windows desktop control panel: status board, on, off, tunnel on and off, smoke, embed, warm, ask |
 | CI | GitHub Actions: formatting, PHPStan, the suite on SQLite, the suite on Postgres, the compose stack from a bare checkout, the snapshot generator end to end |
 
 ## What is notable
 
-The migration was done as a learning-in-public exercise by a C# developer writing PHP and Laravel for the first time, and the process is the deliverable. `MIGRATION.md` maps every .NET building block to its Laravel counterpart with file references to both repositories, and then says what did not translate cleanly: Active Record versus data mapper (`$book->save()` is easy; what bites is that nothing checks the model against the schema), the absence of a date-only type (a 55-line custom cast replaces .NET's `DateOnly`), a cache that stores bytes rather than references (Laravel 13 refuses to unserialize classes from cache by default, and caching DTOs passed every test and failed in the browser), the absence of `await` (the two-provider fan-out uses `Http::pool`, which forced the provider clients to be split in two), and one Blade parsing rule with no Razor counterpart. `DECISIONS.md` logs every judgement call, just over a hundred of them, with one line of reasoning each.
+The migration was done as a learning-in-public exercise by a C# developer writing PHP and Laravel for the first time, and the process is the deliverable. `MIGRATION.md` maps every .NET building block to its Laravel counterpart with file references to both repositories, and then says what did not translate cleanly: Active Record versus data mapper (`$book->save()` is easy; what bites is that nothing checks the model against the schema), the absence of a date-only type (a 55-line custom cast replaces .NET's `DateOnly`), a cache that stores bytes rather than references (Laravel 13 refuses to unserialize classes from cache by default, and caching DTOs passed every test and failed in the browser), the absence of `await` (the two-provider fan-out uses `Http::pool`, which forced the provider clients to be split in two), and one Blade parsing rule with no Razor counterpart. `DECISIONS.md` logs every judgement call, 152 of them, with one line of reasoning each.
 
 The multi-source book search is ported faithfully, including two flaws the .NET version has: conflicting provider metadata is resolved by which record is richer, not which is right, and the de-duplication key strips everything outside ASCII, so two unrelated books with Cyrillic or CJK titles collapse into one. Both are pinned by tests that assert the current behaviour on purpose, so a future fix has to change a test knowingly.
 
