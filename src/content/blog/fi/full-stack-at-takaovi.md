@@ -4,7 +4,7 @@ description: Aloitin syyskuussa 2026 full-stack-kehittäjänä Takaovi Palvelut 
 date: 2026-09-26
 locale: fi
 slug: full-stack-at-takaovi
-aiGenerated: true
+aiGenerated: false
 hasAudio: false
 tags: []
 ---

@@ -4,7 +4,7 @@ description: In September 2026 I started as a full-stack developer at Takaovi Pa
 date: 2026-09-26
 locale: en
 slug: full-stack-at-takaovi
-aiGenerated: true
+aiGenerated: false
 hasAudio: false
 tags: []
 ---
