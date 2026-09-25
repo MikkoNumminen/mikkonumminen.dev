@@ -482,7 +482,7 @@ export const fi: Translations = {
     },
     now: {
       title: 'Näillä rakennan',
-      body: 'Full-stack-kehittäjä Takaovi Palvelut Oy:ssä syyskuusta 2026. Alla oleva pino kattaa sen työn, Kasvu Labsin ja omat projektini.',
+      body: 'Full-stack-kehittäjä Takaovi Palvelut Oy:ssä syyskuusta 2026. Alla oleva pino kattaa tämän työn, Kasvu Labsin ja omat projektini.',
       tags: ['Takaovi Palvelut Oy', 'Tampere'],
     },
   },
