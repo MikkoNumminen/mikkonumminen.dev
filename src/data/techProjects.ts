@@ -13,8 +13,10 @@
  * project's manifest fills the gaps those arrays have drifted into.
  *
  * An empty array is a decision, not a hole. Recharts, PgTyped and Kubernetes
- * are Kasvu Labs client work with no project behind them — they carry the
- * `work` badge in the technology view and do not appear in the project view.
+ * are Kasvu Labs client work with no project behind them, and the Takaovi
+ * technologies (Angular, .NET Framework, M-Files, Azure DevOps, Microsoft 365
+ * and the rest) are employer work likewise — they carry the `work` badge in
+ * the technology view and do not appear in the project view.
  * Dioxus and zbus belong to homelab-control, which is not a listed project.
  * `techStack.test.ts` asserts every technology has an entry here.
  */
@@ -40,6 +42,7 @@ export const techProjects: Readonly<Record<string, readonly string[]>> = {
   ffmpeg: ['audiobookmaker'],
   CustomTkinter: ['audiobookmaker'],
   'C#': ['feedback-intelligence'],
+  '.NET Framework': [],
   '.NET 8': ['feedback-intelligence', 'readlog-dotnet'],
   'ASP.NET Core': ['readlog-dotnet'],
   'Razor Pages': ['readlog-dotnet'],
@@ -79,6 +82,7 @@ export const techProjects: Readonly<Record<string, readonly string[]>> = {
   Recharts: [],
   ReactFlow: ['hrm'],
   'framer-motion': ['platform'],
+  Angular: [],
   Astro: ['portfolio'],
   'Three.js': ['portfolio', 'spacepotatis'],
   GSAP: ['portfolio', 'spacepotatis'],
@@ -105,6 +109,7 @@ export const techProjects: Readonly<Record<string, readonly string[]>> = {
   ],
   FastAPI: ['portfolio'],
   asyncpg: ['portfolio'],
+  'M-Files': [],
   'Claude Code': ['claude-agents', 'strudel-patterns'],
   Subagents: ['claude-agents'],
   Skills: ['claude-agents'],
@@ -113,6 +118,7 @@ export const techProjects: Readonly<Record<string, readonly string[]>> = {
   Plugins: ['claude-agents'],
   'Permission allowlists': ['claude-agents', 'portfolio'],
   'Skill calibration': ['claude-agents'],
+  'Codex CLI': [],
   'Anthropic API': ['hrm'],
   Ollama: ['feedback-intelligence'],
   RAG: ['feedback-intelligence', 'portfolio'],
@@ -141,6 +147,15 @@ export const techProjects: Readonly<Record<string, readonly string[]>> = {
   'App Service': ['readlog-dotnet'],
   'Static Web Apps': ['feedback-intelligence'],
   Functions: ['feedback-intelligence'],
+  'Table Storage': [],
+  'Blob Storage': [],
+  'Key Vault': [],
+  'AD B2C': [],
+  'Application Insights': [],
+  Automation: [],
+  'Microsoft 365': [],
+  'Entra ID': [],
+  'Exchange Online': [],
   Vercel: ['hrm', 'platform', 'portfolio', 'readlog', 'spacepotatis'],
   'GitHub Actions': [
     'audiobookmaker',
@@ -153,6 +168,7 @@ export const techProjects: Readonly<Record<string, readonly string[]>> = {
     'readlog-laravel',
   ],
   CodeQL: ['feedback-intelligence', 'portfolio'],
+  'Azure DevOps': [],
   Testing: [
     'feedback-intelligence',
     'hrm',
@@ -179,4 +195,5 @@ export const techProjects: Readonly<Record<string, readonly string[]>> = {
   'Inno Setup': ['audiobookmaker'],
   'Task Scheduler': ['claude-continue'],
   Turborepo: ['platform'],
+  WordPress: [],
 };

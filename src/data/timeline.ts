@@ -22,9 +22,9 @@ export interface TimelineEntry {
 
 /**
  * Sentinel value used for entries whose "year" is a present-tense word
- * rather than a date. `localizeTimeline` substitutes it with
- * `t.experiencePage.yearNow` so the marker reads in the visitor's
- * language ("Now" / "Nyt" / "Nu").
+ * rather than a date, alone or as the open end of a range (`2026–NOW`).
+ * `localizeTimeline` substitutes it with `t.experiencePage.yearNow` so the
+ * marker reads in the visitor's language ("Now" / "Nyt").
  */
 export const NOW_YEAR_SENTINEL = 'NOW';
 
@@ -57,6 +57,7 @@ export const timeline: TimelineEntry[] = [
   // Systems work rather than a product beat: a new language picked up for a
   // domain that punishes guessing, and the evidence standard that came with it.
   { id: 'rust-crypto', altitude: 0.945, year: '2026', kind: 'craft' },
+  { id: 'takaovi', altitude: 0.96, year: `2026–${NOW_YEAR_SENTINEL}`, kind: 'work' },
   { id: 'now', altitude: 0.97, year: NOW_YEAR_SENTINEL, kind: 'now' },
 ];
 
@@ -76,7 +77,7 @@ export function localizeTimeline(t: Translations): LocalizedTimelineEntry[] {
     }
     return {
       ...entry,
-      year: entry.year === NOW_YEAR_SENTINEL ? t.experiencePage.yearNow : entry.year,
+      year: entry.year.replace(NOW_YEAR_SENTINEL, t.experiencePage.yearNow),
       title: text?.title ?? '',
       body: text?.body ?? '',
       tags: text?.tags,
