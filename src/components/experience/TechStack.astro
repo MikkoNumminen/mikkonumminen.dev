@@ -28,7 +28,7 @@ const copy = t.techStack;
 // and TimelineContent skips it in the list, so its text lives in one place
 // and `timeline.test.ts` keeps asserting it exists.
 const now = localizeTimeline(t).find((entry) => entry.id === 'now');
-/** `work` and `both` both mean it was used in client work; the badge says so. */
+/** `work` and `both` both mean it was used at an employer; the badge says so. */
 const wearsBadge = (context?: TechContext): boolean =>
   context === 'work' || context === 'both';
 

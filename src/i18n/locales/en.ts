@@ -69,7 +69,7 @@ export const en: Translations = {
     sectionAria: 'About',
     eyebrow: 'about',
     heading: 'A short introduction.',
-    body: "I'm a full-stack developer, and lately most of my work has been around language models, where I spend most of my time babysitting them, because a model that's wrong and sure of it is a special kind of problem. I got here in 2022 after 24 years selling hardware, so I'm the guy who reads the manual and still expects the thing to break. I build the whole thing, from the database to the screen, and I measure what I build. Sometimes I measure it, publish it, and then find out the measurement was the broken part, which is a humbling way to learn that the instrument needs checking too.",
+    body: "I'm a full-stack developer at Takaovi Palvelut Oy in Tampere, where I work on a property management platform and run the company IT. In my own projects most of the work has been around language models, where I spend most of my time babysitting them, because a model that's wrong and sure of it is a special kind of problem. I got here in 2022 after 24 years selling hardware, so I'm the guy who reads the manual and still expects the thing to break. I build the whole thing, from the database to the screen, and I measure what I build. Sometimes I measure it, publish it, and then find out the measurement was the broken part, which is a humbling way to learn that the instrument needs checking too.",
   },
   latestEntries: {
     sectionAria: 'Latest blog entries',
@@ -323,7 +323,7 @@ export const en: Translations = {
     viewByProject: 'by project',
     workBadge: 'work',
     legend:
-      'work = used in client work. Everything else is from my own production projects. Open a row to see what sits underneath it.',
+      'work = used at an employer. Everything else is from my own production projects. Open a row to see what sits underneath it.',
   },
   timelineData: {
     'hardware-retail': {
@@ -454,10 +454,34 @@ export const en: Translations = {
         },
       ],
     },
+    takaovi: {
+      title: 'Takaovi Palvelut Oy',
+      body: 'Full-stack developer at Takaovi Palvelut Oy, which operates as Asuntokanava. It is a PropTech company of about 30 people in Tampere. I develop a legacy property management platform and handle the company IT administration.\n\nDevelopment. A C# and .NET platform on Azure, with an Angular admin frontend and a separate customer portal in Laravel, React and PostgreSQL. The M-Files integration. Bank connections: payment files, account statements and bank certificates. User provisioning, deactivation, deletion and rights management. Production releases, the release process and smoke testing. Pipelines, pull requests, code review and release approvals in Azure DevOps. An inventory of Entra app secrets and certificates. A backup audit and backup plan for Azure storage. Technical documentation: findings, runbooks and release records. The work runs on an AI-assisted workflow with Claude Code, Codex CLI and adversarial review rounds.\n\nIT administration. Microsoft 365: onboarding and offboarding, mailbox delegation, distribution groups, archives and aliases. The Entra ID tenant, from a separate admin account. Azure RBAC cleanup and subscription administration. The internal IT helpdesk for staff. The company WordPress site, its forms and its DNS. Coordination with the web agency, the domain registrar and the former IT partner.',
+      tags: [
+        'C#',
+        '.NET Framework',
+        'Angular',
+        'TypeScript',
+        'Laravel',
+        'PHP',
+        'React',
+        'PostgreSQL',
+        'Azure',
+        'Azure DevOps',
+        'PowerShell',
+        'Entra ID',
+        'Microsoft 365',
+        'Exchange Online',
+        'M-Files',
+        'WordPress',
+        'Claude Code',
+        'Codex CLI',
+      ],
+    },
     now: {
       title: 'Building with these',
-      body: 'Available now, and open to ambitious full-stack roles where craft and velocity both matter.',
-      tags: ['Available', 'Remote / Finland'],
+      body: 'Full-stack developer at Takaovi Palvelut Oy since September 2026. The stack below covers that work, Kasvu Labs and my own projects.',
+      tags: ['Takaovi Palvelut Oy', 'Tampere'],
     },
   },
   contactPage: {
@@ -481,7 +505,7 @@ export const en: Translations = {
     typedContactLabelLinkedin: 'linkedin',
     typedContactLabelGithub: 'github',
     typedContactLabelLocation: 'location',
-    typedContactValueLocation: 'finland · remote-friendly',
+    typedContactValueLocation: 'tampere · finland',
     typedDownloadOutput: 'ready.',
     btnEmail: 'Email me',
     btnLinkedin: 'LinkedIn',
@@ -518,7 +542,8 @@ export const en: Translations = {
     cmdWhoamiCommunity: 'community',
     cmdWhoamiDesktop: 'desktop',
     cmdWhoamiGame: 'game',
-    cmdWhoamiCurrently: 'available now for ambitious full-stack roles.',
+    cmdWhoamiCurrently:
+      'full-stack developer at takaovi palvelut oy since september 2026.',
     cmdContactDesc: 'show contact info',
     cmdContactUsage: 'usage: contact [--email]',
     cmdContactUnknownFlag: 'unknown flag:',
