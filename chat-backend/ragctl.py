@@ -849,10 +849,10 @@ def diagnose_docker_unreachable() -> list[str]:
 
     Empty when the engine is down everywhere, which the caller answers by
     starting Docker Desktop. Non-empty when the Windows CLI reaches the engine
-    and this distro does not: then starting Docker Desktop again changes
-    nothing and waiting 180 s for it is what the old code did, and the real
-    cause is Docker Desktop's WSL integration, seen broken after its 4.87
-    update. The lines are the message to print, fix included."""
+    and this distro does not: starting Docker Desktop again changes nothing
+    then, because the broken part is its WSL integration (a Docker Desktop
+    update can leave it that way). The lines are the message to print, fix
+    included."""
     win = _win_exe("docker.exe", DOCKER_CLI_WIN)
     if not win:
         return []
@@ -865,7 +865,7 @@ def diagnose_docker_unreachable() -> list[str]:
     ]
     if wsl_integration_off_in_settings():
         lines.append(
-            'It is switched OFF in Docker Desktop\'s settings; the update error dialog\'s'
+            "It is switched OFF in Docker Desktop's settings; the update error dialog's"
             ' "Skip WSL distro integration" button does that.'
         )
     lines += [
@@ -882,6 +882,12 @@ def ensure_docker() -> bool:
         return True
     why = diagnose_docker_unreachable()
     if why:
+        # A Docker Desktop that is still starting answers on the Windows pipe
+        # a little before this distro's proxy is up, which looks exactly like a
+        # broken integration. Give it a short grace before saying so.
+        if _wait_for(check_docker_engine, timeout=30, every=3):
+            print("  ● Docker engine up")
+            return True
         print("  ○ " + why[0])
         for extra in why[1:]:
             print("    " + extra)

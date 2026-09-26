@@ -114,3 +114,30 @@ def test_unreadable_settings_file_is_none(
         ragctl, "docker_desktop_settings_path", lambda: tmp_path / "missing.json"
     )
     assert ragctl.wsl_integration_off_in_settings() is None
+
+
+def _distro_docker_down_windows_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ragctl, "check_docker_engine", lambda: ("down", ""))
+    monkeypatch.setattr(
+        ragctl, "diagnose_docker_unreachable", lambda: ["integration broken", "fix"]
+    )
+
+
+def test_ensure_docker_waits_out_a_distro_proxy_still_starting(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _distro_docker_down_windows_up(monkeypatch)
+    monkeypatch.setattr(ragctl, "_wait_for", lambda check, **kw: True)
+    assert ragctl.ensure_docker() is True
+    assert "integration broken" not in capsys.readouterr().out
+
+
+def test_ensure_docker_reports_integration_when_distro_stays_dead(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _distro_docker_down_windows_up(monkeypatch)
+    monkeypatch.setattr(ragctl, "_wait_for", lambda check, **kw: False)
+    assert ragctl.ensure_docker() is False
+    out = capsys.readouterr().out
+    assert "integration broken" in out
+    assert "starting Docker Desktop" not in out
