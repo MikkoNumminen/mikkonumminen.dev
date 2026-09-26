@@ -397,6 +397,13 @@ _CV_PREFIXES = (
     # queries (out of top-k AND beyond the gate; measured live on "mitä mikko
     # teki kasvulabsissa?"). The prefix absorbs Finnish case endings.
     "kasvulabs",  # kasvulabsissa / kasvulabsin…
+    # The current employer, for the same reason. Cut at "takaov" because the
+    # word inflects with a stem change (takaovi, takaoven, takaovella). It is
+    # also the common noun for a back door, so a question about one claims CV
+    # intent; that is the "mild false positive" above, and the rescue stays
+    # bounded by CV_RESCUE_MAX_DISTANCE either way.
+    "takaov",  # Takaovi Palvelut Oy / takaovella / takaoven…
+    "asuntokanav",  # Asuntokanava, the trade name / asuntokanavalla…
 )
 # WHOLE TOKENS, NOT PREFIXES, and this list is where the Finnish `ura` (career)
 # family lives. Prefix matching was tried first and was wrong: `uran` also starts
@@ -452,6 +459,14 @@ _CV_PHRASES = (
     " have you worked ",
     " did you work ",
     " where do you work ",
+    # The present tense, asked about him rather than to him: the current job.
+    " does mikko work ",
+    " does he work ",
+    " current job",
+    " current role ",
+    " current position",
+    " job title",
+    " for a living ",
     # Bare "töissä" (at work), which cannot be a token match: it folds to
     # "toissa", the temporal modifier in "toissa vuonna" / "toissa kesänä". The
     # preceding verb is what separates the two readings, and the temporal one
@@ -470,6 +485,9 @@ _CV_PHRASES = (
     " ennen ohjelmointia ",
     " ollut töissä ",
     " olet töissä ",
+    " on töissä ",
+    " töissä nykyään ",
+    " nykyään töissä ",
     " oletko töissä ",
     " olitko töissä ",
     # No trailing space: suffix-tolerant, so the spaced-AND-inflected form a
@@ -496,6 +514,12 @@ KNOWN_ENTITIES: dict[str, str] = {
     # noun can also trigger this append on non-library questions; that only
     # re-orders already-retrieved candidates, never invents.
     "kysely": "Kysely",
+    # The current employer, whose name is Finnish for "back door" and whose
+    # trade name is "apartment channel": both are translated away exactly as
+    # "kasvu" was. Stems, because Finnish inflects them (takaovella,
+    # asuntokanavalla).
+    "takaov": "Takaovi Palvelut Oy",
+    "asuntokanav": "Asuntokanava",
 }
 
 

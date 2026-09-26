@@ -455,6 +455,42 @@ def test_restore_entities_appends_each_canonical_once() -> None:
     assert out.count("Kasvu Labs") == 1
 
 
+def test_wants_cv_current_employer_is_a_work_experience_question() -> None:
+    # every inflection of the employer name, its trade name, and the name as
+    # entity restoration appends it to a translated query
+    assert wants_cv("mitä Mikko tekee Takaovi Palvelut Oy:ssä?")
+    assert wants_cv("kauanko mikko on ollut takaovella?")
+    assert wants_cv("mikä on mikon rooli asuntokanavalla?")
+    assert wants_cv("What does Mikko do at Takaovi Palvelut Oy?")
+    assert wants_cv("What does Mikko do at the back door? Takaovi Palvelut Oy")
+
+
+def test_wants_cv_reaches_the_current_job_forms() -> None:
+    assert wants_cv("Where does Mikko work?")
+    assert wants_cv("where does he work now?")
+    assert wants_cv("What is Mikko's current job?")
+    assert wants_cv("what is his current role at the moment?")
+    assert wants_cv("What is his job title?")
+    assert wants_cv("what does mikko do for a living?")
+    assert wants_cv("missä Mikko on töissä?")
+    assert wants_cv("missä mikko on nykyään töissä?")
+
+
+def test_wants_cv_current_job_phrases_stay_off_project_questions() -> None:
+    assert not wants_cv("how does the job queue work in hrm?")
+    assert not wants_cv("what role does pgvector play in the rag backend?")
+    assert not wants_cv("does the canvas work on mobile?")
+
+
+def test_restore_entities_keeps_the_current_employer_name() -> None:
+    out = restore_entities(
+        "mitä mikko tekee takaovella?", "What does Mikko do at the back door?"
+    )
+    assert out == "What does Mikko do at the back door? Takaovi Palvelut Oy"
+    out = restore_entities("mikä on asuntokanava?", "What is the apartment channel?")
+    assert out == "What is the apartment channel? Asuntokanava"
+
+
 def test_wants_cv_spaced_inflected_employer_form() -> None:
     # "Kasvu Labsissa" — spaced AND case-inflected: the fused prefix can't see
     # it and an exact-phrase match would need a trailing space the suffix eats

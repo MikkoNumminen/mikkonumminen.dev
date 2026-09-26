@@ -9,7 +9,7 @@ kind: cv
 
 Tampere, Finland · numminen.mikko.petteri@gmail.com · [github.com/MikkoNumminen](https://github.com/MikkoNumminen) · [mikkonumminen.dev](https://mikkonumminen.dev)
 
-Full-stack developer at Takaovi Palvelut Oy since September 2026.
+AI Product Engineer at Takaovi Palvelut Oy since August 2026.
 
 ## Profile
 
@@ -19,9 +19,9 @@ Underneath that is ordinary full-stack work, end to end, SQL to ops, in TypeScri
 
 ## Experience
 
-### Takaovi Palvelut Oy, full-stack developer · Tampere · September 2026 to present
+### Takaovi Palvelut Oy, AI Product Engineer · Tampere · August 2026 to present
 
-Takaovi Palvelut Oy operates as Asuntokanava, a PropTech company of about 30 people. I develop a legacy property management platform and handle the company IT administration.
+Takaovi Palvelut Oy operates as Asuntokanava, a PropTech company of about 30 people in Tampere. I develop a legacy property management platform and handle the company IT administration.
 
 - Develop a legacy **C#** and **.NET Framework** platform on **Azure**: App Services, Table Storage, Blob Storage, Key Vault, Azure AD B2C and Application Insights.
 - Work on the **Angular** admin frontend and a separate customer portal in **Laravel**, **React** and **PostgreSQL**.
@@ -33,7 +33,7 @@ Takaovi Palvelut Oy operates as Asuntokanava, a PropTech company of about 30 peo
 - Use an AI-assisted workflow with Claude Code and Codex CLI, with adversarial review rounds.
 - Administer Microsoft 365: onboarding and offboarding, mailbox delegation, distribution groups, archives and aliases. Administer the Entra ID tenant from a separate admin account.
 - Clean up Azure RBAC and administer the subscriptions. Run the internal IT helpdesk for staff.
-- Administer the company WordPress site, its forms and its DNS. Coordinate with the web agency, the domain registrar and the former IT partner.
+- Administer the company WordPress site, including the Avada theme and forms, and DNS for the company domain. Coordinate with the web agency, the domain registrar and the former IT partner.
 
 ### Independent software development alongside university studies · 2024 to present
 

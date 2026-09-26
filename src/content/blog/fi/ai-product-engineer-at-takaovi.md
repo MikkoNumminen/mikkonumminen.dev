@@ -1,15 +1,15 @@
 ---
-title: Full-stack-kehittäjänä Takaovi Palvelut Oy:ssä
-description: Aloitin syyskuussa 2026 full-stack-kehittäjänä Takaovi Palvelut Oy:ssä Tampereella. Työ kattaa kiinteistönhallinta-alustan ja yrityksen IT-hallinnon.
+title: AI Product Engineerinä Takaovi Palvelut Oy:ssä
+description: Aloitin elokuussa 2026 AI Product Engineerinä Takaovi Palvelut Oy:ssä Tampereella. Työ kattaa kiinteistönhallinta-alustan ja yrityksen IT-hallinnon.
 date: 2026-09-26
 locale: fi
-slug: full-stack-at-takaovi
+slug: ai-product-engineer-at-takaovi
 aiGenerated: false
 hasAudio: false
 tags: []
 ---
 
-Aloitin syyskuun 2026 alussa full-stack-kehittäjänä Takaovi Palvelut Oy:ssä. Yritys toimii nimellä Asuntokanava. Se on noin 30 hengen PropTech-yritys Tampereella.
+Aloitin elokuussa 2026 AI Product Engineerinä Takaovi Palvelut Oy:ssä. Yritys toimii nimellä Asuntokanava. Se on noin 30 hengen PropTech-yritys Tampereella.
 
 Työssä on kaksi osaa. Suurin osa on kiinteistönhallinnan legacy-alustan kehitystä. Loput on yrityksen IT-hallintoa.
 
