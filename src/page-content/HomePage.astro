@@ -128,29 +128,28 @@ const personSchema = {
     />
   </Fragment>
 
-  {
-    /* The unified particle field. Fixed and full-viewport so the field
+  {/* The unified particle field. Fixed and full-viewport so the field
       persists behind every section of the page — the hero no longer owns
       it. z-index -1 paints it above the body background but below all
       normal-flow content. pointer-events: none: clicks are observed at
-      the document level by the scene, never captured by the canvas. */
-  }
+      the document level by the scene, never captured by the canvas. */}
   <canvas
     id="home-canvas"
     class="field-canvas"
     aria-hidden="true"
     data-commits={JSON.stringify(commits)}
-    data-commit-repo={commitRepo}></canvas>
+    data-commit-repo={commitRepo}
+  ></canvas>
 
-  {
-    /* Loading gate. Shown only while <html> carries .field-loading — the
+  {/* Loading gate. Shown only while <html> carries .field-loading — the
       inline script below adds it pre-paint on the WebGL path and never
       on small screens / reduced motion / no-JS, so fallback users are
       never gated. The boot script reveals on measured readiness (warm
-      frames rendered) with a 2s hard cap. */
-  }
+      frames rendered) with a 2s hard cap. */}
   <div class="field-gate" data-field-gate aria-hidden="true">
-    <span class="field-gate__rule"><span class="field-gate__fill"></span></span>
+    <span class="field-gate__rule">
+      <span class="field-gate__fill"></span>
+    </span>
     <span class="field-gate__caption">initialising · field</span>
   </div>
 
@@ -166,7 +165,6 @@ const personSchema = {
       }
     })();
   </script>
-
   <Hero />
   <Intro />
   <LatestEntries />

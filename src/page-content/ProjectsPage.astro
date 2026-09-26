@@ -27,14 +27,25 @@ const localizedList = localizeProjects(t);
        JS runs. The fallback grid is shown via the same CSS rules. -->
   <div class="projects-scene" data-projects-scene>
     <h1 class="sr-only">{t.projectsPage.title}</h1>
-    <canvas id="projects-canvas" class="projects-scene__canvas" aria-hidden="true"
+    <canvas
+      id="projects-canvas"
+      class="projects-scene__canvas"
+      aria-hidden="true"
     ></canvas>
 
     <div class="projects-scene__legend" data-legend aria-hidden="true">
-      <span><code>hover</code> {t.projectsPage.legendHover}</span>
-      <span><code>click</code> {t.projectsPage.legendClick}</span>
-      <span><code>drag</code> {t.projectsPage.legendDrag}</span>
-      <span><code>scroll</code> {t.projectsPage.legendZoom}</span>
+      <span>
+        <code>hover</code> {t.projectsPage.legendHover}
+      </span>
+      <span>
+        <code>click</code> {t.projectsPage.legendClick}
+      </span>
+      <span>
+        <code>drag</code> {t.projectsPage.legendDrag}
+      </span>
+      <span>
+        <code>scroll</code> {t.projectsPage.legendZoom}
+      </span>
     </div>
 
     <!-- Loading gate. Shown only while <html> carries .projects-loading, which
@@ -43,12 +54,18 @@ const localizedList = localizeProjects(t);
          measured readiness, with a hard cap so a slow machine is let in rather
          than held. PARALLEL TO the field gate in HomePage.astro. -->
     <div class="projects-gate" data-projects-gate aria-hidden="true">
-      <span class="projects-gate__rule"><span class="projects-gate__fill"></span></span>
+      <span class="projects-gate__rule">
+        <span class="projects-gate__fill"></span>
+      </span>
       <span class="projects-gate__caption">initialising · system</span>
     </div>
 
-    <div class="hover-label" id="hover-label" data-visible="false" aria-hidden="true">
-    </div>
+    <div
+      class="hover-label"
+      id="hover-label"
+      data-visible="false"
+      aria-hidden="true"
+    ></div>
 
     <div class="planet-labels" id="planet-labels" aria-hidden="true"></div>
 
@@ -71,31 +88,29 @@ const localizedList = localizeProjects(t);
         aria-controls="projects-jump-list"
       >
         <span class="projects-scene__list-toggle-icon" aria-hidden="true"></span>
-        <span class="projects-scene__list-toggle-label" data-list-toggle-label
-          >{t.projectsPage.listToggleShow}</span
-        >
+        <span class="projects-scene__list-toggle-label" data-list-toggle-label>
+          {t.projectsPage.listToggleShow}
+        </span>
       </button>
       <ul class="projects-scene__list-items" id="projects-jump-list">
-        {
-          localizedList.map((p) => (
-            <li>
-              <button
-                type="button"
-                class="projects-scene__list-item"
-                data-project-id={p.id}
-                style={`--brand:${p.color}`}
-              >
-                <span class="projects-scene__list-dot" aria-hidden="true" />
-                <span class="projects-scene__list-text">
-                  <span class="projects-scene__list-name">{p.name}</span>
-                  <span class="projects-scene__list-tagline">
-                    <span>{p.tagline}</span>
-                  </span>
+        {localizedList.map((p) => (
+          <li>
+            <button
+              type="button"
+              class="projects-scene__list-item"
+              data-project-id={p.id}
+              style={`--brand:${p.color}`}
+            >
+              <span class="projects-scene__list-dot" aria-hidden="true" />
+              <span class="projects-scene__list-text">
+                <span class="projects-scene__list-name">{p.name}</span>
+                <span class="projects-scene__list-tagline">
+                  <span>{p.tagline}</span>
                 </span>
-              </button>
-            </li>
-          ))
-        }
+              </span>
+            </button>
+          </li>
+        ))}
       </ul>
     </nav>
 
@@ -121,7 +136,6 @@ const localizedList = localizeProjects(t);
       }
     })();
   </script>
-
   <!-- Mobile / no-JS / reduced-motion fallback -->
   <div class="projects-fallback" data-projects-fallback>
     <ProjectGrid />

@@ -16,71 +16,69 @@ const projects = localizeProjects(t);
   </header>
 
   <ul class="project-grid__list">
-    {
-      projects.map((p) => (
-        <li class="project-card" data-accent={p.color}>
-          <div class="project-card__head">
-            <span class="project-card__dot" style={`background:${p.color}`} />
-            <h2 class="project-card__name">{p.name}</h2>
-            {p.status && (
-              <span class="project-card__status" data-status={p.status}>
-                {p.status}
-              </span>
-            )}
-          </div>
-
-          <p class="project-card__tagline">{p.tagline}</p>
-          <p class="project-card__description">{p.description}</p>
-
-          {p.highlights && (
-            <ul class="project-card__highlights">
-              {p.highlights.map((h) => (
-                <li>{h}</li>
-              ))}
-            </ul>
+    {projects.map((p) => (
+      <li class="project-card" data-accent={p.color}>
+        <div class="project-card__head">
+          <span class="project-card__dot" style={`background:${p.color}`} />
+          <h2 class="project-card__name">{p.name}</h2>
+          {p.status && (
+            <span class="project-card__status" data-status={p.status}>
+              {p.status}
+            </span>
           )}
+        </div>
 
-          {p.externalApis && p.externalApis.length > 0 && (
-            <div class="project-card__externalApis-wrap">
-              <p class="project-card__label">{t.projectsPage.externalApisLabel}</p>
-              <ul class="project-card__externalApis">
-                {p.externalApis.map((api) => (
-                  <li>{api}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+        <p class="project-card__tagline">{p.tagline}</p>
+        <p class="project-card__description">{p.description}</p>
 
-          <ul class="project-card__tech">
-            {p.tech.map((t) => (
-              <li>{t}</li>
+        {p.highlights && (
+          <ul class="project-card__highlights">
+            {p.highlights.map((h) => (
+              <li>{h}</li>
             ))}
           </ul>
+        )}
 
-          <div class="project-card__links">
-            {p.liveUrl && (
-              <a
-                href={p.liveUrl}
-                class="project-card__link primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t.projectsPage.liveDemo}
-              </a>
-            )}
-            {p.githubUrl && (
-              <a
-                href={p.githubUrl}
-                class="project-card__link secondary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t.projectsPage.githubLink}
-              </a>
-            )}
+        {p.externalApis && p.externalApis.length > 0 && (
+          <div class="project-card__externalApis-wrap">
+            <p class="project-card__label">{t.projectsPage.externalApisLabel}</p>
+            <ul class="project-card__externalApis">
+              {p.externalApis.map((api) => (
+                <li>{api}</li>
+              ))}
+            </ul>
           </div>
-        </li>
-      ))
-    }
+        )}
+
+        <ul class="project-card__tech">
+          {p.tech.map((t) => (
+            <li>{t}</li>
+          ))}
+        </ul>
+
+        <div class="project-card__links">
+          {p.liveUrl && (
+            <a
+              href={p.liveUrl}
+              class="project-card__link primary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.projectsPage.liveDemo}
+            </a>
+          )}
+          {p.githubUrl && (
+            <a
+              href={p.githubUrl}
+              class="project-card__link secondary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.projectsPage.githubLink}
+            </a>
+          )}
+        </div>
+      </li>
+    ))}
   </ul>
 </section>

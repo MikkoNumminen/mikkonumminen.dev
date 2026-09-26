@@ -54,37 +54,41 @@ const cards = [
   data-field-section="nav"
   aria-label={t.navCards.sectionAria}
 >
-  <span class="ghost-num nav-cards__ghost" aria-hidden="true">03</span>
+  <span class="ghost-num nav-cards__ghost" aria-hidden="true">
+    03
+  </span>
 
   <div class="nav-cards__inner">
     <p class="nav-cards__eyebrow eyebrow-marker" data-reveal>
-      <span class="eyebrow-marker__num" aria-hidden="true">/ 03</span>
+      <span class="eyebrow-marker__num" aria-hidden="true">
+        / 03
+      </span>
       <span class="eyebrow-marker__rule" aria-hidden="true"></span>
       {t.navCards.eyebrow}
     </p>
     <h2 class="nav-cards__heading">
-      <span data-split data-reveal-chars>{t.navCards.heading}</span>
+      <span data-split data-reveal-chars>
+        {t.navCards.heading}
+      </span>
     </h2>
 
     <div class="nav-cards__grid">
-      {
-        cards.map((card) => (
-          <a href={card.href} class="nav-card" data-nav-card data-accent={card.accent}>
-            <span class="nav-card__icon" aria-hidden="true">
-              {card.icon === 'planet' && <PlanetIcon />}
-              {card.icon === 'mountain' && <MountainIcon />}
-              {card.icon === 'pen' && <PenIcon />}
-              {card.icon === 'terminal' && <TerminalIcon />}
-              {card.icon === 'chart' && <ChartIcon />}
-            </span>
-            <span class="nav-card__label">{card.label}</span>
-            <span class="nav-card__desc">{card.description}</span>
-            <span class="nav-card__arrow" aria-hidden="true">
-              →
-            </span>
-          </a>
-        ))
-      }
+      {cards.map((card) => (
+        <a href={card.href} class="nav-card" data-nav-card data-accent={card.accent}>
+          <span class="nav-card__icon" aria-hidden="true">
+            {card.icon === 'planet' && <PlanetIcon />}
+            {card.icon === 'mountain' && <MountainIcon />}
+            {card.icon === 'pen' && <PenIcon />}
+            {card.icon === 'terminal' && <TerminalIcon />}
+            {card.icon === 'chart' && <ChartIcon />}
+          </span>
+          <span class="nav-card__label">{card.label}</span>
+          <span class="nav-card__desc">{card.description}</span>
+          <span class="nav-card__arrow" aria-hidden="true">
+            →
+          </span>
+        </a>
+      ))}
     </div>
   </div>
 </section>

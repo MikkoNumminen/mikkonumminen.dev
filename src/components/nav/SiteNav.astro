@@ -53,19 +53,17 @@ const isActive = (href: string) => {
   class="site-nav fixed left-1/2 -translate-x-1/2 z-50 px-2 py-2 rounded-full backdrop-blur-md border"
 >
   <ul class="flex items-center gap-1 text-xs sm:text-sm">
-    {
-      links.map((link) => (
-        <li>
-          <a
-            href={link.href}
-            aria-current={isActive(link.href) ? 'page' : undefined}
-            class="site-nav__link px-4 py-3 sm:px-3 sm:py-1.5 rounded-full transition-colors"
-          >
-            {link.label}
-          </a>
-        </li>
-      ))
-    }
+    {links.map((link) => (
+      <li>
+        <a
+          href={link.href}
+          aria-current={isActive(link.href) ? 'page' : undefined}
+          class="site-nav__link px-4 py-3 sm:px-3 sm:py-1.5 rounded-full transition-colors"
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
 
     <li class="site-nav__divider" aria-hidden="true"></li>
 
@@ -74,21 +72,19 @@ const isActive = (href: string) => {
         class="site-nav__langs flex items-center gap-1 sm:gap-0.5"
         aria-label={t.nav.languageSwitcherAria}
       >
-        {
-          langLinks.map((l) => (
-            <li>
-              <a
-                href={l.href}
-                hreflang={l.locale}
-                aria-current={l.isCurrent ? 'true' : undefined}
-                data-lang={l.locale}
-                class="site-nav__lang px-3 py-3 sm:px-2 sm:py-2 rounded-full transition-colors"
-              >
-                {l.label}
-              </a>
-            </li>
-          ))
-        }
+        {langLinks.map((l) => (
+          <li>
+            <a
+              href={l.href}
+              hreflang={l.locale}
+              aria-current={l.isCurrent ? 'true' : undefined}
+              data-lang={l.locale}
+              class="site-nav__lang px-3 py-3 sm:px-2 sm:py-2 rounded-full transition-colors"
+            >
+              {l.label}
+            </a>
+          </li>
+        ))}
       </ul>
     </li>
   </ul>

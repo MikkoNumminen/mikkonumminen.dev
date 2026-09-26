@@ -31,8 +31,12 @@ const linkPaths: Record<Locale, Record<string, string>> = {
 
 <BaseLayout title={en.notFound.title} description={en.notFound.description} theme="home">
   <div class="not-found">
-    <h1 class="not-found__heading" data-not-found-heading>{en.notFound.heading}</h1>
-    <p class="not-found__message" data-not-found-message>{en.notFound.message}</p>
+    <h1 class="not-found__heading" data-not-found-heading>
+      {en.notFound.heading}
+    </h1>
+    <p class="not-found__message" data-not-found-message>
+      {en.notFound.message}
+    </p>
     <nav class="not-found__links" aria-label={en.notFound.navAria} data-not-found-nav>
       <a href={linkPaths.en.home} data-not-found-link="home">
         {en.notFound.linkHome}
@@ -56,7 +60,6 @@ const linkPaths: Record<Locale, Record<string, string>> = {
   id="not-found-locales"
   set:html={JSON.stringify({ strings: localeStrings, links: linkPaths })}
 />
-
 <noscript>
   <style>
     .not-found {
