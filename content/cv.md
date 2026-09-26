@@ -9,7 +9,7 @@ kind: cv
 
 Tampere, Finland · numminen.mikko.petteri@gmail.com · [github.com/MikkoNumminen](https://github.com/MikkoNumminen) · [mikkonumminen.dev](https://mikkonumminen.dev)
 
-Full-stack developer at Takaovi Palvelut Oy since September 2026.
+AI Product Engineer at Takaovi Palvelut Oy since August 2026.
 
 ## Profile
 
@@ -19,7 +19,7 @@ Underneath that is ordinary full-stack work, end to end, SQL to ops, in TypeScri
 
 ## Experience
 
-### Takaovi Palvelut Oy, full-stack developer · Tampere · September 2026 to present
+### Takaovi Palvelut Oy, AI Product Engineer · Tampere · August 2026 to present
 
 Takaovi Palvelut Oy operates as Asuntokanava, a PropTech company of about 30 people. I develop a legacy property management platform and handle the company IT administration.
 

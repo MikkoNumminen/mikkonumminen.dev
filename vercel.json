@@ -37,6 +37,16 @@
   ],
   "redirects": [
     {
+      "source": "/blog/full-stack-at-takaovi",
+      "destination": "/blog/ai-product-engineer-at-takaovi",
+      "permanent": true
+    },
+    {
+      "source": "/fi/blog/full-stack-at-takaovi",
+      "destination": "/fi/blog/ai-product-engineer-at-takaovi",
+      "permanent": true
+    },
+    {
       "source": "/sv",
       "destination": "/",
       "permanent": true
