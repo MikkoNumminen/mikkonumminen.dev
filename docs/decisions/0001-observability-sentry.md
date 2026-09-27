@@ -47,8 +47,13 @@ Implementation:
   meaningful real-user metrics without breaking the budget. Initial draft
   used 0.1. That dropped 90% of pageload spans, leaving 90% of vitals
   un-chartable. Revised before merge.
-- No session replay, no PII capture beyond Sentry defaults (URL, browser,
-  stack trace).
+- No session replay. The client IP is never recorded: the SDK is initialised
+  with `dataCollection: { userInfo: false }`, which makes it tell Sentry's
+  ingest not to infer the IP on events, spans and sessions. This has to be
+  explicit. Up to SDK v10 the option was `sendDefaultPii: false` and leaving
+  it out was already restrictive; v11 replaced it with `dataCollection`,
+  whose default infers the IP. Events carry the page URL, the browser, the
+  referrer and the stack trace.
 - CSP `connect-src` extended to allow `https://*.ingest.sentry.io` only.
   The Sentry SDK runtime only needs the DSN's ingest endpoint; `*.sentry.io`
   proper (web UI, dashboard) is not reached from the browser. Documented

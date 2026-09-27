@@ -273,7 +273,7 @@ The portfolio-wide registry that aggregates skills from every sibling repo lives
 
 ## Observability
 
-Client-side errors and Core Web Vitals (LCP, CLS, INP, FCP, TTFB) are reported to Sentry from real visitors. Activation is gated on the `PUBLIC_SENTRY_DSN` env var, so forks without it run silent. Do Not Track is honored (init bails early). No session replay, no PII capture beyond Sentry defaults (URL, browser, stack trace). The init lives in `src/lib/observability/initObservability.ts` and is called once from `BaseLayout.astro`. Rationale + alternatives in [`docs/decisions/0001-observability-sentry.md`](docs/decisions/0001-observability-sentry.md).
+Client-side errors and Core Web Vitals (LCP, CLS, INP, FCP, TTFB) are reported to Sentry from real visitors. Activation is gated on the `PUBLIC_SENTRY_DSN` env var, so forks without it run silent. Do Not Track is honored (init bails early). No session replay. The client IP is never recorded: `dataCollection: { userInfo: false }` tells Sentry not to infer it, which has to be set explicitly because the SDK's default infers it. Events carry the page URL, the browser, the referrer and the stack trace. The init lives in `src/lib/observability/initObservability.ts` and is called once from `BaseLayout.astro`. Rationale + alternatives in [`docs/decisions/0001-observability-sentry.md`](docs/decisions/0001-observability-sentry.md).
 
 ## Deployment
 
