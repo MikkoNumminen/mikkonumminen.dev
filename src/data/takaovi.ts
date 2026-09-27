@@ -74,8 +74,11 @@ export const takaoviCopy = {
     },
   } satisfies Record<TurnError, TakaoviMessage>,
   notices: {
+    // Worded apart from errors.unavailable.title: when a turn fails as
+    // unavailable, the error card and this notice appear together, and the
+    // same sentence twice is read out twice.
     down: {
-      title: 'Avustaja ei vastaa juuri nyt.',
+      title: 'Avustaja saattaa olla tauolla.',
       text: 'Voit silti kokeilla kysyä. Jos vastausta ei tule, yritä hetken päästä uudelleen.',
     },
     unconfigured: {
