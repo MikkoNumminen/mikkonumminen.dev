@@ -149,20 +149,24 @@ describe('keeping the latest message in view', () => {
       configurable: true,
       get: () => 1000 + 300 * document.querySelectorAll('.tk-alert').length,
     });
-    page.scrollTop = 200;
-    const scrollTo = vi.mocked(Element.prototype.scrollTo);
+    try {
+      page.scrollTop = 200;
+      const scrollTo = vi.mocked(Element.prototype.scrollTo);
 
-    const t1 = turn(1);
-    controller.emit({ type: 'turn-added', turn: t1 });
-    scrollTo.mockClear();
-    controller.emit({
-      type: 'turn-changed',
-      turn: { ...t1, status: 'error', error: 'timeout' },
-    });
+      const t1 = turn(1);
+      controller.emit({ type: 'turn-added', turn: t1 });
+      scrollTo.mockClear();
+      controller.emit({
+        type: 'turn-changed',
+        turn: { ...t1, status: 'error', error: 'timeout' },
+      });
 
-    expect(scrollTo).toHaveBeenCalled();
-    Reflect.deleteProperty(page, 'clientHeight');
-    Reflect.deleteProperty(page, 'scrollHeight');
+      expect(scrollTo).toHaveBeenCalled();
+    } finally {
+      // Faked on the shared document; left behind, it would skew later tests.
+      Reflect.deleteProperty(page, 'clientHeight');
+      Reflect.deleteProperty(page, 'scrollHeight');
+    }
   });
 });
 
