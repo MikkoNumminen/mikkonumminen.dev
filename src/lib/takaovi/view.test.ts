@@ -181,16 +181,34 @@ describe('following a streamed answer', () => {
 });
 
 describe('the availability notice', () => {
-  it('hands focus to the composer when a recheck clears the notice', () => {
+  it('keeps focus on a recheck in progress and hands it on when the notice clears', async () => {
+    // Through a real click this time. The first version disabled the button
+    // while the probe ran, and a browser moves focus off a control the moment
+    // it is disabled, so focus was already on <body> when the notice cleared.
+    let settle: () => void = () => {};
+    controller.checkHealth = () =>
+      new Promise<void>((resolve) => {
+        settle = () => {
+          controller.setAvailability('up');
+          resolve();
+        };
+      });
     controller.setAvailability('down');
-    const recheck = root.querySelector<HTMLButtonElement>('[data-notice] button');
-    expect(recheck).not.toBeNull();
-    recheck!.focus();
+    const recheck = root.querySelector<HTMLButtonElement>('[data-notice] button')!;
+    recheck.focus();
 
-    controller.setAvailability('up');
+    recheck.click();
+    expect(recheck.disabled).toBe(false);
+    expect(recheck.getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(recheck);
+
+    settle();
+    await Promise.resolve();
 
     expect(root.querySelector('[data-notice]')!.childElementCount).toBe(0);
-    expect(document.activeElement).toBe(root.querySelector('[data-input]'));
+    // A question card, not the composer: focusing the textarea would open the
+    // keyboard on Android without being asked.
+    expect(document.activeElement).toBe(root.querySelector('[data-question]'));
   });
 });
 

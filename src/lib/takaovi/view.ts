@@ -222,10 +222,20 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
     }
   }
 
+  // Double clicks are blocked with this flag and aria-disabled, not the
+  // `disabled` property: browsers move focus off a control the moment it is
+  // disabled, which dropped a keyboard user to <body> mid-recheck.
+  let rechecking = false;
+
   function renderNotice(): void {
-    // A successful recheck removes the button that has focus; hand focus to
-    // the composer instead of letting it fall to <body>.
-    if (notice.contains(doc.activeElement)) input.focus({ preventScroll: true });
+    // A successful recheck removes the button that has focus. The first
+    // question card takes it rather than the composer, because focusing a
+    // textarea on its own opens the keyboard on Android.
+    if (notice.contains(doc.activeElement)) {
+      root
+        .querySelector<HTMLButtonElement>('[data-question]')
+        ?.focus({ preventScroll: true });
+    }
     notice.replaceChildren();
     const state = controller.availability;
     if (state !== 'down' && state !== 'unconfigured') return;
@@ -239,9 +249,12 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
       const recheck = el('button', 'tk-notice__recheck', copy.notices.recheck);
       recheck.type = 'button';
       recheck.addEventListener('click', () => {
-        recheck.disabled = true;
+        if (rechecking) return;
+        rechecking = true;
+        recheck.setAttribute('aria-disabled', 'true');
         void controller.checkHealth().finally(() => {
-          recheck.disabled = false;
+          rechecking = false;
+          recheck.removeAttribute('aria-disabled');
         });
       });
       box.append(recheck);

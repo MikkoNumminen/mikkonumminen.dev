@@ -571,7 +571,7 @@ textarea {
   outline-offset: 2px;
 }
 
-.tk-notice__recheck:disabled {
+.tk-notice__recheck[aria-disabled='true'] {
   opacity: 0.6;
   cursor: progress;
 }
