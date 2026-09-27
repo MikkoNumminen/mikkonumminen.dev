@@ -4,6 +4,16 @@
 **Date:** 2026-05-08
 **Decided by:** repo owner
 
+> **Update (2026-09-27):** the SDK moved to Sentry 11 in PR #611. Sentry 11
+> replaced `sendDefaultPii` with `dataCollection`, and its default infers the
+> client IP, so "Sentry defaults" in the privacy bullet below is no longer
+> restrictive. The SDK is now initialised with
+> `dataCollection: { userInfo: false }`, which tells Sentry's ingest not to
+> infer the IP on events, spans and sessions: the client IP is not attached to
+> events. Events carry, for example, the page URL, the browser, the referrer
+> and the stack trace. The decision below is unchanged, and its original text
+> is kept as the historical record.
+
 ## Context
 
 The site is a fully static Astro build. There are no API routes, no backend,
@@ -47,13 +57,8 @@ Implementation:
   meaningful real-user metrics without breaking the budget. Initial draft
   used 0.1. That dropped 90% of pageload spans, leaving 90% of vitals
   un-chartable. Revised before merge.
-- No session replay. The client IP is never recorded: the SDK is initialised
-  with `dataCollection: { userInfo: false }`, which makes it tell Sentry's
-  ingest not to infer the IP on events, spans and sessions. This has to be
-  explicit. Up to SDK v10 the option was `sendDefaultPii: false` and leaving
-  it out was already restrictive; v11 replaced it with `dataCollection`,
-  whose default infers the IP. Events carry the page URL, the browser, the
-  referrer and the stack trace.
+- No session replay, no PII capture beyond Sentry defaults (URL, browser,
+  stack trace).
 - CSP `connect-src` extended to allow `https://*.ingest.sentry.io` only.
   The Sentry SDK runtime only needs the DSN's ingest endpoint; `*.sentry.io`
   proper (web UI, dashboard) is not reached from the browser. Documented
