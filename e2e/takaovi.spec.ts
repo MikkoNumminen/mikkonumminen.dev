@@ -144,7 +144,9 @@ test.describe('/takaovi: asking a question', () => {
 
     await restart.click();
     await expect(page.locator('[data-log]')).toBeEmpty();
-    expect(requests).toHaveLength(1);
+    // The reset POST leaves after the thread clears and is recorded by the
+    // route handler asynchronously, so a single read can race a slow runner.
+    await expect.poll(() => requests.length).toBe(1);
   });
 });
 
