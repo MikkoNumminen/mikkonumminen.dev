@@ -1,0 +1,49 @@
+---
+/**
+ * The page's intro panel: logo, heading, one paragraph and the example
+ * questions. On a phone it is the teal card at the top, which compacts once a
+ * conversation starts (the questions stay, as a swipeable row of pills for
+ * follow-ups); on desktop it is the left column.
+ *
+ * The logo is inlined rather than linked so it paints with the first frame.
+ * It is a build-time file from this repo, which is what makes `set:html` safe.
+ */
+import logoSvg from '../../assets/takaovi/asuntokanava-light.svg?raw';
+import BrandMark from './BrandMark.astro';
+import { takaoviCopy as copy } from '../../data/takaovi';
+
+const logo = logoSvg
+  .replace(/<\?xml[^>]*\?>\s*/, '')
+  .replace('<svg ', `<svg role="img" aria-label="${copy.brand.logoLabel}" `);
+---
+
+<header class="tk-panel">
+  <!-- The mark overhangs the panel on purpose. It is clipped by its own box,
+       which holds nothing focusable, so focusing a question card can never
+       scroll the panel sideways the way a clipping panel would. -->
+  <div class="tk-panel__art" aria-hidden="true">
+    <BrandMark class="tk-panel__mark" />
+  </div>
+  <div class="tk-brand tk-pad">
+    <span class="tk-brand__logo" set:html={logo} />
+    <span class="tk-brand__person">{copy.brand.person}</span>
+  </div>
+  <div class="tk-intro tk-pad">
+    <h1 class="tk-title">
+      {copy.heading.lead} <span class="tk-title__accent">{copy.heading.accent}</span>
+    </h1>
+    <p class="tk-lede">{copy.lede}</p>
+  </div>
+  <ul class="tk-cards" aria-label={copy.questionsLabel}>
+    {copy.questions.map((q, i) => (
+      <li>
+        <button class="tk-card" type="button" data-question={q} style={`--n:${i}`}>
+          <b class="tk-card__num" aria-hidden="true">
+            {String(i + 1).padStart(2, '0')}
+          </b>
+          <span>{q}</span>
+        </button>
+      </li>
+    ))}
+  </ul>
+</header>

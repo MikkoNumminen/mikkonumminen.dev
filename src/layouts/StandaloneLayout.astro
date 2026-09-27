@@ -1,0 +1,105 @@
+---
+/**
+ * A bare document for pages that stand outside the site: shared by direct
+ * link, not in the navigation, not in the sitemap. /takaovi is the first.
+ *
+ * Why not BaseLayout: its pre-paint language script sends a Finnish-first
+ * browser from any unprefixed path to `/fi/<path>`, and a page with no `/fi/`
+ * twin would land on a 404. It also brings the nav, the footer, the music bed
+ * and the view-transition router, none of which a standalone page wants.
+ *
+ * What it keeps from BaseLayout: the favicon, the Open Graph tags (the link is
+ * shared in chat apps, which build their previews from them) and Sentry,
+ * initialised by the same `initObservability` with the same settings. Sentry
+ * loads after the page is idle rather than on module load, so the SDK stays
+ * off the critical path; errors in the first moment before that are the cost.
+ */
+import poppins400 from '../assets/fonts/poppins/poppins-latin-400.woff2?url';
+import poppins500 from '../assets/fonts/poppins/poppins-latin-500.woff2?url';
+import poppins700 from '../assets/fonts/poppins/poppins-latin-700.woff2?url';
+
+interface Props {
+  title: string;
+  description: string;
+  lang?: string;
+  themeColor?: string;
+  /** Emits robots noindex, nofollow. The route's X-Robots-Tag header says the same. */
+  noindex?: boolean;
+  ogImage?: string;
+}
+
+const {
+  title,
+  description,
+  lang = 'fi',
+  themeColor = '#1d3738',
+  noindex = false,
+  ogImage = '/og-default.png',
+} = Astro.props;
+
+const url = new URL(Astro.url.pathname, Astro.site).toString();
+const ogImageUrl = new URL(ogImage, Astro.site).toString();
+const fonts = [
+  { weight: 400, href: poppins400 },
+  { weight: 500, href: poppins500 },
+  { weight: 700, href: poppins700 },
+];
+const fontFaces = fonts
+  .map(
+    (f) =>
+      `@font-face{font-family:Poppins;font-style:normal;font-weight:${f.weight};font-display:swap;src:url(${f.href}) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}`,
+  )
+  .join('');
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content={themeColor} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    {fonts.map((f) => (
+      <link rel="preload" href={f.href} as="font" type="font/woff2" crossorigin />
+    ))}
+    <style is:inline set:html={fontFaces} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mikkonumminen.dev" />
+    <meta property="og:locale" content={lang === 'fi' ? 'fi_FI' : 'en_US'} />
+    <meta property="og:url" content={url} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+    <script>
+      const load = (): void => {
+        void import('../lib/observability/initObservability').then((m) =>
+          m.initObservability(),
+        );
+      };
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(load, { timeout: 4000 });
+      } else {
+        setTimeout(load, 2000);
+      }
+    </script>
+  </body>
+</html>

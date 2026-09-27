@@ -63,6 +63,10 @@ export default defineConfig({
   },
   integrations: [
     sitemap({
+      // Pages shared by direct link only. They also carry noindex (meta and
+      // X-Robots-Tag), which a crawler can only read if robots.txt lets it
+      // fetch the page, so they are kept out of the sitemap, not disallowed.
+      filter: (page) => new URL(page).pathname.replace(/\/$/, '') !== '/takaovi',
       i18n: {
         defaultLocale: 'en',
         locales: { en: 'en', fi: 'fi' },
