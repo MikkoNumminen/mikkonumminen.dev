@@ -1,0 +1,875 @@
+/*
+ * /takaovi: Asuntokanava palette, Poppins, mobile first.
+ *
+ * Contrast (WCAG AA, measured): the brand orange #ee552b reaches only 3.5:1
+ * even under white, so it is used for strokes, icons and graphics, never for
+ * text. Small orange-toned text uses --tk-accent-ink (#b23c16, 5.9:1 on white).
+ */
+:root {
+  --tk-teal: #1d3738;
+  --tk-teal-2: #26494a;
+  --tk-teal-3: #2e5758;
+  --tk-cream: #f9f4de;
+  --tk-mint: #f4fce8;
+  --tk-paper: #ffffff;
+  --tk-ink: #1d3738;
+  --tk-ink-2: #3b5556;
+  --tk-muted: #5b6f6f;
+  --tk-accent: #ee552b;
+  --tk-accent-hover: #d9471f;
+  --tk-accent-ink: #b23c16;
+  --tk-lime: #d4f5a3;
+  --tk-line: rgba(29, 55, 56, 0.12);
+  --tk-radius: 20px;
+  --tk-stripes: repeating-linear-gradient(
+    -62deg,
+    var(--tk-accent) 0 7px,
+    transparent 7px 15px
+  );
+  --tk-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  /* clip, not hidden: a hidden overflow is still a scroll container that
+     focus and scrollIntoView can shift sideways. */
+  overflow-x: hidden;
+  overflow-x: clip;
+  background: var(--tk-mint);
+  color: var(--tk-ink);
+  font:
+    400 16px/1.55 Poppins,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+.tk-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tk-app {
+  min-height: 100dvh;
+}
+
+.tk-pad {
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+}
+
+/* --- intro panel ---------------------------------------------------------- */
+
+.tk-panel {
+  position: relative;
+  background: var(--tk-teal);
+  color: var(--tk-cream);
+  border-radius: 0 0 28px 28px;
+  padding: calc(16px + env(safe-area-inset-top)) 0 22px;
+}
+
+.tk-panel::after {
+  content: '';
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  bottom: 0;
+  height: 5px;
+  background: var(--tk-stripes);
+  opacity: 0.75;
+}
+
+.tk-panel__art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.tk-panel__mark {
+  position: absolute;
+  right: -70px;
+  top: -40px;
+  width: 250px;
+  height: 250px;
+  fill: var(--tk-cream);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+.tk-panel__mark path,
+.tk-avatar__mark path {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.tk-panel__mark path {
+  animation: tk-assemble 0.9s var(--tk-ease) both;
+  animation-delay: calc(var(--i) * 80ms);
+}
+
+.tk-brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tk-brand__logo svg {
+  display: block;
+  height: 24px;
+  width: auto;
+}
+
+.tk-brand__person {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.tk-intro {
+  position: relative;
+}
+
+.tk-title {
+  margin: 26px 0 0;
+  font-weight: 700;
+  font-size: clamp(34px, 10vw, 60px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  transition:
+    font-size 0.3s var(--tk-ease),
+    margin 0.3s var(--tk-ease);
+}
+
+.tk-title__accent {
+  color: var(--tk-lime);
+}
+
+.tk-lede {
+  margin: 12px 0 0;
+  max-width: 30em;
+  max-height: 8em;
+  overflow: hidden;
+  font-size: 16.5px;
+  color: rgba(249, 244, 222, 0.85);
+  transition:
+    max-height 0.35s ease,
+    opacity 0.25s ease,
+    margin 0.35s ease;
+}
+
+.tk-cards {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0 max(20px, env(safe-area-inset-left)) 4px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 20px;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.tk-cards::-webkit-scrollbar {
+  display: none;
+}
+
+.tk-cards li {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.tk-card {
+  width: 196px;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  border: 1px solid rgba(249, 244, 222, 0.16);
+  border-radius: 18px;
+  background: var(--tk-teal-2);
+  color: var(--tk-cream);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform 0.2s var(--tk-ease),
+    background 0.2s,
+    border-color 0.2s;
+  animation: tk-rise 0.5s var(--tk-ease) both;
+  animation-delay: calc(0.3s + var(--n) * 70ms);
+}
+
+.tk-card:hover {
+  background: var(--tk-teal-3);
+  border-color: rgba(212, 245, 163, 0.5);
+  transform: translateY(-2px);
+}
+
+.tk-card:focus-visible {
+  outline: 3px solid var(--tk-lime);
+  outline-offset: 2px;
+}
+
+.tk-card__num {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--tk-lime);
+}
+
+.tk-app[data-busy] .tk-card {
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* Once a conversation starts the phone card compacts, and the questions stay
+   within reach as a row of pills for follow-ups. */
+.tk-has-chat .tk-title {
+  font-size: 26px;
+  margin-top: 18px;
+}
+
+.tk-has-chat .tk-lede {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+}
+
+.tk-has-chat .tk-card {
+  width: auto;
+  min-height: 44px;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+.tk-has-chat .tk-card__num {
+  display: none;
+}
+
+/* --- conversation ------------------------------------------------------- */
+
+.tk-chat {
+  position: relative;
+}
+
+.tk-scroll {
+  padding-bottom: calc(var(--tk-composer-h, 104px) + 24px);
+}
+
+.tk-progress {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 4px;
+  background: var(--tk-stripes);
+  background-size: 30px 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tk-app[data-busy] .tk-progress {
+  opacity: 1;
+  animation: tk-march 0.6s linear infinite;
+}
+
+.tk-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 10px max(12px, env(safe-area-inset-right)) 0 20px;
+}
+
+.tk-restart {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tk-ink-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tk-restart[hidden] {
+  display: none;
+}
+
+.tk-restart:hover {
+  background: rgba(29, 55, 56, 0.06);
+  color: var(--tk-ink);
+}
+
+.tk-restart:focus-visible {
+  outline: 3px solid var(--tk-teal);
+  outline-offset: 2px;
+}
+
+.tk-empty {
+  margin: 0;
+  padding: 26px 20px 8px;
+  text-align: center;
+  color: var(--tk-muted);
+  font-size: 14px;
+}
+
+.tk-empty[hidden] {
+  display: none;
+}
+
+.tk-log {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px max(20px, env(safe-area-inset-right)) 16px
+    max(20px, env(safe-area-inset-left));
+}
+
+.tk-msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: tk-rise 0.4s var(--tk-ease) both;
+}
+
+.tk-msg:focus {
+  outline: none;
+}
+
+.tk-msg:focus-visible {
+  outline: 3px solid var(--tk-teal);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.tk-msg--user {
+  justify-content: flex-end;
+}
+
+.tk-bubble {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tk-msg--user .tk-bubble {
+  max-width: min(84%, 520px);
+  padding: 11px 16px;
+  border-radius: 20px 20px 6px 20px;
+  background: var(--tk-teal);
+  color: var(--tk-cream);
+  font-weight: 500;
+}
+
+.tk-msg__body {
+  flex: 1;
+  min-width: 0;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tk-msg--bot .tk-bubble {
+  position: relative;
+  padding: 16px 18px 16px 20px;
+  background: var(--tk-paper);
+  border-radius: 6px var(--tk-radius) var(--tk-radius) var(--tk-radius);
+  box-shadow:
+    0 1px 0 var(--tk-line),
+    0 14px 30px -22px rgba(29, 55, 56, 0.5);
+}
+
+.tk-msg--bot .tk-bubble::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--tk-accent);
+}
+
+.tk-avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--tk-teal);
+  display: grid;
+  place-items: center;
+}
+
+.tk-avatar__mark {
+  width: 19px;
+  height: 19px;
+  fill: var(--tk-accent);
+}
+
+.tk-msg--bot.is-thinking .tk-avatar__mark {
+  animation: tk-spin 1.1s steps(5) infinite;
+}
+
+.tk-typing {
+  display: flex;
+  gap: 7px;
+  align-self: flex-start;
+  padding: 17px 20px;
+  background: var(--tk-paper);
+  border-radius: 6px var(--tk-radius) var(--tk-radius) var(--tk-radius);
+  box-shadow: 0 14px 30px -22px rgba(29, 55, 56, 0.5);
+}
+
+.tk-typing i {
+  width: 5px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--tk-accent);
+  transform: skewX(-22deg);
+  animation: tk-pulse 1s ease-in-out infinite;
+}
+
+.tk-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.tk-typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.tk-caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  border-radius: 2px;
+  background: var(--tk-accent);
+  animation: tk-blink 1s steps(2) infinite;
+}
+
+.tk-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tk-sources__label {
+  margin-right: 2px;
+  font-size: 12px;
+  color: var(--tk-muted);
+}
+
+.tk-source {
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: var(--tk-lime);
+  color: var(--tk-teal);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tk-alert,
+.tk-notice {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--tk-paper);
+  animation: tk-rise 0.35s ease both;
+}
+
+.tk-alert {
+  border: 2px solid var(--tk-accent);
+}
+
+.tk-notice {
+  max-width: 720px;
+  margin: 12px max(20px, env(safe-area-inset-right)) 0
+    max(20px, env(safe-area-inset-left));
+  border: 1px solid var(--tk-line);
+}
+
+.tk-alert__title,
+.tk-notice__title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.tk-alert__title {
+  color: var(--tk-accent-ink);
+}
+
+.tk-alert__text,
+.tk-notice__text {
+  margin: 2px 0 12px;
+  color: var(--tk-ink-2);
+  font-size: 15px;
+}
+
+.tk-alert__retry,
+.tk-notice__recheck {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--tk-teal);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tk-alert__retry:focus-visible,
+.tk-notice__recheck:focus-visible {
+  outline: 3px solid var(--tk-accent);
+  outline-offset: 2px;
+}
+
+.tk-notice__recheck:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* --- composer ------------------------------------------------------------- */
+
+.tk-composer-shell {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  padding: 12px max(14px, env(safe-area-inset-right))
+    calc(10px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  background: linear-gradient(to top, var(--tk-mint) 70%, rgba(244, 252, 232, 0));
+  transform: translateY(calc(-1 * var(--tk-kb, 0px)));
+}
+
+.tk-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 6px;
+  border: 2px solid var(--tk-teal);
+  border-radius: 18px;
+  background: var(--tk-paper);
+  box-shadow: 0 8px 0 -2px rgba(29, 55, 56, 0.12);
+  transition: box-shadow 0.2s;
+}
+
+.tk-composer:focus-within {
+  box-shadow:
+    0 0 0 4px rgba(238, 85, 43, 0.25),
+    0 8px 0 -2px rgba(29, 55, 56, 0.12);
+}
+
+.tk-composer textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 132px;
+  padding: 11px 0 11px 12px;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--tk-ink);
+  /* 16px or more, or iOS Safari zooms the page when the field takes focus. */
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.tk-composer textarea::placeholder {
+  color: var(--tk-muted);
+}
+
+.tk-send {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 52px;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--tk-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform 0.15s,
+    background 0.15s;
+}
+
+.tk-send__text {
+  display: none;
+}
+
+.tk-send:hover {
+  background: var(--tk-accent-hover);
+}
+
+.tk-send:active {
+  transform: scale(0.96);
+}
+
+.tk-send:focus-visible {
+  outline: 3px solid var(--tk-teal);
+  outline-offset: 2px;
+}
+
+.tk-app[data-busy] .tk-send {
+  background: var(--tk-teal);
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.tk-fine {
+  max-width: 720px;
+  margin: 6px auto 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--tk-muted);
+}
+
+/* --- desktop: two columns ------------------------------------------------- */
+
+@media (min-width: 900px) {
+  body {
+    overflow: hidden;
+  }
+
+  .tk-app {
+    display: grid;
+    grid-template-columns: minmax(360px, 40%) 1fr;
+    height: 100dvh;
+  }
+
+  .tk-panel {
+    display: flex;
+    flex-direction: column;
+    border-radius: 0;
+    padding: 40px 0;
+    overflow-y: auto;
+  }
+
+  .tk-panel::after {
+    display: none;
+  }
+
+  .tk-pad {
+    padding-left: 44px;
+    padding-right: 44px;
+  }
+
+  .tk-brand__logo svg {
+    height: 30px;
+  }
+
+  .tk-panel__mark {
+    width: 380px;
+    height: 380px;
+    right: -120px;
+    top: auto;
+    bottom: -110px;
+    fill: var(--tk-accent);
+    opacity: 1;
+  }
+
+  .tk-title,
+  .tk-has-chat .tk-title {
+    margin-top: 64px;
+    font-size: clamp(34px, 4vw, 56px);
+  }
+
+  .tk-has-chat .tk-lede {
+    max-height: 8em;
+    margin-top: 12px;
+    opacity: 1;
+  }
+
+  .tk-cards {
+    flex-direction: column;
+    overflow: visible;
+    margin-top: 28px;
+    padding: 0 44px;
+  }
+
+  .tk-card,
+  .tk-has-chat .tk-card {
+    width: 100%;
+    min-height: 58px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    font-size: 15.5px;
+  }
+
+  .tk-has-chat .tk-card__num {
+    display: inline;
+  }
+
+  .tk-chat {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-width: 0;
+  }
+
+  .tk-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 0;
+  }
+
+  .tk-toolbar {
+    padding: 14px 44px 0;
+  }
+
+  .tk-log {
+    padding: 8px 44px 24px;
+  }
+
+  .tk-composer-shell {
+    position: static;
+    transform: none;
+    padding: 0 44px 18px;
+    background: none;
+  }
+
+  /* With its label the button carries text, and white on the brand orange is
+     only 3.5:1; teal takes the fill and the arrow keeps the brand accent. */
+  .tk-send {
+    background: var(--tk-teal);
+  }
+
+  .tk-send:hover {
+    background: var(--tk-teal-3);
+  }
+
+  .tk-send svg {
+    color: var(--tk-lime);
+  }
+
+  .tk-send__text {
+    display: inline;
+  }
+}
+
+/* --- motion --------------------------------------------------------------- */
+
+@keyframes tk-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes tk-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: skewX(-22deg) scaleY(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: skewX(-22deg) scaleY(1);
+  }
+}
+
+@keyframes tk-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes tk-march {
+  to {
+    background-position: 30px 0;
+  }
+}
+
+@keyframes tk-assemble {
+  from {
+    opacity: 0;
+    transform: translate(calc((var(--i) - 2) * 16px), -20px) rotate(-50deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,100 @@
+---
+/**
+ * The conversation column: progress stripe, restart button, message log,
+ * notices, the composer, and the screen-reader live region.
+ *
+ * The log itself is `aria-live="off"`: announcing a streamed answer token by
+ * token would read out fragments. `view.ts` announces through the separate
+ * polite region instead, once when a turn starts and once with the finished
+ * answer; errors are rendered with role="alert" and speak for themselves.
+ *
+ * Messages are built in `view.ts` with `textContent` only. The avatar template
+ * lets it reuse the brand mark without duplicating its path data in script.
+ */
+import BrandMark from './BrandMark.astro';
+import { takaoviCopy as copy } from '../../data/takaovi';
+---
+
+<main class="tk-chat" aria-label={copy.thread.label}>
+  <div class="tk-scroll" data-scroll>
+    <div class="tk-progress" aria-hidden="true"></div>
+    <div class="tk-toolbar">
+      <button class="tk-restart" type="button" data-restart hidden>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 12a9 9 0 1 0 3-6.7" />
+          <path d="M3 4v5h5" />
+        </svg>
+        {copy.thread.restart}
+      </button>
+    </div>
+    <div class="tk-notice-slot" data-notice></div>
+    <p class="tk-empty" data-empty>
+      {copy.thread.empty}
+    </p>
+    <div
+      class="tk-log"
+      data-log
+      role="log"
+      aria-live="off"
+      aria-label={copy.thread.label}
+    ></div>
+  </div>
+
+  <div class="tk-composer-shell" data-composer-shell>
+    <form class="tk-composer" data-composer>
+      <label class="tk-sr" for="tk-question">
+        {copy.composer.label}
+      </label>
+      <textarea
+        id="tk-question"
+        name="question"
+        rows="1"
+        maxlength="4000"
+        placeholder={copy.composer.placeholder}
+        enterkeyhint="send"
+        autocomplete="off"
+        data-input
+      ></textarea>
+      <button
+        class="tk-send"
+        type="submit"
+        aria-label={copy.composer.sendLabel}
+        data-send
+      >
+        <span class="tk-send__text">{copy.composer.send}</span>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M5 12h14M13 5l7 7-7 7" />
+        </svg>
+      </button>
+    </form>
+    <p class="tk-fine">{copy.composer.fineprint}</p>
+  </div>
+
+  <p class="tk-sr" aria-live="polite" data-live></p>
+
+  <template data-avatar-template>
+    <span class="tk-avatar" aria-hidden="true">
+      <BrandMark class="tk-avatar__mark" />
+    </span>
+  </template>
+</main>

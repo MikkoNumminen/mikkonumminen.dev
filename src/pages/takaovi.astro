@@ -1,0 +1,37 @@
+---
+/**
+ * /takaovi: a Finnish chat page about Mikko for Asuntokanava staff, shared by
+ * direct link. Not in the navigation, noindex (meta here, X-Robots-Tag in
+ * vercel.json), filtered out of the sitemap in astro.config.mjs, and no /fi/
+ * twin: it is Finnish at its only URL.
+ *
+ * It asks the same RAG backend the contact terminal does, the same way, with
+ * no page-specific prompt or parameters. Only the presentation differs; the
+ * terminal's local commands and jokes stay in the terminal.
+ */
+import StandaloneLayout from '../layouts/StandaloneLayout.astro';
+import TakaoviIntro from '../components/takaovi/TakaoviIntro.astro';
+import ChatThread from '../components/takaovi/ChatThread.astro';
+import { takaoviCopy as copy } from '../data/takaovi';
+import '../styles/takaovi.css';
+---
+
+<StandaloneLayout
+  title={copy.meta.title}
+  description={copy.meta.description}
+  lang="fi"
+  themeColor="#1d3738"
+  noindex
+>
+  <div class="tk-app" data-takaovi>
+    <TakaoviIntro />
+    <ChatThread />
+  </div>
+</StandaloneLayout>
+
+<script>
+  import { mountTakaoviChat } from '../lib/takaovi/view';
+
+  const root = document.querySelector<HTMLElement>('[data-takaovi]');
+  if (root) mountTakaoviChat(root);
+</script>
