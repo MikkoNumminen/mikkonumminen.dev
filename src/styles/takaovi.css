@@ -288,7 +288,9 @@ textarea {
 }
 
 .tk-scroll {
-  padding-bottom: calc(var(--tk-composer-h, 104px) + 24px);
+  /* The keyboard lift raises the composer by --tk-kb; the thread must end
+     above it too, or the last lines of an answer stream in behind it. */
+  padding-bottom: calc(var(--tk-composer-h, 104px) + var(--tk-kb, 0px) + 24px);
 }
 
 .tk-progress {
