@@ -683,7 +683,10 @@ textarea {
 
 /* --- desktop: two columns ------------------------------------------------- */
 
-@media (min-width: 900px) {
+/* Height as well as width: a large phone held sideways is 900+ px wide but
+   only ~430 px tall, and there the two-column layout drops the safe-area
+   padding and the keyboard lift, and the orange mark rises behind the lede. */
+@media (min-width: 900px) and (min-height: 600px) {
   body {
     overflow: hidden;
   }
