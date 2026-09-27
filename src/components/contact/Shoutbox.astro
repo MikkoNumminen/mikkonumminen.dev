@@ -29,8 +29,7 @@ import { getTranslations } from '../../i18n';
 const t = getTranslations(Astro.currentLocale).shoutbox;
 ---
 
-{
-  /*
+{/*
   The box sits below a full-height terminal (`.crt` is `min-height: 100vh`), so
   on arrival it is entirely off-screen and NOTHING on the page suggests it is
   there. The home page has always had a scroll hint for the same reason; the
@@ -44,8 +43,7 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
   Fixed rather than absolutely placed at the fold, because the terminal's height
   is a `dvh` calc that moves with mobile browser chrome; pinning to the viewport
   bottom is the one position that is right on every device.
-*/
-}
+*/}
 <div class="shoutbox__scroll-hint" data-shoutbox-hint aria-hidden="true">
   <span>{t.scrollHint}</span>
   <svg
@@ -64,47 +62,43 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
 <section class="shoutbox" aria-labelledby="shoutbox-title">
   <div class="shoutbox__card">
     <header class="shoutbox__chrome">
-      {
-        /*
+      {/*
         A REAL HEADING, not a styled span. Heading navigation is the primary way
         screen-reader users move through a page, and as a span this box was
         skipped by it entirely — the `aria-labelledby` region only helps someone
         who happens to navigate by landmark instead. It looks identical; the
         element is the whole point.
-      */
-      }
-      <h2 class="shoutbox__title" id="shoutbox-title">{t.title}</h2>
+      */}
+      <h2 class="shoutbox__title" id="shoutbox-title">
+        {t.title}
+      </h2>
     </header>
 
     <div class="shoutbox__screen">
-      {
-        /*
+      {/*
         NOT an aria-live region, deliberately. FieldLog.astro records the
         reasoning: a region that updates on its own clock with no pause control
         is a WCAG 2.2.2 Level A failure. This list is populated once on load, so
         a labelled region is the right surface and announcement is not.
-      */
-      }
+      */}
       <ol
         class="shoutbox__threads"
         data-shoutbox-threads
         aria-label={t.threadsAria}
         hidden
-      >
-      </ol>
+      ></ol>
 
-      {
-        /*
+      {/*
         The default state. Shown until the snapshot loads AND turns out to have
         threads, so a missing file, a malformed file and a genuinely empty queue
         all land here rather than on three different failure paths. The file does
         not exist at all until the first message is approved.
-      */
-      }
-      <p class="shoutbox__empty" data-shoutbox-empty>{t.empty}</p>
+      */}
+      <p class="shoutbox__empty" data-shoutbox-empty>
+        {t.empty}
+      </p>
 
-      {
-        /*
+      {/*
         The write half. Ships `hidden` and is revealed only once the backend
         answers, so a visitor whose machine-at-home is asleep is never offered a
         form that cannot work. The thread list above is NOT gated on this: it
@@ -114,15 +108,16 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
         TechStack.astro: the native element already gives Enter, Space, tap and
         an exposed open state, and reaching for JavaScript would mean
         reimplementing all of it slightly worse. Hover is layered on in CSS.
-      */
-      }
+      */}
       <form class="shoutbox__form" data-shoutbox-form hidden>
         <details class="shoutbox__info">
           <summary class="shoutbox__info-label">{t.infoLabel}</summary>
           <p class="shoutbox__info-body">{t.infoBody}</p>
         </details>
 
-        <label class="sr-only" for="shoutbox-input">{t.placeholder}</label>
+        <label class="sr-only" for="shoutbox-input">
+          {t.placeholder}
+        </label>
         <textarea
           class="shoutbox__input"
           id="shoutbox-input"
@@ -130,29 +125,27 @@ const t = getTranslations(Astro.currentLocale).shoutbox;
           rows="2"
           placeholder={t.placeholder}
           autocomplete="off"
-          spellcheck="true"></textarea>
+          spellcheck="true"
+        ></textarea>
 
         <button class="shoutbox__send" type="submit" data-shoutbox-send>
           {t.send}
         </button>
       </form>
 
-      {
-        /*
+      {/*
         THIS is the live region, not the thread list. It reports the outcome of
         something the visitor just did, which is exactly what aria-live is for —
         unlike a feed that updates on its own clock, which FieldLog.astro records
         as a WCAG 2.2.2 failure.
-      */
-      }
+      */}
       <p
         class="shoutbox__status"
         data-shoutbox-status
         role="status"
         aria-live="polite"
         hidden
-      >
-      </p>
+      ></p>
 
       <p class="shoutbox__legend">{t.legend}</p>
     </div>

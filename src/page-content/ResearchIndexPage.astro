@@ -69,59 +69,55 @@ const papers: LocalizedPaper[] = localizePapers(t)
     </header>
 
     <ol class="research__list">
-      {
-        papers.map((paper) => {
-          // Resolved once: the listing and the route must agree on which papers
-          // have a page, and calling the predicate three times invites them to
-          // drift apart in a future edit.
-          const kind = kindFor(paper.filename);
-          return (
-            <li class="research__item">
-              <time class="research__date" datetime={paper.date}>
-                {monthLabel(paper.date, locale)}
-              </time>
-              <h2 class="research__name">{paper.title}</h2>
-              <p class="research__summary">{paper.summary}</p>
-              <p class="research__actions">
-                {/*
+      {papers.map((paper) => {
+        // Resolved once: the listing and the route must agree on which papers
+        // have a page, and calling the predicate three times invites them to
+        // drift apart in a future edit.
+        const kind = kindFor(paper.filename);
+        return (
+          <li class="research__item">
+            <time class="research__date" datetime={paper.date}>
+              {monthLabel(paper.date, locale)}
+            </time>
+            <h2 class="research__name">{paper.title}</h2>
+            <p class="research__summary">{paper.summary}</p>
+            <p class="research__actions">
+              {/*
                 'About' rather than 'Read' for a companion page, so the
                 distinction reaches a visitor before the click instead of as a
                 notice after it.
               */}
-                {kind && (
-                  <a
-                    class="research__read"
-                    href={`${localizePath('/research', locale)}/${paper.id}`}
-                    aria-label={(kind === 'full'
-                      ? t.researchPage.readAria
-                      : t.researchPage.aboutAria
-                    ).replace('{title}', paper.title)}
-                  >
-                    {kind === 'full'
-                      ? t.researchPage.readLabel
-                      : t.researchPage.aboutLabel}
-                  </a>
-                )}
-                {/* Opted out of prefetch, as every download anchor on the site
+              {kind && (
+                <a
+                  class="research__read"
+                  href={`${localizePath('/research', locale)}/${paper.id}`}
+                  aria-label={(kind === 'full'
+                    ? t.researchPage.readAria
+                    : t.researchPage.aboutAria
+                  ).replace('{title}', paper.title)}
+                >
+                  {kind === 'full' ? t.researchPage.readLabel : t.researchPage.aboutLabel}
+                </a>
+              )}
+              {/* Opted out of prefetch, as every download anchor on the site
                     is. `prefetchAll` with `defaultStrategy: 'viewport'` warms
                     sibling ROUTES so ClientRouter can swap them in; a PDF is
                     not a route and cannot be swapped in, so the only effect
                     here is pulling all 2.7 MB of papers down as the listing
                     scrolls, for a visitor who asked for none of them. */}
-                <a
-                  class="research__download"
-                  href={paper.url}
-                  download={paper.filename}
-                  data-astro-prefetch="false"
-                  aria-label={t.researchPage.downloadAria.replace('{title}', paper.title)}
-                >
-                  {t.researchPage.pdfLabel} · {publicFileSize(paper.filename)}
-                </a>
-              </p>
-            </li>
-          );
-        })
-      }
+              <a
+                class="research__download"
+                href={paper.url}
+                download={paper.filename}
+                data-astro-prefetch="false"
+                aria-label={t.researchPage.downloadAria.replace('{title}', paper.title)}
+              >
+                {t.researchPage.pdfLabel} · {publicFileSize(paper.filename)}
+              </a>
+            </p>
+          </li>
+        );
+      })}
     </ol>
   </section>
 </BaseLayout>

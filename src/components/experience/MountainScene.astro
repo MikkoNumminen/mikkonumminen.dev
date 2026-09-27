@@ -14,15 +14,13 @@ import '../../styles/mountain-scene.css';
       aria-hidden="true"
       focusable="false"
     >
-      {
-        Array.from({ length: 90 }).map((_, i) => {
-          const x = (i * 137.5) % 1600;
-          const y = (i * 47) % 600;
-          const r = 0.6 + ((i * 13) % 20) / 20;
-          const o = 0.4 + ((i * 7) % 60) / 100;
-          return <circle cx={x} cy={y} r={r} fill="white" opacity={o} />;
-        })
-      }
+      {Array.from({ length: 90 }).map((_, i) => {
+        const x = (i * 137.5) % 1600;
+        const y = (i * 47) % 600;
+        const r = 0.6 + ((i * 13) % 20) / 20;
+        const o = 0.4 + ((i * 7) % 60) / 100;
+        return <circle cx={x} cy={y} r={r} fill="white" opacity={o} />;
+      })}
     </svg>
   </div>
 
@@ -124,14 +122,12 @@ import '../../styles/mountain-scene.css';
       focusable="false"
     >
       <g fill="var(--trees-color, #1a1424)">
-        {
-          Array.from({ length: 60 }).map((_, i) => {
-            const x = (i * 27) % 1600;
-            const h = 30 + ((i * 9) % 30);
-            const y = 820 - ((i * 11) % 25);
-            return <polygon points={`${x - 8},${y} ${x},${y - h} ${x + 8},${y}`} />;
-          })
-        }
+        {Array.from({ length: 60 }).map((_, i) => {
+          const x = (i * 27) % 1600;
+          const h = 30 + ((i * 9) % 30);
+          const y = 820 - ((i * 11) % 25);
+          return <polygon points={`${x - 8},${y} ${x},${y - h} ${x + 8},${y}`} />;
+        })}
       </g>
     </svg>
   </div>

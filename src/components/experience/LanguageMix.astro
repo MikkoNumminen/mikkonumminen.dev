@@ -40,55 +40,53 @@ const arcs = donutArcs(slices).map((arc, i) => ({
 }));
 ---
 
-{
-  slices.length > 0 && (
-    <figure class="lang-mix">
-      <figcaption class="lang-mix__caption">
-        {t.experiencePage.languageMixTitle}
-        {/* The metric, said out loud. "Projects per language" and "share of the
+{slices.length > 0 && (
+  <figure class="lang-mix">
+    <figcaption class="lang-mix__caption">
+      {t.experiencePage.languageMixTitle}
+      {/* The metric, said out loud. "Projects per language" and "share of the
             codebase" are different claims, and the second one is the one a
             reader assumes a donut is making. */}
-        <span class="lang-mix__note">{t.experiencePage.languageMixNote}</span>
-      </figcaption>
+      <span class="lang-mix__note">{t.experiencePage.languageMixNote}</span>
+    </figcaption>
 
-      <div class="lang-mix__body">
-        {/* Decoration, not content. The legend below is the same data as real
+    <div class="lang-mix__body">
+      {/* Decoration, not content. The legend below is the same data as real
             text, so labelling the donut too would announce every language twice.
             Same reasoning as AiBadge's `decorative` prop, which exists because
             the card already carries that fact in the link name. */}
-        <svg class="lang-mix__chart" viewBox="0 0 130 130" aria-hidden="true">
-          {arcs.map((arc) => (
-            <circle
-              class="lang-mix__arc"
-              cx="65"
-              cy="65"
-              r={DONUT_RADIUS}
-              fill="none"
-              stroke={arc.colour}
-              stroke-width="16"
-              stroke-dasharray={arc.dash}
-              transform={`rotate(${arc.rotation} 65 65)`}
-            />
-          ))}
-        </svg>
+      <svg class="lang-mix__chart" viewBox="0 0 130 130" aria-hidden="true">
+        {arcs.map((arc) => (
+          <circle
+            class="lang-mix__arc"
+            cx="65"
+            cy="65"
+            r={DONUT_RADIUS}
+            fill="none"
+            stroke={arc.colour}
+            stroke-width="16"
+            stroke-dasharray={arc.dash}
+            transform={`rotate(${arc.rotation} 65 65)`}
+          />
+        ))}
+      </svg>
 
-        <ul class="lang-mix__legend">
-          {arcs.map((arc) => (
-            <li class="lang-mix__item">
-              <span
-                class="lang-mix__swatch"
-                style={`background:${arc.colour}`}
-                aria-hidden="true"
-              />
-              <span class="lang-mix__name">{arc.language}</span>
-              <span class="lang-mix__count">{arc.count}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </figure>
-  )
-}
+      <ul class="lang-mix__legend">
+        {arcs.map((arc) => (
+          <li class="lang-mix__item">
+            <span
+              class="lang-mix__swatch"
+              style={`background:${arc.colour}`}
+              aria-hidden="true"
+            />
+            <span class="lang-mix__name">{arc.language}</span>
+            <span class="lang-mix__count">{arc.count}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </figure>
+)}
 
 <style>
   .lang-mix {
