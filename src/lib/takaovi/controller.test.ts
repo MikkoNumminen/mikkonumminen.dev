@@ -484,18 +484,34 @@ describe('restart()', () => {
     expect(events.length).toBe(eventsBefore);
     expect(controller.turns.length).toBe(0);
 
-    // The controller keeps working for a fresh turn.
-    const c2 = controllableStream();
-    const stream2 = c2.stream;
-    const controller2 = createChatController({
+    // The same controller keeps working for a fresh turn.
+    void controller.ask('second question');
+    expect(c.stream).toHaveBeenCalledTimes(2);
+    expect(controller.turns.length).toBe(1);
+    expect(controller.turns[0]?.question).toBe('second question');
+    expect(controller.busy).toBe(true);
+  });
+
+  it('ignores a health probe that resolves after the restart', async () => {
+    let resolveProbe: (p: HealthProbe) => void = () => {};
+    const controller = createChatController({
       baseUrl: '/api/rag',
-      stream: stream2,
-      probe: fakeProbe(),
+      stream: resolvedStream(() => {}),
+      probe: vi.fn(
+        (_baseUrl: string) =>
+          new Promise<HealthProbe>((resolve) => {
+            resolveProbe = resolve;
+          }),
+      ),
       resetSession: vi.fn(async () => {}),
     });
-    void controller2.ask('second question');
-    expect(stream2).toHaveBeenCalledTimes(1);
-    expect(controller2.turns.length).toBe(1);
+
+    const health = controller.checkHealth();
+    await controller.restart();
+    resolveProbe({ available: false, model: null });
+    await health;
+
+    expect(controller.availability).toBe('unknown');
   });
 });
 

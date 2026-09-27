@@ -90,7 +90,9 @@ describe('dependency boundary', () => {
     // catalogue or the terminal's rendering code in its bundle.
     const here = path.dirname(fileURLToPath(import.meta.url));
     const source = readFileSync(path.join(here, 'client.ts'), 'utf8');
-    const imports = [...source.matchAll(/^import .* from '([^']+)';$/gm)].map(
+    // Any `from '...'` or side-effect `import '...'`, on however many lines
+    // prettier wraps an import over.
+    const imports = [...source.matchAll(/(?:from|^import)\s+'([^']+)'/gm)].map(
       (m) => m[1],
     );
     expect(imports).toEqual([]);
