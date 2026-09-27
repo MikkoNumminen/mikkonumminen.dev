@@ -26,7 +26,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
-    restart: unless-stopped
+    # `always`, not `unless-stopped`: a Docker Desktop update stops every
+    # container cleanly and starts the engine again, and `unless-stopped` reads
+    # a clean stop as "somebody turned this off", so nothing came back. `ragctl
+    # down` is `compose down`, and a container that no longer exists is not
+    # restarted by anything, so switching the rag off on purpose still sticks.
+    restart: always
 
   ollama:
     # Pinned to :latest deliberately — keep Ollama current so recent models (the
@@ -55,7 +60,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 24
-    restart: unless-stopped
+    restart: always
 
   # One-shot init: ask the ollama server to pull the model into its volume, so a
   # bare `docker compose up` also works — not only `make up`. Idempotent (a
@@ -174,7 +179,7 @@ services:
       timeout: 3s
       retries: 12
       start_period: 10s
-    restart: unless-stopped
+    restart: always
 
   tunnel:
     # :latest — cloudflared updates frequently; pin a digest if you need
@@ -193,7 +198,7 @@ services:
       backend:
         condition: service_healthy
     profiles: ['tunnel']
-    restart: unless-stopped
+    restart: always
 
 volumes:
   pgdata:
