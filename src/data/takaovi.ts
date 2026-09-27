@@ -37,6 +37,7 @@ export const takaoviCopy = {
   ],
   thread: {
     label: 'Keskustelu',
+    messagesLabel: 'Viestit',
     empty: 'Valitse kysymys tai kirjoita oma.',
     you: 'Sinä',
     assistant: 'Avustaja',
