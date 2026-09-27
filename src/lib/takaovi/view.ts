@@ -264,6 +264,9 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
         const view = views.get(event.turn.id);
         if (!view) break;
         const { status } = event.turn;
+        // Measure before rendering: an error card alone is taller than the
+        // stick threshold, so asking afterwards always says "not near".
+        const stick = nearBottom();
         if (status === 'thinking') {
           setBusy(true);
           showThinking(view);
@@ -274,7 +277,7 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
           setBusy(false);
           finish(event.turn, view);
         }
-        toBottom();
+        if (stick) toBottom(true);
         break;
       }
       case 'availability':

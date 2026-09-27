@@ -136,3 +136,32 @@ describe('retry buttons', () => {
     expect(controller.retryCalls).toBe(1);
   });
 });
+
+describe('keeping the latest message in view', () => {
+  it('scrolls to an error card that arrives while the visitor is at the bottom', () => {
+    // A fake page: 800 px tall viewport, scrolled to the bottom of a 1000 px
+    // document that grows by 300 px per error card, taller than the 140 px
+    // stick threshold. Deciding "near the bottom" after the card is in the
+    // DOM would leave the retry button under the fixed composer.
+    const page = document.documentElement;
+    Object.defineProperty(page, 'clientHeight', { configurable: true, value: 800 });
+    Object.defineProperty(page, 'scrollHeight', {
+      configurable: true,
+      get: () => 1000 + 300 * document.querySelectorAll('.tk-alert').length,
+    });
+    page.scrollTop = 200;
+    const scrollTo = vi.mocked(Element.prototype.scrollTo);
+
+    const t1 = turn(1);
+    controller.emit({ type: 'turn-added', turn: t1 });
+    scrollTo.mockClear();
+    controller.emit({
+      type: 'turn-changed',
+      turn: { ...t1, status: 'error', error: 'timeout' },
+    });
+
+    expect(scrollTo).toHaveBeenCalled();
+    Reflect.deleteProperty(page, 'clientHeight');
+    Reflect.deleteProperty(page, 'scrollHeight');
+  });
+});
