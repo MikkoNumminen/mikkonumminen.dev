@@ -122,9 +122,11 @@ export function createChatController(deps: ControllerDeps): ChatController {
   // Bumped by restart(): a probe or turn that started before it must not write
   // into the conversation that replaced it.
   let generation = 0;
-  // Bumped whenever a turn settles. A health probe that started before the
-  // latest turn settled carries older news than that turn and is dropped: a
-  // slow cold-start probe must not raise "down" under an answer that arrived.
+  // Bumped when a turn settles in a way that says something about the
+  // backend (an answer, or `unavailable`). A health probe that started before
+  // that carries older news and is dropped: a slow cold-start probe must not
+  // raise "down" under an answer that arrived. A timeout, a 429 or an error
+  // frame says nothing about health, so it leaves a recheck's result alone.
   let settled = 0;
   let disposed = false;
 
@@ -197,8 +199,10 @@ export function createChatController(deps: ControllerDeps): ChatController {
       if (!live()) return;
       turn.status = 'error';
       turn.error = classify(err, timedOut);
-      settled++;
-      if (turn.error === 'unavailable') setAvailability('down');
+      if (turn.error === 'unavailable') {
+        settled++;
+        setAvailability('down');
+      }
       emit({ type: 'turn-changed', turn });
     } finally {
       if (timer !== undefined) clearTimeout(timer);

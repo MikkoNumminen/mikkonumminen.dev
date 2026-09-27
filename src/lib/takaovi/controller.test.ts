@@ -425,6 +425,31 @@ describe('checkHealth() racing a turn', () => {
   });
 });
 
+describe('checkHealth() alongside a turn that fails for another reason', () => {
+  it('keeps the probe result when the turn ends rate-limited', async () => {
+    let resolveProbe: (p: HealthProbe) => void = () => {};
+    const controller = createChatController({
+      baseUrl: '/api/rag',
+      stream: throwingStream(new ChatRequestError(429)),
+      probe: vi.fn(
+        (_baseUrl: string) =>
+          new Promise<HealthProbe>((resolve) => {
+            resolveProbe = resolve;
+          }),
+      ),
+      resetSession: vi.fn(async () => {}),
+    });
+
+    const health = controller.checkHealth();
+    await controller.ask('kysymys');
+    expect(controller.turns[0]?.error).toBe('rate-limited');
+
+    resolveProbe({ available: true, model: 'poro' });
+    await health;
+    expect(controller.availability).toBe('up');
+  });
+});
+
 describe('ask() with no backend configured', () => {
   it('ends the turn unavailable without calling stream, and busy returns to false', async () => {
     const stream = vi.fn(
