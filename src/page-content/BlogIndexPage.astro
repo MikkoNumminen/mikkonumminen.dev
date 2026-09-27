@@ -20,22 +20,20 @@ const entries = (await getCollection('blog'))
       <p class="blog-index__lede">{t.blog.lede}</p>
     </header>
 
-    {
-      entries.length === 0 ? (
-        <p class="blog-index__empty">{t.blog.empty}</p>
-      ) : (
-        <ul class="blog-index__list">
-          {entries.map((entry) => (
-            <li>
-              <PostCard
-                entry={entry}
-                href={localizePath(`/blog/${entry.data.slug}`, locale)}
-              />
-            </li>
-          ))}
-        </ul>
-      )
-    }
+    {entries.length === 0 ? (
+      <p class="blog-index__empty">{t.blog.empty}</p>
+    ) : (
+      <ul class="blog-index__list">
+        {entries.map((entry) => (
+          <li>
+            <PostCard
+              entry={entry}
+              href={localizePath(`/blog/${entry.data.slug}`, locale)}
+            />
+          </li>
+        ))}
+      </ul>
+    )}
   </section>
 </BaseLayout>
 

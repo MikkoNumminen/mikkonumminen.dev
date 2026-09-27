@@ -6,7 +6,7 @@ export const fi: Translations = {
     downloadCvAria: 'Lataa CV:ni PDF-tiedostona ({size})',
   },
   meta: {
-    jobTitle: 'Fullstack-kehittäjä',
+    jobTitle: 'AI Product Engineer',
     home: {
       title: 'Mikko Numminen · full-stack-kehittäjä',
       description:
@@ -71,7 +71,7 @@ export const fi: Translations = {
     heading: 'Lyhyt esittely.',
     // REVIEW (fi): literal mirror of the EN intro; the sarcasm does not
     // translate 1:1. Draft only, replace with your own phrasing.
-    body: 'Olen full-stack-kehittäjä Takaovi Palvelut Oy:ssä Tampereella, jossa kehitän kiinteistönhallinta-alustaa ja hoidan yrityksen IT:n. Omissa projekteissani työ on pyörinyt enimmäkseen kielimallien ympärillä, joiden paimentamiseen käytän suurimman osan ajastani, koska malli, joka on väärässä mutta varma asiastaan, on aivan oma ongelmansa. Päädyin tähän vuonna 2022 myytyäni rautaa 24 vuotta, joten olen se tyyppi, joka lukee käyttöohjeen ja odottaa silti laitteen hajoavan. Rakennan koko homman, tietokannasta ruudulle asti, ja mittaan sen, minkä rakennan. Joskus mittaan sen, julkaisen tulokset ja huomaan sitten, että mittari itse oli rikki, mikä on nöyryyttävä tapa oppia, että myös instrumentti pitää tarkistaa.',
+    body: 'Työskentelen AI Product Engineerinä Takaovi Palvelut Oy:ssä Tampereella, jossa kehitän kiinteistönhallinta-alustaa ja hoidan yrityksen IT:n. Omissa projekteissani työ on pyörinyt enimmäkseen kielimallien ympärillä, joiden paimentamiseen käytän suurimman osan ajastani, koska malli, joka on väärässä mutta varma asiastaan, on aivan oma ongelmansa. Päädyin tähän vuonna 2022 myytyäni rautaa 24 vuotta, joten olen se tyyppi, joka lukee käyttöohjeen ja odottaa silti laitteen hajoavan. Rakennan koko homman, tietokannasta ruudulle asti, ja mittaan sen, minkä rakennan. Joskus mittaan sen, julkaisen tulokset ja huomaan sitten, että mittari itse oli rikki, mikä on nöyryyttävä tapa oppia, että myös instrumentti pitää tarkistaa.',
   },
   latestEntries: {
     sectionAria: 'Uusimmat blogimerkinnät',
@@ -458,7 +458,7 @@ export const fi: Translations = {
     },
     takaovi: {
       title: 'Takaovi Palvelut Oy',
-      body: 'Full-stack-kehittäjä Takaovi Palvelut Oy:ssä, joka toimii nimellä Asuntokanava. Se on noin 30 hengen PropTech-yritys Tampereella. Kehitän kiinteistönhallinnan legacy-alustaa ja hoidan yrityksen IT-hallinnon.\n\nKehitys. C#- ja .NET-alusta Azuressa, hallintafrontend Angularilla ja erillinen asiakasportaali Laravelilla, Reactilla ja PostgreSQL:llä. M-Files-integraatio. Pankkiyhteydet: maksuaineistot, tilitiedotteet ja pankkivarmenteet. Käyttäjien luonti, deaktivointi, poisto ja käyttöoikeuksien hallinta. Tuotantojulkaisut, release-prosessi ja smoke-testaus. Pipelinet, pull requestit, code review ja release-hyväksynnät Azure DevOpsissa. Entra-sovellusten salaisuuksien ja varmenteiden inventaario. Azure-tallennuksen varmuuskopioauditointi ja varmuuskopiosuunnitelma. Tekninen dokumentaatio: havainnot, runbookit ja release-kirjaukset. Työ tehdään AI-avusteisella työnkululla: Claude Code, Codex CLI ja adversariaaliset review-kierrokset.\n\nIT-hallinto. Microsoft 365: käyttäjien onboarding ja offboarding, sähköpostilaatikoiden delegointi, jakeluryhmät, arkistot ja aliakset. Entra ID -tenantti erillisellä admin-tunnuksella. Azure RBAC:n siivous ja subscriptionien hallinta. Henkilöstön sisäinen IT-helpdesk. Yrityksen WordPress-sivusto, sen lomakkeet ja DNS. Yhteydenpito web-toimiston, domain-rekisteröijän ja entisen IT-kumppanin kanssa.',
+      body: 'AI Product Engineer Takaovi Palvelut Oy:ssä, joka toimii nimellä Asuntokanava. Se on noin 30 hengen PropTech-yritys Tampereella. Kehitän kiinteistönhallinnan legacy-alustaa ja hoidan yrityksen IT-hallinnon.\n\nKehitys. C#- ja .NET-alusta Azuressa, hallintafrontend Angularilla ja erillinen asiakasportaali Laravelilla, Reactilla ja PostgreSQL:llä. M-Files-integraatio. Pankkiyhteydet: maksuaineistot, tilitiedotteet ja pankkivarmenteet. Käyttäjien luonti, deaktivointi, poisto ja käyttöoikeuksien hallinta. Tuotantojulkaisut, release-prosessi ja smoke-testaus. Pipelinet, pull requestit, code review ja release-hyväksynnät Azure DevOpsissa. Entra-sovellusten salaisuuksien ja varmenteiden inventaario. Azure-tallennuksen varmuuskopioauditointi ja varmuuskopiosuunnitelma. Tekninen dokumentaatio: havainnot, runbookit ja release-kirjaukset. Työ tehdään AI-avusteisella työnkululla: Claude Code, Codex CLI ja adversariaaliset review-kierrokset.\n\nIT-hallinto. Microsoft 365: käyttäjien onboarding ja offboarding, sähköpostilaatikoiden delegointi, jakeluryhmät, arkistot ja aliakset. Entra ID -tenantti erillisellä admin-tunnuksella. Azure RBAC:n siivous ja subscriptionien hallinta. Henkilöstön sisäinen IT-helpdesk. Yrityksen WordPress-sivusto, sen lomakkeet ja DNS. Yhteydenpito web-toimiston, domain-rekisteröijän ja entisen IT-kumppanin kanssa.',
       tags: [
         'C#',
         '.NET Framework',
@@ -482,7 +482,7 @@ export const fi: Translations = {
     },
     now: {
       title: 'Näillä rakennan',
-      body: 'Full-stack-kehittäjä Takaovi Palvelut Oy:ssä syyskuusta 2026. Alla oleva pino kattaa tämän työn, Kasvu Labsin ja omat projektini.',
+      body: 'AI Product Engineer Takaovi Palvelut Oy:ssä elokuusta 2026. Alla oleva pino kattaa tämän työn, Kasvu Labsin ja omat projektini.',
       tags: ['Takaovi Palvelut Oy', 'Tampere'],
     },
   },
@@ -549,7 +549,7 @@ export const fi: Translations = {
     cmdWhoamiCommunity: 'yhteisö',
     cmdWhoamiDesktop: 'työpöytä',
     cmdWhoamiGame: 'peli',
-    cmdWhoamiCurrently: 'full-stack-kehittäjä takaovi palvelut oy:ssä syyskuusta 2026.',
+    cmdWhoamiCurrently: 'ai product engineer takaovi palvelut oy:ssä elokuusta 2026.',
     cmdContactDesc: 'näytä yhteystiedot',
     cmdContactUsage: 'käyttö: contact [--email]',
     cmdContactUnknownFlag: 'tuntematon valitsin:',

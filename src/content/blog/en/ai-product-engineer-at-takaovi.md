@@ -1,15 +1,15 @@
 ---
-title: Full-stack developer at Takaovi Palvelut Oy
-description: In September 2026 I started as a full-stack developer at Takaovi Palvelut Oy in Tampere. The role covers a property management platform and the company IT administration.
+title: AI Product Engineer at Takaovi Palvelut Oy
+description: In August 2026 I started as an AI Product Engineer at Takaovi Palvelut Oy in Tampere. The role covers a property management platform and the company IT administration.
 date: 2026-09-26
 locale: en
-slug: full-stack-at-takaovi
+slug: ai-product-engineer-at-takaovi
 aiGenerated: false
 hasAudio: false
 tags: []
 ---
 
-In early September 2026 I started as a full-stack developer at Takaovi Palvelut Oy. The company operates as Asuntokanava. It is a PropTech company of about 30 people in Tampere.
+In August 2026 I started as an AI Product Engineer at Takaovi Palvelut Oy. The company operates as Asuntokanava. It is a PropTech company of about 30 people in Tampere.
 
 The role has two parts. Most of it is development on a legacy property management platform. The rest is IT administration for the company.
 

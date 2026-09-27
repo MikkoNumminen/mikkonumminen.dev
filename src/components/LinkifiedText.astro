@@ -14,19 +14,17 @@ const { text, opensInNewTab } = Astro.props;
 const parts = linkifyBody(text);
 ---
 
-{
-  parts.map((part) =>
-    part.type === 'link' ? (
-      <a
-        href={part.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`${part.value} ${opensInNewTab}`}
-      >
-        {part.value}
-      </a>
-    ) : (
-      part.value
-    ),
-  )
-}
+{parts.map((part) =>
+  part.type === 'link' ? (
+    <a
+      href={part.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`${part.value} ${opensInNewTab}`}
+    >
+      {part.value}
+    </a>
+  ) : (
+    part.value
+  ),
+)}

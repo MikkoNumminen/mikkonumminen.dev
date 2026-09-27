@@ -39,22 +39,18 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     <span class="field-log__rule" aria-hidden="true"></span>
     <span class="field-log__vol">vol. 26</span>
   </p>
-  {
-    /* Decorative preview, deliberately aria-hidden. It updates forever
+  {/* Decorative preview, deliberately aria-hidden. It updates forever
       on the cycle's own clock, and an aria-live region that cannot be
       stopped fails WCAG 2.2.2 at Level A. The accessible surface is the
       expanded history below: opened on purpose, announcing nothing by
       itself, and at readable contrast. Marking this hidden also restores
-      the decorative-text exemption the dim corner register relies on. */
-  }
+      the decorative-text exemption the dim corner register relies on. */}
   <ol class="field-log__lines" data-field-log-lines aria-hidden="true"></ol>
 
-  {
-    /* A real button rather than a click handler on the block: the old
+  {/* A real button rather than a click handler on the block: the old
       panel was a clickable span with no tabindex, unreachable by
       keyboard by construction. Overlaid rather than wrapping, because a
-      <button> may not contain a list. */
-  }
+      <button> may not contain a list. */}
   <button
     class="field-log__toggle"
     type="button"
@@ -79,18 +75,15 @@ import { LOG_COPY } from '../../lib/home/fieldLogMessages';
     <span>{LOG_COPY.historyLabel}</span>
     <span class="field-log-history__hint">esc</span>
   </p>
-  {
-    /* tabindex 0 on the SCROLLER, not just the region: an overflow
+  {/* tabindex 0 on the SCROLLER, not just the region: an overflow
       container is not keyboard-scrollable without it, so arrow keys
-      would move the page behind the open panel. */
-  }
+      would move the page behind the open panel. */}
   <ol
     class="field-log-history__lines"
     data-field-log-history-lines
     tabindex="0"
     role="log"
-  >
-  </ol>
+  ></ol>
 </section>
 
 <style>

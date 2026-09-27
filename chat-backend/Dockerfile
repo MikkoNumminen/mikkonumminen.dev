@@ -29,7 +29,7 @@ WORKDIR /srv
 # build step rather than a dead service. This model name MUST match
 # _DEFAULT_EMBEDDING_MODEL in app/config.py. NOTE: this step needs network at
 # build time (it fails if the HF Hub is unreachable).
-RUN pip install "fastembed==0.8.0"
+RUN pip install "fastembed==0.8.1"
 # The runtime user is created BEFORE the bake, and the bake runs as that user, so
 # the ~65MB of weights are written with their final ownership. The alternative —
 # baking as root and fixing it later with `chown -R /srv` — rewrites every one of
