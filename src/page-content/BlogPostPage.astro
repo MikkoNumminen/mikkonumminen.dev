@@ -62,27 +62,23 @@ const documentTitle = `${title} — Mikko Numminen`;
 
       <h1 class="blog-post__title">{title}</h1>
 
-      {
-        aiGenerated && (
-          <div class="blog-post__disclosure">
-            <AiBadge size="lg" />
-            <p class="blog-post__notice">{t.blog.aiNotice}</p>
-          </div>
-        )
-      }
+      {aiGenerated && (
+        <div class="blog-post__disclosure">
+          <AiBadge size="lg" />
+          <p class="blog-post__notice">{t.blog.aiNotice}</p>
+        </div>
+      )}
 
-      {
-        (projectName || tags.length > 0) && (
-          <ul class="blog-post__tags">
-            {/* The project reads as a different kind of label from a topic, so
+      {(projectName || tags.length > 0) && (
+        <ul class="blog-post__tags">
+          {/* The project reads as a different kind of label from a topic, so
                 it is marked rather than dropped into the same run of chips. */}
-            {projectName && <li class="blog-post__tag--project">{projectName}</li>}
-            {tags.map((tag) => (
-              <li>{tag}</li>
-            ))}
-          </ul>
-        )
-      }
+          {projectName && <li class="blog-post__tag--project">{projectName}</li>}
+          {tags.map((tag) => (
+            <li>{tag}</li>
+          ))}
+        </ul>
+      )}
     </header>
 
     <div class="blog-post__body">

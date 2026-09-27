@@ -9,15 +9,31 @@ kind: cv
 
 Tampere, Finland · numminen.mikko.petteri@gmail.com · [github.com/MikkoNumminen](https://github.com/MikkoNumminen) · [mikkonumminen.dev](https://mikkonumminen.dev)
 
-Open to full-stack and AI engineering roles. Remote-friendly.
+AI Product Engineer at Takaovi Palvelut Oy since August 2026.
 
 ## Profile
 
 I build systems around language models and design them for what happens when the model is wrong. Deterministic work stays deterministic, the model is used only where language genuinely cannot be rule-coded, and grounding is enforced by validation rather than by prompt wording. I measure what I ship, and I publish corrections when a measurement turns out to be broken.
 
-Underneath that is ordinary full-stack work, end to end, SQL to ops, in TypeScript, C#, Python and Rust, moving data between APIs, databases, documents and files: PDF and EPUB through OCR, CSV and JSON open data, and code and prose chunked for retrieval. I have programmed since my university IT studies began in 2003, and four years of it has been professional: two employed, two independent and in production. Before that, 24 years in hardware retail and construction-trade B2B, which is why my main AI project is a Finnish retail system rather than a chatbot demo.
+Underneath that is ordinary full-stack work, end to end, SQL to ops, in TypeScript, C#, Python and Rust, moving data between APIs, databases, documents and files: PDF and EPUB through OCR, CSV and JSON open data, and code and prose chunked for retrieval. I have programmed since my university IT studies began in 2003, and four years of it were professional before my current role: two employed, two independent and in production. Before that, 24 years in hardware retail and construction-trade B2B, which is why my main AI project is a Finnish retail system rather than a chatbot demo.
 
 ## Experience
+
+### Takaovi Palvelut Oy, AI Product Engineer · Tampere · August 2026 to present
+
+Takaovi Palvelut Oy operates as Asuntokanava, a PropTech company of about 30 people in Tampere. I develop a legacy property management platform and handle the company IT administration.
+
+- Develop a legacy **C#** and **.NET Framework** platform on **Azure**: App Services, Table Storage, Blob Storage, Key Vault, Azure AD B2C and Application Insights.
+- Work on the **Angular** admin frontend and a separate customer portal in **Laravel**, **React** and **PostgreSQL**.
+- Work on the M-Files integration and the bank connection integrations: payment files, account statements and bank certificates.
+- Work on user provisioning, deactivation, deletion and rights management.
+- Run production releases, the release process and smoke testing. Pipelines, pull requests, code review and release approvals run in **Azure DevOps**.
+- Inventory Entra app secrets and certificates. Audit and plan backups for Azure storage.
+- Write technical documentation: findings, runbooks and release records.
+- Use an AI-assisted workflow with Claude Code and Codex CLI, with adversarial review rounds.
+- Administer Microsoft 365: onboarding and offboarding, mailbox delegation, distribution groups, archives and aliases. Administer the Entra ID tenant from a separate admin account.
+- Clean up Azure RBAC and administer the subscriptions. Run the internal IT helpdesk for staff.
+- Administer the company WordPress site, including the Avada theme and forms, and DNS for the company domain. Coordinate with the web agency, the domain registrar and the former IT partner.
 
 ### Independent software development alongside university studies · 2024 to present
 
@@ -71,15 +87,17 @@ A production HR system, and the largest test surface I maintain. **PostgreSQL** 
 
 **AI and LLM** · Agent and pipeline design, evaluation harnesses, blind A/B model comparison, grounding validation and citation checking, structured-output salvage, prompt-injection containment and red-teaming, cost and latency measurement, RAG with hybrid retrieval and relevance gating, pgvector, local serving with Ollama, Microsoft.Extensions.AI, neural TTS.
 
-**Backend** · REST API design, PostgreSQL, .NET 8 and ASP.NET Core, EF Core, Node.js, FastAPI, Prisma, Kysely, NextAuth, 2FA and TOTP, RBAC, audit trails, SQLite, MongoDB.
+**Backend** · REST API design, PostgreSQL, .NET 8, .NET Framework and ASP.NET Core, EF Core, Node.js, FastAPI, Prisma, Kysely, NextAuth, 2FA and TOTP, RBAC, audit trails, SQLite, MongoDB.
 
-**Frontend** · React 19, TypeScript strict mode, Next.js, Astro, Tailwind CSS, MUI, Three.js, GSAP, Phaser 4, WebAssembly, WCAG AA accessibility.
+**Frontend** · React 19, TypeScript strict mode, Next.js, Angular, Astro, Tailwind CSS, MUI, Three.js, GSAP, Phaser 4, WebAssembly, WCAG AA accessibility.
 
-**Platform** · Docker, GitHub Actions, CI gating with branch protection, Azure, Vercel, Kubernetes and Helm, Turborepo, Tailscale Funnel, self-hosted deployment.
+**Platform** · Docker, GitHub Actions, Azure DevOps, CI gating with branch protection, Azure, Microsoft 365 and Entra ID administration, Vercel, Kubernetes and Helm, Turborepo, Tailscale Funnel, self-hosted deployment.
 
 **Testing** · Playwright UI automation against production builds, Vitest, Jest, xUnit, pytest, mutation testing, coverage thresholds enforced in CI, known-answer vectors, tamper detection.
 
 **Security** · Zero-knowledge architecture, threat modelling, Argon2id, XChaCha20-Poly1305, constant-time comparison, secret-hygiene auditing, CodeQL.
+
+Used at Takaovi Palvelut Oy: C#, .NET Framework, Angular, TypeScript, Laravel, PHP, React, PostgreSQL, Azure (App Services, Table Storage, Blob Storage, Key Vault, AD B2C, Application Insights, Automation), Azure DevOps, PowerShell, Entra ID, Microsoft 365, Exchange Online, M-Files, WordPress, Claude Code, Codex CLI.
 
 Used at Kasvu Labs: TypeScript, JavaScript, React, Next.js, Node.js, PostgreSQL, MUI, Recharts, PgTyped, Kubernetes, Azure.
 

@@ -13,8 +13,8 @@
  * Every name is sourced from the project's own repository — its package.json,
  * requirements.txt, pyproject, .csproj or Cargo.toml — read from disk rather
  * than from this site's description of it. Supplementary sources, for what a
- * manifest cannot say: the Kasvu Labs card in `src/i18n/locales/en.ts` for the
- * `work` marks, `content/cv.md` for capabilities named in prose, and
+ * manifest cannot say: the Kasvu Labs and Takaovi cards in
+ * `src/i18n/locales/en.ts` for the `work` marks, `content/cv.md` for capabilities named in prose, and
  * AudiobookMaker's `engine_installer.py`, because the TTS engines install into
  * per-engine venvs and never appear in the top-level requirements.
  *
@@ -107,7 +107,9 @@ export const techStack: TechCategory[] = [
       },
       {
         name: 'C#',
+        context: 'both',
         secondaries: [
+          { name: '.NET Framework', context: 'work' },
           { name: '.NET 8' },
           { name: 'ASP.NET Core' },
           { name: 'Razor Pages' },
@@ -117,8 +119,9 @@ export const techStack: TechCategory[] = [
       },
       {
         name: 'PHP',
+        context: 'both',
         secondaries: [
-          { name: 'Laravel' },
+          { name: 'Laravel', context: 'both' },
           { name: 'Blade' },
           { name: 'Eloquent' },
           { name: 'Pest' },
@@ -154,7 +157,7 @@ export const techStack: TechCategory[] = [
       // Beside Bash by the same standard, not under Packaging: seven build and
       // publish scripts across four projects, each a real script rather than a
       // one-line shell-out from Python.
-      { name: 'PowerShell' },
+      { name: 'PowerShell', context: 'both' },
       // Not a dotfile: claude-continue *generates* AppleScript — session
       // matching, string escaping, a busy guard on iTerm2's `is processing`
       // so a resume never types into a mid-flight turn — and runs it through
@@ -186,6 +189,7 @@ export const techStack: TechCategory[] = [
           { name: 'framer-motion' },
         ],
       },
+      { name: 'Angular', context: 'work' },
       { name: 'Astro' },
       {
         name: 'Three.js',
@@ -225,6 +229,7 @@ export const techStack: TechCategory[] = [
         name: 'FastAPI',
         secondaries: [{ name: 'asyncpg' }],
       },
+      { name: 'M-Files', context: 'work' },
     ],
   },
   {
@@ -236,6 +241,7 @@ export const techStack: TechCategory[] = [
       // to this repo, and 69 global permission rules.
       {
         name: 'Claude Code',
+        context: 'both',
         secondaries: [
           { name: 'Subagents' },
           { name: 'Skills' },
@@ -246,6 +252,7 @@ export const techStack: TechCategory[] = [
           { name: 'Skill calibration' },
         ],
       },
+      { name: 'Codex CLI', context: 'work' },
       { name: 'Anthropic API' },
       { name: 'Ollama' },
       // Covers two separate systems, which is why it gathers items that also
@@ -307,9 +314,25 @@ export const techStack: TechCategory[] = [
         name: 'Azure',
         context: 'both',
         secondaries: [
-          { name: 'App Service' },
+          { name: 'App Service', context: 'both' },
           { name: 'Static Web Apps' },
           { name: 'Functions' },
+          { name: 'Table Storage', context: 'work' },
+          { name: 'Blob Storage', context: 'work' },
+          { name: 'Key Vault', context: 'work' },
+          { name: 'AD B2C', context: 'work' },
+          { name: 'Application Insights', context: 'work' },
+          { name: 'Automation', context: 'work' },
+        ],
+      },
+      // Identity and mail for the company tenant: the admin side of the
+      // Takaovi role, as distinct from building on Azure above.
+      {
+        name: 'Microsoft 365',
+        context: 'work',
+        secondaries: [
+          { name: 'Entra ID', context: 'work' },
+          { name: 'Exchange Online', context: 'work' },
         ],
       },
       { name: 'Vercel' },
@@ -317,6 +340,7 @@ export const techStack: TechCategory[] = [
         name: 'GitHub Actions',
         secondaries: [{ name: 'CodeQL' }],
       },
+      { name: 'Azure DevOps', context: 'work' },
       {
         name: 'Testing',
         context: 'both',
@@ -353,6 +377,7 @@ export const techStack: TechCategory[] = [
       },
       { name: 'Turborepo' },
       { name: 'Tailscale Funnel' },
+      { name: 'WordPress', context: 'work' },
     ],
   },
 ];

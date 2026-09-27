@@ -80,4 +80,17 @@ describe('localizeTimeline', () => {
       expect(now?.year).not.toBe(NOW_YEAR_SENTINEL);
     }
   });
+
+  it('substitutes the NOW sentinel when it is the open end of a range', () => {
+    for (const locale of LOCALES) {
+      const t = getTranslations(locale);
+      for (const e of localizeTimeline(t)) {
+        expect(e.year, `locale=${locale} ${e.id}.year`).not.toContain(NOW_YEAR_SENTINEL);
+      }
+      const current = localizeTimeline(t).find((e) => e.id === 'takaovi');
+      expect(current?.year, `locale=${locale} takaovi.year`).toBe(
+        `2026–${t.experiencePage.yearNow}`,
+      );
+    }
+  });
 });

@@ -31,8 +31,9 @@ number against the repository it came from.
 It carries a documented bar for inclusion (no model names, no commodity
 libraries, no implementation details of something already listed, no OS
 utilities or hosting vendors) and it records where each technology was used:
-`work` and `both` mark the ones used at Kasvu Labs, and the unmarked default is
-own projects. That distinction is invisible from the repositories themselves.
+`work` and `both` mark the ones used at Kasvu Labs or Takaovi Palvelut Oy, and
+the unmarked default is own projects. That distinction is invisible from the
+repositories themselves.
 
 There are **14 projects** in `src/data/projects.ts`, and `content/cv.md` says
 "fourteen" in prose. Two more copies of the count live in the `2026-build`

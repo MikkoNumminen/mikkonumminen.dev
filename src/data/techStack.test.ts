@@ -245,14 +245,35 @@ describe('techProjects (attribution behind the by-project view)', () => {
   });
 
   // An unattributed technology is allowed, but only deliberately: it means
-  // client work with no project behind it, or a repo that is not a listed
+  // employer work with no project behind it, or a repo that is not a listed
   // project. Anything else is a gap.
   it('only these technologies are deliberately unattributed', () => {
     const unattributed = Object.entries(techProjects)
       .filter(([, ids]) => ids.length === 0)
       .map(([name]) => name)
       .sort();
-    expect(unattributed).toEqual(['Dioxus', 'Kubernetes', 'PgTyped', 'Recharts', 'zbus']);
+    expect(unattributed).toEqual([
+      '.NET Framework',
+      'AD B2C',
+      'Angular',
+      'Application Insights',
+      'Automation',
+      'Azure DevOps',
+      'Blob Storage',
+      'Codex CLI',
+      'Dioxus',
+      'Entra ID',
+      'Exchange Online',
+      'Key Vault',
+      'Kubernetes',
+      'M-Files',
+      'Microsoft 365',
+      'PgTyped',
+      'Recharts',
+      'Table Storage',
+      'WordPress',
+      'zbus',
+    ]);
   });
 });
 

@@ -97,3 +97,24 @@ def test_the_baked_cache_is_owned_by_the_runtime_user() -> None:
         "another layer (~120MB). Set ownership at creation instead: `USER` before "
         "the bake, and `COPY --chown` for the source tree."
     )
+
+
+def test_the_bake_uses_the_fastembed_the_app_runs() -> None:
+    """The bake installs its own fastembed pin, and `pip install -e .` later
+    replaces it with pyproject's. Dependabot bumps only pyproject. If the two
+    differ, the weights are baked by one version and loaded by another under
+    HF_HUB_OFFLINE=1, and fastembed 0.8.1 changed the casing of the bge-small
+    repo ID it resolves, so the cache directory the bake wrote is not the one the
+    runtime reads. The backend then fails to load its embedder at startup."""
+    docker = re.search(r'pip install "fastembed==([^"]+)"', _directives())
+    pyproject = re.search(
+        r'^\s*"fastembed==([^"]+)",',
+        (CHAT_BACKEND / "pyproject.toml").read_text("utf-8"),
+        re.M,
+    )
+    assert docker, 'no pinned `pip install "fastembed==..."` in the Dockerfile'
+    assert pyproject, "fastembed is not pinned with == in pyproject.toml"
+    assert docker.group(1) == pyproject.group(1), (
+        f"Dockerfile bakes with fastembed {docker.group(1)} but pyproject.toml "
+        f"pins {pyproject.group(1)}. Move the Dockerfile line to match."
+    )

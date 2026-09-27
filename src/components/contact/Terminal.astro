@@ -28,7 +28,9 @@ const prompt = 'guest@mikkonumminen:~$';
         <span class="terminal__dot terminal__dot--amber"></span>
         <span class="terminal__dot terminal__dot--green"></span>
       </div>
-      <div class="terminal__title" aria-hidden="true">{t.contactPage.windowTitle}</div>
+      <div class="terminal__title" aria-hidden="true">
+        {t.contactPage.windowTitle}
+      </div>
       <!-- Right-hand chrome cluster: context-window donut + clear button.
            The donut is hidden until the first `context` SSE frame arrives;
            the button is always visible. terminal.ts wires the button click
@@ -48,7 +50,8 @@ const prompt = 'guest@mikkonumminen:~$';
               cy="10"
               r="7"
               fill="none"
-              stroke-width="2.5"></circle>
+              stroke-width="2.5"
+            ></circle>
             <circle
               class="terminal__ctx-arc"
               cx="10"
@@ -58,7 +61,8 @@ const prompt = 'guest@mikkonumminen:~$';
               stroke-width="2.5"
               stroke-linecap="round"
               transform="rotate(-90 10 10)"
-              id="terminal-ctx-arc"></circle>
+              id="terminal-ctx-arc"
+            ></circle>
           </svg>
           <span class="terminal__ctx-label" id="terminal-ctx-label"></span>
         </div>
@@ -66,8 +70,10 @@ const prompt = 'guest@mikkonumminen:~$';
           type="button"
           id="terminal-clear-btn"
           class="terminal__clear"
-          aria-label="Clear conversation">⌫</button
+          aria-label="Clear conversation"
         >
+          ⌫
+        </button>
       </div>
     </header>
 
@@ -78,17 +84,15 @@ const prompt = 'guest@mikkonumminen:~$';
         role="log"
         aria-live="polite"
         aria-atomic="false"
-      >
-      </div>
+      ></div>
 
       <form class="terminal__form" id="terminal-form" autocomplete="off">
         <label for="terminal-input" class="terminal__prompt">
-          <span class="terminal__user">guest@mikkonumminen</span><span
-            class="terminal__sep">:</span
-          ><span class="terminal__path">~</span><span
-            class="terminal__ai"
-            hidden
-            aria-live="polite"></span><span class="terminal__sigil">$</span>
+          <span class="terminal__user">guest@mikkonumminen</span>
+          <span class="terminal__sep">:</span>
+          <span class="terminal__path">~</span>
+          <span class="terminal__ai" hidden aria-live="polite"></span>
+          <span class="terminal__sigil">$</span>
         </label>
         <span class="terminal__input-wrap">
           <input
@@ -106,13 +110,21 @@ const prompt = 'guest@mikkonumminen:~$';
       </form>
 
       <div class="terminal__hints">
-        <span>{t.contactPage.hintType} <kbd>help</kbd></span>
-        <span><kbd>↑</kbd>/<kbd>↓</kbd> {t.contactPage.hintHistory}</span>
-        <span><kbd>tab</kbd> {t.contactPage.hintComplete}</span>
+        <span>
+          {t.contactPage.hintType} <kbd>help</kbd>
+        </span>
+        <span>
+          <kbd>↑</kbd>/<kbd>↓</kbd> {t.contactPage.hintHistory}
+        </span>
+        <span>
+          <kbd>tab</kbd> {t.contactPage.hintComplete}
+        </span>
         <!-- Static rather than revealed with the chat, because the papers are
              reachable in both states and the chat-off terminal was hiding them
              just as thoroughly. -->
-        <span><kbd>download</kbd> {t.contactPage.hintDownloads}</span>
+        <span>
+          <kbd>download</kbd> {t.contactPage.hintDownloads}
+        </span>
       </div>
 
       <!-- Starter-question chips, populated by terminal.ts only when chat is
@@ -130,9 +142,9 @@ const prompt = 'guest@mikkonumminen:~$';
       <ul>
         <li>
           {t.contactPage.noscriptEmailLabel}
-          <a href="mailto:numminen.mikko.petteri@gmail.com"
-            >numminen.mikko.petteri@gmail.com</a
-          >
+          <a href="mailto:numminen.mikko.petteri@gmail.com">
+            numminen.mikko.petteri@gmail.com
+          </a>
         </li>
         <li>
           {t.contactPage.noscriptGithubLabel}

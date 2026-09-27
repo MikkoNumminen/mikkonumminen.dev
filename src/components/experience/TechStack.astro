@@ -28,7 +28,7 @@ const copy = t.techStack;
 // and TimelineContent skips it in the list, so its text lives in one place
 // and `timeline.test.ts` keeps asserting it exists.
 const now = localizeTimeline(t).find((entry) => entry.id === 'now');
-/** `work` and `both` both mean it was used in client work; the badge says so. */
+/** `work` and `both` both mean it was used at an employer; the badge says so. */
 const wearsBadge = (context?: TechContext): boolean =>
   context === 'work' || context === 'both';
 
@@ -64,26 +64,28 @@ const byProject = projects.map((project) => ({
   </div>
 
   <section class="timeline__card tech" id="technologies" aria-labelledby="tech-heading">
-    <span class="timeline__year-bg" aria-hidden="true">{now?.year}</span>
+    <span class="timeline__year-bg" aria-hidden="true">
+      {now?.year}
+    </span>
     <div class="timeline__meta">
       <span class="timeline__year">{now?.year}</span>
       <span class="timeline__kind">{t.experiencePage.kindNow}</span>
     </div>
-    <h2 class="timeline__heading" id="tech-heading">{now?.title}</h2>
+    <h2 class="timeline__heading" id="tech-heading">
+      {now?.title}
+    </h2>
     <div class="timeline__body">
       <p>
         <LinkifiedText text={now?.body ?? ''} opensInNewTab={t.common.opensInNewTab} />
       </p>
     </div>
-    {
-      now?.tags && (
-        <ul class="timeline__tags">
-          {now.tags.map((tag) => (
-            <li>{tag}</li>
-          ))}
-        </ul>
-      )
-    }
+    {now?.tags && (
+      <ul class="timeline__tags">
+        {now.tags.map((tag) => (
+          <li>{tag}</li>
+        ))}
+      </ul>
+    )}
 
     <input
       class="tech__view-input"
@@ -100,80 +102,78 @@ const byProject = projects.map((project) => ({
     />
     <div class="tech__controls">
       <div class="tech__views">
-        <label class="tech__view-label" for="tech-view-overall">{copy.viewOverall}</label>
-        <label class="tech__view-label" for="tech-view-project"
-          >{copy.viewByProject}</label
-        >
+        <label class="tech__view-label" for="tech-view-overall">
+          {copy.viewOverall}
+        </label>
+        <label class="tech__view-label" for="tech-view-project">
+          {copy.viewByProject}
+        </label>
       </div>
     </div>
 
     <div class="tech__grid tech__grid--overall">
-      {
-        techStack.map((category) => (
-          <div class="tech__category">
-            <h3 class="tech__category-name">{copy.categories[category.id]}</h3>
-            <ul class="tech__primaries">
-              {category.primaries.map((primary) => (
-                <li>
-                  {primary.secondaries && primary.secondaries.length > 0 ? (
-                    <details class="tech__group">
-                      <summary class="tech__primary">
-                        <span class="tech__name">{primary.name}</span>
-                        {wearsBadge(primary.context) && (
-                          <span class="tech__badge">{copy.workBadge}</span>
-                        )}
-                        <span class="tech__marker" aria-hidden="true" />
-                      </summary>
-                      <ul class="tech__secondaries">
-                        {primary.secondaries.map((secondary) => (
-                          <li class="tech__secondary">
-                            <span class="tech__name">{secondary.name}</span>
-                            {wearsBadge(secondary.context) && (
-                              <span class="tech__badge tech__badge--sm">
-                                {copy.workBadge}
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  ) : (
-                    <p class="tech__primary tech__primary--leaf">
+      {techStack.map((category) => (
+        <div class="tech__category">
+          <h3 class="tech__category-name">{copy.categories[category.id]}</h3>
+          <ul class="tech__primaries">
+            {category.primaries.map((primary) => (
+              <li>
+                {primary.secondaries && primary.secondaries.length > 0 ? (
+                  <details class="tech__group">
+                    <summary class="tech__primary">
                       <span class="tech__name">{primary.name}</span>
                       {wearsBadge(primary.context) && (
                         <span class="tech__badge">{copy.workBadge}</span>
                       )}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))
-      }
+                      <span class="tech__marker" aria-hidden="true" />
+                    </summary>
+                    <ul class="tech__secondaries">
+                      {primary.secondaries.map((secondary) => (
+                        <li class="tech__secondary">
+                          <span class="tech__name">{secondary.name}</span>
+                          {wearsBadge(secondary.context) && (
+                            <span class="tech__badge tech__badge--sm">
+                              {copy.workBadge}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : (
+                  <p class="tech__primary tech__primary--leaf">
+                    <span class="tech__name">{primary.name}</span>
+                    {wearsBadge(primary.context) && (
+                      <span class="tech__badge">{copy.workBadge}</span>
+                    )}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
 
     <div class="tech__grid tech__grid--project">
-      {
-        byProject.map((project) => (
-          <div class="tech__category">
-            <details class="tech__group">
-              <summary class="tech__primary">
-                <span class="tech__name">{project.name}</span>
-                <span class="tech__count">{project.tech.length}</span>
-                <span class="tech__marker" aria-hidden="true" />
-              </summary>
-              <ul class="tech__secondaries">
-                {project.tech.map((name) => (
-                  <li class="tech__secondary">
-                    <span class="tech__name">{name}</span>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          </div>
-        ))
-      }
+      {byProject.map((project) => (
+        <div class="tech__category">
+          <details class="tech__group">
+            <summary class="tech__primary">
+              <span class="tech__name">{project.name}</span>
+              <span class="tech__count">{project.tech.length}</span>
+              <span class="tech__marker" aria-hidden="true" />
+            </summary>
+            <ul class="tech__secondaries">
+              {project.tech.map((name) => (
+                <li class="tech__secondary">
+                  <span class="tech__name">{name}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      ))}
     </div>
 
     <LanguageMix />

@@ -57,13 +57,11 @@ const listHref = localizePath('/research', locale);
     </nav>
 
     <header class="paper__header">
-      {
-        /* Same formatter as the listing, so a paper does not show "2026-05"
-          on one page and "may 2026" on the other. */
-      }
-      <time class="paper__date" datetime={paper.date}
-        >{monthLabel(paper.date, locale)}</time
-      >
+      {/* Same formatter as the listing, so a paper does not show "2026-05"
+          on one page and "may 2026" on the other. */}
+      <time class="paper__date" datetime={paper.date}>
+        {monthLabel(paper.date, locale)}
+      </time>
       <h1 class="paper__title">{paper.title}</h1>
       <p class="paper__summary">{paper.summary}</p>
       <p class="paper__actions">
@@ -76,45 +74,41 @@ const listHref = localizePath('/research', locale);
           {t.researchPage.pdfAlsoLabel}
         </a>
       </p>
-      {
-        /*
+      {/*
         One bordered block, not one per sentence. A Finnish companion page has
         both things to say, and two stacked grey boxes read as an apology before
         the article rather than a note on it. The companion line comes first:
         what this page IS matters more than what language it is in.
-      */
-      }
-      {
-        (kind !== 'full' || locale !== 'en') && (
-          <aside class="paper__notice">
-            {kind !== 'full' && (
-              <p class="paper__notice-line paper__notice--companion">
-                {kind === 'generated'
-                  ? t.researchPage.generatedNotice
-                  : t.researchPage.companionNotice}
-              </p>
-            )}
-            {locale !== 'en' && (
-              <p class="paper__notice-line" lang="fi">
-                {t.researchPage.englishNotice}
-              </p>
-            )}
-          </aside>
-        )
-      }
+      */}
+      {(kind !== 'full' || locale !== 'en') && (
+        <aside class="paper__notice">
+          {kind !== 'full' && (
+            <p class="paper__notice-line paper__notice--companion">
+              {kind === 'generated'
+                ? t.researchPage.generatedNotice
+                : t.researchPage.companionNotice}
+            </p>
+          )}
+          {locale !== 'en' && (
+            <p class="paper__notice-line" lang="fi">
+              {t.researchPage.englishNotice}
+            </p>
+          )}
+        </aside>
+      )}
     </header>
 
-    {
-      /*
+    {/*
       set:html is safe here and nowhere near a user input: the string comes from
       markdown committed to this repo, rendered by `render-audit-doc.mjs`, whose
       `inline()` escapes the text before it applies any markup.
-    */
-    }
+    */}
     <div class="paper__body" lang="en" set:html={html} />
 
     <footer class="paper__footer">
-      <p>{t.researchPage.sourceLabel}: <code>{source}</code></p>
+      <p>
+        {t.researchPage.sourceLabel}: <code>{source}</code>
+      </p>
     </footer>
   </article>
 </BaseLayout>
