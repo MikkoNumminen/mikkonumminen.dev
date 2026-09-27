@@ -87,12 +87,15 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
     const s = scroller();
     return s.scrollHeight - s.scrollTop - s.clientHeight < STICK_PX;
   };
-  const toBottom = (force = false): void => {
+  // Streaming scrolls jump: a smooth scroll per token restarts the animation
+  // every few milliseconds, lags the text, and `nearBottom` measured mid-way
+  // can decide the visitor scrolled away when they did not.
+  const toBottom = (force = false, smooth = true): void => {
     if (!force && !nearBottom()) return;
     const s = scroller();
     s.scrollTo({
       top: s.scrollHeight,
-      behavior: reduceMotion?.matches ? 'auto' : 'smooth',
+      behavior: smooth && !reduceMotion?.matches ? 'smooth' : 'auto',
     });
   };
 
@@ -257,7 +260,7 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
         const stick = nearBottom();
         if (!view.text) showStreaming(view);
         view.text?.append(event.text);
-        if (stick) toBottom(true);
+        if (stick) toBottom(true, false);
         break;
       }
       case 'turn-changed': {

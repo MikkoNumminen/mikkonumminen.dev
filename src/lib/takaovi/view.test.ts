@@ -165,3 +165,17 @@ describe('keeping the latest message in view', () => {
     Reflect.deleteProperty(page, 'scrollHeight');
   });
 });
+
+describe('following a streamed answer', () => {
+  it('jumps rather than animates on each token', () => {
+    const scrollTo = vi.mocked(Element.prototype.scrollTo);
+    const t1 = turn(1);
+    controller.emit({ type: 'turn-added', turn: t1 });
+    const streaming = { ...t1, status: 'streaming' as const };
+    controller.emit({ type: 'turn-changed', turn: streaming });
+    scrollTo.mockClear();
+    controller.emit({ type: 'token', turn: streaming, text: 'Hei' });
+
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'auto' }));
+  });
+});
