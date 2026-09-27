@@ -18,13 +18,19 @@
 // the right tradeoff is full sampling. Bump down only if traffic grows past
 // the cap.
 //
-// Privacy: Do Not Track is honored (skip init entirely). `sendDefaultPii`
-// is explicitly false so Sentry does not attach the client IP to events —
-// material for EU/GDPR posture. No replay, no session recording.
+// Privacy: Do Not Track is honored (skip init entirely). `dataCollection.userInfo`
+// is explicitly false so Sentry never infers the client IP, on events, streamed
+// spans or sessions — material for EU/GDPR posture. It has to be explicit: the
+// SDK's default for `userInfo` is true, so leaving `dataCollection` unset turns
+// IP inference on. The other `dataCollection` categories stay at their
+// defaults because the browser SDK either does not read them (bodies, cookies
+// without httpClientIntegration, the server-only ones) or collects only what it
+// always did (Referer and User-Agent). No replay, no session recording.
 //
 // CSP: connect-src must include https://*.ingest.sentry.io for the beacon
-// to land (SDK v10 routes all traffic through *.ingest.*; the bare
-// *.sentry.io entry from older SDKs is no longer needed). See vercel.json.
+// to land (the SDK routes all traffic, streamed spans included, through
+// *.ingest.*; the bare *.sentry.io entry from older SDKs is no longer
+// needed). See vercel.json.
 
 import * as Sentry from '@sentry/browser';
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals';
@@ -79,10 +85,9 @@ export function initObservability(): void {
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
-    // Suppress the default IP-address capture for EU/GDPR posture. Errors
-    // and Web Vitals still flow; only the client IP is dropped from event
-    // envelopes.
-    sendDefaultPii: false,
+    // Suppress IP-address inference for EU/GDPR posture. Errors and Web
+    // Vitals still flow; only the client IP is never attached.
+    dataCollection: { userInfo: false },
     // browserTracingIntegration auto-creates a pageload transaction so Web
     // Vitals always have a span to attach attributes to. Without it, vitals
     // fall through to the breadcrumb fallback and aren't chartable.

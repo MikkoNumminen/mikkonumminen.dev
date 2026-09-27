@@ -4,6 +4,16 @@
 **Date:** 2026-05-08
 **Decided by:** repo owner
 
+> **Update (2026-09-27):** the SDK moved to Sentry 11 in PR #611. Sentry 11
+> replaced `sendDefaultPii` with `dataCollection`, and its default infers the
+> client IP, so "Sentry defaults" in the privacy bullet below is no longer
+> restrictive. The SDK is now initialised with
+> `dataCollection: { userInfo: false }`, which tells Sentry's ingest not to
+> infer the IP on events, spans and sessions: the client IP is not attached to
+> events. Events carry, for example, the page URL, the browser, the referrer
+> and the stack trace. The decision below is unchanged, and its original text
+> is kept as the historical record.
+
 ## Context
 
 The site is a fully static Astro build. There are no API routes, no backend,

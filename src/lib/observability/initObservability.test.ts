@@ -25,6 +25,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * missing-DSN case are the two paths where the correct behaviour is to do
  * NOTHING, and "nothing happened" is the one outcome that looks identical to a
  * silent breakage.
+ *
+ * The IP guard gets the same two-layer treatment as web-vitals: a mocked case
+ * that pins the option we pass, and a real-SDK case that pins what Sentry does
+ * with it. The mocked case cannot tell whether Sentry still honours the option;
+ * Sentry 11 replaced `sendDefaultPii` with `dataCollection` and flipped the
+ * default to collect, and the real-SDK case is the one that fails if the
+ * default ever wins again.
  */
 
 const sentry = vi.hoisted(() => ({
@@ -167,8 +174,56 @@ describe('initObservability: the paths that must do nothing', () => {
     const options = sentry.init.mock.calls[0]![0] as Record<string, unknown>;
     // Stated in the header as "material for EU/GDPR posture", which makes it a
     // property rather than a preference.
-    expect(options.sendDefaultPii).toBe(false);
+    expect(options.dataCollection).toMatchObject({ userInfo: false });
     expect(options.replaysSessionSampleRate).toBe(0);
+  });
+});
+
+describe('the real Sentry SDK keeps the client IP out of events', () => {
+  // The test above can only see what we PASS to a mocked `init`, not whether
+  // Sentry still honours it. So this case hands the exact options
+  // `initObservability` produced to the REAL client and reads the event it
+  // would send: `sdk.settings.infer_ip` is what tells Sentry's ingest whether
+  // to record the sender's IP.
+  async function inferIpFor(options: Record<string, unknown>): Promise<unknown> {
+    const real =
+      await vi.importActual<typeof import('@sentry/browser')>('@sentry/browser');
+    const sent: unknown[] = [];
+    const client = new real.BrowserClient({
+      // A cast, not a type: these are the options `init` received, which the
+      // mock records as untyped call arguments.
+      ...(options as Partial<ConstructorParameters<typeof real.BrowserClient>[0]>),
+      dsn: DSN,
+      // The mocked browserTracingIntegration is a stub, and no integration
+      // decides infer_ip, so run the client bare.
+      integrations: [],
+      stackParser: real.defaultStackParser,
+      transport: () => ({
+        send: async (envelope) => {
+          sent.push(envelope);
+          return {};
+        },
+        flush: async () => true,
+      }),
+    });
+    client.init();
+    client.captureException(new Error('probe'));
+    await client.flush(1000);
+    expect(sent, 'the real client sent no envelope').toHaveLength(1);
+    const envelope = sent[0] as [unknown, [unknown, { sdk?: { settings?: unknown } }][]];
+    const event = envelope[1][0]![1];
+    return (event.sdk?.settings as { infer_ip?: unknown } | undefined)?.infer_ip;
+  }
+
+  it('sends infer_ip "never" with the options initObservability uses', async () => {
+    await load();
+    const options = sentry.init.mock.calls[0]![0] as Record<string, unknown>;
+    expect(await inferIpFor(options)).toBe('never');
+  });
+
+  it('would send "auto" without them, so the case above can fail', async () => {
+    // Also pins WHY the option is explicit: the SDK's own default infers the IP.
+    expect(await inferIpFor({})).toBe('auto');
   });
 });
 
