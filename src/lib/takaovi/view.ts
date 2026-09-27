@@ -119,6 +119,9 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
   const avatar = (): Node => avatarTemplate.content.cloneNode(true);
 
   function addTurn(turn: Turn): void {
+    // The controller only ever retries the latest turn, so an older error
+    // card keeps its message but loses its button.
+    for (const stale of log.querySelectorAll('[data-retry]')) stale.remove();
     const user = el('div', 'tk-msg tk-msg--user');
     user.append(
       el('span', 'tk-sr', `${copy.thread.you}:`),
@@ -327,7 +330,8 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
     const target = e.target instanceof Element ? e.target.closest('[data-retry]') : null;
     if (!target || controller.busy) return;
     const bot = target.closest<HTMLElement>('.tk-msg--bot');
-    bot?.focus({ preventScroll: true });
+    if (!bot || bot !== log.lastElementChild) return;
+    bot.focus({ preventScroll: true });
     void controller.retry();
   });
   on(restart, 'click', () => {
