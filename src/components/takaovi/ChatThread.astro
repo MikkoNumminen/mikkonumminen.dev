@@ -7,6 +7,8 @@
  * token would read out fragments. `view.ts` announces through the separate
  * polite region instead, once when a turn starts and once with the finished
  * answer; errors are rendered with role="alert" and speak for themselves.
+ * The notice slot is a status region that exists from the start: a region
+ * inserted already filled is not reliably announced.
  *
  * Messages are built in `view.ts` with `textContent` only. The avatar template
  * lets it reuse the brand mark without duplicating its path data in script.
@@ -37,7 +39,7 @@ import { takaoviCopy as copy } from '../../data/takaovi';
         {copy.thread.restart}
       </button>
     </div>
-    <div class="tk-notice-slot" data-notice></div>
+    <div class="tk-notice-slot" role="status" data-notice></div>
     <p class="tk-empty" data-empty>
       {copy.thread.empty}
     </p>

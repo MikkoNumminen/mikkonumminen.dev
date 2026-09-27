@@ -223,12 +223,14 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
   }
 
   function renderNotice(): void {
+    // A successful recheck removes the button that has focus; hand focus to
+    // the composer instead of letting it fall to <body>.
+    if (notice.contains(doc.activeElement)) input.focus({ preventScroll: true });
     notice.replaceChildren();
     const state = controller.availability;
     if (state !== 'down' && state !== 'unconfigured') return;
     const message = state === 'down' ? copy.notices.down : copy.notices.unconfigured;
     const box = el('div', 'tk-notice');
-    box.setAttribute('role', 'status');
     box.append(
       el('p', 'tk-notice__title', message.title),
       el('p', 'tk-notice__text', message.text),

@@ -179,3 +179,17 @@ describe('following a streamed answer', () => {
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'auto' }));
   });
 });
+
+describe('the availability notice', () => {
+  it('hands focus to the composer when a recheck clears the notice', () => {
+    controller.setAvailability('down');
+    const recheck = root.querySelector<HTMLButtonElement>('[data-notice] button');
+    expect(recheck).not.toBeNull();
+    recheck!.focus();
+
+    controller.setAvailability('up');
+
+    expect(root.querySelector('[data-notice]')!.childElementCount).toBe(0);
+    expect(document.activeElement).toBe(root.querySelector('[data-input]'));
+  });
+});
