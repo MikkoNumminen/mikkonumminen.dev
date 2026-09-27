@@ -85,11 +85,9 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
 
-    {
-      alternates.map((alt) => (
-        <link rel="alternate" hreflang={alt.locale} href={alt.href} />
-      ))
-    }
+    {alternates.map((alt) => (
+      <link rel="alternate" hreflang={alt.locale} href={alt.href} />
+    ))}
     <link rel="alternate" hreflang="x-default" href={xDefault} />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -172,7 +170,6 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
         }
       })();
     </script>
-
     <slot name="head" />
 
     <ClientRouter />
@@ -196,21 +193,17 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
       <slot />
     </main>
 
-    {
-      /* Before the footer in reading order, not after it. The control is
+    {/* Before the footer in reading order, not after it. The control is
         position:fixed so nothing moves visually, but it is the last
         focusable element on the page and the last thing a linear read
         reaches — and it now yields to the footer, so it has to come
-        first or a reader arrives at an empty corner. */
-    }
+        first or a reader arrives at an empty corner. */}
     <BackgroundAudio />
 
-    {
-      /* The CV reaches every route from here. The hero pill only exists on
+    {/* The CV reaches every route from here. The hero pill only exists on
         the landing page, and the fixed nav is already six links plus the
         language switcher and scrolls horizontally under 600px, so the
-        footer is the one place a persistent link costs nothing. */
-    }
+        footer is the one place a persistent link costs nothing. */}
     <footer class="site-footer" data-site-footer>
       <span>{t.navCards.footerCopyright}</span>
       <a
@@ -322,7 +315,6 @@ const xDefault = new URL(localizePath(basePath, xDefaultLocale), Astro.site).toS
         },
       );
     </script>
-
     <script>
       import { initObservability } from '../lib/observability/initObservability';
 

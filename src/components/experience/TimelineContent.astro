@@ -49,83 +49,75 @@ function ghostYear(year: string): string {
          above. `e2e/scenes.spec.ts` fails if that ever changes. -->
     <TechStack />
 
-    {
-      climbOrder.map((entry) => (
-        <li
-          class="timeline__entry"
-          data-timeline-entry
-          data-altitude={entry.altitude}
-          data-kind={entry.kind}
-        >
-          <div class="timeline__marker" aria-hidden="true">
-            <span class="timeline__dot">
-              <span class="timeline__dot-ring" />
-              <span class="timeline__dot-ring timeline__dot-ring--late" />
-            </span>
-            <span class="timeline__line" />
+    {climbOrder.map((entry) => (
+      <li
+        class="timeline__entry"
+        data-timeline-entry
+        data-altitude={entry.altitude}
+        data-kind={entry.kind}
+      >
+        <div class="timeline__marker" aria-hidden="true">
+          <span class="timeline__dot">
+            <span class="timeline__dot-ring" />
+            <span class="timeline__dot-ring timeline__dot-ring--late" />
+          </span>
+          <span class="timeline__line" />
+        </div>
+        <div class="timeline__card">
+          <span class="timeline__year-bg" aria-hidden="true">
+            {ghostYear(entry.year)}
+          </span>
+          <div class="timeline__meta">
+            <span class="timeline__year">{entry.year}</span>
+            <span class="timeline__kind">{kindLabel[entry.kind]}</span>
           </div>
-          <div class="timeline__card">
-            <span class="timeline__year-bg" aria-hidden="true">
-              {ghostYear(entry.year)}
-            </span>
-            <div class="timeline__meta">
-              <span class="timeline__year">{entry.year}</span>
-              <span class="timeline__kind">{kindLabel[entry.kind]}</span>
-            </div>
-            <h2 class="timeline__heading">{entry.title}</h2>
-            <div class="timeline__body">
-              {entry.body.split(/\n\n+/).map((paragraph) => (
-                <p>
-                  <LinkifiedText
-                    text={paragraph}
-                    opensInNewTab={t.common.opensInNewTab}
-                  />
-                </p>
+          <h2 class="timeline__heading">{entry.title}</h2>
+          <div class="timeline__body">
+            {entry.body.split(/\n\n+/).map((paragraph) => (
+              <p>
+                <LinkifiedText text={paragraph} opensInNewTab={t.common.opensInNewTab} />
+              </p>
+            ))}
+          </div>
+          {entry.lessons && entry.lessons.length > 0 && (
+            <ol class="timeline__lessons" aria-label={t.experiencePage.lessonsAriaLabel}>
+              {entry.lessons.map((lesson) => (
+                <li class="timeline__lesson">
+                  <span class="timeline__lesson-marker" aria-hidden="true" />
+                  <div class="timeline__lesson-content">
+                    <h3 class="timeline__lesson-title">{lesson.title}</h3>
+                    <p class="timeline__lesson-body">
+                      <LinkifiedText
+                        text={lesson.body}
+                        opensInNewTab={t.common.opensInNewTab}
+                      />
+                    </p>
+                    {lesson.link && (
+                      <a
+                        class="receipt-link"
+                        href={lesson.link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {lesson.link.label}
+                        <span aria-hidden="true"> →</span>
+                      </a>
+                    )}
+                  </div>
+                </li>
               ))}
-            </div>
-            {entry.lessons && entry.lessons.length > 0 && (
-              <ol
-                class="timeline__lessons"
-                aria-label={t.experiencePage.lessonsAriaLabel}
-              >
-                {entry.lessons.map((lesson) => (
-                  <li class="timeline__lesson">
-                    <span class="timeline__lesson-marker" aria-hidden="true" />
-                    <div class="timeline__lesson-content">
-                      <h3 class="timeline__lesson-title">{lesson.title}</h3>
-                      <p class="timeline__lesson-body">
-                        <LinkifiedText
-                          text={lesson.body}
-                          opensInNewTab={t.common.opensInNewTab}
-                        />
-                      </p>
-                      {lesson.link && (
-                        <a
-                          class="receipt-link"
-                          href={lesson.link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {lesson.link.label}
-                          <span aria-hidden="true"> →</span>
-                        </a>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-            {entry.tags && (
-              <ul class="timeline__tags">
-                {entry.tags.map((tag) => (
-                  <li>{tag}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </li>
-      ))
-    }
+            </ol>
+          )}
+          {entry.tags && (
+            <ul class="timeline__tags">
+              {entry.tags.map((tag) => (
+                <li>{tag}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </li>
+    ))}
   </ol>
 
   <footer class="timeline__header" data-goat-anchor="foot" data-base-camp tabindex="-1">
@@ -151,7 +143,8 @@ function ghostYear(year: string): string {
             stroke="currentColor"
             stroke-width="1.6"
             stroke-linecap="round"
-            stroke-linejoin="round"></path>
+            stroke-linejoin="round"
+          ></path>
         </svg>
         <span>{t.experiencePage.scrollHint}</span>
       </p>

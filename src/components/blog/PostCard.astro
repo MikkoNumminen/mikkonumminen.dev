@@ -19,8 +19,7 @@ const dateLabel = formatEntryDate(date, locale);
 <article class="post-card">
   <div class="post-card__meta">
     <time datetime={date.toISOString()}>{dateLabel}</time>
-    {
-      /*
+    {/*
       ALWAYS rendered, in both states, rather than a badge only on the posts that
       have narration. Nine of eleven entries have it, so marking only those would
       badge almost every card and leave the two exceptions defined by an absence,
@@ -30,8 +29,7 @@ const dateLabel = formatEntryDate(date, locale);
       NOT aria-hidden, unlike the AI chip beside it. That one repeats a fact
       already inside the link's accessible name, so reading it twice is noise;
       this fact appears nowhere else on the card.
-    */
-    }
+    */}
     <span class="post-card__audio" data-has-audio={hasAudio ? 'true' : 'false'}>
       {hasAudio ? t.blog.hasAudio : t.blog.noAudio}
     </span>
@@ -47,15 +45,13 @@ const dateLabel = formatEntryDate(date, locale);
 
   <p class="post-card__description">{description}</p>
 
-  {
-    tags.length > 0 && (
-      <ul class="post-card__tags">
-        {tags.map((tag) => (
-          <li>{tag}</li>
-        ))}
-      </ul>
-    )
-  }
+  {tags.length > 0 && (
+    <ul class="post-card__tags">
+      {tags.map((tag) => (
+        <li>{tag}</li>
+      ))}
+    </ul>
+  )}
 </article>
 
 <style>

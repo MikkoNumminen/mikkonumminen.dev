@@ -19,54 +19,56 @@ const entries = (
   data-field-section="writing"
   aria-label={t.latestEntries.sectionAria}
 >
-  <span class="ghost-num latest__ghost" aria-hidden="true">02</span>
+  <span class="ghost-num latest__ghost" aria-hidden="true">
+    02
+  </span>
 
   <div class="latest__inner">
     <p class="latest__eyebrow eyebrow-marker" data-reveal>
-      <span class="eyebrow-marker__num" aria-hidden="true">/ 02</span>
+      <span class="eyebrow-marker__num" aria-hidden="true">
+        / 02
+      </span>
       <span class="eyebrow-marker__rule" aria-hidden="true"></span>
       {t.latestEntries.eyebrow}
     </p>
 
     <h2 class="latest__heading">
-      <span data-split data-reveal-chars>{t.latestEntries.heading}</span>
+      <span data-split data-reveal-chars>
+        {t.latestEntries.heading}
+      </span>
     </h2>
 
-    {
-      entries.length === 0 ? (
-        <p class="latest__empty" data-reveal>
-          {t.latestEntries.empty}
-        </p>
-      ) : (
-        <ul class="latest__list">
-          {entries.map((entry) => (
-            <li class="latest__item" data-reveal>
-              <span class="latest__meta">
-                <time
-                  class="latest__date"
-                  datetime={entry.data.date.toISOString().slice(0, 10)}
-                >
-                  {formatEntryDate(entry.data.date, locale)}
-                </time>
-                {entry.data.aiGenerated && <AiBadge decorative />}
-              </span>
-              <h3 class="latest__title">
-                <a
-                  class="latest__link"
-                  href={localizePath(`/blog/${entry.data.slug}`, locale)}
-                >
-                  {entry.data.title}
-                  {entry.data.aiGenerated && (
-                    <span class="sr-only">{t.blog.aiBadge}</span>
-                  )}
-                </a>
-              </h3>
-              <p class="latest__desc">{entry.data.description}</p>
-            </li>
-          ))}
-        </ul>
-      )
-    }
+    {entries.length === 0 ? (
+      <p class="latest__empty" data-reveal>
+        {t.latestEntries.empty}
+      </p>
+    ) : (
+      <ul class="latest__list">
+        {entries.map((entry) => (
+          <li class="latest__item" data-reveal>
+            <span class="latest__meta">
+              <time
+                class="latest__date"
+                datetime={entry.data.date.toISOString().slice(0, 10)}
+              >
+                {formatEntryDate(entry.data.date, locale)}
+              </time>
+              {entry.data.aiGenerated && <AiBadge decorative />}
+            </span>
+            <h3 class="latest__title">
+              <a
+                class="latest__link"
+                href={localizePath(`/blog/${entry.data.slug}`, locale)}
+              >
+                {entry.data.title}
+                {entry.data.aiGenerated && <span class="sr-only">{t.blog.aiBadge}</span>}
+              </a>
+            </h3>
+            <p class="latest__desc">{entry.data.description}</p>
+          </li>
+        ))}
+      </ul>
+    )}
 
     <a class="latest__all" href={localizePath('/blog', locale)} data-reveal>
       {t.latestEntries.viewAll}

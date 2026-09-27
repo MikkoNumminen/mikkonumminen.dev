@@ -18,8 +18,7 @@ const cvSize = publicFileSize(cv.filename);
     <p class="hero__eyebrow">{t.hero.eyebrow}</p>
     <p class="hero__subtitle">{t.hero.subtitle}</p>
 
-    {
-      /* The one action on the cover. It sits in the masthead rather than in
+    {/* The one action on the cover. It sits in the masthead rather than in
         a fixed corner because every corner is already spoken for (audio
         bottom-left, field log bottom-right, coordinate markers top), and
         because the masthead is the only block that renders identically on
@@ -27,8 +26,7 @@ const cvSize = publicFileSize(cv.filename);
         reduced-motion. One control, no duplicate to keep in step.
 
         `download` plus an explicit filename, so the browser saves rather
-        than opening a viewer tab the visitor then has to save out of. */
-    }
+        than opening a viewer tab the visitor then has to save out of. */}
     <div class="hero__cv-row">
       <a
         class="hero__cv"
@@ -38,15 +36,15 @@ const cvSize = publicFileSize(cv.filename);
         aria-label={t.common.downloadCvAria.replace('{size}', cvSize)}
       >
         <span class="hero__cv-label">{t.hero.cvLabel}</span>
-        <span class="hero__cv-size" aria-hidden="true">{cvSize}</span>
+        <span class="hero__cv-size" aria-hidden="true">
+          {cvSize}
+        </span>
       </a>
 
-      {
-        /* Beside the pill rather than under it. A second line here costs about
+      {/* Beside the pill rather than under it. A second line here costs about
           27px of masthead height, and at 360x640 the masthead already came
           within 10px of the fallback title before the pill existed; a row
-          keeps the block one line tall. */
-      }
+          keeps the block one line tall. */}
       <a
         class="hero__cv-read"
         href={localizePath('/cv', locale)}
@@ -61,7 +59,9 @@ const cvSize = publicFileSize(cv.filename);
     <h1 class="hero__title sr-only">{t.hero.titleSrOnly}</h1>
 
     <p class="hero__title-fallback" data-fallback>
-      {t.hero.titleFallbackTop}<br />{t.hero.titleFallbackBottom}
+      {t.hero.titleFallbackTop}
+      <br />
+      {t.hero.titleFallbackBottom}
     </p>
   </div>
 
@@ -77,7 +77,12 @@ const cvSize = publicFileSize(cv.filename);
       focusable="false"
     >
       <rect x="0.5" y="0.5" width="13" height="21" rx="6.5" stroke="currentColor"></rect>
-      <circle cx="7" cy="7" r="1.5" fill="currentColor" class="hero__scroll-circle"
+      <circle
+        cx="7"
+        cy="7"
+        r="1.5"
+        fill="currentColor"
+        class="hero__scroll-circle"
       ></circle>
     </svg>
   </div>

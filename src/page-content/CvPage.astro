@@ -62,24 +62,22 @@ const downloadAria = t.common.downloadCvAria.replace('{size}', cvSize);
         aria-label={downloadAria}
       >
         <span>{t.cvPage.downloadLabel}</span>
-        <span class="cv__download-size" aria-hidden="true">{cvSize}</span>
+        <span class="cv__download-size" aria-hidden="true">
+          {cvSize}
+        </span>
       </a>
     </header>
 
-    {
-      locale !== 'en' && (
-        <aside class="cv__notice" lang="fi">
-          <p>{t.cvPage.englishNotice}</p>
-        </aside>
-      )
-    }
+    {locale !== 'en' && (
+      <aside class="cv__notice" lang="fi">
+        <p>{t.cvPage.englishNotice}</p>
+      </aside>
+    )}
 
-    {
-      /* `lang="en"` for the same reason `ResearchPaperPage.astro` marks its
+    {/* `lang="en"` for the same reason `ResearchPaperPage.astro` marks its
         body: on /fi/cv the document language is Finnish and this prose is not,
         so without it a screen reader reads the whole CV with Finnish
-        pronunciation rules. */
-    }
+        pronunciation rules. */}
     <div class="cv__body" lang="en">
       <Content />
     </div>
@@ -94,11 +92,15 @@ const downloadAria = t.common.downloadCvAria.replace('{size}', cvSize);
         aria-label={downloadAria}
       >
         <span>{t.cvPage.downloadLabel}</span>
-        <span class="cv__download-size" aria-hidden="true">{cvSize}</span>
+        <span class="cv__download-size" aria-hidden="true">
+          {cvSize}
+        </span>
       </a>
     </footer>
 
-    <a class="cv__back" href={localizePath('/', locale)}>{t.cvPage.backHome}</a>
+    <a class="cv__back" href={localizePath('/', locale)}>
+      {t.cvPage.backHome}
+    </a>
   </article>
 </BaseLayout>
 
