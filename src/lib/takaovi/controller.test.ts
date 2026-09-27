@@ -397,6 +397,34 @@ describe('checkHealth()', () => {
   });
 });
 
+describe('checkHealth() racing a turn', () => {
+  it('drops a probe result that started before a turn settled', async () => {
+    // A cold model can make the load-time probe slower than the first
+    // question. Its late "down" is older news than the answer that arrived.
+    let resolveProbe: (p: HealthProbe) => void = () => {};
+    const probe = vi.fn(
+      (_baseUrl: string) =>
+        new Promise<HealthProbe>((resolve) => {
+          resolveProbe = resolve;
+        }),
+    );
+    const controller = createChatController({
+      baseUrl: '/api/rag',
+      stream: resolvedStream((handlers) => handlers.onToken('vastaus')),
+      probe,
+      resetSession: vi.fn(async () => {}),
+    });
+
+    const health = controller.checkHealth();
+    await controller.ask('kysymys');
+    expect(controller.availability).toBe('up');
+
+    resolveProbe({ available: false, model: null });
+    await health;
+    expect(controller.availability).toBe('up');
+  });
+});
+
 describe('ask() with no backend configured', () => {
   it('ends the turn unavailable without calling stream, and busy returns to false', async () => {
     const stream = vi.fn(

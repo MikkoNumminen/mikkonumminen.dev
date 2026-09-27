@@ -122,6 +122,10 @@ export function createChatController(deps: ControllerDeps): ChatController {
   // Bumped by restart(): a probe or turn that started before it must not write
   // into the conversation that replaced it.
   let generation = 0;
+  // Bumped whenever a turn settles. A health probe that started before the
+  // latest turn settled carries older news than that turn and is dropped: a
+  // slow cold-start probe must not raise "down" under an answer that arrived.
+  let settled = 0;
   let disposed = false;
 
   const emit = (event: ChatEvent): void => {
@@ -186,12 +190,14 @@ export function createChatController(deps: ControllerDeps): ChatController {
         throw new Error('empty or failed answer');
       turn.status = 'done';
       turn.sources = sourceLabels(collected);
+      settled++;
       setAvailability('up');
       emit({ type: 'turn-changed', turn });
     } catch (err) {
       if (!live()) return;
       turn.status = 'error';
       turn.error = classify(err, timedOut);
+      settled++;
       if (turn.error === 'unavailable') setAvailability('down');
       emit({ type: 'turn-changed', turn });
     } finally {
@@ -218,8 +224,9 @@ export function createChatController(deps: ControllerDeps): ChatController {
       const base = deps.baseUrl;
       if (!base || disposed) return;
       const gen = generation;
+      const before = settled;
       const { available } = await probe(base);
-      if (gen !== generation || disposed) return;
+      if (gen !== generation || before !== settled || disposed) return;
       setAvailability(available ? 'up' : 'down');
     },
     async ask(question) {
