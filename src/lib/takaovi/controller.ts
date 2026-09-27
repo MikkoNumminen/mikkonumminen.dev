@@ -101,7 +101,7 @@ function classify(err: unknown, timedOut: boolean): TurnError {
   if (err instanceof ChatRequestError) {
     if (err.status === 429) return 'rate-limited';
     // The Vercel rewrite answers 5xx when the tunnel or the stack is down.
-    return err.status >= 500 || err.status === 0 ? 'unavailable' : 'failed';
+    return err.status >= 500 ? 'unavailable' : 'failed';
   }
   // fetch rejects with a TypeError when the network or the rewrite target is
   // unreachable; anything else thrown here is a broken stream.
