@@ -193,3 +193,23 @@ describe('the availability notice', () => {
     expect(document.activeElement).toBe(root.querySelector('[data-input]'));
   });
 });
+
+describe('Enter in the composer', () => {
+  it('sends the question even where form.requestSubmit is missing (Safari before 16)', () => {
+    const asked: string[] = [];
+    controller.ask = async (q: string) => {
+      asked.push(q);
+    };
+    const form = root.querySelector<HTMLFormElement>('[data-composer]')!;
+    Object.defineProperty(form, 'requestSubmit', {
+      configurable: true,
+      value: undefined,
+    });
+    const input = root.querySelector<HTMLTextAreaElement>('[data-input]')!;
+    input.value = 'Mitä Mikko tekee?';
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    expect(asked).toEqual(['Mitä Mikko tekee?']);
+  });
+});

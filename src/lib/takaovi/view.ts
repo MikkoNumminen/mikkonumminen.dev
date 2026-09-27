@@ -325,7 +325,10 @@ export function mountTakaoviChat(root: HTMLElement, opts: MountOptions = {}): ()
   on(input, 'keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
-      form.requestSubmit();
+      // requestSubmit is Safari 16+; clicking the submit button fires the same
+      // submit event on older iOS, where Enter would otherwise do nothing.
+      if (typeof form.requestSubmit === 'function') form.requestSubmit();
+      else send.click();
     }
   });
   for (const card of root.querySelectorAll<HTMLButtonElement>('[data-question]')) {
