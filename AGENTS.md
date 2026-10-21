@@ -115,7 +115,7 @@ before any large new feature or a fifth page.
 - Small commits, [Conventional Commits](https://www.conventionalcommits.org/) style
   (`feat:`, `fix:`, `chore:`, `refactor:`, `style:`, `docs:`, `perf:`).
 - No commit trailers and no co-author lines — commits read as ordinary development.
-- Branch first, then open a PR. CI must be green before squash-merge — three workflows run on every PR: the main gate (`typecheck → format:check → lint → test:coverage → build`, on Node 22), the **Playwright scene smoke** (`e2e/`, a headless-WebGL boot test of all four worlds), and **CodeQL** static security analysis.
+- Branch first, then open a PR. CI must be green before squash-merge — three workflows run on every PR: the main gate (`typecheck → format:check → lint → test:coverage → build`, on Node 24), the **Playwright scene smoke** (`e2e/`, a headless-WebGL boot test of all four worlds), and **CodeQL** static security analysis.
 - `TODO.md`, if present, is a gitignored personal working file — keep it current locally, but it is not committed (don't link or rely on it).
 - `npm run build` must succeed and `npm run typecheck` must pass before a page is "done".
 

@@ -9,14 +9,14 @@ written down so it's reproducible (by a human or an automated agent).
 ## Setup
 
 ```bash
-nvm use            # Node 22 (pinned in .nvmrc)
+nvm use            # Node 24.22.1 (pinned in .nvmrc)
 npm install
 npm run dev        # http://localhost:4321
 ```
 
 ## The gates (must pass before merge)
 
-CI runs these on every PR, on Node 22, in this order — run them locally first:
+CI runs these on every PR, on Node 24, in this order — run them locally first:
 
 ```bash
 npm run typecheck     # astro check
