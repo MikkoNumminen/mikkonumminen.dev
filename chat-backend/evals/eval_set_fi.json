@@ -132,10 +132,10 @@
         "projects/portfolio-architecture.md"
       ],
       "expected_points": [
-        "Astro 6 (saariarkkitehtuuri — nolla framework-ajoaikaa sivuilla joilla ei ole interaktiivisia saaria)",
-        "Three.js 0.184 ja GSAP + ScrollTrigger 3.15, molemmat dynaamisesti importattuna per sivu",
-        "Tailwind CSS v4 (4.2) ja TypeScript 6 strict-tilassa noUncheckedIndexedAccessilla",
-        "Node 22 on ajoaikalattia (ADR 0007), otettu käyttöön Astro 5 → Astro 6 -päivityksessä"
+        "Astro 7 (saariarkkitehtuuri — nolla framework-ajoaikaa sivuilla joilla ei ole interaktiivisia saaria)",
+        "Three.js 0.186 ja GSAP + ScrollTrigger 3.15, molemmat dynaamisesti importattuna per sivu",
+        "Tailwind CSS v4 (4.3) ja TypeScript 6 strict-tilassa noUncheckedIndexedAccessilla",
+        "Node 24 on ajoaikalattia (24.22.1, lokakuun 2026 tietoturvajulkaisu); se korvasi Node 22 -lattian, jonka ADR 0007 otti käyttöön Astro 5 → Astro 6 -päivityksessä"
       ],
       "note": "FI parallel of portfolio-tech"
     },

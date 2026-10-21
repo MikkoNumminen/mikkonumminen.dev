@@ -6,6 +6,7 @@ describe('parseVersion', () => {
     expect(parseVersion('22.12.0')).toEqual([22, 12, 0]);
     expect(parseVersion('v22.12.0')).toEqual([22, 12, 0]);
     expect(parseVersion('>=22.12.0')).toEqual([22, 12, 0]);
+    expect(parseVersion('^24.22.1')).toEqual([24, 22, 1]);
   });
 
   it('returns null when there is no version to parse', () => {
@@ -32,5 +33,15 @@ describe('meetsMinimum', () => {
   it('returns false on unparseable input rather than throwing', () => {
     expect(meetsMinimum('garbage', MIN)).toBe(false);
     expect(meetsMinimum('22.12.0', 'garbage')).toBe(false);
+  });
+
+  it('holds a caret range to its major', () => {
+    const CARET = '^24.22.1';
+    expect(meetsMinimum('24.22.1', CARET)).toBe(true);
+    expect(meetsMinimum('v24.23.0', CARET)).toBe(true);
+    expect(meetsMinimum('24.22.0', CARET)).toBe(false);
+    expect(meetsMinimum('25.0.0', CARET)).toBe(false);
+    expect(meetsMinimum('26.12.1', CARET)).toBe(false);
+    expect(meetsMinimum('22.23.4', CARET)).toBe(false);
   });
 });

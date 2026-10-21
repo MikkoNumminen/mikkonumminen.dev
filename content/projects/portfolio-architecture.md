@@ -45,14 +45,14 @@ public/data/      committed static JSON artifacts served at runtime
 | Technology           | Version | Decision driver                                                                                                                   |
 | -------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Astro                | 7       | Island architecture; zero framework runtime on pages with no interactive islands; each page owns its own JS lifecycle (ADR 0003). |
-| Three.js             | 0.185   | WebGL scene authoring without a game engine; scenes dynamically imported per-page and disposed on the client-side route swap.     |
+| Three.js             | 0.186   | WebGL scene authoring without a game engine; scenes dynamically imported per-page and disposed on the client-side route swap.     |
 | GSAP + ScrollTrigger | 3.15    | Scroll-driven animation timelines; dynamically imported only on pages that need them.                                             |
-| Tailwind CSS v4      | 4.2     | Utility CSS; no component library.                                                                                                |
+| Tailwind CSS v4      | 4.3     | Utility CSS; no component library.                                                                                                |
 | TypeScript (strict)  | 6       | Strict mode + `noUncheckedIndexedAccess`; ESLint treats `any` as an error, not a warning.                                         |
 
 The README frames the choice explicitly: this stack is intentionally separate from the author's production stack (Next.js / React / MUI), "the craft side of the brain." ADR 0003 documents why Next.js was rejected: the App Router's React runtime would add unnecessary overhead and complicate Three.js scene lifecycle management for a site where no pages share client state.
 
-Node 22 is the runtime floor (ADR 0007), adopted in the Astro 5 → Astro 6 upgrade to stay on a current, supported toolchain.
+Node 24 is the runtime floor: 24.22.1, the October 2026 security release, pinned in `.nvmrc` and `engines`. It replaced the Node 22 floor that ADR 0007 adopted in the Astro 5 → Astro 6 upgrade to stay on a current, supported toolchain.
 
 ## Data Model / Persistence / Schema
 
