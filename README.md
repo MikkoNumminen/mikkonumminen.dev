@@ -140,7 +140,7 @@ This stack is intentionally separate from the production stack used in my other 
 
 ## Local development
 
-Requires Node 22+ (Astro 7; see [`.nvmrc`](./.nvmrc)).
+Requires Node 24.22.1 or later on the 24 line (the October 2026 security release; see [`.nvmrc`](./.nvmrc)).
 
 ```bash
 npm install

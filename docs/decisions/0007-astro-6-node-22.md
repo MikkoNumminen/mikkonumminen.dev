@@ -4,6 +4,13 @@
 **Date:** 2026-06-13
 **Decided by:** repo owner
 
+> **Update (2026-10-22):** the Node floor is now **24.22.1**, the line patched
+> by the 2026-10-21 Node.js security release (`.nvmrc` `24.22.1`, `engines`
+> `^24.22.1`). Node 24 rather than 26: Vercel builds offer only 24.x and 22.x,
+> and 26.x reaches Active LTS on 2026-10-28. "CI, local, and Vercel all run 22"
+> below is the historical record; before this change CI ran 22 from `.nvmrc`
+> while Vercel already resolved `>=22.12.0` to 24.x.
+
 ## Context
 
 The site ran on Astro 5. Two `high`-severity advisories were open against Astro

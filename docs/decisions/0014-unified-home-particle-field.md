@@ -4,6 +4,11 @@
 **Date:** 2026-07-24
 **Decided by:** repo owner
 
+> **Update (2026-10-22):** `postprocessing` 6.39.5 widened its peer to
+> `three >= 0.168 < 0.187`, and three is now on r186. The dependency-constraint
+> bullet under Consequences describes the 6.39.4 range; the current hold, at
+> 0.186.x, is recorded in `.github/dependabot.yml`.
+
 ## Context
 
 The home hero was a stack of independent visual systems: an extruded
