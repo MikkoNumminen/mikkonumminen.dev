@@ -1253,19 +1253,29 @@ def cmd_down() -> int:
             # e.g. ENOEXEC on the /mnt/c exe when WSL interop's binfmt entry is
             # gone. Caught here, not in run(), so `down` still prints its summary.
             failed.append(f"funnel off ({exc})")
-    if watchdog == "busy" and wd_pid is not None and ts:
-        if not _cmdline_is_watchdog(_proc_argv(wd_pid)):
-            # It finished its step while we shut down, so what that step did to
-            # the route is visible now: check it instead of warning about it.
-            watchdog = "stopped"
+    if (
+        watchdog == "busy"
+        and wd_pid is not None
+        and not _cmdline_is_watchdog(_proc_argv(wd_pid))
+    ):
+        # It finished its step while we shut down, so what that step did to the
+        # route is visible now: check it instead of warning about it. Skipped
+        # when the funnel step already failed, which is reported on its own.
+        watchdog = "stopped"
+        if ts and not any(f.startswith("funnel off") for f in failed):
             try:
                 routes = funnel_routes(
                     run([ts, "funnel", "status", "--json"], timeout=10)[1]
                 )
             except OSError:
                 routes = None
-            if routes is None or funnel_serves_port(routes, FUNNEL_PORT):
-                failed.append("funnel off (the watchdog's last step re-published it)")
+            if routes is None:
+                failed.append("funnel status unreadable after the watchdog exited")
+            elif funnel_serves_port(routes, FUNNEL_PORT):
+                failed.append(
+                    "funnel off (the watchdog's last step re-published it;"
+                    " run `ragctl down` again)"
+                )
     if failed:
         print(_c(f"  ✗ failed: {', '.join(failed)}; the endpoint may still be up.", "31"))
     pid = wd_pid

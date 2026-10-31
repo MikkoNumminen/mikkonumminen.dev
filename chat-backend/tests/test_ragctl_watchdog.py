@@ -273,15 +273,21 @@ def test_down_reports_a_watchdog_still_finishing_a_step(
 
 
 def _down_after_a_busy_watchdog_exits(
-    monkeypatch: pytest.MonkeyPatch, status: str
+    monkeypatch: pytest.MonkeyPatch,
+    status: str,
+    *,
+    off_rc: int = 0,
+    ts: str | None = "tailscale.exe",
 ) -> int:
     def fake_run(cmd: list[str], **k: object) -> tuple[int, str]:
-        return (0, status) if cmd[-1] == "--json" else (0, "")
+        if cmd[-1] == "--json":
+            return (0, status)
+        return (off_rc, "") if cmd[-1] == "off" else (0, "")
 
     monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: ("busy", 555))
     monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: False)  # exited
     monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: None)
-    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: ts)
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
     monkeypatch.setattr(ragctl, "run", fake_run)
     return ragctl.cmd_down()
@@ -308,7 +314,44 @@ def test_down_fails_when_a_busy_watchdogs_last_step_re_published_the_route(
         }
     )
     assert _down_after_a_busy_watchdog_exits(monkeypatch, status) == 1
-    assert "re-published it" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "re-published it" in out
+    assert "ragctl down` again" in out
+
+
+def test_down_does_not_blame_the_watchdog_for_an_unreadable_status(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    assert _down_after_a_busy_watchdog_exits(monkeypatch, "") == 1
+    out = capsys.readouterr().out
+    assert "funnel status unreadable after the watchdog exited" in out
+    assert "re-published" not in out
+
+
+def test_down_reports_its_own_failed_funnel_step_only_once(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    status = json.dumps(
+        {
+            "Web": {
+                "h.ts.net:443": {"Handlers": {"/": {"Proxy": "http://127.0.0.1:8000"}}}
+            },
+            "AllowFunnel": {"h.ts.net:443": True},
+        }
+    )
+    assert _down_after_a_busy_watchdog_exits(monkeypatch, status, off_rc=1) == 1
+    out = capsys.readouterr().out
+    assert "✗ failed: funnel off; the endpoint" in out  # one entry, no second cause
+    assert "re-published" not in out
+
+
+def test_a_busy_watchdog_that_exited_is_not_reported_without_tailscale(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    assert _down_after_a_busy_watchdog_exits(monkeypatch, "", ts=None) == 1
+    out = capsys.readouterr().out
+    assert "tailscale.exe not found" in out
+    assert "still finishing a step" not in out
 
 
 def test_down_reports_a_funnel_exe_that_cannot_execute(
