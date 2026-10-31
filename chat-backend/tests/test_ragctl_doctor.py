@@ -50,7 +50,16 @@ def test_a_clean_stream_passes(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
     assert "hrm" in out
 
 
-@pytest.mark.parametrize("bad", ["data: {not json", 'data: "x"'])
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "data: {not json",
+        'data: "x"',
+        "data: {}",
+        'data: {"text": null}',
+        'data: {"text": 3}',
+    ],
+)
 def test_a_malformed_token_frame_fails_the_probe(
     monkeypatch: pytest.MonkeyPatch, capsys, bad: str
 ) -> None:
@@ -71,12 +80,21 @@ def test_a_malformed_token_frame_fails_the_probe(
     assert "1 malformed frame(s) dropped" in out
 
 
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "data: [1]",
+        'data: {"sources": null}',
+        'data: {"sources": [1]}',
+        'data: {"sources": [{"source": 5}]}',
+    ],
+)
 def test_a_malformed_sources_frame_fails_the_probe(
-    monkeypatch: pytest.MonkeyPatch, capsys
+    monkeypatch: pytest.MonkeyPatch, capsys, bad: str
 ) -> None:
     _serve(
         monkeypatch,
-        ["event: token", 'data: {"text": "ok"}', "event: sources", "data: [1]"],
+        ["event: token", 'data: {"text": "ok"}', "event: sources", bad],
     )
     assert ragctl.cmd_test("q") == 1
     assert "malformed frame(s) dropped" in capsys.readouterr().out

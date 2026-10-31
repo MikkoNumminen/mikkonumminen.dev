@@ -1359,6 +1359,30 @@ def cmd_prune() -> int:
     return 0
 
 
+def _token_text(data: str) -> str | None:
+    """The `text` of a token frame (`app.sse.sse_token`), or None if malformed."""
+    try:
+        frame = json.loads(data)
+    except json.JSONDecodeError:
+        return None
+    text = frame.get("text") if isinstance(frame, dict) else None
+    return text if isinstance(text, str) else None
+
+
+def _source_names(data: str) -> list[str] | None:
+    """The source names of a sources frame (`app.sse.sse_sources`), or None."""
+    try:
+        frame = json.loads(data)
+    except json.JSONDecodeError:
+        return None
+    items = frame.get("sources") if isinstance(frame, dict) else None
+    if not isinstance(items, list) or not all(
+        isinstance(s, dict) and isinstance(s.get("source", ""), str) for s in items
+    ):
+        return None
+    return [s.get("source", "") for s in items]
+
+
 def cmd_test(question: str) -> int:
     """Doctor the live model with one real query: stream it, time it, show it."""
     payload = json.dumps({"message": question}).encode()
@@ -1383,20 +1407,19 @@ def cmd_test(question: str) -> int:
                     if event == "token":
                         if first is None:
                             first = time.time() - start
-                        try:
-                            parts.append(json.loads(data).get("text", ""))
-                        except (json.JSONDecodeError, AttributeError):
+                        text = _token_text(data)
+                        if text is None:
                             # Keep reading so the rest of the answer still shows,
                             # but the probe reports the stream as broken below.
                             dropped += 1
+                        else:
+                            parts.append(text)
                     elif event == "sources":
-                        try:
-                            sources = [
-                                s.get("source", "")
-                                for s in json.loads(data).get("sources", [])
-                            ]
-                        except (json.JSONDecodeError, AttributeError):
+                        names = _source_names(data)
+                        if names is None:
                             dropped += 1
+                        else:
+                            sources = names
                     elif event == "error":
                         print(f"  {_c('✗ error frame', '31')}: {data}")
                         return 1
