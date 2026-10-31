@@ -2397,8 +2397,6 @@ def cmd_logs(n: int) -> int:
             rec = json.loads(brace + rest)
         except Exception:
             continue
-        if not isinstance(rec, dict):
-            continue
         tag = _c("gated", "31") if rec.get("gated") else _c("answered", "32")
         print(_c(ts.strip(), "90") + f"  [{tag}]")
         print("  Q: " + str(rec.get("query", "")))
