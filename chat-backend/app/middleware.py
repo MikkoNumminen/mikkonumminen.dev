@@ -38,6 +38,8 @@ class BodySizeLimitMiddleware:
                         await self._reject(send)
                         return
                 except ValueError:
+                    # A malformed length is not trusted either way; the running
+                    # cap below still bounds the actual bytes.
                     pass
                 break
 

@@ -47,6 +47,9 @@ def aggregate(lines: list[str], since: str | None = None) -> dict[str, Any]:
         except json.JSONDecodeError:
             malformed += 1
             continue
+        if not isinstance(rec, dict):
+            malformed += 1
+            continue
         if since and str(rec.get("ts", "")) < since:
             continue
         route = str(rec.get("route", "unknown"))
@@ -95,7 +98,9 @@ def main(argv: list[str] | None = None) -> int:
     if not path.is_file():
         print(f"no such log file: {path}", file=sys.stderr)
         return 1
-    lines = path.read_text(encoding="utf-8").splitlines()
+    # split("\n"), not splitlines(): records written before U+2028/U+2029/U+0085
+    # were escaped can still hold them raw inside a JSON string.
+    lines = path.read_text(encoding="utf-8").split("\n")
     json.dump(aggregate(lines, since=args.since), sys.stdout, indent=2)
     print()
     return 0

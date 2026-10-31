@@ -84,8 +84,10 @@ def test_looks_non_english_false_for_ascii_english(query: str) -> None:
         "Mitkä projektit käyttävät PostgreSQL:ää, ja onko jokin joka valitsi toisin?",
         "kerro jotain projekteista",
         "Kerro projekteista tarkemmin.",
-        "Miten HRM:n nopeudenrajoitin estää kahden samanaikaisen pyynnön race "
-        "conditionin ilman Redistä?",
+        (
+            "Miten HRM:n nopeudenrajoitin estää kahden samanaikaisen pyynnön race "
+            "conditionin ilman Redistä?"
+        ),
         "Kysymys tiedostossa mainituista projekteista",
         "Miten tämä chat toimii?",
         "Onko projekteja?",
