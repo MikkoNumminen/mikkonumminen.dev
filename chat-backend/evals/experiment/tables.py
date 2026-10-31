@@ -89,8 +89,10 @@ def render_variance_table(arms: Sequence[dict[str, Any]]) -> str:
     the Phase-D report lacked: it presented N=4 stochastic counts as firmly as the
     deterministic retrieval."""
     lines = [
-        "| arm | retrieval hit (DET) | synthesis subst. (STOCH mean[min-max]/cases) "
-        "| containment refused (STOCH mean[min-max]/cases) |",
+        (
+            "| arm | retrieval hit (DET) | synthesis subst. (STOCH mean[min-max]/cases) "
+            "| containment refused (STOCH mean[min-max]/cases) |"
+        ),
         "|---|---|---|---|",
     ]
     for a in arms:

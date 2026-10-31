@@ -130,10 +130,13 @@ def _rows() -> list[dict[str, object]]:
     if not LOG.exists():
         raise SystemExit(f"no log at {LOG}")
     out: list[dict[str, object]] = []
-    for line in LOG.read_text(encoding="utf-8").splitlines():
+    # split("\n"), not splitlines(): see log_metrics.main.
+    for line in LOG.read_text(encoding="utf-8").split("\n"):
         try:
             row = json.loads(line)
         except ValueError:
+            continue
+        if not isinstance(row, dict):
             continue
         # Only answered turns carry a model-written claim. Refusals are fixed
         # strings and cannot contain an invented relationship.

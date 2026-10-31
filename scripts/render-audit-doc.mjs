@@ -321,13 +321,18 @@ function main() {
 
   const html = buildHtml(md, title);
 
-  const htmlPath = args.keepHtml
-    ? outputAbs.replace(/\.pdf$/i, '.html')
-    : path.join(os.tmpdir(), `render-audit-doc-${path.basename(outputAbs, '.pdf')}.html`);
-  fs.writeFileSync(htmlPath, html);
-
-  printHtmlToPdf({ htmlPath, pdfPath: outputAbs });
-  if (!args.keepHtml) fs.rmSync(htmlPath, { force: true });
+  // A private mkdtemp dir, not a fixed name in the shared tmpdir: a predictable
+  // path there can be pre-created or symlinked by another local user.
+  const tmpDir = args.keepHtml ? null : fs.mkdtempSync(path.join(os.tmpdir(), 'render-audit-doc-'));
+  const htmlPath = tmpDir
+    ? path.join(tmpDir, `${path.basename(outputAbs, '.pdf')}.html`)
+    : outputAbs.replace(/\.pdf$/i, '.html');
+  try {
+    fs.writeFileSync(htmlPath, html);
+    printHtmlToPdf({ htmlPath, pdfPath: outputAbs });
+  } finally {
+    if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 
   console.log(
     `render-audit-doc: ${path.relative(ROOT, inputAbs)} -> ${path.relative(ROOT, outputAbs)}` +

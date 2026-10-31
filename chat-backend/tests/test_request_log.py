@@ -103,6 +103,23 @@ def test_text_mode_preserves_non_ascii() -> None:
     assert r["query"] == "Mikä on HRM?"
 
 
+def test_text_mode_record_stays_one_line_for_unicode_line_breaks() -> None:
+    query = "hi\u20281\u2029there\x85end"
+    line = format_log_record(
+        query,
+        [0.2],
+        route="answered",
+        response="ok\u2028",
+        model="m",
+        latency_ms=1,
+        log_text=True,
+    )
+    assert len(line.splitlines()) == 1
+    r = json.loads(line)
+    assert r["query"] == query
+    assert r["response"] == "ok\u2028"
+
+
 def test_text_mode_truncates_query_and_response() -> None:
     r = json.loads(
         format_log_record(
