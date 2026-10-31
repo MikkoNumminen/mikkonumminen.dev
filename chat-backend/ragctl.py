@@ -293,14 +293,20 @@ def ensure_request_log() -> None:
     writable by the backend's uid 10001, and point RAG_LOG_FILE at the mounted
     path if it isn't set. Logging stays opt-in in the repo; RAG Control is what
     turns it on."""
-    # 0o777 is deliberate: the backend writes the log as the non-root uid 10001,
-    # so the bind-mounted host dir must be writable by a different uid; this host
-    # is single-operator-local, so world-write is tolerated. (On a Windows Docker
-    # Desktop host the chmod is a near no-op — writability comes from the mount
-    # translation — but it is correct + necessary when ragctl runs on Linux.)
+    # World-writable on purpose, and an accepted risk rather than an oversight.
+    # The backend writes the log as uid 10001 (USER appuser in
+    # chat-backend/Dockerfile) into this dir, bind-mounted by docker-compose.yml,
+    # while the dir belongs to the operator. The narrower routes are unavailable
+    # to an unattended ragctl: chown to 10001 needs root, the WSL host has no
+    # setfacl for a per-uid ACL, and running the container as the host uid
+    # would change ownership on every other volume it writes. The sticky bit
+    # (the 1 in 0o1777) keeps uid 10001, or any other user, from unlinking or
+    # replacing the operator's watchdog.pid and watchdog.log that live here too.
+    # (On a Windows Docker Desktop host the chmod is a near no-op; writability
+    # comes from the mount translation.)
     try:
         RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
-        os.chmod(RAG_LOG_DIR, 0o777)
+        os.chmod(RAG_LOG_DIR, 0o1777)
     except OSError as exc:
         print(_c(f"  ⚠ could not prepare rag-logs/ ({exc}); logging may stay off", "33"))
     if not configured_rag_log():
