@@ -87,6 +87,7 @@ def test_a_malformed_token_frame_fails_the_probe(
         'data: {"sources": null}',
         'data: {"sources": [1]}',
         'data: {"sources": [{"source": 5}]}',
+        'data: {"sources": [{}]}',
     ],
 )
 def test_a_malformed_sources_frame_fails_the_probe(

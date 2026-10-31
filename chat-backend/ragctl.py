@@ -1387,10 +1387,10 @@ def _source_names(data: str) -> list[str] | None:
         return None
     items = frame.get("sources") if isinstance(frame, dict) else None
     if not isinstance(items, list) or not all(
-        isinstance(s, dict) and isinstance(s.get("source", ""), str) for s in items
+        isinstance(s, dict) and isinstance(s.get("source"), str) for s in items
     ):
         return None
-    return [s.get("source", "") for s in items]
+    return [s["source"] for s in items]
 
 
 def cmd_test(question: str) -> int:
