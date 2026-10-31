@@ -200,9 +200,56 @@ def test_stop_kills_running_watchdog(monkeypatch: pytest.MonkeyPatch, tmp_path) 
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
     killed: list[tuple[int, int]] = []
     monkeypatch.setattr(ragctl.os, "kill", lambda pid, sig: killed.append((pid, sig)))
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: None)  # exits at once
     assert ragctl.stop_watchdog_daemon() is True
     assert killed == [(555, ragctl.signal.SIGTERM)]
     assert not pidfile.exists()  # pid file cleaned up
+
+
+def test_stop_waits_for_the_watchdog_to_finish_its_step(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    # SIGTERM only sets the stop flag; a reassert finishing after `down`'s
+    # funnel-off would re-publish the route, so stop must outlast it.
+    pidfile = tmp_path / "watchdog.pid"
+    pidfile.write_text("555")
+    monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", pidfile)
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
+    monkeypatch.setattr(ragctl.os, "kill", lambda pid, sig: None)
+    alive = iter([True, True, False])
+    monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: next(alive))
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
+    monkeypatch.setattr(ragctl.time, "sleep", lambda s: None)
+    assert ragctl.stop_watchdog_daemon() is True
+    assert not pidfile.exists()
+
+
+def test_stop_reports_a_watchdog_that_outlives_the_timeout(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    pidfile = tmp_path / "watchdog.pid"
+    pidfile.write_text("555")
+    monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", pidfile)
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
+    monkeypatch.setattr(ragctl.os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: True)
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
+    monkeypatch.setattr(ragctl, "WATCHDOG_STOP_TIMEOUT_S", 0)
+    assert ragctl.stop_watchdog_daemon() is False
+    assert pidfile.read_text() == "555"  # still names the live watchdog
+
+
+def test_run_reports_an_exec_failure_instead_of_raising(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # ENOEXEC on a /mnt/c Windows exe when WSL interop's binfmt entry is gone.
+    def enoexec(*a: object, **k: object) -> None:
+        raise OSError(8, "Exec format error")
+
+    monkeypatch.setattr(ragctl.subprocess, "run", enoexec)
+    rc, out = ragctl.run(["/mnt/c/Program Files/Tailscale/tailscale.exe", "status"])
+    assert rc == 126
+    assert "Exec format error" in out
 
 
 def test_stop_treats_an_already_exited_watchdog_as_stopped(

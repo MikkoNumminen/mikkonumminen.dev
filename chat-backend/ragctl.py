@@ -158,6 +158,10 @@ def run(cmd: list[str], timeout: int = 30, cwd: Path | None = None) -> tuple[int
         return 127, ""
     except subprocess.TimeoutExpired:
         return 124, ""
+    except OSError as exc:
+        # e.g. ENOEXEC on the /mnt/c Windows exes when WSL interop's binfmt
+        # entry is gone; callers already treat any non-zero code as failure.
+        return 126, str(exc)
 
 
 def _win_exe(name: str, *fallbacks: str) -> str | None:
@@ -1031,8 +1035,34 @@ def stop_watchdog_daemon() -> bool:
             )
         )
         return False
+    # SIGTERM only sets the watchdog's stop flag: it finishes an in-flight step
+    # first, and a reassert finishing after `down`'s funnel-off would re-publish
+    # the route. So wait for it to actually exit.
+    if not _wait_for_watchdog_exit(pid, WATCHDOG_STOP_TIMEOUT_S):
+        print(
+            _c(
+                f"  ⚠ watchdog (pid {pid}) did not exit within"
+                f" {WATCHDOG_STOP_TIMEOUT_S}s of SIGTERM and is still running",
+                "33",
+            )
+        )
+        return False
     WATCHDOG_PID_FILE.unlink(missing_ok=True)
     print(f"  ● watchdog stopped (pid {pid})")
+    return True
+
+
+# Longest step the watchdog can be inside when SIGTERM lands: a 12 s public
+# probe then a reconnect (`tailscale down` 25 s + `up` 40 s), with margin.
+WATCHDOG_STOP_TIMEOUT_S = 120
+
+
+def _wait_for_watchdog_exit(pid: int, timeout_s: float) -> bool:
+    deadline = time.monotonic() + timeout_s
+    while _cmdline_is_watchdog(_proc_argv(pid)):
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.5)
     return True
 
 
@@ -1192,8 +1222,8 @@ def cmd_down() -> int:
         failed.append("docker compose down")
     ts = tailscale_exe()
     if not ts:
-        # Not finding the exe (e.g. WSL interop off) says nothing about the route,
-        # which tailscaled keeps configured across restarts of the backend.
+        # Not finding the exe (Tailscale not at its default path) says nothing
+        # about the route, which tailscaled keeps configured across restarts.
         failed.append("funnel off (tailscale.exe not found)")
     else:
         print("  ◐ funnel off …")
@@ -1210,7 +1240,10 @@ def cmd_down() -> int:
         print(_c(f"  ✗ failed: {', '.join(failed)}; the endpoint may still be up.", "31"))
     if watchdog_left:
         if "docker compose down" in failed:
-            when = "the backend is still up, so it will re-open the funnel within minutes"
+            when = (
+                "the backend may still be up, and then it re-opens the funnel"
+                " within minutes"
+            )
             advice = "kill it now"
         else:
             when = "it will re-open the funnel as soon as the backend comes back up"
