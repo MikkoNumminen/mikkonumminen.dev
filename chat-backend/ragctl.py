@@ -1412,9 +1412,8 @@ def cmd_test(question: str) -> int:
     ttft = f"{first:.1f}s" if first is not None else "—"
     print(f"  {len(answer)} chars · first token {ttft} · total {elapsed:.1f}s\n")
     if dropped:
-        print(
-            f"  {_c(f'✗ {dropped} malformed frame(s) dropped', '31')}: the stream is broken\n"
-        )
+        warning = _c(f"✗ {dropped} malformed frame(s) dropped", "31")
+        print(f"  {warning}: the stream is broken\n")
         return 1
     return 0
 
