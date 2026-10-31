@@ -299,20 +299,20 @@ def ensure_request_log() -> None:
     # this operator-owned dir through the bind mount in docker-compose.yml. The
     # operator writes here too: watchdog.pid and watchdog.log, and inputs for
     # one-off eval scripts that run inside the container and write their output
-    # back beside them (e.g. poro-triples.json -> poro-reviews.jsonl, and the
-    # fi_*.jsonl runs). Those scripts are ad hoc and live outside the tracked
-    # tree (the gitignored .local/), so no code here names those files. With
-    # writers on both uids, a mode owned by either side alone breaks the other;
-    # narrowing it needs a shared group or a separate exchange dir, which has
-    # not been done yet. Until then
-    # the sticky bit (the 1 in 0o1777) keeps uid 10001, or any other user, from
-    # unlinking or replacing the operator's files, while the operator as dir
-    # owner can still remove the container's. It only covers files that exist:
+    # back beside them (e.g. poro-triples.json -> poro-reviews.jsonl, from
+    # .local/poro-fi-review-2026-07/poro_review.py). Those scripts are ad hoc and
+    # live outside the tracked tree (the gitignored .local/), so no code here
+    # names those files. With writers on both uids, a mode owned by either side
+    # alone breaks the other; narrowing it needs a shared group or a separate
+    # exchange dir, which has not been done yet. Until then the sticky bit (the
+    # 1 in 0o1777) keeps uid 10001, or any other user, from unlinking or
+    # replacing the operator's files, while the operator as dir owner can still
+    # remove the container's. It only covers files that exist:
     # watchdog.pid is absent between `down` and the next watchdog start, and a
     # name created first by uid 10001 in that window would block the operator's
     # write. That gap is part of the accepted risk until the files move out.
-    # (On a Windows Docker Desktop host the chmod is a near no-op; writability
-    # comes from the mount translation.)
+    # ragctl runs in WSL with this dir on the Linux filesystem, so the mode is
+    # enforced; only a checkout on a /mnt/<drive> (DrvFs) path would ignore it.
     try:
         RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
         os.chmod(RAG_LOG_DIR, 0o1777)
