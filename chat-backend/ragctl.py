@@ -296,15 +296,16 @@ def ensure_request_log() -> None:
     # World-writable, and an accepted risk rather than a false positive
     # (CodeQL py/overly-permissive-file stays open on this line). The backend
     # writes the log as uid 10001 (USER appuser in chat-backend/Dockerfile) into
-    # this operator-owned dir through the bind mount in docker-compose.yml, and
-    # the operator's own watchdog.pid and watchdog.log live here too, so the dir
-    # needs two writers. Narrowing it to 0o755 means moving the watchdog files to
-    # an operator-only dir and handing this one to uid 10001 (a chown through a
-    # `--user 0` container, since ragctl runs without sudo); that has not been
-    # done yet. Until then the sticky bit (the 1 in 0o1777) keeps uid 10001, or
-    # any other user, from unlinking or replacing the operator's files. (On a
-    # Windows Docker Desktop host the chmod is a near no-op; writability comes
-    # from the mount translation.)
+    # this operator-owned dir through the bind mount in docker-compose.yml. The
+    # operator writes here too: watchdog.pid and watchdog.log, and the input
+    # files for eval runs whose outputs the container writes back beside them
+    # (the fi_*.jsonl and poro-*.json files). With writers on both uids, a mode
+    # owned by either side alone breaks the other; narrowing it needs a shared
+    # group or a separate exchange dir, which has not been done yet. Until then
+    # the sticky bit (the 1 in 0o1777) keeps uid 10001, or any other user, from
+    # unlinking or replacing the operator's files, while the operator as dir
+    # owner can still remove the container's. (On a Windows Docker Desktop host
+    # the chmod is a near no-op; writability comes from the mount translation.)
     try:
         RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
         os.chmod(RAG_LOG_DIR, 0o1777)
