@@ -1180,15 +1180,11 @@ def cmd_down() -> int:
     print(_c("\n  cutting the rag …", "1"))
     # Stop the watchdog BEFORE cutting the funnel, or it would fight the shutdown.
     # False means either none was running or it could not be signalled; only
-    # the second leaves its pid file pointing at a live watchdog.
-    if not stop_watchdog_daemon() and watchdog_pid() is not None:
-        print(
-            _c(
-                "  ✗ aborted: the watchdog is still running; stack and funnel left up.",
-                "31",
-            )
-        )
-        return 1
+    # the second leaves its pid file pointing at a live watchdog. That one can't
+    # restore the funnel once the backend is down (watchdog_action skips while
+    # the local backend fails), so the shutdown still runs; `down` just doesn't
+    # claim success.
+    watchdog_left = not stop_watchdog_daemon() and watchdog_pid() is not None
     print("  ◐ docker compose down (frees VRAM) …")
     run(COMPOSE + ["down"], cwd=REPO, timeout=120)
     ts = tailscale_exe()
@@ -1198,6 +1194,9 @@ def cmd_down() -> int:
         # shared with other projects' funnels, so a blanket `funnel off`/`reset`
         # is deliberately avoided — it would cut theirs too.
         run([ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20)
+    if watchdog_left:
+        print(_c("  ✗ stack + funnel stopped, but the watchdog is still running.", "31"))
+        return 1
     print("  ● done — stack + funnel stopped; Docker Desktop & Tailscale left running.")
     return 0
 

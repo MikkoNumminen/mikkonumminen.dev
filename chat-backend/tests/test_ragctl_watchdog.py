@@ -269,9 +269,11 @@ def test_down_stops_watchdog_before_cutting_the_funnel(
     assert calls.index("stop-watchdog") < funnel_off
 
 
-def test_down_aborts_when_the_watchdog_could_not_be_stopped(
-    monkeypatch: pytest.MonkeyPatch,
+def test_down_still_takes_the_endpoint_offline_when_the_watchdog_survives(
+    monkeypatch: pytest.MonkeyPatch, capsys
 ) -> None:
+    # `down` is the off switch for the public endpoint, so a watchdog it could
+    # not signal must not stop the shutdown; it only stops the success claim.
     calls: list[str] = []
     monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: False)
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
@@ -281,7 +283,31 @@ def test_down_aborts_when_the_watchdog_could_not_be_stopped(
         ragctl, "run", lambda cmd, **k: calls.append(" ".join(cmd)) or (0, "")
     )
     assert ragctl.cmd_down() == 1
-    assert calls == []  # neither compose down nor funnel off ran
+    assert "docker compose down" in calls
+    assert any("funnel" in c and "off" in c for c in calls)
+    out = capsys.readouterr().out
+    assert "watchdog is still running" in out
+    assert "● done" not in out
+
+
+def test_a_surviving_watchdog_cannot_restore_the_funnel_once_the_backend_is_down() -> (
+    None
+):
+    # The premise of the test above: with the local backend down, the watchdog
+    # skips instead of reasserting or reconnecting the funnel.
+    assert (
+        ragctl.watchdog_action(
+            external_ok=False,
+            local_ok=False,
+            uplink_ok=True,
+            consecutive_failures=5,
+            fail_threshold=2,
+            reasserted_this_outage=False,
+            reconnects_this_outage=0,
+            reconnect_cap=3,
+        )
+        == "skip-backend-down"
+    )
 
 
 def test_down_proceeds_when_no_watchdog_was_running(
