@@ -41,9 +41,9 @@ dependencies = [
 # .github/dependabot.yml now watches this file — a graduating lint rule arrives
 # as a reviewable PR rather than as a surprise on an unrelated branch.
 dev = [
-    "pytest==9.1.1",
-    "pytest-asyncio==1.4.0",
-    "ruff==0.17.1",
+    "pytest==9.2.0",
+    "pytest-asyncio==1.4.1",
+    "ruff==0.17.3",
     "mypy==2.4.0",
 ]
 
