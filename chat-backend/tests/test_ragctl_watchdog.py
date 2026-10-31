@@ -205,6 +205,38 @@ def test_stop_kills_running_watchdog(monkeypatch: pytest.MonkeyPatch, tmp_path) 
     assert not pidfile.exists()  # pid file cleaned up
 
 
+def test_stop_treats_an_already_exited_watchdog_as_stopped(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    pidfile = tmp_path / "watchdog.pid"
+    pidfile.write_text("555")
+    monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", pidfile)
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
+
+    def gone(pid: int, sig: int) -> None:
+        raise ProcessLookupError
+
+    monkeypatch.setattr(ragctl.os, "kill", gone)
+    assert ragctl.stop_watchdog_daemon() is True
+    assert not pidfile.exists()
+
+
+def test_stop_keeps_the_pid_file_when_the_watchdog_cannot_be_signalled(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    pidfile = tmp_path / "watchdog.pid"
+    pidfile.write_text("555")
+    monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", pidfile)
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
+
+    def denied(pid: int, sig: int) -> None:
+        raise PermissionError
+
+    monkeypatch.setattr(ragctl.os, "kill", denied)
+    assert ragctl.stop_watchdog_daemon() is False
+    assert pidfile.read_text() == "555"
+
+
 def test_stop_is_a_noop_when_not_running(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:

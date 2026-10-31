@@ -1007,8 +1007,22 @@ def stop_watchdog_daemon() -> bool:
         return False
     try:
         os.kill(pid, signal.SIGTERM)
-    except OSError:
+    except ProcessLookupError:
+        # Already gone between the pid check and the kill: the goal state.
         pass
+    except PermissionError:
+        # watchdog_pid() already matched the cmdline, so this IS a live watchdog,
+        # just one owned by another user (e.g. started under sudo). Keep its pid
+        # file and say so: deleting it would make the next `up` start a second
+        # watchdog beside the one still running.
+        print(
+            _c(
+                f"  ⚠ watchdog (pid {pid}) belongs to another user and is still running;"
+                f" stop it with: sudo kill {pid}",
+                "33",
+            )
+        )
+        return False
     WATCHDOG_PID_FILE.unlink(missing_ok=True)
     print(f"  ● watchdog stopped (pid {pid})")
     return True
