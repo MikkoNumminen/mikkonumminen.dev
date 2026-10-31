@@ -1007,8 +1007,22 @@ def stop_watchdog_daemon() -> bool:
         return False
     try:
         os.kill(pid, signal.SIGTERM)
-    except OSError:
+    except ProcessLookupError:
+        # Already gone between the pid check and the kill: the goal state.
         pass
+    except PermissionError:
+        # watchdog_pid() already matched the cmdline, so this IS a live watchdog,
+        # just one owned by another user (e.g. started under sudo). Keep its pid
+        # file and say so: deleting it would make the next `up` start a second
+        # watchdog beside the one still running.
+        print(
+            _c(
+                f"  ⚠ watchdog (pid {pid}) belongs to another user and is still running;"
+                f" stop it with: sudo kill {pid}",
+                "33",
+            )
+        )
+        return False
     WATCHDOG_PID_FILE.unlink(missing_ok=True)
     print(f"  ● watchdog stopped (pid {pid})")
     return True
@@ -1365,6 +1379,7 @@ def cmd_test(question: str) -> int:
                         try:
                             parts.append(json.loads(data).get("text", ""))
                         except json.JSONDecodeError:
+                            # One garbled frame shouldn't abort the whole probe.
                             pass
                     elif event == "sources":
                         try:
@@ -1373,6 +1388,7 @@ def cmd_test(question: str) -> int:
                                 for s in json.loads(data).get("sources", [])
                             ]
                         except json.JSONDecodeError:
+                            # The answer still prints; only the source list is lost.
                             pass
                     elif event == "error":
                         print(f"  {_c('✗ error frame', '31')}: {data}")
@@ -2322,7 +2338,9 @@ def cmd_logs(n: int) -> int:
             )
         )
         return 0
-    lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
+    # split("\n"), not splitlines(): records written before U+2028/U+2029/U+0085
+    # were escaped can still hold them raw inside a JSON string.
+    lines = log.read_text(encoding="utf-8", errors="ignore").split("\n")
     kept = [ln for ln in lines if ln.strip()]
     shown = kept[-n:] if n > 0 else []
     print(_c(f"\n  last {len(shown)} request(s):\n", "1"))

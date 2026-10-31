@@ -149,7 +149,15 @@ def format_log_record(
     if log_text:
         record["query"] = _truncate(query, _MAX_LOGGED_QUERY_CHARS)
         record["response"] = _truncate(response, _MAX_LOGGED_RESPONSE_CHARS)
-    return json.dumps(record, ensure_ascii=False)
+    return json.dumps(record, ensure_ascii=False).translate(_LINE_BREAK_ESCAPES)
+
+
+# json.dumps escapes every C0 control, but with ensure_ascii off it writes these
+# three raw, and str.splitlines() breaks on all of them. One visitor message
+# containing U+2028 would otherwise split its record across several "lines" for
+# any reader that iterates the log that way. The escaped form is still valid
+# JSON and decodes to the same text.
+_LINE_BREAK_ESCAPES = {0x85: "\\u0085", 0x2028: "\\u2028", 0x2029: "\\u2029"}
 
 
 def build_request_logger(
