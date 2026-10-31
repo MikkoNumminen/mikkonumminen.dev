@@ -297,14 +297,26 @@ _ENGLISH_OVERRIDE_WORDS = frozenset(
 # English. The visitor's language lives in the words AROUND an identifier, so
 # detection retries on the stripped text when the raw text does not read
 # Finnish.
+#
+# In the underscore, digit and camel-case alternatives each class run stops at
+# the first character the next token needs (the first interior underscore, the
+# first digit, the first lowercase then uppercase letter), so a word can only be
+# split one way. Plain \w* runs there match the same words but leave the engine
+# many splits to retry.
+#
+# The kebab alternative is still quadratic in the number of hyphens: every
+# hyphen opens a new \b start that rescans the chain for a `.`. INPUT_MAX_CHARS
+# (800) bounds that at about 4 ms. A lookbehind that only starts at the head of
+# a chain would fix it but changes what gets stripped ("foo--bar-baz.js",
+# "p.x-s-t.js"), so it is left as is.
 _CODE_TOKEN_RE = re.compile(
     r"`[^`]+`"
     r"|\b\w+(?:-\w+)+(?:\.\w+)+\b"
     r"|\b\w+(?:[./:]\w+)+\b"
-    r"|\b\w+_\w+\b"
-    r"|\b[A-Za-z]\w*\d\w*\b"
-    r"|\b[a-z]+(?:[A-Z]\w*)+\b"
-    r"|\b[A-Z]\w*[a-z]\w*(?:[A-Z]\w*)+\b"
+    r"|\b\w[^\W_]*_\w+\b"
+    r"|\b[A-Za-z][^\W\d]*\d\w*\b"
+    r"|\b[a-z]+[A-Z]\w*\b"
+    r"|\b[A-Z][^\Wa-z]*[a-z][^\WA-Z]*[A-Z]\w*\b"
 )
 
 
@@ -328,11 +340,14 @@ _FI_PHRASE_RE = re.compile(r"\b(in\s+finnish|suomeksi)\b", re.IGNORECASE)
 
 # Politeness and filler allowed to trail the language phrase while the request
 # still counts as ending the sentence. The wide character ranges cover emoji.
+# The second filler run sits inside the optional group so the two runs never
+# compete for the same characters: written flat, a long run of whitespace
+# ahead of one non-filler character backtracks quadratically.
 _FI_TRAILER_RE = re.compile(
     r"^[\s,!.? -㌀\U0001F000-\U0001FAFF]*"
-    r"(please|thanks|thank\s+you|kiitos|if\s+you\s+can|for\s+me|this\s+time"
-    r"|too|as\s+well)?"
-    r"[\s,!.? -㌀\U0001F000-\U0001FAFF]*$",
+    r"(?:(please|thanks|thank\s+you|kiitos|if\s+you\s+can|for\s+me|this\s+time"
+    r"|too|as\s+well)"
+    r"[\s,!.? -㌀\U0001F000-\U0001FAFF]*)?$",
     re.IGNORECASE,
 )
 
