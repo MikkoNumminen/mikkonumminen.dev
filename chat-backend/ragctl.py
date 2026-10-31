@@ -293,17 +293,18 @@ def ensure_request_log() -> None:
     writable by the backend's uid 10001, and point RAG_LOG_FILE at the mounted
     path if it isn't set. Logging stays opt-in in the repo; RAG Control is what
     turns it on."""
-    # World-writable on purpose, and an accepted risk rather than an oversight.
-    # The backend writes the log as uid 10001 (USER appuser in
-    # chat-backend/Dockerfile) into this dir, bind-mounted by docker-compose.yml,
-    # while the dir belongs to the operator. The narrower routes are unavailable
-    # to an unattended ragctl: chown to 10001 needs root, the WSL host has no
-    # setfacl for a per-uid ACL, and running the container as the host uid
-    # would change ownership on every other volume it writes. The sticky bit
-    # (the 1 in 0o1777) keeps uid 10001, or any other user, from unlinking or
-    # replacing the operator's watchdog.pid and watchdog.log that live here too.
-    # (On a Windows Docker Desktop host the chmod is a near no-op; writability
-    # comes from the mount translation.)
+    # World-writable, and an accepted risk rather than a false positive
+    # (CodeQL py/overly-permissive-file stays open on this line). The backend
+    # writes the log as uid 10001 (USER appuser in chat-backend/Dockerfile) into
+    # this operator-owned dir through the bind mount in docker-compose.yml, and
+    # the operator's own watchdog.pid and watchdog.log live here too, so the dir
+    # needs two writers. Narrowing it to 0o755 means moving the watchdog files to
+    # an operator-only dir and handing this one to uid 10001 (a chown through a
+    # `--user 0` container, since ragctl runs without sudo); that has not been
+    # done yet. Until then the sticky bit (the 1 in 0o1777) keeps uid 10001, or
+    # any other user, from unlinking or replacing the operator's files. (On a
+    # Windows Docker Desktop host the chmod is a near no-op; writability comes
+    # from the mount translation.)
     try:
         RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
         os.chmod(RAG_LOG_DIR, 0o1777)
