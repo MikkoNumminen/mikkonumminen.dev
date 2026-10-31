@@ -62,7 +62,7 @@ def test_other_projects_funnel_is_not_ours() -> None:
     # The live outage. The route map is non-empty (so the status line can say
     # "other funnels on"), but ours is absent and must read as down.
     routes = funnel_routes(_OTHER_PROJECT_ONLY)
-    assert routes == {f"{_HOST}:8443": "http://127.0.0.1:4180"}
+    assert routes == {f"{_HOST}:8443": {"/": "http://127.0.0.1:4180"}}
     assert not funnel_serves_port(routes, "8000")
 
 
@@ -88,6 +88,44 @@ def test_short_port_does_not_prefix_match_a_longer_one() -> None:
     routes = funnel_routes(_BOTH_ROUTES)
     assert routes is not None
     assert not funnel_serves_port(routes, "80")
+
+
+# The live node on 2026-11-01: ReadLog shares :443 under its own mount.
+_SHARED_443 = json.dumps(
+    {
+        "TCP": {"443": {"HTTPS": True}, "8443": {"HTTPS": True}},
+        "Web": {
+            f"{_HOST}:443": {
+                "Handlers": {
+                    "/": {"Proxy": "http://127.0.0.1:8000"},
+                    "/readlog-laravel": {"Proxy": "http://127.0.0.1:8080"},
+                }
+            },
+            f"{_HOST}:8443": {"Handlers": {"/": {"Proxy": "http://127.0.0.1:4180"}}},
+        },
+        "AllowFunnel": {f"{_HOST}:443": True, f"{_HOST}:8443": True},
+    }
+)
+
+
+def test_detects_our_route_when_another_mount_shares_the_port() -> None:
+    # A flat host -> target map kept only the last handler on :443 and read
+    # the rag's route as off whenever ReadLog's mount sat beside it.
+    routes = funnel_routes(_SHARED_443)
+    assert routes is not None
+    assert routes[f"{_HOST}:443"] == {
+        "/": "http://127.0.0.1:8000",
+        "/readlog-laravel": "http://127.0.0.1:8080",
+    }
+    assert funnel_serves_port(routes, "8000")
+
+
+def test_another_mount_on_our_port_alone_is_not_our_route() -> None:
+    readlog_only = _SHARED_443.replace('"/": {"Proxy": "http://127.0.0.1:8000"}, ', "")
+    routes = funnel_routes(readlog_only)
+    assert routes is not None
+    assert "/" not in routes[f"{_HOST}:443"]
+    assert not funnel_serves_port(routes, "8000")
 
 
 def test_wrong_proxy_target_on_our_port_does_not_count() -> None:

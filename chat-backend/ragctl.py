@@ -465,8 +465,12 @@ def funnel_url() -> str | None:
         return None
 
 
-def funnel_routes(status_json: str) -> dict[str, str] | None:
-    """Publicly-exposed funnel routes: "<host>:<port>" -> proxy target.
+def funnel_routes(status_json: str) -> dict[str, dict[str, str]] | None:
+    """Publicly-exposed funnel routes: "<host>:<port>" -> {mount: proxy target}.
+
+    Every handler on a port is kept: :443 here carries this project's "/" and
+    ReadLog's "/readlog-laravel", and a flat host -> target map let whichever
+    handler came last hide the other.
 
     Parses `tailscale funnel status --json`. Returns None when the output could
     not be read as JSON at all (failed call, or a tailscale too old for --json)
@@ -485,26 +489,30 @@ def funnel_routes(status_json: str) -> dict[str, str] | None:
         cfg = json.loads(status_json)
         allow = cfg.get("AllowFunnel") or {}
         return {
-            host: handler["Proxy"]
+            host: {
+                mount: handler["Proxy"]
+                for mount, handler in (entry.get("Handlers") or {}).items()
+                if "Proxy" in handler
+            }
             for host, entry in (cfg.get("Web") or {}).items()
             if allow.get(host) is True
-            for handler in (entry.get("Handlers") or {}).values()
-            if "Proxy" in handler
         }
     except (AttributeError, KeyError, TypeError, json.JSONDecodeError):
         return None
 
 
-def funnel_serves_port(routes: dict[str, str], port: str) -> bool:
-    """True iff a public :443 route proxies to 127.0.0.1:`port`.
+def funnel_serves_port(routes: dict[str, dict[str, str]], port: str) -> bool:
+    """True iff the public :443 "/" handler proxies to 127.0.0.1:`port`.
 
     Exact target match, never a substring: `:{port}` as a prefix test would let
-    a short port (:80) read another project's :8000 route as this one's.
+    a short port (:80) read another project's :8000 route as this one's. Only
+    the "/" mount counts, because that is the one `ensure_funnel` creates and
+    `down` removes.
     """
     target = f"http://127.0.0.1:{port}"
     return any(
-        host.endswith(f":{FUNNEL_HTTPS_PORT}") and proxy == target
-        for host, proxy in routes.items()
+        host.endswith(f":{FUNNEL_HTTPS_PORT}") and handlers.get("/") == target
+        for host, handlers in routes.items()
     )
 
 
