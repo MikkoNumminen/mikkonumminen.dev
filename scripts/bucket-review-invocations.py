@@ -22,7 +22,6 @@ API calls except `gh pr view` lookups for PR sizes (cached at
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys

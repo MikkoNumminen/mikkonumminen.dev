@@ -110,10 +110,14 @@ _OFFCORPUS_ORDINARY_WORDS = [
 # -> "research about climate change"), so the translation reliably materialises the
 # structure this rule reads.
 _OFFCORPUS_PAIRS = [
-    "what is the latest research on climate change"
-    "\nviimeisin tutkimus ilmastonmuutoksesta",
-    "latest research on quantum computers"
-    "\nmita tuoreinta tutkimusta on kvanttitietokoneista",
+    (
+        "what is the latest research on climate change"
+        "\nviimeisin tutkimus ilmastonmuutoksesta"
+    ),
+    (
+        "latest research on quantum computers"
+        "\nmita tuoreinta tutkimusta on kvanttitietokoneista"
+    ),
 ]
 
 # --- MUST NOT CLAIM: the reported bug with a longer verb phrase ---
@@ -272,8 +276,10 @@ def test_a_genre_noun_in_the_tail_does_not_disarm_the_veto(text: str) -> None:
         "what research is on your blog",
         "what research have you published on your site",
         "what findings have you written up on the blog",
-        "what research have you been working on lately\n"
-        "mita tutkimuksia olet tehnyt viime aikoina",
+        (
+            "what research have you been working on lately\n"
+            "mita tutkimuksia olet tehnyt viime aikoina"
+        ),
     ],
 )
 def test_a_stranded_preposition_binds_no_subject(text: str) -> None:
