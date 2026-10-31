@@ -311,8 +311,10 @@ def ensure_request_log() -> None:
     # watchdog.pid is absent between `down` and the next watchdog start, and a
     # name created first by uid 10001 in that window would block the operator's
     # write. That gap is part of the accepted risk until the files move out.
-    # ragctl runs in WSL with this dir on the Linux filesystem, so the mode is
-    # enforced; only a checkout on a /mnt/<drive> (DrvFs) path would ignore it.
+    # The live clone sits on WSL's ext4 filesystem, where the mode is enforced.
+    # A checkout under /mnt/<drive> (DrvFs) enforces it only when the drive is
+    # mounted with the `metadata` option; without it, chmod leaves the mode as
+    # derived from the Windows permissions.
     try:
         RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
         os.chmod(RAG_LOG_DIR, 0o1777)
