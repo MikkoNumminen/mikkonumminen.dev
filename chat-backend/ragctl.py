@@ -1379,6 +1379,7 @@ def cmd_test(question: str) -> int:
                         try:
                             parts.append(json.loads(data).get("text", ""))
                         except json.JSONDecodeError:
+                            # One garbled frame shouldn't abort the whole probe.
                             pass
                     elif event == "sources":
                         try:
@@ -1387,6 +1388,7 @@ def cmd_test(question: str) -> int:
                                 for s in json.loads(data).get("sources", [])
                             ]
                         except json.JSONDecodeError:
+                            # The answer still prints; only the source list is lost.
                             pass
                     elif event == "error":
                         print(f"  {_c('✗ error frame', '31')}: {data}")
