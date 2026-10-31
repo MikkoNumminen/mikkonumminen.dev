@@ -293,14 +293,29 @@ def ensure_request_log() -> None:
     writable by the backend's uid 10001, and point RAG_LOG_FILE at the mounted
     path if it isn't set. Logging stays opt-in in the repo; RAG Control is what
     turns it on."""
-    # 0o777 is deliberate: the backend writes the log as the non-root uid 10001,
-    # so the bind-mounted host dir must be writable by a different uid; this host
-    # is single-operator-local, so world-write is tolerated. (On a Windows Docker
-    # Desktop host the chmod is a near no-op — writability comes from the mount
-    # translation — but it is correct + necessary when ragctl runs on Linux.)
+    # World-writable, and an accepted risk rather than a false positive
+    # (CodeQL py/overly-permissive-file stays open on this line). The backend
+    # writes the log as uid 10001 (USER appuser in chat-backend/Dockerfile) into
+    # this operator-owned dir through the bind mount in docker-compose.yml. The
+    # operator writes here too: watchdog.pid and watchdog.log, and inputs for
+    # one-off eval scripts that run inside the container and write their output
+    # back beside them (e.g. poro-triples.json -> poro-reviews.jsonl, from
+    # .local/poro-fi-review-2026-07/poro_review.py). Those scripts are ad hoc and
+    # live outside the tracked tree (the gitignored .local/), so no code here
+    # names those files. With writers on both uids, a mode owned by either side
+    # alone breaks the other; narrowing it needs a shared group or a separate
+    # exchange dir, which has not been done yet. Until then the sticky bit (the
+    # 1 in 0o1777) keeps uid 10001, or any other user, from unlinking or
+    # replacing the operator's files, while the operator as dir owner can still
+    # remove the container's. It only covers files that exist:
+    # watchdog.pid is absent between `down` and the next watchdog start, and a
+    # name created first by uid 10001 in that window would block the operator's
+    # write. That gap is part of the accepted risk until the files move out.
+    # ragctl runs in WSL with this dir on the Linux filesystem, so the mode is
+    # enforced; only a checkout on a /mnt/<drive> (DrvFs) path would ignore it.
     try:
         RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
-        os.chmod(RAG_LOG_DIR, 0o777)
+        os.chmod(RAG_LOG_DIR, 0o1777)
     except OSError as exc:
         print(_c(f"  ⚠ could not prepare rag-logs/ ({exc}); logging may stay off", "33"))
     if not configured_rag_log():
@@ -450,8 +465,12 @@ def funnel_url() -> str | None:
         return None
 
 
-def funnel_routes(status_json: str) -> dict[str, str] | None:
-    """Publicly-exposed funnel routes: "<host>:<port>" -> proxy target.
+def funnel_routes(status_json: str) -> dict[str, dict[str, str]] | None:
+    """Publicly-exposed funnel routes: "<host>:<port>" -> {mount: proxy target}.
+
+    Every handler on a port is kept: :443 here carries this project's "/" and
+    ReadLog's "/readlog-laravel", and a flat host -> target map let whichever
+    handler came last hide the other.
 
     Parses `tailscale funnel status --json`. Returns None when the output could
     not be read as JSON at all (failed call, or a tailscale too old for --json)
@@ -470,26 +489,30 @@ def funnel_routes(status_json: str) -> dict[str, str] | None:
         cfg = json.loads(status_json)
         allow = cfg.get("AllowFunnel") or {}
         return {
-            host: handler["Proxy"]
+            host: {
+                mount: handler["Proxy"]
+                for mount, handler in (entry.get("Handlers") or {}).items()
+                if "Proxy" in handler
+            }
             for host, entry in (cfg.get("Web") or {}).items()
             if allow.get(host) is True
-            for handler in (entry.get("Handlers") or {}).values()
-            if "Proxy" in handler
         }
     except (AttributeError, KeyError, TypeError, json.JSONDecodeError):
         return None
 
 
-def funnel_serves_port(routes: dict[str, str], port: str) -> bool:
-    """True iff a public :443 route proxies to 127.0.0.1:`port`.
+def funnel_serves_port(routes: dict[str, dict[str, str]], port: str) -> bool:
+    """True iff the public :443 "/" handler proxies to 127.0.0.1:`port`.
 
     Exact target match, never a substring: `:{port}` as a prefix test would let
-    a short port (:80) read another project's :8000 route as this one's.
+    a short port (:80) read another project's :8000 route as this one's. Only
+    the "/" mount counts, because that is the one `ensure_funnel` creates and
+    `down` removes.
     """
     target = f"http://127.0.0.1:{port}"
     return any(
-        host.endswith(f":{FUNNEL_HTTPS_PORT}") and proxy == target
-        for host, proxy in routes.items()
+        host.endswith(f":{FUNNEL_HTTPS_PORT}") and handlers.get("/") == target
+        for host, handlers in routes.items()
     )
 
 
@@ -994,8 +1017,13 @@ def start_watchdog_daemon() -> int | None:
     return proc.pid
 
 
-def stop_watchdog_daemon() -> bool:
-    """Stop the background watchdog if running; return whether one was killed.
+def stop_watchdog_daemon() -> tuple[str, int | None]:
+    """Stop the background watchdog if running; return (outcome, pid).
+
+    Outcomes: "none" (none was running), "stopped", "denied" (another user's,
+    still running and still polling) or "busy" (took SIGTERM but was still
+    finishing a step when the wait ran out; it exits after that step and polls
+    no more).
 
     `down` calls this FIRST, before cutting the funnel — otherwise the still-live
     watchdog would see the public path drop (because WE turned the funnel off) and
@@ -1004,7 +1032,7 @@ def stop_watchdog_daemon() -> bool:
     pid = watchdog_pid()
     if pid is None:
         WATCHDOG_PID_FILE.unlink(missing_ok=True)
-        return False
+        return "none", None
     try:
         os.kill(pid, signal.SIGTERM)
     except ProcessLookupError:
@@ -1022,9 +1050,60 @@ def stop_watchdog_daemon() -> bool:
                 "33",
             )
         )
-        return False
+        return "denied", pid
+    # SIGTERM only sets the watchdog's stop flag: it finishes an in-flight step
+    # first, and a reassert finishing after `down`'s funnel-off would re-publish
+    # the route. So wait for it to actually exit.
+    exited = _wait_for_watchdog_exit(
+        pid, WATCHDOG_STOP_TIMEOUT_S, announce_after_s=WATCHDOG_ANNOUNCE_AFTER_S
+    )
+    # Unlinked even when it is still busy: it polls no more after this step, so
+    # the next `up` must start a fresh watchdog rather than adopt this one.
     WATCHDOG_PID_FILE.unlink(missing_ok=True)
+    if not exited:
+        return "busy", pid
     print(f"  ● watchdog stopped (pid {pid})")
+    return "stopped", pid
+
+
+# Longest step the watchdog can be inside when SIGTERM lands: a reconnect
+# iteration runs the public (12 s), local (8 s) and uplink (8 s) probes,
+# `tailscale down` (25 s), `up` (40 s) and `status` (10 s), about 103 s of
+# nominal timeouts. A reassert, the step that can re-publish the route, is ~48 s.
+WATCHDOG_STOP_TIMEOUT_S = 120
+# An idle watchdog exits within ~1 s of SIGTERM; only say we are waiting once
+# it has clearly gone past that, or every ordinary `down` announces a wait.
+WATCHDOG_ANNOUNCE_AFTER_S = 2.0
+
+
+def _wait_for_watchdog_exit(
+    pid: int, timeout_s: float, announce_after_s: float | None = None
+) -> bool:
+    """True once `pid` is no longer the watchdog; False on timeout or Ctrl-C.
+
+    Ctrl-C counts as giving up on the wait, not on `down`: the shutdown steps
+    after this must still run.
+    """
+    start = time.monotonic()
+    announced = False
+    try:
+        while _cmdline_is_watchdog(_proc_argv(pid)):
+            elapsed = time.monotonic() - start
+            if elapsed >= timeout_s:
+                return False
+            if (
+                announce_after_s is not None
+                and not announced
+                and elapsed >= announce_after_s
+            ):
+                print(
+                    f"  ◐ waiting for the watchdog (pid {pid}) to finish its current"
+                    f" step (up to {timeout_s:.0f}s) …"
+                )
+                announced = True
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        return False
     return True
 
 
@@ -1171,16 +1250,97 @@ def cmd_verify(full: bool = False) -> int:
 def cmd_down() -> int:
     print(_c("\n  cutting the rag …", "1"))
     # Stop the watchdog BEFORE cutting the funnel, or it would fight the shutdown.
-    stop_watchdog_daemon()
+    # If it survives, the shutdown still runs and `down` reports it instead of
+    # claiming success; see the two messages below for what each case risks.
+    watchdog, wd_pid = stop_watchdog_daemon()
+    failed: list[str] = []
     print("  ◐ docker compose down (frees VRAM) …")
-    run(COMPOSE + ["down"], cwd=REPO, timeout=120)
+    if run(COMPOSE + ["down"], cwd=REPO, timeout=120)[0] != 0:
+        failed.append("docker compose down")
     ts = tailscale_exe()
-    if ts:
+    if not ts:
+        # Not finding the exe (Tailscale not at its default path) says nothing
+        # about the route, which tailscaled keeps configured across restarts.
+        failed.append("funnel off (tailscale.exe not found)")
+    else:
         print("  ◐ funnel off …")
-        # `--https=443 off` cuts ONLY this project's funnel port. The node is
-        # shared with other projects' funnels, so a blanket `funnel off`/`reset`
-        # is deliberately avoided — it would cut theirs too.
-        run([ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20)
+        # The node is shared with other projects' funnels, so a blanket
+        # `funnel off`/`reset` is deliberately avoided. `--set-path=/` matters
+        # too: without it, tailscale (1.102) removes EVERY handler on :443,
+        # including ReadLog's /readlog-laravel, and turns funnel off on the
+        # port; its "are you sure?" prompt defaults to yes with no TTY.
+        try:
+            off_rc = run(
+                [ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "--set-path=/", "off"],
+                timeout=20,
+            )[0]
+            # It also exits non-zero when the route is already gone (a second
+            # `down`), so only a route still present, or unreadable status, fails.
+            if off_rc != 0:
+                status = run([ts, "funnel", "status", "--json"], timeout=10)[1]
+                routes = funnel_routes(status)
+                if routes is None or funnel_serves_port(routes, FUNNEL_PORT):
+                    failed.append("funnel off")
+        except OSError as exc:
+            # e.g. ENOEXEC on the /mnt/c exe when WSL interop's binfmt entry is
+            # gone. Caught here, not in run(), so `down` still prints its summary.
+            failed.append(f"funnel off ({exc})")
+    if (
+        watchdog == "busy"
+        and wd_pid is not None
+        and not _cmdline_is_watchdog(_proc_argv(wd_pid))
+    ):
+        # It finished its step while we shut down, so what that step did to the
+        # route is visible now: check it instead of warning about it. Skipped
+        # when the funnel step already failed, which is reported on its own.
+        watchdog = "stopped"
+        if ts and not any(f.startswith("funnel off") for f in failed):
+            try:
+                routes = funnel_routes(
+                    run([ts, "funnel", "status", "--json"], timeout=10)[1]
+                )
+            except OSError:
+                routes = None
+            if routes is None:
+                failed.append("funnel status unreadable after the watchdog exited")
+            elif funnel_serves_port(routes, FUNNEL_PORT):
+                failed.append(
+                    "funnel off (the watchdog's last step re-published it;"
+                    " run `ragctl down` again)"
+                )
+    if failed:
+        print(_c(f"  ✗ failed: {', '.join(failed)}; the endpoint may still be up.", "31"))
+    pid = wd_pid
+    if watchdog == "denied":
+        # Still polling. It skips while the backend is down (watchdog_action
+        # returns skip-backend-down) but reasserts the funnel once it is back.
+        if "docker compose down" in failed:
+            when = (
+                "the backend may still be up, and then it re-opens the funnel"
+                " within minutes"
+            )
+            advice = "kill it now"
+        else:
+            when = "it will re-open the funnel as soon as the backend comes back up"
+            advice = "kill it before then"
+        print(
+            _c(f"  ✗ the watchdog (pid {pid}) is still running; {when}; {advice}.", "31")
+        )
+    elif watchdog == "busy":
+        # Took SIGTERM, so it exits after this step and polls no more; only the
+        # step it is in (a reassert, or a reconnect) can still touch the funnel.
+        # No kill advice: SIGTERM is already in, and a kill -9 mid-reconnect
+        # would leave the shared node down (see _watchdog_reconnect).
+        print(
+            _c(
+                f"  ✗ the watchdog (pid {pid}) took SIGTERM but is still finishing a"
+                " step; let it finish, then check the route with"
+                " `tailscale.exe funnel status`.",
+                "31",
+            )
+        )
+    if failed or watchdog in ("denied", "busy"):
+        return 1
     print("  ● done — stack + funnel stopped; Docker Desktop & Tailscale left running.")
     return 0
 
@@ -1353,6 +1513,30 @@ def cmd_prune() -> int:
     return 0
 
 
+def _token_text(data: str) -> str | None:
+    """The `text` of a token frame (`app.sse.sse_token`), or None if malformed."""
+    try:
+        frame = json.loads(data)
+    except json.JSONDecodeError:
+        return None
+    text = frame.get("text") if isinstance(frame, dict) else None
+    return text if isinstance(text, str) else None
+
+
+def _source_names(data: str) -> list[str] | None:
+    """The source names of a sources frame (`app.sse.sse_sources`), or None."""
+    try:
+        frame = json.loads(data)
+    except json.JSONDecodeError:
+        return None
+    items = frame.get("sources") if isinstance(frame, dict) else None
+    if not isinstance(items, list) or not all(
+        isinstance(s, dict) and isinstance(s.get("source"), str) for s in items
+    ):
+        return None
+    return [s["source"] for s in items]
+
+
 def cmd_test(question: str) -> int:
     """Doctor the live model with one real query: stream it, time it, show it."""
     payload = json.dumps({"message": question}).encode()
@@ -1364,6 +1548,7 @@ def cmd_test(question: str) -> int:
     first: float | None = None
     parts: list[str] = []
     sources: list[str] = []
+    dropped = 0
     event = None
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
@@ -1376,20 +1561,19 @@ def cmd_test(question: str) -> int:
                     if event == "token":
                         if first is None:
                             first = time.time() - start
-                        try:
-                            parts.append(json.loads(data).get("text", ""))
-                        except json.JSONDecodeError:
-                            # One garbled frame shouldn't abort the whole probe.
-                            pass
+                        text = _token_text(data)
+                        if text is None:
+                            # Keep reading so the rest of the answer still shows,
+                            # but the probe reports the stream as broken below.
+                            dropped += 1
+                        else:
+                            parts.append(text)
                     elif event == "sources":
-                        try:
-                            sources = [
-                                s.get("source", "")
-                                for s in json.loads(data).get("sources", [])
-                            ]
-                        except json.JSONDecodeError:
-                            # The answer still prints; only the source list is lost.
-                            pass
+                        names = _source_names(data)
+                        if names is None:
+                            dropped += 1
+                        else:
+                            sources = names
                     elif event == "error":
                         print(f"  {_c('✗ error frame', '31')}: {data}")
                         return 1
@@ -1404,6 +1588,10 @@ def cmd_test(question: str) -> int:
         print("  sources: " + ", ".join(s for s in sources if s))
     ttft = f"{first:.1f}s" if first is not None else "—"
     print(f"  {len(answer)} chars · first token {ttft} · total {elapsed:.1f}s\n")
+    if dropped:
+        warning = _c(f"✗ {dropped} malformed frame(s) dropped", "31")
+        print(f"  {warning}: the stream is broken\n")
+        return 1
     return 0
 
 
