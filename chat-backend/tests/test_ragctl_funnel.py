@@ -156,7 +156,8 @@ def _down_with(
 
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: ts)
     monkeypatch.setattr(ragctl, "run", fake_run)
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: watchdog_pid is None)
+    state = "stopped" if watchdog_pid is None else "denied"
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: state)
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: watchdog_pid)
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
     return ragctl.cmd_down()

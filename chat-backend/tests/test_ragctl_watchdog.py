@@ -201,7 +201,7 @@ def test_stop_kills_running_watchdog(monkeypatch: pytest.MonkeyPatch, tmp_path) 
     killed: list[tuple[int, int]] = []
     monkeypatch.setattr(ragctl.os, "kill", lambda pid, sig: killed.append((pid, sig)))
     monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: None)  # exits at once
-    assert ragctl.stop_watchdog_daemon() is True
+    assert ragctl.stop_watchdog_daemon() == "stopped"
     assert killed == [(555, ragctl.signal.SIGTERM)]
     assert not pidfile.exists()  # pid file cleaned up
 
@@ -220,7 +220,7 @@ def test_stop_waits_for_the_watchdog_to_finish_its_step(
     monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: next(alive))
     monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
     monkeypatch.setattr(ragctl.time, "sleep", lambda s: None)
-    assert ragctl.stop_watchdog_daemon() is True
+    assert ragctl.stop_watchdog_daemon() == "stopped"
     assert not pidfile.exists()
 
 
@@ -235,20 +235,55 @@ def test_stop_reports_a_watchdog_that_outlives_the_timeout(
     monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: True)
     monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
     monkeypatch.setattr(ragctl, "WATCHDOG_STOP_TIMEOUT_S", 0)
-    assert ragctl.stop_watchdog_daemon() is False
+    assert ragctl.stop_watchdog_daemon() == "busy"
     assert pidfile.read_text() == "555"  # still names the live watchdog
 
 
-def test_run_reports_an_exec_failure_instead_of_raising(
+def test_ctrl_c_during_the_wait_gives_up_on_the_wait_not_on_down(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # ENOEXEC on a /mnt/c Windows exe when WSL interop's binfmt entry is gone.
-    def enoexec(*a: object, **k: object) -> None:
-        raise OSError(8, "Exec format error")
+    monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: True)
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
 
-    monkeypatch.setattr(ragctl.subprocess, "run", enoexec)
-    rc, out = ragctl.run(["/mnt/c/Program Files/Tailscale/tailscale.exe", "status"])
-    assert rc == 126
+    def interrupted(s: float) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(ragctl.time, "sleep", interrupted)
+    assert ragctl._wait_for_watchdog_exit(555, 120) is False
+
+
+def test_down_reports_a_watchdog_still_finishing_a_step(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "busy")
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+    monkeypatch.setattr(ragctl, "run", lambda cmd, **k: (0, ""))
+    assert ragctl.cmd_down() == 1
+    out = capsys.readouterr().out
+    assert "took SIGTERM but is still finishing a step" in out
+    assert "re-open the funnel as soon as" not in out  # it polls no more
+    assert "● done" not in out
+
+
+def test_down_reports_a_funnel_exe_that_cannot_execute(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    # ENOEXEC on the /mnt/c exe when WSL interop's binfmt entry is gone.
+    def fake_run(cmd: list[str], **k: object) -> tuple[int, str]:
+        if cmd[0] == "tailscale.exe":
+            raise OSError(8, "Exec format error")
+        return (0, "")
+
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "none")
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+    monkeypatch.setattr(ragctl, "run", fake_run)
+    assert ragctl.cmd_down() == 1
+    out = capsys.readouterr().out
+    assert "failed: funnel off" in out
     assert "Exec format error" in out
 
 
@@ -264,7 +299,7 @@ def test_stop_treats_an_already_exited_watchdog_as_stopped(
         raise ProcessLookupError
 
     monkeypatch.setattr(ragctl.os, "kill", gone)
-    assert ragctl.stop_watchdog_daemon() is True
+    assert ragctl.stop_watchdog_daemon() == "stopped"
     assert not pidfile.exists()
 
 
@@ -280,7 +315,7 @@ def test_stop_keeps_the_pid_file_when_the_watchdog_cannot_be_signalled(
         raise PermissionError
 
     monkeypatch.setattr(ragctl.os, "kill", denied)
-    assert ragctl.stop_watchdog_daemon() is False
+    assert ragctl.stop_watchdog_daemon() == "denied"
     assert pidfile.read_text() == "555"
 
 
@@ -289,7 +324,7 @@ def test_stop_is_a_noop_when_not_running(
 ) -> None:
     monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", tmp_path / "watchdog.pid")
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
-    assert ragctl.stop_watchdog_daemon() is False
+    assert ragctl.stop_watchdog_daemon() == "none"
 
 
 def test_down_stops_watchdog_before_cutting_the_funnel(
@@ -300,7 +335,7 @@ def test_down_stops_watchdog_before_cutting_the_funnel(
     # deliberately turning off.
     calls: list[str] = []
     monkeypatch.setattr(
-        ragctl, "stop_watchdog_daemon", lambda: calls.append("stop-watchdog") or True
+        ragctl, "stop_watchdog_daemon", lambda: calls.append("stop-watchdog") or "stopped"
     )
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
@@ -322,7 +357,7 @@ def test_down_still_takes_the_endpoint_offline_when_the_watchdog_survives(
     # `down` is the off switch for the public endpoint, so a watchdog it could
     # not signal must not stop the shutdown; it only stops the success claim.
     calls: list[str] = []
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: False)
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "denied")
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
@@ -342,7 +377,7 @@ def test_down_reports_a_failed_shutdown_step(
     monkeypatch: pytest.MonkeyPatch, capsys
 ) -> None:
     calls: list[str] = []
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: True)
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "stopped")
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
 
@@ -387,7 +422,7 @@ def test_down_proceeds_when_no_watchdog_was_running(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: False)
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "none")
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)

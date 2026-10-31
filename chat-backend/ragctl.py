@@ -158,10 +158,6 @@ def run(cmd: list[str], timeout: int = 30, cwd: Path | None = None) -> tuple[int
         return 127, ""
     except subprocess.TimeoutExpired:
         return 124, ""
-    except OSError as exc:
-        # e.g. ENOEXEC on the /mnt/c Windows exes when WSL interop's binfmt
-        # entry is gone; callers already treat any non-zero code as failure.
-        return 126, str(exc)
 
 
 def _win_exe(name: str, *fallbacks: str) -> str | None:
@@ -1006,8 +1002,12 @@ def start_watchdog_daemon() -> int | None:
     return proc.pid
 
 
-def stop_watchdog_daemon() -> bool:
-    """Stop the background watchdog if running; return whether one was killed.
+def stop_watchdog_daemon() -> str:
+    """Stop the background watchdog if running, and say how that went.
+
+    Returns "none" (none was running), "stopped", "denied" (another user's, still
+    running and still polling) or "busy" (took SIGTERM but was still finishing a
+    step when the wait ran out; it exits after that step and polls no more).
 
     `down` calls this FIRST, before cutting the funnel — otherwise the still-live
     watchdog would see the public path drop (because WE turned the funnel off) and
@@ -1016,7 +1016,7 @@ def stop_watchdog_daemon() -> bool:
     pid = watchdog_pid()
     if pid is None:
         WATCHDOG_PID_FILE.unlink(missing_ok=True)
-        return False
+        return "none"
     try:
         os.kill(pid, signal.SIGTERM)
     except ProcessLookupError:
@@ -1034,35 +1034,43 @@ def stop_watchdog_daemon() -> bool:
                 "33",
             )
         )
-        return False
+        return "denied"
     # SIGTERM only sets the watchdog's stop flag: it finishes an in-flight step
     # first, and a reassert finishing after `down`'s funnel-off would re-publish
     # the route. So wait for it to actually exit.
-    if not _wait_for_watchdog_exit(pid, WATCHDOG_STOP_TIMEOUT_S):
+    if _cmdline_is_watchdog(_proc_argv(pid)):
         print(
-            _c(
-                f"  ⚠ watchdog (pid {pid}) did not exit within"
-                f" {WATCHDOG_STOP_TIMEOUT_S}s of SIGTERM and is still running",
-                "33",
-            )
+            f"  ◐ waiting for the watchdog (pid {pid}) to finish its current step"
+            f" (up to {WATCHDOG_STOP_TIMEOUT_S}s) …"
         )
-        return False
+    if not _wait_for_watchdog_exit(pid, WATCHDOG_STOP_TIMEOUT_S):
+        return "busy"
     WATCHDOG_PID_FILE.unlink(missing_ok=True)
     print(f"  ● watchdog stopped (pid {pid})")
-    return True
+    return "stopped"
 
 
-# Longest step the watchdog can be inside when SIGTERM lands: a 12 s public
-# probe then a reconnect (`tailscale down` 25 s + `up` 40 s), with margin.
+# Longest step the watchdog can be inside when SIGTERM lands: a reconnect
+# iteration runs the public (12 s), local (8 s) and uplink (8 s) probes,
+# `tailscale down` (25 s), `up` (40 s) and `status` (10 s), about 103 s of
+# nominal timeouts. A reassert, the step that can re-publish the route, is ~48 s.
 WATCHDOG_STOP_TIMEOUT_S = 120
 
 
 def _wait_for_watchdog_exit(pid: int, timeout_s: float) -> bool:
+    """True once `pid` is no longer the watchdog; False on timeout or Ctrl-C.
+
+    Ctrl-C counts as giving up on the wait, not on `down`: the shutdown steps
+    after this must still run.
+    """
     deadline = time.monotonic() + timeout_s
-    while _cmdline_is_watchdog(_proc_argv(pid)):
-        if time.monotonic() >= deadline:
-            return False
-        time.sleep(0.5)
+    try:
+        while _cmdline_is_watchdog(_proc_argv(pid)):
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        return False
     return True
 
 
@@ -1209,13 +1217,9 @@ def cmd_verify(full: bool = False) -> int:
 def cmd_down() -> int:
     print(_c("\n  cutting the rag …", "1"))
     # Stop the watchdog BEFORE cutting the funnel, or it would fight the shutdown.
-    # False means either none was running or it could not be signalled; only
-    # the second leaves its pid file pointing at a live watchdog. The shutdown
-    # still runs, because that watchdog can't restore the funnel while the
-    # backend is down (watchdog_action skips while the local backend fails). It
-    # will re-publish it as soon as anything brings the backend back, so `down`
-    # reports it instead of claiming success.
-    watchdog_left = not stop_watchdog_daemon() and watchdog_pid() is not None
+    # If it survives, the shutdown still runs and `down` reports it instead of
+    # claiming success; see the two messages below for what each case risks.
+    watchdog = stop_watchdog_daemon()
     failed: list[str] = []
     print("  ◐ docker compose down (frees VRAM) …")
     if run(COMPOSE + ["down"], cwd=REPO, timeout=120)[0] != 0:
@@ -1230,15 +1234,27 @@ def cmd_down() -> int:
         # `--https=443 off` cuts ONLY this project's funnel port. The node is
         # shared with other projects' funnels, so a blanket `funnel off`/`reset`
         # is deliberately avoided — it would cut theirs too.
-        if run([ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20)[0] != 0:
+        try:
+            off_rc = run(
+                [ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20
+            )[0]
             # It also exits non-zero when the route is already gone (a second
             # `down`), so only a route still present, or unreadable status, fails.
-            routes = funnel_routes(run([ts, "funnel", "status", "--json"], timeout=10)[1])
-            if routes is None or funnel_serves_port(routes, FUNNEL_PORT):
-                failed.append("funnel off")
+            if off_rc != 0:
+                status = run([ts, "funnel", "status", "--json"], timeout=10)[1]
+                routes = funnel_routes(status)
+                if routes is None or funnel_serves_port(routes, FUNNEL_PORT):
+                    failed.append("funnel off")
+        except OSError as exc:
+            # e.g. ENOEXEC on the /mnt/c exe when WSL interop's binfmt entry is
+            # gone. Caught here, not in run(), so `down` still prints its summary.
+            failed.append(f"funnel off ({exc})")
     if failed:
         print(_c(f"  ✗ failed: {', '.join(failed)}; the endpoint may still be up.", "31"))
-    if watchdog_left:
+    pid = watchdog_pid()
+    if watchdog == "denied":
+        # Still polling. It skips while the backend is down (watchdog_action
+        # returns skip-backend-down) but reasserts the funnel once it is back.
         if "docker compose down" in failed:
             when = (
                 "the backend may still be up, and then it re-opens the funnel"
@@ -1248,11 +1264,20 @@ def cmd_down() -> int:
         else:
             when = "it will re-open the funnel as soon as the backend comes back up"
             advice = "kill it before then"
-        pid = watchdog_pid()
         print(
             _c(f"  ✗ the watchdog (pid {pid}) is still running; {when}; {advice}.", "31")
         )
-    if failed or watchdog_left:
+    elif watchdog == "busy":
+        # Took SIGTERM, so it exits after this step and polls no more; only the
+        # step it is in (possibly a reassert) can still touch the funnel.
+        print(
+            _c(
+                f"  ✗ the watchdog (pid {pid}) took SIGTERM but is still finishing a"
+                " step; once it exits, check `tailscale funnel status`, or kill it.",
+                "31",
+            )
+        )
+    if failed or watchdog in ("denied", "busy"):
         return 1
     print("  ● done — stack + funnel stopped; Docker Desktop & Tailscale left running.")
     return 0
