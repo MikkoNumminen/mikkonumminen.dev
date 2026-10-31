@@ -133,3 +133,71 @@ def test_check_funnel_warns_rather_than_claiming_off(
     _stub_tailscale(monkeypatch, 124, "")
     state, _ = check_funnel()
     assert state == "warn"
+
+
+# --- `ragctl down`'s funnel step ---------------------------------------------
+
+
+def _down_with(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    off_rc: int,
+    status: str,
+    ts: str | None = "tailscale.exe",
+    compose_rc: int = 0,
+    watchdog_pid: int | None = None,
+) -> int:
+    def fake_run(cmd: list[str], **k: object) -> tuple[int, str]:
+        if cmd[-1] == "off":
+            return (off_rc, "")
+        if cmd[-1] == "--json":
+            return (0, status)
+        return (compose_rc, "")
+
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: ts)
+    monkeypatch.setattr(ragctl, "run", fake_run)
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: watchdog_pid is None)
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: watchdog_pid)
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+    return ragctl.cmd_down()
+
+
+def test_down_treats_an_already_removed_route_as_off(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    # `funnel --https=443 off` exits 1 ("handler does not exist") on a second
+    # `down`; the route is gone, which is what `down` wants.
+    assert _down_with(monkeypatch, off_rc=1, status=_OTHER_PROJECT_ONLY) == 0
+    assert "● done" in capsys.readouterr().out
+
+
+def test_down_fails_when_the_route_survives_a_failed_off(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    assert _down_with(monkeypatch, off_rc=1, status=_BOTH_ROUTES) == 1
+    assert "failed: funnel off" in capsys.readouterr().out
+
+
+def test_down_fails_when_the_status_after_a_failed_off_is_unreadable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert _down_with(monkeypatch, off_rc=1, status="") == 1
+
+
+def test_down_fails_when_tailscale_is_not_found(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    assert _down_with(monkeypatch, off_rc=0, status="", ts=None) == 1
+    out = capsys.readouterr().out
+    assert "tailscale.exe not found" in out
+    assert "● done" not in out
+
+
+def test_down_says_kill_now_when_compose_failed_and_the_watchdog_survives(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    rc = _down_with(monkeypatch, off_rc=0, status="", compose_rc=1, watchdog_pid=555)
+    assert rc == 1
+    out = capsys.readouterr().out
+    assert "within minutes" in out
+    assert "kill it now" in out

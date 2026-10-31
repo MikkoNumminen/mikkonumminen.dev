@@ -1191,22 +1191,33 @@ def cmd_down() -> int:
     if run(COMPOSE + ["down"], cwd=REPO, timeout=120)[0] != 0:
         failed.append("docker compose down")
     ts = tailscale_exe()
-    if ts:
+    if not ts:
+        # Not finding the exe (e.g. WSL interop off) says nothing about the route,
+        # which tailscaled keeps configured across restarts of the backend.
+        failed.append("funnel off (tailscale.exe not found)")
+    else:
         print("  ◐ funnel off …")
         # `--https=443 off` cuts ONLY this project's funnel port. The node is
         # shared with other projects' funnels, so a blanket `funnel off`/`reset`
         # is deliberately avoided — it would cut theirs too.
         if run([ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20)[0] != 0:
-            failed.append("funnel off")
+            # It also exits non-zero when the route is already gone (a second
+            # `down`), so only a route still present, or unreadable status, fails.
+            routes = funnel_routes(run([ts, "funnel", "status", "--json"], timeout=10)[1])
+            if routes is None or funnel_serves_port(routes, FUNNEL_PORT):
+                failed.append("funnel off")
     if failed:
         print(_c(f"  ✗ failed: {', '.join(failed)}; the endpoint may still be up.", "31"))
     if watchdog_left:
+        if "docker compose down" in failed:
+            when = "the backend is still up, so it will re-open the funnel within minutes"
+            advice = "kill it now"
+        else:
+            when = "it will re-open the funnel as soon as the backend comes back up"
+            advice = "kill it before then"
+        pid = watchdog_pid()
         print(
-            _c(
-                f"  ✗ the watchdog (pid {watchdog_pid()}) is still running; kill it"
-                " before the backend comes back up, or it will re-open the funnel.",
-                "31",
-            )
+            _c(f"  ✗ the watchdog (pid {pid}) is still running; {when}; {advice}.", "31")
         )
     if failed or watchdog_left:
         return 1
