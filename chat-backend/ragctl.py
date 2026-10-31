@@ -1177,7 +1177,16 @@ def cmd_verify(full: bool = False) -> int:
 def cmd_down() -> int:
     print(_c("\n  cutting the rag …", "1"))
     # Stop the watchdog BEFORE cutting the funnel, or it would fight the shutdown.
-    stop_watchdog_daemon()
+    # False means either none was running or it could not be signalled; only
+    # the second leaves its pid file pointing at a live watchdog.
+    if not stop_watchdog_daemon() and watchdog_pid() is not None:
+        print(
+            _c(
+                "  ✗ aborted: the watchdog is still running; stack and funnel left up.",
+                "31",
+            )
+        )
+        return 1
     print("  ◐ docker compose down (frees VRAM) …")
     run(COMPOSE + ["down"], cwd=REPO, timeout=120)
     ts = tailscale_exe()

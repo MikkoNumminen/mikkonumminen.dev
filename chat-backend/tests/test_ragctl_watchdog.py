@@ -269,6 +269,36 @@ def test_down_stops_watchdog_before_cutting_the_funnel(
     assert calls.index("stop-watchdog") < funnel_off
 
 
+def test_down_aborts_when_the_watchdog_could_not_be_stopped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: False)
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+    monkeypatch.setattr(
+        ragctl, "run", lambda cmd, **k: calls.append(" ".join(cmd)) or (0, "")
+    )
+    assert ragctl.cmd_down() == 1
+    assert calls == []  # neither compose down nor funnel off ran
+
+
+def test_down_proceeds_when_no_watchdog_was_running(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: False)
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+    monkeypatch.setattr(
+        ragctl, "run", lambda cmd, **k: calls.append(" ".join(cmd)) or (0, "")
+    )
+    assert ragctl.cmd_down() == 0
+    assert any("funnel" in c and "off" in c for c in calls)
+
+
 def test_up_autostarts_the_watchdog_unless_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
