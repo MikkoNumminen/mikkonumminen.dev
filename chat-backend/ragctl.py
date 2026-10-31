@@ -2322,7 +2322,9 @@ def cmd_logs(n: int) -> int:
             )
         )
         return 0
-    lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
+    # split("\n"), not splitlines(): records written before U+2028/U+2029/U+0085
+    # were escaped can still hold them raw inside a JSON string.
+    lines = log.read_text(encoding="utf-8", errors="ignore").split("\n")
     kept = [ln for ln in lines if ln.strip()]
     shown = kept[-n:] if n > 0 else []
     print(_c(f"\n  last {len(shown)} request(s):\n", "1"))

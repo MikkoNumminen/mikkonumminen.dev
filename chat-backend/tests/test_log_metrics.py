@@ -48,3 +48,9 @@ def test_aggregate_survives_malformed_lines() -> None:
     out = aggregate(["not json", "", _line()])
     assert out["malformed_lines"] == 1
     assert out["answered"] == 1
+
+
+def test_aggregate_counts_valid_json_that_is_not_a_record_as_malformed() -> None:
+    out = aggregate(["1", '"x"', "[]", _line()])
+    assert out["malformed_lines"] == 3
+    assert out["answered"] == 1
