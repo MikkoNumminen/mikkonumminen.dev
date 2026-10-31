@@ -201,6 +201,27 @@ def _down_with(
     return ragctl.cmd_down()
 
 
+def test_down_removes_only_the_rag_mount_on_443(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Without --set-path, `funnel --https=443 off` drops every handler on the
+    # port, including ReadLog's /readlog-laravel, and turns funnel off there.
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **k: object) -> tuple[int, str]:
+        calls.append(cmd)
+        return (0, "")
+
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "run", fake_run)
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: ("none", None))
+    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+    assert ragctl.cmd_down() == 0
+    off = [c for c in calls if c[0] == "tailscale.exe" and c[-1] == "off"]
+    assert off == [["tailscale.exe", "funnel", "--https=443", "--set-path=/", "off"]]
+
+
 def test_down_treats_an_already_removed_route_as_off(
     monkeypatch: pytest.MonkeyPatch, capsys
 ) -> None:

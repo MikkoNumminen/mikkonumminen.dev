@@ -1250,12 +1250,15 @@ def cmd_down() -> int:
         failed.append("funnel off (tailscale.exe not found)")
     else:
         print("  ◐ funnel off …")
-        # `--https=443 off` cuts ONLY this project's funnel port. The node is
-        # shared with other projects' funnels, so a blanket `funnel off`/`reset`
-        # is deliberately avoided — it would cut theirs too.
+        # The node is shared with other projects' funnels, so a blanket
+        # `funnel off`/`reset` is deliberately avoided. `--set-path=/` matters
+        # too: without it, tailscale (1.102) removes EVERY handler on :443,
+        # including ReadLog's /readlog-laravel, and turns funnel off on the
+        # port; its "are you sure?" prompt defaults to yes with no TTY.
         try:
             off_rc = run(
-                [ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20
+                [ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "--set-path=/", "off"],
+                timeout=20,
             )[0]
             # It also exits non-zero when the route is already gone (a second
             # `down`), so only a route still present, or unreadable status, fails.
