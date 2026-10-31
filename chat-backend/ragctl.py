@@ -1054,12 +1054,9 @@ def stop_watchdog_daemon() -> tuple[str, int | None]:
     # SIGTERM only sets the watchdog's stop flag: it finishes an in-flight step
     # first, and a reassert finishing after `down`'s funnel-off would re-publish
     # the route. So wait for it to actually exit.
-    if _cmdline_is_watchdog(_proc_argv(pid)):
-        print(
-            f"  ◐ waiting for the watchdog (pid {pid}) to finish its current step"
-            f" (up to {WATCHDOG_STOP_TIMEOUT_S}s) …"
-        )
-    exited = _wait_for_watchdog_exit(pid, WATCHDOG_STOP_TIMEOUT_S)
+    exited = _wait_for_watchdog_exit(
+        pid, WATCHDOG_STOP_TIMEOUT_S, announce_after_s=WATCHDOG_ANNOUNCE_AFTER_S
+    )
     # Unlinked even when it is still busy: it polls no more after this step, so
     # the next `up` must start a fresh watchdog rather than adopt this one.
     WATCHDOG_PID_FILE.unlink(missing_ok=True)
@@ -1074,19 +1071,36 @@ def stop_watchdog_daemon() -> tuple[str, int | None]:
 # `tailscale down` (25 s), `up` (40 s) and `status` (10 s), about 103 s of
 # nominal timeouts. A reassert, the step that can re-publish the route, is ~48 s.
 WATCHDOG_STOP_TIMEOUT_S = 120
+# An idle watchdog exits within ~1 s of SIGTERM; only say we are waiting once
+# it has clearly gone past that, or every ordinary `down` announces a wait.
+WATCHDOG_ANNOUNCE_AFTER_S = 2.0
 
 
-def _wait_for_watchdog_exit(pid: int, timeout_s: float) -> bool:
+def _wait_for_watchdog_exit(
+    pid: int, timeout_s: float, announce_after_s: float | None = None
+) -> bool:
     """True once `pid` is no longer the watchdog; False on timeout or Ctrl-C.
 
     Ctrl-C counts as giving up on the wait, not on `down`: the shutdown steps
     after this must still run.
     """
-    deadline = time.monotonic() + timeout_s
+    start = time.monotonic()
+    announced = False
     try:
         while _cmdline_is_watchdog(_proc_argv(pid)):
-            if time.monotonic() >= deadline:
+            elapsed = time.monotonic() - start
+            if elapsed >= timeout_s:
                 return False
+            if (
+                announce_after_s is not None
+                and not announced
+                and elapsed >= announce_after_s
+            ):
+                print(
+                    f"  ◐ waiting for the watchdog (pid {pid}) to finish its current"
+                    f" step (up to {timeout_s:.0f}s) …"
+                )
+                announced = True
             time.sleep(0.5)
     except KeyboardInterrupt:
         return False

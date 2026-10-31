@@ -241,6 +241,32 @@ def test_stop_reports_a_watchdog_that_outlives_the_timeout(
     assert not pidfile.exists()
 
 
+def _fake_clock(monkeypatch: pytest.MonkeyPatch, alive_ticks: int) -> None:
+    """The watchdog stays alive for `alive_ticks` polls, each 0.5 s of fake time."""
+    now = [0.0]
+    alive = iter([True] * alive_ticks + [False])
+    monkeypatch.setattr(ragctl.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(ragctl.time, "sleep", lambda s: now.__setitem__(0, now[0] + s))
+    monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: next(alive))
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
+
+
+def test_an_idle_watchdog_stops_without_a_wait_message(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    _fake_clock(monkeypatch, alive_ticks=1)  # gone after 0.5 s
+    assert ragctl._wait_for_watchdog_exit(555, 120, announce_after_s=2.0) is True
+    assert "waiting for the watchdog" not in capsys.readouterr().out
+
+
+def test_a_busy_watchdog_gets_one_wait_message(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    _fake_clock(monkeypatch, alive_ticks=10)  # still there after 2 s, gone by 5 s
+    assert ragctl._wait_for_watchdog_exit(555, 120, announce_after_s=2.0) is True
+    assert capsys.readouterr().out.count("waiting for the watchdog (pid 555)") == 1
+
+
 def test_ctrl_c_during_the_wait_gives_up_on_the_wait_not_on_down(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
