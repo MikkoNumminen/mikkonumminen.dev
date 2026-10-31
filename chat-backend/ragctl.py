@@ -304,8 +304,12 @@ def ensure_request_log() -> None:
     # group or a separate exchange dir, which has not been done yet. Until then
     # the sticky bit (the 1 in 0o1777) keeps uid 10001, or any other user, from
     # unlinking or replacing the operator's files, while the operator as dir
-    # owner can still remove the container's. (On a Windows Docker Desktop host
-    # the chmod is a near no-op; writability comes from the mount translation.)
+    # owner can still remove the container's. It only covers files that exist:
+    # watchdog.pid is absent between `down` and the next watchdog start, and a
+    # name created first by uid 10001 in that window would block the operator's
+    # write. That gap is part of the accepted risk until the files move out.
+    # (On a Windows Docker Desktop host the chmod is a near no-op; writability
+    # comes from the mount translation.)
     try:
         RAG_LOG_DIR.mkdir(parents=True, exist_ok=True)
         os.chmod(RAG_LOG_DIR, 0o1777)
