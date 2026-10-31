@@ -40,7 +40,6 @@ class Arm(Protocol):
     def measure(self, eval_set_path: str) -> dict[str, Any]:
         """One per-arm measurement: {observed_lock, vram_mb, retrieval (rows),
         synthesis (tallies), containment (tallies)}."""
-        ...
 
 
 def run(
