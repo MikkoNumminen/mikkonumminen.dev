@@ -297,11 +297,14 @@ def ensure_request_log() -> None:
     # (CodeQL py/overly-permissive-file stays open on this line). The backend
     # writes the log as uid 10001 (USER appuser in chat-backend/Dockerfile) into
     # this operator-owned dir through the bind mount in docker-compose.yml. The
-    # operator writes here too: watchdog.pid and watchdog.log, and the input
-    # files for eval runs whose outputs the container writes back beside them
-    # (the fi_*.jsonl and poro-*.json files). With writers on both uids, a mode
-    # owned by either side alone breaks the other; narrowing it needs a shared
-    # group or a separate exchange dir, which has not been done yet. Until then
+    # operator writes here too: watchdog.pid and watchdog.log, and inputs for
+    # one-off eval scripts that run inside the container and write their output
+    # back beside them (e.g. poro-triples.json -> poro-reviews.jsonl, and the
+    # fi_*.jsonl runs). Those scripts are ad hoc and live outside the tracked
+    # tree (the gitignored .local/), so no code here names those files. With
+    # writers on both uids, a mode owned by either side alone breaks the other;
+    # narrowing it needs a shared group or a separate exchange dir, which has
+    # not been done yet. Until then
     # the sticky bit (the 1 in 0o1777) keeps uid 10001, or any other user, from
     # unlinking or replacing the operator's files, while the operator as dir
     # owner can still remove the container's. It only covers files that exist:
