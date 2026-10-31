@@ -9,6 +9,7 @@ are pinned here without touching tailscale or the network.
 
 from __future__ import annotations
 
+import json
 import urllib.request
 
 import pytest
@@ -201,7 +202,7 @@ def test_stop_kills_running_watchdog(monkeypatch: pytest.MonkeyPatch, tmp_path) 
     killed: list[tuple[int, int]] = []
     monkeypatch.setattr(ragctl.os, "kill", lambda pid, sig: killed.append((pid, sig)))
     monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: None)  # exits at once
-    assert ragctl.stop_watchdog_daemon() == "stopped"
+    assert ragctl.stop_watchdog_daemon() == ("stopped", 555)
     assert killed == [(555, ragctl.signal.SIGTERM)]
     assert not pidfile.exists()  # pid file cleaned up
 
@@ -220,7 +221,7 @@ def test_stop_waits_for_the_watchdog_to_finish_its_step(
     monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: next(alive))
     monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
     monkeypatch.setattr(ragctl.time, "sleep", lambda s: None)
-    assert ragctl.stop_watchdog_daemon() == "stopped"
+    assert ragctl.stop_watchdog_daemon() == ("stopped", 555)
     assert not pidfile.exists()
 
 
@@ -235,8 +236,9 @@ def test_stop_reports_a_watchdog_that_outlives_the_timeout(
     monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: True)
     monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
     monkeypatch.setattr(ragctl, "WATCHDOG_STOP_TIMEOUT_S", 0)
-    assert ragctl.stop_watchdog_daemon() == "busy"
-    assert pidfile.read_text() == "555"  # still names the live watchdog
+    assert ragctl.stop_watchdog_daemon() == ("busy", 555)
+    # It polls no more after this step, so the next `up` must not adopt it.
+    assert not pidfile.exists()
 
 
 def test_ctrl_c_during_the_wait_gives_up_on_the_wait_not_on_down(
@@ -255,16 +257,58 @@ def test_ctrl_c_during_the_wait_gives_up_on_the_wait_not_on_down(
 def test_down_reports_a_watchdog_still_finishing_a_step(
     monkeypatch: pytest.MonkeyPatch, capsys
 ) -> None:
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "busy")
-    monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: ("busy", 555))
+    monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: True)  # still busy
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: ["x"])
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
     monkeypatch.setattr(ragctl, "run", lambda cmd, **k: (0, ""))
     assert ragctl.cmd_down() == 1
     out = capsys.readouterr().out
-    assert "took SIGTERM but is still finishing a step" in out
+    assert "(pid 555) took SIGTERM but is still finishing a step" in out
+    assert "tailscale.exe funnel status" in out
+    assert "kill" not in out  # kill -9 mid-reconnect would strand the shared node
     assert "re-open the funnel as soon as" not in out  # it polls no more
     assert "● done" not in out
+
+
+def _down_after_a_busy_watchdog_exits(
+    monkeypatch: pytest.MonkeyPatch, status: str
+) -> int:
+    def fake_run(cmd: list[str], **k: object) -> tuple[int, str]:
+        return (0, status) if cmd[-1] == "--json" else (0, "")
+
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: ("busy", 555))
+    monkeypatch.setattr(ragctl, "_cmdline_is_watchdog", lambda argv: False)  # exited
+    monkeypatch.setattr(ragctl, "_proc_argv", lambda pid: None)
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+    monkeypatch.setattr(ragctl, "run", fake_run)
+    return ragctl.cmd_down()
+
+
+def test_down_checks_the_route_when_a_busy_watchdog_exits_during_shutdown(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    assert _down_after_a_busy_watchdog_exits(monkeypatch, "{}") == 0
+    out = capsys.readouterr().out
+    assert "pid None" not in out
+    assert "● done" in out
+
+
+def test_down_fails_when_a_busy_watchdogs_last_step_re_published_the_route(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    status = json.dumps(
+        {
+            "Web": {
+                "h.ts.net:443": {"Handlers": {"/": {"Proxy": "http://127.0.0.1:8000"}}}
+            },
+            "AllowFunnel": {"h.ts.net:443": True},
+        }
+    )
+    assert _down_after_a_busy_watchdog_exits(monkeypatch, status) == 1
+    assert "re-published it" in capsys.readouterr().out
 
 
 def test_down_reports_a_funnel_exe_that_cannot_execute(
@@ -276,7 +320,7 @@ def test_down_reports_a_funnel_exe_that_cannot_execute(
             raise OSError(8, "Exec format error")
         return (0, "")
 
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "none")
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: ("none", None))
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
@@ -299,7 +343,7 @@ def test_stop_treats_an_already_exited_watchdog_as_stopped(
         raise ProcessLookupError
 
     monkeypatch.setattr(ragctl.os, "kill", gone)
-    assert ragctl.stop_watchdog_daemon() == "stopped"
+    assert ragctl.stop_watchdog_daemon() == ("stopped", 555)
     assert not pidfile.exists()
 
 
@@ -315,7 +359,7 @@ def test_stop_keeps_the_pid_file_when_the_watchdog_cannot_be_signalled(
         raise PermissionError
 
     monkeypatch.setattr(ragctl.os, "kill", denied)
-    assert ragctl.stop_watchdog_daemon() == "denied"
+    assert ragctl.stop_watchdog_daemon() == ("denied", 555)
     assert pidfile.read_text() == "555"
 
 
@@ -324,7 +368,7 @@ def test_stop_is_a_noop_when_not_running(
 ) -> None:
     monkeypatch.setattr(ragctl, "WATCHDOG_PID_FILE", tmp_path / "watchdog.pid")
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
-    assert ragctl.stop_watchdog_daemon() == "none"
+    assert ragctl.stop_watchdog_daemon() == ("none", None)
 
 
 def test_down_stops_watchdog_before_cutting_the_funnel(
@@ -335,7 +379,9 @@ def test_down_stops_watchdog_before_cutting_the_funnel(
     # deliberately turning off.
     calls: list[str] = []
     monkeypatch.setattr(
-        ragctl, "stop_watchdog_daemon", lambda: calls.append("stop-watchdog") or "stopped"
+        ragctl,
+        "stop_watchdog_daemon",
+        lambda: calls.append("stop-watchdog") or ("stopped", None),
     )
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
@@ -357,7 +403,7 @@ def test_down_still_takes_the_endpoint_offline_when_the_watchdog_survives(
     # `down` is the off switch for the public endpoint, so a watchdog it could
     # not signal must not stop the shutdown; it only stops the success claim.
     calls: list[str] = []
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "denied")
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: ("denied", 555))
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: 555)
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
@@ -377,7 +423,7 @@ def test_down_reports_a_failed_shutdown_step(
     monkeypatch: pytest.MonkeyPatch, capsys
 ) -> None:
     calls: list[str] = []
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "stopped")
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: ("stopped", None))
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
 
@@ -422,7 +468,7 @@ def test_down_proceeds_when_no_watchdog_was_running(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: "none")
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: ("none", None))
     monkeypatch.setattr(ragctl, "watchdog_pid", lambda: None)
     monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
     monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
