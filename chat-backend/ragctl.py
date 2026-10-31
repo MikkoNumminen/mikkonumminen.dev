@@ -1364,6 +1364,7 @@ def cmd_test(question: str) -> int:
     first: float | None = None
     parts: list[str] = []
     sources: list[str] = []
+    dropped = 0
     event = None
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
@@ -1378,18 +1379,18 @@ def cmd_test(question: str) -> int:
                             first = time.time() - start
                         try:
                             parts.append(json.loads(data).get("text", ""))
-                        except json.JSONDecodeError:
-                            # One garbled frame shouldn't abort the whole probe.
-                            pass
+                        except (json.JSONDecodeError, AttributeError):
+                            # Keep reading so the rest of the answer still shows,
+                            # but the probe reports the stream as broken below.
+                            dropped += 1
                     elif event == "sources":
                         try:
                             sources = [
                                 s.get("source", "")
                                 for s in json.loads(data).get("sources", [])
                             ]
-                        except json.JSONDecodeError:
-                            # The answer still prints; only the source list is lost.
-                            pass
+                        except (json.JSONDecodeError, AttributeError):
+                            dropped += 1
                     elif event == "error":
                         print(f"  {_c('✗ error frame', '31')}: {data}")
                         return 1
@@ -1404,6 +1405,11 @@ def cmd_test(question: str) -> int:
         print("  sources: " + ", ".join(s for s in sources if s))
     ttft = f"{first:.1f}s" if first is not None else "—"
     print(f"  {len(answer)} chars · first token {ttft} · total {elapsed:.1f}s\n")
+    if dropped:
+        print(
+            f"  {_c(f'✗ {dropped} malformed frame(s) dropped', '31')}: the stream is broken\n"
+        )
+        return 1
     return 0
 
 
