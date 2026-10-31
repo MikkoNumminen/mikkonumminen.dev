@@ -286,28 +286,54 @@ def test_down_still_takes_the_endpoint_offline_when_the_watchdog_survives(
     assert "docker compose down" in calls
     assert any("funnel" in c and "off" in c for c in calls)
     out = capsys.readouterr().out
-    assert "watchdog is still running" in out
+    assert "watchdog (pid 555) is still running" in out
+    assert "re-open the funnel" in out
     assert "● done" not in out
 
 
-def test_a_surviving_watchdog_cannot_restore_the_funnel_once_the_backend_is_down() -> (
+def test_down_reports_a_failed_shutdown_step(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(ragctl, "stop_watchdog_daemon", lambda: True)
+    monkeypatch.setattr(ragctl, "tailscale_exe", lambda: "tailscale.exe")
+    monkeypatch.setattr(ragctl, "_c", lambda s, *a: s)
+
+    def fake_run(cmd: list[str], **k: object) -> tuple[int, str]:
+        calls.append(" ".join(cmd))
+        return (1, "boom") if cmd[-1] == "down" else (0, "")
+
+    monkeypatch.setattr(ragctl, "run", fake_run)
+    assert ragctl.cmd_down() == 1
+    assert any("funnel" in c and "off" in c for c in calls)  # still attempted
+    out = capsys.readouterr().out
+    assert "failed: docker compose down" in out
+    assert "● done" not in out
+
+
+def _watchdog_after_two_failed_polls(local_ok: bool) -> str:
+    return ragctl.watchdog_action(
+        external_ok=False,
+        local_ok=local_ok,
+        uplink_ok=True,
+        consecutive_failures=2,
+        fail_threshold=2,
+        reasserted_this_outage=False,
+        reconnects_this_outage=0,
+        reconnect_cap=3,
+    )
+
+
+def test_a_surviving_watchdog_cannot_restore_the_funnel_while_the_backend_is_down() -> (
     None
 ):
-    # The premise of the test above: with the local backend down, the watchdog
-    # skips instead of reasserting or reconnecting the funnel.
-    assert (
-        ragctl.watchdog_action(
-            external_ok=False,
-            local_ok=False,
-            uplink_ok=True,
-            consecutive_failures=5,
-            fail_threshold=2,
-            reasserted_this_outage=False,
-            reconnects_this_outage=0,
-            reconnect_cap=3,
-        )
-        == "skip-backend-down"
-    )
+    # Why `down` still runs the shutdown past a watchdog it could not stop.
+    assert _watchdog_after_two_failed_polls(local_ok=False) == "skip-backend-down"
+
+
+def test_a_surviving_watchdog_re_publishes_the_funnel_once_the_backend_is_back() -> None:
+    # Why `down` warns about it: the off switch is not sticky while it lives.
+    assert _watchdog_after_two_failed_polls(local_ok=True) == "reassert"
 
 
 def test_down_proceeds_when_no_watchdog_was_running(

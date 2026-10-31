@@ -1180,22 +1180,35 @@ def cmd_down() -> int:
     print(_c("\n  cutting the rag …", "1"))
     # Stop the watchdog BEFORE cutting the funnel, or it would fight the shutdown.
     # False means either none was running or it could not be signalled; only
-    # the second leaves its pid file pointing at a live watchdog. That one can't
-    # restore the funnel once the backend is down (watchdog_action skips while
-    # the local backend fails), so the shutdown still runs; `down` just doesn't
-    # claim success.
+    # the second leaves its pid file pointing at a live watchdog. The shutdown
+    # still runs, because that watchdog can't restore the funnel while the
+    # backend is down (watchdog_action skips while the local backend fails). It
+    # will re-publish it as soon as anything brings the backend back, so `down`
+    # reports it instead of claiming success.
     watchdog_left = not stop_watchdog_daemon() and watchdog_pid() is not None
+    failed: list[str] = []
     print("  ◐ docker compose down (frees VRAM) …")
-    run(COMPOSE + ["down"], cwd=REPO, timeout=120)
+    if run(COMPOSE + ["down"], cwd=REPO, timeout=120)[0] != 0:
+        failed.append("docker compose down")
     ts = tailscale_exe()
     if ts:
         print("  ◐ funnel off …")
         # `--https=443 off` cuts ONLY this project's funnel port. The node is
         # shared with other projects' funnels, so a blanket `funnel off`/`reset`
         # is deliberately avoided — it would cut theirs too.
-        run([ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20)
+        if run([ts, "funnel", f"--https={FUNNEL_HTTPS_PORT}", "off"], timeout=20)[0] != 0:
+            failed.append("funnel off")
+    if failed:
+        print(_c(f"  ✗ failed: {', '.join(failed)}; the endpoint may still be up.", "31"))
     if watchdog_left:
-        print(_c("  ✗ stack + funnel stopped, but the watchdog is still running.", "31"))
+        print(
+            _c(
+                f"  ✗ the watchdog (pid {watchdog_pid()}) is still running; kill it"
+                " before the backend comes back up, or it will re-open the funnel.",
+                "31",
+            )
+        )
+    if failed or watchdog_left:
         return 1
     print("  ● done — stack + funnel stopped; Docker Desktop & Tailscale left running.")
     return 0
